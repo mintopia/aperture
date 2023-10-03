@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\IpAddress;
+use App\Services\Firewalls\OpnSense;
+use Illuminate\Console\Command;
+
+class TestCommand extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'aperture:test';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Quick Testing';
+
+    /**
+     * Execute the console command.
+     */
+    public function handle()
+    {
+        $ip = IpAddress::first();
+        $ip->allow();
+    }
+}

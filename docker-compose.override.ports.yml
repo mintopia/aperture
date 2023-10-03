@@ -1,0 +1,11 @@
+services:
+  nginx:
+    ports:
+      - 8000:80
+  websockets:
+    ports:
+      - 6001:6001
+
+networks:
+  frontend:
+    external: true

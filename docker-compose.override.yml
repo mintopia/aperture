@@ -1,0 +1,12 @@
+services:
+  nginx:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx-aperture.rule=Host(`aperture2.local.js42.io`)"
+    networks:
+      - default
+      - frontend
+
+networks:
+  frontend:
+    external: true
