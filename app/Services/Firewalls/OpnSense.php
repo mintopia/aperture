@@ -12,8 +12,10 @@ use Psr\Http\Message\ResponseInterface;
 class OpnSense implements FirewallBackendInterface
 {
     protected int $zoneId;
-    protected string $aliasUuid;
     protected Client $client;
+
+    protected string $uploadRuleUuid;
+    protected string $downloadRuleUuid;
 
     /**
      * @param string $uri
@@ -63,7 +65,7 @@ class OpnSense implements FirewallBackendInterface
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new BackendException("Unable to decode response");
         }
-        return (object) $json;
+        return (object)$json;
     }
 
 
@@ -91,7 +93,8 @@ class OpnSense implements FirewallBackendInterface
     public function __construct()
     {
         $this->zoneId = config('aperture.opnsense.zoneid');
-        $this->aliasUuid = config('aperture.opnsense.ratelimituuid');
+        $this->uploadRuleUuid = config('aperture.opnsense.ratelimitUpUuid');
+        $this->downloadRuleUuid = config('aperture.opnsense.ratelimitDownUuid');
 
         $this->client = new Client([
             'verify' => config('aperture.opnsense.verify'),
@@ -136,7 +139,7 @@ class OpnSense implements FirewallBackendInterface
         if (!is_object($response)) {
             throw new BackendException("Response is malformed");
         }
-        $response = (array) $response;
+        $response = (array)$response;
         foreach ($response as $session) {
             if (!is_object($session) || !property_exists($session, 'sessionId') || !property_exists($session, 'ipAddress')) {
                 continue;
@@ -168,7 +171,7 @@ class OpnSense implements FirewallBackendInterface
         if (!is_object($zones)) {
             throw new BackendException("Response is malformed");
         }
-        $zones = (array) $zones;
+        $zones = (array)$zones;
 
         foreach ($zones as $uuid => $zone) {
             if (!is_object($zone) || !property_exists($zone, 'zoneid')) {
@@ -180,7 +183,7 @@ class OpnSense implements FirewallBackendInterface
 
             $allowed = [];
             if (property_exists($zone, 'allowedAddresses') && is_object($zone->allowedAddresses)) {
-                $zoneAllowed = (array) $zone->allowedAddresses;
+                $zoneAllowed = (array)$zone->allowedAddresses;
                 foreach ($zoneAllowed as $ip) {
                     $allowed[] = $ip->value;
                 }
@@ -207,20 +210,35 @@ class OpnSense implements FirewallBackendInterface
 
     public function limitIp(string $ip): FirewallBackendInterface
     {
-        $alias = $this->getAlias();
-        $hosts = $this->getHosts($alias);
-
-        $hosts[] = $ip;
-        $hosts = array_unique($hosts);
-
-        $this->updateAlias($alias, $hosts);
+        $this->addHostToRule($this->downloadRuleUuid, $ip, 'destination');
+        $this->addHostToRule($this->uploadRuleUuid, $ip, 'source');
+        $this->applyShaperRules();
         return $this;
     }
 
     public function unlimitIp(string $ip): FirewallBackendInterface
     {
-        $alias = $this->getAlias();
-        $hosts = $this->getHosts($alias);
+        $this->removeHostFromRule($this->downloadRuleUuid, $ip, 'destination');
+        $this->removeHostFromRule($this->uploadRuleUuid, $ip, 'source');
+        $this->applyShaperRules();
+        return $this;
+    }
+
+    protected function addHostToRule(string $uuid, string $ip, string $propName): void
+    {
+        $rule = $this->getShaperRule($uuid);
+        $hosts = $this->filter($rule->rule->{$propName});
+
+        $hosts[] = $ip;
+        $hosts = array_unique($hosts);
+
+        $this->updateShaperRule($uuid, $rule, $propName, $hosts);
+    }
+
+    protected function removeHostFromRule(string $uuid, string $ip, string $propName): void
+    {
+        $rule = $this->getShaperRule($uuid);
+        $hosts = $this->filter($rule->rule->{$propName});
 
         foreach ($hosts as $index => $value) {
             if ($value === $ip) {
@@ -228,61 +246,59 @@ class OpnSense implements FirewallBackendInterface
             }
         }
 
-        $this->updateAlias($alias, $hosts);
-        return $this;
+        $this->updateShaperRule($uuid, $rule, $propName, $hosts);
     }
 
-    protected function getAlias(): \stdClass
+    protected function getShaperRule(string $uuid): \stdClass
     {
-        $result = $this->get("/api/firewall/alias/getItem/{$this->aliasUuid}");
-        foreach ($result->alias->type as $type => $data) {
-            if ($data->selected === 1 && $type !== 'host') {
-                throw new BackendException('Unable to work with aliases that are not host aliases');
+        return $this->get("/api/trafficshaper/settings/getRule/{$uuid}");
+    }
+
+    protected function filter(array|\stdClass $objects): array
+    {
+        if (!is_array($objects)) {
+            $objects = (array)$objects;
+        }
+        $result = [];
+        foreach ($objects as $value => $obj) {
+            if ($obj->selected) {
+                $result[] = $value;
             }
         }
         return $result;
     }
 
-    protected function getHosts(\stdClass $alias): array
+    protected function updateShaperRule(string $uuid, \stdClass $rule, string $propName, array $hosts): void
     {
-        $hosts = [];
-        foreach ($alias->alias->content as $aliasContent) {
-            if ($aliasContent->selected === 1) {
-                $hosts[] = $aliasContent->value;
-            }
-        }
-        return $hosts;
-    }
-
-    protected function updateAlias(\stdClass $alias, array $hosts): void
-    {
-        $categories = [];
-        foreach ($alias->alias->categories as $uuid => $cat) {
-            if ($cat->selected === 1) {
-                $categories[] = $uuid;
-            }
-        }
-
         $payload = (object)[
-            'alias' => (object)[
-                'categories' => implode(',', $categories),
-                'content' => implode("\n", $hosts),
-                'counters' => $alias->alias->counters,
-                'description' => $alias->alias->description,
-                'enabled' => $alias->alias->enabled,
-                'interface' => '',
-                'name' => $alias->alias->name,
-                'proto' => '',
-                'type' => 'host',
-                'updatefreq' => $alias->alias->updatefreq,
+            'rule' => (object)[
+                'description' => $rule->rule->description,
+                'destination_not' => $rule->rule->destination_not,
+                'direction' => implode(',', $this->filter($rule->rule->direction)),
+                'dscp' => implode(',', $this->filter($rule->rule->dscp)),
+                'dst_port' => $rule->rule->src_port,
+                'enabled' => $rule->rule->enabled,
+                'interface' => implode(',', $this->filter($rule->rule->interface)),
+                'interface2' => implode(',', $this->filter($rule->rule->interface2)),
+                'iplen' => $rule->rule->iplen,
+                'proto' => implode(',', $this->filter($rule->rule->proto)),
+                'sequence' => $rule->rule->sequence,
+                'source_not' => $rule->rule->source_not,
+                'src_port' => $rule->rule->src_port,
+                'target' => implode(',', $this->filter($rule->rule->target)),
             ],
-            'network_content' => '',
         ];
 
-        $response = $this->post("/api/firewall/alias/setItem/{$this->aliasUuid}", [], $payload);
+        $payload->rule->{$propName} = implode(',', $hosts);
+
+        $response = $this->post("/api/trafficshaper/settings/setRule/{$uuid}", [], $payload);
         if ($response->result !== 'saved') {
-            throw new BackendException('Unable to update aliases');
+            throw new BackendException('Unable to update shaper rule');
         }
-        $this->post('/api/firewall/alias/reconfigure');
+    }
+
+    protected function applyShaperRules(): void
+    {
+        $this->post('/api/trafficshaper/service/reconfigure');
     }
 }

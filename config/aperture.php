@@ -11,7 +11,8 @@ return [
         'secret' => env('APERTURE_OPNSENSE_SECRET'),
         'zoneid' => env('APERTURE_OPNSENSE_ZONEID'),
         'verify' => env('APERTURE_OPNSENSE_VERIFY', true),
-        'ratelimituuid' => env('APERTURE_OPNSENSE_RATELIMIT_UUID'),
+        'ratelimitUpUuid' => env('APERTURE_OPNSENSE_RATELIMIT_RULE_UP_UUID'),
+        'ratelimitDownUuid' => env('APERTURE_OPNSENSE_RATELIMIT_RULE_DOWN_UUID'),
     ],
     'lnms' => [
         'enabled' => env('APERTURE_LNMS_ENABLED'),

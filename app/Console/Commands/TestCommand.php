@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\IpAddress;
-use App\Services\Firewalls\OpnSense;
 use Illuminate\Console\Command;
 
 class TestCommand extends Command
@@ -28,6 +27,6 @@ class TestCommand extends Command
     public function handle()
     {
         $ip = IpAddress::first();
-        $ip->allow();
+        $ip->unlimit();
     }
 }
