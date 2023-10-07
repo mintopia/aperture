@@ -15,8 +15,19 @@ class IpAddressController extends Controller
     {
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
+            'address' => $request->input('address', ''),
+            'nickname' => $request->input('nickname', ''),
         ];
         $query = IpAddress::query()->with('users.user');
+
+        if ($filters->address) {
+            $query = $query->where('address', $filters->address);
+        }
+        if ($filters->nickname) {
+            $query = $query->whereHas('users.user', function($query) use ($filters) {
+                $query->where('nickname', 'LIKE', "%{$filters->nickname}%");
+            });
+        }
 
         $ips = $query->paginate($filters->perPage)->appends((array) $filters);
         return view('admin.ips.index', [

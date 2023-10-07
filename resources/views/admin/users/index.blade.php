@@ -13,8 +13,22 @@
     </div>
 @endsection
 @section('content')
-    <div class="row row-cards">
-        <div class="col-12">
+    <div class="row">
+        <div class="col-md-12 col-lg-3">
+            <form action="{{ route('admin.users.index') }}" method="get" class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Search</h3>
+                </div>
+                <div class="card-body">
+                    @include('admin.users.forms._search')
+                </div>
+                <div class="card-footer text-right">
+                    <button class="btn btn-primary ml-auto" type="submit">Search</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-9 col-md-12">
             <div class="card">
                 <div class="table-responsive">
                     <table class="table-responsive">

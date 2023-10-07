@@ -13,8 +13,19 @@ class UserController extends Controller
     {
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
+            'nickname' => $request->input('nickname', ''),
+            'ip' => $request->input('ip', ''),
         ];
         $query = User::query()->with('ips.ip')->with('roles');
+
+        if ($filters->nickname) {
+            $query = $query->where('nickname', $filters->nickname);
+        }
+        if ($filters->ip) {
+            $query = $query->whereHas('ips.ip', function($query) use ($filters) {
+                return $query->where('address', $filters->ip);
+            });
+        }
 
         $users = $query->paginate($filters->perPage)->appends((array) $filters);
         return view('admin.users.index', [
