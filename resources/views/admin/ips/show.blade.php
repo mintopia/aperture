@@ -15,35 +15,41 @@
                 <div class="col-auto ms-auto">
                     <div class="btn-list">
                         @if ($ip->allowed)
-                            <button class="btn btn-outline-danger d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#enableModal">
+                            <button class="btn btn-outline-danger d-none d-sm-inline-block" data-bs-toggle="modal"
+                                    data-bs-target="#enableModal">
                                 <i class="icon ti ti-world-off"></i>
                                 Disable Internet
                             </button>
                         @else
-                            <button class="btn btn-outline-success d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#enableModal">
+                            <button class="btn btn-outline-success d-none d-sm-inline-block" data-bs-toggle="modal"
+                                    data-bs-target="#enableModal">
                                 <i class="icon ti ti-world"></i>
                                 Enable Internet
                             </button>
                         @endif
                         @if ($ip->limited)
-                            <button class="btn btn-outline-success d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#ratelimitModal">
+                            <button class="btn btn-outline-success d-none d-sm-inline-block" data-bs-toggle="modal"
+                                    data-bs-target="#ratelimitModal">
                                 <i class="icon ti ti-brand-speedtest"></i>
                                 Remove Rate Limit
                             </button>
                         @else
-                            <button class="btn btn-outline-danger d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#ratelimitModal">
+                            <button class="btn btn-outline-danger d-none d-sm-inline-block" data-bs-toggle="modal"
+                                    data-bs-target="#ratelimitModal">
                                 <i class="icon ti ti-brand-speedtest"></i>
                                 Apply Rate Limit
                             </button>
                         @endif
                         @if ($port)
                             @if ($shutdown)
-                                <button class="btn btn-outline-success d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#portModal">
+                                <button class="btn btn-outline-success d-none d-sm-inline-block" data-bs-toggle="modal"
+                                        data-bs-target="#portModal">
                                     <i class="icon ti ti-plug-connected"></i>
                                     Enable Port
                                 </button>
                             @else
-                                <button class="btn btn-outline-danger d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#portModal">
+                                <button class="btn btn-outline-danger d-none d-sm-inline-block" data-bs-toggle="modal"
+                                        data-bs-target="#portModal">
                                     <i class="icon ti ti-plug-connected-x"></i>
                                     Disable Port
                                 </button>
@@ -67,7 +73,7 @@
                         </div>
                         <div class="datagrid-item">
                             <div class="datagrid-title">MAC Address</div>
-                            <div class="datagrid-content">{{ $ip->mac ?? 'Unknown' }}</div>
+                            <div class="datagrid-content">{{ $ip->mac ?  : 'Unknown' }}</div>
                         </div>
                         <div class="datagrid-item">
                             <div class="datagrid-title">Internet Access</div>
@@ -111,26 +117,26 @@
                 <div class="table-responsive">
                     <table class="table table-vcenter card-table table-striped">
                         <thead>
-                            <tr>
-                                <th>Nickname</th>
-                                <th>Last Login</th>
-                                <th>Blocked</th>
-                            </tr>
+                        <tr>
+                            <th>Nickname</th>
+                            <th>Last Login</th>
+                            <th>Blocked</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            @foreach ($users as $user)
-                                <tr>
-                                    <td>
-                                        <a href="{{ route('admin.users.show', ['user' => $user->user->id]) }}">
-                                            {{ $user->user->nickname }}
-                                        </a>
-                                    </td>
-                                    <td>{{ $user->last_seen_at->format('H:i:s d-M-Y') }}</td>
-                                    <td class="{{ $user->user->blocked ? 'text-danger' : 'text-success' }}">
-                                        {{ $user->user->blocked ? 'Yes' : 'No' }}
-                                    </td>
-                                </tr>
-                            @endforeach
+                        @foreach ($users as $user)
+                            <tr>
+                                <td>
+                                    <a href="{{ route('admin.users.show', ['user' => $user->user->id]) }}">
+                                        {{ $user->user->nickname }}
+                                    </a>
+                                </td>
+                                <td>{{ $user->last_seen_at->format('H:i:s d-M-Y') }}</td>
+                                <td class="{{ $user->user->blocked ? 'text-danger' : 'text-success' }}">
+                                    {{ $user->user->blocked ? 'Yes' : 'No' }}
+                                </td>
+                            </tr>
+                        @endforeach
                         </tbody>
                     </table>
                 </div>
@@ -158,7 +164,8 @@
                             </div>
                             <div class="datagrid-item">
                                 <div class="datagrid-title">Port Status</div>
-                                <div class="datagrid-content {{ $port->status === 'up' ? 'text-success' : 'text-danger' }}">
+                                <div
+                                    class="datagrid-content {{ $port->status === 'up' ? 'text-success' : 'text-danger' }}">
                                     {{ $port->status === 'up' ? 'Up' : 'Down' }}
                                 </div>
                             </div>
@@ -210,7 +217,9 @@
                 <div class="modal-body text-center py-4">
                     <i class="icon icon-lg ti ti-world text-{{ $ip->allowed ? 'danger' : 'success' }}"></i>
                     <h3>Are you sure?</h3>
-                    <div class="text-secondary">Do you want to {{ $ip->allowed ? 'disable' : 'enable' }} internet for <strong>{{ $ip->address }}</strong>?</div>
+                    <div class="text-secondary">Do you want to {{ $ip->allowed ? 'disable' : 'enable' }} internet for
+                        <strong>{{ $ip->address }}</strong>?
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <div class="w-100">
@@ -221,8 +230,10 @@
                             <div class="col">
                                 <form action="{{ route('admin.ips.internet', ['ip' => $ip]) }}" method="post">
                                     {{ csrf_field() }}
-                                    <input type="hidden" name="allow" value="{{ (int)!$ip->allowed }}" />
-                                    <input type="submit" class="btn btn-{{ $ip->allowed ? 'danger' : 'success' }} w-100" data-bs-dismiss="modal" value="{{ $ip->allowed ? 'Disable' : 'Enable' }} Internet">
+                                    <input type="hidden" name="allow" value="{{ (int)!$ip->allowed }}"/>
+                                    <input type="submit" class="btn btn-{{ $ip->allowed ? 'danger' : 'success' }} w-100"
+                                           data-bs-dismiss="modal"
+                                           value="{{ $ip->allowed ? 'Disable' : 'Enable' }} Internet">
                                 </form>
                             </div>
                         </div>
@@ -240,7 +251,10 @@
                 <div class="modal-body text-center py-4">
                     <i class="icon icon-lg ti ti-brand-speedtest text-{{ $ip->limited ? 'success' : 'danger' }}"></i>
                     <h3>Are you sure?</h3>
-                    <div class="text-secondary">Do you want to {{ $ip->limited ? 'remove the rate limit for' : 'apply a rate limit to' }} <strong>{{ $ip->address }}</strong>?</div>
+                    <div class="text-secondary">Do you want
+                        to {{ $ip->limited ? 'remove the rate limit for' : 'apply a rate limit to' }}
+                        <strong>{{ $ip->address }}</strong>?
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <div class="w-100">
@@ -251,8 +265,10 @@
                             <div class="col">
                                 <form action="{{ route('admin.ips.limit', ['ip' => $ip]) }}" method="post">
                                     {{ csrf_field() }}
-                                    <input type="hidden" name="limit" value="{{ (int)!$ip->limited }}" />
-                                    <input type="submit" class="btn btn-{{ $ip->limited ? 'success' : 'danger' }} w-100" data-bs-dismiss="modal" value="{{ $ip->limited ? 'Remove' : 'Apply' }} Rate Limit">
+                                    <input type="hidden" name="limit" value="{{ (int)!$ip->limited }}"/>
+                                    <input type="submit" class="btn btn-{{ $ip->limited ? 'success' : 'danger' }} w-100"
+                                           data-bs-dismiss="modal"
+                                           value="{{ $ip->limited ? 'Remove' : 'Apply' }} Rate Limit">
                                 </form>
                             </div>
                         </div>
@@ -271,7 +287,9 @@
                     <div class="modal-body text-center py-4">
                         <i class="icon icon-lg ti {{ $shutdown ? 'ti-plug-connected text-success' : 'ti-plug-connected-x text-danger' }}"></i>
                         <h3>Are you sure?</h3>
-                        <div class="text-secondary">Do you want to {{ $shutdown ? 'enable' : 'disable' }} <strong>{{ $port->interface }}</strong> ?</div>
+                        <div class="text-secondary">Do you want to {{ $shutdown ? 'enable' : 'disable' }}
+                            <strong>{{ $port->interface }}</strong> ?
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <div class="w-100">
@@ -282,8 +300,11 @@
                                 <div class="col">
                                     <form action="{{ route('admin.ips.port', ['ip' => $ip]) }}" method="post">
                                         {{ csrf_field() }}
-                                        <input type="hidden" name="shutdown" value="{{ (int)!$shutdown }}" />
-                                        <input type="submit" class="btn btn-{{ $shutdown ? 'success' : 'danger' }} w-100" data-bs-dismiss="modal" value="{{ $shutdown ? 'Enable' : 'Disable' }} {{ $port->interface }}">
+                                        <input type="hidden" name="shutdown" value="{{ (int)!$shutdown }}"/>
+                                        <input type="submit"
+                                               class="btn btn-{{ $shutdown ? 'success' : 'danger' }} w-100"
+                                               data-bs-dismiss="modal"
+                                               value="{{ $shutdown ? 'Enable' : 'Disable' }} {{ $port->interface }}">
                                     </form>
                                 </div>
                             </div>
