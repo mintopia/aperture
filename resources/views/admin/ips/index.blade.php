@@ -8,6 +8,15 @@
                         IP Addresses
                     </h2>
                 </div>
+
+                <div class="col-auto ms-auto d-print-none">
+                    <div class="btn-list">
+                        <a href="{{ route('admin.ips.create') }}" class="btn btn-primary d-none d-sm-inline-block">
+                            <i class="icon ti ti-plus"></i>
+                            Add New
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
