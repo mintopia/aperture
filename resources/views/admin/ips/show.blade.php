@@ -101,6 +101,14 @@
                             <div class="datagrid-title">Notes</div>
                             <div class="datagrid-content">{{ $ip->comment ?? '-' }}</div>
                         </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">Downloaded</div>
+                            <div class="datagrid-content">{{ Helper::humanSize($ip->received) }}</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">Uploaded</div>
+                            <div class="datagrid-content">{{ Helper::humanSize($ip->sent) }}</div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -36,11 +36,43 @@
                         <table class="table table-vcenter card-table table-striped">
                             <thead>
                             <tr>
-                                <th>IP Address</th>
+                                <th>
+                                    @include('partials._sortheader', [
+                                        'title' => 'IP Address',
+                                        'field' => 'address',
+                                    ])
+                                </th>
                                 <th>User</th>
-                                <th>Last Seen</th>
-                                <th>Internet Access</th>
-                                <th>Rate Limited</th>
+                                <th>
+                                    @include('partials._sortheader', [
+                                        'title' => 'Last Seen',
+                                        'field' => 'last_seen_at',
+                                    ])
+                                </th>
+                                <th>
+                                    @include('partials._sortheader', [
+                                        'title' => 'Down',
+                                        'field' => 'received',
+                                    ])
+                                </th>
+                                <th>
+                                    @include('partials._sortheader', [
+                                        'title' => 'Up',
+                                        'field' => 'sent',
+                                    ])
+                                </th>
+                                <th>
+                                    @include('partials._sortheader', [
+                                        'title' => 'Internet',
+                                        'field' => 'allowed',
+                                    ])
+                                </th>
+                                <th>
+                                    @include('partials._sortheader', [
+                                        'title' => 'Limited',
+                                        'field' => 'limited',
+                                    ])
+                                </th>
                                 <th>Comment</th>
                             </tr>
                             </thead>
@@ -64,6 +96,8 @@
                                             {{ $ip->users[0]->last_seen_at->format('H:i:s d M Y') }}
                                         @endif
                                     </td>
+                                    <td>{{ Helper::humanSize($ip->received) }}</td>
+                                    <td>{{ Helper::humanSize($ip->sent) }}</td>
                                     <td class="text-{{ $ip->allowed ? 'success' : 'danger' }}">{{ $ip->allowed ? 'Yes' : 'No' }}</td>
                                     <td class="text-{{ $ip->limited ? 'danger' : 'success' }}">{{ $ip->limited ? 'Yes' : 'No' }}</td>
                                     <td>{{ $ip->comment }}</td>

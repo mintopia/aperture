@@ -17,4 +17,11 @@ return [
     'lnms' => [
         'enabled' => env('APERTURE_LNMS_ENABLED'),
     ],
+    'ntopng' => [
+        'enabled' => env('APERTURE_NTOPNG_ENABLED'),
+        'endpoint' => env('APERTURE_NTOPNG_ENDPOINT'),
+        'username' => env('APERTURE_NTOPNG_USERNAME'),
+        'password' => env('APERTURE_NTOPNG_PASSWORD'),
+        'interface' => env('APERTURE_NTOPNG_INTERFACE'),
+    ]
 ];

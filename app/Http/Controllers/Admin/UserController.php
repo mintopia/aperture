@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\IpAddressAction;
 use App\Models\User;
+use App\Models\UserIpAddress;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -39,11 +40,16 @@ class UserController extends Controller
         $ips = $user->ips()->with('ip')->get();
         $roles = $user->roles()->get();
         $auths = $user->authentications()->with('provider')->get();
+
+        $downloaded = $ips->sum('ip.received');
+        $uploaded = $ips->sum('ip.sent');
         return view('admin.users.show', [
             'user' => $user,
             'roles' => $roles,
             'ips' => $ips,
             'auths' => $auths,
+            'downloaded' => $downloaded,
+            'uploaded' => $uploaded,
         ]);
     }
 

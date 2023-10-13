@@ -71,6 +71,14 @@
                                 @endforeach
                             </div>
                         </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">Downloaded</div>
+                            <div class="datagrid-content">{{ Helper::humanSize($downloaded) }}</div>
+                        </div>
+                        <div class="datagrid-item">
+                            <div class="datagrid-title">Uploaded</div>
+                            <div class="datagrid-content">{{ Helper::humanSize($uploaded) }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -92,6 +100,8 @@
                             <th>Last Login</th>
                             <th>Internet Access</th>
                             <th>Rate Limited</th>
+                            <th>Downloaded</th>
+                            <th>Uploaded</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -105,6 +115,8 @@
                                 <td>{{ $ip->last_seen_at->format('H:i:s d-M-Y') }}</td>
                                 <td class="text-{{ $ip->ip->allowed ? 'success' : 'danger' }}">{{ $ip->ip->allowed ? 'Yes' : 'No' }}</td>
                                 <td class="text-{{ $ip->ip->limited ? 'danger' : 'success' }}">{{ $ip->ip->limited ? 'Yes' : 'No' }}</td>
+                                <td>{{ Helper::humanSize($ip->ip->received) }}</td>
+                                <td>{{ Helper::humanSize($ip->ip->sent) }}</td>
                             </tr>
                         @endforeach
                         </tbody>

@@ -29,10 +29,33 @@ class IpAddressController extends Controller
             });
         }
 
-        $ips = $query->paginate($filters->perPage)->appends((array) $filters);
+        $orderBy = [
+            'address',
+            'received',
+            'sent',
+            'last_seen_at',
+            'allowed',
+            'limited',
+        ];
+        $order = 'address';
+        if (in_array($request->input('order'), $orderBy)) {
+            $order = $request->input('order');
+            $filters->order = $order;
+        }
+        $direction = 'asc';
+        if ($order === 'received' || $order === 'sent') {
+            $direction = 'desc';
+        }
+        if (in_array($request->input('direction'), ['asc', 'desc'])) {
+            $direction = $request->input('direction');
+            $filters->direction = $direction;
+        }
+
+        $ips = $query->orderBy($order, $direction)->paginate($filters->perPage)->appends((array) $filters);
         return view('admin.ips.index', [
             'ips' => $ips,
             'filters' => $filters,
+            'params' => (array) $filters,
         ]);
     }
 

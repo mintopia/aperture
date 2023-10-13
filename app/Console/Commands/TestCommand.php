@@ -26,7 +26,9 @@ class TestCommand extends Command
      */
     public function handle()
     {
-        $ip = IpAddress::first();
-        $ip->unlimit();
+        $ip = new IpAddress();
+        $ip->address = '10.30.0.197';
+
+        $ip->updateUsage();
     }
 }

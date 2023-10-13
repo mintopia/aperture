@@ -6,7 +6,9 @@ use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
 use App\Services\CiscoService;
 use App\Services\Firewalls\OpnSense;
+use App\Services\NtopNgService;
 use Carbon\Carbon;
+use GuzzleHttp\Exception\ClientException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -193,5 +195,28 @@ class IpAddress extends Model
 
         $this->allowed = false;
         $this->save();
+    }
+
+    public function updateUsage(): void
+    {
+        try {
+            $stats = $this->getStats();
+            $attr = 'bytes.rcvd';
+            $this->received = $stats->rsp->$attr;
+            $attr = 'bytes.sent';
+            $this->sent = $stats->rsp->$attr;
+            $this->save();
+        } catch (ClientException $ex) {
+            // Do Nothing
+        }
+    }
+
+    public function getStats(): \stdClass
+    {
+        /**
+         * @var $ntopng NtopNgService
+         */
+        $ntopng = resolve(NtopNgService::class);
+        return $ntopng->getStats($this->address);
     }
 }
