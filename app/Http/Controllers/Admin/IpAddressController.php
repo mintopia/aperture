@@ -42,16 +42,16 @@ class IpAddressController extends Controller
         $order = 'address';
         if (in_array($request->input('order'), $orderBy)) {
             $order = $request->input('order');
-            $filters->order = $order;
         }
+        $filters->order = $order;
         $direction = 'asc';
         if ($order === 'received' || $order === 'sent') {
             $direction = 'desc';
         }
         if (in_array($request->input('direction'), ['asc', 'desc'])) {
             $direction = $request->input('direction');
-            $filters->direction = $direction;
         }
+        $filters->direction = $direction;
 
         $ips = $query->orderBy($order, $direction)->paginate($filters->perPage)->appends((array) $filters);
         return view('admin.ips.index', [
