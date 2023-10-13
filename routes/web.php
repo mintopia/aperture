@@ -24,7 +24,7 @@ Route::middleware(['auth'])->group(function() {
         Route::resource('users', UserController::class)->only(['index', 'show', 'edit', 'update']);
         Route::post('users/{user}/block', [UserController::class, 'block'])->name('users.block');
 
-        Route::resource('ips', IpAddressController::class)->only('index', 'show');
+        Route::resource('ips', IpAddressController::class)->only('index', 'show', 'store', 'create');
         Route::post('ips/{ip}/port', [IpAddressController::class, 'port'])->name('ips.port');
         Route::post('ips/{ip}/internet', [IpAddressController::class, 'internet'])->name('ips.internet');
         Route::post('ips/{ip}/limit', [IpAddressController::class, 'limit'])->name('ips.limit');

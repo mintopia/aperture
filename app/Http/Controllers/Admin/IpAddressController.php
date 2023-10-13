@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\IpAddressStoreRequest;
 use App\Jobs\ShutInterface;
 use App\Jobs\IpAddressAction;
 use App\Models\IpAddress;
 use App\Services\CiscoService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class IpAddressController extends Controller
@@ -121,5 +123,26 @@ class IpAddressController extends Controller
             $message = 'Internet will be disabled for this IP';
         }
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('successMessage', $message);
+    }
+
+    public function create()
+    {
+        return view('admin.ips.create');
+    }
+
+    public function store(IpAddressStoreRequest $request)
+    {
+        $ip = new IpAddress();
+        $ip->address = $request->input('address');
+        $ip->comment = $request->input('comment');
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+        if ($request->input('allow')) {
+            $ip->allow(true);
+        }
+        if ($request->input('limit')) {
+            $ip->limit(true);
+        }
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('successMessage', 'The IP address has been added');
     }
 }
