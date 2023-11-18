@@ -3,9 +3,7 @@ name: aperture
 
 services:
   nginx:
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile.nginx
+    image: ghcr.io/mintopia/php-docker-nginx:latest
     restart: unless-stopped
     volumes:
       - ./:/var/www
@@ -15,7 +13,7 @@ services:
   php-fpm:
     build:
       context: .
-      dockerfile: docker/develop/Dockerfile.php-fpm
+      dockerfile: ./docker/develop/Dockerfile.php-fpm
     restart: unless-stopped
     environment:
       - XDEBUG_CONFIG=client_host=host.docker.internal
