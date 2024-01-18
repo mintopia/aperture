@@ -19,7 +19,7 @@
                 </div>
 
                 <p>
-                    Please speak to a member of the P-LAN team for further assistance.
+                    Please speak to a member of the ALAN team for further assistance.
                 </p>
             @else
                 <div id="status-waiting" class="{{ $ip->allowed ? 'd-none' : '' }}">
