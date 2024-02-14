@@ -3,7 +3,7 @@
 @section('content')
     <div class="card-body">
         <div class="row">
-            <p>Welcome to ALAN! Before you can use the Internet, we just need you to login.</p>
+            <p>Welcome! Before you can use the Internet, we just need you to login.</p>
         </div>
         <div class="row mt-3">
             @foreach ($providers as $provider)
