@@ -4,6 +4,7 @@ return [
         'username' => env('APERTURE_CISCO_USERNAME'),
         'password' => env('APERTURE_CISCO_PASSWORD'),
         'enablePassword' => env('APERTURE_CISCO_ENABLE_PASSWORD'),
+        'timeout' => env('APERTURE_CISCO_TIMEOUT', 5),
     ],
     'opnsense' => [
         'endpoint' => env('APERTURE_OPNSENSE_ENDPOINT'),

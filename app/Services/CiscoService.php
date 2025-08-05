@@ -110,7 +110,7 @@ class CiscoService
         if (!$this->connection->login(config('aperture.cisco.username'), config('aperture.cisco.password'))) {
             throw new \Exception('Unable to authenticate with switch');
         }
-        $this->connection->setTimeout(1);
+        $this->connection->setTimeout(config('aperture.cisco.timeout', 5));
         $this->name = substr(trim($this->connection->read()), 0, -1);
         Log::debug("[Cisco] [{$this->hostname}] > terminal length 0");
         $this->connection->write("terminal length 0\n");
