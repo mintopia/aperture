@@ -18,5 +18,4 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::post('/ipv6', [\App\Http\Controllers\PortalController::class, 'ipv6'])->name('ipv6');
 });

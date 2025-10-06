@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\IpAddressController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PortalController;
+use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -18,6 +19,7 @@ Route::middleware(['guest'])->group(function() {
 Route::middleware(['auth'])->group(function() {
     Route::get('/', [PortalController::class, 'index'])->name('home');
     Route::get('/status', [PortalController::class, 'status'])->name('status');
+    Route::post('/ipv6', [PortalController::class, 'ipv6'])->name('ipv6')->withoutMiddleware(VerifyCsrfToken::class);
     Route::middleware(['can:admin'])->name('admin.')->prefix('/admin')->group(function() {
         Route::get('/', [HomeController::class, 'index'])->name('home');
 

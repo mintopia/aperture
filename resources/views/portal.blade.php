@@ -46,7 +46,7 @@
     </div>
 @endsection
 @section('footer')
-    @if (!Auth::user()->blocked && !$ip->allowed)
+    @if (true || !Auth::user()->blocked && !$ip->allowed)
         <script>
         document.addEventListener("DOMContentLoaded", function() {
             const statusOK = document.getElementById('status-ok');
@@ -75,8 +75,9 @@
                             // If status is true, hide 'status-waiting' and show 'status-ok'
                             statusWaiting.classList.add('d-none');
                             statusOK.classList.remove('d-none');
+                        } else {
+                            setTimeout(checkStatus, timeout);
                         }
-                        setTimeout(checkStatus, timeout);
                     })
                     .catch(error => {
                         console.error('Error fetching status:', error);
@@ -91,16 +92,20 @@
                 }
             }).then(data => {
                 if (data) {
-                    fetch("/api/ipv6", {
+                    fetch("/ipv6", {
                         method: "POST",
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
                         body: JSON.stringify({
                             'ipv6': data.ip,
                         }),
                     }).then(response => {
                         setTimeout(checkStatus, 2000);
                     });
+                } else {
+                    setTimeout(checkStatus, 2000);
                 }
-                setTimeout(checkStatus, 2000);
             }).catch(error => {
                 setTimeout(checkStatus, 2000);
             });

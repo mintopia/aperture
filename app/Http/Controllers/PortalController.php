@@ -29,6 +29,9 @@ class PortalController extends Controller
     public function ipv6(Request $request)
     {
         $ip = $request->user()->addIp($request->input('ipv6'));
+        if (!$request->user()->blocked) {
+            $ip->allow(true);
+        }
         return response()->json((object)[
             'ip' => $ip->address,
             'allowed' => (bool) $ip->allowed,
