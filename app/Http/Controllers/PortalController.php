@@ -25,4 +25,13 @@ class PortalController extends Controller
             'allowed' => (bool) $ip->allowed,
         ]);
     }
+
+    public function ipv6(Request $request)
+    {
+        $ip = $request->user()->addIp($request->input('ipv6'));
+        return response()->json((object)[
+            'ip' => $ip->address,
+            'allowed' => (bool) $ip->allowed,
+        ]);
+    }
 }

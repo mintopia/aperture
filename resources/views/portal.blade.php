@@ -83,7 +83,28 @@
                     });
             }
 
-            setTimeout(checkStatus, 2000);
+            fetch('https://ipv6.ping.entropylan.net', {
+                timeout: 2000,
+            }).then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+            }).then(data => {
+                if (data) {
+                    fetch("/api/ipv6", {
+                        method: "POST",
+                        body: JSON.stringify({
+                            'ipv6': data.ip,
+                        }),
+                    }).then(response => {
+                        setTimeout(checkStatus, 2000);
+                    });
+                }
+                setTimeout(checkStatus, 2000);
+            }).catch(error => {
+                setTimeout(checkStatus, 2000);
+            });
+
         });
         </script>
     @endif
