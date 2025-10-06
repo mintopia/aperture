@@ -8,6 +8,8 @@
         "php": "^8.2",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^11.0",
+        "laravel/horizon": "^5.34",
+        "laravel/octane": "^2.12",
         "laravel/prompts": "^0.3.0",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.9",
