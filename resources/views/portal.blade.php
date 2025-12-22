@@ -84,7 +84,7 @@
                     });
             }
 
-            fetch('https://ipv6.ping.entropylan.net', {
+            fetch('https://' + crypto.randomUUID() + 'ipv6.test.entropylan.party', {
                 timeout: 2000,
             }).then(response => {
                 if (response.ok) {
