@@ -84,7 +84,19 @@
                     });
             }
 
-            fetch('https://' + crypto.randomUUID() + 'ipv6.test.entropylan.party', {
+            fetch('https://' + crypto.randomUUID() + '.lancache.test.entropylan.party', {
+                timeout: 2000,
+            }).then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+            }).then(data => {
+                if (data.server !== 'event') {
+                    console.log('Not using event DNS servers');
+                }
+            });
+
+            fetch('https://' + crypto.randomUUID() + '.ipv6.test.entropylan.party', {
                 timeout: 2000,
             }).then(response => {
                 if (response.ok) {
