@@ -1,9 +1,30 @@
 @extends('layout.public')
 
 @section('content')
+
+    <div class="alert alert-important alert-info d-none" role="alert" id="dns-warning">
+        <div class="d-flex">
+            <div>
+                <i class="icon alert-icon icon-lg ti ti-network-off"></i>
+            </div>
+            <div>
+                <h4 class="alert-heading">Your DNS is not configured properly</h4>
+                <div class="alert-description">
+                    You're using custom DNS servers. This means you will have slower game downloads.
+                    <br /><br />
+                    Please update your network settings to use the DNS servers that are automatically assigned
+                    and disable any internet security software that may be hijacking DNS.
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
+
+
         <div class="row">
             <p class="mb-5">Hi <strong>{{ Auth::user()->nickname }}</strong>, thanks for logging in!</p>
+
+
 
             @if (Auth::user()->blocked)
 
@@ -92,7 +113,7 @@
                 }
             }).then(data => {
                 if (data.server !== 'event') {
-                    console.log('Not using event DNS servers');
+                    document.getElementById('dns-warning').classList.remove('d-none');
                 }
             });
 
