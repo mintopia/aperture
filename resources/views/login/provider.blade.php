@@ -4,7 +4,7 @@
     <div class="card-body">
         <div class="row">
             <p>Scan the QR code below on your phone to login with {{ $provider->name }}</p>
-            <img src="https://quickchart.io/qr?text={{ urlencode($deviceCode->fullUri) }}&size=400" alt="QR Code for Login Page" />
+            <img src="{{ (new chillerlan\QRCode\QRCode())->render($deviceCode->fullUri) }}" alt="QR Code" />
             <p>
                 You can also visit <a href="{{ config('aperture.borealis.endpoint') }}/auth">{{ config('aperture.borealis.endpoint') }}/auth</a>
                 and enter <strong>{{ $deviceCode->userCode }}</strong>.
