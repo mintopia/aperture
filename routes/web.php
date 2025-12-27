@@ -12,7 +12,9 @@ Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware(['guest'])->group(function() {
     Route::get('/login', [AuthController::class, 'login'])->name('login');
-    Route::get('/login/{provider:code}', [AuthController::class, 'redirect'])->name('login.redirect');
+    Route::get('/login/check', [AuthController::class, 'login_check'])->name('login.check');
+    Route::get('/login/{provider:code}', [AuthController::class, 'login_provider'])->name('login.provider');
+    Route::get('/login/{provider:code}/redirect', [AuthController::class, 'redirect'])->name('login.redirect');
     Route::get('/login/{provider:code}/return', [AuthController::class, 'handle'])->name('login.handle');
 });
 

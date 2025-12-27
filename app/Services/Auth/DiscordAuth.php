@@ -15,6 +15,11 @@ use SocialiteProviders\Manager\Config;
 
 class DiscordAuth implements AuthBackendInterface
 {
+    public function supportsBorealis(): bool
+    {
+        return true;
+    }
+
     public function getRequiredHostnames(): array
     {
         return [

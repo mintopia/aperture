@@ -8,7 +8,7 @@
         <div class="row mt-3">
             @foreach ($providers as $provider)
                 <div class="col">
-                    <a href="{{ route('login.redirect', ['provider' => $provider->code]) }}" class="btn w-100">
+                    <a href="{{ route('login.provider', ['provider' => $provider->code]) }}" class="btn w-100">
                         <i class="icon ti ti-brand-{{$provider->code}}"></i>
                         Login with {{ $provider->name }}
                     </a>

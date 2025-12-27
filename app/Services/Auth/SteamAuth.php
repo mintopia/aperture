@@ -15,6 +15,10 @@ use SocialiteProviders\Manager\Config;
 
 class SteamAuth implements AuthBackendInterface
 {
+    public function supportsBorealis(): bool
+    {
+        return false;
+    }
     public function getRequiredHostnames(): array
     {
         return [

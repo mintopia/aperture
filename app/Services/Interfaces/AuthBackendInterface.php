@@ -15,4 +15,6 @@ interface AuthBackendInterface
     public function user(): User;
 
     public function getRequiredHostnames(): array;
+
+    public function supportsBorealis(): bool;
 }

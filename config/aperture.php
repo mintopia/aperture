@@ -24,5 +24,11 @@ return [
         'username' => env('APERTURE_NTOPNG_USERNAME'),
         'password' => env('APERTURE_NTOPNG_PASSWORD'),
         'interface' => env('APERTURE_NTOPNG_INTERFACE'),
-    ]
+    ],
+    'borealis' => [
+        'enabled' => env('BOREALIS_ENABLED', false),
+        'endpoint' => env('BOREALIS_ENDPOINT'),
+        'client_id' => env('BOREALIS_CLIENT_ID'),
+        'client_secret' => env('BOREALIS_CLIENT_SECRET'),
+    ],
 ];
