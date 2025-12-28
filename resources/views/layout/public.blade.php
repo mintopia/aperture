@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
     <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
-    <!-- CSS files -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="/dist/css/tabler.min.css?1684106062" rel="stylesheet"/>
     <link href="/dist/css/tabler-flags.min.css?1684106062" rel="stylesheet"/>
     <link href="/dist/css/tabler-payments.min.css?1684106062" rel="stylesheet"/>
@@ -12,12 +12,7 @@
     <link href="/dist/css/tabler-icons.min.css?1684106062" rel="stylesheet"/>
     <link href="/dist/css/demo.min.css?1684106062" rel="stylesheet"/>
 
-    <link rel="stylesheet"
-          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
-    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-
     <style>
-        @import url('https://rsms.me/inter/inter.css');
         :root {
             --tblr-font-sans-serif: 'Inter Var', -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
         }
