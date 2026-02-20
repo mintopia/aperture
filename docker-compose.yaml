@@ -45,6 +45,23 @@ services:
     healthcheck:
       disable: true
 
+  ssh-daemon:
+    build:
+      context: .
+      dockerfile: docker/develop/Dockerfile
+    restart: unless-stopped
+    entrypoint: [ "php", "artisan", "ssh-daemon:run" ]
+    env_file: .env
+    volumes:
+      - ./:/app
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "9022:9022"
+    healthcheck:
+      disable: true
+
   scheduler:
     build:
       context: .

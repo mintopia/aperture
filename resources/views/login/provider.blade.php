@@ -3,16 +3,13 @@
 @section('content')
     <div class="card-body">
         <div class="row">
-            <p>Scan the QR code below on your phone to login with {{ $provider->name }}</p>
+            <p>Scan the QR code below on your phone to login, use your phone's camera app.</p>
             <img src="{{ (new chillerlan\QRCode\QRCode())->render($deviceCode->fullUri) }}" alt="QR Code" />
             <p>
                 You can also visit <a href="{{ config('aperture.borealis.endpoint') }}/auth">{{ config('aperture.borealis.endpoint') }}/auth</a>
                 and enter <strong>{{ $deviceCode->userCode }}</strong>.
             </p>
-            <p class="text-muted small">
-                Alternatively, you can try and login with <a href="{{ route('login.redirect', ['provider' => $provider->code]) }}">{{ $provider->name }}</a>
-                directly in your browser.
-            </p>
+            <p class="text-muted small">Your phone needs to be disconnected from the wifi for this to work.</p>
         </div>
     </div>
 @endsection

@@ -4,6 +4,7 @@ namespace App\Services\Firewalls;
 
 use App\Services\Firewalls\Exceptions\BackendException;
 use App\Services\Interfaces\FirewallBackendInterface;
+use Carbon\CarbonImmutable;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
@@ -123,6 +124,13 @@ class OpnSense implements FirewallBackendInterface
         ];
         $this->post('/api/captiveportal/session/connect', $query, $payload);
         return $this;
+    }
+
+    public function getUptime(): int
+    {
+        $response = $this->get('/api/diagnostics/system/system_time');
+        $time = new CarbonImmutable($response->uptime);
+        return $time->diffInSeconds(CarbonImmutable::now());
     }
 
     /**
