@@ -7,7 +7,7 @@
             <img src="{{ (new chillerlan\QRCode\QRCode())->render($deviceCode->fullUri) }}" alt="QR Code" />
             <p>
                 You can also visit <a href="{{ config('aperture.borealis.endpoint') }}/auth">{{ config('aperture.borealis.endpoint') }}/auth</a>
-                and enter <strong>{{ $deviceCode->userCode }}</strong>.
+                on your phone and enter <strong>{{ $deviceCode->userCode }}</strong>.
             </p>
             <p class="text-muted small">Your phone needs to be disconnected from the wifi for this to work.</p>
         </div>
