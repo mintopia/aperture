@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "/opt/homebrew/Cellar/php/8.5.2/bin/php",
+            "args": [
+                "/Users/mintopia/Projects/aperture/artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}
