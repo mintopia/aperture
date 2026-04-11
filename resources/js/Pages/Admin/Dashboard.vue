@@ -5,10 +5,10 @@ import StatCard from '@/Components/UI/StatCard.vue';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    totalUsers: Number,
-    onlineUsers: Number,
-    totalIps: Number,
-    allowedIps: Number,
+    totalUsers: { type: Number, default: 0 },
+    onlineUsers: { type: Number, default: 0 },
+    totalIps: { type: Number, default: 0 },
+    allowedIps: { type: Number, default: 0 },
 });
 </script>
 

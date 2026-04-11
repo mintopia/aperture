@@ -22,7 +22,7 @@ defineProps({
         type: Array,
         default: () => [],
     },
-    currentIp: String,
+    currentIp: { type: String, default: '' },
     ipAllowed: Boolean,
 });
 </script>

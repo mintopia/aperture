@@ -8,9 +8,9 @@ import DataTable from '@/Components/UI/DataTable.vue';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    port: Object,
-    statistics: Object,
-    portId: String,
+    port: { type: Object, default: () => ({}) },
+    statistics: { type: Object, default: () => ({}) },
+    portId: { type: String, default: '' },
 });
 
 function shutdownPort(portId) {

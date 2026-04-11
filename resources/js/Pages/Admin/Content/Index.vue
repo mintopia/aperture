@@ -7,7 +7,7 @@ import EmptyState from '@/Components/UI/EmptyState.vue';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    blocks: Array,
+    blocks: { type: Array, default: () => [] },
 });
 
 const columns = [

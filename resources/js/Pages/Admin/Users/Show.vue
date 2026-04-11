@@ -10,12 +10,12 @@ import { formatBytes } from '@/helpers.js';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    user: Object,
-    roles: Array,
-    ips: Array,
-    auths: Array,
-    downloaded: Number,
-    uploaded: Number,
+    user: { type: Object, default: () => ({}) },
+    roles: { type: Array, default: () => [] },
+    ips: { type: Array, default: () => [] },
+    auths: { type: Array, default: () => [] },
+    downloaded: { type: Number, default: 0 },
+    uploaded: { type: Number, default: 0 },
 });
 
 function toggleBlock(user) {

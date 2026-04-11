@@ -9,12 +9,12 @@ import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    ip: Object,
-    port: Object,
-    status: String,
-    config: String,
+    ip: { type: Object, default: () => ({}) },
+    port: { type: Object, default: () => ({}) },
+    status: { type: String, default: '' },
+    config: { type: String, default: '' },
     shutdown: Boolean,
-    users: Array,
+    users: { type: Array, default: () => [] },
 });
 
 function toggleInternet(ip) {

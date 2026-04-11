@@ -10,8 +10,8 @@ import { formatBytes } from '@/helpers.js';
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    ips: Object,
-    filters: Object,
+    ips: { type: Object, default: () => ({}) },
+    filters: { type: Object, default: () => ({}) },
 });
 
 const address = ref(props.filters?.address ?? '');
