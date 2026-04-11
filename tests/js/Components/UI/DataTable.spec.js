@@ -1,6 +1,12 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import DataTable from '@/Components/UI/DataTable.vue';
+
+vi.mock('@inertiajs/vue3', () => ({
+    router: { visit: vi.fn() },
+}));
+
+import { router } from '@inertiajs/vue3';
 
 const columns = [
     { key: 'name', label: 'Name' },
@@ -108,5 +114,60 @@ describe('DataTable', () => {
         });
         const td = wrapper.find('[data-testid="data-table-empty"] td');
         expect(td.attributes('colspan')).toBe('2');
+    });
+
+    it('navigates via router.visit on row click when clickable and rowHref', async () => {
+        const rowHref = (row) => `/users/${row.id}`;
+        router.visit.mockClear();
+        const wrapper = mount(DataTable, {
+            props: { columns, rows, clickable: true, rowHref },
+            global: { stubs },
+            slots: {
+                row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+            },
+        });
+        await wrapper.find('[data-testid="data-table-row"]').trigger('click');
+        expect(router.visit).toHaveBeenCalledWith('/users/1');
+    });
+
+    it('navigates via keyboard enter when clickable and rowHref', async () => {
+        const rowHref = (row) => `/users/${row.id}`;
+        router.visit.mockClear();
+        const wrapper = mount(DataTable, {
+            props: { columns, rows, clickable: true, rowHref },
+            global: { stubs },
+            slots: {
+                row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+            },
+        });
+        await wrapper.find('[data-testid="data-table-row"]').trigger('keydown.enter');
+        expect(router.visit).toHaveBeenCalledWith('/users/1');
+    });
+
+    it('does not navigate when clickable is false', async () => {
+        const rowHref = (row) => `/users/${row.id}`;
+        router.visit.mockClear();
+        const wrapper = mount(DataTable, {
+            props: { columns, rows, rowHref },
+            global: { stubs },
+            slots: {
+                row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+            },
+        });
+        await wrapper.find('[data-testid="data-table-row"]').trigger('click');
+        expect(router.visit).not.toHaveBeenCalled();
+    });
+
+    it('does not navigate when rowHref is null', async () => {
+        router.visit.mockClear();
+        const wrapper = mount(DataTable, {
+            props: { columns, rows, clickable: true },
+            global: { stubs },
+            slots: {
+                row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+            },
+        });
+        await wrapper.find('[data-testid="data-table-row"]').trigger('click');
+        expect(router.visit).not.toHaveBeenCalled();
     });
 });
