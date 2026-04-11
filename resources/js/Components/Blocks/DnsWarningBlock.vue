@@ -1,8 +1,8 @@
 <script setup>
 defineProps({
     hasDnsIssue: Boolean,
-    expectedDns: String,
-    actualDns: String,
+    expectedDns: { type: String, default: '' },
+    actualDns: { type: String, default: '' },
 });
 </script>
 

@@ -9,8 +9,8 @@ import Pagination from '@/Components/UI/Pagination.vue';
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    users: Object,
-    filters: Object,
+    users: { type: Object, default: () => ({}) },
+    filters: { type: Object, default: () => ({}) },
 });
 
 const nickname = ref(props.filters?.nickname ?? '');

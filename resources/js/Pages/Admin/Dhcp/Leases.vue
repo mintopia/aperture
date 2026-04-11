@@ -5,7 +5,7 @@ import DataTable from '@/Components/UI/DataTable.vue';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    leases: Array,
+    leases: { type: Array, default: () => [] },
 });
 
 const columns = [

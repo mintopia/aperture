@@ -1,6 +1,6 @@
 <script setup>
 defineProps({
-    currentIp: String,
+    currentIp: { type: String, default: '' },
     ipAllowed: Boolean,
 });
 </script>

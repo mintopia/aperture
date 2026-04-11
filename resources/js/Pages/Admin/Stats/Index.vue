@@ -6,7 +6,7 @@ import SectionHeader from '@/Components/UI/SectionHeader.vue';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    aggregateStats: Object,
+    aggregateStats: { type: Object, default: () => ({}) },
 });
 </script>
 

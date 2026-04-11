@@ -6,7 +6,7 @@ import StatusPill from '@/Components/UI/StatusPill.vue';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    ports: Array,
+    ports: { type: Array, default: () => [] },
 });
 
 const columns = [

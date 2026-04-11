@@ -6,7 +6,7 @@ import { formatBytes } from '@/helpers.js';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    topTalkers: Array,
+    topTalkers: { type: Array, default: () => [] },
 });
 
 const columns = [

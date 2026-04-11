@@ -2,8 +2,8 @@
 import { ref } from 'vue';
 
 defineProps({
-    title: String,
-    content: String,
+    title: { type: String, default: '' },
+    content: { type: String, default: '' },
 });
 
 const enabled = ref(false);

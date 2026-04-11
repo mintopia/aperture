@@ -8,7 +8,7 @@ import SectionHeader from '@/Components/UI/SectionHeader.vue';
 defineOptions({ layout: AdminLayout });
 
 defineProps({
-    pool: Object,
+    pool: { type: Object, default: () => ({}) },
 });
 </script>
 
