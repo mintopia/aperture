@@ -3,12 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\IpAddress;
+use App\Models\User;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(): Response
     {
-        return view('admin.home.index');
+        return Inertia::render('Admin/Dashboard', [
+            'totalUsers' => User::count(),
+            'onlineUsers' => User::whereHas('ips', fn ($q) => $q->whereHas('ip', fn ($q2) => $q2->where('allowed', true)))->count(), // @phpstan-ignore argument.templateType
+            'totalIps' => IpAddress::count(),
+            'allowedIps' => IpAddress::where('allowed', true)->count(),
+        ]);
     }
 }

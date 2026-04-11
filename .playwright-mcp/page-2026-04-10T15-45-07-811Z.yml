@@ -1,0 +1,722 @@
+- generic [active] [ref=e1]:
+  - navigation "Design preview navigation" [ref=e2]:
+    - heading "Aperture v5" [level=1] [ref=e3]
+    - generic [ref=e4]: preview
+    - link "Captive" [ref=e5] [cursor=pointer]:
+      - /url: "#s1"
+    - link "Activating" [ref=e6] [cursor=pointer]:
+      - /url: "#s2"
+    - link "Portal" [ref=e7] [cursor=pointer]:
+      - /url: "#s3"
+    - link "Admin Dash" [ref=e8] [cursor=pointer]:
+      - /url: "#s4"
+    - link "User" [ref=e9] [cursor=pointer]:
+      - /url: "#s5"
+    - link "IP" [ref=e10] [cursor=pointer]:
+      - /url: "#s6"
+    - link "Port" [ref=e11] [cursor=pointer]:
+      - /url: "#s7"
+    - link "Settings" [ref=e12] [cursor=pointer]:
+      - /url: "#s8"
+    - link "Content" [ref=e13] [cursor=pointer]:
+      - /url: "#s9"
+    - button "Toggle light/dark mode" [ref=e14] [cursor=pointer]:
+      - img [ref=e15]
+      - generic [ref=e21]: Dark
+  - generic [ref=e22]:
+    - heading "Captive Portal — Login" [level=2] [ref=e23]
+    - paragraph [ref=e24]: QR is primary interaction (user's phone). URL + code as fallback.
+  - generic [ref=e26]:
+    - generic [ref=e27]:
+      - text: Device Code Auth
+      - generic [ref=e28]: Captive
+    - generic [ref=e31]:
+      - generic [ref=e32]: A
+      - heading "Connect to Network" [level=1] [ref=e33]
+      - paragraph [ref=e34]: Scan the QR code with your phone to get online
+      - generic [ref=e36]: "[QR Code]"
+      - paragraph [ref=e37]:
+        - text: Or visit
+        - strong [ref=e38]: auth.lan.party
+        - text: on a connected device
+      - generic [ref=e39]: Your device code
+      - generic [ref=e40]: ABCD-1234
+      - generic [ref=e41]: Waiting for authorization…
+      - link "Need help connecting? →" [ref=e44] [cursor=pointer]:
+        - /url: "#"
+  - generic [ref=e45]:
+    - heading "Captive Portal — Activating" [level=2] [ref=e46]
+    - paragraph [ref=e47]: Step-by-step provisioning after auth
+  - generic [ref=e49]:
+    - generic [ref=e50]:
+      - text: Provisioning
+      - generic [ref=e51]: Transition
+    - generic [ref=e54]:
+      - heading "Granting Access" [level=1] [ref=e56]
+      - paragraph [ref=e57]: Setting up your network connection…
+      - generic [ref=e58]:
+        - generic [ref=e59]:
+          - generic [ref=e60]: ✓
+          - generic [ref=e61]: Identity verified
+        - generic [ref=e62]:
+          - generic [ref=e63]: ✓
+          - generic [ref=e64]: Account linked
+        - generic [ref=e65]:
+          - generic [ref=e66]: ⟳
+          - generic [ref=e67]: Configuring firewall rules…
+        - generic [ref=e68]:
+          - generic [ref=e69]: ○
+          - generic [ref=e70]: Ready to go
+  - generic [ref=e71]:
+    - heading "User Portal — Dashboard" [level=2] [ref=e72]
+    - paragraph [ref=e73]: Varied layout. SVG icons. Bandwidth prominent. Editable by admin via Content.
+  - generic [ref=e75]:
+    - generic [ref=e76]:
+      - text: Portal Dashboard
+      - generic [ref=e77]: User
+    - generic [ref=e79]:
+      - generic [ref=e80]:
+        - generic [ref=e81]:
+          - generic [ref=e82]: A
+          - generic [ref=e83]: Aperture
+        - generic [ref=e84]:
+          - button "Settings" [ref=e85] [cursor=pointer]:
+            - img [ref=e86]
+          - generic [ref=e89]: NeonGamer42
+          - link "Logout" [ref=e90] [cursor=pointer]:
+            - /url: "#"
+      - paragraph [ref=e91]: Welcome back, NeonGamer42
+      - generic [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]: LAN Party 2026
+          - generic [ref=e95]: April 11-13, 2026 · The Venue, Manchester
+        - generic [ref=e96]: ● Live
+      - generic [ref=e97]:
+        - generic [ref=e98]: ▲
+        - generic [ref=e99]:
+          - generic [ref=e100]: DNS Configuration Required
+          - paragraph [ref=e101]:
+            - text: Set your DNS to
+            - code [ref=e102]: 10.0.0.1
+            - text: for the best experience.
+      - generic [ref=e103]:
+        - generic [ref=e104]:
+          - generic [ref=e105]: Your Bandwidth
+          - generic [ref=e106]:
+            - generic [ref=e107]: ↓ Down 2.4 GB
+            - generic [ref=e108]: ↑ Up 890 MB
+          - img [ref=e109]
+          - generic [ref=e114]:
+            - generic [ref=e115]: Download
+            - generic [ref=e117]: Upload
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - generic [ref=e121]: Connection
+            - generic [ref=e122]:
+              - generic [ref=e123]: IPv4
+              - generic [ref=e124]: 10.0.1.42
+            - generic [ref=e125]:
+              - generic [ref=e126]: IPv6
+              - generic [ref=e127]: fd00::a00:12a
+            - generic [ref=e128]: ✓ Connected
+          - generic [ref=e131]:
+            - generic [ref=e132]: Ad Blocking
+            - generic [ref=e133]: ✓ Enabled
+      - generic [ref=e136]:
+        - link "Discord" [ref=e137] [cursor=pointer]:
+          - /url: "#"
+          - img [ref=e138]
+          - text: Discord
+        - link "Venue Map" [ref=e140] [cursor=pointer]:
+          - /url: "#"
+          - img [ref=e141]
+          - text: Venue Map
+        - link "Schedule" [ref=e144] [cursor=pointer]:
+          - /url: "#"
+          - img [ref=e145]
+          - text: Schedule
+        - link "Tournaments" [ref=e147] [cursor=pointer]:
+          - /url: "#"
+          - img [ref=e148]
+          - text: Tournaments
+      - generic [ref=e150]:
+        - generic [ref=e151]: Event Info
+        - generic [ref=e152]:
+          - text: Welcome to
+          - strong [ref=e153]: LAN Party 2026
+          - text: "! 128 seats, 10Gbps uplink, three days of gaming. Pizza at 7pm!"
+  - generic [ref=e154]:
+    - heading "Admin Dashboard" [level=2] [ref=e155]
+    - paragraph [ref=e156]: Asymmetric cards, hero stat, utilitarian tables.
+  - generic [ref=e158]:
+    - generic [ref=e159]:
+      - text: Dashboard Overview
+      - generic [ref=e160]: Admin
+    - generic [ref=e162]:
+      - generic [ref=e163]:
+        - generic [ref=e164]:
+          - generic [ref=e165]: A
+          - generic [ref=e166]: Aperture
+        - generic [ref=e167]: Overview
+        - generic [ref=e168] [cursor=pointer]:
+          - img [ref=e169]
+          - text: Dashboard
+        - generic [ref=e174]: Management
+        - generic [ref=e175] [cursor=pointer]:
+          - img [ref=e176]
+          - text: Users
+        - generic [ref=e179] [cursor=pointer]:
+          - img [ref=e180]
+          - text: IPs
+        - generic [ref=e182] [cursor=pointer]:
+          - img [ref=e183]
+          - text: Ports
+        - generic [ref=e186]: Tools
+        - generic [ref=e187] [cursor=pointer]:
+          - img [ref=e188]
+          - text: Content
+        - generic [ref=e191] [cursor=pointer]:
+          - img [ref=e192]
+          - text: Settings
+      - generic [ref=e195]:
+        - generic [ref=e196]:
+          - generic [ref=e197]: Admin / Dashboard
+          - generic [ref=e198]:
+            - text: Search…
+            - generic [ref=e199]: ⌘K
+        - heading "Dashboard" [level=2] [ref=e200]
+        - generic [ref=e201]:
+          - generic [ref=e203]:
+            - generic [ref=e204]:
+              - generic [ref=e205]: ● Online Now
+              - generic [ref=e206]: "42"
+            - generic [ref=e207]:
+              - generic [ref=e208]: of 128
+              - generic [ref=e209]: 33%
+          - generic [ref=e210]:
+            - generic [ref=e211]: Total Users
+            - generic [ref=e212]: "128"
+          - generic [ref=e213]:
+            - generic [ref=e214]: IPs Active
+            - generic [ref=e215]: "89"
+          - generic [ref=e216]:
+            - generic [ref=e217]: Blocked
+            - generic [ref=e218]: "3"
+        - generic [ref=e219]:
+          - generic [ref=e220]:
+            - generic [ref=e221]: DHCP Pools
+            - generic [ref=e222]:
+              - generic [ref=e223]:
+                - generic [ref=e224]: Users
+                - generic [ref=e227]: 89 / 200
+              - generic [ref=e228]:
+                - generic [ref=e229]: Infrastructure
+                - generic [ref=e232]: 12 / 50
+              - generic [ref=e233]:
+                - generic [ref=e234]: Guest
+                - generic [ref=e237]: 45 / 50
+          - generic [ref=e238]:
+            - generic [ref=e239]: Port Errors
+            - generic [ref=e240]:
+              - generic [ref=e241]:
+                - generic [ref=e242] [cursor=pointer]: Gi1/0/12
+                - generic [ref=e243]: ✕ 1,842 CRC
+              - generic [ref=e244]:
+                - generic [ref=e245] [cursor=pointer]: Gi1/0/37
+                - generic [ref=e246]: ▲ 234 Input
+              - generic [ref=e247]:
+                - generic [ref=e248] [cursor=pointer]: Gi2/0/5
+                - generic [ref=e249]: ▲ 89 Collision
+        - generic [ref=e250]: Top Bandwidth & Recent Users
+        - table [ref=e251]:
+          - rowgroup [ref=e252]:
+            - row "Nickname Email IPs Bandwidth Status Seen" [ref=e253]:
+              - columnheader "Nickname" [ref=e254]
+              - columnheader "Email" [ref=e255]
+              - columnheader "IPs" [ref=e256]
+              - columnheader "Bandwidth" [ref=e257]
+              - columnheader "Status" [ref=e258]
+              - columnheader "Seen" [ref=e259]
+          - rowgroup [ref=e260]:
+            - row "FragMaster frag@example.com 1 48.2 GB ✓ Active 5m" [ref=e261] [cursor=pointer]:
+              - cell "FragMaster" [ref=e262]
+              - cell "frag@example.com" [ref=e263]
+              - cell "1" [ref=e264]
+              - cell "48.2 GB" [ref=e265]
+              - cell "✓ Active" [ref=e266]:
+                - generic [ref=e267]: ✓ Active
+              - cell "5m" [ref=e268]
+            - row "NeonGamer42 neon@example.com 2 32.7 GB ✓ Active 2m" [ref=e269] [cursor=pointer]:
+              - cell "NeonGamer42" [ref=e270]
+              - cell "neon@example.com" [ref=e271]
+              - cell "2" [ref=e272]
+              - cell "32.7 GB" [ref=e273]
+              - cell "✓ Active" [ref=e274]:
+                - generic [ref=e275]: ✓ Active
+              - cell "2m" [ref=e276]
+            - row "SteamDL_Bot steam@example.com 1 28.1 GB ✓ Active 12m" [ref=e277] [cursor=pointer]:
+              - cell "SteamDL_Bot" [ref=e278]
+              - cell "steam@example.com" [ref=e279]
+              - cell "1" [ref=e280]
+              - cell "28.1 GB" [ref=e281]
+              - cell "✓ Active" [ref=e282]:
+                - generic [ref=e283]: ✓ Active
+              - cell "12m" [ref=e284]
+            - row "ToxicWaste toxic@example.com 3 15.8 GB ✕ Blocked 1h" [ref=e285] [cursor=pointer]:
+              - cell "ToxicWaste" [ref=e286]
+              - cell "toxic@example.com" [ref=e287]
+              - cell "3" [ref=e288]
+              - cell "15.8 GB" [ref=e289]
+              - cell "✕ Blocked" [ref=e290]:
+                - generic [ref=e291]: ✕ Blocked
+              - cell "1h" [ref=e292]
+  - generic [ref=e293]:
+    - 'heading "Admin: User Detail" [level=2] [ref=e294]'
+    - paragraph [ref=e295]: Horizontal metadata strip, full-width bandwidth + IP table below.
+  - generic [ref=e297]:
+    - generic [ref=e298]:
+      - text: "User: NeonGamer42"
+      - generic [ref=e299]: Active
+    - generic [ref=e300]:
+      - generic [ref=e301]:
+        - generic [ref=e302]: Admin / Users / NeonGamer42
+        - generic [ref=e303]:
+          - button "Edit Roles" [ref=e304] [cursor=pointer]
+          - button "Block User" [ref=e305] [cursor=pointer]
+      - generic [ref=e306]:
+        - generic [ref=e307]:
+          - generic [ref=e308]: Nickname
+          - generic [ref=e309]: NeonGamer42
+        - generic [ref=e310]:
+          - generic [ref=e311]: Email
+          - generic [ref=e312]: neon@example.com
+        - generic [ref=e313]:
+          - generic [ref=e314]: Roles
+          - generic [ref=e316]: User
+        - generic [ref=e317]:
+          - generic [ref=e318]: Status
+          - generic [ref=e320]: ✓ Active
+        - generic [ref=e321]:
+          - generic [ref=e322]: Auth
+          - generic [ref=e323]: SSO (OAuth2)
+        - generic [ref=e324]:
+          - generic [ref=e325]: First Seen
+          - generic [ref=e326]: 2026-04-11 09:32
+      - generic [ref=e327]:
+        - generic [ref=e328]: Bandwidth Total
+        - generic [ref=e329]:
+          - generic [ref=e330]: ↓ Down 2.4 GB
+          - generic [ref=e331]: ↑ Up 890 MB
+        - img [ref=e332]
+        - generic [ref=e336]:
+          - generic [ref=e337]: Download
+          - generic [ref=e339]: Upload
+      - generic [ref=e341]: IP Addresses
+      - table [ref=e342]:
+        - rowgroup [ref=e343]:
+          - row "Address Type MAC Port Status Seen" [ref=e344]:
+            - columnheader "Address" [ref=e345]
+            - columnheader "Type" [ref=e346]
+            - columnheader "MAC" [ref=e347]
+            - columnheader "Port" [ref=e348]
+            - columnheader "Status" [ref=e349]
+            - columnheader "Seen" [ref=e350]
+        - rowgroup [ref=e351]:
+          - row "10.0.1.42 IPv4 AA:BB:CC:DD:EE:42 Gi1/0/24 ✓ Allowed 2m" [ref=e352] [cursor=pointer]:
+            - cell "10.0.1.42" [ref=e353]
+            - cell "IPv4" [ref=e354]
+            - cell "AA:BB:CC:DD:EE:42" [ref=e355]
+            - cell "Gi1/0/24" [ref=e356]
+            - cell "✓ Allowed" [ref=e357]:
+              - generic [ref=e358]: ✓ Allowed
+            - cell "2m" [ref=e359]
+          - row "fd00::a00:12a IPv6 AA:BB:CC:00:12:A0 Gi1/0/24 ✓ Allowed 2m" [ref=e360] [cursor=pointer]:
+            - cell "fd00::a00:12a" [ref=e361]
+            - cell "IPv6" [ref=e362]
+            - cell "AA:BB:CC:00:12:A0" [ref=e363]
+            - cell "Gi1/0/24" [ref=e364]
+            - cell "✓ Allowed" [ref=e365]:
+              - generic [ref=e366]: ✓ Allowed
+            - cell "2m" [ref=e367]
+          - row "10.0.1.108 IPv4 AA:BB:CC:DD:EE:6C Gi1/0/48 ✓ Allowed 45m" [ref=e368] [cursor=pointer]:
+            - cell "10.0.1.108" [ref=e369]
+            - cell "IPv4" [ref=e370]
+            - cell "AA:BB:CC:DD:EE:6C" [ref=e371]
+            - cell "Gi1/0/48" [ref=e372]
+            - cell "✓ Allowed" [ref=e373]:
+              - generic [ref=e374]: ✓ Allowed
+            - cell "45m" [ref=e375]
+          - row "fd00::a00:16c IPv6 AA:BB:CC:00:16:C0 Gi1/0/48 ✓ Allowed 45m" [ref=e376] [cursor=pointer]:
+            - cell "fd00::a00:16c" [ref=e377]
+            - cell "IPv6" [ref=e378]
+            - cell "AA:BB:CC:00:16:C0" [ref=e379]
+            - cell "Gi1/0/48" [ref=e380]
+            - cell "✓ Allowed" [ref=e381]:
+              - generic [ref=e382]: ✓ Allowed
+            - cell "45m" [ref=e383]
+  - generic [ref=e384]:
+    - 'heading "Admin: IP Address Detail" [level=2] [ref=e385]'
+    - paragraph [ref=e386]: Horizontal metadata strip, bandwidth + activity log below.
+  - generic [ref=e388]:
+    - generic [ref=e389]:
+      - text: "IP: 10.0.1.42"
+      - generic [ref=e390]: Allowed
+    - generic [ref=e391]:
+      - generic [ref=e392]:
+        - generic [ref=e393]: Admin / IPs / 10.0.1.42
+        - generic [ref=e394]:
+          - button "Rate Limit" [ref=e395] [cursor=pointer]
+          - button "Revoke" [ref=e396] [cursor=pointer]
+      - generic [ref=e397]:
+        - generic [ref=e398]:
+          - generic [ref=e399]: Address
+          - generic [ref=e400]: 10.0.1.42
+        - generic [ref=e401]:
+          - generic [ref=e402]: Type
+          - generic [ref=e403]: IPv4
+        - generic [ref=e404]:
+          - generic [ref=e405]: MAC
+          - generic [ref=e406]: AA:BB:CC:DD:EE:42
+        - generic [ref=e407]:
+          - generic [ref=e408]: User
+          - generic [ref=e409]: NeonGamer42
+        - generic [ref=e410]:
+          - generic [ref=e411]: Port
+          - generic [ref=e412]: Gi1/0/24
+        - generic [ref=e413]:
+          - generic [ref=e414]: Status
+          - generic [ref=e416]: ✓ Allowed
+        - generic [ref=e417]:
+          - generic [ref=e418]: Last Seen
+          - generic [ref=e419]: 2 minutes ago
+      - generic [ref=e420]:
+        - generic [ref=e421]:
+          - generic [ref=e422]: Related IPv6
+          - generic [ref=e423]:
+            - term [ref=e424]: Address
+            - definition [ref=e425]: fd00::a00:12a
+            - term [ref=e426]: MAC
+            - definition [ref=e427]: AA:BB:CC:00:12:A0
+            - term [ref=e428]: Status
+            - definition [ref=e429]:
+              - generic [ref=e430]: ✓ Allowed
+        - generic [ref=e431]:
+          - generic [ref=e432]: Bandwidth — Last 24 Hours
+          - generic [ref=e433]:
+            - generic [ref=e434]: ↓ 1.8 GB
+            - generic [ref=e435]: ↑ 620 MB
+          - img [ref=e436]
+          - generic [ref=e440]:
+            - generic [ref=e441]: Download
+            - generic [ref=e443]: Upload
+      - generic [ref=e445]:
+        - generic [ref=e446]: Activity Log
+        - combobox [ref=e448]:
+          - option "All Events" [selected]
+          - option "Allowed"
+          - option "Blocked"
+          - option "Detected"
+          - option "Rate Limited"
+      - table [ref=e449]:
+        - rowgroup [ref=e450]:
+          - row "Time Event Details" [ref=e451]:
+            - columnheader "Time" [ref=e452]
+            - columnheader "Event" [ref=e453]
+            - columnheader "Details" [ref=e454]
+        - rowgroup [ref=e455]:
+          - row "14:22 ▲ Rate Limited Bandwidth cap applied — 100Mbps for 30m" [ref=e456]:
+            - cell "14:22" [ref=e457]
+            - cell "▲ Rate Limited" [ref=e458]:
+              - generic [ref=e459]: ▲ Rate Limited
+            - cell "Bandwidth cap applied — 100Mbps for 30m" [ref=e460]
+          - row "12:08 ✓ Allowed Rate limit expired, full speed restored" [ref=e461]:
+            - cell "12:08" [ref=e462]
+            - cell "✓ Allowed" [ref=e463]:
+              - generic [ref=e464]: ✓ Allowed
+            - cell "Rate limit expired, full speed restored" [ref=e465]
+          - row "11:45 ▲ Rate Limited Admin-initiated rate limit — high bandwidth usage" [ref=e466]:
+            - cell "11:45" [ref=e467]
+            - cell "▲ Rate Limited" [ref=e468]:
+              - generic [ref=e469]: ▲ Rate Limited
+            - cell "Admin-initiated rate limit — high bandwidth usage" [ref=e470]
+          - row "09:34 ✓ Allowed Firewall rule applied by NeonGamer42 login" [ref=e471]:
+            - cell "09:34" [ref=e472]
+            - cell "✓ Allowed" [ref=e473]:
+              - generic [ref=e474]: ✓ Allowed
+            - cell "Firewall rule applied by NeonGamer42 login" [ref=e475]
+          - row "09:33 ✓ Allowed IPv6 address fd00::a00:12a paired automatically" [ref=e476]:
+            - cell "09:33" [ref=e477]
+            - cell "✓ Allowed" [ref=e478]:
+              - generic [ref=e479]: ✓ Allowed
+            - cell "IPv6 address fd00::a00:12a paired automatically" [ref=e480]
+          - row "09:32 Detected DHCP lease from Gi1/0/24" [ref=e481]:
+            - cell "09:32" [ref=e482]
+            - cell "Detected" [ref=e483]:
+              - generic [ref=e484]: Detected
+            - cell "DHCP lease from Gi1/0/24" [ref=e485]
+      - generic [ref=e486]: Show all activity →
+  - generic [ref=e487]:
+    - 'heading "Admin: Network Port" [level=2] [ref=e488]'
+    - paragraph [ref=e489]: Status header strip, bandwidth + devices together, errors + config grouped below.
+  - generic [ref=e491]:
+    - generic [ref=e492]:
+      - text: "Port: Gi1/0/24"
+      - generic [ref=e493]: Up
+    - generic [ref=e494]:
+      - generic [ref=e495]:
+        - generic [ref=e496]: Admin / Ports / Gi1/0/24
+        - button "Refresh" [ref=e498] [cursor=pointer]
+      - generic [ref=e499]:
+        - generic [ref=e500]:
+          - generic [ref=e501]: Interface
+          - generic [ref=e502]: Gi1/0/24
+        - generic [ref=e503]:
+          - generic [ref=e504]: Description
+          - generic [ref=e505]: Seat 24 — Row A
+        - generic [ref=e506]:
+          - generic [ref=e507]: Status
+          - generic [ref=e509]: ✓ Up / Up
+        - generic [ref=e510]:
+          - generic [ref=e511]: Speed
+          - generic [ref=e512]: 1 Gbps Full
+        - generic [ref=e513]:
+          - generic [ref=e514]: VLAN
+          - generic [ref=e515]: 100 (Users)
+        - generic [ref=e516]:
+          - generic [ref=e517]: PoE
+          - generic [ref=e518]: "Off"
+      - generic [ref=e519]:
+        - generic [ref=e520]:
+          - generic [ref=e521]: Bandwidth — Last 24 Hours
+          - generic [ref=e522]:
+            - generic [ref=e523]: ↓ In 2.1 GB
+            - generic [ref=e524]: ↑ Out 780 MB
+          - img [ref=e525]
+          - generic [ref=e529]:
+            - generic [ref=e530]: Inbound
+            - generic [ref=e532]: Outbound
+        - generic [ref=e534]:
+          - generic [ref=e535]: Connected Devices (2)
+          - generic [ref=e536]:
+            - generic [ref=e537]: NeonGamer42
+            - generic [ref=e538]: 10.0.1.42
+            - generic [ref=e539]: AA:BB:CC:DD:EE:42
+            - generic [ref=e540]: ✓ Allowed
+          - generic [ref=e541]:
+            - generic [ref=e542]: IP Phone
+            - generic [ref=e543]: 10.0.2.24
+            - generic [ref=e544]: AA:BB:CC:DD:EE:F0
+            - generic [ref=e545]: Infrastructure
+      - generic [ref=e546]:
+        - generic [ref=e547]:
+          - generic [ref=e548]: Interface Errors (24h)
+          - generic [ref=e549]:
+            - generic [ref=e550]:
+              - generic [ref=e551]:
+                - text: Input
+                - generic [ref=e552]: "0"
+              - generic [ref=e553]:
+                - text: CRC
+                - generic [ref=e554]: "0"
+              - generic [ref=e555]:
+                - text: Output
+                - generic [ref=e556]: "0"
+              - generic [ref=e557]:
+                - text: Collisions
+                - generic [ref=e558]: "0"
+            - img [ref=e559]
+            - generic [ref=e562]: Clean — no errors
+        - generic [ref=e564]:
+          - generic [ref=e565]: Running Config
+          - generic [ref=e566]: interface GigabitEthernet1/0/24 description Seat 24 - Row A switchport access vlan 100 switchport mode access spanning-tree portfast no shutdown !
+  - generic [ref=e567]:
+    - 'heading "Admin: Settings" [level=2] [ref=e568]'
+    - paragraph [ref=e569]: Vertical sidebar navigation. Larger form inputs for admin use.
+  - generic [ref=e571]:
+    - generic [ref=e572]:
+      - text: Settings
+      - generic [ref=e573]: Config
+    - generic [ref=e575]:
+      - generic [ref=e576]:
+        - generic [ref=e577]: Integrations
+        - generic [ref=e578] [cursor=pointer]: Authentication
+        - generic [ref=e579] [cursor=pointer]: Firewall
+        - generic [ref=e580] [cursor=pointer]: Network Monitoring
+        - generic [ref=e581] [cursor=pointer]: Switches
+        - generic [ref=e582]: Appearance
+        - generic [ref=e583] [cursor=pointer]: Theme
+        - generic [ref=e584]: General
+        - generic [ref=e585] [cursor=pointer]: Event
+        - generic [ref=e586] [cursor=pointer]: Portal
+      - generic [ref=e587]:
+        - generic [ref=e588]:
+          - generic [ref=e589]:
+            - heading "Authentication" [level=3] [ref=e590]
+            - paragraph [ref=e591]: SSO / OAuth2 provider configuration
+          - generic [ref=e592]: ✓ Connected
+        - generic [ref=e593]:
+          - generic [ref=e594]:
+            - generic [ref=e595]: Provider
+            - generic [ref=e596]:
+              - generic [ref=e597]: Provider Type
+              - combobox [ref=e598]:
+                - option "OAuth2 (Generic)"
+                - option "Borealis" [selected]
+                - option "Auth0"
+                - option "Keycloak"
+            - generic [ref=e599]:
+              - generic [ref=e600]: Client ID
+              - textbox [ref=e601]: aperture-prod-12345
+            - generic [ref=e602]:
+              - generic [ref=e603]: Client Secret
+              - textbox [ref=e604]: ••••••••••••
+          - generic [ref=e605]:
+            - generic [ref=e606]: Endpoints
+            - generic [ref=e607]:
+              - generic [ref=e608]: Authorization URL
+              - textbox [ref=e609]: https://auth.borealis.example.com/authorize
+            - generic [ref=e610]:
+              - generic [ref=e611]: Token URL
+              - textbox [ref=e612]: https://auth.borealis.example.com/token
+            - generic [ref=e613]:
+              - generic [ref=e614]: User Info URL
+              - textbox [ref=e615]: https://auth.borealis.example.com/userinfo
+        - generic [ref=e616]:
+          - button "Test Connection" [ref=e617] [cursor=pointer]
+          - button "Save" [ref=e618] [cursor=pointer]
+  - generic [ref=e619]:
+    - 'heading "Admin: Content Management" [level=2] [ref=e620]'
+    - paragraph [ref=e621]: Content blocks, block editor, and dashboard layout editor.
+  - generic [ref=e622]:
+    - generic [ref=e623]:
+      - generic [ref=e624]:
+        - text: Content Blocks
+        - generic [ref=e625]: CMS
+      - generic [ref=e626]:
+        - generic [ref=e627]:
+          - generic [ref=e628]: Admin / Content
+          - button "+ New Block" [ref=e629] [cursor=pointer]
+        - table [ref=e630]:
+          - rowgroup [ref=e631]:
+            - row "Title Type Placement Status Updated" [ref=e632]:
+              - columnheader [ref=e633]
+              - columnheader "Title" [ref=e634]
+              - columnheader "Type" [ref=e635]
+              - columnheader "Placement" [ref=e636]
+              - columnheader "Status" [ref=e637]
+              - columnheader "Updated" [ref=e638]
+              - columnheader [ref=e639]
+          - rowgroup [ref=e640]:
+            - row "⋮⋮ Welcome Message Rich Text Dashboard ✓ Live 2 hours ago Edit" [ref=e641] [cursor=pointer]:
+              - cell "⋮⋮" [ref=e642]
+              - cell "Welcome Message" [ref=e643]
+              - cell "Rich Text" [ref=e644]
+              - cell "Dashboard" [ref=e645]
+              - cell "✓ Live" [ref=e646]:
+                - generic [ref=e647]: ✓ Live
+              - cell "2 hours ago" [ref=e648]
+              - cell "Edit" [ref=e649]:
+                - button "Edit" [ref=e650]
+            - row "⋮⋮ DNS Instructions Alert Dashboard ✓ Live 1 day ago Edit" [ref=e651] [cursor=pointer]:
+              - cell "⋮⋮" [ref=e652]
+              - cell "DNS Instructions" [ref=e653]
+              - cell "Alert" [ref=e654]
+              - cell "Dashboard" [ref=e655]
+              - cell "✓ Live" [ref=e656]:
+                - generic [ref=e657]: ✓ Live
+              - cell "1 day ago" [ref=e658]
+              - cell "Edit" [ref=e659]:
+                - button "Edit" [ref=e660]
+            - row "⋮⋮ Quick Links Links Dashboard ✓ Live 3 days ago Edit" [ref=e661] [cursor=pointer]:
+              - cell "⋮⋮" [ref=e662]
+              - cell "Quick Links" [ref=e663]
+              - cell "Links" [ref=e664]
+              - cell "Dashboard" [ref=e665]
+              - cell "✓ Live" [ref=e666]:
+                - generic [ref=e667]: ✓ Live
+              - cell "3 days ago" [ref=e668]
+              - cell "Edit" [ref=e669]:
+                - button "Edit" [ref=e670]
+            - row "⋮⋮ Tournament Signup Rich Text Dashboard ▲ Draft 5 days ago Edit" [ref=e671] [cursor=pointer]:
+              - cell "⋮⋮" [ref=e672]
+              - cell "Tournament Signup" [ref=e673]
+              - cell "Rich Text" [ref=e674]
+              - cell "Dashboard" [ref=e675]
+              - cell "▲ Draft" [ref=e676]:
+                - generic [ref=e677]: ▲ Draft
+              - cell "5 days ago" [ref=e678]
+              - cell "Edit" [ref=e679]:
+                - button "Edit" [ref=e680]
+        - generic [ref=e681]:
+          - generic [ref=e682]: "Example: Empty State"
+          - generic [ref=e683]:
+            - img [ref=e684]
+            - generic [ref=e687]: No content blocks yet
+            - generic [ref=e688]: Create your first block to add custom content to user dashboards. Rich text, alerts, links, and more.
+            - button "+ Create First Block" [ref=e689] [cursor=pointer]
+    - generic [ref=e690]:
+      - generic [ref=e691]:
+        - text: Dashboard Layout Editor
+        - generic [ref=e692]: Builder
+      - generic [ref=e693]:
+        - generic [ref=e694]:
+          - generic [ref=e695]:
+            - generic [ref=e696]:
+              - generic [ref=e697]: Canvas — drag blocks to position, drag handles to resize
+              - generic [ref=e698]:
+                - button "Undo" [ref=e699] [cursor=pointer]
+                - 'button "Grid: 12" [ref=e700] [cursor=pointer]'
+            - generic [ref=e701]:
+              - generic [ref=e702]:
+                - generic [ref=e703]: Welcome Message
+                - generic [ref=e704]: Rich Text · Full Width
+              - generic [ref=e706]:
+                - generic [ref=e707]: Bandwidth
+                - generic [ref=e708]: Chart · 8/12
+              - generic [ref=e711]:
+                - generic [ref=e712]: Connection
+                - generic [ref=e713]: Status · 4/12
+              - generic [ref=e716]:
+                - generic [ref=e717]: Quick Links
+                - generic [ref=e718]: Links · 6/12
+              - generic [ref=e720]:
+                - generic [ref=e721]: Ad Blocking
+                - generic [ref=e722]: Toggle · 6/12
+          - generic [ref=e724]:
+            - generic [ref=e725]: Blocks
+            - generic [ref=e726]:
+              - generic [ref=e727]:
+                - img [ref=e728]
+                - text: Rich Text
+              - generic [ref=e731]:
+                - img [ref=e732]
+                - text: Status
+              - generic [ref=e735]:
+                - img [ref=e736]
+                - text: Chart
+              - generic [ref=e737]:
+                - img [ref=e738]
+                - text: Alert
+              - generic [ref=e740]:
+                - img [ref=e741]
+                - text: Links
+              - generic [ref=e744]:
+                - img [ref=e745]
+                - text: Toggle
+            - generic [ref=e748]: Properties
+            - generic [ref=e749]:
+              - generic [ref=e750]: Welcome Message
+              - generic [ref=e751]:
+                - generic [ref=e752]: Width
+                - generic [ref=e753]:
+                  - button "4" [ref=e754] [cursor=pointer]
+                  - button "6" [ref=e755] [cursor=pointer]
+                  - button "8" [ref=e756] [cursor=pointer]
+                  - button "12" [ref=e757] [cursor=pointer]
+              - generic [ref=e758]:
+                - generic [ref=e759]: Row
+                - textbox [ref=e760]: "1"
+              - generic [ref=e762]: Visible
+        - generic [ref=e765]:
+          - button "Preview" [ref=e766] [cursor=pointer]
+          - button "Save Layout" [ref=e767] [cursor=pointer]

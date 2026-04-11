@@ -1,0 +1,352 @@
+- generic [ref=e2]:
+  - heading "Aperture v5 — Design Critique" [level=1] [ref=e3]
+  - paragraph [ref=e4]: Comprehensive critique covering dark mode, light mode, all 9 sections. Evaluated against impeccable frontend-design anti-patterns and critique dimensions.
+  - generic [ref=e5]:
+    - generic [ref=e6]: "AI Slop: PASS"
+    - generic [ref=e7]: "Overall: GOOD with issues"
+    - generic [ref=e8]: 9 sections reviewed
+  - heading "Dimension Scores" [level=2] [ref=e9]
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - generic [ref=e12]: "8"
+      - generic [ref=e13]: AI Slop
+    - generic [ref=e14]:
+      - generic [ref=e15]: "8"
+      - generic [ref=e16]: Hierarchy
+    - generic [ref=e17]:
+      - generic [ref=e18]: "8"
+      - generic [ref=e19]: Info Arch
+    - generic [ref=e20]:
+      - generic [ref=e21]: "7"
+      - generic [ref=e22]: Typography
+    - generic [ref=e23]:
+      - generic [ref=e24]: "7"
+      - generic [ref=e25]: Color
+  - generic [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e28]: "7"
+      - generic [ref=e29]: Composition
+    - generic [ref=e30]:
+      - generic [ref=e31]: "6"
+      - generic [ref=e32]: Light Mode
+    - generic [ref=e33]:
+      - generic [ref=e34]: "6"
+      - generic [ref=e35]: States
+    - generic [ref=e36]:
+      - generic [ref=e37]: "8"
+      - generic [ref=e38]: Microcopy
+    - generic [ref=e39]:
+      - generic [ref=e40]: "7"
+      - generic [ref=e41]: Responsive
+  - heading "1. AI Slop Detection — PASS" [level=2] [ref=e42]
+  - paragraph [ref=e43]: "A marked improvement from v4. The fingerprints of AI-generated design have been largely scrubbed:"
+  - list [ref=e44]:
+    - listitem [ref=e45]:
+      - strong [ref=e46]: Fonts
+      - text: ": Space Grotesk + Plus Jakarta Sans is a distinctive pairing. Inter is gone. This alone removes the #1 AI tell."
+    - listitem [ref=e47]:
+      - strong [ref=e48]: No gradient text
+      - text: ": Confirmed — zero gradient text anywhere. Headings use solid color, metrics use brand palette selectively."
+    - listitem [ref=e49]:
+      - strong [ref=e50]: Palette
+      - text: ": Warm zinc with indigo/rose is NOT the AI palette (cyan-on-dark / purple-blue gradients). The warm tint on neutrals is good."
+    - listitem [ref=e51]:
+      - strong [ref=e52]: No glassmorphism
+      - text: ": The nav uses backdrop blur but it's functional (sticky nav), not decorative. Acceptable."
+    - listitem [ref=e53]:
+      - strong [ref=e54]: Layout variety
+      - text: ": Cards are NOT uniform grids — there's asymmetry (2fr:1fr, 3fr:2fr, 1fr:2fr). The port page header strip breaks the card-everything pattern. Good."
+    - listitem [ref=e55]:
+      - strong [ref=e56]: No hero metric template
+      - text: ": The \"42 Online\" stat ALMOST hits this pattern (big number, small label, supporting context) but it's inside a tinted card-hero with enough differentiation."
+  - paragraph [ref=e57]:
+    - strong [ref=e58]: "Remaining AI tells (minor):"
+  - list [ref=e59]:
+    - listitem [ref=e60]:
+      - text: Every section uses
+      - code [ref=e61]: .card
+      - text: extensively — cards-inside-cards pattern persists in places (user detail has a card grid inside a pcard)
+    - listitem [ref=e62]:
+      - text: The QR ring glow (
+      - code [ref=e63]: "box-shadow: 0 0 20px var(--glow-pri)"
+      - text: ) and Live badge glow are slightly "AI neon" — but acceptable given the LAN party context
+    - listitem [ref=e64]: Emoji icons in the dashboard builder palette (📊, ⚠, 🔗) look like placeholder shortcuts
+  - heading "2. What's Working" [level=2] [ref=e65]
+  - generic [ref=e66]:
+    - heading "Port Detail Page Rearrangement" [level=4] [ref=e67]
+    - paragraph [ref=e68]: The status header strip is excellent. Port metadata flows horizontally without card wrapping — this is how engineers actually scan port info. The 3fr:1fr bandwidth/devices split and 1fr:2fr errors/config grouping make functional sense. Best-arranged page in the mockup.
+  - generic [ref=e69]:
+    - heading "Captive Portal Flow (S1 → S2)" [level=4] [ref=e70]
+    - paragraph [ref=e71]: QR prominence is right. The "Your device code" label + monospace ABCD-1234 at 36px creates instant scanability. The transition to the provisioning steps (S2) is clean — the spinner + step checklist is genuinely useful UX. Minimal, focused, no distractions.
+  - generic [ref=e72]:
+    - heading "Dual-Color Bandwidth Charts" [level=4] [ref=e73]
+    - paragraph [ref=e74]: Primary solid for download, accent dashed for upload — every chart is consistent and includes a legend. The area fill behind the primary line adds visual weight where it belongs. These communicate real data relationships, not just decoration.
+  - generic [ref=e75]:
+    - heading "Running Config Syntax Highlighting" [level=4] [ref=e76]
+    - paragraph [ref=e77]: Using JetBrains Mono with keyword/value/comment coloring is referencing the right mental model for network engineers. The config block doesn't try to be fancy — it just presents the config how a terminal would. Correct decision.
+  - heading "3. Priority Issues" [level=2] [ref=e78]
+  - generic [ref=e79]:
+    - generic [ref=e80]: Critical
+    - heading "Light Mode Is Undercooked" [level=4] [ref=e81]
+    - paragraph [ref=e82]: "The light mode swap via CSS variables technically works but hasn't been thoughtfully designed. Specific problems:"
+    - list [ref=e83]:
+      - listitem [ref=e84]:
+        - text: "The admin sidebar in light mode (#fff surface on #faf9f7 bg) has almost no visual separation — the 1px border at"
+        - code [ref=e85]: "#e8e7e4"
+        - text: is too subtle
+      - listitem [ref=e86]:
+        - text: SVG chart gradients reference
+        - code [ref=e87]: var(--primary)
+        - text: with hardcoded opacity values tuned for dark backgrounds — on light mode, the fill-under-curve is nearly invisible
+      - listitem [ref=e88]:
+        - text: The captive portal QR ring glow disappears in light mode (
+        - code [ref=e89]: "--glow-pri"
+        - text: is 0.08 opacity) — the ring looks like a plain border
+      - listitem [ref=e90]: The "Live" badge glow similarly vanishes — no visual emphasis in light mode
+      - listitem [ref=e91]:
+        - text: The event banner
+        - code [ref=e92]: "border-left: 3px solid var(--primary)"
+        - text: in light mode uses darker indigo (#6366f1) which clashes with the warm light background tone
+      - listitem [ref=e93]:
+        - text: The
+        - code [ref=e94]: .config-block
+        - text: uses
+        - code [ref=e95]: var(--bg)
+        - text: "which in light mode is #faf9f7 — code blocks should be darker than surrounding surface in light mode, not the same warmth level"
+    - generic [ref=e96]:
+      - strong [ref=e97]: "Fix:"
+      - text: Light mode needs its own design pass, not just variable swaps. Code blocks should use a cool-tinted light gray. Chart gradient opacities need light-mode-specific values (higher, like 0.25). Sidebar needs a subtle background distinction or stronger border. Badge glows should become subtle box-shadows in light mode instead of disappearing.
+  - generic [ref=e98]:
+    - generic [ref=e99]: Critical
+    - heading "No Accessibility Considerations" [level=4] [ref=e100]
+    - paragraph [ref=e101]:
+      - text: Zero ARIA roles on interactive elements. Status pills rely on color alone (ok=green, bad=red, warn=yellow) with no icon or text differentiation for colorblind users. The 9px uppercase text in
+      - code [ref=e102]: .card-label
+      - text: and
+      - code [ref=e103]: .pill
+      - text: is below WCAG minimum text size recommendations. The dark mode text-3 (#7a7974) on dark bg (#1a1a1e) is approximately 3.8:1 contrast — fails WCAG AA for small text.
+    - generic [ref=e104]:
+      - strong [ref=e105]: "Fix:"
+      - text: Add semantic icons alongside color coding (✓ for ok, ✕ for blocked). Increase
+      - code [ref=e106]: .card-label
+      - text: minimum to 11px. Check all color combinations in both modes against WCAG AA (4.5:1 for small text). The status pills already have a dot — make it a distinct shape per status (circle=ok, triangle=warn, square=bad).
+  - generic [ref=e107]:
+    - generic [ref=e108]: High
+    - heading "Admin Dashboard Label Still Says \"Option B\"" [level=4] [ref=e109]
+    - paragraph [ref=e110]:
+      - text: The section title
+      - code [ref=e111]: .stitle
+      - text: says "Admin Dashboard" correctly, but the inner
+      - code [ref=e112]: .clabel
+      - text: "still reads \"Admin Option B: Dashboard Cards\" with a \"Visual\" ctag. Option A no longer exists — this is a leftover label that references a comparison that doesn't apply anymore."
+    - generic [ref=e113]:
+      - strong [ref=e114]: "Fix:"
+      - text: Change the clabel to just "Admin Dashboard" or "Dashboard Overview". Remove the "Visual" tag or replace with something meaningful like "Admin".
+  - generic [ref=e115]:
+    - generic [ref=e116]: High
+    - heading "Inline Styles Everywhere — Unmaintainable" [level=4] [ref=e117]
+    - paragraph [ref=e118]:
+      - text: Approximately 80% of layout is done via inline
+      - code [ref=e119]: style=""
+      - text: attributes. The CSS section defines utility classes (
+      - code [ref=e120]: .card
+      - text: ","
+      - code [ref=e121]: .pill
+      - text: ","
+      - code [ref=e122]: .btn
+      - text: ) but grids, padding, margins, and most positioning are all inline. This makes the mockup difficult to iterate on, nearly impossible to make responsive, and obfuscates what the design system actually is.
+    - generic [ref=e123]:
+      - strong [ref=e124]: "Fix:"
+      - text: For a design preview this is acceptable — but when moving to implementation, every inline grid/layout pattern needs to become a named class. The grids (2fr:1fr, 3fr:2fr, 1fr:2fr) are reusable patterns that should be
+      - code [ref=e125]: .grid-21
+      - text: ","
+      - code [ref=e126]: .grid-32
+      - text: ", etc."
+  - generic [ref=e127]:
+    - generic [ref=e128]: High
+    - heading "User Detail Page Feels Cramped vs Other Pages" [level=4] [ref=e129]
+    - paragraph [ref=e130]:
+      - text: S5 (User Detail) uses a rigid
+      - code [ref=e131]: 240px 1fr
+      - text: sidebar layout that makes the left column very dense — nickname, email, roles, status, auth, first seen, PLUS bandwidth total + chart, all stacked in 240px. Compare to S7 (Port Detail) which spreads metadata across a full-width strip. The user detail page looks like it hasn't been rearranged yet.
+    - generic [ref=e132]:
+      - strong [ref=e133]: "Fix:"
+      - text: "Apply the same arrange skill treatment as the port page: pull user metadata into a horizontal strip at the top (Nickname, Email, Roles, Status, Auth inline). Then give bandwidth and IP table the full width below. This would be consistent with the port page pattern and give the data room to breathe."
+  - generic [ref=e134]:
+    - generic [ref=e135]: Medium
+    - heading "Settings Page Form Fields Are Tiny" [level=4] [ref=e136]
+    - paragraph [ref=e137]:
+      - text: The settings form inputs use
+      - code [ref=e138]: "font-size: 11px"
+      - text: and
+      - code [ref=e139]: "padding: 6px 10px"
+      - text: . On a config page where admins will spend time typing OAuth URLs and secrets, these inputs are uncomfortably small. The labels at 11px and inputs at 11px create a visually flat, hard-to-scan form.
+    - generic [ref=e140]:
+      - strong [ref=e141]: "Fix:"
+      - text: Bump form inputs to 13px font-size and 8px 12px padding. Labels should be 12px. Add more vertical gap between form groups (currently 10px, should be 14px+). The "Test Connection" / "Save" buttons should be larger for a settings page — these are consequential actions.
+  - generic [ref=e142]:
+    - generic [ref=e143]: Medium
+    - heading "Dashboard Builder Emoji Icons" [level=4] [ref=e144]
+    - paragraph [ref=e145]: The block palette in the dashboard builder uses emoji (📊, ⚠, 🔗) mixed with text characters (T, ⚡, ⊘). Emoji render differently across platforms and don't match the clean SVG icon language used elsewhere in the design (sidebar icons, quick links). This inconsistency feels like a shortcut.
+    - generic [ref=e146]:
+      - strong [ref=e147]: "Fix:"
+      - text: Replace all palette icons with SVG icons matching the sidebar style — 13px stroke icons. Use chart-bar for Chart, alert-triangle for Alert, link for Links, toggle for Toggle.
+  - generic [ref=e148]:
+    - generic [ref=e149]: Medium
+    - heading "Preview Chrome Competes with Content" [level=4] [ref=e150]
+    - paragraph [ref=e151]:
+      - text: The sticky nav with section links is useful for navigating the preview but creates confusion about what's "real" UI and what's preview scaffolding. The
+      - code [ref=e152]: .stitle
+      - text: headings ("Captive Portal — Login", "Admin Dashboard") and
+      - code [ref=e153]: .pcard .clabel
+      - text: describe the section — but users/designers might confuse these with how the actual page titles will look. The "complete" tag and the dark/light toggle are preview-only features.
+    - generic [ref=e154]:
+      - strong [ref=e155]: "Fix:"
+      - text: Add subtle visual separation — a dashed border or "PREVIEW" watermark on the chrome elements. Or use a distinctly different background color for the preview chrome (e.g., a cool gray) vs the warm zinc content areas.
+  - generic [ref=e156]:
+    - generic [ref=e157]: Medium
+    - heading "IP Detail Page (S6) — Activity Log Is Anemic" [level=4] [ref=e158]
+    - paragraph [ref=e159]: The activity log shows exactly 2 rows (09:34 Allowed, 09:32 Detected). For a design preview, this makes it hard to evaluate whether the table would work with real data volume. Would 50 log entries need pagination? Filtering? Search? The current design doesn't hint at any of that.
+    - generic [ref=e160]:
+      - strong [ref=e161]: "Fix:"
+      - text: Show 5-8 sample rows with varied event types. Add a "Show all →" link or pagination hint at the bottom. Consider adding a filter dropdown for event type (Allowed, Detected, Blocked, Rate Limited).
+  - generic [ref=e162]:
+    - generic [ref=e163]: Medium
+    - heading "Connected Devices on Port Page Is Underdesigned" [level=4] [ref=e164]
+    - paragraph [ref=e165]: The "Connected Devices" section on S7 shows a single device card. In reality, with trunked ports or access ports with IP phones, there could be multiple devices. The single card doesn't demonstrate how the list would handle 0 devices (empty state), 1 device, or 5+ devices. At 1fr column width in a 3fr:1fr grid, it's also quite narrow.
+    - generic [ref=e166]:
+      - strong [ref=e167]: "Fix:"
+      - text: Show 2-3 devices stacked (device + IP phone scenario). Include a count "2 devices" in the label. For the common single-device case, the narrow column is fine — but the design should hint at overflow behavior.
+  - generic [ref=e168]:
+    - generic [ref=e169]: Low
+    - heading "Table Row Hover States" [level=4] [ref=e170]
+    - paragraph [ref=e171]:
+      - text: All tables use
+      - code [ref=e172]: ".tbl tr:hover td{background:var(--surface-h)}"
+      - text: which is a simple background shift. There's no cursor change, no row focus indication beyond background color. For the admin dashboard user list where rows are clickable (FragMaster is a link), the entire row should feel interactive.
+    - generic [ref=e173]:
+      - strong [ref=e174]: "Fix:"
+      - text: Add
+      - code [ref=e175]: "cursor: pointer"
+      - text: on clickable table rows. Consider a subtle left-border accent on hover to match the card-accent pattern.
+  - generic [ref=e176]:
+    - generic [ref=e177]: Low
+    - heading "DHCP Pool Labels Are Confusing" [level=4] [ref=e178]
+    - paragraph [ref=e179]: "\"Users /100\" reads oddly — is the pool named \"Users\" with 100 addresses? The \"/100\" looks like it should be the denominator but the progress bar shows \"89/200\". The naming convention (Users, Infra, Guest) vs the numbers (89/200, 12/50, 45/50) don't clearly communicate pool name, used count, and total capacity."
+    - generic [ref=e180]:
+      - strong [ref=e181]: "Fix:"
+      - text: "Use clearer labels: \"Users (89/200)\" with the pool name and utilization in one string. Or: pool name on the left, fraction on the right, progress bar between."
+  - generic [ref=e182]:
+    - generic [ref=e183]: Low
+    - heading "No Loading or Empty States Shown" [level=4] [ref=e184]
+    - paragraph [ref=e185]: "The provisioning step (S2) shows a loading state for the captive portal, which is great. But there are no empty states elsewhere: What does the admin dashboard look like with 0 users online? What does content management look like with no blocks? What does a port with no connected devices show?"
+    - generic [ref=e186]:
+      - strong [ref=e187]: "Fix:"
+      - text: Consider adding one empty state example — even as a small annotation or alternate version. Empty states are critical for first-run UX and the design should establish the pattern.
+  - generic [ref=e188]:
+    - generic [ref=e189]: Low
+    - heading "Footer Is Just a Text Line" [level=4] [ref=e190]
+    - paragraph [ref=e191]: "The page ends with a single centered paragraph: \"Aperture v5 — Space Grotesk + Plus Jakarta Sans · Warm Zinc · Colorized & Bolder · Visual Dashboard Builder\". This is preview metadata, not design content. It just... stops."
+    - generic [ref=e192]:
+      - strong [ref=e193]: "Fix:"
+      - text: Either remove entirely (the nav already tells you what this is) or formalize as a minimal footer with version + design tokens reference. Don't leave it as ambient text.
+  - heading "4. Light Mode — Detailed Assessment" [level=2] [ref=e194]
+  - paragraph [ref=e195]: "The CSS custom property swap is mechanically correct. Every variable has a light-mode value. But there's a difference between \"variables work\" and \"it looks good.\" Here's what happens in light mode:"
+  - heading "What transfers well:" [level=4] [ref=e196]
+  - list [ref=e197]:
+    - listitem [ref=e198]: Typography is legible — dark text on light backgrounds, proper weight hierarchy
+    - listitem [ref=e199]: Tables are clean — borders and alternating tones work
+    - listitem [ref=e200]: Status pills remain readable with adjusted semantic colors
+    - listitem [ref=e201]: The settings form is actually more comfortable in light mode
+    - listitem [ref=e202]: Sidebar navigation has proper contrast and hover states
+  - heading "What needs light-mode-specific tuning:" [level=4] [ref=e203]
+  - list [ref=e204]:
+    - listitem [ref=e205]:
+      - strong [ref=e206]: Charts
+      - text: ": Gradient fills are nearly invisible. The"
+      - code [ref=e207]: stop-opacity="0.15"
+      - text: values need to be 0.3+ in light mode
+    - listitem [ref=e208]:
+      - strong [ref=e209]: Code blocks
+      - text: ":"
+      - code [ref=e210]: .config-block
+      - text: background is
+      - code [ref=e211]: var(--bg)
+      - text: (#faf9f7) which is the same warmth as the page — needs a cooler or slightly darker bg
+    - listitem [ref=e212]:
+      - strong [ref=e213]: Card borders
+      - text: ":"
+      - code [ref=e214]: "#e8e7e4"
+      - text: "on"
+      - code [ref=e215]: "#ffffff"
+      - text: surface on
+      - code [ref=e216]: "#faf9f7"
+      - text: bg creates a three-layer salmon-ish stack that's too warm
+    - listitem [ref=e217]:
+      - strong [ref=e218]: Accent borders
+      - text: ": The"
+      - code [ref=e219]: .card-accent
+      - text: left borders look good in dark mode (indigo pops on dark) but in light mode the contrast is less dramatic and they feel decorative rather than functional
+    - listitem [ref=e220]:
+      - strong [ref=e221]: Glow effects
+      - text: ": All glows (QR ring, Live badge) die at low opacity. Need elevated glow values or box-shadow replacements"
+    - listitem [ref=e222]:
+      - strong [ref=e223]: The builder canvas
+      - text: ": Dashed border at"
+      - code [ref=e224]: "#e8e7e4"
+      - text: "on"
+      - code [ref=e225]: "#faf9f7"
+      - text: is almost invisible. Builder blocks barely distinguish from background
+  - heading "5. Section-by-Section Quick Notes" [level=2] [ref=e226]
+  - 'heading "S1: Captive Login ✓" [level=4] [ref=e227]'
+  - paragraph [ref=e228]: "Clean, focused. QR prominent. Device code scannable. Minor: \"Having trouble? Get help →\" link is very low-contrast in dark mode — should be more visible since confused users will need it."
+  - 'heading "S2: Activating ✓" [level=4] [ref=e229]'
+  - paragraph [ref=e230]: "Good use of progressive disclosure. The step checklist with done/active/pending states is clear. Minor: the spinner could have a slight size increase (44px feels small on a captive page that might be full-screen on a phone)."
+  - 'heading "S3: Portal Dashboard ✓" [level=4] [ref=e231]'
+  - paragraph [ref=e232]: "Best section. The banner, DNS alert, bandwidth card, connection card, quick links, event info — all have distinct visual treatments. The quick link SVG icons are a highlight. Minor: \"NeonGamer42 · Logout\" should separate the name from the action — putting logout inside a user label is unusual."
+  - 'heading "S4: Admin Dashboard" [level=4] [ref=e233]'
+  - paragraph [ref=e234]: "The hero stat (42 Online) works well as the single prominent metric. DHCP pools and port errors in the second row give good at-a-glance ops awareness. The user table is clean. Issue: The sidebar doesn't have a \"Users\" page highlighted but we're looking at a dashboard — this is fine actually."
+  - 'heading "S5: User Detail" [level=4] [ref=e235]'
+  - paragraph [ref=e236]: Functional but cramped. The 240px left column tries to fit too much. The bandwidth chart in the left column is too small to read actual values. The IP table on the right is good — proper columns, links to IP and port pages.
+  - 'heading "S6: IP Detail" [level=4] [ref=e237]'
+  - paragraph [ref=e238]: Solid layout. The IPv4/IPv6 pairing on the left is the right grouping. Activity log needs more sample data to demonstrate the pattern (see issue above).
+  - 'heading "S7: Port Detail ✓✓" [level=4] [ref=e239]'
+  - paragraph [ref=e240]: Best-arranged page. The horizontal status strip is the right call for port metadata. The bandwidth+devices / errors+config groupings make operational sense. The running config block is properly sized. This should be the template for how other detail pages are rearranged.
+  - 'heading "S8: Settings" [level=4] [ref=e241]'
+  - paragraph [ref=e242]: "The vertical sidebar nav is correct for a settings page with many categories. The form layout is clean. Issues: Small inputs (see above), and only one settings page is mocked — would benefit from showing one more (e.g., Theme settings) to demonstrate the pattern works across different config types."
+  - 'heading "S9: Content Management" [level=4] [ref=e243]'
+  - paragraph [ref=e244]: "Content blocks table is clean with drag handles. The dashboard builder is ambitious — the 12-column grid with resize handles and block palette is a strong concept. Issues: Emoji icons (see above), and the builder would benefit from showing what \"Preview\" actually does."
+  - generic [ref=e245]:
+    - heading "Summary" [level=3] [ref=e246]
+    - generic [ref=e247]:
+      - generic [ref=e248]:
+        - generic [ref=e249]: "2"
+        - generic [ref=e250]: Critical
+      - generic [ref=e251]:
+        - generic [ref=e252]: "3"
+        - generic [ref=e253]: High
+      - generic [ref=e254]:
+        - generic [ref=e255]: "5"
+        - generic [ref=e256]: Medium
+      - generic [ref=e257]:
+        - generic [ref=e258]: "4"
+        - generic [ref=e259]: Low
+    - paragraph [ref=e260]:
+      - text: v5 is a genuine improvement over v4. The AI slop score moved from 6→8, typography from 4→7, and information architecture from 8→8 (maintained). The two critical issues are
+      - strong [ref=e261]: light mode needing a dedicated design pass
+      - text: and
+      - strong [ref=e262]: accessibility
+      - text: . The design is ready to inform implementation — but light mode should not ship as-is (it's a CSS variable swap, not a designed light theme).
+    - paragraph [ref=e263]:
+      - strong [ref=e264]: "Biggest single opportunity:"
+      - text: Apply the port page rearrangement pattern to User Detail (S5) and IP Detail (S6) — horizontal metadata strip, then content grid below. This would create a consistent detail-page language across the admin.
+  - heading "6. Questions to Consider" [level=2] [ref=e265]
+  - paragraph [ref=e267]:
+    - text: "\"Should light mode be the"
+    - emphasis [ref=e268]: default
+    - text: "? LAN party venues are often dim — but admins might use both environments.\""
+  - paragraph [ref=e270]: "\"What if the port page status strip pattern became the standard for ALL detail pages? It's the best layout in the mockup.\""
+  - paragraph [ref=e272]: "\"Does the dashboard builder need to be in the design preview at all, or is it scope creep for the initial release?\""
+  - paragraph [ref=e274]: "\"The captive portal is full-screen on the user's PC. Has the design been tested at common laptop resolutions (1920×1080, 1366×768)?\""
+  - paragraph [ref=e276]: "\"Is the ad blocking toggle on the user portal a real feature that should be prominent, or a nice-to-have that could be deprioritized?\""
+  - paragraph [ref=e278]: Aperture v5 Design Critique · Generated from design-preview-v5.html · Dark + Light modes evaluated

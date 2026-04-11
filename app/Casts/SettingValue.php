@@ -5,6 +5,9 @@ namespace App\Casts;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @implements CastsAttributes<mixed, mixed>
+ */
 class SettingValue implements CastsAttributes
 {
     /**
@@ -15,6 +18,7 @@ class SettingValue implements CastsAttributes
     public function get(Model $model, string $key, mixed $value, array $attributes): mixed
     {
         $json = json_decode($value);
+
         return $json->value;
     }
 
@@ -25,7 +29,7 @@ class SettingValue implements CastsAttributes
      */
     public function set(Model $model, string $key, mixed $value, array $attributes): mixed
     {
-        return json_encode((object)[
+        return json_encode((object) [
             'value' => $value,
         ]);
     }

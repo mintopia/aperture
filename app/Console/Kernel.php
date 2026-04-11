@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Jobs\ReapplyAccessRules;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -14,6 +15,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('aperture:ntopng')->everyFiveMinutes();
         $schedule->command('aperture:opnsense')->everyMinute();
+        $schedule->job(new ReapplyAccessRules)->everyFifteenMinutes();
     }
 
     /**

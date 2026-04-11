@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\Auth;
 
 use App\Models\AuthProvider;
@@ -20,6 +21,9 @@ class DiscordAuth implements AuthBackendInterface
         return true;
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function getRequiredHostnames(): array
     {
         return [
@@ -30,22 +34,25 @@ class DiscordAuth implements AuthBackendInterface
 
     public function redirect(): RedirectResponse
     {
+        /** @var RedirectResponse */
         return $this->getDriver()->redirect();
     }
 
     public function user(): User
     {
+        /** @var \Laravel\Socialite\Two\User $discordUser */
         $discordUser = $this->getDriver()->user();
 
         $userAuth = UserAuthentication::whereAuthProviderId($this->provider->id)->whereExternalId($discordUser->id)->first();
-        if (!$userAuth) {
+        if (! $userAuth) {
             $linkEmails = Setting::get('auth.linkemails', true);
             $user = null;
 
             if ($linkEmails) {
                 $user = User::whereEmail($discordUser->email)->first();
             }
-            if (!$user) {
+
+            if (! $user) {
                 $user = new User;
                 $user->email = $discordUser->email;
                 $user->nickname = $discordUser->user['global_name'] ?? $discordUser->nickname;
@@ -54,6 +61,7 @@ class DiscordAuth implements AuthBackendInterface
                 $role = Role::whereCode('user')->first();
                 $user->roles()->attach($role);
             }
+
             // No user auth, we need to create one
 
             $userAuth = new UserAuthentication;
@@ -79,11 +87,11 @@ class DiscordAuth implements AuthBackendInterface
     protected function getDriver(): Provider
     {
         $redirectUrl = route('login.handle', ['provider' => 'discord']);
-        $config = new Config($this->provider->client_id, $this->provider->client_secret, $redirectUrl, []);
+        $config = new Config((string) $this->provider->client_id, (string) $this->provider->client_secret, $redirectUrl, []);
+
+        /** @phpstan-ignore method.notFound */
         return Socialite::driver('discord')->setConfig($config);
     }
 
-    public function __construct(protected AuthProvider $provider)
-    {
-    }
+    public function __construct(protected AuthProvider $provider) {}
 }

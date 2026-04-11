@@ -18,17 +18,23 @@ const colorMap = {
 </script>
 
 <template>
-    <div data-testid="stat-card"
+    <div
+        data-testid="stat-card"
         :class="[
-            hero ? 'bg-[var(--color-success)]/5 border-[var(--color-success)]/15' : 'bg-[var(--color-surface)]',
+            hero ? 'border-[var(--color-success)]/15 bg-[var(--color-success)]/5' : 'bg-[var(--color-surface)]',
             accentBorder ? 'border-l-[3px]' : '',
         ]"
         :style="accentBorder ? `border-left-color: var(--color-${accentBorder})` : ''"
-        class="rounded-xl border border-[var(--color-border)] p-5 transition-colors hover:border-[var(--color-border-hover)]">
-        <p class="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">{{ label }}</p>
-        <p data-testid="stat-value"
+        class="rounded-xl border border-[var(--color-border)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
+    >
+        <p class="text-[11px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
+            {{ label }}
+        </p>
+        <p
+            data-testid="stat-value"
             :class="[colorMap[color] ?? colorMap.text, hero ? 'text-[40px] leading-none tracking-tight' : 'text-2xl']"
-            class="mt-1 font-heading font-bold">
+            class="font-heading mt-1 font-bold"
+        >
             {{ value }}
         </p>
         <slot />

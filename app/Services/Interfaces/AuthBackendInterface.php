@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Interfaces;
 
 use App\Models\AuthProvider;
@@ -14,6 +16,9 @@ interface AuthBackendInterface
 
     public function user(): User;
 
+    /**
+     * @return array<int, string>
+     */
     public function getRequiredHostnames(): array;
 
     public function supportsBorealis(): bool;

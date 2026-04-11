@@ -36,7 +36,7 @@ return [
         'redirect' => env('DISCORD_REDIRECT_URI'),
 
         // optional
-        'allow_gif_avatars' => (bool)env('DISCORD_AVATAR_GIF', false),
+        'allow_gif_avatars' => (bool) env('DISCORD_AVATAR_GIF', false),
         'avatar_default_extension' => env('DISCORD_EXTENSION_DEFAULT', 'jpg'), // only pick from jpg, png, webp
     ],
     'steam' => [

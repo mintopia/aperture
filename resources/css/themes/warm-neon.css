@@ -1,0 +1,37 @@
+/* Warm Neon — Pinks, magentas, purple highlights */
+
+[data-theme='warm-neon'] {
+    --color-primary: #ec4899;
+    --color-primary-hover: #db2777;
+    --color-accent: #a855f7;
+    --color-accent-hover: #9333ea;
+    --color-success: #22c55e;
+    --color-warning: #eab308;
+    --color-danger: #ef4444;
+    --color-info: #c084fc;
+    --color-glow: rgba(236, 72, 153, 0.35);
+
+    /* Light mode defaults */
+    --color-bg: #fdf2f8;
+    --color-surface: #ffffff;
+    --color-surface-hover: #fce7f3;
+    --color-text: #1e1b2e;
+    --color-text-secondary: #6b5b7b;
+    --color-text-muted: #a89bb5;
+    --color-border: #f3e8ff;
+    --color-border-hover: #e9d5ff;
+    --color-input-bg: #ffffff;
+}
+
+[data-theme='warm-neon'][data-mode='dark'] {
+    --color-bg: #0a0118;
+    --color-surface: #1a0a2e;
+    --color-surface-hover: #2d1552;
+    --color-text: #f5f0ff;
+    --color-text-secondary: #c4b5d0;
+    --color-text-muted: #7c6d8a;
+    --color-border: #2d1552;
+    --color-border-hover: #4a2080;
+    --color-input-bg: #2d1552;
+    --color-glow: rgba(236, 72, 153, 0.25);
+}

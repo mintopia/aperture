@@ -3,12 +3,39 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "vite build",
+        "lint": "eslint resources/js/",
+        "lint:fix": "eslint resources/js/ --fix",
+        "format": "prettier --write resources/js/ resources/css/",
+        "format:check": "prettier --check resources/js/ resources/css/",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "e2e": "playwright test",
+        "e2e:ui": "playwright test --ui"
     },
     "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@playwright/test": "^1.59.1",
+        "@vue/test-utils": "^2.4.6",
         "axios": "^1.1.2",
-        "laravel-vite-plugin": "^0.8.0",
+        "eslint": "^10.2.0",
+        "eslint-plugin-vue": "^10.8.0",
+        "globals": "^17.4.0",
+        "jsdom": "^29.0.2",
+        "laravel-vite-plugin": "^3.0.1",
+        "prettier": "^3.8.2",
+        "prettier-plugin-tailwindcss": "^0.7.2",
         "sass": "^1.97.1",
-        "vite": "^4.0.0"
+        "vite": "^8.0.8",
+        "vitest": "^4.1.4"
+    },
+    "dependencies": {
+        "@inertiajs/vue3": "^3.0.3",
+        "@tailwindcss/vite": "^4.2.2",
+        "@vitejs/plugin-vue": "^6.0.5",
+        "autoprefixer": "^10.4.27",
+        "tailwindcss": "^4.2.2",
+        "vue": "^3.5.32"
     }
 }

@@ -4,16 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IpAddressStoreRequest;
-use App\Jobs\ShutInterface;
-use App\Jobs\IpAddressAction;
 use App\Models\IpAddress;
 use App\Services\CiscoService;
 use Carbon\Carbon;
+use Exception;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class IpAddressController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
@@ -25,9 +27,10 @@ class IpAddressController extends Controller
         if ($filters->address) {
             $query = $query->where('address', $filters->address);
         }
+
         if ($filters->nickname) {
-            $query = $query->whereHas('users.user', function($query) use ($filters) {
-                $query->where('nickname', 'LIKE', "%{$filters->nickname}%");
+            $query = $query->whereHas('users.user', function ($query) use ($filters): void {
+                $query->where('nickname', 'LIKE', sprintf('%%%s%%', $filters->nickname));
             });
         }
 
@@ -43,25 +46,28 @@ class IpAddressController extends Controller
         if (in_array($request->input('order'), $orderBy)) {
             $order = $request->input('order');
         }
+
         $filters->order = $order;
         $direction = 'asc';
         if ($order === 'received' || $order === 'sent') {
             $direction = 'desc';
         }
+
         if (in_array($request->input('direction'), ['asc', 'desc'])) {
             $direction = $request->input('direction');
         }
+
         $filters->direction = $direction;
 
         $ips = $query->orderBy($order, $direction)->paginate($filters->perPage)->appends((array) $filters);
-        return view('admin.ips.index', [
+
+        return Inertia::render('Admin/Ips/Index', [
             'ips' => $ips,
             'filters' => $filters,
-            'params' => (array) $filters,
         ]);
     }
 
-    public function show(IpAddress $ip)
+    public function show(IpAddress $ip): Response
     {
         $status = null;
         $config = null;
@@ -73,13 +79,15 @@ class IpAddressController extends Controller
                 $status = $cisco->showInterface($ip->port->interface);
                 $config = $cisco->showInterfaceConfig($ip->port->interface);
                 $shutdown = str_contains($config, 'shutdown');
-            } catch (\Exception $ex) {
+            } catch (Exception $ex) {
                 $status = 'Unable to connect to switch';
                 $config = 'Unable to connect to switch';
             }
         }
+
         $users = $ip->users()->with('user')->get();
-        return view('admin.ips.show', [
+
+        return Inertia::render('Admin/Ips/Show', [
             'ip' => $ip,
             'port' => $port,
             'status' => $status,
@@ -89,7 +97,7 @@ class IpAddressController extends Controller
         ]);
     }
 
-    public function port(Request $request, IpAddress $ip)
+    public function port(Request $request, IpAddress $ip): RedirectResponse
     {
         if ($request->input('shutdown') == 1) {
             $ip->shutPort(true);
@@ -98,10 +106,11 @@ class IpAddressController extends Controller
             $ip->unshutPort(true);
             $message = 'The network port will be enabled';
         }
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('successMessage', $message);
+
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', $message);
     }
 
-    public function limit(Request $request, IpAddress $ip)
+    public function limit(Request $request, IpAddress $ip): RedirectResponse
     {
         if ($request->input('limit') == 1) {
             $ip->limit(true);
@@ -110,10 +119,11 @@ class IpAddressController extends Controller
             $ip->unlimit(true);
             $message = 'The rate limit will be removed for this IP';
         }
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('successMessage', $message);
+
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', $message);
     }
 
-    public function internet(Request $request, IpAddress $ip)
+    public function internet(Request $request, IpAddress $ip): RedirectResponse
     {
         if ($request->input('allow') == 1) {
             $ip->allow(true);
@@ -122,17 +132,18 @@ class IpAddressController extends Controller
             $ip->deny(true);
             $message = 'Internet will be disabled for this IP';
         }
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('successMessage', $message);
+
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', $message);
     }
 
-    public function create()
+    public function create(): Response
     {
-        return view('admin.ips.create');
+        return Inertia::render('Admin/Ips/Create');
     }
 
-    public function store(IpAddressStoreRequest $request)
+    public function store(IpAddressStoreRequest $request): RedirectResponse
     {
-        $ip = new IpAddress();
+        $ip = new IpAddress;
         $ip->address = $request->input('address');
         $ip->comment = $request->input('comment');
         $ip->last_seen_at = Carbon::now();
@@ -140,9 +151,11 @@ class IpAddressController extends Controller
         if ($request->input('allow')) {
             $ip->allow(true);
         }
+
         if ($request->input('limit')) {
             $ip->limit(true);
         }
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('successMessage', 'The IP address has been added');
+
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', 'The IP address has been added');
     }
 }

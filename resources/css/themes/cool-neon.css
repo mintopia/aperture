@@ -1,0 +1,37 @@
+/* Cool Neon — Blues, cyans, electric accents */
+
+[data-theme='cool-neon'] {
+    --color-primary: #3b82f6;
+    --color-primary-hover: #2563eb;
+    --color-accent: #06b6d4;
+    --color-accent-hover: #0891b2;
+    --color-success: #22c55e;
+    --color-warning: #eab308;
+    --color-danger: #ef4444;
+    --color-info: #38bdf8;
+    --color-glow: rgba(59, 130, 246, 0.35);
+
+    /* Light mode defaults */
+    --color-bg: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f1f5f9;
+    --color-text: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94a3b8;
+    --color-border: #e2e8f0;
+    --color-border-hover: #cbd5e1;
+    --color-input-bg: #ffffff;
+}
+
+[data-theme='cool-neon'][data-mode='dark'] {
+    --color-bg: #020617;
+    --color-surface: #0f172a;
+    --color-surface-hover: #1e293b;
+    --color-text: #f1f5f9;
+    --color-text-secondary: #94a3b8;
+    --color-text-muted: #64748b;
+    --color-border: #1e293b;
+    --color-border-hover: #334155;
+    --color-input-bg: #1e293b;
+    --color-glow: rgba(59, 130, 246, 0.25);
+}

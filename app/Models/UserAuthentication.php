@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * App\Models\UserAuthentication
@@ -16,28 +19,32 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $access_token
  * @property string $refresh_token
  * @property string $token_expires_at
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication query()
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereAccessToken($value)
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereAuthProviderId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereExternalId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereRefreshToken($value)
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereTokenExpiresAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder|UserAuthentication whereUserId($value)
- * @property-read \App\Models\AuthProvider $provider
- * @property-read \App\Models\User $user
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ *
+ * @method static Builder|UserAuthentication newModelQuery()
+ * @method static Builder|UserAuthentication newQuery()
+ * @method static Builder|UserAuthentication query()
+ * @method static Builder|UserAuthentication whereAccessToken($value)
+ * @method static Builder|UserAuthentication whereAuthProviderId($value)
+ * @method static Builder|UserAuthentication whereCreatedAt($value)
+ * @method static Builder|UserAuthentication whereExternalId($value)
+ * @method static Builder|UserAuthentication whereId($value)
+ * @method static Builder|UserAuthentication whereRefreshToken($value)
+ * @method static Builder|UserAuthentication whereTokenExpiresAt($value)
+ * @method static Builder|UserAuthentication whereUpdatedAt($value)
+ * @method static Builder|UserAuthentication whereUserId($value)
+ *
+ * @property-read AuthProvider $provider
+ * @property-read User $user
  * @property int $auth_provider_id
+ *
  * @mixin \Eloquent
  * @mixin IdeHelperUserAuthentication
  */
 class UserAuthentication extends Model
 {
+    /** @use HasFactory<Factory<self>> */
     use HasFactory;
 
     protected $casts = [
@@ -50,11 +57,13 @@ class UserAuthentication extends Model
         'refresh_token',
     ];
 
+    /** @return BelongsTo<AuthProvider, $this> */
     public function provider(): BelongsTo
     {
         return $this->belongsTo(AuthProvider::class, 'auth_provider_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

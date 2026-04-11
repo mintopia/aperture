@@ -1,27 +1,35 @@
-@import "tailwindcss";
-@import "../fonts/space-grotesk/space-grotesk.css";
-@import "../fonts/plus-jakarta-sans/plus-jakarta-sans.css";
-@import "../fonts/jetbrains-mono/jetbrains-mono.css";
-@import "./themes/default.css";
-@import "./themes/cool-neon.css";
-@import "./themes/warm-neon.css";
-@import "./themes/matrix.css";
-@import "./themes/amber-glow.css";
+@import 'tailwindcss';
+@import '../fonts/space-grotesk/space-grotesk.css';
+@import '../fonts/plus-jakarta-sans/plus-jakarta-sans.css';
+@import '../fonts/jetbrains-mono/jetbrains-mono.css';
+@import './themes/default.css';
+@import './themes/cool-neon.css';
+@import './themes/warm-neon.css';
+@import './themes/matrix.css';
+@import './themes/amber-glow.css';
 
 @theme {
-  --font-heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 @layer base {
-  html {
-    font-family: var(--font-body);
-  }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
-  }
-  code, pre, kbd, samp {
-    font-family: var(--font-mono);
-  }
+    html {
+        font-family: var(--font-body);
+    }
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: var(--font-heading);
+    }
+    code,
+    pre,
+    kbd,
+    samp {
+        font-family: var(--font-mono);
+    }
 }

@@ -15,6 +15,8 @@ defineProps({
             <span v-else class="ml-1 text-xs font-normal text-[var(--color-text-muted)]">(optional)</span>
         </label>
         <slot />
-        <p v-if="error" class="text-xs text-[var(--color-danger)]">{{ error }}</p>
+        <p v-if="error" class="text-xs text-[var(--color-danger)]">
+            {{ error }}
+        </p>
     </div>
 </template>
