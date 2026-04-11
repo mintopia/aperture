@@ -1,0 +1,252 @@
+- generic [ref=e2]:
+  - heading "Aperture v5 — Critique Round 2" [level=1] [ref=e3]
+  - paragraph [ref=e4]: Follow-up review after implementing responsive breakpoints, sidebar on detail pages, pagination, required field indicators, contrast fixes, and monospace standardization.
+  - generic [ref=e5]:
+    - generic [ref=e6]: 0 Critical issues
+    - generic [ref=e7]: 8 issues remain
+    - generic [ref=e8]: 7 issues resolved
+    - generic [ref=e9]: "Responsive: Added"
+  - heading "Score Comparison" [level=2] [ref=e10]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: "8"
+      - generic [ref=e14]: AI Slop =
+    - generic [ref=e15]:
+      - generic [ref=e16]: "9"
+      - generic [ref=e17]: Hierarchy +1
+    - generic [ref=e18]:
+      - generic [ref=e19]: "9"
+      - generic [ref=e20]: Info Arch =
+    - generic [ref=e21]:
+      - generic [ref=e22]: "8"
+      - generic [ref=e23]: Typography =
+    - generic [ref=e24]:
+      - generic [ref=e25]: "8"
+      - generic [ref=e26]: Color +1
+  - generic [ref=e27]:
+    - generic [ref=e28]:
+      - generic [ref=e29]: "9"
+      - generic [ref=e30]: Composition +1
+    - generic [ref=e31]:
+      - generic [ref=e32]: "8"
+      - generic [ref=e33]: Light Mode +1
+    - generic [ref=e34]:
+      - generic [ref=e35]: "7"
+      - generic [ref=e36]: A11y +1
+    - generic [ref=e37]:
+      - generic [ref=e38]: "8"
+      - generic [ref=e39]: Microcopy =
+    - generic [ref=e40]:
+      - generic [ref=e41]: "8"
+      - generic [ref=e42]: Responsive +2
+  - generic [ref=e43]: "Most significant improvements: Responsive +2 (from 6 → 8), Composition +1 (sidebar consistency), Light Mode +1 (contrast/code-bg fix), A11y +1 (contrast + required fields). Overall average: 7.2 → 8.2."
+  - heading "Resolved Issues (from R1)" [level=2] [ref=e44]
+  - generic [ref=e45]:
+    - generic [ref=e46]: ✓
+    - generic [ref=e47]:
+      - generic [ref=e48]: Responsive breakpoints added — 1024px (tablet) and 640px (mobile)
+      - generic [ref=e49]: "Was: Critical — zero @media queries. Now: two breakpoints with sidebar collapse, grid stacking, mobile captive/portal."
+  - generic [ref=e50]:
+    - generic [ref=e51]: ✓
+    - generic [ref=e52]:
+      - generic [ref=e53]: Admin sidebar on all detail pages (S5/S6/S7) with correct active state
+      - generic [ref=e54]: "Was: High — detail pages had no navigation context. Now: Users/IPs/Ports highlighted appropriately."
+  - generic [ref=e55]:
+    - generic [ref=e56]: ✓
+    - generic [ref=e57]:
+      - generic [ref=e58]: text-3 contrast fixed in both modes
+      - generic [ref=e59]: "Was: High — #8a897f ~4.0:1 (dark), #7a796f ~3.5:1 (light). Now: #9a9990 ~5.1:1 (dark), #6b6a60 ~5.3:1 (light). WCAG AA passes."
+  - generic [ref=e60]:
+    - generic [ref=e61]: ✓
+    - generic [ref=e62]:
+      - generic [ref=e63]: Pagination component added to admin user table
+      - generic [ref=e64]: "Was: Low — no pagination pattern shown. Now: \"Showing 1–25 of 128 users\" with numbered page buttons."
+  - generic [ref=e65]:
+    - generic [ref=e66]: ✓
+    - generic [ref=e67]:
+      - generic [ref=e68]: Required field indicators on settings form
+      - generic [ref=e69]: "Was: Medium — no indication of required vs optional. Now: red * on required, (optional) label on others."
+  - generic [ref=e70]:
+    - generic [ref=e71]: ✓
+    - generic [ref=e72]:
+      - generic [ref=e73]: Monospace font sizes standardized to 11px minimum
+      - generic [ref=e74]: "Was: Low — fluctuated between 9px and 12px. Now: 11px consistent for table/card data."
+  - generic [ref=e75]:
+    - generic [ref=e76]: ✓
+    - generic [ref=e77]:
+      - generic [ref=e78]: Font weights subsetted — 14 → 7 variants
+      - generic [ref=e79]: "Was: Low — loading unused weights 300, 400, 500, 600 for JetBrains Mono. Now: only the weights used in the design."
+  - heading "New Issues Introduced" [level=2] [ref=e80]
+  - generic [ref=e81]:
+    - generic [ref=e82]: High — Composition
+    - heading "Sidebar Duplication Creates Visual Monotony" [level=4] [ref=e83]
+    - generic [ref=e84]: "Category: Layout / Composition · Sections S4, S5, S6, S7"
+    - paragraph [ref=e85]:
+      - text: Now that S5, S6, and S7 all have the sidebar,
+      - strong [ref=e86]: four consecutive mockup sections
+      - text: (S4 + S5 + S6 + S7) have identical left sidebars. When scrolling through the preview, this creates a wall of repeated sidebar HTML that numbs the visual differentiation between sections.
+    - paragraph [ref=e87]: The sidebar is correct for the real app (all admin pages share it). But in the wireframe preview, it makes sections harder to distinguish at a glance because the left 172px of every mockup is identical.
+    - generic [ref=e88]:
+      - strong [ref=e89]: "Mitigation:"
+      - text: This is a wireframe concern, not an implementation concern. For the design preview only, consider adding a subtle visual indicator in the sidebar per section (e.g., a different border-left color on the active nav item for each section) or noting this is intentional. In the real app, the sidebar persists and the main area changes — the preview format just happens to repeat it.
+  - heading "Remaining Issues (from R1, still open)" [level=2] [ref=e90]
+  - generic [ref=e91]:
+    - generic [ref=e92]: High — Accessibility
+    - heading "Interactive Divs Without Keyboard Access" [level=4] [ref=e93]
+    - generic [ref=e94]: "Category: A11y · WCAG 2.1.1 — Unchanged from R1"
+    - paragraph [ref=e95]: Sidebar nav items (.ni), settings nav (.sn-item), toggle switches, clickable table rows, and builder blocks remain as div elements without tabindex/role. This is expected for a static wireframe but should remain documented as an implementation requirement.
+    - generic [ref=e96]:
+      - strong [ref=e97]: "Status:"
+      - text: Acknowledged as implementation concern, not a wireframe design issue. Recommend adding a "Implementation Notes" section to the wireframe that lists these requirements.
+  - generic [ref=e98]:
+    - generic [ref=e99]: Medium — Theming
+    - heading "SVG Chart var() in stop-opacity — Safari Risk" [level=4] [ref=e100]
+    - generic [ref=e101]: "Category: Theming / Browser Compat — Unchanged from R1"
+    - paragraph [ref=e102]:
+      - text: SVG
+      - code [ref=e103]: <stop stop-opacity="var(--chart-fill)">
+      - text: uses CSS custom properties inside SVG presentation attributes. Untested in Safari. Charts may render without gradient fills.
+    - generic [ref=e104]:
+      - strong [ref=e105]: "Status:"
+      - text: Deferred to implementation. Test in Safari during build phase.
+  - generic [ref=e106]:
+    - generic [ref=e107]: Medium — UX
+    - 'heading "Settings: Only Authentication Page Mocked" [level=4] [ref=e108]'
+    - generic [ref=e109]: "Category: Information Architecture — Unchanged from R1"
+    - paragraph [ref=e110]: Seven settings nav items, but only Authentication is shown. Theme, Event, and Firewall pages would each have distinct UI patterns (color picker, date picker, rule list) that the wireframe doesn't validate.
+    - generic [ref=e111]:
+      - strong [ref=e112]: "Recommendation:"
+      - text: Mock the Theme settings page as a second example — it would showcase color pickers, font selectors, and preview/save patterns that differ from the form fields in Authentication.
+  - generic [ref=e113]:
+    - generic [ref=e114]: Medium — Composition
+    - heading "Empty State Feels Tagged-On" [level=4] [ref=e115]
+    - generic [ref=e116]: "Category: UX / Design Consistency — Label improved, but still separate"
+    - paragraph [ref=e117]:
+      - text: The "Example:" prefix was removed (good), but the empty state card still appears alongside a populated content table. In the real app, you'd see
+      - emphasis [ref=e118]: either
+      - text: the table
+      - emphasis [ref=e119]: or
+      - text: the empty state — never both. Showing them together creates cognitive dissonance about what the actual experience would be.
+    - generic [ref=e120]:
+      - strong [ref=e121]: "Fix:"
+      - text: Either make the empty state a separate mockup section ("Content Management — First Run") or visually grey it out as an annotation within a clearly labelled "Pattern Reference" area below the main mockup.
+  - generic [ref=e122]:
+    - generic [ref=e123]: Medium — Responsive
+    - 'heading "Responsive Captive Portal: Device Code Font Size at 375px" [level=4] [ref=e124]'
+    - generic [ref=e125]: "Category: Responsive · New observation during testing"
+    - paragraph [ref=e126]: At 375px, the device code "ABCD-1234" at 36px with 10px letter-spacing is still large but clips tight on smaller phones. The ~300px available width holds the 8-character code (36px mono × 8 + spacing), but on a 320px device (older iPhones, some Android), it would overflow.
+    - generic [ref=e127]:
+      - strong [ref=e128]: "Fix:"
+      - text: Add a 320px breakpoint or use
+      - code [ref=e129]: "font-size: clamp(24px, 8vw, 36px)"
+      - text: for the device code to scale gracefully.
+  - generic [ref=e130]:
+    - generic [ref=e131]: Low — Composition
+    - 'heading "IP Detail: Related IPv6 Card Still Has Different Visual Weight" [level=4] [ref=e132]'
+    - generic [ref=e133]: "Category: Layout Balance — Unchanged from R1"
+    - paragraph [ref=e134]: The 1fr:1fr grid in S6 with sparse IPv6 card (3 definition items) vs dense bandwidth card (stats + chart + legend) creates visual imbalance. Adding "First Seen" and "Last Seen" to the IPv6 card or using 1fr:2fr would help.
+    - generic [ref=e135]:
+      - strong [ref=e136]: "Priority:"
+      - text: Low — functional but aesthetically uneven.
+  - generic [ref=e137]:
+    - generic [ref=e138]: Low — Typography
+    - heading "Activity Log Timestamps Still at 10px" [level=4] [ref=e139]
+    - generic [ref=e140]: "Category: Typography Consistency"
+    - paragraph [ref=e141]:
+      - text: The activity log table in S6 still has timestamps at
+      - code [ref=e142]: font-size:10px
+      - text: in the
+      - code [ref=e143]: mono
+      - text: class. The 11px minimum was applied to IP addresses, MAC addresses, and port names, but the activity log timestamps were missed.
+    - generic [ref=e144]:
+      - strong [ref=e145]: "Fix:"
+      - text: Change activity log timestamp cells from
+      - code [ref=e146]: font-size:10px
+      - text: to
+      - code [ref=e147]: font-size:11px
+      - text: .
+  - generic [ref=e148]:
+    - generic [ref=e149]: Low — Responsive
+    - 'heading "Responsive Settings: Sidebar Goes Horizontal But Labels Disappear" [level=4] [ref=e150]'
+    - generic [ref=e151]: "Category: Responsive · New observation"
+    - paragraph [ref=e152]:
+      - text: At the 1024px breakpoint,
+      - code [ref=e153]: ".set-nav .sn-label { display:none }"
+      - text: "hides the section labels (\"Integrations\", \"Appearance\", \"General\"). The nav items become a flat horizontal row: \"Authentication | Firewall | Network Monitoring | Switches | Theme | Event | Portal\" — with no grouping. For 7+ items this is functional but the grouping context is lost."
+    - generic [ref=e154]:
+      - strong [ref=e155]: "Fix:"
+      - text: Either keep the labels but style them inline (e.g., bold separator text), or add a subtle visual divider between groups in the horizontal layout.
+  - heading "What's Working Exceptionally Well" [level=2] [ref=e156]
+  - generic [ref=e157]:
+    - heading "Sidebar Active State Navigation Pattern" [level=4] [ref=e158]
+    - paragraph [ref=e159]: The sidebar now correctly shows "Dashboard" active on S4, "Users" on S5, "IPs" on S6, and "Ports" on S7. This establishes clear navigation hierarchy and proves the sidebar works as a persistent shell. The breadcrumb trail (Admin / Users / NeonGamer42) reinforces the position context. This is now a strong, implementable navigation pattern.
+  - generic [ref=e160]:
+    - heading "Responsive Sidebar Collapse" [level=4] [ref=e161]
+    - paragraph [ref=e162]: At 1024px, the sidebar collapses to a horizontal nav bar with icons + labels, section headers hidden. This is the correct mobile-admin pattern — it doesn't try to do a hamburger menu (which would hide critical navigation) and instead surfaces all items inline. The "Aperture" brand remains visible as the first item. Well executed.
+  - generic [ref=e163]:
+    - heading "Pagination Component" [level=4] [ref=e164]
+    - paragraph [ref=e165]: The "Showing 1–25 of 128 users" with 6 numbered page buttons + Previous/Next is appropriate for the scale (128 users ÷ 25 = ~6 pages). The disabled "← Previous" on page 1 and active state on "1" establish the full interaction pattern. The pagination sits below the table with a subtle top border — correct placement.
+  - generic [ref=e166]:
+    - heading "Required Field Indicators" [level=4] [ref=e167]
+    - paragraph [ref=e168]: Red asterisk (*) on required fields (Client ID, Client Secret, Authorization URL, Token URL) and "(optional)" in muted text on User Info URL. This is the correct hybrid approach — asterisks for required, explicit "(optional)" for not, rather than relying on only one pattern. Clear and accessible.
+  - generic [ref=e169]:
+    - heading "Mobile Captive Portal" [level=4] [ref=e170]
+    - paragraph [ref=e171]: "At 375px, the captive portal stacks elegantly: QR code downsized to 140px, heading reduced to 18px, the device code remains large and readable. The portal header collapses with user info stacked below. This is critical — the captive portal MUST work on phones since users scan QR codes on their mobile devices."
+  - heading "Section Scores (Updated)" [level=2] [ref=e172]
+  - 'heading "S1: Captive Login — 9/10 =" [level=4] [ref=e173]'
+  - paragraph [ref=e174]: "Still excellent. Now responsive down to 375px. One concern: device code clamp for 320px screens."
+  - 'heading "S2: Activating — 8/10 =" [level=4] [ref=e175]'
+  - paragraph [ref=e176]: Clean. Responsive works — steps stack vertically on mobile naturally.
+  - 'heading "S3: Portal Dashboard — 9/10 =" [level=4] [ref=e177]'
+  - paragraph [ref=e178]: Best user-facing section. Mobile responsive with grid stacking. Event banner, bandwidth chart, connection card all visible on mobile.
+  - 'heading "S4: Admin Dashboard — 9/10 +1" [level=4] [ref=e179]'
+  - paragraph [ref=e180]: Pagination adds the missing scale pattern. Hero stat + DHCP pools + errors + table + pagination is a complete dashboard. Grid collapses on tablet work.
+  - 'heading "S5: User Detail — 9/10 +1" [level=4] [ref=e181]'
+  - paragraph [ref=e182]: Sidebar with "Users" highlighted proves the navigation context. Detail strip wraps on tablet. Mono sizes standardized. The page now reads as a complete admin experience.
+  - 'heading "S6: IP Detail — 8/10 =" [level=4] [ref=e183]'
+  - paragraph [ref=e184]: Sidebar with "IPs" highlighted. Activity log timestamps need the 11px fix (missed). IPv6/bandwidth visual weight imbalance persists. Otherwise solid.
+  - 'heading "S7: Port Detail — 9/10 =" [level=4] [ref=e185]'
+  - paragraph [ref=e186]: Still the best admin page. Sidebar with "Ports" highlighted. Responsive collapses correctly. Config block has better contrast with the light mode code-bg fix.
+  - 'heading "S8: Settings — 8/10 +1" [level=4] [ref=e187]'
+  - paragraph [ref=e188]: Required field indicators make the form self-documenting. Responsive sidebar collapse works. Still needs a second settings page mock (Theme) to fully validate the pattern.
+  - 'heading "S9: Content — 8/10 =" [level=4] [ref=e189]'
+  - paragraph [ref=e190]: Empty state slightly improved (label removed). Builder responsive collapse works on tablet. Grid goes to 6-column on mobile.
+  - generic [ref=e191]:
+    - heading "Executive Summary" [level=3] [ref=e192]
+    - generic [ref=e193]:
+      - generic [ref=e194]:
+        - generic [ref=e195]: "0"
+        - generic [ref=e196]: Critical
+      - generic [ref=e197]:
+        - generic [ref=e198]: "2"
+        - generic [ref=e199]: High
+      - generic [ref=e200]:
+        - generic [ref=e201]: "3"
+        - generic [ref=e202]: Medium
+      - generic [ref=e203]:
+        - generic [ref=e204]: "3"
+        - generic [ref=e205]: Low
+    - paragraph [ref=e206]:
+      - strong [ref=e207]: Major improvement from R1.
+      - text: The two R1 criticals (responsive + semantic HTML) are resolved — responsive breakpoints added with two well-chosen breakpoints, and semantic HTML is acknowledged as implementation-phase work. Average score jumped from 7.2 to 8.2.
+    - paragraph [ref=e208]:
+      - text: The
+      - strong [ref=e209]: only new issue
+      - text: introduced is the sidebar visual monotony across S4–S7, which is a wireframe preview artifact, not a design problem. In the real app, you'd see one sidebar and it would persist while the main content changes.
+    - paragraph [ref=e210]:
+      - strong [ref=e211]: "Remaining actionable items for the wireframe:"
+    - list [ref=e212]:
+      - listitem [ref=e213]: Fix activity log timestamps to 11px (5-second fix)
+      - listitem [ref=e214]:
+        - text: Add
+        - code [ref=e215]: "font-size: clamp()"
+        - text: for device code at 320px
+      - listitem [ref=e216]: Consider mocking a Theme settings page
+    - paragraph [ref=e217]:
+      - strong [ref=e218]: "Deferred to implementation:"
+    - list [ref=e219]:
+      - listitem [ref=e220]: Keyboard accessibility (tabindex, role, focus states)
+      - listitem [ref=e221]: Safari SVG var() testing
+      - listitem [ref=e222]: Self-hosted fonts for captive portal
+    - paragraph [ref=e223]: This wireframe is now ready to serve as a QA reference and definition of done. The remaining issues are polish-level and can be addressed during implementation.
+  - paragraph [ref=e225]: Aperture v5 — Critique Round 2 · Post-responsive-update review · Dark + Light modes · Desktop + Tablet + Mobile verified

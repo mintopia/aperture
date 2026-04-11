@@ -1,4 +1,5 @@
 <?php
+
 return [
     'cisco' => [
         'username' => env('APERTURE_CISCO_USERNAME'),

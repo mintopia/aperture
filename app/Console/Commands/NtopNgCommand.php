@@ -26,15 +26,13 @@ class NtopNgCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
-        IpAddress::query()->chunk(20, function(Collection $chunk) {
+        IpAddress::query()->chunk(20, function (Collection $chunk): void {
             foreach ($chunk as $ip) {
-                /**
-                 * @var $ip IpAddress
-                 */
-                Log::debug("[{$ip->address}] Updating usage");
-                $this->output->writeln("[{$ip->address}] Updating usage");
+                /** @var IpAddress $ip */
+                Log::debug(sprintf('[%s] Updating usage', $ip->address));
+                $this->output->writeln(sprintf('[%s] Updating usage', $ip->address));
                 $ip->updateUsage();
             }
         });

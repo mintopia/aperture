@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
 use App\Services\Borealis\DeviceCode;
 use App\Services\Borealis\DeviceCodeStatus;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,7 +22,7 @@ class DeviceCodeResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'expires_at' => $this->expiresAt->toIso8601String() ?? null,
+            'expires_at' => $this->expiresAt->toIso8601String(),
             'status' => $this->status->name ?? DeviceCodeStatus::dcsFailed->name,
             'interval' => $this->interval ?? null,
             'code' => $this->userCode ?? null,

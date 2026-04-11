@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Services\Borealis;
 
 use App\Models\AuthProvider;
@@ -8,33 +10,48 @@ use App\Models\UserAuthentication;
 use App\Services\BorealisService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 class DeviceCode
 {
     public string $uri;
+
     public string $fullUri;
+
     public string $userCode;
+
     protected string $deviceCode;
+
     public int $interval;
+
     public CarbonImmutable $expiresAt;
 
     public ?string $nickname = null;
+
     public ?string $email = null;
+
     public ?string $avatarUrl = null;
+
     public ?string $accessToken = null;
+
     public ?string $refreshToken = null;
+
     public ?string $externalId = null;
+
     public ?CarbonImmutable $accessTokenExpiresAt = null;
+
     public DeviceCodeStatus $status = DeviceCodeStatus::dcsPending;
 
-    public function __construct(protected BorealisService $service, protected string $provider)
-    {
-    }
+    public function __construct(protected BorealisService $service, protected string $provider) {}
 
-    public function __sleep()
+    /**
+     * @return array<string>
+     */
+    public function __sleep(): array
     {
         $vars = get_object_vars($this);
         unset($vars['service']);
+
         return array_keys($vars);
     }
 
@@ -49,12 +66,10 @@ class DeviceCode
             return false;
         }
 
-        if ($this->pending && $this->expiresAt->isBefore(CarbonImmutable::now())) {
-            return true;
-        }
-        return false;
+        return $this->status === DeviceCodeStatus::dcsPending && $this->expiresAt->isBefore(CarbonImmutable::now());
     }
-    public function parse(object $response): self
+
+    public function parse(stdClass $response): self
     {
         $this->deviceCode = $response->device_code;
         $this->userCode = $response->user_code;
@@ -62,6 +77,7 @@ class DeviceCode
         $this->uri = $response->verification_uri;
         $this->fullUri = $response->verification_uri_complete;
         $this->expiresAt = CarbonImmutable::now()->addSeconds($response->expires_in);
+
         return $this;
     }
 
@@ -73,10 +89,11 @@ class DeviceCode
 
         try {
             $response = $this->service->check($this->deviceCode);
-        } catch (RequestException $e) {
-            if ($e->getMessage() !== 'authorization_pending') {
+        } catch (RequestException $requestException) {
+            if ($requestException->getMessage() !== 'authorization_pending') {
                 $this->status = DeviceCodeStatus::dcsFailed;
             }
+
             return $this->status;
         }
 
@@ -92,7 +109,7 @@ class DeviceCode
         return $this->status;
     }
 
-    protected function getAuthProvider(): AuthProvider
+    protected function getAuthProvider(): ?AuthProvider
     {
         return AuthProvider::whereCode($this->provider)->first();
     }
@@ -104,31 +121,39 @@ class DeviceCode
         }
 
         $authProvider = $this->getAuthProvider();
+        if (! $authProvider instanceof AuthProvider) {
+            return null;
+        }
+
         $auth = UserAuthentication::whereAuthProviderId($authProvider->id)
             ->whereExternalId($this->externalId)
             ->first();
-        if (!$auth) {
-            $auth = new UserAuthentication();
+        if (! $auth) {
+            $auth = new UserAuthentication;
             $auth->provider()->associate($authProvider);
             $user = User::whereEmail($this->email)->first();
-            if (!$user) {
-                $user = new User();
-                $user->email = $this->email;
+            if (! $user) {
+                $user = new User;
+                $user->email = (string) $this->email;
             }
+
             $auth->user()->associate($user);
         }
-        $auth->external_id = $this->externalId;
-        $auth->access_token = $this->accessToken;
-        $auth->refresh_token = $this->refreshToken;
-        $auth->token_expires_at = $this->accessTokenExpiresAt;
-        $auth->user->nickname = $this->nickname;
-        DB::transaction(function () use ($auth) {
+
+        $auth->external_id = (string) $this->externalId;
+        $auth->access_token = (string) $this->accessToken;
+        $auth->refresh_token = (string) $this->refreshToken;
+        $auth->token_expires_at = $this->accessTokenExpiresAt?->toDateTimeString() ?? '';
+        $auth->user->nickname = (string) $this->nickname;
+        DB::transaction(function () use ($auth): void {
             $auth->user->save();
-            if ($auth->user_id === null) {
+            if (! $auth->exists || $auth->user_id === 0) {
                 $auth->user_id = $auth->user->id;
             }
+
             $auth->save();
         });
+
         return $auth->user;
     }
 }

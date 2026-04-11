@@ -9,87 +9,89 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
 use Psr\Http\Message\ResponseInterface;
+use stdClass;
 
 class OpnSense implements FirewallBackendInterface
 {
     protected int $zoneId;
+
     protected Client $client;
 
     protected string $uploadRuleUuid;
+
     protected string $downloadRuleUuid;
 
     /**
-     * @param string $uri
-     * @param array<string, mixed> $query
-     * @return object
+     * @param  array<string, mixed>  $query
+     *
      * @throws BackendException
      */
-    protected function get(string $uri, array $query = []): object
+    protected function get(string $uri, array $query = []): stdClass
     {
         $options = $this->makeOptions($query);
         try {
-            Log::debug("[OpnSense] GET {$uri}");
+            Log::debug('[OpnSense] GET '.$uri);
             $response = $this->client->get($uri, $options);
+
             return $this->decodeResponse($response);
-        } catch (GuzzleException $ex) {
-            throw new BackendException("Error from Opnsense: {$ex->getMessage()}", $ex->getCode(), $ex);
+        } catch (GuzzleException $guzzleException) {
+            throw new BackendException('Error from Opnsense: '.$guzzleException->getMessage(), $guzzleException->getCode(), $guzzleException);
         }
     }
 
     /**
-     * @param string $uri
-     * @param array<string, mixed> $query
-     * @param array<string, mixed>|\stdClass|null $payload
-     * @return object
+     * @param  array<string, mixed>  $query
+     * @param  array<string, mixed>|stdClass|null  $payload
+     *
      * @throws BackendException
      */
-    protected function post(string $uri, array $query = [], array|\stdClass|null $payload = []): object
+    protected function post(string $uri, array $query = [], array|stdClass|null $payload = []): stdClass
     {
         $options = $this->makeOptions($query, $payload);
         try {
-            Log::debug("[OpnSense] POST {$uri}");
+            Log::debug('[OpnSense] POST '.$uri);
             $response = $this->client->post($uri, $options);
+
             return $this->decodeResponse($response);
-        } catch (GuzzleException $ex) {
-            throw new BackendException("Error from Opnsense: {$ex->getMessage()}", $ex->getCode(), $ex);
+        } catch (GuzzleException $guzzleException) {
+            throw new BackendException('Error from Opnsense: '.$guzzleException->getMessage(), $guzzleException->getCode(), $guzzleException);
         }
     }
 
     /**
-     * @param ResponseInterface $response
-     * @return object
      * @throws BackendException
      */
-    protected function decodeResponse(ResponseInterface $response): object
+    protected function decodeResponse(ResponseInterface $response): stdClass
     {
         $json = json_decode($response->getBody());
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new BackendException("Unable to decode response");
+            throw new BackendException('Unable to decode response');
         }
-        return (object)$json;
+
+        return (object) $json;
     }
 
-
     /**
-     * @param array<string, mixed> $query
-     * @param array<string, mixed>|\stdClass|null $payload
+     * @param  array<string, mixed>  $query
+     * @param  array<string, mixed>|stdClass|null  $payload
      * @return array<string, mixed>
      */
-    protected function makeOptions(array $query = [], array|\stdClass|null $payload = null): array
+    protected function makeOptions(array $query = [], array|stdClass|null $payload = null): array
     {
         $options = [];
         if ($query !== []) {
             $options['query'] = $query;
         }
+
         if ($payload !== null) {
             $options['json'] = $payload;
         }
+
         return $options;
     }
 
     /**
-     * @param Client $client
-     * @param int $zoneId
+     * @throws BackendException
      */
     public function __construct()
     {
@@ -108,14 +110,13 @@ class OpnSense implements FirewallBackendInterface
     }
 
     /**
-     * @param string $ip
-     * @param string $description
      * @return $this
+     *
      * @throws BackendException
      */
     public function updateIp(string $ip, string $description): self
     {
-        $payload = (object)[
+        $payload = (object) [
             'user' => $description,
             'ip' => $ip,
         ];
@@ -123,6 +124,7 @@ class OpnSense implements FirewallBackendInterface
             'zoneid' => $this->zoneId,
         ];
         $this->post('/api/captiveportal/session/connect', $query, $payload);
+
         return $this;
     }
 
@@ -130,12 +132,13 @@ class OpnSense implements FirewallBackendInterface
     {
         $response = $this->get('/api/diagnostics/system/system_time');
         $time = new CarbonImmutable($response->uptime);
-        return $time->diffInSeconds(CarbonImmutable::now());
+
+        return (int) $time->diffInSeconds(CarbonImmutable::now());
     }
 
     /**
-     * @param string $ip
      * @return $this
+     *
      * @throws BackendException
      */
     public function removeIp(string $ip): self
@@ -144,12 +147,9 @@ class OpnSense implements FirewallBackendInterface
             'zoneid' => $this->zoneId,
         ];
         $response = $this->get('/api/captiveportal/session/list', $query);
-        if (!is_object($response)) {
-            throw new BackendException("Response is malformed");
-        }
-        $response = (array)$response;
+        $response = (array) $response;
         foreach ($response as $session) {
-            if (!is_object($session) || !property_exists($session, 'sessionId') || !property_exists($session, 'ipAddress')) {
+            if (! is_object($session) || ! property_exists($session, 'sessionId') || ! property_exists($session, 'ipAddress')) {
                 continue;
             }
 
@@ -168,45 +168,50 @@ class OpnSense implements FirewallBackendInterface
     }
 
     /**
-     * @param array<int, string> $hostnames
+     * @param  array<int, string>  $hostnames
      * @return $this
+     *
      * @throws BackendException
      */
     public function addAllowedHostnames(array $hostnames): self
     {
         $result = $this->get('/api/captiveportal/settings/get');
         $zones = $result->zone->zones->zone ?? null;
-        if (!is_object($zones)) {
-            throw new BackendException("Response is malformed");
+        if (! is_object($zones)) {
+            throw new BackendException('Response is malformed');
         }
-        $zones = (array)$zones;
+
+        $zones = (array) $zones;
 
         foreach ($zones as $uuid => $zone) {
-            if (!is_object($zone) || !property_exists($zone, 'zoneid')) {
+            if (! is_object($zone) || ! property_exists($zone, 'zoneid')) {
                 continue;
             }
-            if ((int)$zone->zoneid !== $this->zoneId) {
+
+            if ((int) $zone->zoneid !== $this->zoneId) {
                 continue;
             }
 
             $allowed = [];
             if (property_exists($zone, 'allowedAddresses') && is_object($zone->allowedAddresses)) {
-                $zoneAllowed = (array)$zone->allowedAddresses;
+                $zoneAllowed = (array) $zone->allowedAddresses;
                 foreach ($zoneAllowed as $ip) {
                     $allowed[] = $ip->value;
                 }
             }
+
             foreach ($hostnames as $hostname) {
                 $ips = gethostbynamel($hostname);
                 if ($ips === false) {
                     continue;
                 }
+
                 $allowed = array_merge($allowed, $ips);
             }
 
             $allowed = array_unique($allowed);
 
-            $this->post("/api/captiveportal/settings/setZone/{$uuid}", [], [
+            $this->post('/api/captiveportal/settings/setZone/'.$uuid, [], [
                 'zone' => [
                     'allowedAddresses' => implode(',', $allowed),
                 ],
@@ -221,6 +226,7 @@ class OpnSense implements FirewallBackendInterface
         $this->addHostToRule($this->downloadRuleUuid, $ip, 'destination');
         $this->addHostToRule($this->uploadRuleUuid, $ip, 'source');
         $this->applyShaperRules();
+
         return $this;
     }
 
@@ -229,6 +235,7 @@ class OpnSense implements FirewallBackendInterface
         $this->removeHostFromRule($this->downloadRuleUuid, $ip, 'destination');
         $this->removeHostFromRule($this->uploadRuleUuid, $ip, 'source');
         $this->applyShaperRules();
+
         return $this;
     }
 
@@ -257,29 +264,38 @@ class OpnSense implements FirewallBackendInterface
         $this->updateShaperRule($uuid, $rule, $propName, $hosts);
     }
 
-    protected function getShaperRule(string $uuid): \stdClass
+    protected function getShaperRule(string $uuid): stdClass
     {
-        return $this->get("/api/trafficshaper/settings/getRule/{$uuid}");
+        return $this->get('/api/trafficshaper/settings/getRule/'.$uuid);
     }
 
-    protected function filter(array|\stdClass $objects): array
+    /**
+     * @param  array<string, stdClass>|stdClass  $objects
+     * @return array<int, string>
+     */
+    protected function filter(array|stdClass $objects): array
     {
-        if (!is_array($objects)) {
-            $objects = (array)$objects;
+        if (! is_array($objects)) {
+            $objects = (array) $objects;
         }
+
         $result = [];
         foreach ($objects as $value => $obj) {
             if ($obj->selected) {
                 $result[] = $value;
             }
         }
+
         return $result;
     }
 
-    protected function updateShaperRule(string $uuid, \stdClass $rule, string $propName, array $hosts): void
+    /**
+     * @param  array<int, string>  $hosts
+     */
+    protected function updateShaperRule(string $uuid, stdClass $rule, string $propName, array $hosts): void
     {
-        $payload = (object)[
-            'rule' => (object)[
+        $payload = (object) [
+            'rule' => (object) [
                 'description' => $rule->rule->description,
                 'destination_not' => $rule->rule->destination_not,
                 'direction' => implode(',', $this->filter($rule->rule->direction)),
@@ -299,8 +315,8 @@ class OpnSense implements FirewallBackendInterface
 
         $payload->rule->{$propName} = implode(',', $hosts);
 
-        $response = $this->post("/api/trafficshaper/settings/setRule/{$uuid}", [], $payload);
-        if ($response->result !== 'saved') {
+        $response = $this->post('/api/trafficshaper/settings/setRule/'.$uuid, [], $payload);
+        if (! property_exists($response, 'result') || $response->result !== 'saved') {
             throw new BackendException('Unable to update shaper rule');
         }
     }

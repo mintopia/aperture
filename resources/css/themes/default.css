@@ -1,6 +1,6 @@
 /* Default — Zinc (warm gray) + Indigo/Rose accents (v5 spec) */
 
-[data-theme="default"] {
+[data-theme='default'] {
     --color-primary: #6366f1;
     --color-primary-hover: #4f46e5;
     --color-accent: #e11d48;
@@ -23,7 +23,7 @@
     --color-input-bg: #ffffff;
 }
 
-[data-theme="default"][data-mode="dark"] {
+[data-theme='default'][data-mode='dark'] {
     --color-primary: #818cf8;
     --color-primary-hover: #6366f1;
     --color-accent: #fb7185;

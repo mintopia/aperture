@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\BorealisService;
+use App\Services\Interfaces\AuthProviderInterface;
+use App\Services\LibreNmsService;
 use App\Services\NtopNgService;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -14,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(AuthProviderInterface::class, BorealisDeviceFlowService::class);
     }
 
     /**
@@ -22,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->app->singleton(NtopNgService::class, function (Application $application) {
+        $this->app->singleton(function (Application $application): NtopNgService {
             return new NtopNgService(
                 endpoint: config('aperture.ntopng.endpoint'),
                 username: config('aperture.ntopng.username'),
@@ -31,11 +34,18 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(BorealisService::class, function (Application $application) {
+        $this->app->singleton(function (Application $application): BorealisService {
             return new BorealisService(
                 clientId: config('aperture.borealis.client_id'),
-                clientSecret:  config('aperture.borealis.client_secret'),
+                clientSecret: config('aperture.borealis.client_secret'),
                 endpoint: config('aperture.borealis.endpoint'),
+            );
+        });
+
+        $this->app->singleton(function (Application $application): LibreNmsService {
+            return new LibreNmsService(
+                endpoint: config('aperture.librenms.endpoint', ''),
+                apiToken: config('aperture.librenms.api_token', ''),
             );
         });
     }

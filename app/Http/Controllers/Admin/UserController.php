@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\IpAddressAction;
 use App\Models\User;
-use App\Models\UserIpAddress;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class UserController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
@@ -22,20 +23,22 @@ class UserController extends Controller
         if ($filters->nickname) {
             $query = $query->where('nickname', $filters->nickname);
         }
+
         if ($filters->ip) {
-            $query = $query->whereHas('ips.ip', function($query) use ($filters) {
+            $query = $query->whereHas('ips.ip', function ($query) use ($filters) {
                 return $query->where('address', $filters->ip);
             });
         }
 
         $users = $query->paginate($filters->perPage)->appends((array) $filters);
-        return view('admin.users.index', [
+
+        return Inertia::render('Admin/Users/Index', [
             'users' => $users,
             'filters' => $filters,
         ]);
     }
 
-    public function show(User $user)
+    public function show(User $user): Response
     {
         $ips = $user->ips()->with('ip')->get();
         $roles = $user->roles()->get();
@@ -43,7 +46,8 @@ class UserController extends Controller
 
         $downloaded = $ips->sum('ip.received');
         $uploaded = $ips->sum('ip.sent');
-        return view('admin.users.show', [
+
+        return Inertia::render('Admin/Users/Show', [
             'user' => $user,
             'roles' => $roles,
             'ips' => $ips,
@@ -53,15 +57,16 @@ class UserController extends Controller
         ]);
     }
 
-    public function block(Request $request, User $user)
+    public function block(Request $request, User $user): RedirectResponse
     {
-        $user->blocked = (bool)$request->input('block');
+        $user->blocked = (int) $request->input('block');
         $user->save();
-        if ($user->blocked) {
+        if ($user->blocked !== 0) {
             $message = 'The user will be blocked from accessing the Internet from new IPs';
         } else {
             $message = 'The user will be unblocked from accessing the Internet from new IPs';
         }
-        return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('successMessage', $message);
+
+        return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', $message);
     }
 }

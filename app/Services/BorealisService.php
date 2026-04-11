@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\AuthProvider;
@@ -8,10 +10,12 @@ use App\Services\Borealis\RequestException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use Psr\Http\Message\ResponseInterface;
+use stdClass;
 
 class BorealisService
 {
     protected Client $client;
+
     public function __construct(protected string $clientId, protected string $clientSecret, protected string $endpoint)
     {
         $this->client = new Client([
@@ -26,19 +30,42 @@ class BorealisService
         ]);
         $code = new DeviceCode($this, $provider->code);
         $code->parse($response);
+
         return $code;
     }
 
-    public function check(string $deviceCode): mixed
+    public function check(string $deviceCode): stdClass
     {
         $params = [
             'device_code' => $deviceCode,
             'grant_type' => 'urn:ietf:params:oauth:grant-type:device_code',
         ];
+
         return $this->makeRequest('oauth2/token', $params);
     }
 
-    protected function makeRequest(string $url, array $params = []): mixed
+    public function getDeviceCodeRaw(string $scope): stdClass
+    {
+        return $this->makeRequest('oauth2/device', [
+            'scope' => $scope,
+        ]);
+    }
+
+    public function getUserWithToken(string $accessToken): stdClass
+    {
+        $response = $this->client->get('api/user', [
+            'headers' => [
+                'Authorization' => 'Bearer '.$accessToken,
+            ],
+        ]);
+
+        return $this->decodeResponse($response);
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     */
+    protected function makeRequest(string $url, array $params = []): stdClass
     {
         $params['client_id'] = $this->clientId;
         $params['client_secret'] = $this->clientSecret;
@@ -46,23 +73,26 @@ class BorealisService
             $response = $this->client->post($url, [
                 'form_params' => $params,
             ]);
+
             return $this->decodeResponse($response);
-        } catch (ClientException $e) {
-            if ($e->getCode() === 403) {
-                $data = $this->decodeResponse($e->getResponse());
-                throw new RequestException($data->error, $e->getCode());
+        } catch (ClientException $clientException) {
+            if ($clientException->getCode() === 403) {
+                $data = $this->decodeResponse($clientException->getResponse());
+                throw new RequestException($data->error, $clientException->getCode(), $clientException);
             }
-            throw $e;
+
+            throw $clientException;
         }
     }
 
-    protected function decodeResponse(ResponseInterface $response): mixed
+    protected function decodeResponse(ResponseInterface $response): stdClass
     {
         $json = $response->getBody()->getContents();
         $data = json_decode($json);
         if ($data === false) {
             throw new RequestException('Unable to decode response');
         }
+
         return $data;
     }
 }

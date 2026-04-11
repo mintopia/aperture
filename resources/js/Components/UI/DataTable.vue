@@ -1,4 +1,6 @@
 <script setup>
+import { router } from '@inertiajs/vue3';
+
 defineProps({
     columns: {
         type: Array,
@@ -17,9 +19,12 @@ defineProps({
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b-2 border-[var(--color-border)] bg-[var(--color-surface)]">
-                    <th v-for="col in columns" :key="col.key"
+                    <th
+                        v-for="col in columns"
+                        :key="col.key"
                         :class="[col.class, col.srOnly ? 'sr-only' : '']"
-                        class="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+                        class="px-4 py-2.5 text-left text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
+                    >
                         {{ col.label }}
                     </th>
                 </tr>
@@ -30,13 +35,21 @@ defineProps({
                         {{ emptyMessage }}
                     </td>
                 </tr>
-                <tr v-for="(row, i) in rows" :key="row.id ?? i"
+                <tr
+                    v-for="(row, i) in rows"
+                    :key="row.id ?? i"
                     data-testid="data-table-row"
+                    :tabindex="clickable ? 0 : undefined"
+                    :role="clickable ? 'link' : undefined"
                     :class="[
                         'border-b border-[var(--color-border)] transition-colors last:border-b-0',
-                        clickable ? 'cursor-pointer hover:bg-[var(--color-surface-hover)] hover:border-l-2 hover:border-l-[var(--color-primary)]' : '',
+                        clickable
+                            ? 'cursor-pointer hover:border-l-2 hover:border-l-[var(--color-primary)] hover:bg-[var(--color-surface-hover)]'
+                            : '',
                     ]"
-                    @click="clickable && rowHref ? $inertia?.visit(rowHref(row)) : null">
+                    @click="clickable && rowHref ? router.visit(rowHref(row)) : null"
+                    @keydown.enter="clickable && rowHref ? router.visit(rowHref(row)) : null"
+                >
                     <slot name="row" :row="row" :index="i" />
                 </tr>
             </tbody>

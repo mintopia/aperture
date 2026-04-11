@@ -24,9 +24,9 @@ class TestCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
-        $ip = new IpAddress();
+        $ip = new IpAddress;
         $ip->address = '10.30.0.197';
 
         $ip->updateUsage();

@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\AuthProvider;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class AuthProviderSeeder extends Seeder
@@ -14,13 +13,13 @@ class AuthProviderSeeder extends Seeder
     public function run(): void
     {
         $providers = [
-            (object)[
+            (object) [
                 'name' => 'Discord',
                 'code' => 'discord',
                 'class' => 'App\\Services\\Auth\\DiscordAuth',
                 'enabled' => true,
             ],
-            (object)[
+            (object) [
                 'name' => 'Steam',
                 'code' => 'steam',
                 'class' => 'App\\Services\\Auth\\SteamAuth',
@@ -29,7 +28,7 @@ class AuthProviderSeeder extends Seeder
         ];
         foreach ($providers as $config) {
             $provider = AuthProvider::whereCode($config->code)->first();
-            if (!$provider) {
+            if (! $provider) {
                 $provider = new AuthProvider;
                 $provider->code = $config->code;
             }

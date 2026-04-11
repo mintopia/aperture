@@ -1,5 +1,4 @@
 <script setup>
-import { ref } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import AppLogo from '@/Components/AppLogo.vue';
 import ThemeToggle from '@/Components/ThemeToggle.vue';
@@ -12,7 +11,10 @@ const page = usePage();
 <template>
     <div data-testid="admin-layout" class="flex min-h-screen flex-col bg-[var(--color-bg)]">
         <!-- Top bar -->
-        <header data-testid="admin-header" class="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm px-6">
+        <header
+            data-testid="admin-header"
+            class="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 px-6 backdrop-blur-sm"
+        >
             <div class="flex items-center gap-4">
                 <AppLogo />
                 <slot name="breadcrumbs" />
@@ -23,13 +25,13 @@ const page = usePage();
                 <ThemeToggle />
 
                 <div v-if="page.props.auth.user" class="flex items-center gap-3">
-                    <span class="hidden sm:inline text-sm text-[var(--color-text-secondary)]">
+                    <span class="hidden text-sm text-[var(--color-text-secondary)] sm:inline">
                         {{ page.props.auth.user.nickname }}
                     </span>
                     <Link
                         :href="route('logout')"
                         data-testid="logout-link"
-                        class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                        class="text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]"
                     >
                         Logout
                     </Link>
