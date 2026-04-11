@@ -22,6 +22,50 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/sail (SAIL) - v1
 - phpunit/phpunit (PHPUNIT) - v11
 
+## Code Quality Standards
+
+### PHP Quality
+- **Laravel Pint**: Run `vendor/bin/pint --dirty --format agent` after any PHP file changes.
+- **PHPStan Level 8**: Run `vendor/bin/phpstan analyse` — zero errors required (baseline allowed for legacy code).
+- **Rector PHP**: Run `vendor/bin/rector process --dry-run` — zero suggestions required. Uses Laravel ruleset.
+- **PHPUnit**: Target 100% code coverage. Run `php artisan test --compact` for all tests.
+
+### JavaScript Quality
+- **ESLint**: Run `npx eslint resources/js/` — zero errors required. Uses vue/recommended config.
+- **Prettier**: Run `npx prettier --check resources/js/ resources/css/` — all files must be formatted.
+- **Vitest**: Target 100% code coverage. Run `npx vitest run --coverage`.
+
+### E2E Testing
+- **Playwright**: Run `npx playwright test` — tests on chromium, mobile (iPhone 13), tablet (iPad gen 7).
+- All interactive elements must have `data-testid` attributes for Playwright selectors.
+- Convention: `{component}-{element}` (e.g., `data-table-row`, `action-save`, `nav-users`).
+
+### Running All Quality Checks
+```bash
+bash bin/quality.sh          # All checks in one command
+composer quality             # Same via composer script
+```
+
+### Individual Commands
+```bash
+# PHP
+vendor/bin/pint --format agent          # Fix formatting
+vendor/bin/phpstan analyse              # Static analysis
+vendor/bin/rector process               # Apply Rector fixes
+vendor/bin/rector process --dry-run     # Check only
+php artisan test --compact              # Run tests
+
+# JavaScript
+npm run lint                            # ESLint check
+npm run lint:fix                        # ESLint auto-fix
+npm run format                          # Prettier format
+npm run format:check                    # Prettier check only
+npm run test                            # Vitest
+npm run test:coverage                   # Vitest with coverage
+npm run e2e                             # Playwright E2E
+npm run e2e:ui                          # Playwright interactive UI
+```
+
 ## Skills Activation
 
 This project has domain-specific skills available. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
