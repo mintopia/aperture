@@ -9,9 +9,13 @@ use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\Interfaces\DnsBlockingInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\LibreNmsService;
+use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NtopNgService;
+use App\Services\PiHole\PiHoleService;
 use Tests\TestCase;
 
 class AppServiceProviderTest extends TestCase
@@ -91,5 +95,32 @@ class AppServiceProviderTest extends TestCase
 
         $instance = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(OpnSenseDhcpService::class, $instance);
+    }
+
+    public function test_registers_dns_blocking_interface_binding(): void
+    {
+        config([
+            'aperture.pihole.endpoint' => 'http://127.0.0.1:8080',
+            'aperture.pihole.password' => 'test-password',
+            'aperture.pihole.noblock_group_id' => 1,
+            'aperture.pihole.verify' => false,
+        ]);
+
+        $instance = $this->app->make(DnsBlockingInterface::class);
+        $this->assertInstanceOf(PiHoleService::class, $instance);
+    }
+
+    public function test_registers_network_switch_interface_binding(): void
+    {
+        config([
+            'aperture.cisco.hostname' => 'switch.local',
+            'aperture.cisco.username' => 'admin',
+            'aperture.cisco.password' => 'password',
+            'aperture.cisco.enablePassword' => 'enable',
+            'aperture.cisco.timeout' => 5,
+        ]);
+
+        $instance = $this->app->make(NetworkSwitchInterface::class);
+        $this->assertInstanceOf(CiscoSwitchAdapter::class, $instance);
     }
 }

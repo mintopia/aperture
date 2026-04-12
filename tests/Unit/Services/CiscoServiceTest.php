@@ -211,4 +211,28 @@ class CiscoServiceTest extends TestCase
         $result = $testService->showInterface('Gi1/0/1');
         $this->assertIsString($result);
     }
+
+    public function test_show_interface_status_returns_output(): void
+    {
+        $ssh = $this->createMockSsh();
+        $ssh->shouldReceive('read')
+            ->with("Switch>\n")
+            ->andReturn("sh int status\r\nPort  Name  Status  Vlan  Duplex  Speed Type\r\nGi1/0/1  connected  100  a-full  a-1000 10/100/1000BaseTX\r\nSwitch>");
+
+        $service = $this->createServiceWithMockSsh($ssh);
+        $result = $service->showInterfaceStatus();
+        $this->assertIsString($result);
+    }
+
+    public function test_show_mac_address_table_returns_output(): void
+    {
+        $ssh = $this->createMockSsh();
+        $ssh->shouldReceive('read')
+            ->with("Switch>\n")
+            ->andReturn("sh mac address-table\r\nVlan  Mac Address  Type  Ports\r\n100  aabb.ccdd.eeff  DYNAMIC  Gi1/0/1\r\nSwitch>");
+
+        $service = $this->createServiceWithMockSsh($ssh);
+        $result = $service->showMacAddressTable();
+        $this->assertIsString($result);
+    }
 }

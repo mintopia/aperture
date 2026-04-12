@@ -1,0 +1,177 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Services\NetworkSwitch;
+
+use App\Services\NetworkSwitch\IosOutputParser;
+use Tests\TestCase;
+
+class IosOutputParserTest extends TestCase
+{
+    private IosOutputParser $parser;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->parser = new IosOutputParser;
+    }
+
+    public function test_parse_show_interface_extracts_status_up(): void
+    {
+        $output = implode("\r\n", [
+            'GigabitEthernet1/0/1 is up, line protocol is up (connected)',
+            '  Hardware is Gigabit Ethernet, address is aabb.ccdd.eeff (bia aabb.ccdd.eeff)',
+            '  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,',
+            '     reliability 255/255, txload 1/255, rxload 1/255',
+            '  Encapsulation ARPA, loopback not set',
+            '  Keepalive set (10 sec)',
+            '  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX',
+            '  input flow-control is off, output flow-control is unsupported',
+        ]);
+
+        $result = $this->parser->parseShowInterface($output);
+
+        $this->assertEquals('GigabitEthernet1/0/1', $result['interface']);
+        $this->assertEquals('up', $result['status']);
+        $this->assertEquals('1000Mb/s', $result['speed']);
+        $this->assertEquals('Full-duplex', $result['duplex']);
+    }
+
+    public function test_parse_show_interface_extracts_status_down(): void
+    {
+        $output = implode("\r\n", [
+            'GigabitEthernet1/0/2 is administratively down, line protocol is down (disabled)',
+            '  Hardware is Gigabit Ethernet, address is aabb.ccdd.ee00 (bia aabb.ccdd.ee00)',
+            '  Auto-duplex, Auto-speed, media type is 10/100/1000BaseTX',
+        ]);
+
+        $result = $this->parser->parseShowInterface($output);
+
+        $this->assertEquals('GigabitEthernet1/0/2', $result['interface']);
+        $this->assertEquals('administratively down', $result['status']);
+        $this->assertEquals('Auto-speed', $result['speed']);
+        $this->assertEquals('Auto-duplex', $result['duplex']);
+    }
+
+    public function test_parse_show_interface_extracts_vlan_empty_by_default(): void
+    {
+        $output = implode("\r\n", [
+            'GigabitEthernet1/0/1 is up, line protocol is up (connected)',
+            '  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX',
+        ]);
+
+        $result = $this->parser->parseShowInterface($output);
+        $this->assertEquals('', $result['vlan']);
+    }
+
+    public function test_parse_interface_counters_extracts_values(): void
+    {
+        $output = implode("\r\n", [
+            'GigabitEthernet1/0/1 is up, line protocol is up (connected)',
+            '     12345 packets input, 6789012 bytes, 0 no buffer',
+            '     3 input errors, 1 CRC, 0 frame, 0 overrun, 0 ignored',
+            '     67890 packets output, 9876543 bytes, 0 underruns',
+            '     5 output errors, 0 collisions, 0 interface resets',
+        ]);
+
+        $counters = $this->parser->parseInterfaceCounters($output);
+
+        $this->assertEquals(6789012, $counters['in_bytes']);
+        $this->assertEquals(9876543, $counters['out_bytes']);
+        $this->assertEquals(3, $counters['in_errors']);
+        $this->assertEquals(5, $counters['out_errors']);
+    }
+
+    public function test_parse_interface_counters_defaults_to_zero(): void
+    {
+        $output = 'GigabitEthernet1/0/1 is up, line protocol is up (connected)';
+
+        $counters = $this->parser->parseInterfaceCounters($output);
+
+        $this->assertEquals(0, $counters['in_bytes']);
+        $this->assertEquals(0, $counters['out_bytes']);
+        $this->assertEquals(0, $counters['in_errors']);
+        $this->assertEquals(0, $counters['out_errors']);
+    }
+
+    public function test_parse_interface_status_table(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi1/0/1   Server-1           connected    100        a-full  a-1000 10/100/1000BaseTX',
+            'Gi1/0/2   Server-2           notconnect   100        auto    auto  10/100/1000BaseTX',
+            'Gi1/0/3                      disabled     1          auto    auto  10/100/1000BaseTX',
+            'Gi1/0/4   Uplink             connected    trunk      a-full  a-1000 10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(4, $ports);
+
+        $this->assertEquals('Gi1/0/1', $ports[0]['interface']);
+        $this->assertEquals('connected', $ports[0]['status']);
+        $this->assertEquals('a-1000', $ports[0]['speed']);
+
+        $this->assertEquals('Gi1/0/2', $ports[1]['interface']);
+        $this->assertEquals('notconnect', $ports[1]['status']);
+        $this->assertEquals('auto', $ports[1]['speed']);
+
+        $this->assertEquals('Gi1/0/3', $ports[2]['interface']);
+        $this->assertEquals('disabled', $ports[2]['status']);
+
+        $this->assertEquals('Gi1/0/4', $ports[3]['interface']);
+        $this->assertEquals('trunk', $ports[3]['vlan']);
+    }
+
+    public function test_parse_interface_status_table_empty_output(): void
+    {
+        $output = 'Port      Name               Status       Vlan       Duplex  Speed Type';
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+        $this->assertCount(0, $ports);
+    }
+
+    public function test_parse_mac_address_table(): void
+    {
+        $output = implode("\r\n", [
+            '          Mac Address Table',
+            '-------------------------------------------',
+            '',
+            'Vlan    Mac Address       Type        Ports',
+            '----    -----------       --------    -----',
+            ' 100    aabb.ccdd.eeff    DYNAMIC     Gi1/0/1',
+            ' 100    1122.3344.5566    DYNAMIC     Gi1/0/2',
+            ' 200    aabb.ccdd.0011    STATIC      Gi1/0/3',
+            'Total Mac Addresses for this criterion: 3',
+        ]);
+
+        $entries = $this->parser->parseMacAddressTable($output);
+
+        $this->assertCount(3, $entries);
+
+        $this->assertEquals('aabb.ccdd.eeff', $entries[0]['mac']);
+        $this->assertEquals('Gi1/0/1', $entries[0]['port']);
+        $this->assertEquals(100, $entries[0]['vlan']);
+
+        $this->assertEquals('1122.3344.5566', $entries[1]['mac']);
+        $this->assertEquals('Gi1/0/2', $entries[1]['port']);
+
+        $this->assertEquals(200, $entries[2]['vlan']);
+    }
+
+    public function test_parse_mac_address_table_empty(): void
+    {
+        $output = implode("\r\n", [
+            '          Mac Address Table',
+            '-------------------------------------------',
+            '',
+            'Vlan    Mac Address       Type        Ports',
+            '----    -----------       --------    -----',
+            'Total Mac Addresses for this criterion: 0',
+        ]);
+
+        $entries = $this->parser->parseMacAddressTable($output);
+        $this->assertCount(0, $entries);
+    }
+}

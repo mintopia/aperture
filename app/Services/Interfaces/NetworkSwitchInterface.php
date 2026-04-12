@@ -14,7 +14,7 @@ interface NetworkSwitchInterface
     public function getPortStatus(string $portId): array;
 
     /**
-     * @return Collection<int, array{interface: string, status: string, speed: string}>
+     * @return Collection<int, array{interface: string, status: string, speed: string, vlan: string}>
      */
     public function getAllPorts(): Collection;
 

@@ -14,6 +14,7 @@ export default defineConfig({
             include: [
                 'resources/js/Components/UI/**/*.vue',
                 'resources/js/Pages/Admin/Dashboard.vue',
+                'resources/js/Components/Blocks/DnsWarningBlock.vue',
                 'resources/js/composables/**/*.js',
                 'resources/js/helpers.js',
             ],

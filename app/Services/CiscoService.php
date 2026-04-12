@@ -37,6 +37,28 @@ class CiscoService
         return implode("\r\n", array_slice($result, 1, -1));
     }
 
+    public function showInterfaceStatus(): string
+    {
+        $this->connect();
+        Log::debug(sprintf('[Cisco] [%s] > sh int status', $this->hostname));
+        $this->ssh()->write(sprintf('sh int status%s', PHP_EOL));
+        $result = explode("\r\n", (string) $this->ssh()->read($this->name.'>
+'));
+
+        return implode("\r\n", array_slice($result, 1, -1));
+    }
+
+    public function showMacAddressTable(): string
+    {
+        $this->connect();
+        Log::debug(sprintf('[Cisco] [%s] > sh mac address-table', $this->hostname));
+        $this->ssh()->write(sprintf('sh mac address-table%s', PHP_EOL));
+        $result = explode("\r\n", (string) $this->ssh()->read($this->name.'>
+'));
+
+        return implode("\r\n", array_slice($result, 1, -1));
+    }
+
     public function showInterfaceConfig(string $interface): string
     {
         $this->connect();

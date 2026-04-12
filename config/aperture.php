@@ -2,6 +2,7 @@
 
 return [
     'cisco' => [
+        'hostname' => env('APERTURE_CISCO_HOSTNAME'),
         'username' => env('APERTURE_CISCO_USERNAME'),
         'password' => env('APERTURE_CISCO_PASSWORD'),
         'enablePassword' => env('APERTURE_CISCO_ENABLE_PASSWORD'),
@@ -42,5 +43,16 @@ return [
         'secret' => env('APERTURE_DHCP_SECRET'),
         'verify' => env('APERTURE_DHCP_VERIFY', true),
         'pool_size' => env('APERTURE_DHCP_POOL_SIZE', 254),
+    ],
+    'pihole' => [
+        'enabled' => env('APERTURE_PIHOLE_ENABLED', false),
+        'endpoint' => env('APERTURE_PIHOLE_ENDPOINT'),
+        'password' => env('APERTURE_PIHOLE_PASSWORD'),
+        'noblock_group_id' => env('APERTURE_PIHOLE_NOBLOCK_GROUP_ID', 1),
+        'verify' => env('APERTURE_PIHOLE_VERIFY', true),
+    ],
+    'dns' => [
+        'expected_server' => env('APERTURE_DNS_EXPECTED_SERVER'),
+        'probe_domain' => env('APERTURE_DNS_PROBE_DOMAIN'),
     ],
 ];
