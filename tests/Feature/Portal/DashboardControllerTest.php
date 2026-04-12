@@ -110,4 +110,28 @@ class DashboardControllerTest extends TestCase
             ->where('blocks.0.title', 'Active Block')
         );
     }
+
+    public function test_dns_warning_block_passes_settings_with_expected_dns(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        ContentBlock::factory()->create([
+            'type' => 'dns_warning',
+            'title' => 'DNS Check',
+            'is_active' => true,
+            'sort_order' => 1,
+            'settings' => ['expectedDns' => '10.0.0.1'],
+        ]);
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Portal/Dashboard')
+            ->has('blocks', 1)
+            ->where('blocks.0.type', 'dns_warning')
+            ->where('blocks.0.settings.expectedDns', '10.0.0.1')
+        );
+    }
 }

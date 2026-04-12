@@ -4,13 +4,19 @@ namespace App\Providers;
 
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\BorealisService;
+use App\Services\CiscoService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\Interfaces\DnsBlockingInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\LibreNmsService;
+use App\Services\NetworkSwitch\CiscoSwitchAdapter;
+use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NtopNgService;
+use App\Services\PiHole\PiHoleService;
 use GuzzleHttp\Client;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -66,6 +72,27 @@ class AppServiceProvider extends ServiceProvider
             ]);
 
             return new OpnSenseDhcpService($client);
+        });
+
+        $this->app->singleton(function (Application $application): DnsBlockingInterface {
+            $client = new Client([
+                'verify' => config('aperture.pihole.verify'),
+                'base_uri' => config('aperture.pihole.endpoint'),
+            ]);
+
+            return new PiHoleService(
+                $client,
+                (string) config('aperture.pihole.password'),
+                (int) config('aperture.pihole.noblock_group_id', 1),
+            );
+        });
+
+        $this->app->singleton(function (Application $application): NetworkSwitchInterface {
+            $ciscoService = new CiscoService(
+                (string) config('aperture.cisco.hostname'),
+            );
+
+            return new CiscoSwitchAdapter($ciscoService, new IosOutputParser);
         });
     }
 }
