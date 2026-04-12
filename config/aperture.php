@@ -32,4 +32,15 @@ return [
         'client_id' => env('BOREALIS_CLIENT_ID'),
         'client_secret' => env('BOREALIS_CLIENT_SECRET'),
     ],
+    'session' => [
+        'ttl' => env('APERTURE_SESSION_TTL', 7200),
+    ],
+    'dhcp' => [
+        'enabled' => env('APERTURE_DHCP_ENABLED', false),
+        'endpoint' => env('APERTURE_DHCP_ENDPOINT'),
+        'key' => env('APERTURE_DHCP_KEY'),
+        'secret' => env('APERTURE_DHCP_SECRET'),
+        'verify' => env('APERTURE_DHCP_VERIFY', true),
+        'pool_size' => env('APERTURE_DHCP_POOL_SIZE', 254),
+    ],
 ];

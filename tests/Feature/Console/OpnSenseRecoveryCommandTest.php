@@ -91,6 +91,7 @@ class OpnSenseRecoveryCommandTest extends TestCase
     {
         $mock = Mockery::mock(OpnSense::class);
         $mock->shouldReceive('getUptime')->andReturn(100);
+        $mock->shouldReceive('updateIp')->andReturnSelf();
         $this->app->instance(OpnSense::class, $mock);
 
         Cache::put('opnsense.uptime', 3500);

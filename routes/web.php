@@ -53,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::middleware(['can:admin'])->name('admin.')->prefix('/admin')->group(function () {
         Route::get('/', [HomeController::class, 'index'])->name('home');
+        Route::post('/reset', [HomeController::class, 'reset'])->name('reset');
 
         // Search
         Route::get('/search', [SearchController::class, 'search'])->name('search');

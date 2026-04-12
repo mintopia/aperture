@@ -15,6 +15,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('aperture:ntopng')->everyFiveMinutes();
         $schedule->command('aperture:opnsense')->everyMinute();
+        $schedule->command('aperture:expire-sessions')->everyFiveMinutes();
         $schedule->job(new ReapplyAccessRules)->everyFifteenMinutes();
     }
 
