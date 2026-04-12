@@ -75,7 +75,7 @@ class IpAddressController extends Controller
         $port = $ip->port;
         if ($port !== null) {
             try {
-                $cisco = new CiscoService($ip->port->switch);
+                $cisco = $this->createCiscoService($ip->port->switch);
                 $status = $cisco->showInterface($ip->port->interface);
                 $config = $cisco->showInterfaceConfig($ip->port->interface);
                 $shutdown = str_contains($config, 'shutdown');
@@ -157,5 +157,10 @@ class IpAddressController extends Controller
         }
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', 'The IP address has been added');
+    }
+
+    protected function createCiscoService(string $hostname): CiscoService
+    {
+        return new CiscoService($hostname);
     }
 }

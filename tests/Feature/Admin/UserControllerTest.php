@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -102,6 +103,25 @@ class UserControllerTest extends TestCase
         User::factory()->create(['nickname' => 'OtherUser']);
 
         $response = $this->actingAs($admin)->get('/admin/users?nickname=TargetUser');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->has('users.data', 1));
+    }
+
+    public function test_admin_can_filter_users_by_ip(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create(['nickname' => 'IpUser']);
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.99';
+        $ip->last_seen_at = now();
+        $ip->save();
+
+        $user->addIp('10.0.0.99');
+
+        $response = $this->actingAs($admin)->get('/admin/users?ip=10.0.0.99');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page->has('users.data', 1));

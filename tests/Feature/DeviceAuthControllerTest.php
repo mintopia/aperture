@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\AuthProvider;
+use App\Models\User;
+use App\Models\UserAuthentication;
 use App\Services\Auth\AuthResult;
 use App\Services\Auth\DeviceFlowResponse;
 use App\Services\Auth\UserInfo;
@@ -137,5 +139,98 @@ class DeviceAuthControllerTest extends TestCase
             ->assertJson(['status' => 'complete']);
 
         $this->assertDatabaseHas('users', ['nickname' => 'TestUser']);
+    }
+
+    public function test_poll_returns_complete_for_already_completed_flow(): void
+    {
+        Cache::put('device_flow:completed-code', [
+            'provider_code' => 'test',
+            'status' => 'complete',
+            'ip' => '127.0.0.1',
+            'user_id' => 1,
+        ], now()->addMinutes(10));
+
+        $response = $this->getJson('/auth/device/poll/completed-code');
+
+        $response->assertOk()
+            ->assertJson(['status' => 'complete']);
+    }
+
+    public function test_poll_finds_existing_user_by_auth(): void
+    {
+        Queue::fake();
+
+        $provider = $this->createAuthProvider();
+        $existingUser = User::factory()->create(['nickname' => 'ExistingUser']);
+
+        $userAuth = new UserAuthentication;
+        $userAuth->user()->associate($existingUser);
+        $userAuth->provider()->associate($provider);
+        $userAuth->external_id = 'ext-existing';
+        $userAuth->access_token = 'old-token';
+        $userAuth->save();
+
+        Cache::put('device_flow:existing-auth-code', [
+            'provider_code' => 'test',
+            'status' => 'pending',
+            'ip' => '127.0.0.1',
+        ], now()->addMinutes(10));
+
+        $mock = $this->mock(AuthProviderInterface::class);
+        $mock->shouldReceive('pollDeviceFlow')
+            ->with('existing-auth-code')
+            ->andReturn(new AuthResult(
+                accessToken: 'new-token',
+                tokenType: 'Bearer',
+                expiresIn: 3600,
+            ));
+        $mock->shouldReceive('getUserInfo')
+            ->with('new-token')
+            ->andReturn(new UserInfo(
+                id: 'ext-existing',
+                nickname: 'UpdatedNick',
+                email: 'existing@example.com',
+            ));
+
+        $response = $this->getJson('/auth/device/poll/existing-auth-code');
+
+        $response->assertOk()
+            ->assertJson(['status' => 'complete']);
+
+        $this->assertEquals('UpdatedNick', $existingUser->fresh()->nickname);
+    }
+
+    public function test_poll_creates_user_without_email(): void
+    {
+        Queue::fake();
+
+        $this->createAuthProvider();
+
+        Cache::put('device_flow:no-email-code', [
+            'provider_code' => 'test',
+            'status' => 'pending',
+            'ip' => '127.0.0.1',
+        ], now()->addMinutes(10));
+
+        $mock = $this->mock(AuthProviderInterface::class);
+        $mock->shouldReceive('pollDeviceFlow')
+            ->with('no-email-code')
+            ->andReturn(new AuthResult(
+                accessToken: 'test-token',
+                tokenType: 'Bearer',
+                expiresIn: 3600,
+            ));
+        $mock->shouldReceive('getUserInfo')
+            ->with('test-token')
+            ->andReturn(new UserInfo(
+                id: 'ext-no-email',
+                nickname: 'NoEmailUser',
+            ));
+
+        $response = $this->getJson('/auth/device/poll/no-email-code');
+
+        $response->assertOk()
+            ->assertJson(['status' => 'complete']);
+        $this->assertDatabaseHas('users', ['nickname' => 'NoEmailUser']);
     }
 }

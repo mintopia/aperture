@@ -78,4 +78,11 @@ class CaptivePortalViewTest extends TestCase
         $response->assertOk();
         $response->assertViewIs('captive.interstitial');
     }
+
+    public function test_captive_login_aborts_when_no_provider(): void
+    {
+        // No AuthProvider created, so whereEnabled(true)->first() returns null
+        $response = $this->get('/captive');
+        $response->assertStatus(503);
+    }
 }
