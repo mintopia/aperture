@@ -55,4 +55,17 @@ return [
         'expected_server' => env('APERTURE_DNS_EXPECTED_SERVER'),
         'probe_domain' => env('APERTURE_DNS_PROBE_DOMAIN'),
     ],
+
+    'auto_allow' => [
+        'enabled' => env('APERTURE_AUTO_ALLOW_ENABLED', false),
+        'oui_prefixes' => array_filter(
+            explode(',', env('APERTURE_AUTO_ALLOW_OUI_PREFIXES', '98:5F:D3,7C:ED:8D,00:50:F2,28:18:78,C8:3F:26,60:45:BD,94:9A:A9,48:4D:7E,B4:09:31,DC:B4:C4')),
+        ),
+        'scan_interval' => (int) env('APERTURE_AUTO_ALLOW_SCAN_INTERVAL', 5),
+    ],
+
+    'ipv6' => [
+        'detection_enabled' => env('APERTURE_IPV6_DETECTION_ENABLED', false),
+        'detection_endpoint' => env('APERTURE_IPV6_DETECTION_ENDPOINT'),
+    ],
 ];

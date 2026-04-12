@@ -19,8 +19,13 @@ class PortalController extends Controller
             $ip->allow(true);
         }
 
+        $ipv6DetectionEnabled = (bool) config('aperture.ipv6.detection_enabled');
+        $ipv6DetectionEndpoint = config('aperture.ipv6.detection_endpoint');
+
         return view('portal', [
             'ip' => $ip,
+            'ipv6DetectionEnabled' => $ipv6DetectionEnabled,
+            'ipv6DetectionEndpoint' => $ipv6DetectionEndpoint,
         ]);
     }
 

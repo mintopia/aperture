@@ -4,6 +4,7 @@ namespace Tests\Unit\Models;
 
 use App\Jobs\IpAddressAction;
 use App\Models\IpAddress;
+use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\NtopNgService;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Psr7\Request;
@@ -37,27 +38,25 @@ class IpAddressTest extends TestCase
         $this->assertStringContainsString('[IpAddress:', (string) $ip);
     }
 
-    public function test_get_mac_returns_null_when_lnms_disabled(): void
+    public function test_mac_returns_null_when_no_mac_address_linked(): void
     {
-        config(['aperture.lnms.enabled' => false]);
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
+        $ip = IpAddress::factory()->create(['mac_address_id' => null]);
         $this->assertNull($ip->mac);
     }
 
-    public function test_get_port_returns_null_when_lnms_disabled(): void
+    public function test_port_returns_null_when_service_returns_null(): void
     {
-        config(['aperture.lnms.enabled' => false]);
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')->andReturnNull();
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $this->assertNull($ip->port);
     }
 
-    public function test_get_port_updated_at_returns_null_when_lnms_disabled(): void
+    public function test_port_updated_at_always_returns_null(): void
     {
-        config(['aperture.lnms.enabled' => false]);
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
+        $ip = IpAddress::factory()->create();
         $this->assertNull($ip->portUpdatedAt);
     }
 
@@ -85,12 +84,11 @@ class IpAddressTest extends TestCase
 
     public function test_shut_port_without_queue_returns_early_when_port_is_null(): void
     {
-        config(['aperture.lnms.enabled' => false]);
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')->andReturnNull();
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $ip->shutPort(false);
         $this->assertTrue(true);
     }
@@ -109,12 +107,11 @@ class IpAddressTest extends TestCase
 
     public function test_unshut_port_without_queue_returns_early_when_port_is_null(): void
     {
-        config(['aperture.lnms.enabled' => false]);
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')->andReturnNull();
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $ip->unshutPort(false);
         $this->assertTrue(true);
     }
@@ -165,14 +162,6 @@ class IpAddressTest extends TestCase
 
         $ip->deny(true);
         Queue::assertPushed(IpAddressAction::class);
-    }
-
-    public function test_get_lnms_data_returns_empty_array_when_disabled(): void
-    {
-        config(['aperture.lnms.enabled' => false]);
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $this->assertEquals([], $ip->getLNMSData());
     }
 
     public function test_get_stats_resolves_ntop_ng_service(): void

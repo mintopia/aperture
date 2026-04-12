@@ -4,29 +4,32 @@ namespace App\Models;
 
 use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
-use App\Services\CiscoService;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\MacAddressResolverInterface;
+use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NtopNgService;
-use Carbon\Carbon;
 use GuzzleHttp\Exception\ClientException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 use stdClass;
+use Throwable;
 
 /**
  * App\Models\IpAddress
  *
  * @property int $id
  * @property string $address
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property-read string|null $mac
  * @property-read object{switch: string, interface: string, status: string, adminStatus: string, speed: int}|null $port
- * @property-read \Illuminate\Support\Carbon|null $portUpdatedAt
+ * @property-read null $portUpdatedAt
  *
  * @method static Builder|IpAddress newModelQuery()
  * @method static Builder|IpAddress newQuery()
@@ -46,8 +49,9 @@ class IpAddress extends Model
 
     use ToString;
 
-    /** @var array<int, stdClass>|null */
-    protected ?array $lnms = null;
+    protected ?stdClass $portInfoCache = null;
+
+    protected bool $portInfoResolved = false;
 
     protected string $stringDescriptionProperty = 'address';
 
@@ -55,11 +59,11 @@ class IpAddress extends Model
     {
         switch ($name) {
             case 'mac':
+                return $this->macAddress?->mac_address;
             case 'port':
+                return $this->getPortInfo();
             case 'portUpdatedAt':
-                $lnms = $this->getLNMSData();
-
-                return $lnms[0]->{$name} ?? null;
+                return null;
             default:
                 return parent::__get($name);
         }
@@ -71,6 +75,47 @@ class IpAddress extends Model
         return $this->hasMany(UserIpAddress::class, 'ip_address_id')->orderBy('last_seen_at', 'desc');
     }
 
+    /** @return BelongsTo<MacAddress, $this> */
+    public function macAddress(): BelongsTo
+    {
+        return $this->belongsTo(MacAddress::class);
+    }
+
+    public function getPortInfo(): ?stdClass
+    {
+        if ($this->portInfoResolved) {
+            return $this->portInfoCache;
+        }
+
+        $this->portInfoResolved = true;
+
+        try {
+            /** @var NetworkInventoryInterface $inventory */
+            $inventory = app(NetworkInventoryInterface::class);
+            $resolved = $inventory->resolveIpToPort($this->address);
+            if ($resolved === null) {
+                return null;
+            }
+
+            $detail = $inventory->getPortDetail($resolved['port']);
+            if ($detail === null) {
+                return null;
+            }
+
+            $this->portInfoCache = (object) [
+                'switch' => $detail['hostname'],
+                'interface' => $detail['interface'],
+                'status' => $detail['status'],
+                'adminStatus' => $detail['adminStatus'],
+                'speed' => $detail['speed'],
+            ];
+
+            return $this->portInfoCache;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     public function shutPort(bool $queue = false): void
     {
         if ($queue) {
@@ -79,12 +124,14 @@ class IpAddress extends Model
             return;
         }
 
-        if ($this->port === null) {
+        $portInfo = $this->getPortInfo();
+        if (! $portInfo instanceof stdClass) {
             return;
         }
 
-        $cisco = new CiscoService($this->port->switch);
-        $cisco->shutInterface($this->port->interface);
+        /** @var NetworkSwitchInterface $switch */
+        $switch = app(NetworkSwitchInterface::class);
+        $switch->shutdownPort($portInfo->interface);
     }
 
     public function unshutPort(bool $queue = false): void
@@ -95,66 +142,14 @@ class IpAddress extends Model
             return;
         }
 
-        if ($this->port === null) {
+        $portInfo = $this->getPortInfo();
+        if (! $portInfo instanceof stdClass) {
             return;
         }
 
-        $cisco = new CiscoService($this->port->switch);
-        $cisco->unshutInterface($this->port->interface);
-    }
-
-    /**
-     * @return array<int, stdClass>
-     */
-    public function getLNMSData(): array
-    {
-        if (! config('aperture.lnms.enabled')) {
-            return [];
-        }
-
-        if ($this->lnms !== null) {
-            return $this->lnms;
-        }
-
-        $query = '
-            SELECT
-                ipv4_mac.ipv4_address AS `ip`,
-                ipv4_mac.mac_address AS `mac`,
-                devices.hostname AS `switch`,
-                ports.ifName AS `interface`,
-                ports_fdb.updated_at AS `updatedAt`,
-                ports.ifOperStatus AS `status`,
-                ports.ifAdminStatus AS `adminStatus`,
-                ports.ifSpeed AS `speed`
-            FROM ipv4_mac
-            INNER JOIN ports_fdb ON ports_fdb.mac_address = ipv4_mac.mac_address
-            INNER JOIN ports ON ports.port_id = ports_fdb.port_id
-            INNER JOIN devices ON devices.device_id = ports.device_id
-            WHERE
-                ipv4_address = :ip;
-        ';
-        $bindings = [
-            'ip' => $this->address,
-        ];
-        $result = DB::connection('lnms')->select($query, $bindings);
-        $this->lnms = array_map(function ($row) {
-            return (object) [
-                'mac' => $row->mac,
-                'port' => (object) [
-                    'switch' => $row->switch,
-                    'interface' => $row->interface,
-                    'status' => $row->status,
-                    'adminStatus' => $row->adminStatus,
-                    'speed' => $row->speed,
-                ],
-                'portUpdatedAt' => new Carbon($row->updatedAt),
-            ];
-        }, $result);
-        usort($this->lnms, function ($alpha, $bravo): int {
-            return $bravo->portUpdatedAt->timestamp <=> $alpha->portUpdatedAt->timestamp;
-        });
-
-        return $this->lnms;
+        /** @var NetworkSwitchInterface $switch */
+        $switch = app(NetworkSwitchInterface::class);
+        $switch->enablePort($portInfo->interface);
     }
 
     public function limit(bool $queue = false): void
@@ -209,6 +204,30 @@ class IpAddress extends Model
         $ttl = config('aperture.session.ttl');
         if ($ttl) {
             $this->expires_at = now()->addMinutes((int) $ttl);
+        }
+
+        try {
+            $resolver = app(MacAddressResolverInterface::class);
+            $mac = $resolver->resolveIpToMac($this->address);
+            if ($mac !== null) {
+                $macAddress = MacAddress::firstOrCreate(
+                    ['mac_address' => $mac],
+                    ['source' => 'auth', 'allowed' => true, 'allowed_at' => now()],
+                );
+                $this->mac_address_id = (int) $macAddress->id; // @phpstan-ignore assign.propertyType
+                if (! $macAddress->allowed) {
+                    $macAddress->allowed = true;
+                    $macAddress->allowed_at = now();
+                    $macAddress->save();
+                }
+
+                if ($macAddress->user_id === null && $userIp?->user) {
+                    $macAddress->user_id = (int) $userIp->user->id; // @phpstan-ignore assign.propertyType
+                    $macAddress->save();
+                }
+            }
+        } catch (Throwable) {
+            // MAC resolution is best-effort — never block the allow flow
         }
 
         $this->save();

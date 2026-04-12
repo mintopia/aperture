@@ -17,6 +17,7 @@ export default defineConfig({
                 'resources/js/Components/Blocks/DnsWarningBlock.vue',
                 'resources/js/composables/**/*.js',
                 'resources/js/helpers.js',
+                'resources/js/utils/**/*.js',
             ],
             exclude: ['resources/js/app.js'],
             reporter: ['text', 'html', 'clover'],
