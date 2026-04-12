@@ -52,4 +52,33 @@ class ApertureConfigTest extends TestCase
     {
         $this->assertNull(config('aperture.cisco.hostname'));
     }
+
+    public function test_auto_allow_enabled_defaults_to_false(): void
+    {
+        $this->assertFalse(config('aperture.auto_allow.enabled'));
+    }
+
+    public function test_auto_allow_oui_prefixes_has_defaults(): void
+    {
+        $prefixes = config('aperture.auto_allow.oui_prefixes');
+        $this->assertIsArray($prefixes);
+        $this->assertNotEmpty($prefixes);
+        $this->assertContains('98:5F:D3', $prefixes);
+        $this->assertContains('7C:ED:8D', $prefixes);
+    }
+
+    public function test_auto_allow_scan_interval_defaults_to_five(): void
+    {
+        $this->assertEquals(5, config('aperture.auto_allow.scan_interval'));
+    }
+
+    public function test_ipv6_detection_enabled_defaults_to_false(): void
+    {
+        $this->assertFalse(config('aperture.ipv6.detection_enabled'));
+    }
+
+    public function test_ipv6_detection_endpoint_defaults_to_null(): void
+    {
+        $this->assertNull(config('aperture.ipv6.detection_endpoint'));
+    }
 }

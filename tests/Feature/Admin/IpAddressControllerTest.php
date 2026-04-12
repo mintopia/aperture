@@ -7,9 +7,9 @@ use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CiscoService;
+use App\Services\Interfaces\NetworkInventoryInterface;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
@@ -307,30 +307,12 @@ class IpAddressControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        config([
-            'aperture.lnms.enabled' => true,
-            'database.connections.lnms' => [
-                'driver' => 'sqlite',
-                'database' => ':memory:',
-                'prefix' => '',
-            ],
-            'aperture.cisco.username' => 'admin',
-            'aperture.cisco.password' => 'pass',
-            'aperture.cisco.enable' => 'enable',
-        ]);
-
-        DB::connection('lnms')->statement('CREATE TABLE devices (device_id INTEGER PRIMARY KEY, hostname TEXT)');
-        DB::connection('lnms')->statement('CREATE TABLE ports (port_id INTEGER PRIMARY KEY, device_id INTEGER, ifName TEXT, ifOperStatus TEXT, ifAdminStatus TEXT, ifSpeed INTEGER)');
-        DB::connection('lnms')->statement('CREATE TABLE ipv4_mac (id INTEGER PRIMARY KEY, ipv4_address TEXT, mac_address TEXT)');
-        DB::connection('lnms')->statement('CREATE TABLE ports_fdb (id INTEGER PRIMARY KEY, mac_address TEXT, port_id INTEGER, updated_at TEXT)');
-
-        DB::connection('lnms')->table('devices')->insert(['device_id' => 1, 'hostname' => 'switch01']);
-        DB::connection('lnms')->table('ports')->insert([
-            'port_id' => 1, 'device_id' => 1, 'ifName' => 'Gi0/1',
-            'ifOperStatus' => 'up', 'ifAdminStatus' => 'up', 'ifSpeed' => 1000,
-        ]);
-        DB::connection('lnms')->table('ipv4_mac')->insert(['ipv4_address' => '10.0.0.200', 'mac_address' => 'AA:BB:CC:DD:EE:FF']);
-        DB::connection('lnms')->table('ports_fdb')->insert(['mac_address' => 'AA:BB:CC:DD:EE:FF', 'port_id' => 1, 'updated_at' => '2024-01-15 10:00:00']);
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')
+            ->andReturn(['ip' => '10.0.0.200', 'mac' => 'AA:BB:CC:DD:EE:FF', 'port' => '1', 'switch' => '']);
+        $inventory->shouldReceive('getPortDetail')
+            ->andReturn(['hostname' => 'switch01', 'interface' => 'Gi0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000]);
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.200';
@@ -354,27 +336,12 @@ class IpAddressControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        config([
-            'aperture.lnms.enabled' => true,
-            'database.connections.lnms' => [
-                'driver' => 'sqlite',
-                'database' => ':memory:',
-                'prefix' => '',
-            ],
-        ]);
-
-        DB::connection('lnms')->statement('CREATE TABLE devices (device_id INTEGER PRIMARY KEY, hostname TEXT)');
-        DB::connection('lnms')->statement('CREATE TABLE ports (port_id INTEGER PRIMARY KEY, device_id INTEGER, ifName TEXT, ifOperStatus TEXT, ifAdminStatus TEXT, ifSpeed INTEGER)');
-        DB::connection('lnms')->statement('CREATE TABLE ipv4_mac (id INTEGER PRIMARY KEY, ipv4_address TEXT, mac_address TEXT)');
-        DB::connection('lnms')->statement('CREATE TABLE ports_fdb (id INTEGER PRIMARY KEY, mac_address TEXT, port_id INTEGER, updated_at TEXT)');
-
-        DB::connection('lnms')->table('devices')->insert(['device_id' => 1, 'hostname' => 'switch01']);
-        DB::connection('lnms')->table('ports')->insert([
-            'port_id' => 1, 'device_id' => 1, 'ifName' => 'Gi0/1',
-            'ifOperStatus' => 'up', 'ifAdminStatus' => 'up', 'ifSpeed' => 1000,
-        ]);
-        DB::connection('lnms')->table('ipv4_mac')->insert(['ipv4_address' => '10.0.0.201', 'mac_address' => 'AA:BB:CC:DD:EE:01']);
-        DB::connection('lnms')->table('ports_fdb')->insert(['mac_address' => 'AA:BB:CC:DD:EE:01', 'port_id' => 1, 'updated_at' => '2024-01-15 10:00:00']);
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')
+            ->andReturn(['ip' => '10.0.0.201', 'mac' => 'AA:BB:CC:DD:EE:01', 'port' => '1', 'switch' => '']);
+        $inventory->shouldReceive('getPortDetail')
+            ->andReturn(['hostname' => 'switch01', 'interface' => 'Gi0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000]);
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.201';

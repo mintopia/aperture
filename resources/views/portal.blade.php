@@ -117,7 +117,9 @@
                 }
             });
 
-            fetch('https://' + crypto.randomUUID() + '.ipv6.test.entropylan.party', {
+            @if($ipv6DetectionEnabled && $ipv6DetectionEndpoint)
+            var ipv6Endpoint = '{{ $ipv6DetectionEndpoint }}'.replace('{random}', crypto.randomUUID());
+            fetch(ipv6Endpoint, {
                 timeout: 2000,
             }).then(response => {
                 if (response.ok) {
@@ -142,6 +144,9 @@
             }).catch(error => {
                 setTimeout(checkStatus, 2000);
             });
+            @else
+            setTimeout(checkStatus, 2000);
+            @endif
 
         });
         </script>

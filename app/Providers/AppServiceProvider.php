@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\BorealisService;
+use App\Services\CachedNetworkInventoryService;
 use App\Services\CiscoService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
@@ -11,8 +12,11 @@ use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsBlockingInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\MacAddressResolverInterface;
+use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\LibreNmsService;
+use App\Services\MacAddressResolver;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NtopNgService;
@@ -54,10 +58,15 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(function (Application $application): LibreNmsService {
-            return new LibreNmsService(
-                endpoint: config('aperture.librenms.endpoint', ''),
-                apiToken: config('aperture.librenms.api_token', ''),
+        $this->app->singleton(function (Application $application): NetworkInventoryInterface {
+            $inner = new LibreNmsService(
+                endpoint: (string) config('aperture.librenms.endpoint', ''),
+                apiToken: (string) config('aperture.librenms.api_token', ''),
+            );
+
+            return new CachedNetworkInventoryService(
+                $inner,
+                $application->make('cache.store'),
             );
         });
 
@@ -93,6 +102,13 @@ class AppServiceProvider extends ServiceProvider
             );
 
             return new CiscoSwitchAdapter($ciscoService, new IosOutputParser);
+        });
+
+        $this->app->singleton(function (Application $app): MacAddressResolverInterface {
+            return new MacAddressResolver(
+                $app->make(DhcpInterface::class),
+                $app->make(NetworkInventoryInterface::class),
+            );
         });
     }
 }

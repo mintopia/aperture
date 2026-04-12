@@ -27,4 +27,14 @@ interface NetworkInventoryInterface
      * @return Collection<int, array{hostname: string, ip: string, type: string}>
      */
     public function getDeviceList(): Collection;
+
+    /**
+     * @return Collection<int, array{ip: string, mac: string}>
+     */
+    public function getIpv6Neighbors(): Collection;
+
+    /**
+     * @return array{hostname: string, interface: string, status: string, adminStatus: string, speed: int}|null
+     */
+    public function getPortDetail(string $portId): ?array;
 }

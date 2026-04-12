@@ -3,207 +3,140 @@
 namespace Tests\Unit\Models;
 
 use App\Models\IpAddress;
-use Carbon\Carbon;
+use App\Models\MacAddress;
+use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\Interfaces\NetworkSwitchInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use Mockery;
+use RuntimeException;
 use Tests\TestCase;
-use Throwable;
 
 class IpAddressLnmsTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
+    private function mockInventory(?array $resolveResult = null, ?array $detailResult = null): void
     {
-        parent::setUp();
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')->andReturn($resolveResult);
+        if ($resolveResult !== null) {
+            $inventory->shouldReceive('getPortDetail')->andReturn($detailResult);
+        }
 
-        config([
-            'aperture.lnms.enabled' => true,
-            'database.connections.lnms' => [
-                'driver' => 'sqlite',
-                'database' => ':memory:',
-                'prefix' => '',
-            ],
-        ]);
-
-        DB::connection('lnms')->statement('CREATE TABLE devices (device_id INTEGER PRIMARY KEY, hostname TEXT)');
-        DB::connection('lnms')->statement('CREATE TABLE ports (port_id INTEGER PRIMARY KEY, device_id INTEGER, ifName TEXT, ifOperStatus TEXT, ifAdminStatus TEXT, ifSpeed INTEGER)');
-        DB::connection('lnms')->statement('CREATE TABLE ipv4_mac (id INTEGER PRIMARY KEY, ipv4_address TEXT, mac_address TEXT)');
-        DB::connection('lnms')->statement('CREATE TABLE ports_fdb (id INTEGER PRIMARY KEY, mac_address TEXT, port_id INTEGER, updated_at TEXT)');
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
     }
 
-    protected function seedLnmsData(string $ip = '10.0.0.1'): void
+    public function test_port_returns_data_from_service(): void
     {
-        DB::connection('lnms')->table('devices')->insert(['device_id' => 1, 'hostname' => 'switch01.example.com']);
-        DB::connection('lnms')->table('ports')->insert([
-            'port_id' => 1,
-            'device_id' => 1,
-            'ifName' => 'GigabitEthernet0/1',
-            'ifOperStatus' => 'up',
-            'ifAdminStatus' => 'up',
-            'ifSpeed' => 1000000000,
-        ]);
-        DB::connection('lnms')->table('ipv4_mac')->insert(['ipv4_address' => $ip, 'mac_address' => 'AA:BB:CC:DD:EE:FF']);
-        DB::connection('lnms')->table('ports_fdb')->insert(['mac_address' => 'AA:BB:CC:DD:EE:FF', 'port_id' => 1, 'updated_at' => '2024-01-15 10:00:00']);
-    }
+        $this->mockInventory(
+            ['ip' => '10.0.0.1', 'mac' => 'aa:bb:cc:dd:ee:ff', 'port' => '42', 'switch' => ''],
+            ['hostname' => 'switch01.example.com', 'interface' => 'GigabitEthernet0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000000000],
+        );
 
-    public function test_get_lnms_data_returns_data_when_enabled(): void
-    {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
-
-        $this->seedLnmsData();
-
-        $result = $ip->getLNMSData();
-
-        $this->assertIsArray($result);
-        $this->assertCount(1, $result);
-        $this->assertEquals('AA:BB:CC:DD:EE:FF', $result[0]->mac);
-        $this->assertEquals('switch01.example.com', $result[0]->port->switch);
-        $this->assertEquals('GigabitEthernet0/1', $result[0]->port->interface);
-        $this->assertEquals('up', $result[0]->port->status);
-        $this->assertEquals('up', $result[0]->port->adminStatus);
-        $this->assertEquals(1000000000, $result[0]->port->speed);
-    }
-
-    public function test_get_lnms_data_caches_result(): void
-    {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
-
-        $this->seedLnmsData();
-
-        $result1 = $ip->getLNMSData();
-        $result2 = $ip->getLNMSData();
-
-        $this->assertSame($result1, $result2);
-    }
-
-    public function test_get_lnms_data_returns_empty_for_unknown_ip(): void
-    {
-        $ip = new IpAddress;
-        $ip->address = '192.168.1.1';
-        $ip->last_seen_at = now();
-        $ip->save();
-
-        $this->seedLnmsData('10.0.0.1');
-
-        $result = $ip->getLNMSData();
-        $this->assertIsArray($result);
-        $this->assertCount(0, $result);
-    }
-
-    public function test_get_lnms_data_sorts_by_updated_at_descending(): void
-    {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
-
-        DB::connection('lnms')->table('devices')->insert(['device_id' => 1, 'hostname' => 'switch01']);
-        DB::connection('lnms')->table('devices')->insert(['device_id' => 2, 'hostname' => 'switch02']);
-        DB::connection('lnms')->table('ports')->insert([
-            'port_id' => 1, 'device_id' => 1, 'ifName' => 'Gi0/1',
-            'ifOperStatus' => 'up', 'ifAdminStatus' => 'up', 'ifSpeed' => 1000,
-        ]);
-        DB::connection('lnms')->table('ports')->insert([
-            'port_id' => 2, 'device_id' => 2, 'ifName' => 'Gi0/2',
-            'ifOperStatus' => 'up', 'ifAdminStatus' => 'up', 'ifSpeed' => 2000,
-        ]);
-        DB::connection('lnms')->table('ipv4_mac')->insert(['ipv4_address' => '10.0.0.1', 'mac_address' => 'AA:BB:CC:DD:EE:01']);
-        DB::connection('lnms')->table('ipv4_mac')->insert(['ipv4_address' => '10.0.0.1', 'mac_address' => 'AA:BB:CC:DD:EE:02']);
-        DB::connection('lnms')->table('ports_fdb')->insert(['mac_address' => 'AA:BB:CC:DD:EE:01', 'port_id' => 1, 'updated_at' => '2024-01-10 10:00:00']);
-        DB::connection('lnms')->table('ports_fdb')->insert(['mac_address' => 'AA:BB:CC:DD:EE:02', 'port_id' => 2, 'updated_at' => '2024-01-15 10:00:00']);
-
-        $result = $ip->getLNMSData();
-
-        $this->assertCount(2, $result);
-        $this->assertEquals('switch02', $result[0]->port->switch);
-        $this->assertEquals('switch01', $result[1]->port->switch);
-    }
-
-    public function test_mac_returns_value_when_lnms_enabled(): void
-    {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
-
-        $this->seedLnmsData();
-
-        $this->assertEquals('AA:BB:CC:DD:EE:FF', $ip->mac);
-    }
-
-    public function test_port_returns_object_when_lnms_enabled(): void
-    {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
-
-        $this->seedLnmsData();
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
 
         $port = $ip->port;
         $this->assertNotNull($port);
-        $this->assertEquals('switch01.example.com', $port->switch);
-        $this->assertEquals('GigabitEthernet0/1', $port->interface);
+        $this->assertSame('switch01.example.com', $port->switch);
+        $this->assertSame('GigabitEthernet0/1', $port->interface);
+        $this->assertSame('up', $port->status);
+        $this->assertSame('up', $port->adminStatus);
+        $this->assertSame(1000000000, $port->speed);
     }
 
-    public function test_port_updated_at_returns_carbon_when_lnms_enabled(): void
+    public function test_port_caches_result(): void
     {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')
+            ->once()
+            ->andReturn(['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '42', 'switch' => '']);
+        $inventory->shouldReceive('getPortDetail')
+            ->once()
+            ->andReturn(['hostname' => 'sw', 'interface' => 'Gi0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000]);
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
-        $this->seedLnmsData();
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
 
-        $updatedAt = $ip->portUpdatedAt;
-        $this->assertNotNull($updatedAt);
-        $this->assertInstanceOf(Carbon::class, $updatedAt);
+        $port1 = $ip->port;
+        $port2 = $ip->port;
+        $this->assertSame($port1, $port2);
     }
 
-    public function test_shut_port_with_port_data_throws_cisco_exception(): void
+    public function test_port_returns_null_when_resolve_fails(): void
     {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
+        $this->mockInventory();
 
-        $this->seedLnmsData();
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
+        $this->assertNull($ip->port);
+    }
 
-        config([
-            'aperture.cisco.username' => 'admin',
-            'aperture.cisco.password' => 'pass',
-            'aperture.cisco.enable' => 'enable',
-        ]);
+    public function test_port_returns_null_when_detail_fails(): void
+    {
+        $this->mockInventory(
+            ['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '42', 'switch' => ''],
+        );
 
-        // shutPort(false) calls new CiscoService() then shutInterface()
-        // which tries SSH connection and fails
-        $this->expectException(Throwable::class);
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
+        $this->assertNull($ip->port);
+    }
+
+    public function test_mac_returns_value_from_relationship(): void
+    {
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $ip = IpAddress::factory()->create(['mac_address_id' => $mac->id]);
+
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $ip->mac);
+    }
+
+    public function test_mac_returns_null_when_no_relationship(): void
+    {
+        $ip = IpAddress::factory()->create(['mac_address_id' => null]);
+        $this->assertNull($ip->mac);
+    }
+
+    public function test_port_updated_at_returns_null(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $this->assertNull($ip->portUpdatedAt);
+    }
+
+    public function test_port_returns_null_on_service_exception(): void
+    {
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')->andThrow(new RuntimeException('Service down'));
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
+        $this->assertNull($ip->port);
+    }
+
+    public function test_shut_port_calls_switch_interface(): void
+    {
+        $this->mockInventory(
+            ['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '42', 'switch' => ''],
+            ['hostname' => 'sw', 'interface' => 'GigabitEthernet0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000],
+        );
+
+        $switch = Mockery::mock(NetworkSwitchInterface::class);
+        $switch->shouldReceive('shutdownPort')->with('GigabitEthernet0/1')->once()->andReturnTrue();
+        $this->app->instance(NetworkSwitchInterface::class, $switch);
+
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $ip->shutPort(false);
     }
 
-    public function test_unshut_port_with_port_data_throws_cisco_exception(): void
+    public function test_unshut_port_calls_switch_interface(): void
     {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
+        $this->mockInventory(
+            ['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '42', 'switch' => ''],
+            ['hostname' => 'sw', 'interface' => 'GigabitEthernet0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000],
+        );
 
-        $this->seedLnmsData();
+        $switch = Mockery::mock(NetworkSwitchInterface::class);
+        $switch->shouldReceive('enablePort')->with('GigabitEthernet0/1')->once()->andReturnTrue();
+        $this->app->instance(NetworkSwitchInterface::class, $switch);
 
-        config([
-            'aperture.cisco.username' => 'admin',
-            'aperture.cisco.password' => 'pass',
-            'aperture.cisco.enable' => 'enable',
-        ]);
-
-        $this->expectException(Throwable::class);
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $ip->unshutPort(false);
     }
 }

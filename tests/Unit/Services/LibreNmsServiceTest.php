@@ -141,4 +141,101 @@ class LibreNmsServiceTest extends TestCase
         $this->assertCount(1, $result);
         $this->assertEquals('switch-1', $result[0]['hostname']);
     }
+
+    public function test_get_ipv6_neighbors_filters_ipv6_only(): void
+    {
+        $responseBody = json_encode([
+            'arp' => [
+                ['ipv4_address' => '10.0.0.1', 'mac_address' => 'aa:bb:cc:dd:ee:ff'],
+                ['ipv4_address' => 'fe80::1', 'mac_address' => '11:22:33:44:55:66'],
+                ['ipv4_address' => '2001:db8::1', 'mac_address' => 'aa:bb:cc:11:22:33'],
+            ],
+        ]);
+
+        $service = $this->createServiceWithMockClient([
+            new Response(200, [], $responseBody),
+        ]);
+
+        $result = $service->getIpv6Neighbors();
+        $this->assertInstanceOf(Collection::class, $result);
+        $this->assertCount(2, $result);
+        $this->assertSame('fe80::1', $result->first()['ip']);
+        $this->assertSame('11:22:33:44:55:66', $result->first()['mac']);
+        $this->assertSame('2001:db8::1', $result->values()[1]['ip']);
+        $this->assertSame('aa:bb:cc:11:22:33', $result->values()[1]['mac']);
+    }
+
+    public function test_get_ipv6_neighbors_returns_empty_when_no_ipv6(): void
+    {
+        $responseBody = json_encode([
+            'arp' => [
+                ['ipv4_address' => '10.0.0.1', 'mac_address' => 'aa:bb:cc:dd:ee:ff'],
+                ['ipv4_address' => '192.168.1.1', 'mac_address' => '11:22:33:44:55:66'],
+            ],
+        ]);
+
+        $service = $this->createServiceWithMockClient([
+            new Response(200, [], $responseBody),
+        ]);
+
+        $result = $service->getIpv6Neighbors();
+        $this->assertInstanceOf(Collection::class, $result);
+        $this->assertCount(0, $result);
+    }
+
+    public function test_get_ipv6_neighbors_handles_empty_arp(): void
+    {
+        $responseBody = json_encode(['arp' => []]);
+
+        $service = $this->createServiceWithMockClient([
+            new Response(200, [], $responseBody),
+        ]);
+
+        $result = $service->getIpv6Neighbors();
+        $this->assertInstanceOf(Collection::class, $result);
+        $this->assertCount(0, $result);
+    }
+
+    public function test_get_port_detail_returns_port_data(): void
+    {
+        $portResponse = json_encode([
+            'port' => [
+                'device_id' => 5,
+                'ifName' => 'Gi0/1',
+                'ifOperStatus' => 'up',
+                'ifAdminStatus' => 'up',
+                'ifSpeed' => 1000,
+            ],
+        ]);
+        $deviceResponse = json_encode([
+            'devices' => [
+                ['hostname' => 'switch01'],
+            ],
+        ]);
+
+        $service = $this->createServiceWithMockClient([
+            new Response(200, [], $portResponse),
+            new Response(200, [], $deviceResponse),
+        ]);
+
+        $result = $service->getPortDetail('42');
+        $this->assertNotNull($result);
+        $this->assertSame('switch01', $result['hostname']);
+        $this->assertSame('Gi0/1', $result['interface']);
+        $this->assertSame('up', $result['status']);
+        $this->assertSame('up', $result['adminStatus']);
+        $this->assertSame(1000, $result['speed']);
+    }
+
+    public function test_get_port_detail_returns_null_when_port_missing(): void
+    {
+        $portResponse = json_encode(['port' => null]);
+
+        $service = $this->createServiceWithMockClient([
+            new Response(200, [], $portResponse),
+        ]);
+
+        $result = $service->getPortDetail('999');
+        $this->assertNull($result);
+    }
 }

@@ -71,6 +71,12 @@ class User extends Authenticatable
         return $this->hasMany(UserIpAddress::class)->orderBy('last_seen_at', 'desc');
     }
 
+    /** @return HasMany<MacAddress, $this> */
+    public function macAddresses(): HasMany
+    {
+        return $this->hasMany(MacAddress::class);
+    }
+
     /** @return BelongsToMany<Role, $this> */
     public function roles(): BelongsToMany
     {

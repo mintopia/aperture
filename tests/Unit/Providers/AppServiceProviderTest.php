@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Tests\Unit\Providers;
 
 use App\Services\BorealisService;
+use App\Services\CachedNetworkInventoryService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsBlockingInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
-use App\Services\LibreNmsService;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NtopNgService;
 use App\Services\PiHole\PiHoleService;
@@ -57,15 +58,15 @@ class AppServiceProviderTest extends TestCase
         $this->assertInstanceOf(BorealisService::class, $service);
     }
 
-    public function test_boot_registers_libre_nms_service_singleton(): void
+    public function test_boot_registers_network_inventory_interface_singleton(): void
     {
         config([
             'aperture.librenms.endpoint' => 'http://localhost',
             'aperture.librenms.api_token' => 'token',
         ]);
 
-        $service = $this->app->make(LibreNmsService::class);
-        $this->assertInstanceOf(LibreNmsService::class, $service);
+        $service = $this->app->make(NetworkInventoryInterface::class);
+        $this->assertInstanceOf(CachedNetworkInventoryService::class, $service);
     }
 
     public function test_registers_firewall_backend_interface_binding(): void

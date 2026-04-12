@@ -96,4 +96,53 @@ class LibreNmsService implements NetworkInventoryInterface
 
         return collect($mapped);
     }
+
+    /**
+     * @return array{hostname: string, interface: string, status: string, adminStatus: string, speed: int}|null
+     */
+    public function getPortDetail(string $portId): ?array
+    {
+        $response = $this->client->get('/api/v0/ports/'.$portId);
+        /** @var array<string, mixed> $data */
+        $data = json_decode((string) $response->getBody(), true);
+
+        $port = $data['port'] ?? null;
+        if ($port === null) {
+            return null;
+        }
+
+        $deviceId = (string) ($port['device_id'] ?? '');
+        $deviceResponse = $this->client->get('/api/v0/devices/'.$deviceId);
+        /** @var array<string, mixed> $deviceData */
+        $deviceData = json_decode((string) $deviceResponse->getBody(), true);
+
+        return [
+            'hostname' => (string) ($deviceData['devices'][0]['hostname'] ?? ''),
+            'interface' => (string) ($port['ifName'] ?? ''),
+            'status' => (string) ($port['ifOperStatus'] ?? ''),
+            'adminStatus' => (string) ($port['ifAdminStatus'] ?? ''),
+            'speed' => (int) ($port['ifSpeed'] ?? 0),
+        ];
+    }
+
+    /**
+     * @return Collection<int, array{ip: string, mac: string}>
+     */
+    public function getIpv6Neighbors(): Collection
+    {
+        $response = $this->client->get('/api/v0/resources/ip/arp');
+        /** @var array<string, mixed> $data */
+        $data = json_decode((string) $response->getBody(), true);
+
+        /** @var array<int, array{ip: string, mac: string}> $mapped */
+        $mapped = array_filter(
+            array_map(fn (array $entry): array => [
+                'ip' => (string) ($entry['ipv4_address'] ?? ''),
+                'mac' => (string) ($entry['mac_address'] ?? ''),
+            ], $data['arp'] ?? []),
+            fn (array $entry): bool => str_contains($entry['ip'], ':'),
+        );
+
+        return collect(array_values($mapped));
+    }
 }
