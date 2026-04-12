@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
 use App\Services\CiscoService;
-use App\Services\Firewalls\OpnSense;
+use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\NtopNgService;
 use Carbon\Carbon;
 use GuzzleHttp\Exception\ClientException;
@@ -165,7 +165,7 @@ class IpAddress extends Model
             return;
         }
 
-        $opnsense = new OpnSense;
+        $opnsense = app(FirewallBackendInterface::class);
         $opnsense->limitIp($this->address);
 
         $this->limited = true;
@@ -180,7 +180,7 @@ class IpAddress extends Model
             return;
         }
 
-        $opnsense = new OpnSense;
+        $opnsense = app(FirewallBackendInterface::class);
         $opnsense->unlimitIp($this->address);
 
         $this->limited = false;
@@ -202,10 +202,15 @@ class IpAddress extends Model
             $description = $userIp->user->nickname;
         }
 
-        $opnsense = new OpnSense;
+        $opnsense = app(FirewallBackendInterface::class);
         $opnsense->updateIp($this->address, (string) $description);
 
         $this->allowed = true;
+        $ttl = config('aperture.session.ttl');
+        if ($ttl) {
+            $this->expires_at = now()->addMinutes((int) $ttl);
+        }
+
         $this->save();
     }
 
@@ -217,7 +222,7 @@ class IpAddress extends Model
             return;
         }
 
-        $opnsense = new OpnSense;
+        $opnsense = app(FirewallBackendInterface::class);
         $opnsense->removeIp($this->address);
 
         $this->allowed = false;

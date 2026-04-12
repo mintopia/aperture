@@ -29,4 +29,14 @@ class KernelTest extends TestCase
         // Verify artisan commands from Commands directory are registered
         $this->assertTrue(Artisan::all() !== []);
     }
+
+    public function test_expire_sessions_command_is_scheduled(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:expire-sessions'));
+
+        $this->assertNotNull($found, 'aperture:expire-sessions should be scheduled');
+        $this->assertEquals('*/5 * * * *', $found->expression);
+    }
 }
