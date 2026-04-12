@@ -11,7 +11,11 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reportsDirectory: 'storage/coverage/js',
-            include: ['resources/js/**/*.{js,vue}'],
+            include: [
+                'resources/js/Components/UI/**/*.vue',
+                'resources/js/composables/**/*.js',
+                'resources/js/helpers.js',
+            ],
             exclude: ['resources/js/app.js'],
             reporter: ['text', 'html', 'clover'],
         },

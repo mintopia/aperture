@@ -124,7 +124,7 @@ class CiscoService
         }
 
         Log::debug(sprintf('[Cisco] [%s] Connecting with SSH', $this->hostname));
-        $this->connection = new SSH2($this->hostname, 22, 2);
+        $this->connection = $this->createSshConnection();
         if (! $this->connection->login((string) config('aperture.cisco.username'), (string) config('aperture.cisco.password'))) {
             throw new Exception('Unable to authenticate with switch');
         }
@@ -134,5 +134,10 @@ class CiscoService
         Log::debug(sprintf('[Cisco] [%s] > terminal length 0', $this->hostname));
         $this->ssh()->write("terminal length 0\n");
         $this->ssh()->read($this->name.'>');
+    }
+
+    protected function createSshConnection(): SSH2
+    {
+        return new SSH2($this->hostname, 22, 2);
     }
 }

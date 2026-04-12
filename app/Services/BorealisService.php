@@ -89,7 +89,7 @@ class BorealisService
     {
         $json = $response->getBody()->getContents();
         $data = json_decode($json);
-        if ($data === false) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             throw new RequestException('Unable to decode response');
         }
 

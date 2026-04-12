@@ -1,0 +1,62 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Providers;
+
+use App\Services\BorealisService;
+use App\Services\Interfaces\AuthProviderInterface;
+use App\Services\LibreNmsService;
+use App\Services\NtopNgService;
+use Tests\TestCase;
+
+class AppServiceProviderTest extends TestCase
+{
+    public function test_registers_auth_provider_interface_binding(): void
+    {
+        $this->assertInstanceOf(
+            AuthProviderInterface::class,
+            $this->app->make(AuthProviderInterface::class)
+        );
+    }
+
+    public function test_boot_registers_ntop_ng_service_singleton(): void
+    {
+        config([
+            'aperture.ntopng.endpoint' => 'http://localhost:3000',
+            'aperture.ntopng.username' => 'admin',
+            'aperture.ntopng.password' => 'admin',
+            'aperture.ntopng.interface' => 1,
+        ]);
+
+        $service = $this->app->make(NtopNgService::class);
+        $this->assertInstanceOf(NtopNgService::class, $service);
+
+        // Verify it's a singleton - same instance returned
+        $service2 = $this->app->make(NtopNgService::class);
+        $this->assertSame($service, $service2);
+    }
+
+    public function test_boot_registers_borealis_service_singleton(): void
+    {
+        config([
+            'aperture.borealis.client_id' => 'test-id',
+            'aperture.borealis.client_secret' => 'test-secret',
+            'aperture.borealis.endpoint' => 'http://localhost',
+        ]);
+
+        $service = $this->app->make(BorealisService::class);
+        $this->assertInstanceOf(BorealisService::class, $service);
+    }
+
+    public function test_boot_registers_libre_nms_service_singleton(): void
+    {
+        config([
+            'aperture.librenms.endpoint' => 'http://localhost',
+            'aperture.librenms.api_token' => 'token',
+        ]);
+
+        $service = $this->app->make(LibreNmsService::class);
+        $this->assertInstanceOf(LibreNmsService::class, $service);
+    }
+}

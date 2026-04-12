@@ -1,0 +1,101 @@
+<?php
+
+namespace Tests\Unit\Models;
+
+use App\Models\IpAddress;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class UserTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_user_can_be_created_with_factory(): void
+    {
+        $user = User::factory()->create();
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_ips_returns_has_many_relationship(): void
+    {
+        $user = User::factory()->create();
+        $this->assertInstanceOf(HasMany::class, $user->ips());
+    }
+
+    public function test_roles_returns_belongs_to_many_relationship(): void
+    {
+        $user = User::factory()->create();
+        $this->assertInstanceOf(BelongsToMany::class, $user->roles());
+    }
+
+    public function test_authentications_returns_has_many_relationship(): void
+    {
+        $user = User::factory()->create();
+        $this->assertInstanceOf(HasMany::class, $user->authentications());
+    }
+
+    public function test_has_role_returns_true_when_user_has_role(): void
+    {
+        $user = User::factory()->create();
+        $role = new Role;
+        $role->name = 'Admin';
+        $role->code = 'admin';
+        $role->save();
+        $user->roles()->attach($role);
+
+        $this->assertTrue($user->hasRole('admin'));
+    }
+
+    public function test_has_role_returns_false_when_user_does_not_have_role(): void
+    {
+        $user = User::factory()->create();
+        $this->assertFalse($user->hasRole('admin'));
+    }
+
+    public function test_has_role_accepts_role_model_instance(): void
+    {
+        $user = User::factory()->create();
+        $role = new Role;
+        $role->name = 'Admin';
+        $role->code = 'admin';
+        $role->save();
+        $user->roles()->attach($role);
+
+        $this->assertTrue($user->hasRole($role));
+    }
+
+    public function test_add_ip_creates_new_ip_and_user_ip_address(): void
+    {
+        $user = User::factory()->create();
+        $ip = $user->addIp('192.168.1.100');
+
+        $this->assertInstanceOf(IpAddress::class, $ip);
+        $this->assertEquals('192.168.1.100', $ip->address);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '192.168.1.100']);
+        $this->assertDatabaseHas('user_ip_addresses', [
+            'user_id' => $user->id,
+            'ip_address_id' => $ip->id,
+        ]);
+    }
+
+    public function test_add_ip_reuses_existing_ip_address(): void
+    {
+        $user = User::factory()->create();
+        $ip1 = $user->addIp('192.168.1.100');
+        $ip2 = $user->addIp('192.168.1.100');
+
+        $this->assertEquals($ip1->id, $ip2->id);
+        $this->assertEquals(1, IpAddress::whereAddress('192.168.1.100')->count());
+    }
+
+    public function test_to_string_returns_nickname(): void
+    {
+        $user = User::factory()->create(['nickname' => 'TestUser']);
+        $this->assertStringContainsString('TestUser', (string) $user);
+        $this->assertStringContainsString('[User:', (string) $user);
+    }
+}

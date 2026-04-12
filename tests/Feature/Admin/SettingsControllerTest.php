@@ -114,4 +114,77 @@ class SettingsControllerTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_admin_can_view_integrations_settings(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/settings/integrations');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->component('Admin/Settings/Integrations'));
+    }
+
+    public function test_admin_can_update_integrations_settings(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations', [
+            'opnsense_endpoint' => 'https://opnsense.example.com',
+            'ntopng_endpoint' => 'https://ntopng.example.com',
+            'borealis_endpoint' => null,
+            'librenms_endpoint' => null,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('https://opnsense.example.com', Setting::get('opnsense.endpoint'));
+        $this->assertEquals('https://ntopng.example.com', Setting::get('ntopng.endpoint'));
+    }
+
+    public function test_admin_can_update_existing_integration_setting(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        // Create an existing setting
+        $setting = new Setting;
+        $setting->code = 'opnsense.endpoint';
+        $setting->name = 'Opnsense Endpoint';
+        $setting->value = 'https://old.example.com';
+        $setting->save();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations', [
+            'opnsense_endpoint' => 'https://new.example.com',
+            'ntopng_endpoint' => null,
+            'borealis_endpoint' => null,
+            'librenms_endpoint' => null,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('https://new.example.com', Setting::get('opnsense.endpoint'));
+    }
+
+    public function test_admin_can_view_event_settings(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/settings/event');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->component('Admin/Settings/Event'));
+    }
+
+    public function test_admin_can_view_portal_settings(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/settings/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->component('Admin/Settings/Portal'));
+    }
 }

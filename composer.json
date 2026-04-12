@@ -24,6 +24,7 @@
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^3.1",
+        "brianium/paratest": "^7.20",
         "driftingly/rector-laravel": "^2.0",
         "fakerphp/faker": "^1.9.1",
         "larastan/larastan": "^3.0",
@@ -61,7 +62,8 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
-        ]
+        ],
+        "quality": "bash bin/quality.sh"
     },
     "extra": {
         "laravel": {

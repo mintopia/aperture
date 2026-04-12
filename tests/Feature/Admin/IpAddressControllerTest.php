@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Http\Controllers\Admin\IpAddressController;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CiscoService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Mockery;
 use Tests\TestCase;
 
 class IpAddressControllerTest extends TestCase
@@ -104,5 +108,296 @@ class IpAddressControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page->has('ips.data', 1));
+    }
+
+    public function test_admin_can_filter_ips_by_nickname(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.5';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $user = User::factory()->create(['nickname' => 'TargetUser']);
+        $user->addIp('10.0.0.5');
+
+        $response = $this->actingAs($admin)->get('/admin/ips?nickname=TargetUser');
+
+        $response->assertOk();
+    }
+
+    public function test_admin_can_sort_ips_by_received(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.10';
+        $ip->last_seen_at = Carbon::now();
+        $ip->received = 1000;
+        $ip->save();
+
+        $response = $this->actingAs($admin)->get('/admin/ips?order=received');
+        $response->assertOk();
+    }
+
+    public function test_admin_can_sort_ips_with_custom_direction(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.11';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->get('/admin/ips?order=address&direction=desc');
+        $response->assertOk();
+    }
+
+    public function test_admin_can_view_ip_show_without_port(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.20';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Ips/Show')
+            ->where('port', null)
+            ->where('status', null)
+        );
+    }
+
+    public function test_admin_can_shutdown_port(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.30';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/port', [
+            'shutdown' => 1,
+        ]);
+        $response->assertRedirect();
+    }
+
+    public function test_admin_can_enable_port(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.31';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/port', [
+            'shutdown' => 0,
+        ]);
+        $response->assertRedirect();
+    }
+
+    public function test_admin_can_limit_ip(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.32';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/limit', [
+            'limit' => 1,
+        ]);
+        $response->assertRedirect();
+    }
+
+    public function test_admin_can_unlimit_ip(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.33';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/limit', [
+            'limit' => 0,
+        ]);
+        $response->assertRedirect();
+    }
+
+    public function test_admin_can_allow_internet(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.34';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/internet', [
+            'allow' => 1,
+        ]);
+        $response->assertRedirect();
+    }
+
+    public function test_admin_can_deny_internet(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.35';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/internet', [
+            'allow' => 0,
+        ]);
+        $response->assertRedirect();
+    }
+
+    public function test_admin_can_store_new_ip(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->post('/admin/ips', [
+            'address' => '10.0.0.100',
+            'comment' => 'Test IP',
+            'allow' => false,
+            'limit' => false,
+        ]);
+        $response->assertRedirect();
+        $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.100']);
+    }
+
+    public function test_admin_can_store_new_ip_with_allow_and_limit(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->post('/admin/ips', [
+            'address' => '10.0.0.101',
+            'comment' => 'Test IP Allowed',
+            'allow' => true,
+            'limit' => true,
+        ]);
+        $response->assertRedirect();
+        $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.101']);
+    }
+
+    public function test_admin_can_view_ip_show_with_port_data(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        config([
+            'aperture.lnms.enabled' => true,
+            'database.connections.lnms' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+            ],
+            'aperture.cisco.username' => 'admin',
+            'aperture.cisco.password' => 'pass',
+            'aperture.cisco.enable' => 'enable',
+        ]);
+
+        DB::connection('lnms')->statement('CREATE TABLE devices (device_id INTEGER PRIMARY KEY, hostname TEXT)');
+        DB::connection('lnms')->statement('CREATE TABLE ports (port_id INTEGER PRIMARY KEY, device_id INTEGER, ifName TEXT, ifOperStatus TEXT, ifAdminStatus TEXT, ifSpeed INTEGER)');
+        DB::connection('lnms')->statement('CREATE TABLE ipv4_mac (id INTEGER PRIMARY KEY, ipv4_address TEXT, mac_address TEXT)');
+        DB::connection('lnms')->statement('CREATE TABLE ports_fdb (id INTEGER PRIMARY KEY, mac_address TEXT, port_id INTEGER, updated_at TEXT)');
+
+        DB::connection('lnms')->table('devices')->insert(['device_id' => 1, 'hostname' => 'switch01']);
+        DB::connection('lnms')->table('ports')->insert([
+            'port_id' => 1, 'device_id' => 1, 'ifName' => 'Gi0/1',
+            'ifOperStatus' => 'up', 'ifAdminStatus' => 'up', 'ifSpeed' => 1000,
+        ]);
+        DB::connection('lnms')->table('ipv4_mac')->insert(['ipv4_address' => '10.0.0.200', 'mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        DB::connection('lnms')->table('ports_fdb')->insert(['mac_address' => 'AA:BB:CC:DD:EE:FF', 'port_id' => 1, 'updated_at' => '2024-01-15 10:00:00']);
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.200';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Ips/Show')
+            ->has('ip')
+            ->has('port')
+            ->where('status', 'Unable to connect to switch')
+            ->where('config', 'Unable to connect to switch')
+        );
+    }
+
+    public function test_admin_can_view_ip_show_with_successful_cisco_connection(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        config([
+            'aperture.lnms.enabled' => true,
+            'database.connections.lnms' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+                'prefix' => '',
+            ],
+        ]);
+
+        DB::connection('lnms')->statement('CREATE TABLE devices (device_id INTEGER PRIMARY KEY, hostname TEXT)');
+        DB::connection('lnms')->statement('CREATE TABLE ports (port_id INTEGER PRIMARY KEY, device_id INTEGER, ifName TEXT, ifOperStatus TEXT, ifAdminStatus TEXT, ifSpeed INTEGER)');
+        DB::connection('lnms')->statement('CREATE TABLE ipv4_mac (id INTEGER PRIMARY KEY, ipv4_address TEXT, mac_address TEXT)');
+        DB::connection('lnms')->statement('CREATE TABLE ports_fdb (id INTEGER PRIMARY KEY, mac_address TEXT, port_id INTEGER, updated_at TEXT)');
+
+        DB::connection('lnms')->table('devices')->insert(['device_id' => 1, 'hostname' => 'switch01']);
+        DB::connection('lnms')->table('ports')->insert([
+            'port_id' => 1, 'device_id' => 1, 'ifName' => 'Gi0/1',
+            'ifOperStatus' => 'up', 'ifAdminStatus' => 'up', 'ifSpeed' => 1000,
+        ]);
+        DB::connection('lnms')->table('ipv4_mac')->insert(['ipv4_address' => '10.0.0.201', 'mac_address' => 'AA:BB:CC:DD:EE:01']);
+        DB::connection('lnms')->table('ports_fdb')->insert(['mac_address' => 'AA:BB:CC:DD:EE:01', 'port_id' => 1, 'updated_at' => '2024-01-15 10:00:00']);
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.201';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $ciscoMock = Mockery::mock(CiscoService::class);
+        $ciscoMock->shouldReceive('showInterface')->with('Gi0/1')->andReturn('Gi0/1 is up');
+        $ciscoMock->shouldReceive('showInterfaceConfig')->with('Gi0/1')->andReturn("interface Gi0/1\n shutdown\nend");
+
+        $controllerMock = Mockery::mock(IpAddressController::class)->makePartial()->shouldAllowMockingProtectedMethods();
+        $controllerMock->shouldReceive('createCiscoService')->with('switch01')->andReturn($ciscoMock);
+        $this->app->instance(IpAddressController::class, $controllerMock);
+
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Ips/Show')
+            ->has('ip')
+            ->has('port')
+            ->where('status', 'Gi0/1 is up')
+            ->where('shutdown', true)
+        );
     }
 }

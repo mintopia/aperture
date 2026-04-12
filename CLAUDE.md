@@ -155,6 +155,7 @@ If problems were encountered, eg. code review, linting, tests, they are added to
   - Use mock APIs/interfaces for external components and surfaces
   - Code Coverage using XDebug with XDEBUG_MODE=coverage
   - SQLite for databases, array for cache and session
+  - Dependency injection should be used to allow dependencies to be mocked. If there are cases where testing is made complex due to a lack of DI, then implement DI.
 
 ### Typescript/Javascript
   - eslint
