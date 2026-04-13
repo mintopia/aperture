@@ -62,10 +62,10 @@ class PortalControllerTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_unauthenticated_user_redirects_to_login(): void
+    public function test_unauthenticated_user_redirects_to_captive(): void
     {
         $response = $this->get('/');
-        $response->assertRedirect(route('login'));
+        $response->assertRedirect(route('captive.index'));
     }
 
     public function test_index_passes_ipv6_config_when_enabled(): void

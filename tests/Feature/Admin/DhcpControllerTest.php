@@ -60,6 +60,6 @@ class DhcpControllerTest extends TestCase
     public function test_unauthenticated_cannot_access_dhcp(): void
     {
         $response = $this->get('/admin/dhcp');
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/captive');
     }
 }

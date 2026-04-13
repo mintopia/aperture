@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\SshProxy;
 use App\Services\SshProxy\SshProxyClient;
 use App\Services\SshProxy\SshProxyClientInterface;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
@@ -184,5 +185,21 @@ class SshProxyClientTest extends TestCase
         $resolved = $this->app->make(SshProxyClientInterface::class);
 
         $this->assertInstanceOf(SshProxyClient::class, $resolved);
+    }
+
+    public function test_execute_rethrows_non_409_client_exception(): void
+    {
+        $proxyClient = $this->createClientWithMockHandler([
+            new Response(403, [], json_encode(['error' => 'Forbidden'])),
+        ]);
+
+        $this->expectException(ClientException::class);
+
+        $proxyClient->execute(
+            '192.168.1.1',
+            'admin',
+            'password',
+            [['command' => 'show version']],
+        );
     }
 }

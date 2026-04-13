@@ -42,7 +42,6 @@ class UserController extends Controller
     {
         $ips = $user->ips()->with('ip')->get();
         $roles = $user->roles()->get();
-        $auths = $user->authentications()->with('provider')->get();
 
         $downloaded = $ips->sum('ip.received');
         $uploaded = $ips->sum('ip.sent');
@@ -51,7 +50,6 @@ class UserController extends Controller
             'user' => $user,
             'roles' => $roles,
             'ips' => $ips,
-            'auths' => $auths,
             'downloaded' => $downloaded,
             'uploaded' => $uploaded,
         ]);

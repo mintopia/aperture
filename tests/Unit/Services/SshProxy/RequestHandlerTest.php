@@ -229,4 +229,32 @@ class RequestHandlerTest extends TestCase
         $this->assertSame(400, $result['status']);
         $this->assertStringContainsString('Invalid JSON', $result['body']['error']);
     }
+
+    public function test_execute_returns_500_when_ssh_connection_fails(): void
+    {
+        $pool = Mockery::mock(SshConnectionPool::class);
+        $pool->shouldReceive('isLocked')->with('192.168.1.1')->andReturn(false);
+        $pool->shouldReceive('get')->with('192.168.1.1')->andReturn(null);
+
+        $executor = Mockery::mock(CommandExecutor::class);
+
+        $handler = Mockery::mock(RequestHandler::class, [$pool, $executor, 'test-key'])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+        $handler->shouldReceive('createSshConnection')
+            ->with('192.168.1.1', 'admin', 'secret')
+            ->andThrow(new \RuntimeException('Connection refused'));
+
+        $result = $handler->handle('POST', '/execute', ['authorization' => 'Bearer test-key'], json_encode([
+            'hostname' => '192.168.1.1',
+            'username' => 'admin',
+            'password' => 'secret',
+            'commands' => [['command' => 'show ver']],
+        ]));
+
+        $this->assertSame(500, $result['status']);
+        $this->assertFalse($result['body']['success']);
+        $this->assertStringContainsString('SSH connection failed', $result['body']['error']);
+        $this->assertStringContainsString('Connection refused', $result['body']['error']);
+    }
 }

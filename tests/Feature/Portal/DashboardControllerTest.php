@@ -27,7 +27,7 @@ class DashboardControllerTest extends TestCase
     {
         $response = $this->get('/portal');
 
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/captive');
     }
 
     public function test_dashboard_includes_active_content_blocks(): void

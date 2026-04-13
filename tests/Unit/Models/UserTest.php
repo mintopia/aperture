@@ -32,12 +32,6 @@ class UserTest extends TestCase
         $this->assertInstanceOf(BelongsToMany::class, $user->roles());
     }
 
-    public function test_authentications_returns_has_many_relationship(): void
-    {
-        $user = User::factory()->create();
-        $this->assertInstanceOf(HasMany::class, $user->authentications());
-    }
-
     public function test_has_role_returns_true_when_user_has_role(): void
     {
         $user = User::factory()->create();

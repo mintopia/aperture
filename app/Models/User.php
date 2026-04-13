@@ -25,6 +25,11 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @property string $nickname
  * @property string $email
  * @property int $blocked
+ * @property string|null $external_id
+ * @property string|null $access_token
+ * @property string|null $refresh_token
+ * @property \Illuminate\Support\Carbon|null $token_expires_at
+ * @property string|null $avatar_url
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read Collection<int, IpAddress> $ips
@@ -45,10 +50,8 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @method static Builder|User whereEmail($value)
  * @method static Builder|User whereId($value)
  * @method static Builder|User whereNickname($value)
+ * @method static Builder|User whereExternalId($value)
  * @method static Builder|User whereUpdatedAt($value)
- *
- * @property-read Collection<int, UserAuthentication> $authentications
- * @property-read int|null $authentications_count
  *
  * @mixin \Eloquent
  * @mixin IdeHelperUser
@@ -64,6 +67,26 @@ class User extends Authenticatable
     use ToString;
 
     protected string $stringDescriptionProperty = 'nickname';
+
+    /**
+     * @var list<string>
+     */
+    protected $hidden = [
+        'access_token',
+        'refresh_token',
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'access_token' => 'encrypted',
+            'refresh_token' => 'encrypted',
+            'token_expires_at' => 'datetime',
+        ];
+    }
 
     /** @return HasMany<UserIpAddress, $this> */
     public function ips(): HasMany
@@ -81,12 +104,6 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class)->withTimestamps();
-    }
-
-    /** @return HasMany<UserAuthentication, $this> */
-    public function authentications(): HasMany
-    {
-        return $this->hasMany(UserAuthentication::class);
     }
 
     public function hasRole(string|Role $role): bool

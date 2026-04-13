@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\AuthProvider;
-use App\Services\Borealis\DeviceCode;
 use App\Services\Borealis\RequestException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
@@ -21,17 +19,6 @@ class BorealisService
         $this->client = new Client([
             'base_uri' => $this->endpoint,
         ]);
-    }
-
-    public function getDeviceCode(AuthProvider $provider): DeviceCode
-    {
-        $response = $this->makeRequest('oauth2/device', [
-            'scope' => $provider->code,
-        ]);
-        $code = new DeviceCode($this, $provider->code);
-        $code->parse($response);
-
-        return $code;
     }
 
     public function check(string $deviceCode): stdClass

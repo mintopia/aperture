@@ -2,8 +2,6 @@
 
 namespace Tests\Unit\Services;
 
-use App\Models\AuthProvider;
-use App\Services\Borealis\DeviceCode;
 use App\Services\Borealis\RequestException;
 use App\Services\BorealisService;
 use GuzzleHttp\Client;
@@ -31,30 +29,6 @@ class BorealisServiceTest extends TestCase
         $prop->setValue($service, $client);
 
         return $service;
-    }
-
-    public function test_get_device_code_returns_device_code(): void
-    {
-        $responseBody = json_encode([
-            'device_code' => 'abc123',
-            'user_code' => 'USER-CODE',
-            'interval' => 5,
-            'verification_uri' => 'https://example.com/verify',
-            'verification_uri_complete' => 'https://example.com/verify?code=USER-CODE',
-            'expires_in' => 600,
-        ]);
-
-        $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
-        ]);
-
-        $provider = new AuthProvider;
-        $provider->code = 'test-provider';
-
-        $result = $service->getDeviceCode($provider);
-        $this->assertInstanceOf(DeviceCode::class, $result);
-        $this->assertEquals('USER-CODE', $result->userCode);
-        $this->assertEquals(5, $result->interval);
     }
 
     public function test_check_returns_std_class(): void

@@ -14,12 +14,8 @@
         "laravel/octane": "^2.12",
         "laravel/prompts": "^0.3.0",
         "laravel/sanctum": "^4.0",
-        "laravel/socialite": "^5.9",
         "laravel/tinker": "^3.0",
         "phpseclib/phpseclib": "^3.0",
-        "socialiteproviders/discord": "^4.2",
-        "socialiteproviders/manager": "dev-master as 4.9.3",
-        "socialiteproviders/steam": "^4.2",
         "tightenco/ziggy": "^2.6"
     },
     "require-dev": {

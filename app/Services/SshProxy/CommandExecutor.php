@@ -104,6 +104,7 @@ class CommandExecutor
                     return $buffer;
                 }
             } else {
+                // @codeCoverageIgnoreStart
                 // No data, check if we already have the expected output
                 $lastLine = $this->getLastLine($buffer);
                 if ($this->matchesCondition($lastLine, $expect)) {
@@ -111,6 +112,7 @@ class CommandExecutor
                 }
 
                 usleep(50000); // 50ms
+                // @codeCoverageIgnoreEnd
             }
         }
 

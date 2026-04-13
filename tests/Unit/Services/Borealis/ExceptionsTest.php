@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Borealis;
 
 use App\Services\Borealis\BorealisException;
-use App\Services\Borealis\DeviceCodeStatus;
 use App\Services\Borealis\RequestException;
 use App\Services\Firewalls\Exceptions\BackendException;
 use Exception;
@@ -31,12 +30,5 @@ class ExceptionsTest extends TestCase
     {
         $e = new BackendException('backend error');
         $this->assertInstanceOf(Exception::class, $e);
-    }
-
-    public function test_device_code_status_enum(): void
-    {
-        $this->assertEquals('dcsPending', DeviceCodeStatus::dcsPending->name);
-        $this->assertEquals('dcsFailed', DeviceCodeStatus::dcsFailed->name);
-        $this->assertEquals('dcsSuccessful', DeviceCodeStatus::dcsSuccessful->name);
     }
 }

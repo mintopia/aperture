@@ -12,7 +12,6 @@ use App\Http\Controllers\Admin\TestConnectionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptivePortalController;
-use App\Http\Controllers\DeviceAuthController;
 use App\Http\Controllers\Portal\DashboardController;
 use App\Http\Controllers\Portal\PiHoleController;
 use App\Http\Controllers\Portal\StatsController;
@@ -22,22 +21,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Device auth flow
-Route::prefix('auth/device')->group(function () {
-    Route::post('/initiate', [DeviceAuthController::class, 'initiate'])->name('auth.device.initiate');
-    Route::get('/poll/{deviceCode}', [DeviceAuthController::class, 'poll'])->name('auth.device.poll');
-});
-
-// Captive portal
+// Captive portal / login
 Route::get('/captive', [CaptivePortalController::class, 'index'])->name('captive.index');
+Route::get('/captive/poll/{deviceCode}', [CaptivePortalController::class, 'poll'])->name('captive.poll');
 Route::get('/captive/interstitial', [CaptivePortalController::class, 'interstitial'])->name('captive.interstitial');
 
 Route::middleware(['guest'])->group(function () {
-    Route::get('/login', [AuthController::class, 'login'])->name('login');
-    Route::get('/login/check', [AuthController::class, 'login_check'])->name('login.check');
-    Route::get('/login/{provider:code}', [AuthController::class, 'login_provider'])->name('login.provider');
-    Route::get('/login/{provider:code}/redirect', [AuthController::class, 'redirect'])->name('login.redirect');
-    Route::get('/login/{provider:code}/return', [AuthController::class, 'handle'])->name('login.handle');
+    Route::get('/login', function () {
+        return redirect()->route('captive.index');
+    })->name('login');
 });
 
 Route::middleware(['auth'])->group(function () {
