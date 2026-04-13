@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
@@ -132,15 +133,15 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/integrations', [
-            'opnsense_endpoint' => 'https://opnsense.example.com',
-            'ntopng_endpoint' => 'https://ntopng.example.com',
-            'borealis_endpoint' => null,
-            'librenms_endpoint' => null,
+            'opnsense' => ['endpoint' => 'https://opnsense.example.com'],
+            'ntopng' => ['endpoint' => 'https://ntopng.example.com'],
+            'librenms' => ['endpoint' => null],
+            'pihole' => ['endpoint' => null],
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals('https://opnsense.example.com', Setting::get('opnsense.endpoint'));
-        $this->assertEquals('https://ntopng.example.com', Setting::get('ntopng.endpoint'));
+        $this->assertEquals('https://opnsense.example.com', IntegrationConfig::getValue('opnsense', 'endpoint'));
+        $this->assertEquals('https://ntopng.example.com', IntegrationConfig::getValue('ntopng', 'endpoint'));
     }
 
     public function test_admin_can_update_existing_integration_setting(): void
@@ -149,21 +150,14 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         // Create an existing setting
-        $setting = new Setting;
-        $setting->code = 'opnsense.endpoint';
-        $setting->name = 'Opnsense Endpoint';
-        $setting->value = 'https://old.example.com';
-        $setting->save();
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://old.example.com');
 
         $response = $this->actingAs($admin)->put('/admin/settings/integrations', [
-            'opnsense_endpoint' => 'https://new.example.com',
-            'ntopng_endpoint' => null,
-            'borealis_endpoint' => null,
-            'librenms_endpoint' => null,
+            'opnsense' => ['endpoint' => 'https://new.example.com'],
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals('https://new.example.com', Setting::get('opnsense.endpoint'));
+        $this->assertEquals('https://new.example.com', IntegrationConfig::getValue('opnsense', 'endpoint'));
     }
 
     public function test_admin_can_view_event_settings(): void

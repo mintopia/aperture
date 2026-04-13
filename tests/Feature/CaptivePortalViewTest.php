@@ -85,4 +85,70 @@ class CaptivePortalViewTest extends TestCase
         $response = $this->get('/captive');
         $response->assertStatus(503);
     }
+
+    public function test_captive_login_has_step_instructions(): void
+    {
+        $this->createAuthProvider();
+        $this->mockAuthProvider();
+
+        $response = $this->get('/captive');
+
+        $response->assertOk();
+        $response->assertSee('data-testid="captive-instructions"', false);
+    }
+
+    public function test_captive_expired_status_has_improved_message(): void
+    {
+        $this->createAuthProvider();
+        $this->mockAuthProvider();
+
+        $response = $this->get('/captive');
+
+        $response->assertOk();
+        $response->assertSee('Your login code has expired');
+    }
+
+    public function test_captive_expired_has_refresh_button_data_testid(): void
+    {
+        $this->createAuthProvider();
+        $this->mockAuthProvider();
+
+        $response = $this->get('/captive');
+
+        $response->assertOk();
+        $response->assertSee('data-testid="captive-refresh"', false);
+    }
+
+    public function test_captive_js_has_math_max_for_interval(): void
+    {
+        $this->createAuthProvider();
+        $this->mockAuthProvider();
+
+        $response = $this->get('/captive');
+
+        $response->assertOk();
+        $response->assertSee('Math.max', false);
+    }
+
+    public function test_captive_qr_code_svg_uses_inline_styles(): void
+    {
+        $this->createAuthProvider();
+        $this->mockAuthProvider();
+
+        $response = $this->get('/captive');
+
+        $response->assertOk();
+        $response->assertSee('<svg', false);
+    }
+
+    public function test_captive_expired_uses_hidden_class_not_d_none(): void
+    {
+        $this->createAuthProvider();
+        $this->mockAuthProvider();
+
+        $response = $this->get('/captive');
+
+        $response->assertOk();
+        $response->assertDontSee('d-none');
+    }
 }

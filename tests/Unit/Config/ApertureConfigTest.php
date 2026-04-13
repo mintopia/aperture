@@ -81,4 +81,33 @@ class ApertureConfigTest extends TestCase
     {
         $this->assertNull(config('aperture.ipv6.detection_endpoint'));
     }
+
+    public function test_ssh_proxy_config_has_defaults(): void
+    {
+        $config = config('aperture.ssh_proxy');
+        $this->assertIsArray($config);
+        $this->assertFalse($config['enabled']);
+        $this->assertSame('127.0.0.1', $config['host']);
+        $this->assertSame(8022, $config['port']);
+        $this->assertNull($config['api_key']);
+        $this->assertSame(300, $config['keepalive_seconds']);
+        $this->assertSame(600, $config['idle_timeout_seconds']);
+        $this->assertSame(60, $config['sweep_interval_seconds']);
+        $this->assertSame(30, $config['command_timeout_seconds']);
+        $this->assertSame(5, $config['read_timeout_seconds']);
+    }
+
+    public function test_ssh_proxy_port_is_integer(): void
+    {
+        $this->assertIsInt(config('aperture.ssh_proxy.port'));
+    }
+
+    public function test_ssh_proxy_timeouts_are_integers(): void
+    {
+        $this->assertIsInt(config('aperture.ssh_proxy.keepalive_seconds'));
+        $this->assertIsInt(config('aperture.ssh_proxy.idle_timeout_seconds'));
+        $this->assertIsInt(config('aperture.ssh_proxy.sweep_interval_seconds'));
+        $this->assertIsInt(config('aperture.ssh_proxy.command_timeout_seconds'));
+        $this->assertIsInt(config('aperture.ssh_proxy.read_timeout_seconds'));
+    }
 }
