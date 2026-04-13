@@ -21,8 +21,8 @@ class PortalController extends Controller
         }
 
         $dbConfig = IntegrationConfig::getAll('ipv6');
-        $ipv6DetectionEnabled = (bool) ($dbConfig['detection_enabled'] ?? config('aperture.ipv6.detection_enabled'));
-        $ipv6DetectionEndpoint = $dbConfig['detection_endpoint'] ?? config('aperture.ipv6.detection_endpoint');
+        $ipv6DetectionEnabled = (bool) ($dbConfig['detection_enabled'] ?? false);
+        $ipv6DetectionEndpoint = $dbConfig['detection_endpoint'] ?? '';
 
         return view('portal', [
             'ip' => $ip,

@@ -13,6 +13,9 @@ class IntegrationConfig extends Model
     /** @use HasFactory<IntegrationConfigFactory> */
     use HasFactory;
 
+    /** @var list<string> */
+    public const ENCRYPTED_KEYS = ['api_key', 'password', 'secret', 'key'];
+
     protected $fillable = ['integration', 'key', 'value', 'encrypted'];
 
     protected function casts(): array
@@ -67,6 +70,11 @@ class IntegrationConfig extends Model
         $config->encrypted = $encrypted;
         $config->value = $value;
         $config->save();
+    }
+
+    public static function getWithFallback(string $integration, string $key, mixed $default = null): mixed
+    {
+        return static::getValue($integration, $key) ?? $default;
     }
 
     /**

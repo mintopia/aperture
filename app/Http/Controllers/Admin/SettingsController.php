@@ -68,15 +68,13 @@ class SettingsController extends Controller
             'ipv6.detection_endpoint' => 'nullable|url|max:500',
         ]);
 
-        $sensitiveKeys = ['api_key', 'password', 'secret', 'key'];
-
         foreach ($validated as $integration => $fields) {
             if (! is_array($fields)) {
                 continue;
             }
 
             foreach ($fields as $key => $value) {
-                $encrypted = in_array($key, $sensitiveKeys, true);
+                $encrypted = in_array($key, IntegrationConfig::ENCRYPTED_KEYS, true);
                 IntegrationConfig::setValue($integration, $key, $value, $encrypted);
             }
         }

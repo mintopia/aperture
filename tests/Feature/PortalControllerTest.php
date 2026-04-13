@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\IntegrationConfig;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -70,10 +71,8 @@ class PortalControllerTest extends TestCase
     public function test_index_passes_ipv6_config_when_enabled(): void
     {
         Queue::fake();
-        config([
-            'aperture.ipv6.detection_enabled' => true,
-            'aperture.ipv6.detection_endpoint' => 'https://{random}.ipv6.example.com',
-        ]);
+        IntegrationConfig::setValue('ipv6', 'detection_enabled', '1');
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
         $user = User::factory()->create(['blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
@@ -85,16 +84,12 @@ class PortalControllerTest extends TestCase
     public function test_index_passes_ipv6_config_when_disabled(): void
     {
         Queue::fake();
-        config([
-            'aperture.ipv6.detection_enabled' => false,
-            'aperture.ipv6.detection_endpoint' => null,
-        ]);
         $user = User::factory()->create(['blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
         $response->assertViewHas('ipv6DetectionEnabled', false);
-        $response->assertViewHas('ipv6DetectionEndpoint');
+        $response->assertViewHas('ipv6DetectionEndpoint', '');
     }
 
     public function test_portal_uses_captive_layout(): void

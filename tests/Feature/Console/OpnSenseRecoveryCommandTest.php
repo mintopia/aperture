@@ -6,6 +6,7 @@ use App\Models\IpAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\Firewalls\OpnSense;
+use App\Services\Interfaces\FirewallBackendInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
@@ -41,20 +42,11 @@ class OpnSenseRecoveryCommandTest extends TestCase
 
     public function test_command_restores_ips_when_reboot_detected(): void
     {
-        config([
-            'aperture.opnsense.zoneid' => 1,
-            'aperture.opnsense.ratelimitUpUuid' => 'uuid',
-            'aperture.opnsense.ratelimitDownUuid' => 'uuid',
-            'aperture.opnsense.verify' => false,
-            'aperture.opnsense.endpoint' => 'http://localhost',
-            'aperture.opnsense.key' => 'key',
-            'aperture.opnsense.secret' => 'secret',
-        ]);
-
         $mock = Mockery::mock(OpnSense::class);
         $mock->shouldReceive('getUptime')->andReturn(100);
         $mock->shouldReceive('updateIp')->andReturnSelf();
         $this->app->instance(OpnSense::class, $mock);
+        $this->app->instance(FirewallBackendInterface::class, $mock);
 
         Cache::put('opnsense.uptime', 3500);
 
@@ -92,7 +84,9 @@ class OpnSenseRecoveryCommandTest extends TestCase
         $mock = Mockery::mock(OpnSense::class);
         $mock->shouldReceive('getUptime')->andReturn(100);
         $mock->shouldReceive('updateIp')->andReturnSelf();
+        $mock->shouldReceive('removeIp')->andReturnSelf();
         $this->app->instance(OpnSense::class, $mock);
+        $this->app->instance(FirewallBackendInterface::class, $mock);
 
         Cache::put('opnsense.uptime', 3500);
 
@@ -107,15 +101,6 @@ class OpnSenseRecoveryCommandTest extends TestCase
         $userIp->ip()->associate($ip);
         $userIp->last_seen_at = now();
         $userIp->save();
-
-        // allow() calls new OpnSense() directly - use mock server
-        config([
-            'aperture.opnsense.endpoint' => 'http://127.0.0.1:19199',
-            'aperture.opnsense.key' => 'key',
-            'aperture.opnsense.secret' => 'secret',
-            'aperture.opnsense.verify' => false,
-            'aperture.opnsense.zoneid' => 1,
-        ]);
 
         $this->artisan('aperture:opnsense-recovery')
             ->assertSuccessful();

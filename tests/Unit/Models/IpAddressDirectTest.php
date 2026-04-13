@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Models;
 
+use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
@@ -16,15 +17,13 @@ class IpAddressDirectTest extends TestCase
     {
         parent::setUp();
 
-        config([
-            'aperture.opnsense.endpoint' => 'http://127.0.0.1:19199',
-            'aperture.opnsense.key' => 'key',
-            'aperture.opnsense.secret' => 'secret',
-            'aperture.opnsense.verify' => false,
-            'aperture.opnsense.zoneid' => 1,
-            'aperture.opnsense.ratelimitUpUuid' => 'up-uuid',
-            'aperture.opnsense.ratelimitDownUuid' => 'down-uuid',
-        ]);
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'http://127.0.0.1:19199');
+        IntegrationConfig::setValue('opnsense', 'key', 'key', true);
+        IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
+        IntegrationConfig::setValue('opnsense', 'verify_ssl', '0');
+        IntegrationConfig::setValue('opnsense', 'zone_id', '1');
+        IntegrationConfig::setValue('opnsense', 'ratelimit_up_uuid', 'up-uuid');
+        IntegrationConfig::setValue('opnsense', 'ratelimit_down_uuid', 'down-uuid');
     }
 
     public function test_limit_direct_calls_opn_sense(): void

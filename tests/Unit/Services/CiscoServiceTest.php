@@ -13,7 +13,13 @@ class CiscoServiceTest extends TestCase
 {
     protected function createServiceWithMockSsh(SSH2 $ssh): CiscoService
     {
-        $service = new CiscoService('switch.local');
+        $service = new CiscoService(
+            hostname: 'switch.local',
+            username: 'admin',
+            password: 'password',
+            enablePassword: 'enable-pass',
+            timeout: 5,
+        );
 
         $reflection = new ReflectionClass($service);
         $connProp = $reflection->getProperty('connection');
@@ -97,19 +103,19 @@ class CiscoServiceTest extends TestCase
 
     public function test_connect_authenticates_with_ssh(): void
     {
-        config([
-            'aperture.cisco.username' => 'admin',
-            'aperture.cisco.password' => 'password',
-            'aperture.cisco.timeout' => 5,
-        ]);
-
         $ssh = Mockery::mock(SSH2::class);
         $ssh->shouldReceive('login')->with('admin', 'password')->andReturn(true);
         $ssh->shouldReceive('setTimeout')->with(5)->andReturn(true);
         $ssh->shouldReceive('read')->andReturn("Switch>\n");
         $ssh->shouldReceive('write')->andReturn(true);
 
-        $service = new CiscoService('switch.local');
+        $service = new CiscoService(
+            hostname: 'switch.local',
+            username: 'admin',
+            password: 'password',
+            enablePassword: 'enable-pass',
+            timeout: 5,
+        );
 
         $reflection = new ReflectionClass($service);
         $connProp = $reflection->getProperty('connection');
@@ -129,8 +135,6 @@ class CiscoServiceTest extends TestCase
         $ssh = $this->createMockSsh();
         $ssh->shouldReceive('read')->andReturn('Switch#');
 
-        config(['aperture.cisco.enablePassword' => 'enable-pass']);
-
         $service = $this->createServiceWithMockSsh($ssh);
 
         $reflection = new ReflectionClass($service);
@@ -146,16 +150,10 @@ class CiscoServiceTest extends TestCase
 
     public function test_connect_throws_exception_on_auth_failure(): void
     {
-        config([
-            'aperture.cisco.username' => 'admin',
-            'aperture.cisco.password' => 'wrong',
-            'aperture.cisco.timeout' => 5,
-        ]);
-
         $ssh = Mockery::mock(SSH2::class);
         $ssh->shouldReceive('login')->with('admin', 'wrong')->andReturn(false);
 
-        $testService = new class('switch.local') extends CiscoService
+        $testService = new class('switch.local', 'admin', 'wrong', '', 5) extends CiscoService
         {
             protected ?SSH2 $mockSsh = null;
 
@@ -179,19 +177,13 @@ class CiscoServiceTest extends TestCase
 
     public function test_connect_creates_connection_successfully(): void
     {
-        config([
-            'aperture.cisco.username' => 'admin',
-            'aperture.cisco.password' => 'password',
-            'aperture.cisco.timeout' => 5,
-        ]);
-
         $ssh = Mockery::mock(SSH2::class);
         $ssh->shouldReceive('login')->with('admin', 'password')->andReturn(true);
         $ssh->shouldReceive('setTimeout')->with(5)->andReturn(true);
         $ssh->shouldReceive('read')->andReturn("Switch>\n");
         $ssh->shouldReceive('write')->andReturn(true);
 
-        $testService = new class('switch.local') extends CiscoService
+        $testService = new class('switch.local', 'admin', 'password', '', 5) extends CiscoService
         {
             protected ?SSH2 $mockSsh = null;
 

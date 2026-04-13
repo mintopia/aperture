@@ -2,13 +2,11 @@
 
 namespace App\Models;
 
+use Throwable;
 use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
-use App\Services\Interfaces\FirewallBackendInterface;
-use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
-use App\Services\Interfaces\NetworkSwitchInterface;
-use App\Services\NtopNgService;
+use App\Services\IpAddressActionService;
 use GuzzleHttp\Exception\ClientException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -18,7 +16,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use stdClass;
-use Throwable;
 
 /**
  * App\Models\IpAddress
@@ -124,14 +121,7 @@ class IpAddress extends Model
             return;
         }
 
-        $portInfo = $this->getPortInfo();
-        if (! $portInfo instanceof stdClass) {
-            return;
-        }
-
-        /** @var NetworkSwitchInterface $switch */
-        $switch = app(NetworkSwitchInterface::class);
-        $switch->shutdownPort($portInfo->interface);
+        app(IpAddressActionService::class)->shutPort($this);
     }
 
     public function unshutPort(bool $queue = false): void
@@ -142,14 +132,7 @@ class IpAddress extends Model
             return;
         }
 
-        $portInfo = $this->getPortInfo();
-        if (! $portInfo instanceof stdClass) {
-            return;
-        }
-
-        /** @var NetworkSwitchInterface $switch */
-        $switch = app(NetworkSwitchInterface::class);
-        $switch->enablePort($portInfo->interface);
+        app(IpAddressActionService::class)->unshutPort($this);
     }
 
     public function limit(bool $queue = false): void
@@ -160,11 +143,7 @@ class IpAddress extends Model
             return;
         }
 
-        $opnsense = app(FirewallBackendInterface::class);
-        $opnsense->limitIp($this->address);
-
-        $this->limited = true;
-        $this->save();
+        app(IpAddressActionService::class)->limit($this);
     }
 
     public function unlimit(bool $queue = false): void
@@ -175,11 +154,7 @@ class IpAddress extends Model
             return;
         }
 
-        $opnsense = app(FirewallBackendInterface::class);
-        $opnsense->unlimitIp($this->address);
-
-        $this->limited = false;
-        $this->save();
+        app(IpAddressActionService::class)->unlimit($this);
     }
 
     public function allow(bool $queue = false): void
@@ -190,47 +165,7 @@ class IpAddress extends Model
             return;
         }
 
-        $description = $this->comment;
-        /** @var UserIpAddress|null $userIp */
-        $userIp = $this->users()->first();
-        if ($userIp && $userIp->user) {
-            $description = $userIp->user->nickname;
-        }
-
-        $opnsense = app(FirewallBackendInterface::class);
-        $opnsense->updateIp($this->address, (string) $description);
-
-        $this->allowed = true;
-        $ttl = config('aperture.session.ttl');
-        if ($ttl) {
-            $this->expires_at = now()->addMinutes((int) $ttl);
-        }
-
-        try {
-            $resolver = app(MacAddressResolverInterface::class);
-            $mac = $resolver->resolveIpToMac($this->address);
-            if ($mac !== null) {
-                $macAddress = MacAddress::firstOrCreate(
-                    ['mac_address' => $mac],
-                    ['source' => 'auth', 'allowed' => true, 'allowed_at' => now()],
-                );
-                $this->mac_address_id = (int) $macAddress->id; // @phpstan-ignore assign.propertyType
-                if (! $macAddress->allowed) {
-                    $macAddress->allowed = true;
-                    $macAddress->allowed_at = now();
-                    $macAddress->save();
-                }
-
-                if ($macAddress->user_id === null && $userIp?->user) {
-                    $macAddress->user_id = (int) $userIp->user->id; // @phpstan-ignore assign.propertyType
-                    $macAddress->save();
-                }
-            }
-        } catch (Throwable) {
-            // MAC resolution is best-effort — never block the allow flow
-        }
-
-        $this->save();
+        app(IpAddressActionService::class)->allow($this);
     }
 
     public function deny(bool $queue = false): void
@@ -241,22 +176,13 @@ class IpAddress extends Model
             return;
         }
 
-        $opnsense = app(FirewallBackendInterface::class);
-        $opnsense->removeIp($this->address);
-
-        $this->allowed = false;
-        $this->save();
+        app(IpAddressActionService::class)->deny($this);
     }
 
     public function updateUsage(): void
     {
         try {
-            $stats = $this->getStats();
-            $attr = 'bytes.rcvd';
-            $this->received = $stats->rsp->$attr;
-            $attr = 'bytes.sent';
-            $this->sent = $stats->rsp->$attr;
-            $this->save();
+            app(IpAddressActionService::class)->updateUsage($this);
         } catch (ClientException $clientException) {
             // Do Nothing
         }
@@ -264,9 +190,6 @@ class IpAddress extends Model
 
     public function getStats(): stdClass
     {
-        /** @var NtopNgService $ntopng */
-        $ntopng = resolve(NtopNgService::class);
-
-        return $ntopng->getStats($this->address);
+        return app(IpAddressActionService::class)->getStats($this);
     }
 }
