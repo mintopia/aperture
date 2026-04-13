@@ -11,7 +11,8 @@ use Illuminate\Support\Collection;
 class OpnSenseDhcpService implements DhcpInterface
 {
     public function __construct(
-        protected Client $client
+        protected Client $client,
+        protected int $poolSize = 0,
     ) {}
 
     /**
@@ -21,13 +22,12 @@ class OpnSenseDhcpService implements DhcpInterface
     {
         $leases = $this->fetchLeases();
         $activeCount = $leases->where('status', 'active')->count();
-        $poolSize = (int) config('aperture.dhcp.pool_size', 0);
 
         return [
-            'total' => $poolSize,
+            'total' => $this->poolSize,
             'used' => $activeCount,
-            'available' => max(0, $poolSize - $activeCount),
-            'utilisation' => $poolSize > 0 ? round($activeCount / $poolSize, 4) : 0.0,
+            'available' => max(0, $this->poolSize - $activeCount),
+            'utilisation' => $this->poolSize > 0 ? round($activeCount / $this->poolSize, 4) : 0.0,
         ];
     }
 

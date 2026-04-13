@@ -93,18 +93,25 @@ class OpnSense implements FirewallBackendInterface
     /**
      * @throws BackendException
      */
-    public function __construct()
-    {
-        $this->zoneId = config('aperture.opnsense.zoneid');
-        $this->uploadRuleUuid = config('aperture.opnsense.ratelimitUpUuid');
-        $this->downloadRuleUuid = config('aperture.opnsense.ratelimitDownUuid');
+    public function __construct(
+        string $endpoint = '',
+        string $key = '',
+        string $secret = '',
+        int $zoneId = 0,
+        bool $verify = true,
+        string $uploadRuleUuid = '',
+        string $downloadRuleUuid = '',
+    ) {
+        $this->zoneId = $zoneId;
+        $this->uploadRuleUuid = $uploadRuleUuid;
+        $this->downloadRuleUuid = $downloadRuleUuid;
 
         $this->client = new Client([
-            'verify' => config('aperture.opnsense.verify'),
-            'base_uri' => config('aperture.opnsense.endpoint'),
+            'verify' => $verify,
+            'base_uri' => $endpoint,
             'auth' => [
-                config('aperture.opnsense.key'),
-                config('aperture.opnsense.secret'),
+                $key,
+                $secret,
             ],
         ]);
     }

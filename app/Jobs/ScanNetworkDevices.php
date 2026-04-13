@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\Interfaces\DhcpInterface;
@@ -20,7 +21,9 @@ class ScanNetworkDevices implements ShouldQueue
 
     public function handle(): void
     {
-        if (! config('aperture.auto_allow.enabled')) {
+        $dbConfig = IntegrationConfig::getAll('auto_allow');
+        $enabled = (bool) ($dbConfig['enabled'] ?? config('aperture.auto_allow.enabled', false));
+        if (! $enabled) {
             return;
         }
 
@@ -56,7 +59,13 @@ class ScanNetworkDevices implements ShouldQueue
         $entries = $entries->unique('ip');
 
         /** @var array<int, string> $ouiPrefixes */
-        $ouiPrefixes = config('aperture.auto_allow.oui_prefixes', []);
+        $ouiPrefixes = [];
+        $ouiPrefixesRaw = $dbConfig['oui_prefixes'] ?? null;
+        if (is_string($ouiPrefixesRaw) && $ouiPrefixesRaw !== '') {
+            $ouiPrefixes = array_filter(array_map('trim', explode(',', $ouiPrefixesRaw)));
+        } else {
+            $ouiPrefixes = config('aperture.auto_allow.oui_prefixes', []);
+        }
 
         foreach ($entries as $entry) {
             $normalizedMac = $this->normalizeMac($entry['mac']);
