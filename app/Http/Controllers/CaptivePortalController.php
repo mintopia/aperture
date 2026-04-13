@@ -22,7 +22,7 @@ class CaptivePortalController extends Controller
 
         $qrOptions = new QROptions([
             'outputType' => QRCode::OUTPUT_MARKUP_SVG,
-            'svgUseCssProperties' => true,
+            'svgUseCssProperties' => false,
         ]);
         $qrCode = (new QRCode($qrOptions))->render($deviceFlow->verificationUriComplete ?? $deviceFlow->verificationUri);
 

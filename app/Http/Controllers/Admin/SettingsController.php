@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\IntegrationConfig;
 use App\Models\Setting;
+use App\Models\SwitchConfig;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,11 +16,15 @@ class SettingsController extends Controller
     public function integrations(): Response
     {
         return Inertia::render('Admin/Settings/Integrations', [
-            'settings' => [
-                'opnsense_endpoint' => Setting::get('opnsense.endpoint', ''),
-                'ntopng_endpoint' => Setting::get('ntopng.endpoint', ''),
-                'borealis_endpoint' => Setting::get('borealis.endpoint', ''),
-                'librenms_endpoint' => Setting::get('librenms.endpoint', ''),
+            'integrations' => [
+                'opnsense' => IntegrationConfig::getAll('opnsense'),
+                'librenms' => IntegrationConfig::getAll('librenms'),
+                'ntopng' => IntegrationConfig::getAll('ntopng'),
+                'pihole' => IntegrationConfig::getAll('pihole'),
+                'dhcp' => IntegrationConfig::getAll('dhcp'),
+                'dns' => IntegrationConfig::getAll('dns'),
+                'auto_allow' => IntegrationConfig::getAll('auto_allow'),
+                'ipv6' => IntegrationConfig::getAll('ipv6'),
             ],
         ]);
     }
@@ -26,26 +32,123 @@ class SettingsController extends Controller
     public function updateIntegrations(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'opnsense_endpoint' => 'nullable|url|max:500',
-            'ntopng_endpoint' => 'nullable|url|max:500',
-            'borealis_endpoint' => 'nullable|url|max:500',
-            'librenms_endpoint' => 'nullable|url|max:500',
+            'opnsense.endpoint' => 'nullable|url|max:500',
+            'opnsense.key' => 'nullable|string|max:500',
+            'opnsense.secret' => 'nullable|string|max:500',
+            'opnsense.captive_portal_id' => 'nullable|string|max:100',
+            'opnsense.verify_ssl' => 'nullable|string|in:0,1',
+            'opnsense.zone_id' => 'nullable|string|max:100',
+            'opnsense.ratelimit_up_uuid' => 'nullable|string|max:500',
+            'opnsense.ratelimit_down_uuid' => 'nullable|string|max:500',
+            'librenms.endpoint' => 'nullable|url|max:500',
+            'librenms.api_key' => 'nullable|string|max:500',
+            'librenms.enabled' => 'nullable|string|in:0,1',
+            'ntopng.endpoint' => 'nullable|url|max:500',
+            'ntopng.username' => 'nullable|string|max:255',
+            'ntopng.password' => 'nullable|string|max:500',
+            'ntopng.interface' => 'nullable|string|max:100',
+            'ntopng.enabled' => 'nullable|string|in:0,1',
+            'pihole.endpoint' => 'nullable|url|max:500',
+            'pihole.password' => 'nullable|string|max:500',
+            'pihole.noblock_group_id' => 'nullable|integer|min:1',
+            'pihole.enabled' => 'nullable|string|in:0,1',
+            'pihole.verify_ssl' => 'nullable|string|in:0,1',
+            'dhcp.enabled' => 'nullable|string|in:0,1',
+            'dhcp.endpoint' => 'nullable|url|max:500',
+            'dhcp.key' => 'nullable|string|max:500',
+            'dhcp.secret' => 'nullable|string|max:500',
+            'dhcp.verify_ssl' => 'nullable|string|in:0,1',
+            'dhcp.pool_size' => 'nullable|integer|min:0',
+            'dns.expected_server' => 'nullable|string|max:255',
+            'dns.probe_domain' => 'nullable|string|max:255',
+            'auto_allow.enabled' => 'nullable|string|in:0,1',
+            'auto_allow.oui_prefixes' => 'nullable|string|max:2000',
+            'auto_allow.scan_interval' => 'nullable|integer|min:1',
+            'ipv6.detection_enabled' => 'nullable|string|in:0,1',
+            'ipv6.detection_endpoint' => 'nullable|url|max:500',
         ]);
 
-        foreach ($validated as $key => $value) {
-            $code = str_replace('_', '.', $key);
-            $setting = Setting::whereCode($code)->first();
-            if (! $setting) {
-                $setting = new Setting;
-                $setting->code = $code;
-                $setting->name = ucwords(str_replace('_', ' ', $key));
+        $sensitiveKeys = ['api_key', 'password', 'secret', 'key'];
+
+        foreach ($validated as $integration => $fields) {
+            if (! is_array($fields)) {
+                continue;
             }
 
-            $setting->value = $value;
-            $setting->save();
+            foreach ($fields as $key => $value) {
+                $encrypted = in_array($key, $sensitiveKeys, true);
+                IntegrationConfig::setValue($integration, $key, $value, $encrypted);
+            }
         }
 
         return back()->with('success', 'Integration settings updated.');
+    }
+
+    public function switches(): Response
+    {
+        return Inertia::render('Admin/Settings/Switches', [
+            'switches' => SwitchConfig::all()->map(fn (SwitchConfig $s): array => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'hostname' => $s->hostname,
+                'type' => $s->type,
+                'username' => $s->username,
+                'enabled' => $s->enabled,
+                'port' => $s->port,
+                'timeout' => $s->timeout,
+            ]),
+        ]);
+    }
+
+    public function storeSwitch(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'hostname' => 'required|string|max:255|unique:switch_configs',
+            'type' => 'required|string|in:cisco',
+            'username' => 'required|string|max:255',
+            'password' => 'required|string|max:500',
+            'enable_password' => 'nullable|string|max:500',
+            'port' => 'integer|min:1|max:65535',
+            'timeout' => 'integer|min:1|max:300',
+        ]);
+
+        SwitchConfig::create($validated);
+
+        return back()->with('success', 'Switch added.');
+    }
+
+    public function updateSwitch(Request $request, SwitchConfig $switchConfig): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'hostname' => 'required|string|max:255|unique:switch_configs,hostname,'.$switchConfig->id,
+            'type' => 'required|string|in:cisco',
+            'username' => 'required|string|max:255',
+            'password' => 'nullable|string|max:500',
+            'enable_password' => 'nullable|string|max:500',
+            'port' => 'integer|min:1|max:65535',
+            'timeout' => 'integer|min:1|max:300',
+        ]);
+
+        if (empty($validated['password'])) {
+            unset($validated['password']);
+        }
+
+        if (empty($validated['enable_password'])) {
+            unset($validated['enable_password']);
+        }
+
+        $switchConfig->update($validated);
+
+        return back()->with('success', 'Switch updated.');
+    }
+
+    public function destroySwitch(SwitchConfig $switchConfig): RedirectResponse
+    {
+        $switchConfig->delete();
+
+        return back()->with('success', 'Switch removed.');
     }
 
     public function theme(): Response

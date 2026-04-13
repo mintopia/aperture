@@ -6,6 +6,7 @@ const currentUrl = computed(() => usePage().url);
 
 const navItems = [
     { label: 'Integrations', href: route('admin.settings.integrations') },
+    { label: 'Switches', href: route('admin.settings.switches') },
     { label: 'Theme', href: route('admin.settings.theme') },
     { label: 'Event', href: route('admin.settings.event') },
     { label: 'Portal', href: route('admin.settings.portal') },

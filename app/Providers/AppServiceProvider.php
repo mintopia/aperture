@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\IntegrationConfig;
+use App\Models\SwitchConfig;
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
@@ -21,9 +23,12 @@ use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NtopNgService;
 use App\Services\PiHole\PiHoleService;
+use App\Services\SshProxy\SshProxyClient;
+use App\Services\SshProxy\SshProxyClientInterface;
 use GuzzleHttp\Client;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -33,7 +38,27 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AuthProviderInterface::class, BorealisDeviceFlowService::class);
-        $this->app->bind(FirewallBackendInterface::class, OpnSense::class);
+
+        $this->app->singleton(function (Application $app): FirewallBackendInterface {
+            $dbConfig = $this->getIntegrationDbConfig('opnsense');
+
+            return new OpnSense(
+                endpoint: (string) ($dbConfig['endpoint'] ?? config('aperture.opnsense.endpoint', '')),
+                key: (string) ($dbConfig['key'] ?? config('aperture.opnsense.key', '')),
+                secret: (string) ($dbConfig['secret'] ?? config('aperture.opnsense.secret', '')),
+                zoneId: (int) ($dbConfig['zone_id'] ?? config('aperture.opnsense.zoneid', 0)),
+                verify: (bool) ($dbConfig['verify_ssl'] ?? config('aperture.opnsense.verify', true)),
+                uploadRuleUuid: (string) ($dbConfig['ratelimit_up_uuid'] ?? config('aperture.opnsense.ratelimitUpUuid', '')),
+                downloadRuleUuid: (string) ($dbConfig['ratelimit_down_uuid'] ?? config('aperture.opnsense.ratelimitDownUuid', '')),
+            );
+        });
+
+        $this->app->singleton(function (Application $app): SshProxyClientInterface {
+            return new SshProxyClient(
+                sprintf('http://%s:%d', config('aperture.ssh_proxy.host'), config('aperture.ssh_proxy.port')),
+                (string) config('aperture.ssh_proxy.api_key'),
+            );
+        });
     }
 
     /**
@@ -42,11 +67,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->app->singleton(function (Application $application): NtopNgService {
+            $dbConfig = $this->getIntegrationDbConfig('ntopng');
+
             return new NtopNgService(
-                endpoint: config('aperture.ntopng.endpoint'),
-                username: config('aperture.ntopng.username'),
-                password: config('aperture.ntopng.password'),
-                interface: config('aperture.ntopng.interface'),
+                endpoint: (string) ($dbConfig['endpoint'] ?? config('aperture.ntopng.endpoint', '')),
+                username: (string) ($dbConfig['username'] ?? config('aperture.ntopng.username', '')),
+                password: (string) ($dbConfig['password'] ?? config('aperture.ntopng.password', '')),
+                interface: (int) ($dbConfig['interface'] ?? config('aperture.ntopng.interface', 0)),
             );
         });
 
@@ -59,9 +86,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (Application $application): NetworkInventoryInterface {
+            $dbConfig = $this->getIntegrationDbConfig('librenms');
             $inner = new LibreNmsService(
-                endpoint: (string) config('aperture.librenms.endpoint', ''),
-                apiToken: (string) config('aperture.librenms.api_token', ''),
+                endpoint: (string) ($dbConfig['endpoint'] ?? config('aperture.librenms.endpoint', '')),
+                apiToken: (string) ($dbConfig['api_key'] ?? config('aperture.librenms.api_token', '')),
             );
 
             return new CachedNetworkInventoryService(
@@ -71,35 +99,50 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (Application $application): DhcpInterface {
+            $dbConfig = $this->getIntegrationDbConfig('dhcp');
+            $opnsenseConfig = $this->getIntegrationDbConfig('opnsense');
             $client = new Client([
-                'verify' => config('aperture.dhcp.verify'),
-                'base_uri' => config('aperture.dhcp.endpoint'),
+                'verify' => (bool) ($dbConfig['verify_ssl'] ?? $opnsenseConfig['verify_ssl'] ?? config('aperture.dhcp.verify', true)),
+                'base_uri' => $dbConfig['endpoint'] ?? $opnsenseConfig['endpoint'] ?? config('aperture.dhcp.endpoint', ''),
                 'auth' => [
-                    config('aperture.dhcp.key'),
-                    config('aperture.dhcp.secret'),
+                    $dbConfig['key'] ?? $opnsenseConfig['key'] ?? config('aperture.dhcp.key', ''),
+                    $dbConfig['secret'] ?? $opnsenseConfig['secret'] ?? config('aperture.dhcp.secret', ''),
                 ],
             ]);
 
-            return new OpnSenseDhcpService($client);
+            return new OpnSenseDhcpService(
+                $client,
+                (int) ($dbConfig['pool_size'] ?? config('aperture.dhcp.pool_size', 254)),
+            );
         });
 
         $this->app->singleton(function (Application $application): DnsBlockingInterface {
+            $dbConfig = $this->getIntegrationDbConfig('pihole');
             $client = new Client([
-                'verify' => config('aperture.pihole.verify'),
-                'base_uri' => config('aperture.pihole.endpoint'),
+                'verify' => (bool) ($dbConfig['verify_ssl'] ?? config('aperture.pihole.verify')),
+                'base_uri' => $dbConfig['endpoint'] ?? config('aperture.pihole.endpoint'),
             ]);
 
             return new PiHoleService(
                 $client,
-                (string) config('aperture.pihole.password'),
-                (int) config('aperture.pihole.noblock_group_id', 1),
+                (string) ($dbConfig['password'] ?? config('aperture.pihole.password')),
+                (int) ($dbConfig['noblock_group_id'] ?? config('aperture.pihole.noblock_group_id', 1)),
             );
         });
 
         $this->app->singleton(function (Application $application): NetworkSwitchInterface {
-            $ciscoService = new CiscoService(
-                (string) config('aperture.cisco.hostname'),
-            );
+            $hostname = (string) config('aperture.cisco.hostname');
+
+            try {
+                $switchConfig = SwitchConfig::where('enabled', true)->first();
+                if ($switchConfig) {
+                    $hostname = $switchConfig->hostname;
+                }
+            } catch (Throwable) {
+                // DB not available — use env config
+            }
+
+            $ciscoService = new CiscoService($hostname);
 
             return new CiscoSwitchAdapter($ciscoService, new IosOutputParser);
         });
@@ -110,5 +153,19 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(NetworkInventoryInterface::class),
             );
         });
+    }
+
+    /**
+     * Safely load integration config from DB, returning empty array if table doesn't exist.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getIntegrationDbConfig(string $integration): array
+    {
+        try {
+            return IntegrationConfig::getAll($integration);
+        } catch (Throwable) {
+            return [];
+        }
     }
 }

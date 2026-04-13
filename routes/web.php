@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\PortController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StatsController as AdminStatsController;
+use App\Http\Controllers\Admin\TestConnectionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptivePortalController;
@@ -96,5 +97,16 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/settings/event', [SettingsController::class, 'updateEvent'])->name('settings.event.update');
         Route::get('/settings/portal', [SettingsController::class, 'portal'])->name('settings.portal');
         Route::put('/settings/portal', [SettingsController::class, 'updatePortal'])->name('settings.portal.update');
+
+        Route::get('/settings/switches', [SettingsController::class, 'switches'])->name('settings.switches');
+        Route::post('/settings/switches', [SettingsController::class, 'storeSwitch'])->name('settings.switches.store');
+        Route::put('/settings/switches/{switchConfig}', [SettingsController::class, 'updateSwitch'])->name('settings.switches.update');
+        Route::delete('/settings/switches/{switchConfig}', [SettingsController::class, 'destroySwitch'])->name('settings.switches.destroy');
+
+        Route::post('/settings/test/opnsense', [TestConnectionController::class, 'testOpnsense'])->name('settings.test.opnsense');
+        Route::post('/settings/test/librenms', [TestConnectionController::class, 'testLibrenms'])->name('settings.test.librenms');
+        Route::post('/settings/test/ntopng', [TestConnectionController::class, 'testNtopng'])->name('settings.test.ntopng');
+        Route::post('/settings/test/pihole', [TestConnectionController::class, 'testPihole'])->name('settings.test.pihole');
+        Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
     });
 });

@@ -96,4 +96,105 @@ class PortalControllerTest extends TestCase
         $response->assertViewHas('ipv6DetectionEnabled', false);
         $response->assertViewHas('ipv6DetectionEndpoint');
     }
+
+    public function test_portal_uses_captive_layout(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('max-w-md');
+    }
+
+    public function test_portal_has_data_testid(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-testid="portal-page"', false);
+    }
+
+    public function test_portal_shows_blocked_message_with_data_testid(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => true]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-testid="portal-blocked"', false);
+    }
+
+    public function test_portal_shows_waiting_status_with_data_testid(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-testid="portal-status-waiting"', false);
+    }
+
+    public function test_portal_shows_ok_status_with_data_testid_when_allowed(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-testid="portal-status-ok"', false);
+    }
+
+    public function test_portal_shows_ip_address_with_data_testid(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-testid="portal-ip"', false);
+    }
+
+    public function test_portal_has_dashboard_link_with_data_testid_when_allowed(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-testid="portal-dashboard-link"', false);
+    }
+
+    public function test_portal_js_uses_hidden_class_not_d_none(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertDontSee('d-none');
+        $response->assertSee('hidden');
+    }
+
+    public function test_portal_dns_warning_uses_hidden_class(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('dns-warning');
+        $response->assertDontSee('d-none');
+    }
 }

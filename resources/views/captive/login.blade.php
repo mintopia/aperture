@@ -32,6 +32,16 @@
             </div>
         </div>
 
+        <!-- Instructions -->
+        <div class="mt-5 rounded-lg bg-[var(--color-surface-alt)] p-4 text-left" data-testid="captive-instructions">
+            <p class="text-xs font-semibold text-[var(--color-text-secondary)]">How to connect:</p>
+            <ol class="mt-2 list-inside list-decimal space-y-1 text-xs text-[var(--color-text-muted)]">
+                <li>Scan the QR code or visit the URL above on a device with internet</li>
+                <li>Enter the code shown above when prompted</li>
+                <li>Authorize the connection and you'll be connected automatically</li>
+            </ol>
+        </div>
+
         <!-- Status -->
         <div id="status" class="mt-5">
             <div id="status-pending" data-testid="captive-status-pending" class="flex items-center justify-center gap-2 text-sm text-[var(--color-text-secondary)]">
@@ -45,8 +55,9 @@
                 ✓ Authorized! Redirecting…
             </div>
             <div id="status-expired" data-testid="captive-status-expired" class="hidden text-sm text-[var(--color-danger)]">
-                <p>Code expired.</p>
-                <button onclick="window.location.reload()" class="mt-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]">
+                <p class="font-semibold">Your login code has expired</p>
+                <p class="mt-1 text-xs text-[var(--color-text-secondary)]">Please get a new code to continue.</p>
+                <button onclick="window.location.reload()" class="mt-3 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]" data-testid="captive-refresh">
                     Get New Code
                 </button>
             </div>
@@ -64,8 +75,9 @@
     <script>
         (function() {
             var deviceCode = @json($deviceCode);
-            var interval = {{ $interval }} * 1000;
-            var expiresAt = Date.now() + ({{ $expiresIn }} * 1000);
+            var interval = Math.max({{ $interval }} * 1000, 3000);
+            var expiresIn = Math.max({{ $expiresIn }}, 60);
+            var expiresAt = Date.now() + (expiresIn * 1000);
             var polling = true;
 
             function showStatus(id) {
