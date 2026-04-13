@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use ReflectionParameter;
 use App\Services\CiscoService;
 use ReflectionClass;
+use ReflectionParameter;
 use Tests\TestCase;
 
 class CiscoServiceConstructorTest extends TestCase

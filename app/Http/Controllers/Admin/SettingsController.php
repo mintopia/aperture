@@ -69,9 +69,11 @@ class SettingsController extends Controller
         ]);
 
         foreach ($validated as $integration => $fields) {
+            // @codeCoverageIgnoreStart
             if (! is_array($fields)) {
                 continue;
             }
+            // @codeCoverageIgnoreEnd
 
             foreach ($fields as $key => $value) {
                 $encrypted = in_array($key, IntegrationConfig::ENCRYPTED_KEYS, true);

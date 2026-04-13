@@ -17,17 +17,15 @@ class OpnSenseTest extends TestCase
 {
     protected function createServiceWithMockClient(array $responses): OpnSense
     {
-        config([
-            'aperture.opnsense.zoneid' => 1,
-            'aperture.opnsense.ratelimitUpUuid' => 'up-uuid',
-            'aperture.opnsense.ratelimitDownUuid' => 'down-uuid',
-            'aperture.opnsense.verify' => false,
-            'aperture.opnsense.endpoint' => 'http://localhost',
-            'aperture.opnsense.key' => 'key',
-            'aperture.opnsense.secret' => 'secret',
-        ]);
-
-        $service = new OpnSense;
+        $service = new OpnSense(
+            endpoint: 'http://localhost',
+            key: 'key',
+            secret: 'secret',
+            zoneId: 1,
+            verify: false,
+            uploadRuleUuid: 'up-uuid',
+            downloadRuleUuid: 'down-uuid',
+        );
 
         $mock = new MockHandler($responses);
         $handlerStack = HandlerStack::create($mock);
@@ -359,5 +357,18 @@ class OpnSenseTest extends TestCase
 
         $result = $service->addAllowedHostnames(['this-hostname-definitely-does-not-exist-xyz123.invalid']);
         $this->assertInstanceOf(OpnSense::class, $result);
+    }
+
+    public function test_post_throws_backend_exception_on_guzzle_error(): void
+    {
+        $service = $this->createServiceWithMockClient([
+            new ConnectException(
+                'Connection refused',
+                new Request('POST', '/test')
+            ),
+        ]);
+
+        $this->expectException(BackendException::class);
+        $service->updateIp('10.0.0.1', 'Test User');
     }
 }

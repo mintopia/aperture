@@ -53,6 +53,6 @@ class HomeControllerResetTest extends TestCase
     {
         $response = $this->post('/admin/reset');
 
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/captive');
     }
 }

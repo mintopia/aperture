@@ -13,6 +13,7 @@ return [
         'endpoint' => env('BOREALIS_ENDPOINT'),
         'client_id' => env('BOREALIS_CLIENT_ID'),
         'client_secret' => env('BOREALIS_CLIENT_SECRET'),
+        'scope' => env('BOREALIS_SCOPE', 'discord'),
     ],
     'session' => [
         'ttl' => env('APERTURE_SESSION_TTL', 7200),

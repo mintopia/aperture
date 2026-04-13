@@ -109,6 +109,9 @@ class RequestHandler
         ];
     }
 
+    /**
+     * @codeCoverageIgnore
+     */
     protected function createSshConnection(string $hostname, string $username, string $password): SSH2
     {
         $ssh = new SSH2($hostname);

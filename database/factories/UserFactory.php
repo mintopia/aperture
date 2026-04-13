@@ -21,6 +21,11 @@ class UserFactory extends Factory
             'nickname' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'blocked' => false,
+            'external_id' => null,
+            'access_token' => null,
+            'refresh_token' => null,
+            'token_expires_at' => null,
+            'avatar_url' => null,
         ];
     }
 
@@ -31,6 +36,17 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'blocked' => true,
+        ]);
+    }
+
+    public function withAuth(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'external_id' => fake()->uuid(),
+            'access_token' => fake()->sha256(),
+            'refresh_token' => fake()->sha256(),
+            'token_expires_at' => now()->addHour(),
+            'avatar_url' => fake()->imageUrl(),
         ]);
     }
 }

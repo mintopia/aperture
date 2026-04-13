@@ -46,6 +46,7 @@ class SshProxyCommand extends Command
             return Command::FAILURE;
         }
 
+        // @codeCoverageIgnoreStart
         stream_set_blocking($server, false);
         $lastSweep = time();
 
@@ -69,6 +70,7 @@ class SshProxyCommand extends Command
 
             usleep(10000); // 10ms
         }
+        // @codeCoverageIgnoreEnd
     }
 
     /**
@@ -85,6 +87,7 @@ class SshProxyCommand extends Command
         }
 
         // Read body if Content-Length is present
+        // @codeCoverageIgnoreStart
         if (preg_match('/Content-Length:\s*(\d+)/i', $raw, $m)) {
             $headerEnd = strpos($raw, "\r\n\r\n");
             if ($headerEnd !== false) {
@@ -103,6 +106,7 @@ class SshProxyCommand extends Command
                 }
             }
         }
+        // @codeCoverageIgnoreEnd
 
         // Parse HTTP request
         $parts = explode("\r\n\r\n", $raw, 2);

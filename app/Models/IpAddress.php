@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Throwable;
 use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
 use App\Services\Interfaces\NetworkInventoryInterface;
@@ -16,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use stdClass;
+use Throwable;
 
 /**
  * App\Models\IpAddress

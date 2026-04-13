@@ -96,7 +96,7 @@
                     return;
                 }
 
-                fetch('/auth/device/poll/' + encodeURIComponent(deviceCode), {
+                fetch('/captive/poll/' + encodeURIComponent(deviceCode), {
                     headers: { 'Accept': 'application/json' }
                 })
                 .then(function(response) { return response.json(); })

@@ -57,7 +57,7 @@ class DashboardControllerTest extends TestCase
     {
         $response = $this->get('/admin');
 
-        $response->assertRedirect('/login');
+        $response->assertRedirect('/captive');
     }
 
     public function test_dashboard_shows_correct_counts(): void

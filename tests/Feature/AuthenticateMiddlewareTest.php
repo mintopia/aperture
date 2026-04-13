@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 class AuthenticateMiddlewareTest extends TestCase
 {
-    public function test_redirect_to_returns_login_route_for_non_json_requests(): void
+    public function test_redirect_to_returns_captive_route_for_non_json_requests(): void
     {
         $middleware = new Authenticate($this->app->make('auth'));
 
@@ -19,7 +19,7 @@ class AuthenticateMiddlewareTest extends TestCase
         $request = Request::create('/test');
         $result = $method->invoke($middleware, $request);
 
-        $this->assertEquals(route('login'), $result);
+        $this->assertEquals(route('captive.index'), $result);
     }
 
     public function test_redirect_to_returns_null_for_json_requests(): void
