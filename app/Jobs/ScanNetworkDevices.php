@@ -22,7 +22,7 @@ class ScanNetworkDevices implements ShouldQueue
     public function handle(): void
     {
         $dbConfig = IntegrationConfig::getAll('auto_allow');
-        $enabled = (bool) ($dbConfig['enabled'] ?? config('aperture.auto_allow.enabled', false));
+        $enabled = (bool) ($dbConfig['enabled'] ?? false);
         if (! $enabled) {
             return;
         }
@@ -63,8 +63,6 @@ class ScanNetworkDevices implements ShouldQueue
         $ouiPrefixesRaw = $dbConfig['oui_prefixes'] ?? null;
         if (is_string($ouiPrefixesRaw) && $ouiPrefixesRaw !== '') {
             $ouiPrefixes = array_filter(array_map('trim', explode(',', $ouiPrefixesRaw)));
-        } else {
-            $ouiPrefixes = config('aperture.auto_allow.oui_prefixes', []);
         }
 
         foreach ($entries as $entry) {

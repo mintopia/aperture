@@ -12,7 +12,7 @@ class RouteServiceProviderTest extends TestCase
 {
     public function test_home_constant_is_defined(): void
     {
-        $this->assertEquals('/home', RouteServiceProvider::HOME);
+        $this->assertEquals('/', RouteServiceProvider::HOME);
     }
 
     public function test_api_rate_limiter_is_configured(): void

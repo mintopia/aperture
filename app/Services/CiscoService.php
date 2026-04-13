@@ -16,7 +16,13 @@ class CiscoService
 
     protected string $name = '';
 
-    public function __construct(protected string $hostname) {}
+    public function __construct(
+        protected string $hostname,
+        protected string $username = '',
+        protected string $password = '',
+        protected string $enablePassword = '',
+        protected int $timeout = 5,
+    ) {}
 
     protected function ssh(): SSH2
     {
@@ -128,12 +134,11 @@ class CiscoService
         }
 
         $this->connect();
-        $enPassword = config('aperture.cisco.enablePassword');
 
         Log::debug(sprintf('[Cisco] [%s] > en', $this->hostname));
         $this->ssh()->write("en\n");
         $this->ssh()->read('Password:');
-        $this->ssh()->write($enPassword.PHP_EOL);
+        $this->ssh()->write($this->enablePassword.PHP_EOL);
         $this->ssh()->read($this->name.'#');
 
         $this->enable = true;
@@ -147,11 +152,11 @@ class CiscoService
 
         Log::debug(sprintf('[Cisco] [%s] Connecting with SSH', $this->hostname));
         $this->connection = $this->createSshConnection();
-        if (! $this->connection->login((string) config('aperture.cisco.username'), (string) config('aperture.cisco.password'))) {
+        if (! $this->connection->login($this->username, $this->password)) {
             throw new Exception('Unable to authenticate with switch');
         }
 
-        $this->connection->setTimeout((int) config('aperture.cisco.timeout', 5));
+        $this->connection->setTimeout($this->timeout);
         $this->name = substr(trim((string) $this->ssh()->read()), 0, -1);
         Log::debug(sprintf('[Cisco] [%s] > terminal length 0', $this->hostname));
         $this->ssh()->write("terminal length 0\n");

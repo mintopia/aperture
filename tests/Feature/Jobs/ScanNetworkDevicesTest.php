@@ -3,6 +3,7 @@
 namespace Tests\Feature\Jobs;
 
 use App\Jobs\ScanNetworkDevices;
+use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\Interfaces\DhcpInterface;
@@ -23,7 +24,7 @@ class ScanNetworkDevicesTest extends TestCase
     {
         parent::setUp();
 
-        config(['aperture.auto_allow.enabled' => true]);
+        IntegrationConfig::setValue('auto_allow', 'enabled', '1');
 
         // Mock firewall
         $firewall = Mockery::mock(FirewallBackendInterface::class);
@@ -85,7 +86,7 @@ class ScanNetworkDevicesTest extends TestCase
 
     public function test_detects_xbox_by_oui_prefix_and_auto_allows(): void
     {
-        config(['aperture.auto_allow.oui_prefixes' => ['98:5F:D3']]);
+        IntegrationConfig::setValue('auto_allow', 'oui_prefixes', '98:5F:D3');
 
         $resolver = Mockery::mock(MacAddressResolverInterface::class);
         $resolver->shouldReceive('resolveIpToMac')->andReturnNull();
@@ -116,7 +117,7 @@ class ScanNetworkDevicesTest extends TestCase
 
     public function test_does_not_detect_non_matching_oui(): void
     {
-        config(['aperture.auto_allow.oui_prefixes' => ['98:5F:D3']]);
+        IntegrationConfig::setValue('auto_allow', 'oui_prefixes', '98:5F:D3');
 
         $resolver = Mockery::mock(MacAddressResolverInterface::class);
         $resolver->shouldReceive('resolveIpToMac')->andReturnNull();
@@ -140,7 +141,7 @@ class ScanNetworkDevicesTest extends TestCase
 
     public function test_does_nothing_when_disabled(): void
     {
-        config(['aperture.auto_allow.enabled' => false]);
+        IntegrationConfig::setValue('auto_allow', 'enabled', '0');
 
         $resolver = Mockery::mock(MacAddressResolverInterface::class);
         $resolver->shouldNotReceive('resolveIpToMac');

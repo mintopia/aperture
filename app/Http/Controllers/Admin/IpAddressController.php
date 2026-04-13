@@ -161,6 +161,12 @@ class IpAddressController extends Controller
 
     protected function createCiscoService(string $hostname): CiscoService
     {
-        return new CiscoService($hostname);
+        return new CiscoService(
+            hostname: $hostname,
+            username: (string) config('aperture.cisco.username', ''),
+            password: (string) config('aperture.cisco.password', ''),
+            enablePassword: (string) config('aperture.cisco.enablePassword', ''),
+            timeout: (int) config('aperture.cisco.timeout', 5),
+        );
     }
 }

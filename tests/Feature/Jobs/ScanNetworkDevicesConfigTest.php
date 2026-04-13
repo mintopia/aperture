@@ -24,8 +24,6 @@ class ScanNetworkDevicesConfigTest extends TestCase
         $inventory = $this->mock(NetworkInventoryInterface::class);
         $inventory->shouldReceive('getArpTable')->andReturn(collect());
 
-        config(['aperture.auto_allow.enabled' => false]);
-
         $job = new ScanNetworkDevices;
         $job->handle();
 
@@ -40,8 +38,6 @@ class ScanNetworkDevicesConfigTest extends TestCase
         $dhcp->shouldNotReceive('getLeases');
         $this->mock(MacAddressResolverInterface::class);
         $this->mock(NetworkInventoryInterface::class);
-
-        config(['aperture.auto_allow.enabled' => true]);
 
         $job = new ScanNetworkDevices;
         $job->handle();

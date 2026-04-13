@@ -43,13 +43,13 @@ class AppServiceProvider extends ServiceProvider
             $dbConfig = $this->getIntegrationDbConfig('opnsense');
 
             return new OpnSense(
-                endpoint: (string) ($dbConfig['endpoint'] ?? config('aperture.opnsense.endpoint', '')),
-                key: (string) ($dbConfig['key'] ?? config('aperture.opnsense.key', '')),
-                secret: (string) ($dbConfig['secret'] ?? config('aperture.opnsense.secret', '')),
-                zoneId: (int) ($dbConfig['zone_id'] ?? config('aperture.opnsense.zoneid', 0)),
-                verify: (bool) ($dbConfig['verify_ssl'] ?? config('aperture.opnsense.verify', true)),
-                uploadRuleUuid: (string) ($dbConfig['ratelimit_up_uuid'] ?? config('aperture.opnsense.ratelimitUpUuid', '')),
-                downloadRuleUuid: (string) ($dbConfig['ratelimit_down_uuid'] ?? config('aperture.opnsense.ratelimitDownUuid', '')),
+                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
+                key: (string) ($dbConfig['key'] ?? ''),
+                secret: (string) ($dbConfig['secret'] ?? ''),
+                zoneId: (int) ($dbConfig['zone_id'] ?? 0),
+                verify: (bool) ($dbConfig['verify_ssl'] ?? true),
+                uploadRuleUuid: (string) ($dbConfig['ratelimit_up_uuid'] ?? ''),
+                downloadRuleUuid: (string) ($dbConfig['ratelimit_down_uuid'] ?? ''),
             );
         });
 
@@ -70,10 +70,10 @@ class AppServiceProvider extends ServiceProvider
             $dbConfig = $this->getIntegrationDbConfig('ntopng');
 
             return new NtopNgService(
-                endpoint: (string) ($dbConfig['endpoint'] ?? config('aperture.ntopng.endpoint', '')),
-                username: (string) ($dbConfig['username'] ?? config('aperture.ntopng.username', '')),
-                password: (string) ($dbConfig['password'] ?? config('aperture.ntopng.password', '')),
-                interface: (int) ($dbConfig['interface'] ?? config('aperture.ntopng.interface', 0)),
+                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
+                username: (string) ($dbConfig['username'] ?? ''),
+                password: (string) ($dbConfig['password'] ?? ''),
+                interface: (int) ($dbConfig['interface'] ?? 0),
             );
         });
 
@@ -88,8 +88,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(function (Application $application): NetworkInventoryInterface {
             $dbConfig = $this->getIntegrationDbConfig('librenms');
             $inner = new LibreNmsService(
-                endpoint: (string) ($dbConfig['endpoint'] ?? config('aperture.librenms.endpoint', '')),
-                apiToken: (string) ($dbConfig['api_key'] ?? config('aperture.librenms.api_token', '')),
+                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
+                apiToken: (string) ($dbConfig['api_key'] ?? ''),
             );
 
             return new CachedNetworkInventoryService(
@@ -102,31 +102,31 @@ class AppServiceProvider extends ServiceProvider
             $dbConfig = $this->getIntegrationDbConfig('dhcp');
             $opnsenseConfig = $this->getIntegrationDbConfig('opnsense');
             $client = new Client([
-                'verify' => (bool) ($dbConfig['verify_ssl'] ?? $opnsenseConfig['verify_ssl'] ?? config('aperture.dhcp.verify', true)),
-                'base_uri' => $dbConfig['endpoint'] ?? $opnsenseConfig['endpoint'] ?? config('aperture.dhcp.endpoint', ''),
+                'verify' => (bool) ($dbConfig['verify_ssl'] ?? $opnsenseConfig['verify_ssl'] ?? true),
+                'base_uri' => $dbConfig['endpoint'] ?? $opnsenseConfig['endpoint'] ?? '',
                 'auth' => [
-                    $dbConfig['key'] ?? $opnsenseConfig['key'] ?? config('aperture.dhcp.key', ''),
-                    $dbConfig['secret'] ?? $opnsenseConfig['secret'] ?? config('aperture.dhcp.secret', ''),
+                    $dbConfig['key'] ?? $opnsenseConfig['key'] ?? '',
+                    $dbConfig['secret'] ?? $opnsenseConfig['secret'] ?? '',
                 ],
             ]);
 
             return new OpnSenseDhcpService(
                 $client,
-                (int) ($dbConfig['pool_size'] ?? config('aperture.dhcp.pool_size', 254)),
+                (int) ($dbConfig['pool_size'] ?? 254),
             );
         });
 
         $this->app->singleton(function (Application $application): DnsBlockingInterface {
             $dbConfig = $this->getIntegrationDbConfig('pihole');
             $client = new Client([
-                'verify' => (bool) ($dbConfig['verify_ssl'] ?? config('aperture.pihole.verify')),
-                'base_uri' => $dbConfig['endpoint'] ?? config('aperture.pihole.endpoint'),
+                'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
+                'base_uri' => $dbConfig['endpoint'] ?? '',
             ]);
 
             return new PiHoleService(
                 $client,
-                (string) ($dbConfig['password'] ?? config('aperture.pihole.password')),
-                (int) ($dbConfig['noblock_group_id'] ?? config('aperture.pihole.noblock_group_id', 1)),
+                (string) ($dbConfig['password'] ?? ''),
+                (int) ($dbConfig['noblock_group_id'] ?? 1),
             );
         });
 
@@ -142,7 +142,13 @@ class AppServiceProvider extends ServiceProvider
                 // DB not available — use env config
             }
 
-            $ciscoService = new CiscoService($hostname);
+            $ciscoService = new CiscoService(
+                hostname: $hostname,
+                username: (string) config('aperture.cisco.username', ''),
+                password: (string) config('aperture.cisco.password', ''),
+                enablePassword: (string) config('aperture.cisco.enablePassword', ''),
+                timeout: (int) config('aperture.cisco.timeout', 5),
+            );
 
             return new CiscoSwitchAdapter($ciscoService, new IosOutputParser);
         });
