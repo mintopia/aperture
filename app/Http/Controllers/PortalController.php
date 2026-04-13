@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\IntegrationConfig;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -19,8 +20,9 @@ class PortalController extends Controller
             $ip->allow(true);
         }
 
-        $ipv6DetectionEnabled = (bool) config('aperture.ipv6.detection_enabled');
-        $ipv6DetectionEndpoint = config('aperture.ipv6.detection_endpoint');
+        $dbConfig = IntegrationConfig::getAll('ipv6');
+        $ipv6DetectionEnabled = (bool) ($dbConfig['detection_enabled'] ?? config('aperture.ipv6.detection_enabled'));
+        $ipv6DetectionEndpoint = $dbConfig['detection_endpoint'] ?? config('aperture.ipv6.detection_endpoint');
 
         return view('portal', [
             'ip' => $ip,

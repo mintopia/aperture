@@ -16,13 +16,13 @@ class OpnSenseDhcpServiceTest extends TestCase
     /**
      * @param  array<int, Response>  $responses
      */
-    private function createServiceWithMock(array $responses): OpnSenseDhcpService
+    private function createServiceWithMock(array $responses, int $poolSize = 0): OpnSenseDhcpService
     {
         $mock = new MockHandler($responses);
         $handler = HandlerStack::create($mock);
         $client = new Client(['handler' => $handler]);
 
-        return new OpnSenseDhcpService($client);
+        return new OpnSenseDhcpService($client, $poolSize);
     }
 
     public function test_get_leases_returns_collection(): void
@@ -76,9 +76,7 @@ class OpnSenseDhcpServiceTest extends TestCase
                 'total' => 3,
                 'current' => 1,
             ])),
-        ]);
-
-        config(['aperture.dhcp.pool_size' => 254]);
+        ], 254);
 
         $pool = $service->getPoolStatus();
 
