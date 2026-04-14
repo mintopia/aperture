@@ -53,18 +53,19 @@ class SshConnectionPool
     }
 
     /**
-     * @return array<int, array{hostname: string, created_at: string, last_used_at: string, locked: bool}>
+     * @return array<int, ConnectionStatus>
      */
     public function getStatus(): array
     {
+        $now = now();
         $status = [];
         foreach ($this->connections as $hostname => $connection) {
-            $status[] = [
-                'hostname' => $hostname,
-                'created_at' => $connection->getCreatedAt()->toIso8601String(),
-                'last_used_at' => $connection->getLastUsedAt()->toIso8601String(),
-                'locked' => $connection->isLocked(),
-            ];
+            $status[] = new ConnectionStatus(
+                hostname: $hostname,
+                connectedSeconds: (int) $connection->getCreatedAt()->diffInSeconds($now),
+                lastUsedSecondsAgo: (int) $connection->getLastUsedAt()->diffInSeconds($now),
+                locked: $connection->isLocked(),
+            );
         }
 
         return $status;

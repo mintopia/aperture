@@ -32,10 +32,10 @@ class CiscoSwitchAdapterTest extends TestCase
         $adapter = $this->createAdapter($cisco);
         $result = $adapter->getPortStatus('Gi1/0/1');
 
-        $this->assertEquals('GigabitEthernet1/0/1', $result['interface']);
-        $this->assertEquals('up', $result['status']);
-        $this->assertEquals('1000Mb/s', $result['speed']);
-        $this->assertEquals('Full-duplex', $result['duplex']);
+        $this->assertEquals('GigabitEthernet1/0/1', $result->interface);
+        $this->assertEquals('up', $result->status);
+        $this->assertEquals('1000Mb/s', $result->speed);
+        $this->assertEquals('Full-duplex', $result->duplex);
     }
 
     public function test_get_all_ports_returns_collection(): void
@@ -53,9 +53,9 @@ class CiscoSwitchAdapterTest extends TestCase
         $result = $adapter->getAllPorts();
 
         $this->assertCount(2, $result);
-        $this->assertEquals('Gi1/0/1', $result[0]['interface']);
-        $this->assertEquals('connected', $result[0]['status']);
-        $this->assertEquals('a-1000', $result[0]['speed']);
+        $this->assertEquals('Gi1/0/1', $result[0]->interface);
+        $this->assertEquals('connected', $result[0]->status);
+        $this->assertEquals('a-1000', $result[0]->speed);
     }
 
     public function test_shutdown_port_calls_cisco_service(): void
@@ -101,10 +101,10 @@ class CiscoSwitchAdapterTest extends TestCase
         $adapter = $this->createAdapter($cisco);
         $result = $adapter->getPortStatistics('Gi1/0/1');
 
-        $this->assertEquals(6789012, $result['in_bytes']);
-        $this->assertEquals(9876543, $result['out_bytes']);
-        $this->assertEquals(3, $result['in_errors']);
-        $this->assertEquals(5, $result['out_errors']);
+        $this->assertEquals(6789012, $result->inBytes);
+        $this->assertEquals(9876543, $result->outBytes);
+        $this->assertEquals(3, $result->inErrors);
+        $this->assertEquals(5, $result->outErrors);
     }
 
     public function test_get_forwarding_database_returns_collection(): void
@@ -127,8 +127,8 @@ class CiscoSwitchAdapterTest extends TestCase
         $result = $adapter->getForwardingDatabase();
 
         $this->assertCount(2, $result);
-        $this->assertEquals('aabb.ccdd.eeff', $result[0]['mac']);
-        $this->assertEquals('Gi1/0/1', $result[0]['port']);
-        $this->assertEquals(100, $result[0]['vlan']);
+        $this->assertEquals('aabb.ccdd.eeff', $result[0]->mac);
+        $this->assertEquals('Gi1/0/1', $result[0]->port);
+        $this->assertEquals(100, $result[0]->vlan);
     }
 }

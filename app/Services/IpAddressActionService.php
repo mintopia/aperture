@@ -10,6 +10,7 @@ use App\Models\UserIpAddress;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\ValueObjects\PortDetail;
 use stdClass;
 use Throwable;
 
@@ -92,7 +93,7 @@ class IpAddressActionService
     public function shutPort(IpAddress $ip): void
     {
         $portInfo = $ip->getPortInfo();
-        if (! $portInfo instanceof stdClass) {
+        if (! $portInfo instanceof PortDetail) {
             return;
         }
 
@@ -102,7 +103,7 @@ class IpAddressActionService
     public function unshutPort(IpAddress $ip): void
     {
         $portInfo = $ip->getPortInfo();
-        if (! $portInfo instanceof stdClass) {
+        if (! $portInfo instanceof PortDetail) {
             return;
         }
 

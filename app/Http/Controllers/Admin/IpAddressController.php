@@ -75,7 +75,7 @@ class IpAddressController extends Controller
         $port = $ip->port;
         if ($port !== null) {
             try {
-                $cisco = $this->createCiscoService($ip->port->switch);
+                $cisco = $this->createCiscoService($ip->port->hostname);
                 $status = $cisco->showInterface($ip->port->interface);
                 $config = $cisco->showInterfaceConfig($ip->port->interface);
                 $shutdown = str_contains($config, 'shutdown');

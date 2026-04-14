@@ -24,7 +24,7 @@ class SshProxyClient implements SshProxyClientInterface
         ]);
     }
 
-    public function execute(string $hostname, string $username, string $password, array $commands): array
+    public function execute(string $hostname, string $username, string $password, array $commands): CommandResult
     {
         try {
             $response = $this->client->post('execute', [
@@ -36,7 +36,17 @@ class SshProxyClient implements SshProxyClientInterface
                 ],
             ]);
 
-            return json_decode((string) $response->getBody(), true);
+            /** @var array{success: bool, output: array<int, array{command: string, output: string}>, error?: string} $data */
+            $data = json_decode((string) $response->getBody(), true);
+
+            return new CommandResult(
+                success: $data['success'],
+                output: array_map(
+                    fn (array $o): CommandOutput => new CommandOutput(command: $o['command'], output: $o['output']),
+                    $data['output'],
+                ),
+                error: $data['error'] ?? null,
+            );
         } catch (ClientException $clientException) {
             if ($clientException->getResponse()->getStatusCode() === 409) {
                 throw new RuntimeException('Host is currently locked by another request', $clientException->getCode(), $clientException);
@@ -46,10 +56,24 @@ class SshProxyClient implements SshProxyClientInterface
         }
     }
 
-    public function status(): array
+    public function status(): ProxyStatus
     {
         $response = $this->client->get('status');
 
-        return json_decode((string) $response->getBody(), true);
+        /** @var array{uptime_seconds: int, connections: array<int, array{hostname: string, connected_seconds: int, last_used_seconds_ago: int, locked: bool}>} $data */
+        $data = json_decode((string) $response->getBody(), true);
+
+        return new ProxyStatus(
+            uptimeSeconds: $data['uptime_seconds'],
+            connections: array_map(
+                fn (array $c): ConnectionStatus => new ConnectionStatus(
+                    hostname: $c['hostname'],
+                    connectedSeconds: $c['connected_seconds'],
+                    lastUsedSecondsAgo: $c['last_used_seconds_ago'],
+                    locked: $c['locked'],
+                ),
+                $data['connections'],
+            ),
+        );
     }
 }

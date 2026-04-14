@@ -30,8 +30,8 @@ class OpnSenseDhcpServicePoolSizeTest extends TestCase
 
         $status = $service->getPoolStatus();
 
-        $this->assertEquals(100, $status['total']);
-        $this->assertEquals(2, $status['used']);
-        $this->assertEquals(98, $status['available']);
+        $this->assertEquals(100, $status->total);
+        $this->assertEquals(2, $status->used);
+        $this->assertEquals(98, $status->available);
     }
 }

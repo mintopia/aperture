@@ -42,10 +42,10 @@ class OpnSenseDhcpServiceTest extends TestCase
         $leases = $service->getLeases();
 
         $this->assertCount(2, $leases);
-        $this->assertEquals('10.0.0.10', $leases[0]['ip']);
-        $this->assertEquals('aa:bb:cc:dd:ee:ff', $leases[0]['mac']);
-        $this->assertEquals('device1', $leases[0]['hostname']);
-        $this->assertEquals('2026-04-15 12:00:00', $leases[0]['expires']);
+        $this->assertEquals('10.0.0.10', $leases[0]->ip);
+        $this->assertEquals('aa:bb:cc:dd:ee:ff', $leases[0]->mac);
+        $this->assertEquals('device1', $leases[0]->hostname);
+        $this->assertEquals('2026-04-15 12:00:00', $leases[0]->expires);
     }
 
     public function test_get_leases_returns_empty_collection(): void
@@ -80,10 +80,10 @@ class OpnSenseDhcpServiceTest extends TestCase
 
         $pool = $service->getPoolStatus();
 
-        $this->assertEquals(254, $pool['total']);
-        $this->assertEquals(2, $pool['used']);
-        $this->assertEquals(252, $pool['available']);
-        $this->assertEqualsWithDelta(2 / 254, $pool['utilisation'], 0.001);
+        $this->assertEquals(254, $pool->total);
+        $this->assertEquals(2, $pool->used);
+        $this->assertEquals(252, $pool->available);
+        $this->assertEqualsWithDelta(2 / 254, $pool->utilisation, 0.001);
     }
 
     public function test_get_pool_status_handles_zero_pool_size(): void
@@ -101,10 +101,10 @@ class OpnSenseDhcpServiceTest extends TestCase
 
         $pool = $service->getPoolStatus();
 
-        $this->assertEquals(0, $pool['total']);
-        $this->assertEquals(0, $pool['used']);
-        $this->assertEquals(0, $pool['available']);
-        $this->assertEquals(0.0, $pool['utilisation']);
+        $this->assertEquals(0, $pool->total);
+        $this->assertEquals(0, $pool->used);
+        $this->assertEquals(0, $pool->available);
+        $this->assertEquals(0.0, $pool->utilisation);
     }
 
     public function test_get_lease_returns_matching_lease(): void
@@ -123,8 +123,8 @@ class OpnSenseDhcpServiceTest extends TestCase
         $lease = $service->getLease('10.0.0.10');
 
         $this->assertNotNull($lease);
-        $this->assertEquals('10.0.0.10', $lease['ip']);
-        $this->assertEquals('aa:bb:cc:dd:ee:ff', $lease['mac']);
+        $this->assertEquals('10.0.0.10', $lease->ip);
+        $this->assertEquals('aa:bb:cc:dd:ee:ff', $lease->mac);
     }
 
     public function test_get_lease_returns_null_when_not_found(): void

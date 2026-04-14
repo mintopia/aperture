@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Interfaces;
 
 use App\Models\User;
+use App\Services\ValueObjects\ActiveSession;
 use Illuminate\Support\Collection;
 
 interface CaptivePortalInterface
@@ -15,8 +16,6 @@ interface CaptivePortalInterface
 
     public function isAllowed(string $ipAddress): bool;
 
-    /**
-     * @return Collection<int, array{ip: string, user: string}>
-     */
+    /** @return Collection<int, ActiveSession> */
     public function listActiveSessions(): Collection;
 }

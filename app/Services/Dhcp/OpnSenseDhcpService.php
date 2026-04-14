@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Dhcp;
 
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\ValueObjects\DhcpLease;
+use App\Services\ValueObjects\DhcpPoolStatus;
 use GuzzleHttp\Client;
 use Illuminate\Support\Collection;
 
@@ -15,39 +17,31 @@ class OpnSenseDhcpService implements DhcpInterface
         protected int $poolSize = 0,
     ) {}
 
-    /**
-     * @return array{total: int, used: int, available: int, utilisation: float}
-     */
-    public function getPoolStatus(): array
+    public function getPoolStatus(): DhcpPoolStatus
     {
         $leases = $this->fetchLeases();
         $activeCount = $leases->where('status', 'active')->count();
 
-        return [
-            'total' => $this->poolSize,
-            'used' => $activeCount,
-            'available' => max(0, $this->poolSize - $activeCount),
-            'utilisation' => $this->poolSize > 0 ? round($activeCount / $this->poolSize, 4) : 0.0,
-        ];
+        return new DhcpPoolStatus(
+            total: $this->poolSize,
+            used: $activeCount,
+            available: max(0, $this->poolSize - $activeCount),
+            utilisation: $this->poolSize > 0 ? round($activeCount / $this->poolSize, 4) : 0.0,
+        );
     }
 
-    /**
-     * @return Collection<int, array{ip: string, mac: string, hostname: string, expires: string}>
-     */
+    /** @return Collection<int, DhcpLease> */
     public function getLeases(): Collection
     {
-        return $this->fetchLeases()->map(fn (array $row): array => [
-            'ip' => $row['address'],
-            'mac' => $row['mac'],
-            'hostname' => $row['hostname'],
-            'expires' => $row['ends'],
-        ])->values();
+        return $this->fetchLeases()->map(fn (array $row): DhcpLease => new DhcpLease(
+            ip: $row['address'],
+            mac: $row['mac'],
+            hostname: $row['hostname'],
+            expires: $row['ends'],
+        ))->values();
     }
 
-    /**
-     * @return array{ip: string, mac: string, hostname: string, expires: string}|null
-     */
-    public function getLease(string $ipAddress): ?array
+    public function getLease(string $ipAddress): ?DhcpLease
     {
         $leases = $this->fetchLeases();
         $match = $leases->firstWhere('address', $ipAddress);
@@ -56,12 +50,12 @@ class OpnSenseDhcpService implements DhcpInterface
             return null;
         }
 
-        return [
-            'ip' => $match['address'],
-            'mac' => $match['mac'],
-            'hostname' => $match['hostname'],
-            'expires' => $match['ends'],
-        ];
+        return new DhcpLease(
+            ip: $match['address'],
+            mac: $match['mac'],
+            hostname: $match['hostname'],
+            expires: $match['ends'],
+        );
     }
 
     /**

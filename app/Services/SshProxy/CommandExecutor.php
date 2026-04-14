@@ -15,9 +15,8 @@ class CommandExecutor
 
     /**
      * @param  array<int, array{command: string, if?: string, expect?: string}>  $commands
-     * @return array{success: bool, output: array<int, array{command: string, output: string}>, error?: string}
      */
-    public function execute(SSH2 $ssh, array $commands): array
+    public function execute(SSH2 $ssh, array $commands): CommandResult
     {
         $output = [];
         $lastOutput = '';
@@ -46,11 +45,11 @@ class CommandExecutor
                 $ssh->setTimeout($this->commandTimeoutSeconds);
                 $result = $this->readUntilExpect($ssh, $cmd['expect']);
                 if ($result === null) {
-                    return [
-                        'success' => false,
-                        'output' => $output,
-                        'error' => sprintf('Timeout waiting for expected pattern: %s', $cmd['expect']),
-                    ];
+                    return new CommandResult(
+                        success: false,
+                        output: $output,
+                        error: sprintf('Timeout waiting for expected pattern: %s', $cmd['expect']),
+                    );
                 }
 
                 $lastOutput = $result;
@@ -60,16 +59,16 @@ class CommandExecutor
                 $lastOutput = is_string($result) ? $result : '';
             }
 
-            $output[] = [
-                'command' => $cmd['command'],
-                'output' => $lastOutput,
-            ];
+            $output[] = new CommandOutput(
+                command: $cmd['command'],
+                output: $lastOutput,
+            );
         }
 
-        return [
-            'success' => true,
-            'output' => $output,
-        ];
+        return new CommandResult(
+            success: true,
+            output: $output,
+        );
     }
 
     protected function getLastLine(string $output): string

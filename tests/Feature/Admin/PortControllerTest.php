@@ -7,6 +7,8 @@ namespace Tests\Feature\Admin;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\ValueObjects\PortStatistics;
+use App\Services\ValueObjects\PortStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
@@ -43,11 +45,8 @@ class PortControllerTest extends TestCase
     public function test_admin_can_view_port_show(): void
     {
         $mock = Mockery::mock(NetworkSwitchInterface::class);
-        $mock->shouldReceive('getPortStatus')->with('eth0')->once()->andReturn([
-            'name' => 'eth0',
-            'status' => 'up',
-        ]);
-        $mock->shouldReceive('getPortStatistics')->with('eth0')->once()->andReturn([]);
+        $mock->shouldReceive('getPortStatus')->with('eth0')->once()->andReturn(new PortStatus(interface: 'eth0', status: 'up', speed: ''));
+        $mock->shouldReceive('getPortStatistics')->with('eth0')->once()->andReturn(new PortStatistics(inBytes: 0, outBytes: 0, inErrors: 0, outErrors: 0));
         $this->app->instance(NetworkSwitchInterface::class, $mock);
 
         $admin = $this->createAdminUser();

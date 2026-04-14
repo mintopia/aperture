@@ -6,6 +6,8 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\ValueObjects\PortDetail;
+use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use RuntimeException;
@@ -15,11 +17,11 @@ class IpAddressLnmsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function mockInventory(?array $resolveResult = null, ?array $detailResult = null): void
+    private function mockInventory(?ResolvedPort $resolveResult = null, ?PortDetail $detailResult = null): void
     {
         $inventory = Mockery::mock(NetworkInventoryInterface::class);
         $inventory->shouldReceive('resolveIpToPort')->andReturn($resolveResult);
-        if ($resolveResult !== null) {
+        if ($resolveResult instanceof ResolvedPort) {
             $inventory->shouldReceive('getPortDetail')->andReturn($detailResult);
         }
 
@@ -29,15 +31,15 @@ class IpAddressLnmsTest extends TestCase
     public function test_port_returns_data_from_service(): void
     {
         $this->mockInventory(
-            ['ip' => '10.0.0.1', 'mac' => 'aa:bb:cc:dd:ee:ff', 'port' => '42', 'switch' => ''],
-            ['hostname' => 'switch01.example.com', 'interface' => 'GigabitEthernet0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000000000],
+            new ResolvedPort(ip: '10.0.0.1', mac: 'aa:bb:cc:dd:ee:ff', port: '42', switch: ''),
+            new PortDetail(hostname: 'switch01.example.com', interface: 'GigabitEthernet0/1', status: 'up', adminStatus: 'up', speed: 1000000000),
         );
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
 
         $port = $ip->port;
         $this->assertNotNull($port);
-        $this->assertSame('switch01.example.com', $port->switch);
+        $this->assertSame('switch01.example.com', $port->hostname);
         $this->assertSame('GigabitEthernet0/1', $port->interface);
         $this->assertSame('up', $port->status);
         $this->assertSame('up', $port->adminStatus);
@@ -49,10 +51,10 @@ class IpAddressLnmsTest extends TestCase
         $inventory = Mockery::mock(NetworkInventoryInterface::class);
         $inventory->shouldReceive('resolveIpToPort')
             ->once()
-            ->andReturn(['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '42', 'switch' => '']);
+            ->andReturn(new ResolvedPort(ip: '10.0.0.1', mac: 'aa', port: '42', switch: ''));
         $inventory->shouldReceive('getPortDetail')
             ->once()
-            ->andReturn(['hostname' => 'sw', 'interface' => 'Gi0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000]);
+            ->andReturn(new PortDetail(hostname: 'sw', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000));
         $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
@@ -73,7 +75,7 @@ class IpAddressLnmsTest extends TestCase
     public function test_port_returns_null_when_detail_fails(): void
     {
         $this->mockInventory(
-            ['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '42', 'switch' => ''],
+            new ResolvedPort(ip: '10.0.0.1', mac: 'aa', port: '42', switch: ''),
         );
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
@@ -113,8 +115,8 @@ class IpAddressLnmsTest extends TestCase
     public function test_shut_port_calls_switch_interface(): void
     {
         $this->mockInventory(
-            ['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '42', 'switch' => ''],
-            ['hostname' => 'sw', 'interface' => 'GigabitEthernet0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000],
+            new ResolvedPort(ip: '10.0.0.1', mac: 'aa', port: '42', switch: ''),
+            new PortDetail(hostname: 'sw', interface: 'GigabitEthernet0/1', status: 'up', adminStatus: 'up', speed: 1000),
         );
 
         $switch = Mockery::mock(NetworkSwitchInterface::class);
@@ -128,8 +130,8 @@ class IpAddressLnmsTest extends TestCase
     public function test_unshut_port_calls_switch_interface(): void
     {
         $this->mockInventory(
-            ['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '42', 'switch' => ''],
-            ['hostname' => 'sw', 'interface' => 'GigabitEthernet0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000],
+            new ResolvedPort(ip: '10.0.0.1', mac: 'aa', port: '42', switch: ''),
+            new PortDetail(hostname: 'sw', interface: 'GigabitEthernet0/1', status: 'up', adminStatus: 'up', speed: 1000),
         );
 
         $switch = Mockery::mock(NetworkSwitchInterface::class);

@@ -22,15 +22,14 @@ class RequestHandler
 
     /**
      * @param  array<string, string>  $headers
-     * @return array{status: int, body: array<string, mixed>}
      */
-    public function handle(string $method, string $path, array $headers, string $body): array
+    public function handle(string $method, string $path, array $headers, string $body): ProxyResponse
     {
         // Auth check
         $token = $headers['authorization'] ?? $headers['Authorization'] ?? '';
         $token = str_replace('Bearer ', '', $token);
         if ($token !== $this->apiKey) {
-            return ['status' => 401, 'body' => ['error' => 'Unauthorized']];
+            return new ProxyResponse(status: 401, body: ['error' => 'Unauthorized']);
         }
 
         if ($method === 'POST' && $path === '/execute') {
@@ -41,17 +40,14 @@ class RequestHandler
             return $this->handleStatus();
         }
 
-        return ['status' => 404, 'body' => ['error' => 'Not found']];
+        return new ProxyResponse(status: 404, body: ['error' => 'Not found']);
     }
 
-    /**
-     * @return array{status: int, body: array<string, mixed>}
-     */
-    protected function handleExecute(string $body): array
+    protected function handleExecute(string $body): ProxyResponse
     {
         $data = json_decode($body, true);
         if (! is_array($data)) {
-            return ['status' => 400, 'body' => ['error' => 'Invalid JSON body']];
+            return new ProxyResponse(status: 400, body: ['error' => 'Invalid JSON body']);
         }
 
         $hostname = $data['hostname'] ?? null;
@@ -60,12 +56,12 @@ class RequestHandler
         $commands = $data['commands'] ?? null;
 
         if (! $hostname || ! $username || ! is_array($commands)) {
-            return ['status' => 400, 'body' => ['error' => 'Missing required fields: hostname, username, commands']];
+            return new ProxyResponse(status: 400, body: ['error' => 'Missing required fields: hostname, username, commands']);
         }
 
         // Check if host is locked
         if ($this->pool->isLocked($hostname)) {
-            return ['status' => 409, 'body' => ['error' => 'Host is currently locked by another request']];
+            return new ProxyResponse(status: 409, body: ['error' => 'Host is currently locked by another request']);
         }
 
         // Get or create connection
@@ -76,7 +72,7 @@ class RequestHandler
                 $connection = new SshConnection($hostname, $ssh);
                 $this->pool->put($hostname, $connection);
             } catch (Throwable $e) {
-                return ['status' => 500, 'body' => ['success' => false, 'error' => 'SSH connection failed: '.$e->getMessage()]];
+                return new ProxyResponse(status: 500, body: ['success' => false, 'error' => 'SSH connection failed: '.$e->getMessage()]);
             }
         }
 
@@ -90,23 +86,31 @@ class RequestHandler
             $connection->unlock();
         }
 
-        return ['status' => 200, 'body' => $result];
+        return new ProxyResponse(status: 200, body: [
+            'success' => $result->success,
+            'output' => array_map(
+                fn (CommandOutput $o): array => ['command' => $o->command, 'output' => $o->output],
+                $result->output,
+            ),
+        ] + ($result->error !== null ? ['error' => $result->error] : []));
     }
 
-    /**
-     * @return array{status: int, body: array<string, mixed>}
-     */
-    protected function handleStatus(): array
+    protected function handleStatus(): ProxyResponse
     {
         $uptimeSeconds = (int) (microtime(true) - $this->startedAt);
 
-        return [
-            'status' => 200,
-            'body' => [
-                'uptime_seconds' => $uptimeSeconds,
-                'connections' => $this->pool->getStatus(),
-            ],
-        ];
+        return new ProxyResponse(status: 200, body: [
+            'uptime_seconds' => $uptimeSeconds,
+            'connections' => array_map(
+                fn (ConnectionStatus $c): array => [
+                    'hostname' => $c->hostname,
+                    'connected_seconds' => $c->connectedSeconds,
+                    'last_used_seconds_ago' => $c->lastUsedSecondsAgo,
+                    'locked' => $c->locked,
+                ],
+                $this->pool->getStatus(),
+            ),
+        ]);
     }
 
     /**

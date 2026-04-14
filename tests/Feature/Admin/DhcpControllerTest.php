@@ -7,6 +7,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\ValueObjects\DhcpPoolStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
@@ -30,11 +31,7 @@ class DhcpControllerTest extends TestCase
     public function test_admin_can_view_dhcp_index(): void
     {
         $mock = Mockery::mock(DhcpInterface::class);
-        $mock->shouldReceive('getPoolStatus')->once()->andReturn([
-            'total' => 254,
-            'used' => 100,
-            'available' => 154,
-        ]);
+        $mock->shouldReceive('getPoolStatus')->once()->andReturn(new DhcpPoolStatus(total: 254, used: 100, available: 154, utilisation: 100 / 254));
         $this->app->instance(DhcpInterface::class, $mock);
 
         $admin = $this->createAdminUser();

@@ -95,8 +95,8 @@ class TestConnectionController extends Controller
             );
 
             return response()->json([
-                'success' => $result['success'],
-                'message' => $result['success'] ? 'Connected successfully' : ($result['error'] ?? 'Unknown error'),
+                'success' => $result->success,
+                'message' => $result->success ? 'Connected successfully' : ($result->error ?? 'Unknown error'),
             ]);
         } catch (Throwable $throwable) {
             return response()->json(['success' => false, 'message' => 'Connection failed: '.$throwable->getMessage()]);

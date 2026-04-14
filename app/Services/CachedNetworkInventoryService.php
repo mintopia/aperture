@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\ValueObjects\PortDetail;
+use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Cache\Repository;
 use Illuminate\Support\Collection;
 
@@ -52,21 +54,21 @@ class CachedNetworkInventoryService implements NetworkInventoryInterface
         );
     }
 
-    public function resolveIpToPort(string $ipAddress): ?array
+    public function resolveIpToPort(string $ipAddress): ?ResolvedPort
     {
         return $this->cache->remember(
             'network_inventory.resolve.'.$ipAddress,
             $this->ttlMinutes * 60,
-            fn (): ?array => $this->inner->resolveIpToPort($ipAddress),
+            fn (): ?ResolvedPort => $this->inner->resolveIpToPort($ipAddress),
         );
     }
 
-    public function getPortDetail(string $portId): ?array
+    public function getPortDetail(string $portId): ?PortDetail
     {
         return $this->cache->remember(
             'network_inventory.port_detail.'.$portId,
             $this->ttlMinutes * 60,
-            fn (): ?array => $this->inner->getPortDetail($portId),
+            fn (): ?PortDetail => $this->inner->getPortDetail($portId),
         );
     }
 }

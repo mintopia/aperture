@@ -6,6 +6,8 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\MacAddressResolver;
+use App\Services\ValueObjects\ArpEntry;
+use App\Services\ValueObjects\DhcpLease;
 use Mockery;
 use Tests\TestCase;
 
@@ -16,7 +18,7 @@ class MacAddressResolverTest extends TestCase
         $dhcp = Mockery::mock(DhcpInterface::class);
         $dhcp->shouldReceive('getLease')
             ->with('192.168.1.100')
-            ->andReturn(['ip' => '192.168.1.100', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'test', 'expires' => '']);
+            ->andReturn(new DhcpLease(ip: '192.168.1.100', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'test', expires: ''));
 
         $inventory = Mockery::mock(NetworkInventoryInterface::class);
         $inventory->shouldNotReceive('getArpTable');
@@ -37,8 +39,8 @@ class MacAddressResolverTest extends TestCase
         $inventory = Mockery::mock(NetworkInventoryInterface::class);
         $inventory->shouldReceive('getArpTable')
             ->andReturn(collect([
-                ['ip' => '192.168.1.100', 'mac' => 'aa:bb:cc:dd:ee:ff'],
-                ['ip' => '192.168.1.101', 'mac' => '11:22:33:44:55:66'],
+                new ArpEntry(ip: '192.168.1.100', mac: 'aa:bb:cc:dd:ee:ff'),
+                new ArpEntry(ip: '192.168.1.101', mac: '11:22:33:44:55:66'),
             ]));
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
@@ -65,7 +67,7 @@ class MacAddressResolverTest extends TestCase
     {
         $dhcp = Mockery::mock(DhcpInterface::class);
         $dhcp->shouldReceive('getLease')
-            ->andReturn(['ip' => '10.0.0.1', 'mac' => 'aabb.ccdd.eeff', 'hostname' => '', 'expires' => '']);
+            ->andReturn(new DhcpLease(ip: '10.0.0.1', mac: 'aabb.ccdd.eeff', hostname: '', expires: ''));
 
         $inventory = Mockery::mock(NetworkInventoryInterface::class);
 
