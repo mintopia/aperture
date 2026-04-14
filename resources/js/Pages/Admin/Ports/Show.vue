@@ -68,10 +68,10 @@ const statColumns = [
         <DataTable
             :columns="statColumns"
             :rows="[
-                { metric: 'In Bytes', value: statistics?.in_bytes ?? '—' },
-                { metric: 'Out Bytes', value: statistics?.out_bytes ?? '—' },
-                { metric: 'In Errors', value: statistics?.in_errors ?? '—' },
-                { metric: 'Out Errors', value: statistics?.out_errors ?? '—' },
+                { metric: 'In Bytes', value: statistics?.inBytes ?? '—' },
+                { metric: 'Out Bytes', value: statistics?.outBytes ?? '—' },
+                { metric: 'In Errors', value: statistics?.inErrors ?? '—' },
+                { metric: 'Out Errors', value: statistics?.outErrors ?? '—' },
             ]"
         >
             <template #row="{ row }">

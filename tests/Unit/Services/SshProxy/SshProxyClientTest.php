@@ -2,6 +2,10 @@
 
 namespace Tests\Unit\Services\SshProxy;
 
+use App\Services\SshProxy\CommandOutput;
+use App\Services\SshProxy\CommandResult;
+use App\Services\SshProxy\ConnectionStatus;
+use App\Services\SshProxy\ProxyStatus;
 use App\Services\SshProxy\SshProxyClient;
 use App\Services\SshProxy\SshProxyClientInterface;
 use GuzzleHttp\Client;
@@ -51,7 +55,12 @@ class SshProxyClientTest extends TestCase
             [['command' => 'show version']],
         );
 
-        $this->assertSame($expectedResponse, $result);
+        $this->assertInstanceOf(CommandResult::class, $result);
+        $this->assertTrue($result->success);
+        $this->assertCount(1, $result->output);
+        $this->assertInstanceOf(CommandOutput::class, $result->output[0]);
+        $this->assertSame('show version', $result->output[0]->command);
+        $this->assertSame('OPNsense 23.7', $result->output[0]->output);
     }
 
     public function test_execute_returns_parsed_json_response(): void
@@ -78,10 +87,11 @@ class SshProxyClientTest extends TestCase
             ],
         );
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('output', $result);
-        $this->assertTrue($result['success']);
-        $this->assertCount(2, $result['output']);
+        $this->assertInstanceOf(CommandResult::class, $result);
+        $this->assertTrue($result->success);
+        $this->assertCount(2, $result->output);
+        $this->assertInstanceOf(CommandOutput::class, $result->output[0]);
+        $this->assertInstanceOf(CommandOutput::class, $result->output[1]);
     }
 
     public function test_execute_throws_runtime_exception_on_409(): void
@@ -137,7 +147,12 @@ class SshProxyClientTest extends TestCase
 
         $result = $proxyClient->status();
 
-        $this->assertSame($statusResponse, $result);
+        $this->assertInstanceOf(ProxyStatus::class, $result);
+        $this->assertSame(3600, $result->uptimeSeconds);
+        $this->assertCount(1, $result->connections);
+        $this->assertInstanceOf(ConnectionStatus::class, $result->connections[0]);
+        $this->assertSame('192.168.1.1', $result->connections[0]->hostname);
+        $this->assertFalse($result->connections[0]->locked);
     }
 
     public function test_status_returns_parsed_response(): void
@@ -166,12 +181,12 @@ class SshProxyClientTest extends TestCase
 
         $result = $proxyClient->status();
 
-        $this->assertArrayHasKey('uptime_seconds', $result);
-        $this->assertArrayHasKey('connections', $result);
-        $this->assertSame(7200, $result['uptime_seconds']);
-        $this->assertCount(2, $result['connections']);
-        $this->assertTrue($result['connections'][0]['locked']);
-        $this->assertFalse($result['connections'][1]['locked']);
+        $this->assertInstanceOf(ProxyStatus::class, $result);
+        $this->assertSame(7200, $result->uptimeSeconds);
+        $this->assertCount(2, $result->connections);
+        $this->assertInstanceOf(ConnectionStatus::class, $result->connections[0]);
+        $this->assertTrue($result->connections[0]->locked);
+        $this->assertFalse($result->connections[1]->locked);
     }
 
     public function test_container_binding_resolves_correctly(): void

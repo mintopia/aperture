@@ -6,6 +6,8 @@ namespace Tests\Unit\Services;
 
 use App\Services\CachedNetworkInventoryService;
 use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\ValueObjects\PortDetail;
+use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository;
 use Mockery;
@@ -77,8 +79,8 @@ class CachedNetworkInventoryServiceTest extends TestCase
 
     public function test_resolve_ip_to_port_caches_per_ip(): void
     {
-        $result1Data = ['ip' => '10.0.0.1', 'mac' => 'aa', 'port' => '1', 'switch' => 's1'];
-        $result2Data = ['ip' => '10.0.0.2', 'mac' => 'bb', 'port' => '2', 'switch' => 's1'];
+        $result1Data = new ResolvedPort(ip: '10.0.0.1', mac: 'aa', port: '1', switch: 's1');
+        $result2Data = new ResolvedPort(ip: '10.0.0.2', mac: 'bb', port: '2', switch: 's1');
 
         $this->inner->shouldReceive('resolveIpToPort')->with('10.0.0.1')->once()->andReturn($result1Data);
         $this->inner->shouldReceive('resolveIpToPort')->with('10.0.0.2')->once()->andReturn($result2Data);
@@ -87,9 +89,9 @@ class CachedNetworkInventoryServiceTest extends TestCase
         $r1b = $this->service->resolveIpToPort('10.0.0.1');
         $r2a = $this->service->resolveIpToPort('10.0.0.2');
 
-        $this->assertSame($result1Data, $r1a);
-        $this->assertSame($result1Data, $r1b);
-        $this->assertSame($result2Data, $r2a);
+        $this->assertEquals($result1Data, $r1a);
+        $this->assertEquals($result1Data, $r1b);
+        $this->assertEquals($result2Data, $r2a);
     }
 
     public function test_container_resolves_network_inventory_interface(): void
@@ -105,20 +107,14 @@ class CachedNetworkInventoryServiceTest extends TestCase
 
     public function test_get_port_detail_caches_per_port_id(): void
     {
-        $portData = [
-            'hostname' => 'switch01',
-            'interface' => 'Gi0/1',
-            'status' => 'up',
-            'adminStatus' => 'up',
-            'speed' => 1000,
-        ];
+        $portData = new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000);
 
         $this->inner->shouldReceive('getPortDetail')->with('42')->once()->andReturn($portData);
 
         $r1 = $this->service->getPortDetail('42');
         $r2 = $this->service->getPortDetail('42');
 
-        $this->assertSame($portData, $r1);
-        $this->assertSame($portData, $r2);
+        $this->assertEquals($portData, $r1);
+        $this->assertEquals($portData, $r2);
     }
 }

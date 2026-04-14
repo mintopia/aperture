@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\NetworkSwitch;
 
+use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\PortStatistics;
+use App\Services\ValueObjects\PortStatus;
+
 class IosOutputParser
 {
     /**
      * Parse `show interface {name}` output into structured data.
-     *
-     * @return array{interface: string, status: string, speed: string, duplex: string, vlan: string}
      */
-    public function parseShowInterface(string $output): array
+    public function parseShowInterface(string $output): PortStatus
     {
         $interface = '';
         $status = '';
@@ -28,21 +30,19 @@ class IosOutputParser
             $speed = $matches[2];
         }
 
-        return [
-            'interface' => $interface,
-            'status' => $status,
-            'speed' => $speed,
-            'duplex' => $duplex,
-            'vlan' => '',
-        ];
+        return new PortStatus(
+            interface: $interface,
+            status: $status,
+            speed: $speed,
+            duplex: $duplex,
+            vlan: '',
+        );
     }
 
     /**
      * Parse counters from `show interface {name}` output.
-     *
-     * @return array{in_bytes: int, out_bytes: int, in_errors: int, out_errors: int}
      */
-    public function parseInterfaceCounters(string $output): array
+    public function parseInterfaceCounters(string $output): PortStatistics
     {
         $inBytes = 0;
         $outBytes = 0;
@@ -65,18 +65,18 @@ class IosOutputParser
             $outErrors = (int) $matches[1];
         }
 
-        return [
-            'in_bytes' => $inBytes,
-            'out_bytes' => $outBytes,
-            'in_errors' => $inErrors,
-            'out_errors' => $outErrors,
-        ];
+        return new PortStatistics(
+            inBytes: $inBytes,
+            outBytes: $outBytes,
+            inErrors: $inErrors,
+            outErrors: $outErrors,
+        );
     }
 
     /**
      * Parse `show interface status` tabular output.
      *
-     * @return array<int, array{interface: string, status: string, speed: string, vlan: string}>
+     * @return array<int, PortStatus>
      */
     public function parseInterfaceStatusTable(string $output): array
     {
@@ -89,12 +89,12 @@ class IosOutputParser
             }
 
             if (preg_match('/^(\S+)\s+(.{0,18}?)\s+(connected|notconnect|disabled|err-disabled|monitoring)\s+(\S+)\s+(\S+)\s+(\S+)/', $line, $matches)) {
-                $ports[] = [
-                    'interface' => $matches[1],
-                    'status' => $matches[3],
-                    'speed' => $matches[6],
-                    'vlan' => $matches[4],
-                ];
+                $ports[] = new PortStatus(
+                    interface: $matches[1],
+                    status: $matches[3],
+                    speed: $matches[6],
+                    vlan: $matches[4],
+                );
             }
         }
 
@@ -104,7 +104,7 @@ class IosOutputParser
     /**
      * Parse `show mac address-table` output.
      *
-     * @return array<int, array{mac: string, port: string, vlan: int}>
+     * @return array<int, ForwardingEntry>
      */
     public function parseMacAddressTable(string $output): array
     {
@@ -113,11 +113,11 @@ class IosOutputParser
 
         foreach ($lines as $line) {
             if (preg_match('/^\s*(\d+)\s+([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4})\s+\S+\s+(\S+)/', $line, $matches)) {
-                $entries[] = [
-                    'mac' => $matches[2],
-                    'port' => $matches[3],
-                    'vlan' => (int) $matches[1],
-                ];
+                $entries[] = new ForwardingEntry(
+                    mac: $matches[2],
+                    port: $matches[3],
+                    vlan: (int) $matches[1],
+                );
             }
         }
 

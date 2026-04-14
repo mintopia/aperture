@@ -4,22 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Interfaces;
 
+use App\Services\ValueObjects\DhcpLease;
+use App\Services\ValueObjects\DhcpPoolStatus;
 use Illuminate\Support\Collection;
 
 interface DhcpInterface
 {
-    /**
-     * @return array{total: int, used: int, available: int, utilisation: float}
-     */
-    public function getPoolStatus(): array;
+    public function getPoolStatus(): DhcpPoolStatus;
 
-    /**
-     * @return Collection<int, array{ip: string, mac: string, hostname: string, expires: string}>
-     */
+    /** @return Collection<int, DhcpLease> */
     public function getLeases(): Collection;
 
-    /**
-     * @return array{ip: string, mac: string, hostname: string, expires: string}|null
-     */
-    public function getLease(string $ipAddress): ?array;
+    public function getLease(string $ipAddress): ?DhcpLease;
 }

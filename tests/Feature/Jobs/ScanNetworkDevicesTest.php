@@ -10,6 +10,8 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\ValueObjects\ArpEntry;
+use App\Services\ValueObjects\DhcpLease;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,7 +69,7 @@ class ScanNetworkDevicesTest extends TestCase
 
         $dhcp = Mockery::mock(DhcpInterface::class);
         $dhcp->shouldReceive('getLeases')->andReturn(collect([
-            ['ip' => '10.0.0.50', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'host', 'expires' => ''],
+            new DhcpLease(ip: '10.0.0.50', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'host', expires: ''),
         ]));
         $this->app->instance(DhcpInterface::class, $dhcp);
 
@@ -94,7 +96,7 @@ class ScanNetworkDevicesTest extends TestCase
 
         $dhcp = Mockery::mock(DhcpInterface::class);
         $dhcp->shouldReceive('getLeases')->andReturn(collect([
-            ['ip' => '10.0.0.60', 'mac' => '98:5f:d3:11:22:33', 'hostname' => 'XboxOne', 'expires' => ''],
+            new DhcpLease(ip: '10.0.0.60', mac: '98:5f:d3:11:22:33', hostname: 'XboxOne', expires: ''),
         ]));
         $this->app->instance(DhcpInterface::class, $dhcp);
 
@@ -125,7 +127,7 @@ class ScanNetworkDevicesTest extends TestCase
 
         $dhcp = Mockery::mock(DhcpInterface::class);
         $dhcp->shouldReceive('getLeases')->andReturn(collect([
-            ['ip' => '10.0.0.70', 'mac' => 'AA:BB:CC:11:22:33', 'hostname' => 'laptop', 'expires' => ''],
+            new DhcpLease(ip: '10.0.0.70', mac: 'AA:BB:CC:11:22:33', hostname: 'laptop', expires: ''),
         ]));
         $this->app->instance(DhcpInterface::class, $dhcp);
 
@@ -187,7 +189,7 @@ class ScanNetworkDevicesTest extends TestCase
 
         $inventory = Mockery::mock(NetworkInventoryInterface::class);
         $inventory->shouldReceive('getArpTable')->andReturn(collect([
-            ['ip' => '10.0.0.80', 'mac' => '11:22:33:44:55:66'],
+            new ArpEntry(ip: '10.0.0.80', mac: '11:22:33:44:55:66'),
         ]));
         $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
@@ -211,7 +213,7 @@ class ScanNetworkDevicesTest extends TestCase
 
         $dhcp = Mockery::mock(DhcpInterface::class);
         $dhcp->shouldReceive('getLeases')->andReturn(collect([
-            ['ip' => '10.0.0.90', 'mac' => 'cc:dd:ee:ff:00:11', 'hostname' => 'host', 'expires' => ''],
+            new DhcpLease(ip: '10.0.0.90', mac: 'cc:dd:ee:ff:00:11', hostname: 'host', expires: ''),
         ]));
         $this->app->instance(DhcpInterface::class, $dhcp);
 

@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\SshProxy;
 
 use App\Services\SshProxy\CommandExecutor;
+use App\Services\SshProxy\CommandOutput;
+use App\Services\SshProxy\CommandResult;
+use App\Services\SshProxy\ConnectionStatus;
 use App\Services\SshProxy\RequestHandler;
 use App\Services\SshProxy\SshConnection;
 use App\Services\SshProxy\SshConnectionPool;
 use Mockery;
 use phpseclib3\Net\SSH2;
+use RuntimeException;
 use Tests\TestCase;
 
 class RequestHandlerTest extends TestCase
@@ -45,10 +49,10 @@ class RequestHandlerTest extends TestCase
         $pool->shouldReceive('get')->with('192.168.1.1')->andReturn($conn);
 
         $executor = Mockery::mock(CommandExecutor::class);
-        $executor->shouldReceive('execute')->with($mockSsh, [['command' => 'show ver']])->andReturn([
-            'success' => true,
-            'output' => [['command' => 'show ver', 'output' => 'Cisco IOS']],
-        ]);
+        $executor->shouldReceive('execute')->with($mockSsh, [['command' => 'show ver']])->andReturn(new CommandResult(
+            success: true,
+            output: [new CommandOutput(command: 'show ver', output: 'Cisco IOS')],
+        ));
 
         $handler = $this->makeHandler($pool, $executor);
         $result = $handler->handle('POST', '/execute', ['authorization' => 'Bearer test-key'], json_encode([
@@ -58,8 +62,8 @@ class RequestHandlerTest extends TestCase
             'commands' => [['command' => 'show ver']],
         ]));
 
-        $this->assertSame(200, $result['status']);
-        $this->assertTrue($result['body']['success']);
+        $this->assertSame(200, $result->status);
+        $this->assertTrue($result->body['success']);
     }
 
     public function test_execute_with_invalid_auth_returns_401(): void
@@ -67,8 +71,8 @@ class RequestHandlerTest extends TestCase
         $handler = $this->makeHandler();
         $result = $handler->handle('POST', '/execute', ['authorization' => 'Bearer wrong-key'], '{}');
 
-        $this->assertSame(401, $result['status']);
-        $this->assertSame('Unauthorized', $result['body']['error']);
+        $this->assertSame(401, $result->status);
+        $this->assertSame('Unauthorized', $result->body['error']);
     }
 
     public function test_execute_with_missing_fields_returns_400(): void
@@ -79,8 +83,8 @@ class RequestHandlerTest extends TestCase
             'commands' => [['command' => 'show ver']],
         ]));
 
-        $this->assertSame(400, $result['status']);
-        $this->assertStringContainsString('Missing required fields', $result['body']['error']);
+        $this->assertSame(400, $result->status);
+        $this->assertStringContainsString('Missing required fields', $result->body['error']);
     }
 
     public function test_execute_with_locked_host_returns_409(): void
@@ -96,8 +100,8 @@ class RequestHandlerTest extends TestCase
             'commands' => [['command' => 'show ver']],
         ]));
 
-        $this->assertSame(409, $result['status']);
-        $this->assertStringContainsString('locked', $result['body']['error']);
+        $this->assertSame(409, $result->status);
+        $this->assertStringContainsString('locked', $result->body['error']);
     }
 
     public function test_execute_creates_new_connection_for_unknown_host(): void
@@ -110,7 +114,7 @@ class RequestHandlerTest extends TestCase
         $pool->shouldReceive('put')->with('192.168.1.1', Mockery::type(SshConnection::class))->once();
 
         $executor = Mockery::mock(CommandExecutor::class);
-        $executor->shouldReceive('execute')->with($mockSsh, Mockery::any())->andReturn(['success' => true, 'output' => []]);
+        $executor->shouldReceive('execute')->with($mockSsh, Mockery::any())->andReturn(new CommandResult(success: true, output: []));
 
         $handler = Mockery::mock(RequestHandler::class, [$pool, $executor, 'test-key'])
             ->makePartial()
@@ -126,7 +130,7 @@ class RequestHandlerTest extends TestCase
             'commands' => [['command' => 'show ver']],
         ]));
 
-        $this->assertSame(200, $result['status']);
+        $this->assertSame(200, $result->status);
     }
 
     public function test_execute_reuses_existing_connection(): void
@@ -144,10 +148,7 @@ class RequestHandlerTest extends TestCase
         $pool->shouldNotReceive('put');
 
         $executor = Mockery::mock(CommandExecutor::class);
-        $executor->shouldReceive('execute')->with($mockSsh, Mockery::any())->andReturn([
-            'success' => true,
-            'output' => [],
-        ]);
+        $executor->shouldReceive('execute')->with($mockSsh, Mockery::any())->andReturn(new CommandResult(success: true, output: []));
 
         $handler = $this->makeHandler($pool, $executor);
         $result = $handler->handle('POST', '/execute', ['authorization' => 'Bearer test-key'], json_encode([
@@ -157,7 +158,7 @@ class RequestHandlerTest extends TestCase
             'commands' => [['command' => 'show ver']],
         ]));
 
-        $this->assertSame(200, $result['status']);
+        $this->assertSame(200, $result->status);
     }
 
     public function test_execute_locks_and_unlocks_during_execution(): void
@@ -174,7 +175,7 @@ class RequestHandlerTest extends TestCase
         $pool->shouldReceive('get')->with('192.168.1.1')->andReturn($conn);
 
         $executor = Mockery::mock(CommandExecutor::class);
-        $executor->shouldReceive('execute')->andReturn(['success' => true, 'output' => []]);
+        $executor->shouldReceive('execute')->andReturn(new CommandResult(success: true, output: []));
 
         $handler = $this->makeHandler($pool, $executor);
         $result = $handler->handle('POST', '/execute', ['authorization' => 'Bearer test-key'], json_encode([
@@ -184,24 +185,24 @@ class RequestHandlerTest extends TestCase
             'commands' => [['command' => 'show ver']],
         ]));
 
-        $this->assertSame(200, $result['status']);
+        $this->assertSame(200, $result->status);
     }
 
     public function test_status_returns_pool_status_with_uptime(): void
     {
         $pool = Mockery::mock(SshConnectionPool::class);
         $pool->shouldReceive('getStatus')->andReturn([
-            ['hostname' => 'host1', 'created_at' => '2026-01-01T00:00:00+00:00', 'last_used_at' => '2026-01-01T00:00:00+00:00', 'locked' => false],
+            new ConnectionStatus(hostname: 'host1', connectedSeconds: 300, lastUsedSecondsAgo: 0, locked: false),
         ]);
 
         $handler = $this->makeHandler($pool);
         $result = $handler->handle('GET', '/status', ['authorization' => 'Bearer test-key'], '');
 
-        $this->assertSame(200, $result['status']);
-        $this->assertArrayHasKey('uptime_seconds', $result['body']);
-        $this->assertArrayHasKey('connections', $result['body']);
-        $this->assertIsInt($result['body']['uptime_seconds']);
-        $this->assertCount(1, $result['body']['connections']);
+        $this->assertSame(200, $result->status);
+        $this->assertArrayHasKey('uptime_seconds', $result->body);
+        $this->assertArrayHasKey('connections', $result->body);
+        $this->assertIsInt($result->body['uptime_seconds']);
+        $this->assertCount(1, $result->body['connections']);
     }
 
     public function test_status_with_invalid_auth_returns_401(): void
@@ -209,7 +210,7 @@ class RequestHandlerTest extends TestCase
         $handler = $this->makeHandler();
         $result = $handler->handle('GET', '/status', ['authorization' => 'Bearer wrong-key'], '');
 
-        $this->assertSame(401, $result['status']);
+        $this->assertSame(401, $result->status);
     }
 
     public function test_unknown_route_returns_404(): void
@@ -217,8 +218,8 @@ class RequestHandlerTest extends TestCase
         $handler = $this->makeHandler();
         $result = $handler->handle('GET', '/unknown', ['authorization' => 'Bearer test-key'], '');
 
-        $this->assertSame(404, $result['status']);
-        $this->assertSame('Not found', $result['body']['error']);
+        $this->assertSame(404, $result->status);
+        $this->assertSame('Not found', $result->body['error']);
     }
 
     public function test_execute_with_invalid_json_returns_400(): void
@@ -226,8 +227,8 @@ class RequestHandlerTest extends TestCase
         $handler = $this->makeHandler();
         $result = $handler->handle('POST', '/execute', ['authorization' => 'Bearer test-key'], 'not valid json{{{');
 
-        $this->assertSame(400, $result['status']);
-        $this->assertStringContainsString('Invalid JSON', $result['body']['error']);
+        $this->assertSame(400, $result->status);
+        $this->assertStringContainsString('Invalid JSON', $result->body['error']);
     }
 
     public function test_execute_returns_500_when_ssh_connection_fails(): void
@@ -243,7 +244,7 @@ class RequestHandlerTest extends TestCase
             ->shouldAllowMockingProtectedMethods();
         $handler->shouldReceive('createSshConnection')
             ->with('192.168.1.1', 'admin', 'secret')
-            ->andThrow(new \RuntimeException('Connection refused'));
+            ->andThrow(new RuntimeException('Connection refused'));
 
         $result = $handler->handle('POST', '/execute', ['authorization' => 'Bearer test-key'], json_encode([
             'hostname' => '192.168.1.1',
@@ -252,9 +253,9 @@ class RequestHandlerTest extends TestCase
             'commands' => [['command' => 'show ver']],
         ]));
 
-        $this->assertSame(500, $result['status']);
-        $this->assertFalse($result['body']['success']);
-        $this->assertStringContainsString('SSH connection failed', $result['body']['error']);
-        $this->assertStringContainsString('Connection refused', $result['body']['error']);
+        $this->assertSame(500, $result->status);
+        $this->assertFalse($result->body['success']);
+        $this->assertStringContainsString('SSH connection failed', $result->body['error']);
+        $this->assertStringContainsString('Connection refused', $result->body['error']);
     }
 }

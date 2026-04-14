@@ -73,6 +73,7 @@ class SettingsController extends Controller
             if (! is_array($fields)) {
                 continue;
             }
+
             // @codeCoverageIgnoreEnd
 
             foreach ($fields as $key => $value) {

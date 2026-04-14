@@ -70,6 +70,7 @@ class SshProxyCommand extends Command
 
             usleep(10000); // 10ms
         }
+
         // @codeCoverageIgnoreEnd
     }
 
@@ -106,6 +107,7 @@ class SshProxyCommand extends Command
                 }
             }
         }
+
         // @codeCoverageIgnoreEnd
 
         // Parse HTTP request
@@ -132,10 +134,10 @@ class SshProxyCommand extends Command
 
         $result = $handler->handle($method, $path, $headers, $body);
 
-        $responseBody = json_encode($result['body']);
+        $responseBody = json_encode($result->body);
         $httpResponse = sprintf(
             "HTTP/1.1 %d OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
-            $result['status'],
+            $result->status,
             strlen((string) $responseBody),
             $responseBody,
         );

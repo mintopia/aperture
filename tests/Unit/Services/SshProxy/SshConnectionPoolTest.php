@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\SshProxy;
 
+use App\Services\SshProxy\ConnectionStatus;
 use App\Services\SshProxy\SshConnection;
 use App\Services\SshProxy\SshConnectionPool;
 use Carbon\CarbonImmutable;
@@ -134,15 +135,17 @@ class SshConnectionPoolTest extends TestCase
 
         $this->assertCount(2, $status);
 
-        $this->assertSame('host1', $status[0]['hostname']);
-        $this->assertSame($earlier->toIso8601String(), $status[0]['created_at']);
-        $this->assertSame($now->toIso8601String(), $status[0]['last_used_at']);
-        $this->assertFalse($status[0]['locked']);
+        $this->assertInstanceOf(ConnectionStatus::class, $status[0]);
+        $this->assertSame('host1', $status[0]->hostname);
+        $this->assertGreaterThanOrEqual(300, $status[0]->connectedSeconds);
+        $this->assertSame(0, $status[0]->lastUsedSecondsAgo);
+        $this->assertFalse($status[0]->locked);
 
-        $this->assertSame('host2', $status[1]['hostname']);
-        $this->assertSame($now->toIso8601String(), $status[1]['created_at']);
-        $this->assertSame($now->toIso8601String(), $status[1]['last_used_at']);
-        $this->assertTrue($status[1]['locked']);
+        $this->assertInstanceOf(ConnectionStatus::class, $status[1]);
+        $this->assertSame('host2', $status[1]->hostname);
+        $this->assertSame(0, $status[1]->connectedSeconds);
+        $this->assertSame(0, $status[1]->lastUsedSecondsAgo);
+        $this->assertTrue($status[1]->locked);
     }
 
     public function test_disconnect_all_disconnects_and_clears(): void

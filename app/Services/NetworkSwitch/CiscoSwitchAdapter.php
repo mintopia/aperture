@@ -6,6 +6,9 @@ namespace App\Services\NetworkSwitch;
 
 use App\Services\CiscoService;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\PortStatistics;
+use App\Services\ValueObjects\PortStatus;
 use Illuminate\Support\Collection;
 
 class CiscoSwitchAdapter implements NetworkSwitchInterface
@@ -15,19 +18,14 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface
         protected IosOutputParser $parser,
     ) {}
 
-    /**
-     * @return array{interface: string, status: string, speed: string, duplex: string, vlan: string}
-     */
-    public function getPortStatus(string $portId): array
+    public function getPortStatus(string $portId): PortStatus
     {
         $output = $this->ciscoService->showInterface($portId);
 
         return $this->parser->parseShowInterface($output);
     }
 
-    /**
-     * @return Collection<int, array{interface: string, status: string, speed: string, vlan: string}>
-     */
+    /** @return Collection<int, PortStatus> */
     public function getAllPorts(): Collection
     {
         $output = $this->ciscoService->showInterfaceStatus();
@@ -49,19 +47,14 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface
         return true;
     }
 
-    /**
-     * @return array{in_bytes: int, out_bytes: int, in_errors: int, out_errors: int}
-     */
-    public function getPortStatistics(string $portId): array
+    public function getPortStatistics(string $portId): PortStatistics
     {
         $output = $this->ciscoService->showInterface($portId);
 
         return $this->parser->parseInterfaceCounters($output);
     }
 
-    /**
-     * @return Collection<int, array{mac: string, port: string, vlan: int}>
-     */
+    /** @return Collection<int, ForwardingEntry> */
     public function getForwardingDatabase(): Collection
     {
         $output = $this->ciscoService->showMacAddressTable();

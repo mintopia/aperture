@@ -8,6 +8,8 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\CiscoService;
 use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\ValueObjects\PortDetail;
+use App\Services\ValueObjects\ResolvedPort;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -309,9 +311,9 @@ class IpAddressControllerTest extends TestCase
 
         $inventory = Mockery::mock(NetworkInventoryInterface::class);
         $inventory->shouldReceive('resolveIpToPort')
-            ->andReturn(['ip' => '10.0.0.200', 'mac' => 'AA:BB:CC:DD:EE:FF', 'port' => '1', 'switch' => '']);
+            ->andReturn(new ResolvedPort(ip: '10.0.0.200', mac: 'AA:BB:CC:DD:EE:FF', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
-            ->andReturn(['hostname' => 'switch01', 'interface' => 'Gi0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000]);
+            ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000));
         $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
         $ip = new IpAddress;
@@ -338,9 +340,9 @@ class IpAddressControllerTest extends TestCase
 
         $inventory = Mockery::mock(NetworkInventoryInterface::class);
         $inventory->shouldReceive('resolveIpToPort')
-            ->andReturn(['ip' => '10.0.0.201', 'mac' => 'AA:BB:CC:DD:EE:01', 'port' => '1', 'switch' => '']);
+            ->andReturn(new ResolvedPort(ip: '10.0.0.201', mac: 'AA:BB:CC:DD:EE:01', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
-            ->andReturn(['hostname' => 'switch01', 'interface' => 'Gi0/1', 'status' => 'up', 'adminStatus' => 'up', 'speed' => 1000]);
+            ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000));
         $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
         $ip = new IpAddress;

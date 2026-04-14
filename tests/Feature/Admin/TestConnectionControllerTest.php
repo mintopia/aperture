@@ -6,6 +6,7 @@ use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
+use App\Services\SshProxy\CommandResult;
 use App\Services\SshProxy\SshProxyClientInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -171,7 +172,7 @@ class TestConnectionControllerTest extends TestCase
         $mockProxy->shouldReceive('execute')
             ->once()
             ->with($switch->hostname, $switch->username, $switch->password, Mockery::type('array'))
-            ->andReturn(['success' => true, 'output' => []]);
+            ->andReturn(new CommandResult(success: true, output: []));
 
         $this->app->instance(SshProxyClientInterface::class, $mockProxy);
 

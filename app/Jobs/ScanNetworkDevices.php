@@ -48,11 +48,11 @@ class ScanNetworkDevices implements ShouldQueue
         // Collect all network entries (DHCP leases + ARP)
         $entries = collect();
         foreach ($dhcp->getLeases() as $lease) {
-            $entries->push(['ip' => $lease['ip'], 'mac' => $lease['mac']]);
+            $entries->push(['ip' => $lease->ip, 'mac' => $lease->mac]);
         }
 
         foreach ($inventory->getArpTable() as $arp) {
-            $entries->push(['ip' => $arp['ip'], 'mac' => $arp['mac']]);
+            $entries->push(['ip' => $arp->ip, 'mac' => $arp->mac]);
         }
 
         // Deduplicate by IP

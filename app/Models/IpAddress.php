@@ -6,6 +6,7 @@ use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\IpAddressActionService;
+use App\Services\ValueObjects\PortDetail;
 use GuzzleHttp\Exception\ClientException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -25,7 +26,7 @@ use Throwable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read string|null $mac
- * @property-read object{switch: string, interface: string, status: string, adminStatus: string, speed: int}|null $port
+ * @property-read PortDetail|null $port
  * @property-read null $portUpdatedAt
  *
  * @method static Builder|IpAddress newModelQuery()
@@ -46,7 +47,7 @@ class IpAddress extends Model
 
     use ToString;
 
-    protected ?stdClass $portInfoCache = null;
+    protected ?PortDetail $portInfoCache = null;
 
     protected bool $portInfoResolved = false;
 
@@ -78,7 +79,7 @@ class IpAddress extends Model
         return $this->belongsTo(MacAddress::class);
     }
 
-    public function getPortInfo(): ?stdClass
+    public function getPortInfo(): ?PortDetail
     {
         if ($this->portInfoResolved) {
             return $this->portInfoCache;
@@ -94,18 +95,12 @@ class IpAddress extends Model
                 return null;
             }
 
-            $detail = $inventory->getPortDetail($resolved['port']);
+            $detail = $inventory->getPortDetail($resolved->port);
             if ($detail === null) {
                 return null;
             }
 
-            $this->portInfoCache = (object) [
-                'switch' => $detail['hostname'],
-                'interface' => $detail['interface'],
-                'status' => $detail['status'],
-                'adminStatus' => $detail['adminStatus'],
-                'speed' => $detail['speed'],
-            ];
+            $this->portInfoCache = $detail;
 
             return $this->portInfoCache;
         } catch (Throwable) {

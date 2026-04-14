@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\ValueObjects\DhcpLease;
 
 class MacAddressResolver implements MacAddressResolverInterface
 {
@@ -18,13 +19,13 @@ class MacAddressResolver implements MacAddressResolverInterface
     public function resolveIpToMac(string $ipAddress): ?string
     {
         $lease = $this->dhcp->getLease($ipAddress);
-        if ($lease !== null && ! empty($lease['mac'])) {
-            return $this->normalizeMac($lease['mac']);
+        if ($lease instanceof DhcpLease && ($lease->mac !== '' && $lease->mac !== '0')) {
+            return $this->normalizeMac($lease->mac);
         }
 
         $arpEntry = $this->inventory->getArpTable()->firstWhere('ip', $ipAddress);
-        if ($arpEntry !== null && ! empty($arpEntry['mac'])) {
-            return $this->normalizeMac($arpEntry['mac']);
+        if ($arpEntry !== null && ! empty($arpEntry->mac)) {
+            return $this->normalizeMac($arpEntry->mac);
         }
 
         return null;

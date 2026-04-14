@@ -32,10 +32,10 @@ class IosOutputParserTest extends TestCase
 
         $result = $this->parser->parseShowInterface($output);
 
-        $this->assertEquals('GigabitEthernet1/0/1', $result['interface']);
-        $this->assertEquals('up', $result['status']);
-        $this->assertEquals('1000Mb/s', $result['speed']);
-        $this->assertEquals('Full-duplex', $result['duplex']);
+        $this->assertEquals('GigabitEthernet1/0/1', $result->interface);
+        $this->assertEquals('up', $result->status);
+        $this->assertEquals('1000Mb/s', $result->speed);
+        $this->assertEquals('Full-duplex', $result->duplex);
     }
 
     public function test_parse_show_interface_extracts_status_down(): void
@@ -48,10 +48,10 @@ class IosOutputParserTest extends TestCase
 
         $result = $this->parser->parseShowInterface($output);
 
-        $this->assertEquals('GigabitEthernet1/0/2', $result['interface']);
-        $this->assertEquals('administratively down', $result['status']);
-        $this->assertEquals('Auto-speed', $result['speed']);
-        $this->assertEquals('Auto-duplex', $result['duplex']);
+        $this->assertEquals('GigabitEthernet1/0/2', $result->interface);
+        $this->assertEquals('administratively down', $result->status);
+        $this->assertEquals('Auto-speed', $result->speed);
+        $this->assertEquals('Auto-duplex', $result->duplex);
     }
 
     public function test_parse_show_interface_extracts_vlan_empty_by_default(): void
@@ -62,7 +62,7 @@ class IosOutputParserTest extends TestCase
         ]);
 
         $result = $this->parser->parseShowInterface($output);
-        $this->assertEquals('', $result['vlan']);
+        $this->assertEquals('', $result->vlan);
     }
 
     public function test_parse_interface_counters_extracts_values(): void
@@ -77,10 +77,10 @@ class IosOutputParserTest extends TestCase
 
         $counters = $this->parser->parseInterfaceCounters($output);
 
-        $this->assertEquals(6789012, $counters['in_bytes']);
-        $this->assertEquals(9876543, $counters['out_bytes']);
-        $this->assertEquals(3, $counters['in_errors']);
-        $this->assertEquals(5, $counters['out_errors']);
+        $this->assertEquals(6789012, $counters->inBytes);
+        $this->assertEquals(9876543, $counters->outBytes);
+        $this->assertEquals(3, $counters->inErrors);
+        $this->assertEquals(5, $counters->outErrors);
     }
 
     public function test_parse_interface_counters_defaults_to_zero(): void
@@ -89,10 +89,10 @@ class IosOutputParserTest extends TestCase
 
         $counters = $this->parser->parseInterfaceCounters($output);
 
-        $this->assertEquals(0, $counters['in_bytes']);
-        $this->assertEquals(0, $counters['out_bytes']);
-        $this->assertEquals(0, $counters['in_errors']);
-        $this->assertEquals(0, $counters['out_errors']);
+        $this->assertEquals(0, $counters->inBytes);
+        $this->assertEquals(0, $counters->outBytes);
+        $this->assertEquals(0, $counters->inErrors);
+        $this->assertEquals(0, $counters->outErrors);
     }
 
     public function test_parse_interface_status_table(): void
@@ -109,19 +109,19 @@ class IosOutputParserTest extends TestCase
 
         $this->assertCount(4, $ports);
 
-        $this->assertEquals('Gi1/0/1', $ports[0]['interface']);
-        $this->assertEquals('connected', $ports[0]['status']);
-        $this->assertEquals('a-1000', $ports[0]['speed']);
+        $this->assertEquals('Gi1/0/1', $ports[0]->interface);
+        $this->assertEquals('connected', $ports[0]->status);
+        $this->assertEquals('a-1000', $ports[0]->speed);
 
-        $this->assertEquals('Gi1/0/2', $ports[1]['interface']);
-        $this->assertEquals('notconnect', $ports[1]['status']);
-        $this->assertEquals('auto', $ports[1]['speed']);
+        $this->assertEquals('Gi1/0/2', $ports[1]->interface);
+        $this->assertEquals('notconnect', $ports[1]->status);
+        $this->assertEquals('auto', $ports[1]->speed);
 
-        $this->assertEquals('Gi1/0/3', $ports[2]['interface']);
-        $this->assertEquals('disabled', $ports[2]['status']);
+        $this->assertEquals('Gi1/0/3', $ports[2]->interface);
+        $this->assertEquals('disabled', $ports[2]->status);
 
-        $this->assertEquals('Gi1/0/4', $ports[3]['interface']);
-        $this->assertEquals('trunk', $ports[3]['vlan']);
+        $this->assertEquals('Gi1/0/4', $ports[3]->interface);
+        $this->assertEquals('trunk', $ports[3]->vlan);
     }
 
     public function test_parse_interface_status_table_empty_output(): void
@@ -150,14 +150,14 @@ class IosOutputParserTest extends TestCase
 
         $this->assertCount(3, $entries);
 
-        $this->assertEquals('aabb.ccdd.eeff', $entries[0]['mac']);
-        $this->assertEquals('Gi1/0/1', $entries[0]['port']);
-        $this->assertEquals(100, $entries[0]['vlan']);
+        $this->assertEquals('aabb.ccdd.eeff', $entries[0]->mac);
+        $this->assertEquals('Gi1/0/1', $entries[0]->port);
+        $this->assertEquals(100, $entries[0]->vlan);
 
-        $this->assertEquals('1122.3344.5566', $entries[1]['mac']);
-        $this->assertEquals('Gi1/0/2', $entries[1]['port']);
+        $this->assertEquals('1122.3344.5566', $entries[1]->mac);
+        $this->assertEquals('Gi1/0/2', $entries[1]->port);
 
-        $this->assertEquals(200, $entries[2]['vlan']);
+        $this->assertEquals(200, $entries[2]->vlan);
     }
 
     public function test_parse_mac_address_table_empty(): void

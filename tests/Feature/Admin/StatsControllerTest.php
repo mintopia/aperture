@@ -7,6 +7,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\ValueObjects\AggregateStats;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
@@ -30,10 +31,7 @@ class StatsControllerTest extends TestCase
     public function test_admin_can_view_stats_index(): void
     {
         $mock = Mockery::mock(TrafficMonitorInterface::class);
-        $mock->shouldReceive('getAggregateStats')->once()->andReturn([
-            'totalBandwidth' => 1024,
-            'activeHosts' => 10,
-        ]);
+        $mock->shouldReceive('getAggregateStats')->once()->andReturn(new AggregateStats(totalUsers: 0, totalDevices: 0, totalBandwidth: 1024));
         $this->app->instance(TrafficMonitorInterface::class, $mock);
 
         $admin = $this->createAdminUser();
