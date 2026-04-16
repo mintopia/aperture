@@ -26,7 +26,12 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
 
         $this->assertArrayHasKey('auth', $shared);
         $this->assertArrayHasKey('user', $shared['auth']);
-        $this->assertEquals($user->id, $shared['auth']['user']->id);
+        $this->assertEquals($user->id, $shared['auth']['user']['id']);
+        $this->assertEquals($user->nickname, $shared['auth']['user']['nickname']);
+        $this->assertEquals($user->email, $shared['auth']['user']['email']);
+        $this->assertArrayHasKey('is_admin', $shared['auth']['user']);
+        $this->assertArrayHasKey('has_password', $shared['auth']['user']);
+        $this->assertArrayHasKey('has_passkeys', $shared['auth']['user']);
     }
 
     public function test_shares_flash_messages(): void

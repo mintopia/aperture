@@ -17,7 +17,15 @@ class HandleInertiaRequests extends Middleware
     {
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'nickname' => $request->user()->nickname,
+                    'email' => $request->user()->email,
+                    'avatar_url' => $request->user()->avatar_url,
+                    'is_admin' => $request->user()->hasRole('admin'),
+                    'has_password' => $request->user()->password !== null,
+                    'has_passkeys' => $request->user()->webAuthnCredentials()->count() > 0,
+                ] : null,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

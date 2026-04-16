@@ -5,9 +5,13 @@ namespace App\Services\Auth;
 use App\Services\Borealis\RequestException;
 use App\Services\BorealisService;
 use App\Services\Interfaces\AuthProviderInterface;
+use RuntimeException;
+use stdClass;
 
 class BorealisDeviceFlowService implements AuthProviderInterface
 {
+    protected ?stdClass $cachedUserData = null;
+
     public function __construct(protected BorealisService $borealis) {}
 
     public function initiateDeviceFlow(string $scope): DeviceFlowResponse
@@ -36,6 +40,10 @@ class BorealisDeviceFlowService implements AuthProviderInterface
             throw $requestException;
         }
 
+        if (isset($response->user)) {
+            $this->cachedUserData = $response->user;
+        }
+
         return new AuthResult(
             accessToken: $response->access_token,
             tokenType: $response->token_type ?? 'Bearer',
@@ -46,13 +54,15 @@ class BorealisDeviceFlowService implements AuthProviderInterface
 
     public function getUserInfo(string $accessToken): UserInfo
     {
-        $response = $this->borealis->getUserWithToken($accessToken);
+        if (! $this->cachedUserData instanceof stdClass) {
+            throw new RuntimeException('User info not available. pollDeviceFlow() must be called first.');
+        }
 
         return new UserInfo(
-            id: $response->id,
-            nickname: $response->nickname,
-            email: $response->email ?? null,
-            avatarUrl: $response->avatar_url ?? null,
+            id: $this->cachedUserData->id,
+            nickname: $this->cachedUserData->nickname,
+            email: $this->cachedUserData->email ?? null,
+            avatarUrl: $this->cachedUserData->avatar_url ?? null,
         );
     }
 }

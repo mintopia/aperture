@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DhcpController;
 use App\Http\Controllers\Admin\HomeController;
@@ -50,6 +51,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/', [PortalController::class, 'index'])->name('home');
     Route::get('/status', [PortalController::class, 'status'])->name('status');
     Route::post('/ipv6', [PortalController::class, 'ipv6'])->name('ipv6')->withoutMiddleware(VerifyCsrfToken::class);
+
+    // Account settings
+    Route::prefix('account')->group(function () {
+        Route::get('/settings', [AccountController::class, 'show'])->name('account.settings');
+        Route::post('/settings/verify', [AccountController::class, 'verify'])->name('account.verify');
+        Route::put('/settings/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+        Route::delete('/settings/password', [AccountController::class, 'clearPassword'])->name('account.password.clear');
+    });
 
     // New portal routes
     Route::prefix('portal')->group(function () {

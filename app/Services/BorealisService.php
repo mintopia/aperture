@@ -38,17 +38,6 @@ class BorealisService
         ]);
     }
 
-    public function getUserWithToken(string $accessToken): stdClass
-    {
-        $response = $this->client->get('api/user', [
-            'headers' => [
-                'Authorization' => 'Bearer '.$accessToken,
-            ],
-        ]);
-
-        return $this->decodeResponse($response);
-    }
-
     /**
      * @param  array<string, mixed>  $params
      */
