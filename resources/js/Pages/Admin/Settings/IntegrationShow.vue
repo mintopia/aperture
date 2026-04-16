@@ -5,7 +5,7 @@ import SettingsNav from '@/Components/Admin/SettingsNav.vue';
 import CapabilityTag from '@/Components/UI/CapabilityTag.vue';
 import StatusPill from '@/Components/UI/StatusPill.vue';
 import FormField from '@/Components/UI/FormField.vue';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -24,6 +24,52 @@ const form = useForm({
 
 const testingConnection = ref(false);
 const testResult = ref(null);
+const remoteOptions = ref({});
+
+async function fetchRemoteOptions(field) {
+    remoteOptions.value[field.key] = {
+        loading: true,
+        options: remoteOptions.value[field.key]?.options || [],
+        error: null,
+    };
+
+    try {
+        const response = await fetch(field.remote_url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+            },
+            body: JSON.stringify(form.config),
+        });
+        const data = await response.json();
+
+        if (data.error) {
+            remoteOptions.value[field.key] = { loading: false, options: [], error: data.error };
+            return;
+        }
+
+        const key = Object.keys(data).find((k) => Array.isArray(data[k])) || 'options';
+        const items = data[key] || [];
+
+        remoteOptions.value[field.key] = {
+            loading: false,
+            options: items.map((item) => ({
+                value: item[field.remote_value || 'id'],
+                label: item[field.remote_label || 'name'],
+            })),
+            error: null,
+        };
+    } catch {
+        remoteOptions.value[field.key] = { loading: false, options: [], error: 'Failed to fetch options' };
+    }
+}
+
+onMounted(() => {
+    props.service.fields
+        .filter((f) => f.type === 'select-remote' && f.remote_url)
+        .forEach((f) => fetchRemoteOptions(f));
+});
 
 function submit() {
     form.put(route('admin.settings.integrations.service.update', props.service.id));
@@ -178,6 +224,42 @@ function testResultMessage(result) {
                                         :class="form.config[field.key] === '1' ? 'translate-x-5' : 'translate-x-0'"
                                     />
                                 </button>
+                            </template>
+
+                            <!-- Remote select field -->
+                            <template v-else-if="field.type === 'select-remote'">
+                                <div class="flex gap-2">
+                                    <select
+                                        :id="field.key"
+                                        v-model="form.config[field.key]"
+                                        :name="field.key"
+                                        :data-testid="`field-select-${field.key}`"
+                                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                                    >
+                                        <option value="">
+                                            {{ field.placeholder || 'Select…' }}
+                                        </option>
+                                        <option
+                                            v-for="option in remoteOptions[field.key]?.options || []"
+                                            :key="option.value"
+                                            :value="String(option.value)"
+                                        >
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        :data-testid="`field-refresh-${field.key}`"
+                                        class="shrink-0 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)]"
+                                        :disabled="remoteOptions[field.key]?.loading"
+                                        @click="fetchRemoteOptions(field)"
+                                    >
+                                        {{ remoteOptions[field.key]?.loading ? '…' : '↻' }}
+                                    </button>
+                                </div>
+                                <p v-if="remoteOptions[field.key]?.error" class="text-xs text-[var(--color-danger)]">
+                                    {{ remoteOptions[field.key].error }}
+                                </p>
                             </template>
 
                             <!-- Text / URL / Password / Number field -->

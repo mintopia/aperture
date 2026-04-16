@@ -116,6 +116,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
 
         // Per-service integration routes
+        Route::post('/settings/integrations/pihole/groups', [IntegrationController::class, 'piholeGroups'])->name('settings.integrations.pihole.groups');
         Route::get('/settings/integrations/{service}', [IntegrationController::class, 'show'])->name('settings.integrations.show');
         Route::put('/settings/integrations/{service}', [IntegrationController::class, 'update'])->name('settings.integrations.service.update');
         Route::put('/settings/capabilities', [IntegrationController::class, 'toggleCapability'])->name('settings.capabilities.update');

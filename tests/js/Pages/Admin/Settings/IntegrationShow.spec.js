@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IntegrationShow from '@/Pages/Admin/Settings/IntegrationShow.vue';
 
@@ -224,5 +224,199 @@ describe('IntegrationShow.vue', () => {
         expect(body).toHaveProperty('endpoint', 'https://opnsense.example.com');
         expect(body).toHaveProperty('key', 'test-key');
         expect(body).toHaveProperty('verify_ssl', '1');
+    });
+
+    describe('select-remote fields', () => {
+        const remoteService = {
+            id: 'pihole',
+            name: 'Pi-hole',
+            description: 'DNS filtering',
+            health: true,
+            config: {
+                endpoint: 'https://pihole.test',
+                password: 'secret',
+                noblock_group_id: '1',
+                verify_ssl: '1',
+                enabled: '1',
+            },
+            fields: [
+                {
+                    key: 'endpoint',
+                    type: 'url',
+                    label: 'API Endpoint',
+                    placeholder: 'https://pihole.local',
+                    help: 'Base URL',
+                    required: false,
+                },
+                {
+                    key: 'password',
+                    type: 'password',
+                    label: 'API Password',
+                    placeholder: '',
+                    help: 'Password',
+                    required: false,
+                },
+                {
+                    key: 'noblock_group_id',
+                    type: 'select-remote',
+                    label: 'Blocking Group',
+                    placeholder: 'Select a group…',
+                    help: 'Pi-hole group ID for clients that should have ad blocking enabled.',
+                    required: false,
+                    remote_url: '/admin/settings/integrations/pihole/groups',
+                    remote_label: 'name',
+                    remote_value: 'id',
+                },
+                {
+                    key: 'verify_ssl',
+                    type: 'toggle',
+                    label: 'Verify SSL',
+                    placeholder: '',
+                    help: 'Verify SSL cert',
+                    required: false,
+                },
+                {
+                    key: 'enabled',
+                    type: 'toggle',
+                    label: 'Enabled',
+                    placeholder: '',
+                    help: 'Enable or disable',
+                    required: false,
+                },
+            ],
+            capabilities: [{ name: 'dns-filtering', active: true }],
+            logs: [],
+        };
+
+        it('renders select dropdown for select-remote fields', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        groups: [
+                            { id: 0, name: 'Default', enabled: true },
+                            { id: 1, name: 'Ad Blocking', enabled: true },
+                        ],
+                    }),
+            });
+
+            const wrapper = mountPage({ service: remoteService });
+
+            // Wait for onMounted fetch to complete
+            await vi.waitFor(() => {
+                expect(wrapper.find('[data-testid="field-select-noblock_group_id"]').exists()).toBe(true);
+            });
+        });
+
+        it('renders refresh button for select-remote fields', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () => Promise.resolve({ groups: [] }),
+            });
+
+            const wrapper = mountPage({ service: remoteService });
+
+            expect(wrapper.find('[data-testid="field-refresh-noblock_group_id"]').exists()).toBe(true);
+        });
+
+        it('fetches remote options on mount for select-remote fields', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        groups: [
+                            { id: 0, name: 'Default', enabled: true },
+                            { id: 1, name: 'Ad Blocking', enabled: true },
+                        ],
+                    }),
+            });
+
+            mountPage({ service: remoteService });
+
+            // Should have been called for the remote select field
+            await vi.waitFor(() => {
+                const remoteCalls = global.fetch.mock.calls.filter(
+                    ([url]) => url === '/admin/settings/integrations/pihole/groups',
+                );
+                expect(remoteCalls.length).toBe(1);
+            });
+        });
+
+        it('populates dropdown options after fetch', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        groups: [
+                            { id: 0, name: 'Default', enabled: true },
+                            { id: 1, name: 'Ad Blocking', enabled: true },
+                        ],
+                    }),
+            });
+
+            const wrapper = mountPage({ service: remoteService });
+
+            await vi.waitFor(() => {
+                const options = wrapper.findAll('[data-testid="field-select-noblock_group_id"] option');
+                // 1 placeholder + 2 group options
+                expect(options.length).toBe(3);
+            });
+        });
+
+        it('shows error message when remote fetch fails', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () => Promise.resolve({ groups: [], error: 'Connection refused' }),
+            });
+
+            const wrapper = mountPage({ service: remoteService });
+
+            await vi.waitFor(() => {
+                expect(wrapper.text()).toContain('Connection refused');
+            });
+        });
+
+        it('sends current form config when fetching remote options', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () => Promise.resolve({ groups: [] }),
+            });
+
+            mountPage({ service: remoteService });
+
+            await vi.waitFor(() => {
+                const remoteCalls = global.fetch.mock.calls.filter(
+                    ([url]) => url === '/admin/settings/integrations/pihole/groups',
+                );
+                expect(remoteCalls.length).toBe(1);
+
+                const [, options] = remoteCalls[0];
+                expect(options.method).toBe('POST');
+                const body = JSON.parse(options.body);
+                expect(body).toHaveProperty('endpoint', 'https://pihole.test');
+                expect(body).toHaveProperty('password', 'secret');
+            });
+        });
+
+        it('re-fetches options when refresh button is clicked', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () => Promise.resolve({ groups: [{ id: 0, name: 'Default' }] }),
+            });
+
+            const wrapper = mountPage({ service: remoteService });
+
+            // Wait for initial fetch to complete and DOM to update
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+
+            const remoteCalls1 = global.fetch.mock.calls.filter(
+                ([url]) => url === '/admin/settings/integrations/pihole/groups',
+            );
+            expect(remoteCalls1.length).toBe(1);
+
+            // Click refresh button
+            await wrapper.find('[data-testid="field-refresh-noblock_group_id"]').trigger('click');
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+
+            const remoteCalls2 = global.fetch.mock.calls.filter(
+                ([url]) => url === '/admin/settings/integrations/pihole/groups',
+            );
+            expect(remoteCalls2.length).toBe(2);
+        });
     });
 });
