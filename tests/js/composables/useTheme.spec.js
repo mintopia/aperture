@@ -118,4 +118,36 @@ describe('useTheme', () => {
         const { themes } = useTheme();
         expect(themes).toEqual(['default', 'cool-neon', 'warm-neon', 'matrix', 'amber-glow']);
     });
+
+    it('previewTheme applies theme without saving to localStorage', () => {
+        const { previewTheme } = useTheme();
+        localStorageMock.setItem.mockClear();
+        previewTheme('matrix');
+        expect(document.documentElement.getAttribute('data-theme')).toBe('matrix');
+        expect(localStorageMock.setItem).not.toHaveBeenCalledWith('theme', 'matrix');
+    });
+
+    it('cancelPreview restores original theme', () => {
+        const { previewTheme, cancelPreview, theme } = useTheme();
+        const original = theme.value;
+        previewTheme('matrix');
+        cancelPreview();
+        expect(document.documentElement.getAttribute('data-theme')).toBe(original);
+    });
+
+    it('previewMode applies mode without saving to localStorage', () => {
+        const { previewMode } = useTheme();
+        localStorageMock.setItem.mockClear();
+        previewMode('light');
+        expect(document.documentElement.getAttribute('data-mode')).toBe('light');
+        expect(localStorageMock.setItem).not.toHaveBeenCalledWith('themeMode', 'light');
+    });
+
+    it('cancelPreview restores original mode', () => {
+        const { previewMode, cancelPreview, mode } = useTheme();
+        const original = mode.value;
+        previewMode('light');
+        cancelPreview();
+        expect(document.documentElement.getAttribute('data-mode')).toBe(original);
+    });
 });

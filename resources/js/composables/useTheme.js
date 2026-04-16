@@ -10,6 +10,8 @@ export function useTheme() {
 
     const theme = ref(sharedTheme.name || localStorage.getItem('theme') || 'cool-neon');
     const mode = ref(sharedTheme.mode || localStorage.getItem('themeMode') || 'dark');
+    const savedTheme = ref(theme.value);
+    const savedMode = ref(mode.value);
 
     function applyTheme() {
         const el = document.documentElement;
@@ -20,6 +22,7 @@ export function useTheme() {
     function setTheme(name) {
         if (VALID_THEMES.includes(name)) {
             theme.value = name;
+            savedTheme.value = name;
             localStorage.setItem('theme', name);
             applyTheme();
         }
@@ -27,6 +30,7 @@ export function useTheme() {
 
     function toggleMode() {
         mode.value = mode.value === 'dark' ? 'light' : 'dark';
+        savedMode.value = mode.value;
         localStorage.setItem('themeMode', mode.value);
         applyTheme();
     }
@@ -34,9 +38,30 @@ export function useTheme() {
     function setMode(newMode) {
         if (VALID_MODES.includes(newMode)) {
             mode.value = newMode;
+            savedMode.value = newMode;
             localStorage.setItem('themeMode', newMode);
             applyTheme();
         }
+    }
+
+    function previewTheme(name) {
+        if (VALID_THEMES.includes(name)) {
+            theme.value = name;
+            applyTheme();
+        }
+    }
+
+    function previewMode(newMode) {
+        if (VALID_MODES.includes(newMode)) {
+            mode.value = newMode;
+            applyTheme();
+        }
+    }
+
+    function cancelPreview() {
+        theme.value = savedTheme.value;
+        mode.value = savedMode.value;
+        applyTheme();
     }
 
     watch([theme, mode], applyTheme, { immediate: true });
@@ -47,6 +72,9 @@ export function useTheme() {
         setTheme,
         toggleMode,
         setMode,
+        previewTheme,
+        previewMode,
+        cancelPreview,
         themes: VALID_THEMES,
     };
 }

@@ -1,5 +1,7 @@
 <script setup>
+import { onBeforeUnmount } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import { useTheme } from '@/composables/useTheme.js';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import SettingsNav from '@/Components/Admin/SettingsNav.vue';
 import FormField from '@/Components/UI/FormField.vue';
@@ -14,6 +16,7 @@ const form = useForm({
     theme_name: props.settings?.theme_name ?? 'cool-neon',
     theme_mode: props.settings?.theme_mode ?? 'dark',
 });
+const { previewTheme, previewMode, cancelPreview } = useTheme();
 
 const themes = [
     { name: 'default', label: 'Default', colors: ['#6366f1', '#e11d48', '#059669'] },
@@ -25,9 +28,23 @@ const themes = [
 
 const modes = ['light', 'dark'];
 
+function selectTheme(name) {
+    form.theme_name = name;
+    previewTheme(name);
+}
+
+function selectMode(mode) {
+    form.theme_mode = mode;
+    previewMode(mode);
+}
+
 function submit() {
     form.put(route('admin.settings.theme.update'));
 }
+
+onBeforeUnmount(() => {
+    cancelPreview();
+});
 </script>
 
 <template>
@@ -53,7 +70,7 @@ function submit() {
                                 : 'border-[var(--color-border)] hover:border-[var(--color-border-hover)]'
                         "
                         class="flex flex-col items-center gap-2 rounded-lg border p-3 transition-all"
-                        @click="form.theme_name = theme.name"
+                        @click="selectTheme(theme.name)"
                     >
                         <div class="flex gap-1">
                             <span
@@ -81,7 +98,7 @@ function submit() {
                                 : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)]'
                         "
                         class="rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-all"
-                        @click="form.theme_mode = mode"
+                        @click="selectMode(mode)"
                     >
                         {{ mode }}
                     </button>
