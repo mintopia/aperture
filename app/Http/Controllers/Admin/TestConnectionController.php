@@ -89,17 +89,20 @@ class TestConnectionController extends Controller
             $dbConfig = IntegrationConfig::getAll('pihole');
             $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
+            $password = $config['password'] ?? '';
+
             $response = Http::withOptions([
                 'verify' => (bool) ($config['verify_ssl'] ?? true),
             ])
+                ->asJson()
                 ->timeout(10)
-                ->get($endpoint.'/api/info/client');
+                ->post($endpoint.'/api/auth', ['password' => $password]);
 
             $response->throw();
 
-            ConnectionTestLog::record('pihole', true, 'Connected successfully');
+            ConnectionTestLog::record('pihole', true, 'Connected and authenticated successfully');
 
-            return response()->json(['success' => true, 'message' => 'Connected successfully']);
+            return response()->json(['success' => true, 'message' => 'Connected and authenticated successfully']);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('pihole', false, 'Connection failed: '.$throwable->getMessage());
 

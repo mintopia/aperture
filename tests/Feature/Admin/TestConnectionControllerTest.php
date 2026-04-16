@@ -172,15 +172,16 @@ class TestConnectionControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
         IntegrationConfig::setValue('pihole', 'endpoint', 'https://pihole.local');
+        IntegrationConfig::setValue('pihole', 'password', 'test-pass', true);
 
         Http::fake([
-            'pihole.local/*' => Http::response(['status' => 'enabled'], 200),
+            'pihole.local/*' => Http::response(['session' => ['sid' => 'abc', 'validity' => 300]], 200),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole');
 
         $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response->assertJson(['success' => true, 'message' => 'Connected and authenticated successfully']);
     }
 
     public function test_admin_can_test_pihole_connection_failure(): void
@@ -188,9 +189,10 @@ class TestConnectionControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
         IntegrationConfig::setValue('pihole', 'endpoint', 'https://pihole.local');
+        IntegrationConfig::setValue('pihole', 'password', 'wrong-pass', true);
 
         Http::fake([
-            'pihole.local/*' => Http::response('Bad Gateway', 502),
+            'pihole.local/*' => Http::response(['error' => ['key' => 'unauthorized']], 401),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole');
@@ -378,13 +380,15 @@ class TestConnectionControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         IntegrationConfig::setValue('pihole', 'endpoint', 'https://old-pihole.example.com');
+        IntegrationConfig::setValue('pihole', 'password', 'old-pass', true);
 
         Http::fake([
-            'new-pihole.example.com/*' => Http::response('ok', 200),
+            'new-pihole.example.com/*' => Http::response(['session' => ['sid' => 'abc', 'validity' => 300]], 200),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole', [
             'endpoint' => 'https://new-pihole.example.com',
+            'password' => 'new-pass',
             'verify_ssl' => '0',
         ]);
 
@@ -393,23 +397,24 @@ class TestConnectionControllerTest extends TestCase
         Http::assertSent(fn ($req) => str_contains($req->url(), 'new-pihole.example.com'));
     }
 
-    public function test_pihole_test_uses_info_client_endpoint(): void
+    public function test_pihole_test_authenticates_via_api_auth(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
         Http::fake([
-            'pihole.test/api/info/client' => Http::response('ok', 200),
+            'pihole.test/api/auth' => Http::response(['session' => ['sid' => 'abc', 'validity' => 300]], 200),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole', [
             'endpoint' => 'https://pihole.test',
+            'password' => 'test-pass',
             'verify_ssl' => '0',
         ]);
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), '/api/info/client'));
+        Http::assertSent(fn ($req) => str_contains($req->url(), '/api/auth') && $req->method() === 'POST');
     }
 
     public function test_opnsense_test_falls_back_to_db_when_no_request_values(): void

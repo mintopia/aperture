@@ -183,7 +183,7 @@ class IntegrationController extends Controller
 
             $verifySsl = (bool) ($config['verify_ssl'] ?? true);
 
-            // Step 1: Authenticate — matches PiHoleService::getAuthToken() pattern
+            // Step 1: Authenticate — matches PiHoleService::getSessionId() pattern
             $authResponse = Http::withOptions(['verify' => $verifySsl])
                 ->timeout(10)
                 ->asJson()
@@ -196,23 +196,19 @@ class IntegrationController extends Controller
                 ]);
             }
 
-            /** @var string $token */
-            $token = $authResponse->json('session.token', '');
+            /** @var string $sid */
+            $sid = $authResponse->json('session.sid', '');
 
-            if ($token === '') {
-                $token = $authResponse->json('session.sid', '');
-            }
-
-            if ($token === '') {
+            if ($sid === '') {
                 return response()->json([
                     'groups' => [],
-                    'error' => 'Pi-hole auth succeeded but no session token found in response.',
+                    'error' => 'Pi-hole auth succeeded but no session ID found in response.',
                 ]);
             }
 
-            // Step 2: Fetch groups — uses Authorization header like PiHoleService
+            // Step 2: Fetch groups — uses X-FTL-SID header per Pi-hole v6 API
             $response = Http::withOptions(['verify' => $verifySsl])
-                ->withHeaders(['Authorization' => 'Token '.$token])
+                ->withHeaders(['X-FTL-SID' => $sid])
                 ->timeout(10)
                 ->get($endpoint.'/api/groups');
 
