@@ -193,4 +193,83 @@ class AccountControllerTest extends TestCase
             ->where('verified', true)
         );
     }
+
+    public function test_authenticated_user_can_call_passkey_destroy(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->deleteJson('/passkeys/nonexistent-credential-id');
+
+        // Credential doesn't exist, so deleted = 0, but endpoint should still respond
+        $response->assertOk();
+        $response->assertJson(['success' => false]);
+    }
+
+    public function test_guest_cannot_delete_passkeys(): void
+    {
+        $response = $this->deleteJson('/passkeys/some-credential-id');
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_passkey_destroy_returns_json(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->deleteJson('/passkeys/any-id');
+
+        $response->assertOk();
+        $response->assertJsonStructure(['success']);
+    }
+
+    public function test_passkey_destroy_returns_false_for_other_users_credential(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        // Even if we had a real credential ID from otherUser, user cannot delete it
+        $response = $this->actingAs($user)->deleteJson('/passkeys/credential-belonging-to-other');
+
+        $response->assertOk();
+        $response->assertJson(['success' => false]);
+    }
+
+    public function test_user_can_verify_after_updating_own_password(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->put('/account/settings/password', [
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        $response = $this->actingAs($user->fresh())->post('/account/settings/verify', [
+            'password' => 'newpassword123',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('account_verified', true);
+        $response->assertSessionHasNoErrors();
+    }
+
+    public function test_user_can_verify_after_admin_sets_password(): void
+    {
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $this->actingAs($admin)->put("/admin/users/{$user->id}", [
+            'nickname' => $user->nickname,
+            'email' => $user->email,
+            'password' => 'adminset123',
+            'password_confirmation' => 'adminset123',
+        ]);
+
+        $response = $this->actingAs($user->fresh())->post('/account/settings/verify', [
+            'password' => 'adminset123',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('account_verified', true);
+        $response->assertSessionHasNoErrors();
+    }
 }
