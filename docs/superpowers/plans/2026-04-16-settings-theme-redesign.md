@@ -4,7 +4,7 @@
 
 **Goal:** Replace the monolithic integrations form with a table-and-click-through architecture, add capability assignment, connection test logging, grouped settings nav, and fix the theme system.
 
-**Architecture:** New `CapabilityAssignment` and `ConnectionTestLog` Eloquent models store capability ownership and test history. `SettingsController` gets new endpoints for per-service show/update and capability toggles. The Vue frontend replaces the single `Integrations.vue` form with a read-only table page + per-service config pages. `SettingsNav.vue` becomes a grouped sidebar. Theme validation is fixed and live preview is added.
+**Architecture:** New `CapabilityAssignment` and `ConnectionTestLog` Eloquent models store capability ownership and test history. A new `IntegrationController` handles per-service show/update and capability toggles. Integration metadata (names, capabilities, descriptions, validation rules) lives in a `config/integrations.php` config file to avoid circular controller dependencies. The Vue frontend replaces the single `Integrations.vue` form with a read-only table page + per-service config pages. `SettingsNav.vue` becomes a grouped sidebar. Theme validation is fixed and live preview is added. Borealis is excluded from the CRUD flow (it uses env-based config via `config/aperture.php`) and shown as info-only in the table. The old monolithic update endpoint is kept for feature settings (dhcp, dns, auto_allow, ipv6) until dedicated feature pages are built.
 
 **Tech Stack:** Laravel 12 (PHP 8.5), Vue 3 + Inertia.js, Tailwind CSS, PHPUnit, Vitest
 
@@ -24,21 +24,21 @@
 | `app/Models/ConnectionTestLog.php` | Eloquent model for test connection logs |
 | `database/factories/CapabilityAssignmentFactory.php` | Factory |
 | `database/factories/ConnectionTestLogFactory.php` | Factory |
+| `config/integrations.php` | Integration metadata: names, descriptions, capabilities, validation rules |
 | `app/Http/Controllers/Admin/IntegrationController.php` | Per-service show/update + capability toggle endpoints |
 | `resources/js/Components/UI/CapabilityTag.vue` | Capability pill with active/inactive state |
 | `resources/js/Pages/Admin/Settings/IntegrationShow.vue` | Per-service config page |
 | `tests/Unit/Models/CapabilityAssignmentTest.php` | Unit tests for model |
 | `tests/Unit/Models/ConnectionTestLogTest.php` | Unit tests for model |
 | `tests/Feature/Admin/IntegrationControllerTest.php` | Feature tests for new controller |
-| `tests/JavaScript/Components/CapabilityTag.test.js` | Vitest component test |
-| `tests/JavaScript/Components/SettingsNav.test.js` | Vitest component test |
-| `tests/JavaScript/Pages/IntegrationShow.test.js` | Vitest page test |
+| `tests/js/Components/UI/CapabilityTag.spec.js` | Vitest component test |
+| `tests/js/Pages/Admin/Settings/IntegrationShow.spec.js` | Vitest page test |
 
 ### Modified Files
 
 | File | Changes |
 |------|---------|
-| `app/Http/Controllers/Admin/SettingsController.php` | Refactor `integrations()` to return table data; add `default` to theme validation |
+| `app/Http/Controllers/Admin/SettingsController.php` | Refactor `integrations()` to return table data; add `default` to theme validation; keep monolithic update for feature settings |
 | `app/Http/Controllers/Admin/TestConnectionController.php` | Add `ConnectionTestLog` recording after each test |
 | `resources/js/Components/Admin/SettingsNav.vue` | Grouped sidebar with section headers |
 | `resources/js/Pages/Admin/Settings/Integrations.vue` | Replace monolithic form with read-only table |
@@ -46,22 +46,73 @@
 | `resources/js/composables/useTheme.js` | Add `default` to `VALID_THEMES`, add `previewTheme`/`cancelPreview` |
 | `routes/web.php` | Add routes for integration show/update, capability toggle, health log |
 | `tests/Feature/Admin/SettingsControllerTest.php` | Update tests for refactored integrations endpoint + theme fix |
+| `tests/js/Pages/Admin/Settings/Integrations.spec.js` | Update existing spec for new table-based page |
+| `tests/js/composables/useTheme.spec.js` | Update existing spec for new preview functionality |
 
 ---
 
 ## Integration Capability Map (Reference)
 
-Used throughout the plan — this is the canonical mapping:
+Used throughout the plan — this is the canonical mapping for CRUD-managed integrations:
 
 ```php
-public const INTEGRATION_CAPABILITIES = [
-    'borealis' => ['authentication', 'sso', 'user-info'],
-    'opnsense' => ['captive-portal', 'firewall', 'rate-limiting', 'dhcp'],
-    'librenms' => ['ip-to-mac', 'mac-to-port', 'port-bandwidth', 'device-list'],
-    'ntopng' => ['user-bandwidth', 'top-talkers', 'aggregate-stats'],
-    'pihole' => ['dns-filtering', 'dhcp', 'ip-to-mac'],
+// config/integrations.php — only IntegrationConfig-backed services
+return [
+    'opnsense' => [
+        'name' => 'OPNsense',
+        'description' => 'Network firewall providing captive portal, rate limiting, and DHCP services.',
+        'capabilities' => ['captive-portal', 'firewall', 'rate-limiting', 'dhcp'],
+        'validation' => [
+            'endpoint' => 'nullable|url|max:500',
+            'key' => 'nullable|string|max:500',
+            'secret' => 'nullable|string|max:500',
+            'captive_portal_id' => 'nullable|string|max:100',
+            'verify_ssl' => 'nullable|string|in:0,1',
+            'zone_id' => 'nullable|string|max:100',
+            'ratelimit_up_uuid' => 'nullable|string|max:500',
+            'ratelimit_down_uuid' => 'nullable|string|max:500',
+        ],
+    ],
+    'librenms' => [
+        'name' => 'LibreNMS',
+        'description' => 'Network monitoring for IP/MAC resolution, port mapping, and bandwidth data.',
+        'capabilities' => ['ip-to-mac', 'mac-to-port', 'port-bandwidth', 'device-list'],
+        'validation' => [
+            'endpoint' => 'nullable|url|max:500',
+            'api_key' => 'nullable|string|max:500',
+            'enabled' => 'nullable|string|in:0,1',
+        ],
+    ],
+    'ntopng' => [
+        'name' => 'ntopng',
+        'description' => 'Traffic analysis providing per-user bandwidth metrics and top talker data.',
+        'capabilities' => ['user-bandwidth', 'top-talkers', 'aggregate-stats'],
+        'validation' => [
+            'endpoint' => 'nullable|url|max:500',
+            'username' => 'nullable|string|max:255',
+            'password' => 'nullable|string|max:500',
+            'interface' => 'nullable|string|max:100',
+            'enabled' => 'nullable|string|in:0,1',
+        ],
+    ],
+    'pihole' => [
+        'name' => 'Pi-hole',
+        'description' => 'DNS filtering and optional DHCP/IP-to-MAC resolution.',
+        'capabilities' => ['dns-filtering', 'dhcp', 'ip-to-mac'],
+        'validation' => [
+            'endpoint' => 'nullable|url|max:500',
+            'password' => 'nullable|string|max:500',
+            'noblock_group_id' => 'nullable|integer|min:1',
+            'enabled' => 'nullable|string|in:0,1',
+            'verify_ssl' => 'nullable|string|in:0,1',
+        ],
+    ],
 ];
 ```
+
+**Borealis** is NOT included in this CRUD flow. It uses env-based config via `config/aperture.php` and is shown as a read-only info row in the integrations table. It does not have a clickable config page or test connection button.
+
+**Feature settings** (dhcp, dns, auto_allow, ipv6) remain on the monolithic `updateIntegrations` endpoint until dedicated feature pages are built in a follow-up plan.
 
 ---
 
@@ -590,27 +641,16 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 
 **Files:**
 - Modify: `resources/js/Components/Admin/SettingsNav.vue`
-- Test: `tests/JavaScript/Components/SettingsNav.test.js`
+- Test: `tests/js/Components/Admin/SettingsNav.spec.js`
 
 - [ ] **Step 1: Write Vitest test for grouped SettingsNav**
+
+Update existing `tests/js/Pages/Admin/Settings/Integrations.spec.js` will happen in Task 6. For the nav, create a new spec file at `tests/js/Components/Admin/SettingsNav.spec.js`:
 
 ```javascript
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SettingsNav from '@/Components/Admin/SettingsNav.vue';
-
-// Mock Inertia
-vi.mock('@inertiajs/vue3', () => ({
-    Link: {
-        name: 'Link',
-        props: ['href'],
-        template: '<a :href="href"><slot /></a>',
-    },
-    usePage: () => ({ url: '/admin/settings/integrations' }),
-}));
-
-// Mock route helper
-globalThis.route = (name) => `/admin/settings/${name.replace('admin.settings.', '')}`;
 
 describe('SettingsNav', () => {
     it('renders grouped section headers', () => {
@@ -659,7 +699,7 @@ describe('SettingsNav', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run tests/JavaScript/Components/SettingsNav.test.js`
+Run: `npx vitest run tests/js/Components/Admin/SettingsNav.spec.js`
 Expected: FAIL (no section headers, no "Services" label)
 
 - [ ] **Step 3: Rewrite SettingsNav.vue with grouped sidebar**
@@ -751,7 +791,7 @@ Note: Feature pages (Auto-Allow, IPv6, DNS) are marked `disabled: true` since th
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run tests/JavaScript/Components/SettingsNav.test.js`
+Run: `npx vitest run tests/js/Components/Admin/SettingsNav.spec.js`
 Expected: All 4 tests PASS
 
 - [ ] **Step 5: Format + commit**
@@ -773,7 +813,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 
 **Files:**
 - Create: `resources/js/Components/UI/CapabilityTag.vue`
-- Test: `tests/JavaScript/Components/CapabilityTag.test.js`
+- Test: `tests/js/Components/UI/CapabilityTag.spec.js`
 
 - [ ] **Step 1: Write Vitest test**
 
@@ -823,7 +863,7 @@ describe('CapabilityTag', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run tests/JavaScript/Components/CapabilityTag.test.js`
+Run: `npx vitest run tests/js/Components/UI/CapabilityTag.spec.js`
 Expected: FAIL
 
 - [ ] **Step 3: Create CapabilityTag component**
@@ -851,7 +891,7 @@ defineProps({
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run tests/JavaScript/Components/CapabilityTag.test.js`
+Run: `npx vitest run tests/js/Components/UI/CapabilityTag.spec.js`
 Expected: All 4 tests PASS
 
 - [ ] **Step 5: Format + commit**
@@ -871,11 +911,18 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ## Task 6: Integration Table Backend + Frontend
 
 **Files:**
+- Create: `config/integrations.php`
 - Modify: `app/Http/Controllers/Admin/SettingsController.php`
 - Modify: `resources/js/Pages/Admin/Settings/Integrations.vue`
 - Modify: `tests/Feature/Admin/SettingsControllerTest.php`
 
-### 6a: Backend — Refactor integrations() method
+### 6a: Prerequisites — Create config/integrations.php
+
+- [ ] **Step 0: Create the integration metadata config file**
+
+Create `config/integrations.php` with the full integration map (see Integration Capability Map above). This file is the single source of truth for integration names, descriptions, capabilities, and validation rules. Both `SettingsController` and `IntegrationController` read from it.
+
+### 6b: Backend — Refactor integrations() method
 
 - [ ] **Step 1: Write failing test for new integrations response shape**
 
@@ -916,64 +963,68 @@ Replace the `integrations()` method in `app/Http/Controllers/Admin/SettingsContr
 ```php
 public function integrations(): Response
 {
-    $services = collect(IntegrationController::INTEGRATION_CAPABILITIES)->map(function (array $capabilities, string $id): array {
+    $integrations = config('integrations');
+
+    $services = collect($integrations)->map(function (array $meta, string $id): array {
         $config = IntegrationConfig::getAll($id);
         $latestTest = ConnectionTestLog::latestFor($id);
         $activeCapabilities = CapabilityAssignment::getForIntegration($id);
 
         return [
             'id' => $id,
-            'name' => self::integrationName($id),
-            'enabled' => ! empty($config['endpoint'] ?? $config['enabled'] ?? null),
+            'name' => $meta['name'],
+            'enabled' => $this->isIntegrationEnabled($id, $config),
             'health' => $latestTest?->success,
-            'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
+            'capabilities' => collect($meta['capabilities'])->map(fn (string $cap): array => [
                 'name' => $cap,
                 'active' => $activeCapabilities->contains($cap),
             ])->values()->all(),
         ];
     })->values()->all();
 
+    // Add Borealis as read-only info row (env-based config from config/aperture.php)
+    $borealisEnabled = config('aperture.borealis.enabled', false);
+    array_unshift($services, [
+        'id' => 'borealis',
+        'name' => 'Borealis',
+        'enabled' => $borealisEnabled,
+        'health' => null,
+        'readonly' => true,
+        'capabilities' => collect(['authentication', 'sso', 'user-info'])->map(fn (string $cap): array => [
+            'name' => $cap,
+            'active' => $borealisEnabled,
+        ])->values()->all(),
+    ]);
+
     return Inertia::render('Admin/Settings/Integrations', [
         'services' => $services,
     ]);
 }
 
-public static function integrationName(string $id): string
+/**
+ * Determine if an integration is enabled by checking explicit enabled flag first,
+ * then falling back to endpoint presence.
+ */
+private function isIntegrationEnabled(string $id, array $config): bool
 {
-    return match ($id) {
-        'borealis' => 'Borealis',
-        'opnsense' => 'OPNsense',
-        'librenms' => 'LibreNMS',
-        'ntopng' => 'ntopng',
-        'pihole' => 'Pi-hole',
-        default => ucfirst($id),
-    };
+    // Explicit enabled flag takes priority
+    if (isset($config['enabled'])) {
+        return (bool) $config['enabled'];
+    }
+
+    // Fall back to endpoint presence for services that don't have an enabled flag
+    return ! empty($config['endpoint'] ?? null);
 }
 ```
 
 Add these imports to `SettingsController.php`:
 
 ```php
-use App\Http\Controllers\Admin\IntegrationController;
 use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
 ```
 
-Note: `IntegrationController::INTEGRATION_CAPABILITIES` is the constant defined in Task 7. To avoid circular dependency, define this constant directly in `SettingsController` for now, then move it to `IntegrationController` in Task 7. Alternatively, define it in `IntegrationController` first (see Task 7 step ordering).
-
-**Important dependency:** Task 7 creates `IntegrationController` with the constant. To avoid dependency issues, define the constant temporarily in `SettingsController`:
-
-```php
-public const INTEGRATION_CAPABILITIES = [
-    'borealis' => ['authentication', 'sso', 'user-info'],
-    'opnsense' => ['captive-portal', 'firewall', 'rate-limiting', 'dhcp'],
-    'librenms' => ['ip-to-mac', 'mac-to-port', 'port-bandwidth', 'device-list'],
-    'ntopng' => ['user-bandwidth', 'top-talkers', 'aggregate-stats'],
-    'pihole' => ['dns-filtering', 'dhcp', 'ip-to-mac'],
-];
-```
-
-Then reference it as `self::INTEGRATION_CAPABILITIES` instead of `IntegrationController::INTEGRATION_CAPABILITIES`.
+**Note:** Integration metadata comes from `config/integrations.php` (created in this task). This avoids circular controller dependencies — neither controller references the other. The `integrationName()` static method is removed in favor of the config-based approach.
 
 - [ ] **Step 4: Update existing integration tests**
 
@@ -995,7 +1046,7 @@ public function test_admin_can_view_integrations_settings(): void
 }
 ```
 
-The `test_admin_can_update_integrations_settings` and `test_admin_can_update_existing_integration_setting` tests use the old PUT /admin/settings/integrations endpoint. This endpoint will be removed in Task 7 when individual update endpoints are added. For now, keep the `updateIntegrations` method but mark it as deprecated. The tests remain valid until Task 7.
+**Important:** The `test_admin_can_update_integrations_settings` and `test_admin_can_update_existing_integration_setting` tests use the old PUT /admin/settings/integrations endpoint. This endpoint MUST BE KEPT for feature settings (dhcp, dns, auto_allow, ipv6) — do NOT remove `updateIntegrations()`. Keep all existing tests passing. The `SettingsControllerIntegrationExpansionTest` tests must also continue to pass.
 
 - [ ] **Step 5: Run tests**
 
@@ -1053,7 +1104,7 @@ function healthLabel(health) {
             :columns="columns"
             :rows="services"
             :clickable="true"
-            :row-href="(row) => route('admin.settings.integrations.show', row.id)"
+            :row-href="(row) => row.readonly ? null : route('admin.settings.integrations.show', row.id)"
             data-testid="integrations-table"
         >
             <template #row="{ row }">
@@ -1303,32 +1354,26 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class IntegrationController extends Controller
 {
-    /** @var array<string, list<string>> */
-    public const INTEGRATION_CAPABILITIES = [
-        'borealis' => ['authentication', 'sso', 'user-info'],
-        'opnsense' => ['captive-portal', 'firewall', 'rate-limiting', 'dhcp'],
-        'librenms' => ['ip-to-mac', 'mac-to-port', 'port-bandwidth', 'device-list'],
-        'ntopng' => ['user-bandwidth', 'top-talkers', 'aggregate-stats'],
-        'pihole' => ['dns-filtering', 'dhcp', 'ip-to-mac'],
-    ];
-
-    /** @var array<string, string> */
-    private const INTEGRATION_DESCRIPTIONS = [
-        'borealis' => 'SSO authentication provider for user identity and role mapping.',
-        'opnsense' => 'Network firewall providing captive portal, rate limiting, and DHCP services.',
-        'librenms' => 'Network monitoring for IP/MAC resolution, port mapping, and bandwidth data.',
-        'ntopng' => 'Traffic analysis providing per-user bandwidth metrics and top talker data.',
-        'pihole' => 'DNS filtering and optional DHCP/IP-to-MAC resolution.',
-    ];
+    /**
+     * Get integration metadata from config.
+     *
+     * @return array<string, array{name: string, description: string, capabilities: list<string>, validation: array<string, string>}>
+     */
+    private function integrations(): array
+    {
+        return config('integrations', []);
+    }
 
     public function show(string $service): Response
     {
-        if (! array_key_exists($service, self::INTEGRATION_CAPABILITIES)) {
+        $integrations = $this->integrations();
+
+        if (! array_key_exists($service, $integrations)) {
             throw new NotFoundHttpException("Unknown integration: {$service}");
         }
 
+        $meta = $integrations[$service];
         $config = IntegrationConfig::getAll($service);
-        $capabilities = self::INTEGRATION_CAPABILITIES[$service];
         $activeCapabilities = CapabilityAssignment::getForIntegration($service);
         $logs = ConnectionTestLog::recentFor($service, 20);
         $latestTest = $logs->first();
@@ -1336,10 +1381,10 @@ class IntegrationController extends Controller
         return Inertia::render('Admin/Settings/IntegrationShow', [
             'service' => [
                 'id' => $service,
-                'name' => SettingsController::integrationName($service),
-                'description' => self::INTEGRATION_DESCRIPTIONS[$service] ?? '',
+                'name' => $meta['name'],
+                'description' => $meta['description'] ?? '',
                 'config' => $config,
-                'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
+                'capabilities' => collect($meta['capabilities'])->map(fn (string $cap): array => [
                     'name' => $cap,
                     'active' => $activeCapabilities->contains($cap),
                 ])->values()->all(),
@@ -1356,16 +1401,29 @@ class IntegrationController extends Controller
 
     public function update(Request $request, string $service): RedirectResponse
     {
-        if (! array_key_exists($service, self::INTEGRATION_CAPABILITIES)) {
+        $integrations = $this->integrations();
+
+        if (! array_key_exists($service, $integrations)) {
             throw new NotFoundHttpException("Unknown integration: {$service}");
         }
 
-        $validated = $request->validate([
-            'config' => 'required|array',
-            'config.*' => 'nullable|string|max:500',
-        ]);
+        // Per-service validation rules from config/integrations.php
+        $validationRules = $integrations[$service]['validation'] ?? [];
+        $rules = [];
+        foreach ($validationRules as $field => $rule) {
+            $rules["config.{$field}"] = $rule;
+        }
+
+        // Ensure at minimum config is an array
+        $rules['config'] = 'required|array';
+
+        $validated = $request->validate($rules);
 
         foreach ($validated['config'] as $key => $value) {
+            // Only save keys that are in the validation whitelist
+            if (! array_key_exists($key, $validationRules)) {
+                continue;
+            }
             $encrypted = in_array($key, IntegrationConfig::ENCRYPTED_KEYS, true);
             IntegrationConfig::setValue($service, $key, $value, $encrypted);
         }
@@ -1381,7 +1439,9 @@ class IntegrationController extends Controller
             'active' => 'required|boolean',
         ]);
 
-        $capabilities = self::INTEGRATION_CAPABILITIES[$validated['integration']] ?? [];
+        $integrations = $this->integrations();
+        $capabilities = $integrations[$validated['integration']]['capabilities'] ?? [];
+
         if (! in_array($validated['capability'], $capabilities, true)) {
             return response()->json([
                 'message' => "Integration {$validated['integration']} does not support capability {$validated['capability']}.",
@@ -1399,7 +1459,9 @@ class IntegrationController extends Controller
 
     public function healthLog(string $service): JsonResponse
     {
-        if (! array_key_exists($service, self::INTEGRATION_CAPABILITIES)) {
+        $integrations = $this->integrations();
+
+        if (! array_key_exists($service, $integrations)) {
             throw new NotFoundHttpException("Unknown integration: {$service}");
         }
 
@@ -1429,7 +1491,7 @@ And add these routes inside the admin middleware group:
 
 ```php
         Route::get('/settings/integrations/{service}', [IntegrationController::class, 'show'])->name('settings.integrations.show');
-        Route::put('/settings/integrations/{service}', [IntegrationController::class, 'update'])->name('settings.integrations.update');
+        Route::put('/settings/integrations/{service}', [IntegrationController::class, 'update'])->name('settings.integrations.service.update');
         Route::put('/settings/capabilities', [IntegrationController::class, 'toggleCapability'])->name('settings.capabilities.update');
         Route::get('/settings/integrations/{service}/health-log', [IntegrationController::class, 'healthLog'])->name('settings.integrations.health-log');
 ```
@@ -1471,7 +1533,7 @@ const testingConnection = ref(false);
 const testResult = ref(null);
 
 function submit() {
-    form.put(route('admin.settings.integrations.update', props.service.id));
+    form.put(route('admin.settings.integrations.service.update', props.service.id));
 }
 
 async function testConnection() {
@@ -1805,11 +1867,11 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 **Files:**
 - Modify: `resources/js/composables/useTheme.js`
 - Modify: `resources/js/Pages/Admin/Settings/Theme.vue`
-- Test: `tests/JavaScript/composables/useTheme.test.js`
+- Test: `tests/js/composables/useTheme.spec.js`
 
 - [ ] **Step 1: Write Vitest test for preview/cancel functionality**
 
-Create `tests/JavaScript/composables/useTheme.test.js`:
+Update existing `tests/js/composables/useTheme.spec.js` — add these new tests alongside existing ones:
 
 ```javascript
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -1867,7 +1929,7 @@ describe('useTheme', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx vitest run tests/JavaScript/composables/useTheme.test.js`
+Run: `npx vitest run tests/js/composables/useTheme.spec.js`
 Expected: FAIL (`previewTheme` not defined)
 
 - [ ] **Step 3: Add previewTheme/cancelPreview to useTheme.js**
@@ -1959,7 +2021,7 @@ export function useTheme() {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx vitest run tests/JavaScript/composables/useTheme.test.js`
+Run: `npx vitest run tests/js/composables/useTheme.spec.js`
 Expected: All 4 tests PASS
 
 - [ ] **Step 5: Update Theme.vue for live preview**
@@ -2037,49 +2099,63 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 
 ---
 
-## Task 10: Remove Old Monolithic Integration Update + Clean Up Routes
+## Task 10: Clean Up Routes + Deprecation Comments
 
 **Files:**
 - Modify: `app/Http/Controllers/Admin/SettingsController.php`
 - Modify: `routes/web.php`
-- Modify: `tests/Feature/Admin/SettingsControllerTest.php`
-- Modify: `tests/Feature/Admin/SettingsControllerIntegrationExpansionTest.php`
 
-- [ ] **Step 1: Remove old updateIntegrations method from SettingsController**
+**IMPORTANT:** Do NOT remove the monolithic `updateIntegrations()` method. Feature settings (dhcp, dns, auto_allow, ipv6) still depend on it. The per-service `IntegrationController@update` only handles the 4 CRUD-managed integrations (opnsense, librenms, ntopng, pihole). The monolithic endpoint will be removed in a future plan when dedicated feature settings pages are built.
 
-Delete the `updateIntegrations` method and the `INTEGRATION_CAPABILITIES` constant from `SettingsController.php` (it now lives in `IntegrationController`). Also update the `integrations()` method to reference `IntegrationController::INTEGRATION_CAPABILITIES`.
+- [ ] **Step 1: Add deprecation comment to updateIntegrations**
 
-- [ ] **Step 2: Remove old PUT route**
+Add a PHPDoc block to `updateIntegrations()` in `SettingsController.php`:
 
-In `routes/web.php`, remove:
 ```php
-Route::put('/settings/integrations', [SettingsController::class, 'updateIntegrations'])->name('settings.integrations.update');
+/**
+ * Update integration settings (monolithic endpoint).
+ *
+ * @deprecated Feature settings (dhcp, dns, auto_allow, ipv6) still use this endpoint.
+ *             Per-integration config is now handled by IntegrationController@update.
+ *             Remove this method when dedicated feature settings pages are built.
+ */
+public function updateIntegrations(Request $request): RedirectResponse
 ```
 
-- [ ] **Step 3: Update tests**
+- [ ] **Step 2: Verify route ordering in web.php**
 
-Remove `test_admin_can_update_integrations_settings` and `test_admin_can_update_existing_integration_setting` from `SettingsControllerTest.php` — these tested the old monolithic update endpoint which is replaced by `IntegrationController@update`.
+Ensure the static routes come BEFORE the `{service}` wildcard:
 
-Update the `SettingsControllerIntegrationExpansionTest.php` to use the new per-service endpoint instead. Each test that POSTs to `/admin/settings/integrations` should be updated to PUT to `/admin/settings/integrations/{service}` with the new request format.
+```php
+// Static integration list + feature settings update (keep for dhcp/dns/auto_allow/ipv6)
+Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
+Route::put('/settings/integrations', [SettingsController::class, 'updateIntegrations'])->name('settings.integrations.update');
 
-- [ ] **Step 4: Run all settings tests**
+// Per-service CRUD routes (must come AFTER static routes)
+Route::get('/settings/integrations/{service}', [IntegrationController::class, 'show'])->name('settings.integrations.show');
+Route::put('/settings/integrations/{service}', [IntegrationController::class, 'update'])->name('settings.integrations.service.update');
+Route::put('/settings/capabilities', [IntegrationController::class, 'toggleCapability'])->name('settings.capabilities.update');
+Route::get('/settings/integrations/{service}/health-log', [IntegrationController::class, 'healthLog'])->name('settings.integrations.health-log');
+```
+
+- [ ] **Step 3: Run all settings tests (including expansion tests)**
 
 Run: `php artisan test --compact --filter=Settings`
+Expected: All PASS — both old monolithic tests and new per-service tests
+
+Run: `php artisan test --compact --filter=IntegrationControllerTest`
 Expected: All PASS
 
-- [ ] **Step 5: Run full test suite**
-
-Run: `php artisan test --compact`
-Expected: All PASS
-
-- [ ] **Step 6: Format + commit**
+- [ ] **Step 4: Format + commit**
 
 ```bash
 vendor/bin/pint --dirty --format agent
-git add -A && git commit -m "refactor: remove monolithic integration update endpoint
+git add -A && git commit -m "chore: add deprecation comments and fix route ordering
 
-Replace single PUT /settings/integrations with per-service endpoints.
-Update tests to use IntegrationController@update.
+Mark monolithic updateIntegrations as deprecated. Feature settings
+(dhcp, dns, auto_allow, ipv6) still use it. Per-service config now
+handled by IntegrationController. Ensure route ordering prevents
+wildcard matching.
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
@@ -2131,7 +2207,7 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ### Spec Coverage
 - [x] Section 1.1: Integration Table Page → Task 6 (backend + frontend)
 - [x] Section 1.2: Integration Config Page → Task 7 (IntegrationController + IntegrationShow.vue)
-- [x] Section 1.3: Integration Definitions → constant in IntegrationController
+- [x] Section 1.3: Integration Definitions → config/integrations.php (no circular deps)
 - [x] Section 1.4: Capability Assignment Model → Task 1 + Task 7 (toggleCapability)
 - [x] Section 1.5: Switches Page → unchanged, new nav via Task 4
 - [x] Section 1.6: Feature Settings Pages → disabled nav items in Task 4 (future scope)
@@ -2139,6 +2215,15 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 - [x] Section 6.1: Validation fix → Task 3
 - [x] Section 6.2: Amber Glow CSS → exists, no work needed
 - [x] Section 6.3: Live Preview → Task 9
+
+### Rubber-Duck Findings Addressed
+- [x] Borealis excluded from CRUD — shown as read-only info row in table
+- [x] Feature settings (dhcp, dns, auto_allow, ipv6) kept on monolithic endpoint
+- [x] Route name collision fixed — per-service uses `settings.integrations.service.update`
+- [x] Validation regression fixed — per-service rules in config/integrations.php
+- [x] JS test paths fixed — use `tests/js/` with `.spec.js` convention
+- [x] Circular dependency fixed — metadata in config/integrations.php, not controller constants
+- [x] Enabled status logic fixed — explicit `enabled` flag checked before endpoint presence
 
 ### Placeholder Scan
 - No TBD/TODO found
