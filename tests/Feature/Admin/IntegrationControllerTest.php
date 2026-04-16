@@ -192,22 +192,143 @@ class IntegrationControllerTest extends TestCase
         $response->assertJsonPath('groups.1.name', 'Ad Blocking');
     }
 
-    public function test_pihole_groups_returns_error_on_failure(): void
+    public function test_pihole_groups_returns_error_on_auth_failure(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
         Http::fake([
-            '*' => Http::response('Server Error', 500),
+            '*/api/auth' => Http::response(['error' => ['key' => 'unauthorized']], 401),
         ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://pihole.test',
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('groups', []);
+        $this->assertStringContainsString('authentication failed', $response->json('error'));
+    }
+
+    public function test_pihole_groups_returns_error_on_groups_failure(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Http::fake([
+            '*/api/auth' => Http::response(['session' => ['token' => 'tok', 'validity' => 300]], 200),
+            '*/api/groups' => Http::response('Forbidden', 403),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://pihole.test',
+            'password' => 'test',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('groups', []);
+        $this->assertStringContainsString('Failed to fetch Pi-hole groups', $response->json('error'));
+    }
+
+    public function test_pihole_groups_returns_error_when_no_endpoint(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'password' => 'test',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('groups', []);
+        $this->assertStringContainsString('endpoint is not configured', $response->json('error'));
+    }
+
+    public function test_pihole_groups_returns_error_when_no_password(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
             'endpoint' => 'https://pihole.test',
         ]);
 
         $response->assertOk();
-        $response->assertJsonStructure(['groups', 'error']);
         $response->assertJsonPath('groups', []);
+        $this->assertStringContainsString('password is not configured', $response->json('error'));
+    }
+
+    public function test_pihole_groups_returns_error_when_token_missing_from_auth_response(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Http::fake([
+            '*/api/auth' => Http::response(['session' => ['validity' => 300]], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://pihole.test',
+            'password' => 'test',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('groups', []);
+        $this->assertStringContainsString('no session token', $response->json('error'));
+    }
+
+    public function test_pihole_groups_uses_sid_fallback_token(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Http::fake([
+            '*/api/auth' => Http::response(['session' => ['sid' => 'sid-token-value', 'validity' => 300]], 200),
+            '*/api/groups' => Http::response(['groups' => [
+                ['id' => 0, 'name' => 'Default', 'enabled' => true],
+            ]], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://pihole.test',
+            'password' => 'test',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'groups');
+
+        Http::assertSent(function ($req) {
+            if (str_contains($req->url(), '/api/groups')) {
+                return $req->header('Authorization') === ['Token sid-token-value'];
+            }
+
+            return true;
+        });
+    }
+
+    public function test_pihole_groups_sends_json_content_type_for_auth(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Http::fake([
+            '*/api/auth' => Http::response(['session' => ['token' => 'tok', 'validity' => 300]], 200),
+            '*/api/groups' => Http::response(['groups' => []], 200),
+        ]);
+
+        $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://pihole.test',
+            'password' => 'test',
+        ]);
+
+        Http::assertSent(function ($req) {
+            if (str_contains($req->url(), '/api/auth')) {
+                return $req->header('Content-Type')[0] === 'application/json';
+            }
+
+            return true;
+        });
     }
 
     public function test_pihole_groups_uses_request_values_over_db(): void
