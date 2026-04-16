@@ -96,6 +96,10 @@ function fieldLabel(key) {
         .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
         .join(' ');
 }
+
+function testResultMessage(result) {
+    return result.message ?? (result.success ? 'Connected successfully' : 'Connection failed');
+}
 </script>
 
 <template>
@@ -184,10 +188,7 @@ function fieldLabel(key) {
                         </button>
 
                         <p v-if="testResult" class="text-sm text-[var(--color-text-secondary)]">
-                            {{
-                                testResult.message ??
-                                (testResult.success ? 'Connected successfully' : 'Connection failed')
-                            }}
+                            {{ testResultMessage(testResult) }}
                         </p>
                     </div>
                 </form>

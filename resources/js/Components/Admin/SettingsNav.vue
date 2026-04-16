@@ -40,6 +40,16 @@ function isActive(href) {
 function testId(label) {
     return `settings-nav-${label.toLowerCase().replace(/\s+/g, '-')}`;
 }
+
+function itemClass(item) {
+    if (item.disabled) {
+        return 'cursor-not-allowed text-[var(--color-text-secondary)] opacity-40';
+    }
+
+    return isActive(item.href)
+        ? 'bg-[var(--color-primary)]/10 font-semibold text-[var(--color-primary)]'
+        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]';
+}
 </script>
 
 <template>
@@ -64,13 +74,7 @@ function testId(label) {
                         :key="item.label"
                         :href="item.disabled ? undefined : item.href"
                         :data-testid="testId(item.label)"
-                        :class="
-                            item.disabled
-                                ? 'cursor-not-allowed text-[var(--color-text-secondary)] opacity-40'
-                                : isActive(item.href)
-                                  ? 'bg-[var(--color-primary)]/10 font-semibold text-[var(--color-primary)]'
-                                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]'
-                        "
+                        :class="itemClass(item)"
                         class="rounded-md px-2.5 py-1.5 text-[11px] transition-colors"
                     >
                         {{ item.label }}

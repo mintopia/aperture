@@ -6,7 +6,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
 
-const props = defineProps({
+defineProps({
     services: { type: Array, default: () => [] },
 });
 

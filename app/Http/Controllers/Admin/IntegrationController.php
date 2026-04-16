@@ -15,16 +15,27 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class IntegrationController extends Controller
 {
+    /**
+     * @return array<string, array{
+     *     name: string,
+     *     description?: string,
+     *     capabilities: list<string>,
+     *     validation?: array<string, string>
+     * }>
+     */
     private function integrations(): array
     {
-        return config('integrations', []);
+        /** @var array<string, array{name: string, description?: string, capabilities: list<string>, validation?: array<string, string>}> $integrations */
+        $integrations = config('integrations', []);
+
+        return $integrations;
     }
 
     public function show(string $service): Response
     {
         $integrations = $this->integrations();
         if (! array_key_exists($service, $integrations)) {
-            throw new NotFoundHttpException("Unknown integration: {$service}");
+            throw new NotFoundHttpException('Unknown integration: '.$service);
         }
 
         $meta = $integrations[$service];
@@ -32,6 +43,7 @@ class IntegrationController extends Controller
         $activeCapabilities = CapabilityAssignment::getForIntegration($service);
         $logs = ConnectionTestLog::recentFor($service, 20);
         $latestTest = $logs->first();
+        $capabilities = $meta['capabilities'];
 
         return Inertia::render('Admin/Settings/IntegrationShow', [
             'service' => [
@@ -39,7 +51,7 @@ class IntegrationController extends Controller
                 'name' => $meta['name'],
                 'description' => $meta['description'] ?? '',
                 'config' => $config,
-                'capabilities' => collect($meta['capabilities'])->map(fn (string $cap): array => [
+                'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
                     'name' => $cap,
                     'active' => $activeCapabilities->contains($cap),
                 ])->values()->all(),
@@ -48,7 +60,7 @@ class IntegrationController extends Controller
                     'id' => $log->id,
                     'success' => $log->success,
                     'message' => $log->message,
-                    'tested_at' => $log->created_at->toIso8601String(),
+                    'tested_at' => $log->created_at?->toIso8601String(),
                 ])->values()->all(),
             ],
         ]);
@@ -58,13 +70,13 @@ class IntegrationController extends Controller
     {
         $integrations = $this->integrations();
         if (! array_key_exists($service, $integrations)) {
-            throw new NotFoundHttpException("Unknown integration: {$service}");
+            throw new NotFoundHttpException('Unknown integration: '.$service);
         }
 
         $validationRules = $integrations[$service]['validation'] ?? [];
         $rules = ['config' => 'required|array'];
         foreach ($validationRules as $field => $rule) {
-            $rules["config.{$field}"] = $rule;
+            $rules['config.'.$field] = $rule;
         }
 
         $validated = $request->validate($rules);
@@ -94,7 +106,11 @@ class IntegrationController extends Controller
 
         if (! in_array($validated['capability'], $capabilities, true)) {
             return response()->json([
-                'message' => "Integration {$validated['integration']} does not support capability {$validated['capability']}.",
+                'message' => sprintf(
+                    'Integration %s does not support capability %s.',
+                    $validated['integration'],
+                    $validated['capability']
+                ),
             ], 422);
         }
 
@@ -111,7 +127,7 @@ class IntegrationController extends Controller
     {
         $integrations = $this->integrations();
         if (! array_key_exists($service, $integrations)) {
-            throw new NotFoundHttpException("Unknown integration: {$service}");
+            throw new NotFoundHttpException('Unknown integration: '.$service);
         }
 
         $logs = ConnectionTestLog::recentFor($service, 20);
@@ -121,7 +137,7 @@ class IntegrationController extends Controller
                 'id' => $log->id,
                 'success' => $log->success,
                 'message' => $log->message,
-                'tested_at' => $log->created_at->toIso8601String(),
+                'tested_at' => $log->created_at?->toIso8601String(),
             ])->values()->all(),
         ]);
     }
