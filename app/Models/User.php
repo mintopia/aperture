@@ -72,6 +72,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
+        'password',
         'access_token',
         'refresh_token',
     ];
@@ -82,6 +83,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'password' => 'hashed',
             'access_token' => 'encrypted',
             'refresh_token' => 'encrypted',
             'token_expires_at' => 'datetime',
