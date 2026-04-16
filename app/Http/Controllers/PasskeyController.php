@@ -47,7 +47,12 @@ class PasskeyController extends Controller
 
     public function destroy(Request $request, string $credentialId): JsonResponse
     {
-        $deleted = $request->user()->webAuthnCredentials()->where('id', $credentialId)->delete();
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['success' => false], 403);
+        }
+
+        $deleted = $user->webAuthnCredentials()->where('id', $credentialId)->delete();
 
         return response()->json(['success' => $deleted > 0]);
     }
