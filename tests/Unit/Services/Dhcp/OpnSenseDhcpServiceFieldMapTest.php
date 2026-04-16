@@ -230,6 +230,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
                         ],
                     ],
                 ])),
+                new Response(200, [], (string) json_encode(['rows' => []])),
             ],
             ipv4RangesPath: '/api/dnsmasq/settings/search_range',
             rangeFieldMap: self::DNSMASQ_RANGE_MAP,
@@ -298,6 +299,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
             new Response(200, [], (string) json_encode([
                 'rows' => [['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200']],
             ])),
+            new Response(200, [], (string) json_encode(['rows' => []])),
         ]);
         $handler = HandlerStack::create($mock);
         $handler->push(Middleware::history($history));
@@ -306,7 +308,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         $service = new OpnSenseDhcpService($client, 254, ipv4RangesPath: '/api/kea/dhcpv4/search_subnet');
         $service->getRanges();
 
-        $this->assertCount(1, $history);
+        $this->assertCount(2, $history);
         $this->assertEquals('', (string) $history[0]['request']->getBody());
         $this->assertFalse($history[0]['request']->hasHeader('Content-Type'));
     }

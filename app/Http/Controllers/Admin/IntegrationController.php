@@ -7,16 +7,20 @@ use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Services\Firewalls\OpnSenseApiService;
+use App\Services\Integration\IntegrationConfigMerger;
 use App\Services\PiHole\PiHoleApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class IntegrationController extends Controller
 {
+    public function __construct(private IntegrationConfigMerger $configMerger) {}
+
     /**
      * @return array<string, array{
      *     name: string,
@@ -34,14 +38,45 @@ class IntegrationController extends Controller
         return $integrations;
     }
 
-    public function show(string $service): Response
+    /**
+     * Resolve a known integration by service slug, or throw a 404.
+     *
+     * @return array{name: string, description?: string, capabilities: list<string>, fields?: array<string, mixed>, validation?: array<string, string>}
+     */
+    private function resolveIntegration(string $service): array
     {
         $integrations = $this->integrations();
+
         if (! array_key_exists($service, $integrations)) {
             throw new NotFoundHttpException('Unknown integration: '.$service);
         }
 
-        $meta = $integrations[$service];
+        return $integrations[$service];
+    }
+
+    /**
+     * Serialize a collection of ConnectionTestLog models to an array for API/Inertia responses.
+     *
+     * @param  Collection<int, ConnectionTestLog>  $logs
+     * @return list<array{id: int, success: bool, message: ?string, request_method: ?string, request_url: ?string, response_status: ?int, response_data: ?string, tested_at: ?string}>
+     */
+    private function serializeLogs(Collection $logs): array
+    {
+        return array_values($logs->map(fn (ConnectionTestLog $log): array => [
+            'id' => $log->id,
+            'success' => $log->success,
+            'message' => $log->message,
+            'request_method' => $log->request_method,
+            'request_url' => $log->request_url,
+            'response_status' => $log->response_status,
+            'response_data' => $log->response_data,
+            'tested_at' => $log->created_at?->toIso8601String(),
+        ])->all());
+    }
+
+    public function show(string $service): Response
+    {
+        $meta = $this->resolveIntegration($service);
         $config = IntegrationConfig::getAll($service);
         $activeCapabilities = CapabilityAssignment::getForIntegration($service);
         $logs = ConnectionTestLog::recentFor($service, 20);
@@ -73,28 +108,16 @@ class IntegrationController extends Controller
                     'active' => $activeCapabilities->contains($cap),
                 ])->values()->all(),
                 'health' => $latestTest?->success,
-                'logs' => $logs->map(fn (ConnectionTestLog $log): array => [
-                    'id' => $log->id,
-                    'success' => $log->success,
-                    'message' => $log->message,
-                    'request_method' => $log->request_method,
-                    'request_url' => $log->request_url,
-                    'response_status' => $log->response_status,
-                    'response_data' => $log->response_data,
-                    'tested_at' => $log->created_at?->toIso8601String(),
-                ])->values()->all(),
+                'logs' => $this->serializeLogs($logs),
             ],
         ]);
     }
 
     public function update(Request $request, string $service): RedirectResponse
     {
-        $integrations = $this->integrations();
-        if (! array_key_exists($service, $integrations)) {
-            throw new NotFoundHttpException('Unknown integration: '.$service);
-        }
+        $meta = $this->resolveIntegration($service);
 
-        $validationRules = $integrations[$service]['validation'] ?? [];
+        $validationRules = $meta['validation'] ?? [];
         $rules = ['config' => 'required|array'];
         foreach ($validationRules as $field => $rule) {
             $rules['config.'.$field] = $rule;
@@ -107,7 +130,7 @@ class IntegrationController extends Controller
                 continue;
             }
 
-            $encrypted = in_array($key, IntegrationConfig::encryptedKeys(), true);
+            $encrypted = in_array($key, IntegrationConfig::ENCRYPTED_KEYS, true);
             IntegrationConfig::setValue($service, $key, $value, $encrypted);
         }
 
@@ -148,57 +171,25 @@ class IntegrationController extends Controller
 
     public function healthLog(string $service): JsonResponse
     {
-        $integrations = $this->integrations();
-        if (! array_key_exists($service, $integrations)) {
-            throw new NotFoundHttpException('Unknown integration: '.$service);
-        }
+        $this->resolveIntegration($service);
 
         $logs = ConnectionTestLog::recentFor($service, 20);
 
-        return response()->json([
-            'logs' => $logs->map(fn (ConnectionTestLog $log): array => [
-                'id' => $log->id,
-                'success' => $log->success,
-                'message' => $log->message,
-                'request_method' => $log->request_method,
-                'request_url' => $log->request_url,
-                'response_status' => $log->response_status,
-                'response_data' => $log->response_data,
-                'tested_at' => $log->created_at?->toIso8601String(),
-            ])->values()->all(),
-        ]);
+        return response()->json(['logs' => $this->serializeLogs($logs)]);
     }
 
     public function opnsenseShaperRules(Request $request): JsonResponse
     {
-        $config = $this->mergeConfig('opnsense', $request);
-
-        return response()->json(OpnSenseApiService::getShaperRules($config));
+        return response()->json(OpnSenseApiService::getShaperRules($this->configMerger->merge('opnsense', $request)));
     }
 
     public function opnsenseZones(Request $request): JsonResponse
     {
-        $config = $this->mergeConfig('opnsense', $request);
-
-        return response()->json(OpnSenseApiService::getZones($config));
+        return response()->json(OpnSenseApiService::getZones($this->configMerger->merge('opnsense', $request)));
     }
 
     public function piholeGroups(Request $request): JsonResponse
     {
-        $config = $this->mergeConfig('pihole', $request);
-
-        return response()->json(PiHoleApiService::getGroups($config));
-    }
-
-    /**
-     * Merge saved DB config with non-empty request values (request takes precedence).
-     *
-     * @return array<string, mixed>
-     */
-    private function mergeConfig(string $integration, Request $request): array
-    {
-        $dbConfig = IntegrationConfig::getAll($integration);
-
-        return array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
+        return response()->json(PiHoleApiService::getGroups($this->configMerger->merge('pihole', $request)));
     }
 }

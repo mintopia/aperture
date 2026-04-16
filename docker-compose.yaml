@@ -50,7 +50,7 @@ services:
       context: .
       dockerfile: docker/develop/Dockerfile
     restart: unless-stopped
-    entrypoint: [ "php", "artisan", "ssh-daemon:run" ]
+    entrypoint: [ "php", "artisan", "aperture:ssh-proxy" ]
     env_file: .env
     volumes:
       - ./:/app
@@ -58,7 +58,7 @@ services:
       - db
       - redis
     ports:
-      - "9022:9022"
+      - "8022:8022"
     healthcheck:
       disable: true
 

@@ -8,11 +8,8 @@ use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\NetworkDevice;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
-use App\Services\ValueObjects\TestConnectionResult;
 use GuzzleHttp\Client;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Http;
-use Throwable;
 
 class LibreNmsService implements NetworkInventoryInterface
 {
@@ -143,42 +140,5 @@ class LibreNmsService implements NetworkInventoryInterface
             $entries,
             fn (ArpEntry $entry): bool => str_contains($entry->ip, ':'),
         )));
-    }
-
-    /**
-     * Test connectivity to the LibreNMS API.
-     *
-     * @param  array<string, mixed>  $config  Merged DB + request config
-     */
-    public static function testConnection(array $config): TestConnectionResult
-    {
-        $requestMethod = 'GET';
-        $endpoint = rtrim($config['endpoint'] ?? '', '/');
-        $requestUrl = $endpoint.'/api/v0';
-
-        try {
-            $response = Http::withHeaders(['X-Auth-Token' => $config['api_key'] ?? ''])
-                ->timeout(10)
-                ->get($requestUrl);
-
-            $response->throw();
-
-            return new TestConnectionResult(
-                success: true,
-                message: 'Connected successfully',
-                requestMethod: $requestMethod,
-                requestUrl: $requestUrl,
-                responseStatus: $response->status(),
-                responseBody: $response->body(),
-                output: $response->json() ?? $response->body(),
-            );
-        } catch (Throwable $e) {
-            return new TestConnectionResult(
-                success: false,
-                message: 'Connection failed: '.$e->getMessage(),
-                requestMethod: $requestMethod,
-                requestUrl: $requestUrl,
-            );
-        }
     }
 }

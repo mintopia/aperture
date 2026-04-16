@@ -85,8 +85,7 @@ async function testConnection() {
     showTestOutput.value = false;
 
     try {
-        const routeName = `admin.settings.test.${props.service.id}`;
-        const response = await fetch(route(routeName), {
+        const response = await fetch(route('admin.settings.test', { service: props.service.id }), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
