@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
+use App\Services\BorealisService;
 use App\Services\SshProxy\SshProxyClientInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
@@ -96,6 +97,20 @@ class TestConnectionController extends Controller
             return response()->json(['success' => true, 'message' => 'Connected successfully']);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('pihole', false, 'Connection failed: '.$throwable->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'Connection failed: '.$throwable->getMessage()]);
+        }
+    }
+
+    public function testBorealis(BorealisService $borealis): JsonResponse
+    {
+        try {
+            $borealis->getDeviceCodeRaw('test');
+            ConnectionTestLog::record('borealis', true, 'Borealis OAuth2 endpoint is reachable.');
+
+            return response()->json(['success' => true, 'message' => 'Borealis OAuth2 endpoint is reachable.']);
+        } catch (Throwable $throwable) {
+            ConnectionTestLog::record('borealis', false, 'Connection failed: '.$throwable->getMessage());
 
             return response()->json(['success' => false, 'message' => 'Connection failed: '.$throwable->getMessage()]);
         }

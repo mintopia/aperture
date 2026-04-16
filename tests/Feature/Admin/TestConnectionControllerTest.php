@@ -6,6 +6,7 @@ use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
+use App\Services\BorealisService;
 use App\Services\SshProxy\CommandResult;
 use App\Services\SshProxy\SshProxyClientInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -239,6 +240,60 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => false]);
+    }
+
+    public function test_admin_can_test_borealis_connection_success(): void
+    {
+        $admin = $this->createAdminUser();
+        $mock = Mockery::mock(BorealisService::class);
+        $mock->shouldReceive('getDeviceCodeRaw')
+            ->once()
+            ->with('test')
+            ->andReturn((object) [
+                'device_code' => 'test-code',
+                'user_code' => 'TEST-CODE',
+                'verification_uri' => 'https://auth.test/verify',
+                'expires_in' => 300,
+                'interval' => 5,
+            ]);
+        $this->app->instance(BorealisService::class, $mock);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+    }
+
+    public function test_admin_can_test_borealis_connection_failure(): void
+    {
+        $admin = $this->createAdminUser();
+        $mock = Mockery::mock(BorealisService::class);
+        $mock->shouldReceive('getDeviceCodeRaw')
+            ->once()
+            ->andThrow(new \Exception('Connection refused'));
+        $this->app->instance(BorealisService::class, $mock);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
+
+        $response->assertOk();
+        $response->assertJson(['success' => false]);
+    }
+
+    public function test_borealis_connection_test_records_log(): void
+    {
+        $admin = $this->createAdminUser();
+        $mock = Mockery::mock(BorealisService::class);
+        $mock->shouldReceive('getDeviceCodeRaw')
+            ->once()
+            ->andReturn((object) ['device_code' => 'x', 'user_code' => 'X', 'verification_uri' => 'https://x', 'expires_in' => 300, 'interval' => 5]);
+        $this->app->instance(BorealisService::class, $mock);
+
+        $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
+
+        $this->assertDatabaseHas('connection_test_logs', [
+            'integration' => 'borealis',
+            'success' => true,
+        ]);
     }
 
     public function test_non_admin_cannot_test_connections(): void
