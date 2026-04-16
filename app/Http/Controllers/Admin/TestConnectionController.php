@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
 use App\Services\SshProxy\SshProxyClientInterface;
@@ -26,8 +27,12 @@ class TestConnectionController extends Controller
 
             $response->throw();
 
+            ConnectionTestLog::record('opnsense', true, 'Connected successfully');
+
             return response()->json(['success' => true, 'message' => 'Connected successfully']);
         } catch (Throwable $throwable) {
+            ConnectionTestLog::record('opnsense', false, 'Connection failed: '.$throwable->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Connection failed: '.$throwable->getMessage()]);
         }
     }
@@ -43,8 +48,12 @@ class TestConnectionController extends Controller
 
             $response->throw();
 
+            ConnectionTestLog::record('librenms', true, 'Connected successfully');
+
             return response()->json(['success' => true, 'message' => 'Connected successfully']);
         } catch (Throwable $throwable) {
+            ConnectionTestLog::record('librenms', false, 'Connection failed: '.$throwable->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Connection failed: '.$throwable->getMessage()]);
         }
     }
@@ -59,8 +68,12 @@ class TestConnectionController extends Controller
 
             $response->throw();
 
+            ConnectionTestLog::record('ntopng', true, 'Connected successfully');
+
             return response()->json(['success' => true, 'message' => 'Connected successfully']);
         } catch (Throwable $throwable) {
+            ConnectionTestLog::record('ntopng', false, 'Connection failed: '.$throwable->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Connection failed: '.$throwable->getMessage()]);
         }
     }
@@ -78,8 +91,12 @@ class TestConnectionController extends Controller
 
             $response->throw();
 
+            ConnectionTestLog::record('pihole', true, 'Connected successfully');
+
             return response()->json(['success' => true, 'message' => 'Connected successfully']);
         } catch (Throwable $throwable) {
+            ConnectionTestLog::record('pihole', false, 'Connection failed: '.$throwable->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Connection failed: '.$throwable->getMessage()]);
         }
     }
@@ -94,11 +111,19 @@ class TestConnectionController extends Controller
                 [['command' => '', 'expect' => '/^.*[>#]$/']],
             );
 
+            ConnectionTestLog::record(
+                'switch-'.$switchConfig->hostname,
+                $result->success,
+                $result->success ? 'Connected successfully' : ($result->error ?? 'Unknown error'),
+            );
+
             return response()->json([
                 'success' => $result->success,
                 'message' => $result->success ? 'Connected successfully' : ($result->error ?? 'Unknown error'),
             ]);
         } catch (Throwable $throwable) {
+            ConnectionTestLog::record('switch-'.$switchConfig->hostname, false, 'Connection failed: '.$throwable->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Connection failed: '.$throwable->getMessage()]);
         }
     }

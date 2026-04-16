@@ -65,6 +65,42 @@ class TestConnectionControllerTest extends TestCase
         $response->assertJson(['success' => false]);
     }
 
+    public function test_opnsense_test_records_connection_log(): void
+    {
+        Queue::fake();
+        Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.example.com');
+        IntegrationConfig::setValue('opnsense', 'key', 'test-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret', true);
+
+        $this->actingAs($admin)->post('/admin/settings/test/opnsense');
+
+        $this->assertDatabaseHas('connection_test_logs', [
+            'integration' => 'opnsense',
+            'success' => true,
+        ]);
+    }
+
+    public function test_failed_connection_records_failure_log(): void
+    {
+        Queue::fake();
+        Http::fake(['*' => Http::response('Server Error', 500)]);
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.example.com');
+        IntegrationConfig::setValue('opnsense', 'key', 'test-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret', true);
+
+        $this->actingAs($admin)->post('/admin/settings/test/opnsense');
+
+        $this->assertDatabaseHas('connection_test_logs', [
+            'integration' => 'opnsense',
+            'success' => false,
+        ]);
+    }
+
     public function test_admin_can_test_librenms_connection_success(): void
     {
         Queue::fake();
