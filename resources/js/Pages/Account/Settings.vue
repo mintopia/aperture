@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
+import { formatDate } from '@/utils/dates';
 
 defineOptions({ layout: PortalLayout });
 
@@ -179,7 +180,7 @@ async function deletePasskey(id) {
             data-testid="verify-form"
             class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
         >
-            <h2 class="mb-1 font-heading text-lg font-semibold text-[var(--color-text)]">Verify your identity</h2>
+            <h2 class="font-heading mb-1 text-lg font-semibold text-[var(--color-text)]">Verify your identity</h2>
             <p class="mb-4 text-sm text-[var(--color-text-secondary)]">
                 Please confirm your password before making changes to your account security settings.
             </p>
@@ -197,7 +198,7 @@ async function deletePasskey(id) {
                         v-model="verifyForm.password"
                         type="password"
                         data-testid="verify-password"
-                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]"
+                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         placeholder="Enter your password"
                         autocomplete="current-password"
                     />
@@ -220,7 +221,7 @@ async function deletePasskey(id) {
             data-testid="password-section"
             class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
         >
-            <h2 class="mb-1 font-heading text-lg font-semibold text-[var(--color-text)]">Password</h2>
+            <h2 class="font-heading mb-1 text-lg font-semibold text-[var(--color-text)]">Password</h2>
             <p class="mb-4 text-sm text-[var(--color-text-secondary)]">
                 {{
                     user.has_password
@@ -241,7 +242,7 @@ async function deletePasskey(id) {
                         v-model="passwordForm.password"
                         type="password"
                         data-testid="password-new"
-                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]"
+                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         placeholder="Minimum 8 characters"
                         autocomplete="new-password"
                     />
@@ -258,7 +259,7 @@ async function deletePasskey(id) {
                         v-model="passwordForm.password_confirmation"
                         type="password"
                         data-testid="password-confirm"
-                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]"
+                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         placeholder="Repeat your password"
                         autocomplete="new-password"
                     />
@@ -272,11 +273,7 @@ async function deletePasskey(id) {
                         :disabled="passwordForm.processing"
                     >
                         {{
-                            passwordForm.processing
-                                ? 'Saving…'
-                                : user.has_password
-                                  ? 'Update Password'
-                                  : 'Set Password'
+                            passwordForm.processing ? 'Saving…' : user.has_password ? 'Update Password' : 'Set Password'
                         }}
                     </button>
 
@@ -333,7 +330,7 @@ async function deletePasskey(id) {
                 >
                     <div>
                         <p class="text-sm font-medium text-[var(--color-text)]">{{ passkey.name }}</p>
-                        <p class="text-xs text-[var(--color-text-muted)]">Added {{ passkey.created_at }}</p>
+                        <p class="text-xs text-[var(--color-text-muted)]">Added {{ formatDate(passkey.created_at) }}</p>
                     </div>
                     <button
                         type="button"

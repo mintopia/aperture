@@ -23,7 +23,7 @@ class AccountController extends Controller
                 'passkeys' => $user->webAuthnCredentials()->get()->map(fn ($cred) => [
                     'id' => $cred->id,
                     'name' => $cred->alias ?? 'Passkey',
-                    'created_at' => $cred->created_at->toDateTimeString(),
+                    'created_at' => $cred->created_at->toIso8601String(),
                 ]),
             ],
             'verified' => $request->session()->get('account_verified', false),

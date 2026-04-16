@@ -6,6 +6,7 @@ import DataTable from '@/Components/UI/DataTable.vue';
 import StatusPill from '@/Components/UI/StatusPill.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { formatBytes } from '@/helpers.js';
+import { formatRelative } from '@/utils/dates';
 
 defineOptions({ layout: AdminLayout });
 
@@ -76,7 +77,7 @@ const ipColumns = [
                     />
                 </td>
                 <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
-                    {{ row.last_seen_at }}
+                    {{ formatRelative(row.last_seen_at) }}
                 </td>
             </template>
         </DataTable>
