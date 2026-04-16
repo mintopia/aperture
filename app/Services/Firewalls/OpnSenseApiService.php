@@ -81,7 +81,7 @@ class OpnSenseApiService
             $response = Http::withOptions(['verify' => $verifySsl])
                 ->withBasicAuth($key, $secret)
                 ->timeout(10)
-                ->post($endpoint.'/api/trafficshaper/settings/search_rule', [
+                ->post($endpoint.'/api/trafficshaper/settings/search_rules', [
                     'current' => 1,
                     'rowCount' => -1,
                     'searchPhrase' => '',

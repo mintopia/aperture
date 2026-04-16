@@ -22,13 +22,13 @@ class IntegrationController extends Controller
      *     name: string,
      *     description?: string,
      *     capabilities: list<string>,
-     *     fields?: array<string, array{type: string, label: string, placeholder?: string, help?: string, required?: bool}>,
+     *     fields?: array<string, array{type: string, label: string, placeholder?: string, help?: string, required?: bool, remote_url?: string, remote_label?: string, remote_value?: string, options?: array<string, string>}>,
      *     validation?: array<string, string>
      * }>
      */
     private function integrations(): array
     {
-        /** @var array<string, array{name: string, description?: string, capabilities: list<string>, fields?: array<string, array{type: string, label: string, placeholder?: string, help?: string, required?: bool}>, validation?: array<string, string>}> $integrations */
+        /** @var array<string, array{name: string, description?: string, capabilities: list<string>, fields?: array<string, array{type: string, label: string, placeholder?: string, help?: string, required?: bool, remote_url?: string, remote_label?: string, remote_value?: string, options?: array<string, string>}>, validation?: array<string, string>}> $integrations */
         $integrations = config('integrations', []);
 
         return $integrations;
@@ -66,6 +66,7 @@ class IntegrationController extends Controller
                     'remote_url' => $field['remote_url'] ?? null,
                     'remote_label' => $field['remote_label'] ?? null,
                     'remote_value' => $field['remote_value'] ?? null,
+                    'options' => $field['options'] ?? null,
                 ], fn (mixed $v): bool => $v !== null))->values()->all(),
                 'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
                     'name' => $cap,

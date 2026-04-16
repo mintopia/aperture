@@ -13,6 +13,9 @@ class AccountController extends Controller
     public function show(Request $request): Response
     {
         $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
 
         return Inertia::render('Account/Settings', [
             'user' => [
@@ -32,9 +35,14 @@ class AccountController extends Controller
 
     public function verify(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
         $request->validate(['password' => 'required|string']);
 
-        if (! Hash::check($request->password, $request->user()->password)) {
+        if ($user->password === null || ! Hash::check($request->string('password')->value(), $user->password)) {
             return back()->withErrors(['password' => 'Incorrect password.']);
         }
 
@@ -45,20 +53,30 @@ class AccountController extends Controller
 
     public function updatePassword(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
         $request->validate([
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $request->user()->password = $request->password;
-        $request->user()->save();
+        $user->password = $request->password;
+        $user->save();
 
         return back()->with('success', 'Password updated.');
     }
 
     public function clearPassword(Request $request): RedirectResponse
     {
-        $request->user()->password = null;
-        $request->user()->save();
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
+        $user->password = null;
+        $user->save();
 
         $request->session()->forget('account_verified');
 
