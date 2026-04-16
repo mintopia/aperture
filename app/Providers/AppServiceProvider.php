@@ -116,8 +116,8 @@ class AppServiceProvider extends ServiceProvider
                     'ipv6_ranges' => '/api/kea/dhcpv6/search',
                 ],
                 'dnsmasq' => [
-                    'leases' => '/api/dnsmasq/leases/searchLease',
-                    'ipv4_ranges' => '/api/dnsmasq/settings/searchDomain',
+                    'leases' => '/api/dnsmasq/leases/search',
+                    'ipv4_ranges' => '/api/dnsmasq/settings/search_range',
                     'ipv6_ranges' => '',
                 ],
                 default => [
