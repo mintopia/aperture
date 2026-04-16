@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { useForm, Head } from '@inertiajs/vue3';
 import FormField from '@/Components/UI/FormField.vue';
 
@@ -7,10 +8,127 @@ const form = useForm({
     password: '',
 });
 
+const passkeyLoading = ref(false);
+const passkeyError = ref('');
+
 function submit() {
     form.post('/login', {
         onFinish: () => form.reset('password'),
     });
+}
+
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content;
+}
+
+function base64UrlToBuffer(base64url) {
+    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = base64.length % 4;
+    const padded = pad ? base64 + '='.repeat(4 - pad) : base64;
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function bufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+async function loginWithPasskey() {
+    passkeyError.value = '';
+    passkeyLoading.value = true;
+
+    try {
+        // Step 1: Get assertion options from server
+        const optionsResponse = await fetch('/passkeys/login/options', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+            },
+            body: JSON.stringify({ email: form.email }),
+        });
+
+        if (!optionsResponse.ok) {
+            const errorData = await optionsResponse.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to get passkey options.');
+        }
+
+        const options = await optionsResponse.json();
+
+        // Step 2: Transform server options for WebAuthn API
+        options.challenge = base64UrlToBuffer(options.challenge);
+
+        if (options.allowCredentials) {
+            options.allowCredentials = options.allowCredentials.map((cred) => ({
+                ...cred,
+                id: base64UrlToBuffer(cred.id),
+            }));
+        }
+
+        // Step 3: Call WebAuthn browser API
+        const credential = await navigator.credentials.get({ publicKey: options });
+
+        // Step 4: Encode credential response for server
+        const credentialData = {
+            id: credential.id,
+            rawId: bufferToBase64(credential.rawId),
+            type: credential.type,
+            authenticatorAttachment: credential.authenticatorAttachment,
+            response: {
+                clientDataJSON: bufferToBase64(credential.response.clientDataJSON),
+                authenticatorData: bufferToBase64(credential.response.authenticatorData),
+                signature: bufferToBase64(credential.response.signature),
+            },
+        };
+
+        if (credential.response.userHandle) {
+            credentialData.response.userHandle = bufferToBase64(credential.response.userHandle);
+        }
+
+        // Step 5: Send credential to server for verification
+        const loginResponse = await fetch('/passkeys/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+            },
+            body: JSON.stringify(credentialData),
+        });
+
+        if (!loginResponse.ok) {
+            const errorData = await loginResponse.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Passkey authentication failed.');
+        }
+
+        const result = await loginResponse.json();
+
+        if (result.success) {
+            window.location.href = result.redirect || '/';
+        } else {
+            throw new Error(result.message || 'Authentication failed.');
+        }
+    } catch (error) {
+        if (error.name === 'NotAllowedError') {
+            passkeyError.value = 'Passkey authentication was cancelled or not allowed.';
+        } else if (error.name === 'AbortError') {
+            passkeyError.value = 'Passkey authentication was cancelled.';
+        } else {
+            passkeyError.value = error.message || 'An unexpected error occurred.';
+        }
+    } finally {
+        passkeyLoading.value = false;
+    }
 }
 </script>
 
@@ -66,12 +184,18 @@ function submit() {
                     <button
                         type="button"
                         data-testid="login-passkey"
-                        class="w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)]"
-                        disabled
+                        class="w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)] disabled:opacity-50"
+                        :disabled="passkeyLoading"
+                        @click="loginWithPasskey"
                     >
-                        🔑 Sign in with Passkey
+                        {{ passkeyLoading ? 'Authenticating…' : '🔑 Sign in with Passkey' }}
                     </button>
-                    <p class="mt-1 text-center text-xs text-[var(--color-text-muted)]">Passkey support coming soon</p>
+                    <p v-if="passkeyError" data-testid="passkey-error" class="mt-1 text-center text-xs text-red-500">
+                        {{ passkeyError }}
+                    </p>
+                    <p v-else class="mt-1 text-center text-xs text-[var(--color-text-muted)]">
+                        Use a passkey to sign in securely
+                    </p>
                 </div>
             </div>
 

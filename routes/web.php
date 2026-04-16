@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptivePortalController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\PasskeyController;
 use App\Http\Controllers\Portal\DashboardController;
 use App\Http\Controllers\Portal\PiHoleController;
 use App\Http\Controllers\Portal\StatsController;
@@ -31,6 +32,18 @@ Route::get('/captive/interstitial', [CaptivePortalController::class, 'interstiti
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'authenticate']);
+});
+
+// Passkey registration (requires auth)
+Route::middleware(['auth'])->prefix('passkeys')->group(function () {
+    Route::post('/register/options', [PasskeyController::class, 'registerOptions'])->name('passkeys.register.options');
+    Route::post('/register', [PasskeyController::class, 'register'])->name('passkeys.register');
+});
+
+// Passkey authentication (guest)
+Route::middleware(['guest'])->prefix('passkeys')->group(function () {
+    Route::post('/login/options', [PasskeyController::class, 'loginOptions'])->name('passkeys.login.options');
+    Route::post('/login', [PasskeyController::class, 'login'])->name('passkeys.login');
 });
 
 Route::middleware(['auth'])->group(function () {
