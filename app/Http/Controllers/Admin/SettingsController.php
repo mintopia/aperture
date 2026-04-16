@@ -17,24 +17,26 @@ class SettingsController extends Controller
 {
     public function integrations(): Response
     {
-        $integrations = config('integrations');
+        /** @var array<string, array{name: string, description?: string, capabilities: list<string>, validation?: array<string, string>}> $integrations */
+        $integrations = config('integrations', []);
 
-        $services = collect($integrations)->map(function (array $meta, string $id): array {
+        $services = array_map(function (string $id, array $meta): array {
             $config = IntegrationConfig::getAll($id);
             $latestTest = ConnectionTestLog::latestFor($id);
             $activeCapabilities = CapabilityAssignment::getForIntegration($id);
+            $capabilities = array_map(fn (string $cap): array => [
+                'name' => $cap,
+                'active' => $activeCapabilities->contains($cap),
+            ], $meta['capabilities']);
 
             return [
                 'id' => $id,
                 'name' => $meta['name'],
-                'enabled' => $this->isIntegrationEnabled($id, $config),
+                'enabled' => $this->isIntegrationEnabled($config),
                 'health' => $latestTest?->success,
-                'capabilities' => collect($meta['capabilities'])->map(fn (string $cap): array => [
-                    'name' => $cap,
-                    'active' => $activeCapabilities->contains($cap),
-                ])->values()->all(),
+                'capabilities' => $capabilities,
             ];
-        })->values()->all();
+        }, array_keys($integrations), $integrations);
 
         $borealisEnabled = (bool) config('aperture.borealis.enabled', false);
         array_unshift($services, [
@@ -52,69 +54,6 @@ class SettingsController extends Controller
         return Inertia::render('Admin/Settings/Integrations', [
             'services' => $services,
         ]);
-    }
-
-    /**
-     * Update integration settings (monolithic endpoint).
-     *
-     * @deprecated Feature settings (dhcp, dns, auto_allow, ipv6) still use this endpoint.
-     *             Per-integration config is now handled by IntegrationController@update.
-     *             Remove this method when dedicated feature settings pages are built.
-     */
-    public function updateIntegrations(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'opnsense.endpoint' => 'nullable|url|max:500',
-            'opnsense.key' => 'nullable|string|max:500',
-            'opnsense.secret' => 'nullable|string|max:500',
-            'opnsense.captive_portal_id' => 'nullable|string|max:100',
-            'opnsense.verify_ssl' => 'nullable|string|in:0,1',
-            'opnsense.zone_id' => 'nullable|string|max:100',
-            'opnsense.ratelimit_up_uuid' => 'nullable|string|max:500',
-            'opnsense.ratelimit_down_uuid' => 'nullable|string|max:500',
-            'librenms.endpoint' => 'nullable|url|max:500',
-            'librenms.api_key' => 'nullable|string|max:500',
-            'librenms.enabled' => 'nullable|string|in:0,1',
-            'ntopng.endpoint' => 'nullable|url|max:500',
-            'ntopng.username' => 'nullable|string|max:255',
-            'ntopng.password' => 'nullable|string|max:500',
-            'ntopng.interface' => 'nullable|string|max:100',
-            'ntopng.enabled' => 'nullable|string|in:0,1',
-            'pihole.endpoint' => 'nullable|url|max:500',
-            'pihole.password' => 'nullable|string|max:500',
-            'pihole.noblock_group_id' => 'nullable|integer|min:1',
-            'pihole.enabled' => 'nullable|string|in:0,1',
-            'pihole.verify_ssl' => 'nullable|string|in:0,1',
-            'dhcp.enabled' => 'nullable|string|in:0,1',
-            'dhcp.endpoint' => 'nullable|url|max:500',
-            'dhcp.key' => 'nullable|string|max:500',
-            'dhcp.secret' => 'nullable|string|max:500',
-            'dhcp.verify_ssl' => 'nullable|string|in:0,1',
-            'dhcp.pool_size' => 'nullable|integer|min:0',
-            'dns.expected_server' => 'nullable|string|max:255',
-            'dns.probe_domain' => 'nullable|string|max:255',
-            'auto_allow.enabled' => 'nullable|string|in:0,1',
-            'auto_allow.oui_prefixes' => 'nullable|string|max:2000',
-            'auto_allow.scan_interval' => 'nullable|integer|min:1',
-            'ipv6.detection_enabled' => 'nullable|string|in:0,1',
-            'ipv6.detection_endpoint' => 'nullable|url|max:500',
-        ]);
-
-        foreach ($validated as $integration => $fields) {
-            // @codeCoverageIgnoreStart
-            if (! is_array($fields)) {
-                continue;
-            }
-
-            // @codeCoverageIgnoreEnd
-
-            foreach ($fields as $key => $value) {
-                $encrypted = in_array($key, IntegrationConfig::ENCRYPTED_KEYS, true);
-                IntegrationConfig::setValue($integration, $key, $value, $encrypted);
-            }
-        }
-
-        return back()->with('success', 'Integration settings updated.');
     }
 
     public function switches(): Response
@@ -269,8 +208,10 @@ class SettingsController extends Controller
     /**
      * Determine if an integration is enabled.
      * Checks explicit enabled flag first, falls back to endpoint presence.
+     *
+     * @param  array<string, mixed>  $config
      */
-    private function isIntegrationEnabled(string $id, array $config): bool
+    private function isIntegrationEnabled(array $config): bool
     {
         if (isset($config['enabled'])) {
             return (bool) $config['enabled'];

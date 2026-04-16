@@ -83,7 +83,6 @@ Route::middleware(['auth'])->group(function () {
 
         // Settings
         Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
-        Route::put('/settings/integrations', [SettingsController::class, 'updateIntegrations'])->name('settings.integrations.update');
         Route::get('/settings/theme', [SettingsController::class, 'theme'])->name('settings.theme');
         Route::put('/settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
         Route::get('/settings/event', [SettingsController::class, 'event'])->name('settings.event');

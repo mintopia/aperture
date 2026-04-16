@@ -164,39 +164,6 @@ class SettingsControllerTest extends TestCase
         );
     }
 
-    public function test_admin_can_update_integrations_settings(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/settings/integrations', [
-            'opnsense' => ['endpoint' => 'https://opnsense.example.com'],
-            'ntopng' => ['endpoint' => 'https://ntopng.example.com'],
-            'librenms' => ['endpoint' => null],
-            'pihole' => ['endpoint' => null],
-        ]);
-
-        $response->assertRedirect();
-        $this->assertEquals('https://opnsense.example.com', IntegrationConfig::getValue('opnsense', 'endpoint'));
-        $this->assertEquals('https://ntopng.example.com', IntegrationConfig::getValue('ntopng', 'endpoint'));
-    }
-
-    public function test_admin_can_update_existing_integration_setting(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        // Create an existing setting
-        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://old.example.com');
-
-        $response = $this->actingAs($admin)->put('/admin/settings/integrations', [
-            'opnsense' => ['endpoint' => 'https://new.example.com'],
-        ]);
-
-        $response->assertRedirect();
-        $this->assertEquals('https://new.example.com', IntegrationConfig::getValue('opnsense', 'endpoint'));
-    }
-
     public function test_admin_can_view_event_settings(): void
     {
         Queue::fake();
