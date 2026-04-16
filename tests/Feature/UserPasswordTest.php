@@ -21,7 +21,7 @@ class UserPasswordTest extends TestCase
     public function test_user_can_have_password_set(): void
     {
         $user = User::factory()->create();
-        $user->password = Hash::make('secret123');
+        $user->password = 'secret123';
         $user->save();
 
         $user->refresh();
@@ -36,9 +36,7 @@ class UserPasswordTest extends TestCase
 
     public function test_password_is_hidden_from_serialization(): void
     {
-        $user = User::factory()->create();
-        $user->password = Hash::make('secret');
-        $user->save();
+        $user = User::factory()->withPassword('secret')->create();
 
         $array = $user->toArray();
         $this->assertArrayNotHasKey('password', $array);

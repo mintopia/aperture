@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -36,9 +35,8 @@ class LoginControllerTest extends TestCase
 
     public function test_user_can_login_with_email_and_password(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->withPassword('secret123')->create([
             'email' => 'admin@test.com',
-            'password' => Hash::make('secret123'),
         ]);
 
         $response = $this->post('/login', [
@@ -52,9 +50,8 @@ class LoginControllerTest extends TestCase
 
     public function test_login_fails_with_wrong_password(): void
     {
-        User::factory()->create([
+        User::factory()->withPassword('secret123')->create([
             'email' => 'admin@test.com',
-            'password' => Hash::make('secret123'),
         ]);
 
         $response = $this->post('/login', [
@@ -102,9 +99,8 @@ class LoginControllerTest extends TestCase
 
     public function test_login_is_rate_limited(): void
     {
-        User::factory()->create([
+        User::factory()->withPassword('secret')->create([
             'email' => 'admin@test.com',
-            'password' => Hash::make('secret'),
         ]);
 
         for ($i = 0; $i < 6; $i++) {
