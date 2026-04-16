@@ -237,7 +237,7 @@ class TestConnectionControllerTest extends TestCase
         $log = ConnectionTestLog::where('integration', 'ntopng')->latest()->first();
         $this->assertNotNull($log->response_data);
         $this->assertSame('GET', $log->request_method);
-        $this->assertStringContainsString('/lua/rest/v2/get/ntopng/interfaces.lua', $log->request_url);
+        $this->assertStringContainsString('/lua/pro/rest/v2/get/system/data.lua', $log->request_url);
         $this->assertSame(200, $log->response_status);
     }
 

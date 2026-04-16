@@ -12,7 +12,7 @@ if (str_contains($uri, 'session/list')) {
     echo json_encode(['status' => 'ok']);
 } elseif (str_contains($uri, 'captiveportal/access/logon')) {
     echo json_encode(['status' => 'ok']);
-} elseif (str_contains($uri, 'trafficshaper/settings/getRule')) {
+} elseif (str_contains($uri, 'trafficshaper/settings/get_rule')) {
     echo json_encode([
         'rule' => [
             'description' => 'test',
@@ -33,7 +33,7 @@ if (str_contains($uri, 'session/list')) {
             'source' => new stdClass,
         ],
     ]);
-} elseif (str_contains($uri, 'trafficshaper/settings/setRule')) {
+} elseif (str_contains($uri, 'trafficshaper/settings/set_rule')) {
     echo json_encode(['result' => 'saved']);
 } elseif (str_contains($uri, 'trafficshaper/service/reconfigure')) {
     echo json_encode(['status' => 'ok']);
