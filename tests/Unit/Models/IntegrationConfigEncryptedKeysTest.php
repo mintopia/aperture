@@ -33,4 +33,9 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
     {
         $this->assertContains('key', IntegrationConfig::ENCRYPTED_KEYS);
     }
+
+    public function test_contains_client_secret(): void
+    {
+        $this->assertContains('client_secret', IntegrationConfig::ENCRYPTED_KEYS);
+    }
 }
