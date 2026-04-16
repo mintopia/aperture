@@ -111,9 +111,9 @@ class AppServiceProvider extends ServiceProvider
 
             $paths = match ($dhcpServer) {
                 'kea' => [
-                    'leases' => '/api/kea/leases4/search',
-                    'ipv4_ranges' => '/api/kea/dhcpv4/search',
-                    'ipv6_ranges' => '/api/kea/dhcpv6/search',
+                    'leases' => '/api/kea/leases/search',
+                    'ipv4_ranges' => '/api/kea/dhcpv4/search_subnet',
+                    'ipv6_ranges' => '/api/kea/dhcpv6/search_subnet',
                 ],
                 'dnsmasq' => [
                     'leases' => '/api/dnsmasq/leases/search',

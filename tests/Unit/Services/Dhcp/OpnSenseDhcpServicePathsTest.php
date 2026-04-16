@@ -46,13 +46,13 @@ class OpnSenseDhcpServicePathsTest extends TestCase
                 ])),
             ],
             $history,
-            leasesPath: '/api/kea/leases4/search',
+            leasesPath: '/api/kea/leases/search',
         );
 
         $service->getLeases();
 
         $this->assertCount(1, $history);
-        $this->assertEquals('/api/kea/leases4/search', $history[0]['request']->getUri()->getPath());
+        $this->assertEquals('/api/kea/leases/search', $history[0]['request']->getUri()->getPath());
     }
 
     public function test_uses_custom_ipv4_ranges_path(): void
@@ -64,12 +64,12 @@ class OpnSenseDhcpServicePathsTest extends TestCase
                 new Response(200, [], (string) json_encode(['rows' => []])),
             ],
             $history,
-            ipv4RangesPath: '/api/kea/dhcpv4/search',
+            ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
         $service->getRanges();
 
-        $this->assertEquals('/api/kea/dhcpv4/search', $history[0]['request']->getUri()->getPath());
+        $this->assertEquals('/api/kea/dhcpv4/search_subnet', $history[0]['request']->getUri()->getPath());
     }
 
     public function test_uses_custom_ipv6_ranges_path(): void
@@ -81,12 +81,12 @@ class OpnSenseDhcpServicePathsTest extends TestCase
                 new Response(200, [], (string) json_encode(['rows' => []])),
             ],
             $history,
-            ipv6RangesPath: '/api/kea/dhcpv6/search',
+            ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
 
         $service->getRanges();
 
-        $this->assertEquals('/api/kea/dhcpv6/search', $history[1]['request']->getUri()->getPath());
+        $this->assertEquals('/api/kea/dhcpv6/search_subnet', $history[1]['request']->getUri()->getPath());
     }
 
     public function test_skips_ipv6_when_path_is_empty(): void

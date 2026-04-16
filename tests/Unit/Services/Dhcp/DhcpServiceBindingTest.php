@@ -90,9 +90,9 @@ class DhcpServiceBindingTest extends TestCase
         $service = $this->app->make(DhcpInterface::class);
 
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
-        $this->assertEquals('/api/kea/leases4/search', $this->getProtectedProperty($service, 'leasesPath'));
-        $this->assertEquals('/api/kea/dhcpv4/search', $this->getProtectedProperty($service, 'ipv4RangesPath'));
-        $this->assertEquals('/api/kea/dhcpv6/search', $this->getProtectedProperty($service, 'ipv6RangesPath'));
+        $this->assertEquals('/api/kea/leases/search', $this->getProtectedProperty($service, 'leasesPath'));
+        $this->assertEquals('/api/kea/dhcpv4/search_subnet', $this->getProtectedProperty($service, 'ipv4RangesPath'));
+        $this->assertEquals('/api/kea/dhcpv6/search_subnet', $this->getProtectedProperty($service, 'ipv6RangesPath'));
     }
 
     public function test_dnsmasq_binding_uses_correct_api_paths(): void
