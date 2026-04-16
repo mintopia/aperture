@@ -7,6 +7,7 @@ import StatusPill from '@/Components/UI/StatusPill.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { ref, onMounted } from 'vue';
 import { formatRelative } from '@/utils/dates';
+import { getCsrfToken } from '@/utils/webauthn';
 
 defineOptions({ layout: AdminLayout });
 
@@ -41,7 +42,7 @@ async function fetchRemoteOptions(field) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'X-CSRF-TOKEN': getCsrfToken(),
             },
             body: JSON.stringify(form.config),
         });
@@ -89,7 +90,7 @@ async function testConnection() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'X-CSRF-TOKEN': getCsrfToken(),
             },
             body: JSON.stringify(form.config),
         });
@@ -107,7 +108,7 @@ async function toggleCapability(capability, currentActive) {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                'X-CSRF-TOKEN': getCsrfToken(),
             },
             body: JSON.stringify({
                 capability,
