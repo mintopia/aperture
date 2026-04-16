@@ -8,6 +8,7 @@ use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -162,5 +163,154 @@ class IntegrationControllerTest extends TestCase
         $response = $this->actingAs($user)->get('/admin/settings/integrations/opnsense');
 
         $response->assertForbidden();
+    }
+
+    public function test_admin_can_fetch_pihole_groups(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Http::fake([
+            '*/api/auth' => Http::response(['session' => ['token' => 'test-token', 'validity' => 300]], 200),
+            '*/api/groups' => Http::response(['groups' => [
+                ['id' => 0, 'name' => 'Default', 'enabled' => true],
+                ['id' => 1, 'name' => 'Ad Blocking', 'enabled' => true],
+            ]], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://pihole.test',
+            'password' => 'test',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['groups']);
+        $response->assertJsonCount(2, 'groups');
+        $response->assertJsonPath('groups.0.id', 0);
+        $response->assertJsonPath('groups.0.name', 'Default');
+        $response->assertJsonPath('groups.1.id', 1);
+        $response->assertJsonPath('groups.1.name', 'Ad Blocking');
+    }
+
+    public function test_pihole_groups_returns_error_on_failure(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Http::fake([
+            '*' => Http::response('Server Error', 500),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://pihole.test',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['groups', 'error']);
+        $response->assertJsonPath('groups', []);
+    }
+
+    public function test_pihole_groups_uses_request_values_over_db(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('pihole', 'endpoint', 'https://old-pihole.example.com');
+        IntegrationConfig::setValue('pihole', 'password', 'old-password', true);
+
+        Http::fake([
+            '*/api/auth' => Http::response(['session' => ['token' => 'tok', 'validity' => 300]], 200),
+            '*/api/groups' => Http::response(['groups' => [
+                ['id' => 0, 'name' => 'Default', 'enabled' => true],
+            ]], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://new-pihole.example.com',
+            'password' => 'new-password',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'groups');
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-pihole.example.com'));
+    }
+
+    public function test_pihole_groups_falls_back_to_db_config(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('pihole', 'endpoint', 'https://db-pihole.example.com');
+        IntegrationConfig::setValue('pihole', 'password', 'db-password', true);
+
+        Http::fake([
+            '*/api/auth' => Http::response(['session' => ['token' => 'tok', 'validity' => 300]], 200),
+            '*/api/groups' => Http::response(['groups' => [
+                ['id' => 0, 'name' => 'Default', 'enabled' => true],
+            ]], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'groups');
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'db-pihole.example.com'));
+    }
+
+    public function test_non_admin_cannot_fetch_pihole_groups(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/admin/settings/integrations/pihole/groups');
+
+        $response->assertForbidden();
+    }
+
+    public function test_pihole_groups_sends_auth_token_to_groups_endpoint(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Http::fake([
+            '*/api/auth' => Http::response(['session' => ['token' => 'my-secret-token', 'validity' => 300]], 200),
+            '*/api/groups' => Http::response(['groups' => []], 200),
+        ]);
+
+        $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
+            'endpoint' => 'https://pihole.test',
+            'password' => 'pass',
+        ]);
+
+        Http::assertSent(function ($req) {
+            if (str_contains($req->url(), '/api/groups')) {
+                return $req->header('Authorization') === ['Token my-secret-token'];
+            }
+
+            return true;
+        });
+    }
+
+    public function test_pihole_show_page_includes_remote_field_metadata(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/settings/integrations/pihole');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Settings/IntegrationShow')
+            ->where('service.id', 'pihole')
+            ->has('service.fields')
+        );
+
+        $serviceData = $response->original->getData()['page']['props']['service'];
+        $noblockField = collect($serviceData['fields'])->firstWhere('key', 'noblock_group_id');
+        $this->assertNotNull($noblockField);
+        $this->assertEquals('select-remote', $noblockField['type']);
+        $this->assertEquals('/admin/settings/integrations/pihole/groups', $noblockField['remote_url']);
+        $this->assertEquals('name', $noblockField['remote_label']);
+        $this->assertEquals('id', $noblockField['remote_value']);
     }
 }

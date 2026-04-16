@@ -46,7 +46,7 @@ class IntegrationFieldDefinitionsTest extends TestCase
             foreach ($integration['fields'] as $fieldKey => $field) {
                 $this->assertArrayHasKey('type', $field, "Field '{$fieldKey}' in '{$service}' missing 'type'.");
                 $this->assertArrayHasKey('label', $field, "Field '{$fieldKey}' in '{$service}' missing 'label'.");
-                $this->assertContains($field['type'], ['text', 'url', 'password', 'toggle', 'number', 'select'], "Field '{$fieldKey}' in '{$service}' has invalid type '{$field['type']}'.");
+                $this->assertContains($field['type'], ['text', 'url', 'password', 'toggle', 'number', 'select', 'select-remote'], "Field '{$fieldKey}' in '{$service}' has invalid type '{$field['type']}'.");
             }
         }
     }

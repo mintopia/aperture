@@ -9,9 +9,11 @@ use App\Models\IntegrationConfig;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 
 class IntegrationController extends Controller
 {
@@ -54,14 +56,17 @@ class IntegrationController extends Controller
                 'config' => collect($meta['fields'] ?? [])->mapWithKeys(fn (array $field, string $key): array => [
                     $key => $config[$key] ?? '',
                 ])->all(),
-                'fields' => collect($meta['fields'] ?? [])->map(fn (array $field, string $key): array => [
+                'fields' => collect($meta['fields'] ?? [])->map(fn (array $field, string $key): array => array_filter([
                     'key' => $key,
                     'type' => $field['type'],
                     'label' => $field['label'],
                     'placeholder' => $field['placeholder'] ?? '',
                     'help' => $field['help'] ?? '',
                     'required' => $field['required'] ?? false,
-                ])->values()->all(),
+                    'remote_url' => $field['remote_url'] ?? null,
+                    'remote_label' => $field['remote_label'] ?? null,
+                    'remote_value' => $field['remote_value'] ?? null,
+                ], fn (mixed $v): bool => $v !== null))->values()->all(),
                 'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
                     'name' => $cap,
                     'active' => $activeCapabilities->contains($cap),
@@ -151,5 +156,47 @@ class IntegrationController extends Controller
                 'tested_at' => $log->created_at?->toIso8601String(),
             ])->values()->all(),
         ]);
+    }
+
+    public function piholeGroups(Request $request): JsonResponse
+    {
+        try {
+            $dbConfig = IntegrationConfig::getAll('pihole');
+            $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
+
+            $endpoint = rtrim($config['endpoint'] ?? '', '/');
+            $password = $config['password'] ?? '';
+
+            $authResponse = Http::withOptions([
+                'verify' => (bool) ($config['verify_ssl'] ?? true),
+            ])
+                ->timeout(10)
+                ->post($endpoint.'/api/auth', ['password' => $password]);
+
+            $authResponse->throw();
+
+            /** @var string $token */
+            $token = $authResponse->json('session.token', '');
+
+            $response = Http::withOptions([
+                'verify' => (bool) ($config['verify_ssl'] ?? true),
+            ])
+                ->withHeaders(['Authorization' => 'Token '.$token])
+                ->timeout(10)
+                ->get($endpoint.'/api/groups');
+
+            $response->throw();
+
+            /** @var array<int, array{id: int, name?: string, enabled?: bool}> $groups */
+            $groups = $response->json('groups', []);
+
+            return response()->json(['groups' => collect($groups)->map(fn (array $g): array => [
+                'id' => $g['id'],
+                'name' => $g['name'] ?? "Group {$g['id']}",
+                'enabled' => $g['enabled'] ?? true,
+            ])->all()]);
+        } catch (Throwable $e) {
+            return response()->json(['groups' => [], 'error' => $e->getMessage()]);
+        }
     }
 }

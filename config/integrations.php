@@ -148,10 +148,13 @@ return [
                 'help' => 'Pi-hole admin password or app password.',
             ],
             'noblock_group_id' => [
-                'type' => 'number',
-                'label' => 'No-Block Group ID',
-                'placeholder' => '1',
-                'help' => 'Pi-hole group ID for clients that should bypass blocking.',
+                'type' => 'select-remote',
+                'label' => 'Blocking Group',
+                'placeholder' => 'Select a group…',
+                'help' => 'Pi-hole group ID for clients that should have ad blocking enabled.',
+                'remote_url' => '/admin/settings/integrations/pihole/groups',
+                'remote_label' => 'name',
+                'remote_value' => 'id',
             ],
             'verify_ssl' => [
                 'type' => 'toggle',
@@ -167,7 +170,7 @@ return [
         'validation' => [
             'endpoint' => 'nullable|url|max:500',
             'password' => 'nullable|string|max:500',
-            'noblock_group_id' => 'nullable|integer|min:1',
+            'noblock_group_id' => 'nullable|integer|min:0',
             'enabled' => 'nullable|string|in:0,1',
             'verify_ssl' => 'nullable|string|in:0,1',
         ],
