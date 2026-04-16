@@ -48,7 +48,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true, 'message' => 'Connected and authenticated successfully']);
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
     }
 
     public function test_admin_can_test_opnsense_connection_failure(): void
@@ -97,7 +97,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/opnsense');
 
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
         $this->assertDatabaseHas('connection_test_logs', [
             'integration' => 'opnsense',
             'success' => true,
@@ -106,6 +106,9 @@ class TestConnectionControllerTest extends TestCase
         $log = ConnectionTestLog::where('integration', 'opnsense')->latest()->first();
         $this->assertNotNull($log->response_data);
         $this->assertStringContainsString('ok', $log->response_data);
+        $this->assertSame('GET', $log->request_method);
+        $this->assertStringContainsString('/api/diagnostics/system/system_time', $log->request_url);
+        $this->assertSame(200, $log->response_status);
     }
 
     public function test_failed_connection_records_failure_log(): void
@@ -127,6 +130,9 @@ class TestConnectionControllerTest extends TestCase
 
         $log = ConnectionTestLog::where('integration', 'opnsense')->latest()->first();
         $this->assertNull($log->response_data);
+        $this->assertSame('GET', $log->request_method);
+        $this->assertNotNull($log->request_url);
+        $this->assertNull($log->response_status);
     }
 
     public function test_admin_can_test_librenms_connection_success(): void
@@ -144,7 +150,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
     }
 
     public function test_admin_can_test_librenms_connection_failure(): void
@@ -174,10 +180,13 @@ class TestConnectionControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/librenms');
 
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
 
         $log = ConnectionTestLog::where('integration', 'librenms')->latest()->first();
         $this->assertNotNull($log->response_data);
+        $this->assertSame('GET', $log->request_method);
+        $this->assertStringContainsString('/api/v0', $log->request_url);
+        $this->assertSame(200, $log->response_status);
     }
 
     public function test_admin_can_test_ntopng_connection_success(): void
@@ -194,7 +203,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
     }
 
     public function test_admin_can_test_ntopng_connection_failure(): void
@@ -223,10 +232,13 @@ class TestConnectionControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/ntopng');
 
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
 
         $log = ConnectionTestLog::where('integration', 'ntopng')->latest()->first();
         $this->assertNotNull($log->response_data);
+        $this->assertSame('GET', $log->request_method);
+        $this->assertStringContainsString('/lua/rest/v2/get/ntopng/interfaces.lua', $log->request_url);
+        $this->assertSame(200, $log->response_status);
     }
 
     public function test_admin_can_test_pihole_connection_success(): void
@@ -244,7 +256,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true, 'message' => 'Connected and authenticated successfully']);
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
     }
 
     public function test_admin_can_test_pihole_connection_failure(): void
@@ -275,10 +287,13 @@ class TestConnectionControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole');
 
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
 
         $log = ConnectionTestLog::where('integration', 'pihole')->latest()->first();
         $this->assertNotNull($log->response_data);
+        $this->assertSame('POST', $log->request_method);
+        $this->assertStringContainsString('/api/auth', $log->request_url);
+        $this->assertSame(200, $log->response_status);
     }
 
     public function test_admin_can_test_switch_connection_success(): void
@@ -301,7 +316,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true, 'message' => 'Connected successfully']);
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'output']);
     }
 
     public function test_admin_can_test_switch_connection_failure(): void
@@ -342,11 +357,13 @@ class TestConnectionControllerTest extends TestCase
             '/admin/settings/test/switch/'.$switch->id
         );
 
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'output']);
 
         $log = ConnectionTestLog::where('integration', 'switch-'.$switch->hostname)->latest()->first();
         $this->assertNotNull($log->response_data);
         $this->assertStringContainsString('Switch>', $log->response_data);
+        $this->assertSame('SSH', $log->request_method);
+        $this->assertSame($switch->hostname, $log->request_url);
     }
 
     public function test_admin_can_test_borealis_connection_success(): void
@@ -372,7 +389,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true, 'message' => 'Authenticated and received device code.']);
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
     }
 
     public function test_admin_can_test_borealis_connection_failure(): void
@@ -442,12 +459,15 @@ class TestConnectionControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
 
-        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
         $response->assertJson(['output' => ['device_code' => 'test-code']]);
 
         $log = ConnectionTestLog::where('integration', 'borealis')->latest()->first();
         $this->assertNotNull($log->response_data);
         $this->assertStringContainsString('test-code', $log->response_data);
+        $this->assertSame('POST', $log->request_method);
+        $this->assertStringContainsString('/oauth2/device', $log->request_url);
+        $this->assertSame(200, $log->response_status);
     }
 
     public function test_borealis_test_uses_request_values_over_db(): void

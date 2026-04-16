@@ -66,6 +66,9 @@ describe('IntegrationShow.vue', () => {
                 id: 1,
                 success: true,
                 message: 'Connected successfully',
+                request_method: 'GET',
+                request_url: 'https://opnsense.example.com/api/diagnostics/system/system_time',
+                response_status: 200,
                 response_data: '{"status":"ok"}',
                 tested_at: '2026-04-16T08:23:30+00:00',
             },
@@ -73,6 +76,9 @@ describe('IntegrationShow.vue', () => {
                 id: 2,
                 success: false,
                 message: 'Request failed',
+                request_method: 'GET',
+                request_url: 'https://opnsense.example.com/api/diagnostics/system/system_time',
+                response_status: null,
                 response_data: null,
                 tested_at: '2026-04-16T08:20:00+00:00',
             },
@@ -365,6 +371,89 @@ describe('IntegrationShow.vue', () => {
         });
     });
 
+    describe('test request/response detail', () => {
+        it('shows request method and URL when test result has request_method', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        message: 'Connected',
+                        request_method: 'GET',
+                        request_url: 'https://opnsense.local/api/diagnostics/system/system_time',
+                        response_status: 200,
+                        output: { status: 'ok' },
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            const detail = wrapper.find('[data-testid="test-request-detail"]');
+            expect(detail.exists()).toBe(true);
+            expect(detail.text()).toContain('GET');
+            expect(detail.text()).toContain('https://opnsense.local/api/diagnostics/system/system_time');
+        });
+
+        it('shows response status when present', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        message: 'Connected',
+                        request_method: 'POST',
+                        request_url: 'https://pihole.local/api/auth',
+                        response_status: 200,
+                        output: { session: {} },
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            const status = wrapper.find('[data-testid="test-response-status"]');
+            expect(status.exists()).toBe(true);
+            expect(status.text()).toContain('200');
+        });
+
+        it('does not show request detail when request_method is absent', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: false,
+                        message: 'Connection failed',
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            expect(wrapper.find('[data-testid="test-request-detail"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="test-response-status"]').exists()).toBe(false);
+        });
+
+        it('does not show response status for failed tests without status', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: false,
+                        message: 'Connection failed',
+                        request_method: 'GET',
+                        request_url: 'https://opnsense.local/api/test',
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            expect(wrapper.find('[data-testid="test-request-detail"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="test-response-status"]').exists()).toBe(false);
+        });
+    });
+
     describe('health log output toggle', () => {
         it('shows toggle button for log entries with response_data', () => {
             const wrapper = mountPage();
@@ -397,6 +486,51 @@ describe('IntegrationShow.vue', () => {
 
             const content = wrapper.find('[data-testid="log-output-content-0"]').text();
             expect(content).toContain('"status": "ok"');
+        });
+
+        it('displays request method and URL in health log row', () => {
+            const wrapper = mountPage();
+
+            const row = wrapper.find('[data-testid="health-log-row-0"]');
+            expect(row.text()).toContain('GET');
+            expect(row.text()).toContain('https://opnsense.example.com/api/diagnostics/system/system_time');
+        });
+
+        it('displays response status in health log row', () => {
+            const wrapper = mountPage();
+
+            const row = wrapper.find('[data-testid="health-log-row-0"]');
+            expect(row.text()).toContain('200');
+        });
+
+        it('displays dash when request method is absent in health log', () => {
+            const wrapper = mountPage({
+                service: {
+                    logs: [
+                        {
+                            id: 10,
+                            success: true,
+                            message: 'Legacy log',
+                            request_method: null,
+                            request_url: null,
+                            response_status: null,
+                            response_data: null,
+                            tested_at: '2026-04-16T08:00:00+00:00',
+                        },
+                    ],
+                },
+            });
+
+            const row = wrapper.find('[data-testid="health-log-row-0"]');
+            expect(row.text()).toContain('—');
+        });
+
+        it('renders Request and Response column headers', () => {
+            const wrapper = mountPage();
+            const table = wrapper.find('[data-testid="health-log-table"]');
+
+            expect(table.text()).toContain('Request');
+            expect(table.text()).toContain('Response');
         });
     });
 
