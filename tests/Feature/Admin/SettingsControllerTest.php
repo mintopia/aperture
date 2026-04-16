@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\Setting;
@@ -138,7 +139,29 @@ class SettingsControllerTest extends TestCase
         $response = $this->actingAs($admin)->get('/admin/settings/integrations');
 
         $response->assertOk();
-        $response->assertInertia(fn ($page) => $page->component('Admin/Settings/Integrations'));
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Settings/Integrations')
+            ->has('services')
+        );
+    }
+
+    public function test_integrations_page_returns_table_data(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opn.local');
+        CapabilityAssignment::assign('dhcp', 'opnsense');
+
+        $response = $this->actingAs($admin)->get('/admin/settings/integrations');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Settings/Integrations')
+            ->has('services', 5)
+            ->where('services.0.id', 'borealis')
+            ->has('services.0.capabilities')
+        );
     }
 
     public function test_admin_can_update_integrations_settings(): void

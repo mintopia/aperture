@@ -25,7 +25,7 @@ class SettingsControllerIntegrationExpansionTest extends TestCase
         return $user;
     }
 
-    public function test_integrations_page_returns_all_eight_sections(): void
+    public function test_integrations_page_returns_services_table_data(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -35,14 +35,16 @@ class SettingsControllerIntegrationExpansionTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Settings/Integrations')
-            ->has('integrations.opnsense')
-            ->has('integrations.librenms')
-            ->has('integrations.ntopng')
-            ->has('integrations.pihole')
-            ->has('integrations.dhcp')
-            ->has('integrations.dns')
-            ->has('integrations.auto_allow')
-            ->has('integrations.ipv6')
+            ->has('services')
+            ->where('services', function ($services) {
+                $ids = collect($services)->pluck('id')->all();
+
+                return in_array('borealis', $ids)
+                    && in_array('opnsense', $ids)
+                    && in_array('librenms', $ids)
+                    && in_array('ntopng', $ids)
+                    && in_array('pihole', $ids);
+            })
         );
     }
 

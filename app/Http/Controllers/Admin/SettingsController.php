@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CapabilityAssignment;
+use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Models\Setting;
 use App\Models\SwitchConfig;
@@ -15,17 +17,40 @@ class SettingsController extends Controller
 {
     public function integrations(): Response
     {
+        $integrations = config('integrations');
+
+        $services = collect($integrations)->map(function (array $meta, string $id): array {
+            $config = IntegrationConfig::getAll($id);
+            $latestTest = ConnectionTestLog::latestFor($id);
+            $activeCapabilities = CapabilityAssignment::getForIntegration($id);
+
+            return [
+                'id' => $id,
+                'name' => $meta['name'],
+                'enabled' => $this->isIntegrationEnabled($id, $config),
+                'health' => $latestTest?->success,
+                'capabilities' => collect($meta['capabilities'])->map(fn (string $cap): array => [
+                    'name' => $cap,
+                    'active' => $activeCapabilities->contains($cap),
+                ])->values()->all(),
+            ];
+        })->values()->all();
+
+        $borealisEnabled = (bool) config('aperture.borealis.enabled', false);
+        array_unshift($services, [
+            'id' => 'borealis',
+            'name' => 'Borealis',
+            'enabled' => $borealisEnabled,
+            'health' => null,
+            'readonly' => true,
+            'capabilities' => collect(['authentication', 'sso', 'user-info'])->map(fn (string $cap): array => [
+                'name' => $cap,
+                'active' => $borealisEnabled,
+            ])->values()->all(),
+        ]);
+
         return Inertia::render('Admin/Settings/Integrations', [
-            'integrations' => [
-                'opnsense' => IntegrationConfig::getAll('opnsense'),
-                'librenms' => IntegrationConfig::getAll('librenms'),
-                'ntopng' => IntegrationConfig::getAll('ntopng'),
-                'pihole' => IntegrationConfig::getAll('pihole'),
-                'dhcp' => IntegrationConfig::getAll('dhcp'),
-                'dns' => IntegrationConfig::getAll('dns'),
-                'auto_allow' => IntegrationConfig::getAll('auto_allow'),
-                'ipv6' => IntegrationConfig::getAll('ipv6'),
-            ],
+            'services' => $services,
         ]);
     }
 
@@ -232,5 +257,18 @@ class SettingsController extends Controller
 
         $setting->value = $value;
         $setting->save();
+    }
+
+    /**
+     * Determine if an integration is enabled.
+     * Checks explicit enabled flag first, falls back to endpoint presence.
+     */
+    private function isIntegrationEnabled(string $id, array $config): bool
+    {
+        if (isset($config['enabled'])) {
+            return (bool) $config['enabled'];
+        }
+
+        return ! empty($config['endpoint'] ?? null);
     }
 }
