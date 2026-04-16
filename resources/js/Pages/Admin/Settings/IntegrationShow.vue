@@ -24,6 +24,8 @@ const form = useForm({
 
 const testingConnection = ref(false);
 const testResult = ref(null);
+const showTestOutput = ref(false);
+const expandedLogIds = ref(new Set());
 const remoteOptions = ref({});
 
 async function fetchRemoteOptions(field) {
@@ -78,6 +80,7 @@ function submit() {
 async function testConnection() {
     testingConnection.value = true;
     testResult.value = null;
+    showTestOutput.value = false;
 
     try {
         const routeName = `admin.settings.test.${props.service.id}`;
@@ -145,8 +148,25 @@ function toggleField(key) {
     form.config[key] = form.config[key] === '1' ? '0' : '1';
 }
 
+function toggleLogOutput(logId) {
+    if (expandedLogIds.value.has(logId)) {
+        expandedLogIds.value.delete(logId);
+    } else {
+        expandedLogIds.value.add(logId);
+    }
+}
+
 function testResultMessage(result) {
     return result.message ?? (result.success ? 'Connected successfully' : 'Connection failed');
+}
+
+function formatLogOutput(data) {
+    try {
+        const parsed = JSON.parse(data);
+        return JSON.stringify(parsed, null, 2);
+    } catch {
+        return data;
+    }
 }
 </script>
 
@@ -304,10 +324,28 @@ function testResultMessage(result) {
                         >
                             {{ testingConnection ? 'Testing…' : 'Test Connection' }}
                         </button>
+                    </div>
 
-                        <p v-if="testResult" class="text-sm text-[var(--color-text-secondary)]">
+                    <div v-if="testResult" class="mt-2">
+                        <p
+                            class="text-sm"
+                            :class="testResult.success ? 'text-green-600' : 'text-red-600'"
+                        >
                             {{ testResultMessage(testResult) }}
                         </p>
+                        <button
+                            v-if="testResult.output"
+                            data-testid="test-output-toggle"
+                            class="mt-1 text-xs text-[var(--color-text-secondary)] underline cursor-pointer"
+                            @click="showTestOutput = !showTestOutput"
+                        >
+                            {{ showTestOutput ? 'Hide Output' : 'Show Output' }}
+                        </button>
+                        <pre
+                            v-if="showTestOutput && testResult.output"
+                            data-testid="test-output-content"
+                            class="mt-2 p-3 text-xs font-mono bg-[var(--color-bg-secondary)] rounded overflow-x-auto max-h-64 overflow-y-auto"
+                        >{{ typeof testResult.output === 'string' ? testResult.output : JSON.stringify(testResult.output, null, 2) }}</pre>
                     </div>
                 </form>
             </div>
@@ -370,7 +408,20 @@ function testResultMessage(result) {
                                     />
                                 </td>
                                 <td class="px-4 py-3 text-[var(--color-text-secondary)]">
-                                    {{ log.message || '—' }}
+                                    <div>{{ log.message || '—' }}</div>
+                                    <button
+                                        v-if="log.response_data"
+                                        :data-testid="`log-output-toggle-${index}`"
+                                        class="mt-1 text-xs text-[var(--color-text-secondary)] underline cursor-pointer"
+                                        @click="toggleLogOutput(log.id)"
+                                    >
+                                        {{ expandedLogIds.has(log.id) ? 'Hide Output' : 'Show Output' }}
+                                    </button>
+                                    <pre
+                                        v-if="expandedLogIds.has(log.id) && log.response_data"
+                                        :data-testid="`log-output-content-${index}`"
+                                        class="mt-2 p-3 text-xs font-mono bg-[var(--color-bg-secondary)] rounded overflow-x-auto max-h-64 overflow-y-auto"
+                                    >{{ formatLogOutput(log.response_data) }}</pre>
                                 </td>
                                 <td class="px-4 py-3 text-[var(--color-text-secondary)]">
                                     {{ log.tested_at }}

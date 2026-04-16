@@ -76,6 +76,7 @@ class IntegrationController extends Controller
                     'id' => $log->id,
                     'success' => $log->success,
                     'message' => $log->message,
+                    'response_data' => $log->response_data,
                     'tested_at' => $log->created_at?->toIso8601String(),
                 ])->values()->all(),
             ],
@@ -153,9 +154,62 @@ class IntegrationController extends Controller
                 'id' => $log->id,
                 'success' => $log->success,
                 'message' => $log->message,
+                'response_data' => $log->response_data,
                 'tested_at' => $log->created_at?->toIso8601String(),
             ])->values()->all(),
         ]);
+    }
+
+    public function opnsenseShaperRules(Request $request): JsonResponse
+    {
+        try {
+            $dbConfig = IntegrationConfig::getAll('opnsense');
+            $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
+
+            $endpoint = rtrim($config['endpoint'] ?? '', '/');
+            $key = $config['key'] ?? '';
+            $secret = $config['secret'] ?? '';
+            $verifySsl = (bool) ($config['verify_ssl'] ?? true);
+
+            if ($endpoint === '') {
+                return response()->json([
+                    'rules' => [],
+                    'error' => 'OPNsense endpoint is not configured.',
+                ]);
+            }
+
+            if ($key === '' || $secret === '') {
+                return response()->json([
+                    'rules' => [],
+                    'error' => 'OPNsense API key and secret are required.',
+                ]);
+            }
+
+            $response = Http::withOptions(['verify' => $verifySsl])
+                ->withBasicAuth($key, $secret)
+                ->timeout(10)
+                ->post($endpoint.'/api/trafficshaper/settings/searchRule', [
+                    'current' => 1,
+                    'rowCount' => -1,
+                    'searchPhrase' => '',
+                ]);
+
+            $response->throw();
+            $data = $response->json();
+
+            $rules = [['uuid' => '', 'description' => 'None (no rate limiting)']];
+
+            foreach ($data['rows'] ?? [] as $rule) {
+                $rules[] = [
+                    'uuid' => $rule['uuid'] ?? '',
+                    'description' => ($rule['description'] ?? 'Unnamed rule').' (seq: '.($rule['sequence'] ?? '?').')',
+                ];
+            }
+
+            return response()->json(['rules' => $rules]);
+        } catch (Throwable $throwable) {
+            return response()->json(['rules' => [], 'error' => 'Failed to fetch shaper rules: '.$throwable->getMessage()]);
+        }
     }
 
     public function piholeGroups(Request $request): JsonResponse

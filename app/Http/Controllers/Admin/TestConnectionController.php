@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
-use App\Services\BorealisService;
 use App\Services\SshProxy\SshProxyClientInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,9 +29,10 @@ class TestConnectionController extends Controller
 
             $response->throw();
 
-            ConnectionTestLog::record('opnsense', true, 'Connected successfully');
+            $body = $response->body();
+            ConnectionTestLog::record('opnsense', true, 'Connected successfully', null, $body);
 
-            return response()->json(['success' => true, 'message' => 'Connected successfully']);
+            return response()->json(['success' => true, 'message' => 'Connected successfully', 'output' => $response->json() ?? $body]);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('opnsense', false, 'Connection failed: '.$throwable->getMessage());
 
@@ -52,9 +52,10 @@ class TestConnectionController extends Controller
 
             $response->throw();
 
-            ConnectionTestLog::record('librenms', true, 'Connected successfully');
+            $body = $response->body();
+            ConnectionTestLog::record('librenms', true, 'Connected successfully', null, $body);
 
-            return response()->json(['success' => true, 'message' => 'Connected successfully']);
+            return response()->json(['success' => true, 'message' => 'Connected successfully', 'output' => $response->json() ?? $body]);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('librenms', false, 'Connection failed: '.$throwable->getMessage());
 
@@ -73,9 +74,10 @@ class TestConnectionController extends Controller
 
             $response->throw();
 
-            ConnectionTestLog::record('ntopng', true, 'Connected successfully');
+            $body = $response->body();
+            ConnectionTestLog::record('ntopng', true, 'Connected successfully', null, $body);
 
-            return response()->json(['success' => true, 'message' => 'Connected successfully']);
+            return response()->json(['success' => true, 'message' => 'Connected successfully', 'output' => $response->json() ?? $body]);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('ntopng', false, 'Connection failed: '.$throwable->getMessage());
 
@@ -100,9 +102,10 @@ class TestConnectionController extends Controller
 
             $response->throw();
 
-            ConnectionTestLog::record('pihole', true, 'Connected and authenticated successfully');
+            $body = $response->body();
+            ConnectionTestLog::record('pihole', true, 'Connected and authenticated successfully', null, $body);
 
-            return response()->json(['success' => true, 'message' => 'Connected and authenticated successfully']);
+            return response()->json(['success' => true, 'message' => 'Connected and authenticated successfully', 'output' => $response->json() ?? $body]);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('pihole', false, 'Connection failed: '.$throwable->getMessage());
 
@@ -110,13 +113,30 @@ class TestConnectionController extends Controller
         }
     }
 
-    public function testBorealis(BorealisService $borealis): JsonResponse
+    public function testBorealis(Request $request): JsonResponse
     {
         try {
-            $borealis->getDeviceCodeRaw('test');
-            ConnectionTestLog::record('borealis', true, 'Borealis OAuth2 endpoint is reachable.');
+            $dbConfig = IntegrationConfig::getAll('borealis');
+            $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
 
-            return response()->json(['success' => true, 'message' => 'Borealis OAuth2 endpoint is reachable.']);
+            $endpoint = rtrim($config['endpoint'] ?? '', '/');
+            $clientId = $config['client_id'] ?? '';
+            $clientSecret = $config['client_secret'] ?? '';
+
+            $response = Http::asForm()
+                ->timeout(10)
+                ->withBasicAuth($clientId, $clientSecret)
+                ->post($endpoint.'/oauth2/device', [
+                    'scope' => 'test',
+                ]);
+
+            $response->throw();
+
+            $body = $response->body();
+            $responseBody = $response->json();
+            ConnectionTestLog::record('borealis', true, 'Authenticated and received device code.', null, $body);
+
+            return response()->json(['success' => true, 'message' => 'Authenticated and received device code.', 'output' => $responseBody ?? $body]);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('borealis', false, 'Connection failed: '.$throwable->getMessage());
 
@@ -134,15 +154,21 @@ class TestConnectionController extends Controller
                 [['command' => '', 'expect' => '/^.*[>#]$/']],
             );
 
+            $message = $result->success ? 'Connected successfully' : ($result->error ?? 'Unknown error');
+            $outputData = json_encode($result->output) ?: null;
+
             ConnectionTestLog::record(
                 'switch-'.$switchConfig->hostname,
                 $result->success,
-                $result->success ? 'Connected successfully' : ($result->error ?? 'Unknown error'),
+                $message,
+                null,
+                $outputData,
             );
 
             return response()->json([
                 'success' => $result->success,
-                'message' => $result->success ? 'Connected successfully' : ($result->error ?? 'Unknown error'),
+                'message' => $message,
+                'output' => $result->output,
             ]);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('switch-'.$switchConfig->hostname, false, 'Connection failed: '.$throwable->getMessage());

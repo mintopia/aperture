@@ -66,12 +66,14 @@ describe('IntegrationShow.vue', () => {
                 id: 1,
                 success: true,
                 message: 'Connected successfully',
+                response_data: '{"status":"ok"}',
                 tested_at: '2026-04-16T08:23:30+00:00',
             },
             {
                 id: 2,
                 success: false,
                 message: 'Request failed',
+                response_data: null,
                 tested_at: '2026-04-16T08:20:00+00:00',
             },
         ],
@@ -224,6 +226,178 @@ describe('IntegrationShow.vue', () => {
         expect(body).toHaveProperty('endpoint', 'https://opnsense.example.com');
         expect(body).toHaveProperty('key', 'test-key');
         expect(body).toHaveProperty('verify_ssl', '1');
+    });
+
+    describe('test output toggle', () => {
+        it('shows toggle button when test result has output', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        message: 'Connected',
+                        output: { status: 'ok' },
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            expect(wrapper.find('[data-testid="test-output-toggle"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="test-output-toggle"]').text()).toBe('Show Output');
+        });
+
+        it('does not show toggle button when test result has no output', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: false,
+                        message: 'Connection failed',
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            expect(wrapper.find('[data-testid="test-output-toggle"]').exists()).toBe(false);
+        });
+
+        it('toggles output visibility when clicking Show/Hide Output', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        message: 'Connected',
+                        output: { status: 'ok' },
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            // Initially hidden
+            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(false);
+
+            // Click to show
+            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
+            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="test-output-toggle"]').text()).toBe('Hide Output');
+
+            // Click to hide
+            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
+            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="test-output-toggle"]').text()).toBe('Show Output');
+        });
+
+        it('displays JSON output formatted', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        message: 'Connected',
+                        output: { status: 'ok', version: '1.0' },
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
+
+            const content = wrapper.find('[data-testid="test-output-content"]').text();
+            expect(content).toContain('"status": "ok"');
+            expect(content).toContain('"version": "1.0"');
+        });
+
+        it('displays string output as-is', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        message: 'Connected',
+                        output: 'plain text response',
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
+
+            const content = wrapper.find('[data-testid="test-output-content"]').text();
+            expect(content).toBe('plain text response');
+        });
+
+        it('resets output toggle when running new test', async () => {
+            global.fetch = vi
+                .fn()
+                .mockResolvedValueOnce({
+                    json: () =>
+                        Promise.resolve({
+                            success: true,
+                            message: 'Connected',
+                            output: { status: 'ok' },
+                        }),
+                })
+                .mockResolvedValueOnce({
+                    json: () =>
+                        Promise.resolve({
+                            success: true,
+                            message: 'Connected again',
+                            output: { status: 'ok2' },
+                        }),
+                });
+
+            const wrapper = mountPage();
+
+            // First test — show output
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
+            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(true);
+
+            // Second test — output should be hidden again
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(false);
+        });
+    });
+
+    describe('health log output toggle', () => {
+        it('shows toggle button for log entries with response_data', () => {
+            const wrapper = mountPage();
+
+            expect(wrapper.find('[data-testid="log-output-toggle-0"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="log-output-toggle-1"]').exists()).toBe(false);
+        });
+
+        it('toggles log output visibility when clicking Show/Hide Output', async () => {
+            const wrapper = mountPage();
+
+            // Initially hidden
+            expect(wrapper.find('[data-testid="log-output-content-0"]').exists()).toBe(false);
+
+            // Click to show
+            await wrapper.find('[data-testid="log-output-toggle-0"]').trigger('click');
+            expect(wrapper.find('[data-testid="log-output-content-0"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="log-output-toggle-0"]').text()).toBe('Hide Output');
+
+            // Click to hide
+            await wrapper.find('[data-testid="log-output-toggle-0"]').trigger('click');
+            expect(wrapper.find('[data-testid="log-output-content-0"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="log-output-toggle-0"]').text()).toBe('Show Output');
+        });
+
+        it('formats JSON response_data in log output', async () => {
+            const wrapper = mountPage();
+
+            await wrapper.find('[data-testid="log-output-toggle-0"]').trigger('click');
+
+            const content = wrapper.find('[data-testid="log-output-content-0"]').text();
+            expect(content).toContain('"status": "ok"');
+        });
     });
 
     describe('select-remote fields', () => {

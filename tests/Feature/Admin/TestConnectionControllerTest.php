@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
-use App\Services\BorealisService;
 use App\Services\SshProxy\CommandResult;
 use App\Services\SshProxy\SshProxyClientInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -48,6 +48,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true, 'message' => 'Connected successfully']);
+        $response->assertJsonStructure(['success', 'message', 'output']);
     }
 
     public function test_admin_can_test_opnsense_connection_failure(): void
@@ -84,6 +85,29 @@ class TestConnectionControllerTest extends TestCase
         ]);
     }
 
+    public function test_opnsense_test_stores_response_data(): void
+    {
+        Queue::fake();
+        Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.example.com');
+        IntegrationConfig::setValue('opnsense', 'key', 'test-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret', true);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/opnsense');
+
+        $response->assertJsonStructure(['success', 'message', 'output']);
+        $this->assertDatabaseHas('connection_test_logs', [
+            'integration' => 'opnsense',
+            'success' => true,
+        ]);
+
+        $log = ConnectionTestLog::where('integration', 'opnsense')->latest()->first();
+        $this->assertNotNull($log->response_data);
+        $this->assertStringContainsString('ok', $log->response_data);
+    }
+
     public function test_failed_connection_records_failure_log(): void
     {
         Queue::fake();
@@ -100,6 +124,9 @@ class TestConnectionControllerTest extends TestCase
             'integration' => 'opnsense',
             'success' => false,
         ]);
+
+        $log = ConnectionTestLog::where('integration', 'opnsense')->latest()->first();
+        $this->assertNull($log->response_data);
     }
 
     public function test_admin_can_test_librenms_connection_success(): void
@@ -117,6 +144,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
+        $response->assertJsonStructure(['success', 'message', 'output']);
     }
 
     public function test_admin_can_test_librenms_connection_failure(): void
@@ -135,6 +163,23 @@ class TestConnectionControllerTest extends TestCase
         $response->assertJson(['success' => false]);
     }
 
+    public function test_librenms_test_stores_response_data(): void
+    {
+        Queue::fake();
+        Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('librenms', 'endpoint', 'https://librenms.example.com');
+        IntegrationConfig::setValue('librenms', 'api_key', 'test-api-key', true);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/librenms');
+
+        $response->assertJsonStructure(['success', 'message', 'output']);
+
+        $log = ConnectionTestLog::where('integration', 'librenms')->latest()->first();
+        $this->assertNotNull($log->response_data);
+    }
+
     public function test_admin_can_test_ntopng_connection_success(): void
     {
         Queue::fake();
@@ -149,6 +194,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
+        $response->assertJsonStructure(['success', 'message', 'output']);
     }
 
     public function test_admin_can_test_ntopng_connection_failure(): void
@@ -167,6 +213,22 @@ class TestConnectionControllerTest extends TestCase
         $response->assertJson(['success' => false]);
     }
 
+    public function test_ntopng_test_stores_response_data(): void
+    {
+        Queue::fake();
+        Http::fake(['*' => Http::response(['rc' => 0], 200)]);
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('ntopng', 'endpoint', 'https://ntopng.example.com');
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/ntopng');
+
+        $response->assertJsonStructure(['success', 'message', 'output']);
+
+        $log = ConnectionTestLog::where('integration', 'ntopng')->latest()->first();
+        $this->assertNotNull($log->response_data);
+    }
+
     public function test_admin_can_test_pihole_connection_success(): void
     {
         Queue::fake();
@@ -182,6 +244,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true, 'message' => 'Connected and authenticated successfully']);
+        $response->assertJsonStructure(['success', 'message', 'output']);
     }
 
     public function test_admin_can_test_pihole_connection_failure(): void
@@ -201,6 +264,23 @@ class TestConnectionControllerTest extends TestCase
         $response->assertJson(['success' => false]);
     }
 
+    public function test_pihole_test_stores_response_data(): void
+    {
+        Queue::fake();
+        Http::fake(['*' => Http::response(['session' => ['sid' => 'abc', 'validity' => 300]], 200)]);
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('pihole', 'endpoint', 'https://pihole.example.com');
+        IntegrationConfig::setValue('pihole', 'password', 'test-pass', true);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole');
+
+        $response->assertJsonStructure(['success', 'message', 'output']);
+
+        $log = ConnectionTestLog::where('integration', 'pihole')->latest()->first();
+        $this->assertNotNull($log->response_data);
+    }
+
     public function test_admin_can_test_switch_connection_success(): void
     {
         Queue::fake();
@@ -211,7 +291,7 @@ class TestConnectionControllerTest extends TestCase
         $mockProxy->shouldReceive('execute')
             ->once()
             ->with($switch->hostname, $switch->username, $switch->password, Mockery::type('array'))
-            ->andReturn(new CommandResult(success: true, output: []));
+            ->andReturn(new CommandResult(success: true, output: ['Switch> ']));
 
         $this->app->instance(SshProxyClientInterface::class, $mockProxy);
 
@@ -221,6 +301,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true, 'message' => 'Connected successfully']);
+        $response->assertJsonStructure(['success', 'message', 'output']);
     }
 
     public function test_admin_can_test_switch_connection_failure(): void
@@ -244,36 +325,68 @@ class TestConnectionControllerTest extends TestCase
         $response->assertJson(['success' => false]);
     }
 
+    public function test_switch_test_stores_response_data(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $mockProxy = Mockery::mock(SshProxyClientInterface::class);
+        $mockProxy->shouldReceive('execute')
+            ->once()
+            ->andReturn(new CommandResult(success: true, output: ['Switch> ']));
+
+        $this->app->instance(SshProxyClientInterface::class, $mockProxy);
+
+        $response = $this->actingAs($admin)->postJson(
+            '/admin/settings/test/switch/'.$switch->id
+        );
+
+        $response->assertJsonStructure(['success', 'message', 'output']);
+
+        $log = ConnectionTestLog::where('integration', 'switch-'.$switch->hostname)->latest()->first();
+        $this->assertNotNull($log->response_data);
+        $this->assertStringContainsString('Switch>', $log->response_data);
+    }
+
     public function test_admin_can_test_borealis_connection_success(): void
     {
+        Queue::fake();
         $admin = $this->createAdminUser();
-        $mock = Mockery::mock(BorealisService::class);
-        $mock->shouldReceive('getDeviceCodeRaw')
-            ->once()
-            ->with('test')
-            ->andReturn((object) [
+
+        IntegrationConfig::setValue('borealis', 'endpoint', 'https://borealis.test');
+        IntegrationConfig::setValue('borealis', 'client_id', 'test-client-id');
+        IntegrationConfig::setValue('borealis', 'client_secret', 'test-client-secret', true);
+
+        Http::fake([
+            'borealis.test/oauth2/device' => Http::response([
                 'device_code' => 'test-code',
                 'user_code' => 'TEST-CODE',
                 'verification_uri' => 'https://auth.test/verify',
                 'expires_in' => 300,
                 'interval' => 5,
-            ]);
-        $this->app->instance(BorealisService::class, $mock);
+            ], 200),
+        ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
 
         $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response->assertJson(['success' => true, 'message' => 'Authenticated and received device code.']);
+        $response->assertJsonStructure(['success', 'message', 'output']);
     }
 
     public function test_admin_can_test_borealis_connection_failure(): void
     {
+        Queue::fake();
         $admin = $this->createAdminUser();
-        $mock = Mockery::mock(BorealisService::class);
-        $mock->shouldReceive('getDeviceCodeRaw')
-            ->once()
-            ->andThrow(new \Exception('Connection refused'));
-        $this->app->instance(BorealisService::class, $mock);
+
+        IntegrationConfig::setValue('borealis', 'endpoint', 'https://borealis.test');
+        IntegrationConfig::setValue('borealis', 'client_id', 'bad-client');
+        IntegrationConfig::setValue('borealis', 'client_secret', 'bad-secret', true);
+
+        Http::fake([
+            'borealis.test/*' => Http::response('Unauthorized', 401),
+        ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
 
@@ -283,12 +396,22 @@ class TestConnectionControllerTest extends TestCase
 
     public function test_borealis_connection_test_records_log(): void
     {
+        Queue::fake();
         $admin = $this->createAdminUser();
-        $mock = Mockery::mock(BorealisService::class);
-        $mock->shouldReceive('getDeviceCodeRaw')
-            ->once()
-            ->andReturn((object) ['device_code' => 'x', 'user_code' => 'X', 'verification_uri' => 'https://x', 'expires_in' => 300, 'interval' => 5]);
-        $this->app->instance(BorealisService::class, $mock);
+
+        IntegrationConfig::setValue('borealis', 'endpoint', 'https://borealis.test');
+        IntegrationConfig::setValue('borealis', 'client_id', 'test-client-id');
+        IntegrationConfig::setValue('borealis', 'client_secret', 'test-client-secret', true);
+
+        Http::fake([
+            'borealis.test/oauth2/device' => Http::response([
+                'device_code' => 'x',
+                'user_code' => 'X',
+                'verification_uri' => 'https://x',
+                'expires_in' => 300,
+                'interval' => 5,
+            ], 200),
+        ]);
 
         $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
 
@@ -296,6 +419,93 @@ class TestConnectionControllerTest extends TestCase
             'integration' => 'borealis',
             'success' => true,
         ]);
+    }
+
+    public function test_borealis_test_stores_response_data(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('borealis', 'endpoint', 'https://borealis.test');
+        IntegrationConfig::setValue('borealis', 'client_id', 'test-client-id');
+        IntegrationConfig::setValue('borealis', 'client_secret', 'test-client-secret', true);
+
+        Http::fake([
+            'borealis.test/oauth2/device' => Http::response([
+                'device_code' => 'test-code',
+                'user_code' => 'TEST-CODE',
+                'verification_uri' => 'https://auth.test/verify',
+                'expires_in' => 300,
+                'interval' => 5,
+            ], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
+
+        $response->assertJsonStructure(['success', 'message', 'output']);
+        $response->assertJson(['output' => ['device_code' => 'test-code']]);
+
+        $log = ConnectionTestLog::where('integration', 'borealis')->latest()->first();
+        $this->assertNotNull($log->response_data);
+        $this->assertStringContainsString('test-code', $log->response_data);
+    }
+
+    public function test_borealis_test_uses_request_values_over_db(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('borealis', 'endpoint', 'https://old-borealis.test');
+        IntegrationConfig::setValue('borealis', 'client_id', 'old-client-id');
+        IntegrationConfig::setValue('borealis', 'client_secret', 'old-secret', true);
+
+        Http::fake([
+            'new-borealis.test/oauth2/device' => Http::response([
+                'device_code' => 'test-code',
+                'user_code' => 'TEST-CODE',
+                'verification_uri' => 'https://auth.test/verify',
+                'expires_in' => 300,
+                'interval' => 5,
+            ], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/borealis', [
+            'endpoint' => 'https://new-borealis.test',
+            'client_id' => 'new-client-id',
+            'client_secret' => 'new-secret',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-borealis.test'));
+    }
+
+    public function test_borealis_test_sends_authenticated_post(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('borealis', 'endpoint', 'https://borealis.test');
+        IntegrationConfig::setValue('borealis', 'client_id', 'my-client-id');
+        IntegrationConfig::setValue('borealis', 'client_secret', 'my-client-secret', true);
+
+        Http::fake([
+            'borealis.test/oauth2/device' => Http::response([
+                'device_code' => 'test-code',
+                'user_code' => 'TEST',
+                'verification_uri' => 'https://auth.test/verify',
+                'expires_in' => 300,
+                'interval' => 5,
+            ], 200),
+        ]);
+
+        $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
+
+        Http::assertSent(function ($req) {
+            return $req->method() === 'POST'
+                && str_contains($req->url(), '/oauth2/device')
+                && $req->hasHeader('Authorization');
+        });
     }
 
     public function test_non_admin_cannot_test_connections(): void

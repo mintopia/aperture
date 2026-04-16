@@ -62,6 +62,32 @@ class ConnectionTestLogTest extends TestCase
         ]);
     }
 
+    public function test_record_with_response_data(): void
+    {
+        Queue::fake();
+
+        $responseData = '{"status":"ok","version":"1.0"}';
+        $log = ConnectionTestLog::record('opnsense', true, 'Connection successful', null, $responseData);
+
+        $this->assertSame($responseData, $log->response_data);
+        $this->assertDatabaseHas('connection_test_logs', [
+            'id' => $log->id,
+            'response_data' => $responseData,
+        ]);
+    }
+
+    public function test_record_without_response_data(): void
+    {
+        Queue::fake();
+
+        $log = ConnectionTestLog::record('opnsense', true, 'Connection successful');
+
+        $this->assertNull($log->response_data);
+        $this->assertDatabaseHas('connection_test_logs', [
+            'id' => $log->id,
+        ]);
+    }
+
     public function test_latest_for_returns_most_recent(): void
     {
         Queue::fake();
