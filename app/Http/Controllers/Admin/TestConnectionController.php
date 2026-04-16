@@ -9,15 +9,17 @@ use App\Models\SwitchConfig;
 use App\Services\BorealisService;
 use App\Services\SshProxy\SshProxyClientInterface;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class TestConnectionController extends Controller
 {
-    public function testOpnsense(): JsonResponse
+    public function testOpnsense(Request $request): JsonResponse
     {
         try {
-            $config = IntegrationConfig::getAll('opnsense');
+            $dbConfig = IntegrationConfig::getAll('opnsense');
+            $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
             $response = Http::withOptions([
                 'verify' => (bool) ($config['verify_ssl'] ?? true),
@@ -38,10 +40,11 @@ class TestConnectionController extends Controller
         }
     }
 
-    public function testLibrenms(): JsonResponse
+    public function testLibrenms(Request $request): JsonResponse
     {
         try {
-            $config = IntegrationConfig::getAll('librenms');
+            $dbConfig = IntegrationConfig::getAll('librenms');
+            $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
             $response = Http::withHeaders(['X-Auth-Token' => $config['api_key'] ?? ''])
                 ->timeout(10)
@@ -59,10 +62,11 @@ class TestConnectionController extends Controller
         }
     }
 
-    public function testNtopng(): JsonResponse
+    public function testNtopng(Request $request): JsonResponse
     {
         try {
-            $config = IntegrationConfig::getAll('ntopng');
+            $dbConfig = IntegrationConfig::getAll('ntopng');
+            $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
             $response = Http::timeout(10)
                 ->get($endpoint.'/lua/rest/v2/get/ntopng/interfaces.lua');
@@ -79,16 +83,17 @@ class TestConnectionController extends Controller
         }
     }
 
-    public function testPihole(): JsonResponse
+    public function testPihole(Request $request): JsonResponse
     {
         try {
-            $config = IntegrationConfig::getAll('pihole');
+            $dbConfig = IntegrationConfig::getAll('pihole');
+            $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
             $response = Http::withOptions([
                 'verify' => (bool) ($config['verify_ssl'] ?? true),
             ])
                 ->timeout(10)
-                ->get($endpoint.'/api/dns/status');
+                ->get($endpoint.'/info/client');
 
             $response->throw();
 

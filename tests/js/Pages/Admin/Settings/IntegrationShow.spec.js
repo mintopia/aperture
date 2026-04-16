@@ -206,4 +206,23 @@ describe('IntegrationShow.vue', () => {
 
         expect(wrapper.find('[data-testid="health-log-table"]').text()).toContain('No connection tests recorded.');
     });
+
+    it('sends form config data when testing connection', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            json: () => Promise.resolve({ success: true, message: 'Connected successfully' }),
+        });
+
+        const wrapper = mountPage();
+
+        await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        const [, options] = global.fetch.mock.calls[0];
+        expect(options.method).toBe('POST');
+        expect(options.headers['Content-Type']).toBe('application/json');
+        const body = JSON.parse(options.body);
+        expect(body).toHaveProperty('endpoint', 'https://opnsense.example.com');
+        expect(body).toHaveProperty('key', 'test-key');
+        expect(body).toHaveProperty('verify_ssl', '1');
+    });
 });

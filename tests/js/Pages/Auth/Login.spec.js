@@ -39,11 +39,11 @@ describe('Login', () => {
         expect(wrapper.find('[data-testid="login-submit"]').text()).toBe('Sign In');
     });
 
-    it('renders passkey button as disabled', () => {
+    it('renders passkey button as enabled', () => {
         const wrapper = mountLogin();
         const btn = wrapper.find('[data-testid="login-passkey"]');
         expect(btn.exists()).toBe(true);
-        expect(btn.attributes('disabled')).toBeDefined();
+        expect(btn.attributes('disabled')).toBeUndefined();
     });
 
     it('renders captive portal link', () => {
@@ -54,5 +54,15 @@ describe('Login', () => {
     it('has login form', () => {
         const wrapper = mountLogin();
         expect(wrapper.find('[data-testid="login-form"]').exists()).toBe(true);
+    });
+
+    it('does not show passkey error by default', () => {
+        const wrapper = mountLogin();
+        expect(wrapper.find('[data-testid="passkey-error"]').exists()).toBe(false);
+    });
+
+    it('renders passkey section', () => {
+        const wrapper = mountLogin();
+        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(true);
     });
 });

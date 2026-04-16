@@ -305,4 +305,130 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_opnsense_test_uses_request_values_over_db(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://old.example.com');
+        IntegrationConfig::setValue('opnsense', 'key', 'old-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'old-secret');
+
+        Http::fake([
+            'new.example.com/*' => Http::response('ok', 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/opnsense', [
+            'endpoint' => 'https://new.example.com',
+            'key' => 'new-key',
+            'secret' => 'new-secret',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'new.example.com'));
+    }
+
+    public function test_librenms_test_uses_request_values_over_db(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('librenms', 'endpoint', 'https://old-librenms.example.com');
+        IntegrationConfig::setValue('librenms', 'api_key', 'old-api-key');
+
+        Http::fake([
+            'new-librenms.example.com/*' => Http::response(['status' => 'ok'], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/librenms', [
+            'endpoint' => 'https://new-librenms.example.com',
+            'api_key' => 'new-api-key',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-librenms.example.com'));
+    }
+
+    public function test_ntopng_test_uses_request_values_over_db(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('ntopng', 'endpoint', 'https://old-ntopng.example.com');
+
+        Http::fake([
+            'new-ntopng.example.com/*' => Http::response(['rc' => 0], 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/ntopng', [
+            'endpoint' => 'https://new-ntopng.example.com',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-ntopng.example.com'));
+    }
+
+    public function test_pihole_test_uses_request_values_over_db(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('pihole', 'endpoint', 'https://old-pihole.example.com');
+
+        Http::fake([
+            'new-pihole.example.com/*' => Http::response('ok', 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole', [
+            'endpoint' => 'https://new-pihole.example.com',
+            'verify_ssl' => '0',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-pihole.example.com'));
+    }
+
+    public function test_pihole_test_uses_info_client_endpoint(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Http::fake([
+            'pihole.test/info/client' => Http::response('ok', 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole', [
+            'endpoint' => 'https://pihole.test',
+            'verify_ssl' => '0',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        Http::assertSent(fn ($req) => str_contains($req->url(), '/info/client'));
+    }
+
+    public function test_opnsense_test_falls_back_to_db_when_no_request_values(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://db-opnsense.example.com');
+        IntegrationConfig::setValue('opnsense', 'key', 'db-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'db-secret');
+
+        Http::fake([
+            'db-opnsense.example.com/*' => Http::response('ok', 200),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/opnsense');
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        Http::assertSent(fn ($req) => str_contains($req->url(), 'db-opnsense.example.com'));
+    }
 }

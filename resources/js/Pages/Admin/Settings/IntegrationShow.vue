@@ -41,6 +41,7 @@ async function testConnection() {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
             },
+            body: JSON.stringify(form.config),
         });
         testResult.value = await response.json();
     } catch {
