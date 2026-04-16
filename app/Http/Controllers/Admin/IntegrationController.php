@@ -167,25 +167,61 @@ class IntegrationController extends Controller
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
             $password = $config['password'] ?? '';
 
-            $authResponse = Http::withOptions([
-                'verify' => (bool) ($config['verify_ssl'] ?? true),
-            ])
+            if ($endpoint === '') {
+                return response()->json([
+                    'groups' => [],
+                    'error' => 'Pi-hole endpoint is not configured.',
+                ]);
+            }
+
+            if ($password === '') {
+                return response()->json([
+                    'groups' => [],
+                    'error' => 'Pi-hole password is not configured.',
+                ]);
+            }
+
+            $verifySsl = (bool) ($config['verify_ssl'] ?? true);
+
+            // Step 1: Authenticate — matches PiHoleService::getAuthToken() pattern
+            $authResponse = Http::withOptions(['verify' => $verifySsl])
                 ->timeout(10)
+                ->asJson()
                 ->post($endpoint.'/api/auth', ['password' => $password]);
 
-            $authResponse->throw();
+            if (! $authResponse->successful()) {
+                return response()->json([
+                    'groups' => [],
+                    'error' => 'Pi-hole authentication failed (HTTP '.$authResponse->status().'). Check your password.',
+                ]);
+            }
 
             /** @var string $token */
             $token = $authResponse->json('session.token', '');
 
-            $response = Http::withOptions([
-                'verify' => (bool) ($config['verify_ssl'] ?? true),
-            ])
+            if ($token === '') {
+                $token = $authResponse->json('session.sid', '');
+            }
+
+            if ($token === '') {
+                return response()->json([
+                    'groups' => [],
+                    'error' => 'Pi-hole auth succeeded but no session token found in response.',
+                ]);
+            }
+
+            // Step 2: Fetch groups — uses Authorization header like PiHoleService
+            $response = Http::withOptions(['verify' => $verifySsl])
                 ->withHeaders(['Authorization' => 'Token '.$token])
                 ->timeout(10)
                 ->get($endpoint.'/api/groups');
 
-            $response->throw();
+            if (! $response->successful()) {
+                return response()->json([
+                    'groups' => [],
+                    'error' => 'Failed to fetch Pi-hole groups (HTTP '.$response->status().').',
+                ]);
+            }
 
             /** @var array<int, array{id: int, name?: string, enabled?: bool}> $groups */
             $groups = $response->json('groups', []);
