@@ -171,7 +171,7 @@ class IntegrationControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         Http::fake([
-            '*/api/auth' => Http::response(['session' => ['token' => 'test-token', 'validity' => 300]], 200),
+            '*/api/auth' => Http::response(['session' => ['sid' => 'test-sid', 'validity' => 300]], 200),
             '*/api/groups' => Http::response(['groups' => [
                 ['id' => 0, 'name' => 'Default', 'enabled' => true],
                 ['id' => 1, 'name' => 'Ad Blocking', 'enabled' => true],
@@ -217,7 +217,7 @@ class IntegrationControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         Http::fake([
-            '*/api/auth' => Http::response(['session' => ['token' => 'tok', 'validity' => 300]], 200),
+            '*/api/auth' => Http::response(['session' => ['sid' => 'tok', 'validity' => 300]], 200),
             '*/api/groups' => Http::response('Forbidden', 403),
         ]);
 
@@ -259,7 +259,7 @@ class IntegrationControllerTest extends TestCase
         $this->assertStringContainsString('password is not configured', $response->json('error'));
     }
 
-    public function test_pihole_groups_returns_error_when_token_missing_from_auth_response(): void
+    public function test_pihole_groups_returns_error_when_sid_missing_from_auth_response(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -275,16 +275,16 @@ class IntegrationControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('groups', []);
-        $this->assertStringContainsString('no session token', $response->json('error'));
+        $this->assertStringContainsString('no session ID', $response->json('error'));
     }
 
-    public function test_pihole_groups_uses_sid_fallback_token(): void
+    public function test_pihole_groups_sends_sid_header_to_groups_endpoint(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
         Http::fake([
-            '*/api/auth' => Http::response(['session' => ['sid' => 'sid-token-value', 'validity' => 300]], 200),
+            '*/api/auth' => Http::response(['session' => ['sid' => 'my-session-id', 'validity' => 300]], 200),
             '*/api/groups' => Http::response(['groups' => [
                 ['id' => 0, 'name' => 'Default', 'enabled' => true],
             ]], 200),
@@ -300,7 +300,7 @@ class IntegrationControllerTest extends TestCase
 
         Http::assertSent(function ($req) {
             if (str_contains($req->url(), '/api/groups')) {
-                return $req->header('Authorization') === ['Token sid-token-value'];
+                return $req->header('X-FTL-SID') === ['my-session-id'];
             }
 
             return true;
@@ -313,7 +313,7 @@ class IntegrationControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         Http::fake([
-            '*/api/auth' => Http::response(['session' => ['token' => 'tok', 'validity' => 300]], 200),
+            '*/api/auth' => Http::response(['session' => ['sid' => 'tok', 'validity' => 300]], 200),
             '*/api/groups' => Http::response(['groups' => []], 200),
         ]);
 
@@ -340,7 +340,7 @@ class IntegrationControllerTest extends TestCase
         IntegrationConfig::setValue('pihole', 'password', 'old-password', true);
 
         Http::fake([
-            '*/api/auth' => Http::response(['session' => ['token' => 'tok', 'validity' => 300]], 200),
+            '*/api/auth' => Http::response(['session' => ['sid' => 'tok', 'validity' => 300]], 200),
             '*/api/groups' => Http::response(['groups' => [
                 ['id' => 0, 'name' => 'Default', 'enabled' => true],
             ]], 200),
@@ -365,7 +365,7 @@ class IntegrationControllerTest extends TestCase
         IntegrationConfig::setValue('pihole', 'password', 'db-password', true);
 
         Http::fake([
-            '*/api/auth' => Http::response(['session' => ['token' => 'tok', 'validity' => 300]], 200),
+            '*/api/auth' => Http::response(['session' => ['sid' => 'tok', 'validity' => 300]], 200),
             '*/api/groups' => Http::response(['groups' => [
                 ['id' => 0, 'name' => 'Default', 'enabled' => true],
             ]], 200),
@@ -386,30 +386,6 @@ class IntegrationControllerTest extends TestCase
         $response = $this->actingAs($user)->postJson('/admin/settings/integrations/pihole/groups');
 
         $response->assertForbidden();
-    }
-
-    public function test_pihole_groups_sends_auth_token_to_groups_endpoint(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        Http::fake([
-            '*/api/auth' => Http::response(['session' => ['token' => 'my-secret-token', 'validity' => 300]], 200),
-            '*/api/groups' => Http::response(['groups' => []], 200),
-        ]);
-
-        $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
-            'endpoint' => 'https://pihole.test',
-            'password' => 'pass',
-        ]);
-
-        Http::assertSent(function ($req) {
-            if (str_contains($req->url(), '/api/groups')) {
-                return $req->header('Authorization') === ['Token my-secret-token'];
-            }
-
-            return true;
-        });
     }
 
     public function test_pihole_show_page_includes_remote_field_metadata(): void

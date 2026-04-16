@@ -30,7 +30,7 @@ class PiHoleServiceTest extends TestCase
     {
         return new Response(200, [], (string) json_encode([
             'session' => [
-                'token' => 'test-token-abc',
+                'sid' => 'test-session-id',
                 'validity' => 300,
             ],
         ]));
@@ -183,7 +183,7 @@ class PiHoleServiceTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function test_auth_token_is_cached(): void
+    public function test_session_id_is_cached(): void
     {
         Cache::flush();
 

@@ -70,10 +70,10 @@ class PiHoleService implements DnsBlockingInterface
      */
     protected function findClient(string $ipAddress): ?array
     {
-        $token = $this->getAuthToken();
+        $sid = $this->getSessionId();
 
         $response = $this->client->get('/api/clients', [
-            'headers' => ['Authorization' => 'Token '.$token],
+            'headers' => ['X-FTL-SID' => $sid],
             'query' => ['search' => $ipAddress],
         ]);
 
@@ -95,10 +95,10 @@ class PiHoleService implements DnsBlockingInterface
      */
     protected function createClient(string $ipAddress, array $groups): void
     {
-        $token = $this->getAuthToken();
+        $sid = $this->getSessionId();
 
         $this->client->post('/api/clients', [
-            'headers' => ['Authorization' => 'Token '.$token],
+            'headers' => ['X-FTL-SID' => $sid],
             'json' => [
                 'client' => $ipAddress,
                 'groups' => $groups,
@@ -112,27 +112,27 @@ class PiHoleService implements DnsBlockingInterface
      */
     protected function updateClientGroups(int $clientId, array $groups): void
     {
-        $token = $this->getAuthToken();
+        $sid = $this->getSessionId();
 
         $this->client->put('/api/clients/'.$clientId, [
-            'headers' => ['Authorization' => 'Token '.$token],
+            'headers' => ['X-FTL-SID' => $sid],
             'json' => [
                 'groups' => $groups,
             ],
         ]);
     }
 
-    protected function getAuthToken(): string
+    protected function getSessionId(): string
     {
-        return Cache::remember('pihole_auth_token', 270, function (): string {
+        return Cache::remember('pihole_session_id', 270, function (): string {
             $response = $this->client->post('/api/auth', [
                 'json' => ['password' => $this->password],
             ]);
 
-            /** @var array{session: array{token: string, validity: int}} $data */
+            /** @var array{session: array{sid: string, validity: int}} $data */
             $data = json_decode($response->getBody()->getContents(), true);
 
-            return $data['session']['token'];
+            return $data['session']['sid'];
         });
     }
 }
