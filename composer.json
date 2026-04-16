@@ -9,6 +9,7 @@
         "chillerlan/php-qrcode": "^5.0",
         "guzzlehttp/guzzle": "^7.2",
         "inertiajs/inertia-laravel": "^3.0",
+        "laragear/webauthn": "^5.0",
         "laravel/framework": "^13.0",
         "laravel/horizon": "^5.34",
         "laravel/octane": "^2.12",

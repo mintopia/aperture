@@ -15,6 +15,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notifiable;
+use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable as WebAuthnAuthenticatableContract;
+use Laragear\WebAuthn\WebAuthnAuthentication;
+use Laragear\WebAuthn\WebAuthnData;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -56,7 +59,7 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @mixin \Eloquent
  * @mixin IdeHelperUser
  */
-class User extends Authenticatable
+class User extends Authenticatable implements WebAuthnAuthenticatableContract
 {
     use HasApiTokens;
 
@@ -65,6 +68,7 @@ class User extends Authenticatable
 
     use Notifiable;
     use ToString;
+    use WebAuthnAuthentication;
 
     protected string $stringDescriptionProperty = 'nickname';
 
@@ -88,6 +92,14 @@ class User extends Authenticatable
             'refresh_token' => 'encrypted',
             'token_expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Returns displayable data to be used to create WebAuthn Credentials.
+     */
+    public function webAuthnData(): WebAuthnData
+    {
+        return WebAuthnData::make($this->email, $this->nickname);
     }
 
     /** @return HasMany<UserIpAddress, $this> */
