@@ -25,14 +25,14 @@ class TestConnectionController extends Controller
             ])
                 ->withBasicAuth($config['key'] ?? '', $config['secret'] ?? '')
                 ->timeout(10)
-                ->get($endpoint.'/api/captiveportal/service/reconfigure');
+                ->get($endpoint.'/api/diagnostics/system/system_time');
 
             $response->throw();
 
             $body = $response->body();
-            ConnectionTestLog::record('opnsense', true, 'Connected successfully', null, $body);
+            ConnectionTestLog::record('opnsense', true, 'Connected and authenticated successfully', null, $body);
 
-            return response()->json(['success' => true, 'message' => 'Connected successfully', 'output' => $response->json() ?? $body]);
+            return response()->json(['success' => true, 'message' => 'Connected and authenticated successfully', 'output' => $response->json() ?? $body]);
         } catch (Throwable $throwable) {
             ConnectionTestLog::record('opnsense', false, 'Connection failed: '.$throwable->getMessage());
 

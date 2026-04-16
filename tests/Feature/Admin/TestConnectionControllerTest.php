@@ -47,7 +47,7 @@ class TestConnectionControllerTest extends TestCase
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/opnsense');
 
         $response->assertOk();
-        $response->assertJson(['success' => true, 'message' => 'Connected successfully']);
+        $response->assertJson(['success' => true, 'message' => 'Connected and authenticated successfully']);
         $response->assertJsonStructure(['success', 'message', 'output']);
     }
 
