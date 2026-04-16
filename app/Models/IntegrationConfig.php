@@ -13,8 +13,39 @@ class IntegrationConfig extends Model
     /** @use HasFactory<IntegrationConfigFactory> */
     use HasFactory;
 
-    /** @var list<string> */
+    /**
+     * Hardcoded fallback for sensitive field keys.
+     *
+     * @deprecated Use {@see encryptedKeys()} instead, which derives keys from config/integrations.php.
+     *
+     * @var list<string>
+     */
     public const ENCRYPTED_KEYS = ['api_key', 'password', 'secret', 'key', 'client_secret'];
+
+    /**
+     * Get all field keys that should be encrypted, derived from config/integrations.php.
+     * Any field with type 'password' is considered sensitive and will be encrypted.
+     * Falls back to ENCRYPTED_KEYS for keys not present in config.
+     *
+     * @return list<string>
+     */
+    public static function encryptedKeys(): array
+    {
+        return once(function (): array {
+            /** @var array<string, array{fields?: array<string, array{type?: string}>}> $integrations */
+            $integrations = config('integrations', []);
+
+            $fromConfig = collect($integrations)
+                ->flatMap(fn (array $integration): array => $integration['fields'] ?? [])
+                ->filter(fn (array $field): bool => ($field['type'] ?? '') === 'password')
+                ->keys()
+                ->unique()
+                ->values()
+                ->all();
+
+            return array_values(array_unique(array_merge($fromConfig, self::ENCRYPTED_KEYS)));
+        });
+    }
 
     protected $fillable = ['integration', 'key', 'value', 'encrypted'];
 

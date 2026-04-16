@@ -107,7 +107,7 @@ class IntegrationController extends Controller
                 continue;
             }
 
-            $encrypted = in_array($key, IntegrationConfig::ENCRYPTED_KEYS, true);
+            $encrypted = in_array($key, IntegrationConfig::encryptedKeys(), true);
             IntegrationConfig::setValue($service, $key, $value, $encrypted);
         }
 
