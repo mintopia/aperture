@@ -30,16 +30,22 @@ return [
             ],
             // Portal / zone settings
             'captive_portal_id' => [
-                'type' => 'text',
-                'label' => 'Captive Portal Zone ID',
-                'placeholder' => '0',
-                'help' => 'The numeric zone ID for the captive portal.',
+                'type' => 'select-remote',
+                'label' => 'Captive Portal Zone',
+                'placeholder' => 'Select a zone…',
+                'help' => 'The captive portal zone to use.',
+                'remote_url' => '/admin/settings/integrations/opnsense/zones',
+                'remote_label' => 'name',
+                'remote_value' => 'id',
             ],
             'zone_id' => [
-                'type' => 'text',
-                'label' => 'Firewall Zone ID',
-                'placeholder' => '0',
-                'help' => 'The numeric firewall zone ID.',
+                'type' => 'select-remote',
+                'label' => 'Firewall Zone',
+                'placeholder' => 'Select a zone…',
+                'help' => 'The firewall zone ID for captive portal operations.',
+                'remote_url' => '/admin/settings/integrations/opnsense/zones',
+                'remote_label' => 'name',
+                'remote_value' => 'id',
             ],
             // Rate limiting – dynamic dropdowns
             'ratelimit_up_uuid' => [

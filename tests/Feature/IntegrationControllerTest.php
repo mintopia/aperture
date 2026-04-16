@@ -288,4 +288,276 @@ class IntegrationControllerTest extends TestCase
         $this->assertSame('description', $fields['ratelimit_up_uuid']['remote_label']);
         $this->assertSame('uuid', $fields['ratelimit_up_uuid']['remote_value']);
     }
+
+    public function test_opnsense_zone_fields_are_select_remote_type(): void
+    {
+        /** @var array<string, array{fields: array<string, array{type: string, remote_url?: string, remote_label?: string, remote_value?: string}>}> $integrations */
+        $integrations = config('integrations');
+        $fields = $integrations['opnsense']['fields'];
+
+        $this->assertSame('select-remote', $fields['captive_portal_id']['type']);
+        $this->assertSame('select-remote', $fields['zone_id']['type']);
+        $this->assertSame('/admin/settings/integrations/opnsense/zones', $fields['captive_portal_id']['remote_url']);
+        $this->assertSame('/admin/settings/integrations/opnsense/zones', $fields['zone_id']['remote_url']);
+        $this->assertSame('name', $fields['captive_portal_id']['remote_label']);
+        $this->assertSame('id', $fields['captive_portal_id']['remote_value']);
+        $this->assertSame('name', $fields['zone_id']['remote_label']);
+        $this->assertSame('id', $fields['zone_id']['remote_value']);
+    }
+
+    public function test_opnsense_zones_returns_parsed_zones(): void
+    {
+        Http::fake([
+            '*/api/captiveportal/settings/get' => Http::response([
+                'zone' => [
+                    'zones' => [
+                        'zone' => [
+                            'abc-uuid-1' => ['zoneid' => '0', 'description' => 'Default Zone'],
+                            'def-uuid-2' => ['zoneid' => '1', 'description' => 'Guest Zone'],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+        IntegrationConfig::setValue('opnsense', 'key', 'test-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret');
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones')
+        );
+
+        $response->assertOk();
+        $response->assertJsonCount(2, 'zones');
+        $response->assertJsonPath('zones.0.id', '0');
+        $response->assertJsonPath('zones.0.name', 'Default Zone (ID: 0)');
+        $response->assertJsonPath('zones.1.id', '1');
+        $response->assertJsonPath('zones.1.name', 'Guest Zone (ID: 1)');
+    }
+
+    public function test_opnsense_zones_returns_error_on_auth_failure(): void
+    {
+        Http::fake([
+            '*/api/captiveportal/settings/get' => Http::response(['message' => 'Unauthorized'], 401),
+        ]);
+
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+        IntegrationConfig::setValue('opnsense', 'key', 'bad-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'bad-secret');
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones')
+        );
+
+        $response->assertOk();
+        $response->assertJsonStructure(['zones', 'error']);
+        $response->assertJsonPath('zones', []);
+        $this->assertStringContainsString('Failed to fetch zones', $response->json('error'));
+    }
+
+    public function test_opnsense_zones_returns_empty_array_when_no_zones(): void
+    {
+        Http::fake([
+            '*/api/captiveportal/settings/get' => Http::response([
+                'zone' => [
+                    'zones' => [
+                        'zone' => [],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+        IntegrationConfig::setValue('opnsense', 'key', 'test-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret');
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones')
+        );
+
+        $response->assertOk();
+        $response->assertJsonCount(0, 'zones');
+    }
+
+    public function test_opnsense_zones_returns_error_when_endpoint_missing(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones')
+        );
+
+        $response->assertOk();
+        $response->assertJsonPath('error', 'OPNsense endpoint is not configured.');
+        $response->assertJsonPath('zones', []);
+    }
+
+    public function test_opnsense_zones_returns_error_when_credentials_missing(): void
+    {
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones')
+        );
+
+        $response->assertOk();
+        $response->assertJsonPath('error', 'OPNsense API key and secret are required.');
+        $response->assertJsonPath('zones', []);
+    }
+
+    public function test_opnsense_zones_merges_request_params_over_db_config(): void
+    {
+        Http::fake([
+            '*/api/captiveportal/settings/get' => Http::response([
+                'zone' => [
+                    'zones' => [
+                        'zone' => [
+                            'abc-uuid-1' => ['zoneid' => '0', 'description' => 'Default Zone'],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://old-endpoint.local');
+        IntegrationConfig::setValue('opnsense', 'key', 'old-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'old-secret');
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones'),
+            [
+                'endpoint' => 'https://new-endpoint.local',
+                'key' => 'new-key',
+                'secret' => 'new-secret',
+            ]
+        );
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'zones');
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'new-endpoint.local');
+        });
+    }
+
+    public function test_opnsense_zones_requires_authentication(): void
+    {
+        $response = $this->postJson(
+            '/admin/settings/integrations/opnsense/zones'
+        );
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_opnsense_zones_requires_admin_role(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson(
+            '/admin/settings/integrations/opnsense/zones'
+        );
+
+        $response->assertForbidden();
+    }
+
+    public function test_opnsense_zones_handles_connection_timeout(): void
+    {
+        Http::fake([
+            '*/api/captiveportal/settings/get' => function () {
+                throw new ConnectionException('Connection timed out');
+            },
+        ]);
+
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+        IntegrationConfig::setValue('opnsense', 'key', 'test-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret');
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones')
+        );
+
+        $response->assertOk();
+        $response->assertJsonPath('zones', []);
+        $this->assertStringContainsString('Failed to fetch zones', $response->json('error'));
+    }
+
+    public function test_opnsense_zones_handles_zones_with_missing_fields(): void
+    {
+        Http::fake([
+            '*/api/captiveportal/settings/get' => Http::response([
+                'zone' => [
+                    'zones' => [
+                        'zone' => [
+                            'uuid-1' => ['zoneid' => '5'],
+                            'uuid-2' => ['zoneid' => '3', 'description' => 'Has Description'],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+        IntegrationConfig::setValue('opnsense', 'key', 'test-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret');
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones')
+        );
+
+        $response->assertOk();
+        $response->assertJsonCount(2, 'zones');
+        // Sorted by zone ID: 3 before 5
+        $response->assertJsonPath('zones.0.id', '3');
+        $response->assertJsonPath('zones.0.name', 'Has Description (ID: 3)');
+        $response->assertJsonPath('zones.1.id', '5');
+        $response->assertJsonPath('zones.1.name', 'Zone 5 (ID: 5)');
+    }
+
+    public function test_opnsense_zones_sorts_by_zone_id(): void
+    {
+        Http::fake([
+            '*/api/captiveportal/settings/get' => Http::response([
+                'zone' => [
+                    'zones' => [
+                        'zone' => [
+                            'uuid-a' => ['zoneid' => '10', 'description' => 'Zone Ten'],
+                            'uuid-b' => ['zoneid' => '2', 'description' => 'Zone Two'],
+                            'uuid-c' => ['zoneid' => '0', 'description' => 'Zone Zero'],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $admin = $this->createAdminUser();
+
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+        IntegrationConfig::setValue('opnsense', 'key', 'test-key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret');
+
+        $response = $this->actingAs($admin)->postJson(
+            route('admin.settings.integrations.opnsense.zones')
+        );
+
+        $response->assertOk();
+        $response->assertJsonCount(3, 'zones');
+        $response->assertJsonPath('zones.0.id', '0');
+        $response->assertJsonPath('zones.1.id', '2');
+        $response->assertJsonPath('zones.2.id', '10');
+    }
 }
