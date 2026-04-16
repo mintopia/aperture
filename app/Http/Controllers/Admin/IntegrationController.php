@@ -188,7 +188,7 @@ class IntegrationController extends Controller
             $response = Http::withOptions(['verify' => $verifySsl])
                 ->withBasicAuth($key, $secret)
                 ->timeout(10)
-                ->post($endpoint.'/api/trafficshaper/settings/searchRule', [
+                ->post($endpoint.'/api/trafficshaper/rule/searchRule', [
                     'current' => 1,
                     'rowCount' => -1,
                     'searchPhrase' => '',
