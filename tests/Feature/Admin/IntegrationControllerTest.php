@@ -141,8 +141,8 @@ class IntegrationControllerTest extends TestCase
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        ConnectionTestLog::record('opnsense', true, 'Connected successfully');
-        ConnectionTestLog::record('opnsense', false, 'Request failed');
+        ConnectionTestLog::record('opnsense', true, 'Connected successfully', null, '{"status":"ok"}', 'GET', 'https://opnsense.local/api/diagnostics/system/system_time', 200);
+        ConnectionTestLog::record('opnsense', false, 'Request failed', null, null, 'GET', 'https://opnsense.local/api/diagnostics/system/system_time', null);
 
         $response = $this->actingAs($admin)->getJson('/admin/settings/integrations/opnsense/health-log');
 
@@ -150,9 +150,11 @@ class IntegrationControllerTest extends TestCase
         $response->assertJsonCount(2, 'logs');
         $response->assertJsonStructure([
             'logs' => [
-                '*' => ['id', 'success', 'message', 'tested_at'],
+                '*' => ['id', 'success', 'message', 'request_method', 'request_url', 'response_status', 'tested_at'],
             ],
         ]);
+        $response->assertJsonPath('logs.0.request_method', 'GET');
+        $response->assertJsonPath('logs.0.response_status', 200);
     }
 
     public function test_non_admin_cannot_access_integration(): void

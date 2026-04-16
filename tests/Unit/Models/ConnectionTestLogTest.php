@@ -88,6 +88,43 @@ class ConnectionTestLogTest extends TestCase
         ]);
     }
 
+    public function test_record_with_request_response_detail(): void
+    {
+        Queue::fake();
+
+        $log = ConnectionTestLog::record(
+            'opnsense',
+            true,
+            'Connected successfully',
+            null,
+            '{"status":"ok"}',
+            'GET',
+            'https://opnsense.local/api/diagnostics/system/system_time',
+            200,
+        );
+
+        $this->assertSame('GET', $log->request_method);
+        $this->assertSame('https://opnsense.local/api/diagnostics/system/system_time', $log->request_url);
+        $this->assertSame(200, $log->response_status);
+        $this->assertDatabaseHas('connection_test_logs', [
+            'id' => $log->id,
+            'request_method' => 'GET',
+            'request_url' => 'https://opnsense.local/api/diagnostics/system/system_time',
+            'response_status' => 200,
+        ]);
+    }
+
+    public function test_record_without_request_response_detail(): void
+    {
+        Queue::fake();
+
+        $log = ConnectionTestLog::record('opnsense', true, 'Connection successful');
+
+        $this->assertNull($log->request_method);
+        $this->assertNull($log->request_url);
+        $this->assertNull($log->response_status);
+    }
+
     public function test_latest_for_returns_most_recent(): void
     {
         Queue::fake();

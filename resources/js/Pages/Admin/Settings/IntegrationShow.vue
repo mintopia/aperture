@@ -331,6 +331,18 @@ function formatLogOutput(data) {
                         <p class="text-sm" :class="testResult.success ? 'text-green-600' : 'text-red-600'">
                             {{ testResultMessage(testResult) }}
                         </p>
+                        <div
+                            v-if="testResult.request_method"
+                            class="mt-1 space-y-1 text-xs text-[var(--color-text-secondary)]"
+                        >
+                            <p data-testid="test-request-detail">
+                                <span class="font-mono font-semibold">{{ testResult.request_method }}</span>
+                                <span class="ml-1 font-mono">{{ testResult.request_url }}</span>
+                            </p>
+                            <p v-if="testResult.response_status" data-testid="test-response-status">
+                                Status: <span class="font-mono">{{ testResult.response_status }}</span>
+                            </p>
+                        </div>
                         <button
                             v-if="testResult.output"
                             data-testid="test-output-toggle"
@@ -343,11 +355,11 @@ function formatLogOutput(data) {
                             v-if="showTestOutput && testResult.output"
                             data-testid="test-output-content"
                             class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-3 font-mono text-xs"
-                            >{{
+                        >{{
                                 typeof testResult.output === 'string'
                                     ? testResult.output
                                     : JSON.stringify(testResult.output, null, 2)
-                            }}</pre
+                        }}</pre
                         >
                     </div>
                 </form>
@@ -393,6 +405,8 @@ function formatLogOutput(data) {
                         >
                             <tr>
                                 <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Request</th>
+                                <th class="px-4 py-3">Response</th>
                                 <th class="px-4 py-3">Message</th>
                                 <th class="px-4 py-3">Tested At</th>
                             </tr>
@@ -410,6 +424,15 @@ function formatLogOutput(data) {
                                         :label="log.success ? 'Success' : 'Failure'"
                                     />
                                 </td>
+                                <td class="px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)]">
+                                    <span v-if="log.request_method"
+                                    >{{ log.request_method }} {{ log.request_url }}</span
+                                    >
+                                    <span v-else>—</span>
+                                </td>
+                                <td class="px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)]">
+                                    {{ log.response_status ?? '—' }}
+                                </td>
                                 <td class="px-4 py-3 text-[var(--color-text-secondary)]">
                                     <div>{{ log.message || '—' }}</div>
                                     <button
@@ -424,7 +447,7 @@ function formatLogOutput(data) {
                                         v-if="expandedLogIds.has(log.id) && log.response_data"
                                         :data-testid="`log-output-content-${index}`"
                                         class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-3 font-mono text-xs"
-                                        >{{ formatLogOutput(log.response_data) }}</pre
+                                    >{{ formatLogOutput(log.response_data) }}</pre
                                     >
                                 </td>
                                 <td class="px-4 py-3 text-[var(--color-text-secondary)]">
@@ -432,7 +455,7 @@ function formatLogOutput(data) {
                                 </td>
                             </tr>
                             <tr v-if="service.logs.length === 0" class="border-t border-[var(--color-border)]">
-                                <td colspan="3" class="px-4 py-8 text-center text-[var(--color-text-muted)]">
+                                <td colspan="5" class="px-4 py-8 text-center text-[var(--color-text-muted)]">
                                     No connection tests recorded.
                                 </td>
                             </tr>

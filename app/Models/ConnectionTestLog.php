@@ -14,27 +14,39 @@ class ConnectionTestLog extends Model
     /** @use HasFactory<ConnectionTestLogFactory> */
     use HasFactory;
 
-    protected $fillable = ['integration', 'success', 'message', 'response_data', 'response_time_ms'];
+    protected $fillable = ['integration', 'success', 'message', 'request_method', 'request_url', 'response_status', 'response_time_ms', 'response_data'];
 
     protected function casts(): array
     {
         return [
             'success' => 'boolean',
             'response_time_ms' => 'integer',
+            'response_status' => 'integer',
         ];
     }
 
     /**
      * Record a new connection test result.
      */
-    public static function record(string $integration, bool $success, ?string $message = null, ?int $responseTimeMs = null, ?string $responseData = null): self
-    {
+    public static function record(
+        string $integration,
+        bool $success,
+        ?string $message = null,
+        ?int $responseTimeMs = null,
+        ?string $responseData = null,
+        ?string $requestMethod = null,
+        ?string $requestUrl = null,
+        ?int $responseStatus = null,
+    ): self {
         return static::create([
             'integration' => $integration,
             'success' => $success,
             'message' => $message,
-            'response_data' => $responseData,
             'response_time_ms' => $responseTimeMs,
+            'response_data' => $responseData,
+            'request_method' => $requestMethod,
+            'request_url' => $requestUrl,
+            'response_status' => $responseStatus,
         ]);
     }
 
