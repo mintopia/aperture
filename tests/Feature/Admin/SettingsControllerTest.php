@@ -65,6 +65,20 @@ class SettingsControllerTest extends TestCase
         $response->assertSessionHasErrors('theme_name');
     }
 
+    public function test_admin_can_set_default_theme(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
+            'theme_name' => 'default',
+            'theme_mode' => 'dark',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('default', Setting::get('theme.name'));
+    }
+
     public function test_admin_can_update_event_settings(): void
     {
         Queue::fake();
