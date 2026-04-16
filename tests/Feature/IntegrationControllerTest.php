@@ -270,6 +270,7 @@ class IntegrationControllerTest extends TestCase
             'zone_id',
             'ratelimit_up_uuid',
             'ratelimit_down_uuid',
+            'dhcp_server',
         ];
 
         $this->assertSame($expected, $fields);

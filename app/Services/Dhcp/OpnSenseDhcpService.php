@@ -17,6 +17,9 @@ class OpnSenseDhcpService implements DhcpInterface
     public function __construct(
         protected Client $client,
         protected int $poolSize = 0,
+        protected string $leasesPath = '/api/dhcpv4/leases/searchLease',
+        protected string $ipv4RangesPath = '/api/dhcpv4/service/searchSubnet',
+        protected string $ipv6RangesPath = '/api/dhcpv6/service/searchSubnet',
     ) {}
 
     public function getPoolStatus(): DhcpPoolStatus
@@ -66,7 +69,7 @@ class OpnSenseDhcpService implements DhcpInterface
         $ranges = collect();
 
         try {
-            $response = $this->client->get('/api/dhcpv4/service/searchSubnet', [
+            $response = $this->client->get($this->ipv4RangesPath, [
                 'json' => (object) [],
             ]);
 
@@ -89,28 +92,30 @@ class OpnSenseDhcpService implements DhcpInterface
             // IPv4 ranges not available
         }
 
-        try {
-            $response = $this->client->get('/api/dhcpv6/service/searchSubnet', [
-                'json' => (object) [],
-            ]);
+        if ($this->ipv6RangesPath !== '') {
+            try {
+                $response = $this->client->get($this->ipv6RangesPath, [
+                    'json' => (object) [],
+                ]);
 
-            /** @var array{rows?: list<array{interface?: string, prefix?: string, range_from?: string, range_to?: string, description?: string}>} $data */
-            $data = json_decode($response->getBody()->getContents(), true);
+                /** @var array{rows?: list<array{interface?: string, prefix?: string, range_from?: string, range_to?: string, description?: string}>} $data */
+                $data = json_decode($response->getBody()->getContents(), true);
 
-            foreach ($data['rows'] ?? [] as $row) {
-                $ranges->push(new DhcpRange(
-                    interface: $row['interface'] ?? '',
-                    type: 'ipv6',
-                    subnet: null,
-                    rangeFrom: $row['range_from'] ?? null,
-                    rangeTo: $row['range_to'] ?? null,
-                    prefix: $row['prefix'] ?? null,
-                    gateway: null,
-                    description: $row['description'] ?? null,
-                ));
+                foreach ($data['rows'] ?? [] as $row) {
+                    $ranges->push(new DhcpRange(
+                        interface: $row['interface'] ?? '',
+                        type: 'ipv6',
+                        subnet: null,
+                        rangeFrom: $row['range_from'] ?? null,
+                        rangeTo: $row['range_to'] ?? null,
+                        prefix: $row['prefix'] ?? null,
+                        gateway: null,
+                        description: $row['description'] ?? null,
+                    ));
+                }
+            } catch (Throwable) {
+                // IPv6 ranges not available
             }
-        } catch (Throwable) {
-            // IPv6 ranges not available
         }
 
         return $ranges;
@@ -121,7 +126,7 @@ class OpnSenseDhcpService implements DhcpInterface
      */
     protected function fetchLeases(): Collection
     {
-        $response = $this->client->post('/api/dhcpv4/leases/searchLease', [
+        $response = $this->client->post($this->leasesPath, [
             'json' => (object) [],
         ]);
 

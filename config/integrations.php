@@ -66,6 +66,18 @@ return [
                 'remote_label' => 'description',
                 'remote_value' => 'uuid',
             ],
+            // DHCP settings
+            'dhcp_server' => [
+                'type' => 'select',
+                'label' => 'DHCP Server',
+                'help' => 'Select the DHCP server plugin installed on OPNsense. Set to None if DHCP is not managed by OPNsense.',
+                'options' => [
+                    '' => 'None',
+                    'isc' => 'ISC DHCPD',
+                    'kea' => 'Kea DHCP',
+                    'dnsmasq' => 'Dnsmasq',
+                ],
+            ],
         ],
         'validation' => [
             'endpoint' => 'nullable|url|max:500',
@@ -76,6 +88,7 @@ return [
             'zone_id' => 'nullable|string|max:100',
             'ratelimit_up_uuid' => 'nullable|string|max:500',
             'ratelimit_down_uuid' => 'nullable|string|max:500',
+            'dhcp_server' => 'nullable|string|in:,isc,kea,dnsmasq',
         ],
     ],
     'librenms' => [

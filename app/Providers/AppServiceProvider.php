@@ -8,6 +8,7 @@ use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
 use App\Services\CiscoService;
+use App\Services\Dhcp\NullDhcpService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
 use App\Services\Interfaces\AuthProviderInterface;
@@ -101,20 +102,46 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (Application $application): DhcpInterface {
-            $dbConfig = $this->getIntegrationDbConfig('dhcp');
             $opnsenseConfig = $this->getIntegrationDbConfig('opnsense');
+            $dhcpServer = (string) ($opnsenseConfig['dhcp_server'] ?? '');
+
+            if ($dhcpServer === '') {
+                return new NullDhcpService;
+            }
+
+            $paths = match ($dhcpServer) {
+                'kea' => [
+                    'leases' => '/api/kea/leases4/search',
+                    'ipv4_ranges' => '/api/kea/dhcpv4/search',
+                    'ipv6_ranges' => '/api/kea/dhcpv6/search',
+                ],
+                'dnsmasq' => [
+                    'leases' => '/api/dnsmasq/leases/searchLease',
+                    'ipv4_ranges' => '/api/dnsmasq/settings/searchDomain',
+                    'ipv6_ranges' => '',
+                ],
+                default => [
+                    'leases' => '/api/dhcpv4/leases/searchLease',
+                    'ipv4_ranges' => '/api/dhcpv4/service/searchSubnet',
+                    'ipv6_ranges' => '/api/dhcpv6/service/searchSubnet',
+                ],
+            };
+
             $client = new Client([
-                'verify' => (bool) ($dbConfig['verify_ssl'] ?? $opnsenseConfig['verify_ssl'] ?? true),
-                'base_uri' => $dbConfig['endpoint'] ?? $opnsenseConfig['endpoint'] ?? '',
+                'verify' => (bool) ($opnsenseConfig['verify_ssl'] ?? true),
+                'base_uri' => $opnsenseConfig['endpoint'] ?? '',
                 'auth' => [
-                    $dbConfig['key'] ?? $opnsenseConfig['key'] ?? '',
-                    $dbConfig['secret'] ?? $opnsenseConfig['secret'] ?? '',
+                    $opnsenseConfig['key'] ?? '',
+                    $opnsenseConfig['secret'] ?? '',
                 ],
             ]);
 
             return new OpnSenseDhcpService(
                 $client,
-                (int) ($dbConfig['pool_size'] ?? 254),
+                (int) ($opnsenseConfig['pool_size'] ?? 254),
+                $paths['leases'],
+                $paths['ipv4_ranges'],
+                $paths['ipv6_ranges'],
             );
         });
 

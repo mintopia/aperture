@@ -727,4 +727,86 @@ describe('IntegrationShow.vue', () => {
             expect(remoteCalls2.length).toBe(2);
         });
     });
+
+    describe('select fields', () => {
+        const selectService = {
+            id: 'opnsense',
+            name: 'OPNsense',
+            description: 'Firewall integration',
+            health: true,
+            config: {
+                endpoint: 'https://opnsense.example.com',
+                dhcp_server: 'isc',
+            },
+            fields: [
+                {
+                    key: 'endpoint',
+                    type: 'url',
+                    label: 'API Endpoint',
+                    placeholder: 'https://opnsense.local/api',
+                    help: 'Base URL',
+                    required: false,
+                },
+                {
+                    key: 'dhcp_server',
+                    type: 'select',
+                    label: 'DHCP Server',
+                    help: 'Select the DHCP server plugin.',
+                    required: false,
+                    options: {
+                        '': 'None',
+                        isc: 'ISC DHCPD',
+                        kea: 'Kea DHCP',
+                        dnsmasq: 'Dnsmasq',
+                    },
+                },
+            ],
+            capabilities: [{ name: 'dhcp', active: true }],
+            logs: [],
+        };
+
+        it('renders select dropdown for select-type fields', () => {
+            const wrapper = mountPage({ service: selectService });
+            const select = wrapper.find('[data-testid="field-dhcp_server"]');
+
+            expect(select.exists()).toBe(true);
+            expect(select.element.tagName).toBe('SELECT');
+        });
+
+        it('renders all static options', () => {
+            const wrapper = mountPage({ service: selectService });
+            const options = wrapper.findAll('[data-testid="field-dhcp_server"] option');
+
+            expect(options.length).toBe(4);
+            expect(options[0].text()).toBe('None');
+            expect(options[0].element.value).toBe('');
+            expect(options[1].text()).toBe('ISC DHCPD');
+            expect(options[1].element.value).toBe('isc');
+            expect(options[2].text()).toBe('Kea DHCP');
+            expect(options[2].element.value).toBe('kea');
+            expect(options[3].text()).toBe('Dnsmasq');
+            expect(options[3].element.value).toBe('dnsmasq');
+        });
+
+        it('binds selected value from config', () => {
+            const wrapper = mountPage({ service: selectService });
+            const select = wrapper.find('[data-testid="field-dhcp_server"]');
+
+            expect(select.element.value).toBe('isc');
+        });
+
+        it('does not render refresh button for static select', () => {
+            const wrapper = mountPage({ service: selectService });
+
+            expect(wrapper.find('[data-testid="field-refresh-dhcp_server"]').exists()).toBe(false);
+        });
+
+        it('displays help text for select field', () => {
+            const wrapper = mountPage({ service: selectService });
+            const helpTexts = wrapper.findAll('.text-xs.text-\\[var\\(--color-text-muted\\)\\]');
+            const helpContents = helpTexts.map((el) => el.text());
+
+            expect(helpContents).toContain('Select the DHCP server plugin.');
+        });
+    });
 });
