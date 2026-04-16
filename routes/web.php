@@ -127,6 +127,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Per-service integration routes
         Route::post('/settings/integrations/pihole/groups', [IntegrationController::class, 'piholeGroups'])->name('settings.integrations.pihole.groups');
+        Route::post('/settings/integrations/opnsense/shaper-rules', [IntegrationController::class, 'opnsenseShaperRules'])->name('settings.integrations.opnsense.shaper-rules');
         Route::get('/settings/integrations/{service}', [IntegrationController::class, 'show'])->name('settings.integrations.show');
         Route::put('/settings/integrations/{service}', [IntegrationController::class, 'update'])->name('settings.integrations.service.update');
         Route::put('/settings/capabilities', [IntegrationController::class, 'toggleCapability'])->name('settings.capabilities.update');

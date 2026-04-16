@@ -6,6 +6,7 @@ return [
         'description' => 'Network firewall providing captive portal, rate limiting, and DHCP services.',
         'capabilities' => ['captive-portal', 'firewall', 'rate-limiting', 'dhcp'],
         'fields' => [
+            // Connection settings
             'endpoint' => [
                 'type' => 'url',
                 'label' => 'API Endpoint',
@@ -22,6 +23,12 @@ return [
                 'label' => 'API Secret',
                 'help' => 'OPNsense API secret for authentication.',
             ],
+            'verify_ssl' => [
+                'type' => 'toggle',
+                'label' => 'Verify SSL',
+                'help' => 'Verify the SSL certificate when connecting.',
+            ],
+            // Portal / zone settings
             'captive_portal_id' => [
                 'type' => 'text',
                 'label' => 'Captive Portal Zone ID',
@@ -34,28 +41,32 @@ return [
                 'placeholder' => '0',
                 'help' => 'The numeric firewall zone ID.',
             ],
-            'verify_ssl' => [
-                'type' => 'toggle',
-                'label' => 'Verify SSL',
-                'help' => 'Verify the SSL certificate when connecting.',
-            ],
+            // Rate limiting – dynamic dropdowns
             'ratelimit_up_uuid' => [
-                'type' => 'text',
-                'label' => 'Upload Rate Limit Rule UUID',
-                'help' => 'UUID of the traffic shaper pipe for upload limiting.',
+                'type' => 'select-remote',
+                'label' => 'Upload Rate Limit Rule',
+                'placeholder' => 'Select a shaper rule…',
+                'help' => 'Traffic shaper rule for upload rate limiting. Select "None" to disable.',
+                'remote_url' => '/admin/settings/integrations/opnsense/shaper-rules',
+                'remote_label' => 'description',
+                'remote_value' => 'uuid',
             ],
             'ratelimit_down_uuid' => [
-                'type' => 'text',
-                'label' => 'Download Rate Limit Rule UUID',
-                'help' => 'UUID of the traffic shaper pipe for download limiting.',
+                'type' => 'select-remote',
+                'label' => 'Download Rate Limit Rule',
+                'placeholder' => 'Select a shaper rule…',
+                'help' => 'Traffic shaper rule for download rate limiting. Select "None" to disable.',
+                'remote_url' => '/admin/settings/integrations/opnsense/shaper-rules',
+                'remote_label' => 'description',
+                'remote_value' => 'uuid',
             ],
         ],
         'validation' => [
             'endpoint' => 'nullable|url|max:500',
             'key' => 'nullable|string|max:500',
             'secret' => 'nullable|string|max:500',
-            'captive_portal_id' => 'nullable|string|max:100',
             'verify_ssl' => 'nullable|string|in:0,1',
+            'captive_portal_id' => 'nullable|string|max:100',
             'zone_id' => 'nullable|string|max:100',
             'ratelimit_up_uuid' => 'nullable|string|max:500',
             'ratelimit_down_uuid' => 'nullable|string|max:500',
