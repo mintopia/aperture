@@ -17,7 +17,7 @@ class IntegrationConfigFactory extends Factory
     public function definition(): array
     {
         return [
-            'integration' => fake()->randomElement(['opnsense', 'librenms', 'pihole', 'ntopng']),
+            'integration' => fake()->randomElement(['opnsense', 'librenms', 'pihole', 'ntopng', 'borealis']),
             'key' => fake()->word(),
             'value' => json_encode(['v' => fake()->word()]),
             'encrypted' => false,

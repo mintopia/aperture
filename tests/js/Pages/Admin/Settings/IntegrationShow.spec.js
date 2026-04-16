@@ -29,7 +29,34 @@ describe('IntegrationShow.vue', () => {
         config: {
             endpoint: 'https://opnsense.example.com',
             key: 'test-key',
+            verify_ssl: '1',
         },
+        fields: [
+            {
+                key: 'endpoint',
+                type: 'url',
+                label: 'API Endpoint',
+                placeholder: 'https://opnsense.local/api',
+                help: 'Base URL',
+                required: false,
+            },
+            {
+                key: 'key',
+                type: 'password',
+                label: 'API Key',
+                placeholder: '',
+                help: 'API key',
+                required: false,
+            },
+            {
+                key: 'verify_ssl',
+                type: 'toggle',
+                label: 'Verify SSL',
+                placeholder: '',
+                help: 'Verify SSL cert',
+                required: false,
+            },
+        ],
         capabilities: [
             { name: 'dhcp', active: true },
             { name: 'firewall', active: false },
@@ -116,8 +143,43 @@ describe('IntegrationShow.vue', () => {
         const wrapper = mountPage();
 
         expect(wrapper.find('[data-testid="config-form"]').exists()).toBe(true);
-        expect(wrapper.find('input[name="endpoint"]').element.value).toBe('https://opnsense.example.com');
-        expect(wrapper.find('input[name="key"]').element.value).toBe('test-key');
+        expect(wrapper.find('[data-testid="field-input-endpoint"]').element.value).toBe('https://opnsense.example.com');
+        expect(wrapper.find('[data-testid="field-input-key"]').element.value).toBe('test-key');
+    });
+
+    it('renders url input for url-type fields', () => {
+        const wrapper = mountPage();
+        const input = wrapper.find('[data-testid="field-input-endpoint"]');
+
+        expect(input.exists()).toBe(true);
+        expect(input.attributes('type')).toBe('url');
+    });
+
+    it('renders password input for password-type fields', () => {
+        const wrapper = mountPage();
+        const input = wrapper.find('[data-testid="field-input-key"]');
+
+        expect(input.exists()).toBe(true);
+        expect(input.attributes('type')).toBe('password');
+    });
+
+    it('renders toggle button for toggle-type fields', () => {
+        const wrapper = mountPage();
+        const toggle = wrapper.find('[data-testid="field-toggle-verify_ssl"]');
+
+        expect(toggle.exists()).toBe(true);
+        expect(toggle.attributes('role')).toBe('switch');
+        expect(toggle.attributes('aria-checked')).toBe('true');
+    });
+
+    it('displays field help text', () => {
+        const wrapper = mountPage();
+        const helpTexts = wrapper.findAll('.text-xs.text-\\[var\\(--color-text-muted\\)\\]');
+        const helpContents = helpTexts.map((el) => el.text());
+
+        expect(helpContents).toContain('Base URL');
+        expect(helpContents).toContain('API key');
+        expect(helpContents).toContain('Verify SSL cert');
     });
 
     it('renders capability tags', () => {

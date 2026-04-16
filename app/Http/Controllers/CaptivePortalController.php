@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\IntegrationConfig;
 use App\Services\Auth\AuthResult;
 use App\Services\Auth\DeviceFlowUserService;
 use App\Services\Interfaces\AuthProviderInterface;
@@ -17,7 +18,7 @@ class CaptivePortalController extends Controller
 {
     public function index(Request $request, AuthProviderInterface $authProvider): View
     {
-        $scope = config('aperture.borealis.scope', 'discord');
+        $scope = (string) IntegrationConfig::getWithFallback('borealis', 'scope', 'discord');
         $deviceFlow = $authProvider->initiateDeviceFlow($scope);
 
         Cache::put(
@@ -29,6 +30,7 @@ class CaptivePortalController extends Controller
         $qrOptions = new QROptions([
             'outputType' => QRCode::OUTPUT_MARKUP_SVG,
             'svgUseCssProperties' => false,
+            'outputBase64' => false,
         ]);
         $qrCode = (new QRCode($qrOptions))->render($deviceFlow->verificationUriComplete ?? $deviceFlow->verificationUri);
 

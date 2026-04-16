@@ -78,10 +78,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (Application $application): BorealisService {
+            $dbConfig = $this->getIntegrationDbConfig('borealis');
+
             return new BorealisService(
-                clientId: config('aperture.borealis.client_id'),
-                clientSecret: config('aperture.borealis.client_secret'),
-                endpoint: config('aperture.borealis.endpoint'),
+                clientId: (string) ($dbConfig['client_id'] ?? ''),
+                clientSecret: (string) ($dbConfig['client_secret'] ?? ''),
+                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
             );
         });
 

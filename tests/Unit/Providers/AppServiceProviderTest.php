@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Providers;
 
+use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
 use App\Services\Dhcp\OpnSenseDhcpService;
@@ -17,10 +18,13 @@ use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NtopNgService;
 use App\Services\PiHole\PiHoleService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AppServiceProviderTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_registers_auth_provider_interface_binding(): void
     {
         $this->assertInstanceOf(
@@ -48,13 +52,22 @@ class AppServiceProviderTest extends TestCase
 
     public function test_boot_registers_borealis_service_singleton(): void
     {
-        config([
-            'aperture.borealis.client_id' => 'test-id',
-            'aperture.borealis.client_secret' => 'test-secret',
-            'aperture.borealis.endpoint' => 'http://localhost',
-        ]);
+        IntegrationConfig::setValue('borealis', 'endpoint', 'https://auth.test.local');
+        IntegrationConfig::setValue('borealis', 'client_id', 'test-client-id');
+        IntegrationConfig::setValue('borealis', 'client_secret', 'test-secret', true);
 
         $service = $this->app->make(BorealisService::class);
+        $this->assertInstanceOf(BorealisService::class, $service);
+    }
+
+    public function test_boot_registers_borealis_service_singleton_from_db_config(): void
+    {
+        IntegrationConfig::setValue('borealis', 'endpoint', 'https://auth.test.local');
+        IntegrationConfig::setValue('borealis', 'client_id', 'test-client-id');
+        IntegrationConfig::setValue('borealis', 'client_secret', 'test-secret', true);
+
+        $service = $this->app->make(BorealisService::class);
+
         $this->assertInstanceOf(BorealisService::class, $service);
     }
 

@@ -20,12 +20,13 @@ class IntegrationController extends Controller
      *     name: string,
      *     description?: string,
      *     capabilities: list<string>,
+     *     fields?: array<string, array{type: string, label: string, placeholder?: string, help?: string, required?: bool}>,
      *     validation?: array<string, string>
      * }>
      */
     private function integrations(): array
     {
-        /** @var array<string, array{name: string, description?: string, capabilities: list<string>, validation?: array<string, string>}> $integrations */
+        /** @var array<string, array{name: string, description?: string, capabilities: list<string>, fields?: array<string, array{type: string, label: string, placeholder?: string, help?: string, required?: bool}>, validation?: array<string, string>}> $integrations */
         $integrations = config('integrations', []);
 
         return $integrations;
@@ -50,7 +51,17 @@ class IntegrationController extends Controller
                 'id' => $service,
                 'name' => $meta['name'],
                 'description' => $meta['description'] ?? '',
-                'config' => $config,
+                'config' => collect($meta['fields'] ?? [])->mapWithKeys(fn (array $field, string $key): array => [
+                    $key => $config[$key] ?? '',
+                ])->all(),
+                'fields' => collect($meta['fields'] ?? [])->map(fn (array $field, string $key): array => [
+                    'key' => $key,
+                    'type' => $field['type'],
+                    'label' => $field['label'],
+                    'placeholder' => $field['placeholder'] ?? '',
+                    'help' => $field['help'] ?? '',
+                    'required' => $field['required'] ?? false,
+                ])->values()->all(),
                 'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
                     'name' => $cap,
                     'active' => $activeCapabilities->contains($cap),
