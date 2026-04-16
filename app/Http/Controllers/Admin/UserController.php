@@ -55,6 +55,50 @@ class UserController extends Controller
         ]);
     }
 
+    public function edit(User $user): Response
+    {
+        return Inertia::render('Admin/Users/Edit', [
+            'user' => [
+                'id' => $user->id,
+                'nickname' => $user->nickname,
+                'email' => $user->email,
+                'blocked' => $user->blocked,
+                'has_password' => $user->password !== null,
+                'roles' => $user->roles->pluck('code'),
+                'avatar_url' => $user->avatar_url,
+            ],
+        ]);
+    }
+
+    public function update(Request $request, User $user): RedirectResponse
+    {
+        $rules = [
+            'nickname' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+        ];
+
+        if ($request->filled('password')) {
+            $rules['password'] = 'required|string|min:8|confirmed';
+        }
+
+        $validated = $request->validate($rules);
+
+        $user->nickname = $validated['nickname'];
+        $user->email = $validated['email'];
+
+        if (isset($validated['password'])) {
+            $user->password = $validated['password'];
+        }
+
+        if ($request->boolean('clear_password')) {
+            $user->password = null;
+        }
+
+        $user->save();
+
+        return redirect()->route('admin.users.show', $user)->with('success', 'User updated successfully.');
+    }
+
     public function block(Request $request, User $user): RedirectResponse
     {
         $user->blocked = (int) $request->input('block');
