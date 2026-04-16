@@ -22,9 +22,9 @@ class OpnSenseDhcpServicePathsTest extends TestCase
     private function createServiceWithHistory(
         array $responses,
         array &$history,
-        string $leasesPath = '/api/dhcpv4/leases/searchLease',
-        string $ipv4RangesPath = '/api/dhcpv4/service/searchSubnet',
-        string $ipv6RangesPath = '/api/dhcpv6/service/searchSubnet',
+        string $leasesPath = '/api/dhcpv4/leases/search_lease',
+        string $ipv4RangesPath = '',
+        string $ipv6RangesPath = '',
     ): OpnSenseDhcpService {
         $mock = new MockHandler($responses);
         $handler = HandlerStack::create($mock);
@@ -61,7 +61,6 @@ class OpnSenseDhcpServicePathsTest extends TestCase
         $service = $this->createServiceWithHistory(
             [
                 new Response(200, [], (string) json_encode(['rows' => []])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
             ],
             $history,
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
@@ -69,6 +68,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
 
         $service->getRanges();
 
+        $this->assertCount(1, $history);
         $this->assertEquals('/api/kea/dhcpv4/search_subnet', $history[0]['request']->getUri()->getPath());
     }
 
@@ -78,7 +78,6 @@ class OpnSenseDhcpServicePathsTest extends TestCase
         $service = $this->createServiceWithHistory(
             [
                 new Response(200, [], (string) json_encode(['rows' => []])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
             ],
             $history,
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
@@ -86,7 +85,31 @@ class OpnSenseDhcpServicePathsTest extends TestCase
 
         $service->getRanges();
 
-        $this->assertEquals('/api/kea/dhcpv6/search_subnet', $history[1]['request']->getUri()->getPath());
+        $this->assertCount(1, $history);
+        $this->assertEquals('/api/kea/dhcpv6/search_subnet', $history[0]['request']->getUri()->getPath());
+    }
+
+    public function test_skips_ipv4_when_path_is_empty(): void
+    {
+        $history = [];
+        $service = $this->createServiceWithHistory(
+            [
+                new Response(200, [], (string) json_encode([
+                    'rows' => [
+                        ['interface' => 'lan', 'prefix' => 'fd00::/64', 'description' => 'LAN IPv6'],
+                    ],
+                ])),
+            ],
+            $history,
+            ipv4RangesPath: '',
+            ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
+        );
+
+        $ranges = $service->getRanges();
+
+        $this->assertCount(1, $history);
+        $this->assertCount(1, $ranges);
+        $this->assertEquals('ipv6', $ranges->first()->type);
     }
 
     public function test_skips_ipv6_when_path_is_empty(): void
@@ -101,6 +124,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
                 ])),
             ],
             $history,
+            ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
             ipv6RangesPath: '',
         );
 
@@ -111,23 +135,58 @@ class OpnSenseDhcpServicePathsTest extends TestCase
         $this->assertEquals('ipv4', $ranges->first()->type);
     }
 
+    public function test_skips_both_ranges_when_paths_are_empty(): void
+    {
+        $history = [];
+        $service = $this->createServiceWithHistory(
+            [],
+            $history,
+            ipv4RangesPath: '',
+            ipv6RangesPath: '',
+        );
+
+        $ranges = $service->getRanges();
+
+        $this->assertCount(0, $history);
+        $this->assertCount(0, $ranges);
+    }
+
+    public function test_leases_use_get_method(): void
+    {
+        $history = [];
+        $service = $this->createServiceWithHistory(
+            [
+                new Response(200, [], (string) json_encode([
+                    'rows' => [
+                        ['address' => '10.0.0.1', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active'],
+                    ],
+                ])),
+            ],
+            $history,
+        );
+
+        $service->getLeases();
+
+        $this->assertCount(1, $history);
+        $this->assertEquals('GET', $history[0]['request']->getMethod());
+    }
+
     public function test_default_paths_use_isc_endpoints(): void
     {
         $history = [];
         $service = $this->createServiceWithHistory(
             [
                 new Response(200, [], (string) json_encode(['rows' => [['address' => '10.0.0.1', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active']]])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
             ],
             $history,
         );
 
         $service->getLeases();
-        $service->getRanges();
+        $ranges = $service->getRanges();
 
-        $this->assertEquals('/api/dhcpv4/leases/searchLease', $history[0]['request']->getUri()->getPath());
-        $this->assertEquals('/api/dhcpv4/service/searchSubnet', $history[1]['request']->getUri()->getPath());
-        $this->assertEquals('/api/dhcpv6/service/searchSubnet', $history[2]['request']->getUri()->getPath());
+        $this->assertCount(1, $history, 'Only the leases request should be made; ISC has no range endpoints');
+        $this->assertEquals('/api/dhcpv4/leases/search_lease', $history[0]['request']->getUri()->getPath());
+        $this->assertEquals('GET', $history[0]['request']->getMethod());
+        $this->assertCount(0, $ranges);
     }
 }

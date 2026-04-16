@@ -32,13 +32,14 @@ class DhcpControllerTest extends TestCase
     {
         $mock = Mockery::mock(DhcpInterface::class);
         $mock->shouldReceive('getPoolStatus')->once()->andReturn(new DhcpPoolStatus(total: 254, used: 100, available: 154, utilisation: 100 / 254));
+        $mock->shouldReceive('getRanges')->once()->andReturn(collect([]));
         $this->app->instance(DhcpInterface::class, $mock);
 
         $admin = $this->createAdminUser();
         $response = $this->actingAs($admin)->get('/admin/dhcp');
 
         $response->assertOk();
-        $response->assertInertia(fn ($page) => $page->component('Admin/Dhcp/Index')->has('pool'));
+        $response->assertInertia(fn ($page) => $page->component('Admin/Dhcp/Index')->has('pool')->has('ranges'));
     }
 
     public function test_admin_can_view_dhcp_leases(): void
