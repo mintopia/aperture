@@ -273,7 +273,7 @@ class OpnSense implements FirewallBackendInterface
 
     protected function getShaperRule(string $uuid): stdClass
     {
-        return $this->get('/api/trafficshaper/settings/getRule/'.$uuid);
+        return $this->get('/api/trafficshaper/settings/get_rule/'.$uuid);
     }
 
     /**
@@ -322,7 +322,7 @@ class OpnSense implements FirewallBackendInterface
 
         $payload->rule->{$propName} = implode(',', $hosts);
 
-        $response = $this->post('/api/trafficshaper/settings/setRule/'.$uuid, [], $payload);
+        $response = $this->post('/api/trafficshaper/settings/set_rule/'.$uuid, [], $payload);
         if (! property_exists($response, 'result') || $response->result !== 'saved') {
             throw new BackendException('Unable to update shaper rule');
         }

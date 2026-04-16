@@ -113,7 +113,7 @@ class TestConnectionController extends Controller
             $dbConfig = IntegrationConfig::getAll('ntopng');
             $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
-            $requestUrl = $endpoint.'/lua/rest/v2/get/ntopng/interfaces.lua';
+            $requestUrl = $endpoint.'/lua/pro/rest/v2/get/system/data.lua';
             $response = Http::timeout(10)
                 ->get($requestUrl);
 

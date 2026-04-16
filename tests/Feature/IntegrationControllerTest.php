@@ -36,7 +36,7 @@ class IntegrationControllerTest extends TestCase
     public function test_opnsense_shaper_rules_returns_rules_with_none_option(): void
     {
         Http::fake([
-            '*/api/trafficshaper/rule/searchRule' => Http::response([
+            '*/api/trafficshaper/settings/search_rule' => Http::response([
                 'rows' => [
                     ['uuid' => 'abc-123', 'description' => 'Upload Limit', 'sequence' => '1'],
                     ['uuid' => 'def-456', 'description' => 'Download Limit', 'sequence' => '2'],
@@ -70,7 +70,7 @@ class IntegrationControllerTest extends TestCase
     public function test_opnsense_shaper_rules_returns_error_on_auth_failure(): void
     {
         Http::fake([
-            '*/api/trafficshaper/rule/searchRule' => Http::response(['message' => 'Unauthorized'], 401),
+            '*/api/trafficshaper/settings/search_rule' => Http::response(['message' => 'Unauthorized'], 401),
         ]);
 
         $admin = $this->createAdminUser();
@@ -92,7 +92,7 @@ class IntegrationControllerTest extends TestCase
     public function test_opnsense_shaper_rules_returns_only_none_when_empty(): void
     {
         Http::fake([
-            '*/api/trafficshaper/rule/searchRule' => Http::response([
+            '*/api/trafficshaper/settings/search_rule' => Http::response([
                 'rows' => [],
                 'rowCount' => 0,
                 'total' => 0,
@@ -147,7 +147,7 @@ class IntegrationControllerTest extends TestCase
     public function test_opnsense_shaper_rules_merges_request_params_over_db_config(): void
     {
         Http::fake([
-            '*/api/trafficshaper/rule/searchRule' => Http::response([
+            '*/api/trafficshaper/settings/search_rule' => Http::response([
                 'rows' => [
                     ['uuid' => 'rule-1', 'description' => 'Rule One', 'sequence' => '10'],
                 ],
@@ -203,7 +203,7 @@ class IntegrationControllerTest extends TestCase
     public function test_opnsense_shaper_rules_handles_connection_timeout(): void
     {
         Http::fake([
-            '*/api/trafficshaper/rule/searchRule' => function () {
+            '*/api/trafficshaper/settings/search_rule' => function () {
                 throw new ConnectionException('Connection timed out');
             },
         ]);
@@ -226,7 +226,7 @@ class IntegrationControllerTest extends TestCase
     public function test_opnsense_shaper_rules_handles_rules_with_missing_fields(): void
     {
         Http::fake([
-            '*/api/trafficshaper/rule/searchRule' => Http::response([
+            '*/api/trafficshaper/settings/search_rule' => Http::response([
                 'rows' => [
                     ['uuid' => 'uuid-1'],
                     ['uuid' => 'uuid-2', 'description' => 'Has Description'],
