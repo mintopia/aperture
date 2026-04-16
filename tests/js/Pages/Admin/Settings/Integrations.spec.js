@@ -3,123 +3,135 @@ import { describe, it, expect, vi } from 'vitest';
 import Integrations from '@/Pages/Admin/Settings/Integrations.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
-    useForm: vi.fn((data) => ({
-        ...data,
-        put: vi.fn(),
-        processing: false,
-        errors: {},
-    })),
+    router: { visit: vi.fn() },
     usePage: vi.fn(() => ({
         props: { flash: {} },
     })),
 }));
 
-vi.stubGlobal('route', vi.fn(() => '/admin/settings/integrations'));
-
 describe('Integrations.vue', () => {
-    const defaultProps = {
-        integrations: {
-            opnsense: {},
-            librenms: {},
-            ntopng: {},
-            pihole: {},
-            dhcp: {},
-            dns: {},
-            auto_allow: {},
-            ipv6: {},
+    const defaultServices = [
+        {
+            id: 'borealis',
+            name: 'Borealis',
+            enabled: true,
+            health: null,
+            readonly: true,
+            capabilities: [
+                { name: 'authentication', active: true },
+                { name: 'sso', active: true },
+            ],
         },
-    };
+        {
+            id: 'opnsense',
+            name: 'OPNsense',
+            enabled: true,
+            health: true,
+            capabilities: [
+                { name: 'captive-portal', active: true },
+                { name: 'firewall', active: false },
+            ],
+        },
+        {
+            id: 'librenms',
+            name: 'LibreNMS',
+            enabled: false,
+            health: false,
+            capabilities: [{ name: 'ip-to-mac', active: false }],
+        },
+        {
+            id: 'ntopng',
+            name: 'ntopng',
+            enabled: false,
+            health: null,
+            capabilities: [],
+        },
+    ];
 
     function mountPage(props = {}) {
         return mount(Integrations, {
-            props: { ...defaultProps, ...props },
+            props: { services: defaultServices, ...props },
             global: {
                 stubs: {
                     AdminLayout: { template: '<div><slot /></div>' },
                     SettingsNav: { template: '<div><slot /></div>' },
-                    FormField: {
-                        template: '<div><slot /></div>',
-                        props: ['label', 'name', 'error'],
+                    StatusPill: {
+                        template: '<span :data-testid="`status-${label}`">{{ label }}</span>',
+                        props: ['status', 'label'],
                     },
                 },
             },
         });
     }
 
-    it('renders all 8 integration sections', () => {
+    it('renders the page title', () => {
         const wrapper = mountPage();
-
-        expect(wrapper.find('[data-testid="integration-opnsense"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-librenms"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-ntopng"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-pihole"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-dhcp"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-dns"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-auto-allow"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-ipv6"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="page-title"]').text()).toBe('Integrations');
     });
 
-    it('renders OPNsense new fields', () => {
+    it('renders the integrations table', () => {
         const wrapper = mountPage();
-
-        expect(wrapper.find('[data-testid="integration-opnsense-verify-ssl"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-opnsense-zone-id"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-opnsense-ratelimit-up-uuid"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-opnsense-ratelimit-down-uuid"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="integrations-table"]').exists()).toBe(true);
     });
 
-    it('renders ntopng with username/password instead of api_key', () => {
+    it('renders a row for each service', () => {
         const wrapper = mountPage();
-
-        expect(wrapper.find('[data-testid="integration-ntopng-username"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-ntopng-password"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-ntopng-interface"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-ntopng-enabled"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="integration-row-borealis"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="integration-row-opnsense"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="integration-row-librenms"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="integration-row-ntopng"]').exists()).toBe(true);
     });
 
-    it('renders LibreNMS enabled toggle', () => {
+    it('shows read-only badge for borealis', () => {
         const wrapper = mountPage();
-
-        expect(wrapper.find('[data-testid="integration-librenms-enabled"]').exists()).toBe(true);
+        const row = wrapper.find('[data-testid="integration-row-borealis"]');
+        expect(row.text()).toContain('Read only');
     });
 
-    it('renders PiHole enabled and verify_ssl toggles', () => {
+    it('shows enabled/disabled status pills', () => {
         const wrapper = mountPage();
+        const opnsenseRow = wrapper.find('[data-testid="integration-row-opnsense"]');
+        expect(opnsenseRow.text()).toContain('Enabled');
 
-        expect(wrapper.find('[data-testid="integration-pihole-enabled"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-pihole-verify-ssl"]').exists()).toBe(true);
+        const librenmsRow = wrapper.find('[data-testid="integration-row-librenms"]');
+        expect(librenmsRow.text()).toContain('Disabled');
     });
 
-    it('renders DHCP section fields', () => {
+    it('shows health indicators', () => {
         const wrapper = mountPage();
-
-        expect(wrapper.find('[data-testid="integration-dhcp-enabled"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-dhcp-endpoint"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-dhcp-key"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-dhcp-secret"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-dhcp-verify-ssl"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-dhcp-pool-size"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="integration-health-opnsense"]').text()).toBe('Healthy');
+        expect(wrapper.find('[data-testid="integration-health-librenms"]').text()).toBe('Unhealthy');
+        expect(wrapper.find('[data-testid="integration-health-ntopng"]').text()).toBe('Unknown');
     });
 
-    it('renders DNS Probe section fields', () => {
+    it('renders capability tags with active/inactive state', () => {
         const wrapper = mountPage();
+        const activeTag = wrapper.find('[data-testid="integration-capability-opnsense-captive-portal"]');
+        expect(activeTag.exists()).toBe(true);
 
-        expect(wrapper.find('[data-testid="integration-dns-expected-server"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-dns-probe-domain"]').exists()).toBe(true);
+        const inactiveTag = wrapper.find('[data-testid="integration-capability-opnsense-firewall"]');
+        expect(inactiveTag.exists()).toBe(true);
     });
 
-    it('renders Auto Allow section fields', () => {
+    it('navigates to service config on row click for non-readonly', async () => {
+        const { router } = await import('@inertiajs/vue3');
         const wrapper = mountPage();
 
-        expect(wrapper.find('[data-testid="integration-auto-allow-enabled"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-auto-allow-oui-prefixes"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-auto-allow-scan-interval"]').exists()).toBe(true);
+        await wrapper.find('[data-testid="integration-row-opnsense"]').trigger('click');
+        expect(router.visit).toHaveBeenCalledWith('/admin/settings/integrations/opnsense');
     });
 
-    it('renders IPv6 Detection section fields', () => {
+    it('does not navigate on readonly row click', async () => {
+        const { router } = await import('@inertiajs/vue3');
+        router.visit.mockClear();
         const wrapper = mountPage();
 
-        expect(wrapper.find('[data-testid="integration-ipv6-detection-enabled"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-ipv6-detection-endpoint"]').exists()).toBe(true);
+        await wrapper.find('[data-testid="integration-row-borealis"]').trigger('click');
+        expect(router.visit).not.toHaveBeenCalled();
+    });
+
+    it('shows empty state when no services', () => {
+        const wrapper = mountPage({ services: [] });
+        expect(wrapper.find('[data-testid="integrations-empty"]').exists()).toBe(true);
     });
 });
