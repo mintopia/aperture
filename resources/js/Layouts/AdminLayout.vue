@@ -4,6 +4,7 @@ import AppLogo from '@/Components/AppLogo.vue';
 import ThemeToggle from '@/Components/ThemeToggle.vue';
 import Sidebar from '@/Components/Admin/Sidebar.vue';
 import GlobalSearch from '@/Components/Admin/GlobalSearch.vue';
+import UserMenu from '@/Components/UserMenu.vue';
 
 const page = usePage();
 </script>
@@ -25,16 +26,7 @@ const page = usePage();
                 <ThemeToggle />
 
                 <div v-if="page.props.auth.user" class="flex items-center gap-3">
-                    <span class="hidden text-sm text-[var(--color-text-secondary)] sm:inline">
-                        {{ page.props.auth.user.nickname }}
-                    </span>
-                    <Link
-                        :href="route('logout')"
-                        data-testid="logout-link"
-                        class="text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]"
-                    >
-                        Logout
-                    </Link>
+                    <UserMenu :user="page.props.auth.user" />
                 </div>
             </div>
         </header>
