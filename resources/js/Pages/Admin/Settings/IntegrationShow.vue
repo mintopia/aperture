@@ -283,6 +283,21 @@ function formatLogOutput(data) {
                                 </p>
                             </template>
 
+                            <!-- Static select field -->
+                            <template v-else-if="field.type === 'select'">
+                                <select
+                                    :id="field.key"
+                                    v-model="form.config[field.key]"
+                                    :name="field.key"
+                                    :data-testid="`field-${field.key}`"
+                                    class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                                >
+                                    <option v-for="(label, value) in field.options" :key="value" :value="value">
+                                        {{ label }}
+                                    </option>
+                                </select>
+                            </template>
+
                             <!-- Text / URL / Password / Number field -->
                             <template v-else>
                                 <input
@@ -355,11 +370,11 @@ function formatLogOutput(data) {
                             v-if="showTestOutput && testResult.output"
                             data-testid="test-output-content"
                             class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-3 font-mono text-xs"
-                        >{{
+                            >{{
                                 typeof testResult.output === 'string'
                                     ? testResult.output
                                     : JSON.stringify(testResult.output, null, 2)
-                        }}</pre
+                            }}</pre
                         >
                     </div>
                 </form>
@@ -426,7 +441,7 @@ function formatLogOutput(data) {
                                 </td>
                                 <td class="px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)]">
                                     <span v-if="log.request_method"
-                                    >{{ log.request_method }} {{ log.request_url }}</span
+                                        >{{ log.request_method }} {{ log.request_url }}</span
                                     >
                                     <span v-else>—</span>
                                 </td>
@@ -447,7 +462,7 @@ function formatLogOutput(data) {
                                         v-if="expandedLogIds.has(log.id) && log.response_data"
                                         :data-testid="`log-output-content-${index}`"
                                         class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-3 font-mono text-xs"
-                                    >{{ formatLogOutput(log.response_data) }}</pre
+                                        >{{ formatLogOutput(log.response_data) }}</pre
                                     >
                                 </td>
                                 <td class="px-4 py-3 text-[var(--color-text-secondary)]">

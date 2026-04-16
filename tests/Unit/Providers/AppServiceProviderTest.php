@@ -100,13 +100,12 @@ class AppServiceProviderTest extends TestCase
 
     public function test_registers_dhcp_interface_binding(): void
     {
-        config([
-            'aperture.dhcp.endpoint' => 'http://127.0.0.1:19199',
-            'aperture.dhcp.key' => 'key',
-            'aperture.dhcp.secret' => 'secret',
-            'aperture.dhcp.verify' => false,
-        ]);
+        IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'http://127.0.0.1:19199');
+        IntegrationConfig::setValue('opnsense', 'key', 'key');
+        IntegrationConfig::setValue('opnsense', 'secret', 'secret');
 
+        $this->app->forgetInstance(DhcpInterface::class);
         $instance = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(OpnSenseDhcpService::class, $instance);
     }
