@@ -212,6 +212,59 @@ class IntegrationController extends Controller
         }
     }
 
+    public function opnsenseZones(Request $request): JsonResponse
+    {
+        try {
+            $dbConfig = IntegrationConfig::getAll('opnsense');
+            $config = array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
+
+            $endpoint = rtrim($config['endpoint'] ?? '', '/');
+            $key = $config['key'] ?? '';
+            $secret = $config['secret'] ?? '';
+            $verifySsl = (bool) ($config['verify_ssl'] ?? true);
+
+            if ($endpoint === '') {
+                return response()->json([
+                    'zones' => [],
+                    'error' => 'OPNsense endpoint is not configured.',
+                ]);
+            }
+
+            if ($key === '' || $secret === '') {
+                return response()->json([
+                    'zones' => [],
+                    'error' => 'OPNsense API key and secret are required.',
+                ]);
+            }
+
+            $response = Http::withOptions(['verify' => $verifySsl])
+                ->withBasicAuth($key, $secret)
+                ->timeout(10)
+                ->get($endpoint.'/api/captiveportal/settings/get');
+
+            $response->throw();
+            $data = $response->json();
+
+            $zones = [];
+            $zonesData = $data['zone']['zones']['zone'] ?? [];
+
+            foreach ($zonesData as $uuid => $zone) {
+                $zoneId = $zone['zoneid'] ?? '';
+                $description = $zone['description'] ?? 'Zone '.$zoneId;
+                $zones[] = [
+                    'id' => (string) $zoneId,
+                    'name' => $description.' (ID: '.$zoneId.')',
+                ];
+            }
+
+            usort($zones, fn ($a, $b) => (int) $a['id'] <=> (int) $b['id']);
+
+            return response()->json(['zones' => $zones]);
+        } catch (Throwable $throwable) {
+            return response()->json(['zones' => [], 'error' => 'Failed to fetch zones: '.$throwable->getMessage()]);
+        }
+    }
+
     public function piholeGroups(Request $request): JsonResponse
     {
         try {
