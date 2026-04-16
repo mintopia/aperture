@@ -136,7 +136,7 @@ describe('UserMenu', () => {
         const wrapper = mountComponent(regularUser);
         await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
         const link = wrapper.find('[data-testid="user-menu-dashboard"]');
-        expect(link.attributes('href')).toBe('/home');
+        expect(link.attributes('href')).toBe('/portal/dashboard');
     });
 
     it('Logout link has correct href', async () => {
