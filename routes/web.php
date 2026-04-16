@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\TestConnectionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptivePortalController;
+use App\Http\Controllers\LoginController;
 use App\Http\Controllers\Portal\DashboardController;
 use App\Http\Controllers\Portal\PiHoleController;
 use App\Http\Controllers\Portal\StatsController;
@@ -28,9 +29,8 @@ Route::get('/captive/poll/{deviceCode}', [CaptivePortalController::class, 'poll'
 Route::get('/captive/interstitial', [CaptivePortalController::class, 'interstitial'])->name('captive.interstitial');
 
 Route::middleware(['guest'])->group(function () {
-    Route::get('/login', function () {
-        return redirect()->route('captive.index');
-    })->name('login');
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'authenticate']);
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -99,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/settings/test/librenms', [TestConnectionController::class, 'testLibrenms'])->name('settings.test.librenms');
         Route::post('/settings/test/ntopng', [TestConnectionController::class, 'testNtopng'])->name('settings.test.ntopng');
         Route::post('/settings/test/pihole', [TestConnectionController::class, 'testPihole'])->name('settings.test.pihole');
+        Route::post('/settings/test/borealis', [TestConnectionController::class, 'testBorealis'])->name('settings.test.borealis');
         Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
 
         // Per-service integration routes
