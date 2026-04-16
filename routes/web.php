@@ -3,14 +3,18 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DhcpController;
+use App\Http\Controllers\Admin\EventSettingsController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\IpAddressController;
+use App\Http\Controllers\Admin\PortalSettingsController;
 use App\Http\Controllers\Admin\PortController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StatsController as AdminStatsController;
+use App\Http\Controllers\Admin\SwitchController;
 use App\Http\Controllers\Admin\TestConnectionController;
+use App\Http\Controllers\Admin\ThemeSettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptivePortalController;
@@ -106,23 +110,19 @@ Route::middleware(['auth'])->group(function () {
 
         // Settings
         Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
-        Route::get('/settings/theme', [SettingsController::class, 'theme'])->name('settings.theme');
-        Route::put('/settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
-        Route::get('/settings/event', [SettingsController::class, 'event'])->name('settings.event');
-        Route::put('/settings/event', [SettingsController::class, 'updateEvent'])->name('settings.event.update');
-        Route::get('/settings/portal', [SettingsController::class, 'portal'])->name('settings.portal');
-        Route::put('/settings/portal', [SettingsController::class, 'updatePortal'])->name('settings.portal.update');
+        Route::get('/settings/theme', [ThemeSettingsController::class, 'show'])->name('settings.theme');
+        Route::put('/settings/theme', [ThemeSettingsController::class, 'update'])->name('settings.theme.update');
+        Route::get('/settings/event', [EventSettingsController::class, 'show'])->name('settings.event');
+        Route::put('/settings/event', [EventSettingsController::class, 'update'])->name('settings.event.update');
+        Route::get('/settings/portal', [PortalSettingsController::class, 'show'])->name('settings.portal');
+        Route::put('/settings/portal', [PortalSettingsController::class, 'update'])->name('settings.portal.update');
 
-        Route::get('/settings/switches', [SettingsController::class, 'switches'])->name('settings.switches');
-        Route::post('/settings/switches', [SettingsController::class, 'storeSwitch'])->name('settings.switches.store');
-        Route::put('/settings/switches/{switchConfig}', [SettingsController::class, 'updateSwitch'])->name('settings.switches.update');
-        Route::delete('/settings/switches/{switchConfig}', [SettingsController::class, 'destroySwitch'])->name('settings.switches.destroy');
+        Route::get('/settings/switches', [SwitchController::class, 'index'])->name('settings.switches');
+        Route::post('/settings/switches', [SwitchController::class, 'store'])->name('settings.switches.store');
+        Route::put('/settings/switches/{switchConfig}', [SwitchController::class, 'update'])->name('settings.switches.update');
+        Route::delete('/settings/switches/{switchConfig}', [SwitchController::class, 'destroy'])->name('settings.switches.destroy');
 
-        Route::post('/settings/test/opnsense', [TestConnectionController::class, 'testOpnsense'])->name('settings.test.opnsense');
-        Route::post('/settings/test/librenms', [TestConnectionController::class, 'testLibrenms'])->name('settings.test.librenms');
-        Route::post('/settings/test/ntopng', [TestConnectionController::class, 'testNtopng'])->name('settings.test.ntopng');
-        Route::post('/settings/test/pihole', [TestConnectionController::class, 'testPihole'])->name('settings.test.pihole');
-        Route::post('/settings/test/borealis', [TestConnectionController::class, 'testBorealis'])->name('settings.test.borealis');
+        Route::post('/settings/test/{service}', [TestConnectionController::class, 'test'])->name('settings.test');
         Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
 
         // Per-service integration routes
