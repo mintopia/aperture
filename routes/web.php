@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DhcpController;
 use App\Http\Controllers\Admin\HomeController;
+use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\IpAddressController;
 use App\Http\Controllers\Admin\PortController;
 use App\Http\Controllers\Admin\SearchController;
@@ -100,5 +101,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/settings/test/ntopng', [TestConnectionController::class, 'testNtopng'])->name('settings.test.ntopng');
         Route::post('/settings/test/pihole', [TestConnectionController::class, 'testPihole'])->name('settings.test.pihole');
         Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
+
+        // Per-service integration routes
+        Route::get('/settings/integrations/{service}', [IntegrationController::class, 'show'])->name('settings.integrations.show');
+        Route::put('/settings/integrations/{service}', [IntegrationController::class, 'update'])->name('settings.integrations.service.update');
+        Route::put('/settings/capabilities', [IntegrationController::class, 'toggleCapability'])->name('settings.capabilities.update');
+        Route::get('/settings/integrations/{service}/health-log', [IntegrationController::class, 'healthLog'])->name('settings.integrations.health-log');
     });
 });
