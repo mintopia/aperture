@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "touch .github/instructions/reminder.instructions.md 2>/dev/null || true",
+        "powershell": "if (Test-Path .github/instructions/reminder.instructions.md) { (Get-Item .github/instructions/reminder.instructions.md).LastWriteTime = Get-Date }",
+        "cwd": ".",
+        "timeoutSec": 5
+      }
+    ]
+  }
+}
