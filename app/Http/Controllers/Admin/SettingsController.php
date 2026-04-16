@@ -165,7 +165,7 @@ class SettingsController extends Controller
     public function updateTheme(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'theme_name' => 'required|string|in:cool-neon,warm-neon,matrix,amber-glow',
+            'theme_name' => 'required|string|in:default,cool-neon,warm-neon,matrix,amber-glow',
             'theme_mode' => 'required|string|in:light,dark',
         ]);
 

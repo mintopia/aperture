@@ -1,7 +1,7 @@
 import { ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 
-const VALID_THEMES = ['cool-neon', 'warm-neon', 'matrix', 'amber-glow'];
+const VALID_THEMES = ['default', 'cool-neon', 'warm-neon', 'matrix', 'amber-glow'];
 const VALID_MODES = ['light', 'dark'];
 
 export function useTheme() {

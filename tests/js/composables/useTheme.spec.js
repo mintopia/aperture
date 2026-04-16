@@ -116,6 +116,6 @@ describe('useTheme', () => {
 
     it('exposes themes array (VALID_THEMES)', () => {
         const { themes } = useTheme();
-        expect(themes).toEqual(['cool-neon', 'warm-neon', 'matrix', 'amber-glow']);
+        expect(themes).toEqual(['default', 'cool-neon', 'warm-neon', 'matrix', 'amber-glow']);
     });
 });
