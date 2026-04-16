@@ -100,7 +100,7 @@ class ConnectionTestLogTest extends TestCase
         foreach (range(1, 5) as $index) {
             ConnectionTestLog::factory()->create([
                 'integration' => 'ntopng',
-                'message' => "Test {$index}",
+                'message' => 'Test '.$index,
                 'created_at' => now()->addSeconds($index),
             ]);
         }
