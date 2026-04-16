@@ -54,6 +54,13 @@ class SettingsController extends Controller
         ]);
     }
 
+    /**
+     * Update integration settings (monolithic endpoint).
+     *
+     * @deprecated Feature settings (dhcp, dns, auto_allow, ipv6) still use this endpoint.
+     *             Per-integration config is now handled by IntegrationController@update.
+     *             Remove this method when dedicated feature settings pages are built.
+     */
     public function updateIntegrations(Request $request): RedirectResponse
     {
         $validated = $request->validate([
