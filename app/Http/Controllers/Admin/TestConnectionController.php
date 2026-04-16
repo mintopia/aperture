@@ -93,7 +93,7 @@ class TestConnectionController extends Controller
                 'verify' => (bool) ($config['verify_ssl'] ?? true),
             ])
                 ->timeout(10)
-                ->get($endpoint.'/info/client');
+                ->get($endpoint.'/api/info/client');
 
             $response->throw();
 

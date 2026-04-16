@@ -399,7 +399,7 @@ class TestConnectionControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         Http::fake([
-            'pihole.test/info/client' => Http::response('ok', 200),
+            'pihole.test/api/info/client' => Http::response('ok', 200),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/pihole', [
@@ -409,7 +409,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), '/info/client'));
+        Http::assertSent(fn ($req) => str_contains($req->url(), '/api/info/client'));
     }
 
     public function test_opnsense_test_falls_back_to_db_when_no_request_values(): void
