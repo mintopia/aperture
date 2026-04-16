@@ -66,19 +66,6 @@ class BorealisServiceTest extends TestCase
         $this->assertEquals('abc123', $result->device_code);
     }
 
-    public function test_get_user_with_token_returns_user(): void
-    {
-        $responseBody = json_encode(['id' => '123', 'nickname' => 'testuser', 'email' => 'test@example.com']);
-
-        $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
-        ]);
-
-        $result = $service->getUserWithToken('bearer-token');
-        $this->assertInstanceOf(stdClass::class, $result);
-        $this->assertEquals('testuser', $result->nickname);
-    }
-
     public function test_make_request_throws_request_exception_on403(): void
     {
         $responseBody = json_encode(['error' => 'authorization_pending']);

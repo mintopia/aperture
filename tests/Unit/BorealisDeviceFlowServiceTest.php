@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\Borealis\RequestException;
 use App\Services\BorealisService;
+use RuntimeException;
 use Tests\TestCase;
 
 class BorealisDeviceFlowServiceTest extends TestCase
@@ -73,6 +74,12 @@ class BorealisDeviceFlowServiceTest extends TestCase
                 'token_type' => 'Bearer',
                 'expires_in' => 3600,
                 'refresh_token' => 'refresh-xyz',
+                'user' => (object) [
+                    'id' => 'user-123',
+                    'nickname' => 'TestUser',
+                    'email' => 'test@example.com',
+                    'avatar_url' => 'https://example.com/avatar.png',
+                ],
             ]);
 
         $service = new BorealisDeviceFlowService($borealisMock);
@@ -102,22 +109,41 @@ class BorealisDeviceFlowServiceTest extends TestCase
     public function test_get_user_info_returns_user_info(): void
     {
         $borealisMock = $this->mock(BorealisService::class);
-        $borealisMock->shouldReceive('getUserWithToken')
+        $borealisMock->shouldReceive('check')
             ->once()
-            ->with('token-xyz')
+            ->with('abc123')
             ->andReturn((object) [
-                'id' => 'user-123',
-                'nickname' => 'TestUser',
-                'email' => 'test@example.com',
-                'avatar_url' => 'https://example.com/avatar.png',
+                'access_token' => 'token-xyz',
+                'token_type' => 'Bearer',
+                'expires_in' => 3600,
+                'refresh_token' => 'refresh-xyz',
+                'user' => (object) [
+                    'id' => 'user-123',
+                    'nickname' => 'TestUser',
+                    'email' => 'test@example.com',
+                    'avatar_url' => 'https://example.com/avatar.png',
+                ],
             ]);
 
         $service = new BorealisDeviceFlowService($borealisMock);
+        $service->pollDeviceFlow('abc123');
+
         $info = $service->getUserInfo('token-xyz');
 
         $this->assertEquals('user-123', $info->id);
         $this->assertEquals('TestUser', $info->nickname);
         $this->assertEquals('test@example.com', $info->email);
         $this->assertEquals('https://example.com/avatar.png', $info->avatarUrl);
+    }
+
+    public function test_get_user_info_throws_without_poll(): void
+    {
+        $borealisMock = $this->mock(BorealisService::class);
+
+        $service = new BorealisDeviceFlowService($borealisMock);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('User info not available');
+        $service->getUserInfo('token-xyz');
     }
 }

@@ -159,8 +159,8 @@ class SettingsControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Settings/Integrations')
             ->has('services', 5)
-            ->where('services.0.id', 'borealis')
-            ->has('services.0.capabilities')
+            ->where('services.4.id', 'borealis')
+            ->has('services.4.capabilities')
         );
     }
 

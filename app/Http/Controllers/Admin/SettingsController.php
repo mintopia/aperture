@@ -38,19 +38,6 @@ class SettingsController extends Controller
             ];
         }, array_keys($integrations), $integrations);
 
-        $borealisEnabled = (bool) config('aperture.borealis.enabled', false);
-        array_unshift($services, [
-            'id' => 'borealis',
-            'name' => 'Borealis',
-            'enabled' => $borealisEnabled,
-            'health' => null,
-            'readonly' => true,
-            'capabilities' => collect(['authentication', 'sso', 'user-info'])->map(fn (string $cap): array => [
-                'name' => $cap,
-                'active' => $borealisEnabled,
-            ])->values()->all(),
-        ]);
-
         return Inertia::render('Admin/Settings/Integrations', [
             'services' => $services,
         ]);

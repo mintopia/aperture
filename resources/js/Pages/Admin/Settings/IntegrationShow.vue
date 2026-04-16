@@ -13,8 +13,13 @@ const props = defineProps({
     service: { type: Object, required: true },
 });
 
+const initialConfig = {};
+props.service.fields.forEach((field) => {
+    initialConfig[field.key] = props.service.config[field.key] ?? '';
+});
+
 const form = useForm({
-    config: { ...props.service.config },
+    config: initialConfig,
 });
 
 const testingConnection = ref(false);
@@ -89,12 +94,8 @@ function healthStatus(health) {
     return health ? 'success' : 'danger';
 }
 
-function fieldLabel(key) {
-    return key
-        .split('_')
-        .filter(Boolean)
-        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-        .join(' ');
+function toggleField(key) {
+    form.config[key] = form.config[key] === '1' ? '0' : '1';
 }
 
 function testResultMessage(result) {
@@ -147,23 +148,57 @@ function testResultMessage(result) {
                 <form data-testid="config-form" class="space-y-4" @submit.prevent="submit">
                     <div class="grid gap-4 md:grid-cols-2">
                         <FormField
-                            v-for="(value, key) in form.config"
-                            :key="key"
-                            :label="fieldLabel(key)"
-                            :name="key"
-                            :error="form.errors[`config.${key}`]"
+                            v-for="field in service.fields"
+                            :key="field.key"
+                            :label="field.label"
+                            :name="field.key"
+                            :required="field.required"
+                            :error="form.errors[`config.${field.key}`]"
                         >
-                            <input
-                                :id="key"
-                                v-model="form.config[key]"
-                                :name="key"
-                                type="text"
-                                class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
-                            />
+                            <!-- Toggle field -->
+                            <template v-if="field.type === 'toggle'">
+                                <button
+                                    :id="field.key"
+                                    type="button"
+                                    role="switch"
+                                    :aria-checked="form.config[field.key] === '1'"
+                                    :data-testid="`field-toggle-${field.key}`"
+                                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                    :class="
+                                        form.config[field.key] === '1'
+                                            ? 'bg-[var(--color-primary)]'
+                                            : 'bg-[var(--color-border)]'
+                                    "
+                                    @click="toggleField(field.key)"
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                        :class="form.config[field.key] === '1' ? 'translate-x-5' : 'translate-x-0'"
+                                    />
+                                </button>
+                            </template>
+
+                            <!-- Text / URL / Password / Number field -->
+                            <template v-else>
+                                <input
+                                    :id="field.key"
+                                    v-model="form.config[field.key]"
+                                    :name="field.key"
+                                    :type="field.type"
+                                    :placeholder="field.placeholder"
+                                    :data-testid="`field-input-${field.key}`"
+                                    class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                                />
+                            </template>
+
+                            <p v-if="field.help" class="text-xs text-[var(--color-text-muted)]">
+                                {{ field.help }}
+                            </p>
                         </FormField>
                     </div>
 
-                    <div v-if="Object.keys(form.config).length === 0" class="text-sm text-[var(--color-text-muted)]">
+                    <div v-if="service.fields.length === 0" class="text-sm text-[var(--color-text-muted)]">
                         No saved configuration values yet.
                     </div>
 
