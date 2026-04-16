@@ -4,13 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConnectionTestLog;
-use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
-use App\Services\BorealisService;
-use App\Services\Firewalls\OpnSenseApiService;
-use App\Services\LibreNmsService;
-use App\Services\NtopNgService;
-use App\Services\PiHole\PiHoleApiService;
+use App\Services\Integration\IntegrationConfigMerger;
+use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\SshProxy\SshProxyClientInterface;
 use App\Services\ValueObjects\TestConnectionResult;
 use Illuminate\Http\JsonResponse;
@@ -19,52 +15,21 @@ use Throwable;
 
 class TestConnectionController extends Controller
 {
-    public function testOpnsense(Request $request): JsonResponse
+    public function __construct(
+        private IntegrationTesterRegistry $registry,
+        private IntegrationConfigMerger $configMerger,
+    ) {}
+
+    public function test(Request $request, string $service): JsonResponse
     {
-        $config = $this->mergeConfig('opnsense', $request);
-        $result = OpnSenseApiService::testConnection($config);
+        if (! $this->registry->has($service)) {
+            return response()->json(['success' => false, 'message' => "Unknown service: {$service}"], 404);
+        }
 
-        $this->logResult('opnsense', $result);
+        $config = $this->configMerger->merge($service, $request);
+        $result = $this->registry->get($service)->connect($config);
 
-        return $this->jsonResult($result);
-    }
-
-    public function testLibrenms(Request $request): JsonResponse
-    {
-        $config = $this->mergeConfig('librenms', $request);
-        $result = LibreNmsService::testConnection($config);
-
-        $this->logResult('librenms', $result);
-
-        return $this->jsonResult($result);
-    }
-
-    public function testNtopng(Request $request): JsonResponse
-    {
-        $config = $this->mergeConfig('ntopng', $request);
-        $result = NtopNgService::testConnection($config);
-
-        $this->logResult('ntopng', $result);
-
-        return $this->jsonResult($result);
-    }
-
-    public function testPihole(Request $request): JsonResponse
-    {
-        $config = $this->mergeConfig('pihole', $request);
-        $result = PiHoleApiService::testConnection($config);
-
-        $this->logResult('pihole', $result);
-
-        return $this->jsonResult($result);
-    }
-
-    public function testBorealis(Request $request): JsonResponse
-    {
-        $config = $this->mergeConfig('borealis', $request);
-        $result = BorealisService::testConnection($config);
-
-        $this->logResult('borealis', $result);
+        $this->logResult($service, $result);
 
         return $this->jsonResult($result);
     }
@@ -115,18 +80,6 @@ class TestConnectionController extends Controller
                 'request_url' => $requestUrl,
             ]);
         }
-    }
-
-    /**
-     * Merge saved DB config with non-empty request values (request takes precedence).
-     *
-     * @return array<string, mixed>
-     */
-    private function mergeConfig(string $integration, Request $request): array
-    {
-        $dbConfig = IntegrationConfig::getAll($integration);
-
-        return array_merge($dbConfig, array_filter($request->all(), fn ($v) => $v !== null && $v !== ''));
     }
 
     /**

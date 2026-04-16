@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Services\NtopNgService;
+use App\Services\Integration\NtopNgTester;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -22,7 +22,7 @@ class NtopNgTestConnectionAuthTest extends TestCase
             'password' => 'secret123',
         ];
 
-        $result = NtopNgService::testConnection($config);
+        $result = (new NtopNgTester)->connect($config);
 
         $this->assertTrue($result->success);
 
@@ -45,7 +45,7 @@ class NtopNgTestConnectionAuthTest extends TestCase
             'endpoint' => 'https://ntopng.example.com',
         ];
 
-        $result = NtopNgService::testConnection($config);
+        $result = (new NtopNgTester)->connect($config);
 
         $this->assertTrue($result->success);
 

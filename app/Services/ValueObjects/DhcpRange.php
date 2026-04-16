@@ -15,5 +15,8 @@ readonly class DhcpRange
         public ?string $prefix,
         public ?string $gateway,
         public ?string $description,
+        public ?int $totalAddresses = null,
+        public ?int $usedAddresses = null,
+        public ?float $utilisation = null,
     ) {}
 }

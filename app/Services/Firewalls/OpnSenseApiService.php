@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Firewalls;
 
-use App\Services\ValueObjects\TestConnectionResult;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -19,44 +19,6 @@ use Throwable;
 class OpnSenseApiService
 {
     /**
-     * Test connectivity to the OPNsense API.
-     *
-     * @param  array<string, mixed>  $config  Merged DB + request config
-     */
-    public static function testConnection(array $config): TestConnectionResult
-    {
-        $requestMethod = 'GET';
-        $endpoint = rtrim($config['endpoint'] ?? '', '/');
-        $requestUrl = $endpoint.'/api/diagnostics/system/system_time';
-
-        try {
-            $response = Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
-                ->withBasicAuth($config['key'] ?? '', $config['secret'] ?? '')
-                ->timeout(10)
-                ->get($requestUrl);
-
-            $response->throw();
-
-            return new TestConnectionResult(
-                success: true,
-                message: 'Connected and authenticated successfully',
-                requestMethod: $requestMethod,
-                requestUrl: $requestUrl,
-                responseStatus: $response->status(),
-                responseBody: $response->body(),
-                output: $response->json() ?? $response->body(),
-            );
-        } catch (Throwable $e) {
-            return new TestConnectionResult(
-                success: false,
-                message: 'Connection failed: '.$e->getMessage(),
-                requestMethod: $requestMethod,
-                requestUrl: $requestUrl,
-            );
-        }
-    }
-
-    /**
      * Fetch traffic shaper rules from OPNsense.
      *
      * @param  array<string, mixed>  $config  Merged DB + request config
@@ -68,7 +30,6 @@ class OpnSenseApiService
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
             $key = $config['key'] ?? '';
             $secret = $config['secret'] ?? '';
-            $verifySsl = (bool) ($config['verify_ssl'] ?? true);
 
             if ($endpoint === '') {
                 return ['rules' => [], 'error' => 'OPNsense endpoint is not configured.'];
@@ -78,9 +39,7 @@ class OpnSenseApiService
                 return ['rules' => [], 'error' => 'OPNsense API key and secret are required.'];
             }
 
-            $response = Http::withOptions(['verify' => $verifySsl])
-                ->withBasicAuth($key, $secret)
-                ->timeout(10)
+            $response = self::makeClient($config)
                 ->post($endpoint.'/api/trafficshaper/settings/search_rules', [
                     'current' => 1,
                     'rowCount' => -1,
@@ -117,7 +76,6 @@ class OpnSenseApiService
             $endpoint = rtrim($config['endpoint'] ?? '', '/');
             $key = $config['key'] ?? '';
             $secret = $config['secret'] ?? '';
-            $verifySsl = (bool) ($config['verify_ssl'] ?? true);
 
             if ($endpoint === '') {
                 return ['zones' => [], 'error' => 'OPNsense endpoint is not configured.'];
@@ -127,9 +85,7 @@ class OpnSenseApiService
                 return ['zones' => [], 'error' => 'OPNsense API key and secret are required.'];
             }
 
-            $response = Http::withOptions(['verify' => $verifySsl])
-                ->withBasicAuth($key, $secret)
-                ->timeout(10)
+            $response = self::makeClient($config)
                 ->get($endpoint.'/api/captiveportal/settings/get');
 
             $response->throw();
@@ -153,5 +109,17 @@ class OpnSenseApiService
         } catch (Throwable $e) {
             return ['zones' => [], 'error' => 'Failed to fetch zones: '.$e->getMessage()];
         }
+    }
+
+    /**
+     * Build an authenticated Http client pre-configured with OPNsense credentials.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private static function makeClient(array $config): PendingRequest
+    {
+        return Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
+            ->withBasicAuth($config['key'] ?? '', $config['secret'] ?? '')
+            ->timeout(10);
     }
 }

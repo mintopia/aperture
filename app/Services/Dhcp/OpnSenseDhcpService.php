@@ -97,16 +97,7 @@ class OpnSenseDhcpService implements DhcpInterface
                 $data = json_decode($response->getBody()->getContents(), true);
 
                 foreach ($data['rows'] ?? [] as $row) {
-                    $ranges->push(new DhcpRange(
-                        interface: (string) ($row[$this->rangeFieldMap['interface']] ?? ''),
-                        type: 'ipv4',
-                        subnet: isset($row[$this->rangeFieldMap['subnet']]) ? (string) $row[$this->rangeFieldMap['subnet']] : null,
-                        rangeFrom: isset($row[$this->rangeFieldMap['range_from']]) ? (string) $row[$this->rangeFieldMap['range_from']] : null,
-                        rangeTo: isset($row[$this->rangeFieldMap['range_to']]) ? (string) $row[$this->rangeFieldMap['range_to']] : null,
-                        prefix: null,
-                        gateway: isset($row[$this->rangeFieldMap['gateway']]) ? (string) $row[$this->rangeFieldMap['gateway']] : null,
-                        description: isset($row[$this->rangeFieldMap['description']]) ? (string) $row[$this->rangeFieldMap['description']] : null,
-                    ));
+                    $ranges->push($this->buildRangeFromRow($row));
                 }
             } catch (Throwable $e) {
                 Log::warning('Failed to fetch IPv4 DHCP ranges', ['error' => $e->getMessage(), 'path' => $this->ipv4RangesPath]);
@@ -121,23 +112,165 @@ class OpnSenseDhcpService implements DhcpInterface
                 $data = json_decode($response->getBody()->getContents(), true);
 
                 foreach ($data['rows'] ?? [] as $row) {
-                    $ranges->push(new DhcpRange(
-                        interface: (string) ($row[$this->rangeFieldMap['interface']] ?? ''),
-                        type: 'ipv6',
-                        subnet: null,
-                        rangeFrom: isset($row[$this->rangeFieldMap['range_from']]) ? (string) $row[$this->rangeFieldMap['range_from']] : null,
-                        rangeTo: isset($row[$this->rangeFieldMap['range_to']]) ? (string) $row[$this->rangeFieldMap['range_to']] : null,
-                        prefix: isset($row[$this->rangeFieldMap['prefix']]) ? (string) $row[$this->rangeFieldMap['prefix']] : null,
-                        gateway: null,
-                        description: isset($row[$this->rangeFieldMap['description']]) ? (string) $row[$this->rangeFieldMap['description']] : null,
-                    ));
+                    $ranges->push($this->buildRangeFromRow($row));
                 }
             } catch (Throwable $e) {
                 Log::warning('Failed to fetch IPv6 DHCP ranges', ['error' => $e->getMessage(), 'path' => $this->ipv6RangesPath]);
             }
         }
 
-        return $ranges;
+        if ($ranges->isEmpty()) {
+            return $ranges;
+        }
+
+        $leases = $this->fetchLeases();
+
+        return $ranges->map(fn (DhcpRange $range): DhcpRange => $this->enrichRangeWithUsage($range, $leases));
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function buildRangeFromRow(array $row): DhcpRange
+    {
+        $subnet = isset($row[$this->rangeFieldMap['subnet']]) ? (string) $row[$this->rangeFieldMap['subnet']] : null;
+        $rangeFrom = isset($row[$this->rangeFieldMap['range_from']]) ? (string) $row[$this->rangeFieldMap['range_from']] : null;
+        $rangeTo = isset($row[$this->rangeFieldMap['range_to']]) ? (string) $row[$this->rangeFieldMap['range_to']] : null;
+        $prefix = isset($row[$this->rangeFieldMap['prefix']]) ? (string) $row[$this->rangeFieldMap['prefix']] : null;
+
+        return new DhcpRange(
+            interface: (string) ($row[$this->rangeFieldMap['interface']] ?? ''),
+            type: $this->detectIpVersion($subnet, $rangeFrom, $prefix),
+            subnet: $subnet,
+            rangeFrom: $rangeFrom,
+            rangeTo: $rangeTo,
+            prefix: $prefix,
+            gateway: isset($row[$this->rangeFieldMap['gateway']]) ? (string) $row[$this->rangeFieldMap['gateway']] : null,
+            description: isset($row[$this->rangeFieldMap['description']]) ? (string) $row[$this->rangeFieldMap['description']] : null,
+        );
+    }
+
+    private function detectIpVersion(?string $subnet, ?string $rangeFrom, ?string $prefix): string
+    {
+        if ($rangeFrom !== null && str_contains($rangeFrom, ':')) {
+            return 'ipv6';
+        }
+
+        if ($subnet !== null && str_contains($subnet, ':')) {
+            return 'ipv6';
+        }
+
+        if ($prefix !== null && str_contains($prefix, ':')) {
+            return 'ipv6';
+        }
+
+        return 'ipv4';
+    }
+
+    /**
+     * @param  Collection<int, array{address: string, mac: string, hostname: string, ends: string, status: string}>  $leases
+     */
+    private function enrichRangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
+    {
+        if ($range->rangeFrom === null || $range->rangeTo === null) {
+            return $range;
+        }
+
+        if ($range->type === 'ipv6') {
+            return $this->enrichIpv6RangeWithUsage($range, $leases);
+        }
+
+        return $this->enrichIpv4RangeWithUsage($range, $leases);
+    }
+
+    /**
+     * @param  Collection<int, array{address: string, mac: string, hostname: string, ends: string, status: string}>  $leases
+     */
+    private function enrichIpv4RangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
+    {
+        $fromLong = ip2long((string) $range->rangeFrom);
+        $toLong = ip2long((string) $range->rangeTo);
+
+        if ($fromLong === false || $toLong === false) {
+            return $range;
+        }
+
+        $totalAddresses = $toLong - $fromLong + 1;
+
+        $usedAddresses = $leases->filter(function (array $lease) use ($fromLong, $toLong): bool {
+            $leaseIp = ip2long($lease['address']);
+
+            return $leaseIp !== false && $leaseIp >= $fromLong && $leaseIp <= $toLong;
+        })->count();
+
+        $utilisation = $totalAddresses > 0 ? round($usedAddresses / $totalAddresses, 4) : 0.0;
+
+        return new DhcpRange(
+            interface: $range->interface,
+            type: $range->type,
+            subnet: $range->subnet,
+            rangeFrom: $range->rangeFrom,
+            rangeTo: $range->rangeTo,
+            prefix: $range->prefix,
+            gateway: $range->gateway,
+            description: $range->description,
+            totalAddresses: $totalAddresses,
+            usedAddresses: $usedAddresses,
+            utilisation: $utilisation,
+        );
+    }
+
+    /**
+     * @param  Collection<int, array{address: string, mac: string, hostname: string, ends: string, status: string}>  $leases
+     */
+    private function enrichIpv6RangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
+    {
+        $fromBin = inet_pton((string) $range->rangeFrom);
+        $toBin = inet_pton((string) $range->rangeTo);
+
+        if ($fromBin === false || $toBin === false) {
+            return $range;
+        }
+
+        $totalAddresses = $this->ipv6Diff($fromBin, $toBin) + 1;
+
+        $usedAddresses = $leases->filter(function (array $lease) use ($fromBin, $toBin): bool {
+            $leaseBin = inet_pton($lease['address']);
+
+            return $leaseBin !== false && $leaseBin >= $fromBin && $leaseBin <= $toBin;
+        })->count();
+
+        $utilisation = $totalAddresses > 0 ? round($usedAddresses / $totalAddresses, 4) : 0.0;
+
+        return new DhcpRange(
+            interface: $range->interface,
+            type: $range->type,
+            subnet: $range->subnet,
+            rangeFrom: $range->rangeFrom,
+            rangeTo: $range->rangeTo,
+            prefix: $range->prefix,
+            gateway: $range->gateway,
+            description: $range->description,
+            totalAddresses: $totalAddresses,
+            usedAddresses: $usedAddresses,
+            utilisation: $utilisation,
+        );
+    }
+
+    private function ipv6Diff(string $fromBin, string $toBin): int
+    {
+        $result = 0;
+
+        for ($i = 0; $i <= 15; $i++) {
+            $diff = ord($toBin[$i]) - ord($fromBin[$i]);
+            $result = ($result << 8) + $diff;
+
+            if ($result > PHP_INT_MAX >> 8) {
+                return PHP_INT_MAX;
+            }
+        }
+
+        return max(0, $result);
     }
 
     /**

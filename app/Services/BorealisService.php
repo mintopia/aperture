@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Services\Borealis\RequestException;
-use App\Services\ValueObjects\TestConnectionResult;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
-use Illuminate\Support\Facades\Http;
 use Psr\Http\Message\ResponseInterface;
 use stdClass;
-use Throwable;
 
 class BorealisService
 {
@@ -73,45 +70,5 @@ class BorealisService
         }
 
         return $data;
-    }
-
-    /**
-     * Test connectivity to the Borealis OAuth2 device endpoint.
-     *
-     * @param  array<string, mixed>  $config  Merged DB + request config
-     */
-    public static function testConnection(array $config): TestConnectionResult
-    {
-        $requestMethod = 'POST';
-        $endpoint = rtrim($config['endpoint'] ?? '', '/');
-        $requestUrl = $endpoint.'/oauth2/device';
-
-        try {
-            $response = Http::asForm()
-                ->timeout(10)
-                ->withBasicAuth($config['client_id'] ?? '', $config['client_secret'] ?? '')
-                ->post($requestUrl, [
-                    'scope' => $config['scope'] ?? 'test',
-                ]);
-
-            $response->throw();
-
-            return new TestConnectionResult(
-                success: true,
-                message: 'Authenticated and received device code.',
-                requestMethod: $requestMethod,
-                requestUrl: $requestUrl,
-                responseStatus: $response->status(),
-                responseBody: $response->body(),
-                output: $response->json() ?? $response->body(),
-            );
-        } catch (Throwable $e) {
-            return new TestConnectionResult(
-                success: false,
-                message: 'Connection failed: '.$e->getMessage(),
-                requestMethod: $requestMethod,
-                requestUrl: $requestUrl,
-            );
-        }
     }
 }

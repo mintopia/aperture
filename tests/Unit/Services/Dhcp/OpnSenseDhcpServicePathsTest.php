@@ -99,6 +99,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
                         ['interface' => 'lan', 'prefix' => 'fd00::/64', 'description' => 'LAN IPv6'],
                     ],
                 ])),
+                new Response(200, [], (string) json_encode(['rows' => []])),
             ],
             $history,
             ipv4RangesPath: '',
@@ -107,7 +108,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
 
         $ranges = $service->getRanges();
 
-        $this->assertCount(1, $history);
+        $this->assertCount(2, $history);
         $this->assertCount(1, $ranges);
         $this->assertEquals('ipv6', $ranges->first()->type);
     }
@@ -122,6 +123,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200', 'subnet' => '10.0.0.0/24'],
                     ],
                 ])),
+                new Response(200, [], (string) json_encode(['rows' => []])),
             ],
             $history,
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
@@ -130,7 +132,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
 
         $ranges = $service->getRanges();
 
-        $this->assertCount(1, $history);
+        $this->assertCount(2, $history);
         $this->assertCount(1, $ranges);
         $this->assertEquals('ipv4', $ranges->first()->type);
     }

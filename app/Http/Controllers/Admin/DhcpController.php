@@ -25,6 +25,9 @@ class DhcpController extends Controller
                 'prefix' => $range->prefix,
                 'gateway' => $range->gateway,
                 'description' => $range->description,
+                'total_addresses' => $range->totalAddresses,
+                'used_addresses' => $range->usedAddresses,
+                'utilisation' => $range->utilisation,
             ]),
         ]);
     }

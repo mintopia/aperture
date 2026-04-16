@@ -18,6 +18,7 @@ const rangeColumns = [
     { key: 'type', label: 'Type' },
     { key: 'subnet', label: 'Subnet / Prefix' },
     { key: 'range', label: 'Range' },
+    { key: 'usage', label: 'Usage' },
     { key: 'gateway', label: 'Gateway' },
     { key: 'description', label: 'Description' },
 ];
@@ -84,6 +85,36 @@ const rangeColumns = [
                         class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
                     >
                         {{ row.range_from && row.range_to ? `${row.range_from} – ${row.range_to}` : '—' }}
+                    </td>
+                    <td
+                        :data-testid="`range-row-${index}-usage`"
+                        class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]"
+                    >
+                        <template v-if="row.total_addresses != null">
+                            <div class="flex items-center gap-2">
+                                <div class="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--color-bg-tertiary)]">
+                                    <div
+                                        :data-testid="`range-usage-bar-${index}`"
+                                        class="h-full rounded-full transition-all"
+                                        :class="
+                                            row.utilisation > 0.9
+                                                ? 'bg-red-500'
+                                                : row.utilisation > 0.7
+                                                  ? 'bg-amber-500'
+                                                  : 'bg-emerald-500'
+                                        "
+                                        :style="{ width: `${Math.min((row.utilisation || 0) * 100, 100)}%` }"
+                                    />
+                                </div>
+                                <span class="font-mono text-xs whitespace-nowrap">
+                                    {{ row.used_addresses }} / {{ row.total_addresses }}
+                                    <span class="text-[var(--color-text-muted)]">
+                                        ({{ ((row.utilisation || 0) * 100).toFixed(1) }}%)
+                                    </span>
+                                </span>
+                            </div>
+                        </template>
+                        <template v-else>—</template>
                     </td>
                     <td
                         :data-testid="`range-row-${index}-gateway`"

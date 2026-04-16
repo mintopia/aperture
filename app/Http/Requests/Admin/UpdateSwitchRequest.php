@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\SwitchConfig;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -24,7 +25,7 @@ class UpdateSwitchRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var \App\Models\SwitchConfig $switchConfig */
+        /** @var SwitchConfig $switchConfig */
         $switchConfig = $this->route('switchConfig');
 
         return [

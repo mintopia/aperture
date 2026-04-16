@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\PiHole;
 
-use App\Services\ValueObjects\TestConnectionResult;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -18,44 +17,6 @@ use Throwable;
  */
 class PiHoleApiService
 {
-    /**
-     * Test connectivity by authenticating against the Pi-hole API.
-     *
-     * @param  array<string, mixed>  $config  Merged DB + request config
-     */
-    public static function testConnection(array $config): TestConnectionResult
-    {
-        $requestMethod = 'POST';
-        $endpoint = rtrim($config['endpoint'] ?? '', '/');
-        $requestUrl = $endpoint.'/api/auth';
-
-        try {
-            $response = Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
-                ->asJson()
-                ->timeout(10)
-                ->post($requestUrl, ['password' => $config['password'] ?? '']);
-
-            $response->throw();
-
-            return new TestConnectionResult(
-                success: true,
-                message: 'Connected and authenticated successfully',
-                requestMethod: $requestMethod,
-                requestUrl: $requestUrl,
-                responseStatus: $response->status(),
-                responseBody: $response->body(),
-                output: $response->json() ?? $response->body(),
-            );
-        } catch (Throwable $e) {
-            return new TestConnectionResult(
-                success: false,
-                message: 'Connection failed: '.$e->getMessage(),
-                requestMethod: $requestMethod,
-                requestUrl: $requestUrl,
-            );
-        }
-    }
-
     /**
      * Fetch Pi-hole groups by authenticating and then querying /api/groups.
      *

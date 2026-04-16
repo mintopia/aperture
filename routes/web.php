@@ -122,8 +122,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/settings/switches/{switchConfig}', [SwitchController::class, 'update'])->name('settings.switches.update');
         Route::delete('/settings/switches/{switchConfig}', [SwitchController::class, 'destroy'])->name('settings.switches.destroy');
 
-        Route::post('/settings/test/{service}', [TestConnectionController::class, 'test'])->name('settings.test');
         Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
+        Route::post('/settings/test/{service}', [TestConnectionController::class, 'test'])->name('settings.test');
 
         // Per-service integration routes
         Route::post('/settings/integrations/pihole/groups', [IntegrationController::class, 'piholeGroups'])->name('settings.integrations.pihole.groups');
