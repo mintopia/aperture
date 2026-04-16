@@ -76,9 +76,9 @@ class DhcpServiceBindingTest extends TestCase
         $service = $this->app->make(DhcpInterface::class);
 
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
-        $this->assertEquals('/api/dhcpv4/leases/searchLease', $this->getProtectedProperty($service, 'leasesPath'));
-        $this->assertEquals('/api/dhcpv4/service/searchSubnet', $this->getProtectedProperty($service, 'ipv4RangesPath'));
-        $this->assertEquals('/api/dhcpv6/service/searchSubnet', $this->getProtectedProperty($service, 'ipv6RangesPath'));
+        $this->assertEquals('/api/dhcpv4/leases/search_lease', $this->getProtectedProperty($service, 'leasesPath'));
+        $this->assertEquals('', $this->getProtectedProperty($service, 'ipv4RangesPath'));
+        $this->assertEquals('', $this->getProtectedProperty($service, 'ipv6RangesPath'));
     }
 
     public function test_kea_binding_uses_correct_api_paths(): void

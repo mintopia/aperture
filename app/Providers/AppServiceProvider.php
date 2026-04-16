@@ -121,9 +121,9 @@ class AppServiceProvider extends ServiceProvider
                     'ipv6_ranges' => '',
                 ],
                 default => [
-                    'leases' => '/api/dhcpv4/leases/searchLease',
-                    'ipv4_ranges' => '/api/dhcpv4/service/searchSubnet',
-                    'ipv6_ranges' => '/api/dhcpv6/service/searchSubnet',
+                    'leases' => '/api/dhcpv4/leases/search_lease',
+                    'ipv4_ranges' => '',
+                    'ipv6_ranges' => '',
                 ],
             };
 
