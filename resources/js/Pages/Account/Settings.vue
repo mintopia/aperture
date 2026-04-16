@@ -4,6 +4,7 @@ import { useForm, router } from '@inertiajs/vue3';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { formatDate } from '@/utils/dates';
+import { base64UrlToBuffer, bufferToBase64, getCsrfToken } from '@/utils/webauthn';
 
 defineOptions({ layout: PortalLayout });
 
@@ -39,30 +40,6 @@ function clearPassword() {
     }
 }
 
-// ─── WebAuthn helpers ────────────────────────────────────────────────────────
-
-function base64ToBuffer(base64) {
-    const binary = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
-
-function bufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (const byte of bytes) {
-        binary += String.fromCharCode(byte);
-    }
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function getCsrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content;
-}
-
 // ─── Passkey management ──────────────────────────────────────────────────────
 
 async function registerPasskey() {
@@ -87,12 +64,12 @@ async function registerPasskey() {
         const options = await optionsResponse.json();
 
         // Step 2: Convert base64 fields to ArrayBuffers
-        options.challenge = base64ToBuffer(options.challenge);
-        options.user.id = base64ToBuffer(options.user.id);
+        options.challenge = base64UrlToBuffer(options.challenge);
+        options.user.id = base64UrlToBuffer(options.user.id);
         if (options.excludeCredentials) {
             options.excludeCredentials = options.excludeCredentials.map((cred) => ({
                 ...cred,
-                id: base64ToBuffer(cred.id),
+                id: base64UrlToBuffer(cred.id),
             }));
         }
 
