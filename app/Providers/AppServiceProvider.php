@@ -11,6 +11,12 @@ use App\Services\CiscoService;
 use App\Services\Dhcp\NullDhcpService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
+use App\Services\Integration\BorealisTester;
+use App\Services\Integration\IntegrationTesterRegistry;
+use App\Services\Integration\LibreNmsTester;
+use App\Services\Integration\NtopNgTester;
+use App\Services\Integration\OpnSenseTester;
+use App\Services\Integration\PiHoleTester;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsBlockingInterface;
@@ -39,6 +45,17 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AuthProviderInterface::class, BorealisDeviceFlowService::class);
+
+        $this->app->singleton(IntegrationTesterRegistry::class, function (): IntegrationTesterRegistry {
+            $registry = new IntegrationTesterRegistry;
+            $registry->register('opnsense', new OpnSenseTester);
+            $registry->register('pihole', new PiHoleTester);
+            $registry->register('librenms', new LibreNmsTester);
+            $registry->register('ntopng', new NtopNgTester);
+            $registry->register('borealis', new BorealisTester);
+
+            return $registry;
+        });
 
         $this->app->singleton(function (Application $app): FirewallBackendInterface {
             $dbConfig = $this->getIntegrationDbConfig('opnsense');
@@ -127,6 +144,51 @@ class AppServiceProvider extends ServiceProvider
                 ],
             };
 
+            $leaseFieldMap = match ($dhcpServer) {
+                'kea' => [
+                    'ip' => 'address',
+                    'mac' => 'hwaddr',
+                    'hostname' => 'hostname',
+                    'expires' => 'expire',
+                    'status' => 'state',
+                ],
+                'dnsmasq' => [
+                    'ip' => 'address',
+                    'mac' => 'hwaddr',
+                    'hostname' => 'hostname',
+                    'expires' => 'expires',
+                    'status' => 'status',
+                ],
+                default => [
+                    'ip' => 'address',
+                    'mac' => 'mac',
+                    'hostname' => 'hostname',
+                    'expires' => 'ends',
+                    'status' => 'status',
+                ],
+            };
+
+            $rangeFieldMap = match ($dhcpServer) {
+                'dnsmasq' => [
+                    'interface' => 'interface',
+                    'subnet' => 'subnet',
+                    'range_from' => 'from',
+                    'range_to' => 'to',
+                    'gateway' => 'gateway',
+                    'description' => 'domain',
+                    'prefix' => 'prefix',
+                ],
+                default => [
+                    'interface' => 'interface',
+                    'subnet' => 'subnet',
+                    'range_from' => 'range_from',
+                    'range_to' => 'range_to',
+                    'gateway' => 'gateway',
+                    'description' => 'description',
+                    'prefix' => 'prefix',
+                ],
+            };
+
             $client = new Client([
                 'verify' => (bool) ($opnsenseConfig['verify_ssl'] ?? true),
                 'base_uri' => $opnsenseConfig['endpoint'] ?? '',
@@ -142,6 +204,8 @@ class AppServiceProvider extends ServiceProvider
                 $paths['leases'],
                 $paths['ipv4_ranges'],
                 $paths['ipv6_ranges'],
+                $leaseFieldMap,
+                $rangeFieldMap,
             );
         });
 

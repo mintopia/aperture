@@ -15,12 +15,32 @@ use Throwable;
 
 class OpnSenseDhcpService implements DhcpInterface
 {
+    /**
+     * @param  array{ip: string, mac: string, hostname: string, expires: string, status: string}  $leaseFieldMap
+     * @param  array{interface: string, subnet: string, range_from: string, range_to: string, gateway: string, description: string, prefix: string}  $rangeFieldMap
+     */
     public function __construct(
         protected Client $client,
         protected int $poolSize = 0,
         protected string $leasesPath = '/api/dhcpv4/leases/search_lease',
         protected string $ipv4RangesPath = '',
         protected string $ipv6RangesPath = '',
+        protected array $leaseFieldMap = [
+            'ip' => 'address',
+            'mac' => 'mac',
+            'hostname' => 'hostname',
+            'expires' => 'ends',
+            'status' => 'status',
+        ],
+        protected array $rangeFieldMap = [
+            'interface' => 'interface',
+            'subnet' => 'subnet',
+            'range_from' => 'range_from',
+            'range_to' => 'range_to',
+            'gateway' => 'gateway',
+            'description' => 'description',
+            'prefix' => 'prefix',
+        ],
     ) {}
 
     public function getPoolStatus(): DhcpPoolStatus
@@ -71,23 +91,21 @@ class OpnSenseDhcpService implements DhcpInterface
 
         if ($this->ipv4RangesPath !== '') {
             try {
-                $response = $this->client->get($this->ipv4RangesPath, [
-                    'json' => (object) [],
-                ]);
+                $response = $this->client->get($this->ipv4RangesPath);
 
-                /** @var array{rows?: list<array{interface?: string, subnet?: string, range_from?: string, range_to?: string, gateway?: string, description?: string}>} $data */
+                /** @var array{rows?: list<array<string, mixed>>} $data */
                 $data = json_decode($response->getBody()->getContents(), true);
 
                 foreach ($data['rows'] ?? [] as $row) {
                     $ranges->push(new DhcpRange(
-                        interface: $row['interface'] ?? '',
+                        interface: (string) ($row[$this->rangeFieldMap['interface']] ?? ''),
                         type: 'ipv4',
-                        subnet: $row['subnet'] ?? null,
-                        rangeFrom: $row['range_from'] ?? null,
-                        rangeTo: $row['range_to'] ?? null,
+                        subnet: isset($row[$this->rangeFieldMap['subnet']]) ? (string) $row[$this->rangeFieldMap['subnet']] : null,
+                        rangeFrom: isset($row[$this->rangeFieldMap['range_from']]) ? (string) $row[$this->rangeFieldMap['range_from']] : null,
+                        rangeTo: isset($row[$this->rangeFieldMap['range_to']]) ? (string) $row[$this->rangeFieldMap['range_to']] : null,
                         prefix: null,
-                        gateway: $row['gateway'] ?? null,
-                        description: $row['description'] ?? null,
+                        gateway: isset($row[$this->rangeFieldMap['gateway']]) ? (string) $row[$this->rangeFieldMap['gateway']] : null,
+                        description: isset($row[$this->rangeFieldMap['description']]) ? (string) $row[$this->rangeFieldMap['description']] : null,
                     ));
                 }
             } catch (Throwable $e) {
@@ -97,23 +115,21 @@ class OpnSenseDhcpService implements DhcpInterface
 
         if ($this->ipv6RangesPath !== '') {
             try {
-                $response = $this->client->get($this->ipv6RangesPath, [
-                    'json' => (object) [],
-                ]);
+                $response = $this->client->get($this->ipv6RangesPath);
 
-                /** @var array{rows?: list<array{interface?: string, prefix?: string, range_from?: string, range_to?: string, description?: string}>} $data */
+                /** @var array{rows?: list<array<string, mixed>>} $data */
                 $data = json_decode($response->getBody()->getContents(), true);
 
                 foreach ($data['rows'] ?? [] as $row) {
                     $ranges->push(new DhcpRange(
-                        interface: $row['interface'] ?? '',
+                        interface: (string) ($row[$this->rangeFieldMap['interface']] ?? ''),
                         type: 'ipv6',
                         subnet: null,
-                        rangeFrom: $row['range_from'] ?? null,
-                        rangeTo: $row['range_to'] ?? null,
-                        prefix: $row['prefix'] ?? null,
+                        rangeFrom: isset($row[$this->rangeFieldMap['range_from']]) ? (string) $row[$this->rangeFieldMap['range_from']] : null,
+                        rangeTo: isset($row[$this->rangeFieldMap['range_to']]) ? (string) $row[$this->rangeFieldMap['range_to']] : null,
+                        prefix: isset($row[$this->rangeFieldMap['prefix']]) ? (string) $row[$this->rangeFieldMap['prefix']] : null,
                         gateway: null,
-                        description: $row['description'] ?? null,
+                        description: isset($row[$this->rangeFieldMap['description']]) ? (string) $row[$this->rangeFieldMap['description']] : null,
                     ));
                 }
             } catch (Throwable $e) {
@@ -129,13 +145,17 @@ class OpnSenseDhcpService implements DhcpInterface
      */
     protected function fetchLeases(): Collection
     {
-        $response = $this->client->get($this->leasesPath, [
-            'json' => (object) [],
-        ]);
+        $response = $this->client->get($this->leasesPath);
 
-        /** @var array{rows?: list<array{address: string, mac: string, hostname: string, ends: string, status: string}>} $data */
+        /** @var array{rows?: list<array<string, mixed>>} $data */
         $data = json_decode($response->getBody()->getContents(), true);
 
-        return collect($data['rows'] ?? []);
+        return collect($data['rows'] ?? [])->map(fn (array $row): array => [
+            'address' => (string) ($row[$this->leaseFieldMap['ip']] ?? ''),
+            'mac' => (string) ($row[$this->leaseFieldMap['mac']] ?? ''),
+            'hostname' => (string) ($row[$this->leaseFieldMap['hostname']] ?? ''),
+            'ends' => (string) ($row[$this->leaseFieldMap['expires']] ?? ''),
+            'status' => (string) ($row[$this->leaseFieldMap['status']] ?? 'active'),
+        ]);
     }
 }
