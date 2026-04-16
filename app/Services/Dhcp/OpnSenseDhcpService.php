@@ -10,6 +10,7 @@ use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
 use GuzzleHttp\Client;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class OpnSenseDhcpService implements DhcpInterface
@@ -89,8 +90,8 @@ class OpnSenseDhcpService implements DhcpInterface
                         description: $row['description'] ?? null,
                     ));
                 }
-            } catch (Throwable) {
-                // IPv4 ranges not available
+            } catch (Throwable $e) {
+                Log::warning('Failed to fetch IPv4 DHCP ranges', ['error' => $e->getMessage(), 'path' => $this->ipv4RangesPath]);
             }
         }
 
@@ -115,8 +116,8 @@ class OpnSenseDhcpService implements DhcpInterface
                         description: $row['description'] ?? null,
                     ));
                 }
-            } catch (Throwable) {
-                // IPv6 ranges not available
+            } catch (Throwable $e) {
+                Log::warning('Failed to fetch IPv6 DHCP ranges', ['error' => $e->getMessage(), 'path' => $this->ipv6RangesPath]);
             }
         }
 

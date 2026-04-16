@@ -307,7 +307,7 @@ class OpnSense implements FirewallBackendInterface
                 'destination_not' => $rule->rule->destination_not,
                 'direction' => implode(',', $this->filter($rule->rule->direction)),
                 'dscp' => implode(',', $this->filter($rule->rule->dscp)),
-                'dst_port' => $rule->rule->src_port,
+                'dst_port' => $rule->rule->dst_port,
                 'enabled' => $rule->rule->enabled,
                 'interface' => implode(',', $this->filter($rule->rule->interface)),
                 'interface2' => implode(',', $this->filter($rule->rule->interface2)),

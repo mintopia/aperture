@@ -138,7 +138,9 @@ class IntegrationController extends Controller
         if ($validated['active']) {
             CapabilityAssignment::assign($validated['capability'], $validated['integration']);
         } else {
-            CapabilityAssignment::unassign($validated['capability']);
+            CapabilityAssignment::where('capability', $validated['capability'])
+                ->where('integration', $validated['integration'])
+                ->delete();
         }
 
         return response()->json(['success' => true]);

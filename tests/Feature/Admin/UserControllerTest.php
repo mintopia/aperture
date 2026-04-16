@@ -64,11 +64,11 @@ class UserControllerTest extends TestCase
         $user = User::factory()->create(['blocked' => false]);
 
         $response = $this->actingAs($admin)->post(sprintf('/admin/users/%d/block', $user->id), [
-            'block' => 1,
+            'block' => true,
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals(1, $user->fresh()->blocked);
+        $this->assertTrue((bool) $user->fresh()->blocked);
     }
 
     public function test_admin_can_unblock_user(): void
@@ -78,11 +78,11 @@ class UserControllerTest extends TestCase
         $user = User::factory()->create(['blocked' => true]);
 
         $response = $this->actingAs($admin)->post(sprintf('/admin/users/%d/block', $user->id), [
-            'block' => 0,
+            'block' => false,
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals(0, $user->fresh()->blocked);
+        $this->assertFalse((bool) $user->fresh()->blocked);
     }
 
     public function test_non_admin_cannot_view_users(): void
