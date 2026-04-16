@@ -5,6 +5,7 @@ import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
+import { formatRelative } from '@/utils/dates';
 
 defineOptions({ layout: AdminLayout });
 
@@ -76,7 +77,7 @@ const userColumns = [
                     {{ row.user?.nickname }}
                 </td>
                 <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
-                    {{ row.last_seen_at }}
+                    {{ formatRelative(row.last_seen_at) }}
                 </td>
             </template>
         </DataTable>

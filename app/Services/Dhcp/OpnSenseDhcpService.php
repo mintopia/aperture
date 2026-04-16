@@ -7,8 +7,10 @@ namespace App\Services\Dhcp;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
+use App\Services\ValueObjects\DhcpRange;
 use GuzzleHttp\Client;
 use Illuminate\Support\Collection;
+use Throwable;
 
 class OpnSenseDhcpService implements DhcpInterface
 {
@@ -56,6 +58,62 @@ class OpnSenseDhcpService implements DhcpInterface
             hostname: $match['hostname'],
             expires: $match['ends'],
         );
+    }
+
+    /** @return Collection<int, DhcpRange> */
+    public function getRanges(): Collection
+    {
+        $ranges = collect();
+
+        try {
+            $response = $this->client->get('/api/dhcpv4/service/searchSubnet', [
+                'json' => (object) [],
+            ]);
+
+            /** @var array{rows?: list<array{interface?: string, subnet?: string, range_from?: string, range_to?: string, gateway?: string, description?: string}>} $data */
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            foreach ($data['rows'] ?? [] as $row) {
+                $ranges->push(new DhcpRange(
+                    interface: $row['interface'] ?? '',
+                    type: 'ipv4',
+                    subnet: $row['subnet'] ?? null,
+                    rangeFrom: $row['range_from'] ?? null,
+                    rangeTo: $row['range_to'] ?? null,
+                    prefix: null,
+                    gateway: $row['gateway'] ?? null,
+                    description: $row['description'] ?? null,
+                ));
+            }
+        } catch (Throwable) {
+            // IPv4 ranges not available
+        }
+
+        try {
+            $response = $this->client->get('/api/dhcpv6/service/searchSubnet', [
+                'json' => (object) [],
+            ]);
+
+            /** @var array{rows?: list<array{interface?: string, prefix?: string, range_from?: string, range_to?: string, description?: string}>} $data */
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            foreach ($data['rows'] ?? [] as $row) {
+                $ranges->push(new DhcpRange(
+                    interface: $row['interface'] ?? '',
+                    type: 'ipv6',
+                    subnet: null,
+                    rangeFrom: $row['range_from'] ?? null,
+                    rangeTo: $row['range_to'] ?? null,
+                    prefix: $row['prefix'] ?? null,
+                    gateway: null,
+                    description: $row['description'] ?? null,
+                ));
+            }
+        } catch (Throwable) {
+            // IPv6 ranges not available
+        }
+
+        return $ranges;
     }
 
     /**

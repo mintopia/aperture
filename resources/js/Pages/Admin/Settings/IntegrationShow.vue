@@ -6,6 +6,7 @@ import CapabilityTag from '@/Components/UI/CapabilityTag.vue';
 import StatusPill from '@/Components/UI/StatusPill.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { ref, onMounted } from 'vue';
+import { formatRelative } from '@/utils/dates';
 
 defineOptions({ layout: AdminLayout });
 
@@ -327,16 +328,13 @@ function formatLogOutput(data) {
                     </div>
 
                     <div v-if="testResult" class="mt-2">
-                        <p
-                            class="text-sm"
-                            :class="testResult.success ? 'text-green-600' : 'text-red-600'"
-                        >
+                        <p class="text-sm" :class="testResult.success ? 'text-green-600' : 'text-red-600'">
                             {{ testResultMessage(testResult) }}
                         </p>
                         <button
                             v-if="testResult.output"
                             data-testid="test-output-toggle"
-                            class="mt-1 text-xs text-[var(--color-text-secondary)] underline cursor-pointer"
+                            class="mt-1 cursor-pointer text-xs text-[var(--color-text-secondary)] underline"
                             @click="showTestOutput = !showTestOutput"
                         >
                             {{ showTestOutput ? 'Hide Output' : 'Show Output' }}
@@ -344,8 +342,13 @@ function formatLogOutput(data) {
                         <pre
                             v-if="showTestOutput && testResult.output"
                             data-testid="test-output-content"
-                            class="mt-2 p-3 text-xs font-mono bg-[var(--color-bg-secondary)] rounded overflow-x-auto max-h-64 overflow-y-auto"
-                        >{{ typeof testResult.output === 'string' ? testResult.output : JSON.stringify(testResult.output, null, 2) }}</pre>
+                            class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-3 font-mono text-xs"
+                            >{{
+                                typeof testResult.output === 'string'
+                                    ? testResult.output
+                                    : JSON.stringify(testResult.output, null, 2)
+                            }}</pre
+                        >
                     </div>
                 </form>
             </div>
@@ -412,7 +415,7 @@ function formatLogOutput(data) {
                                     <button
                                         v-if="log.response_data"
                                         :data-testid="`log-output-toggle-${index}`"
-                                        class="mt-1 text-xs text-[var(--color-text-secondary)] underline cursor-pointer"
+                                        class="mt-1 cursor-pointer text-xs text-[var(--color-text-secondary)] underline"
                                         @click="toggleLogOutput(log.id)"
                                     >
                                         {{ expandedLogIds.has(log.id) ? 'Hide Output' : 'Show Output' }}
@@ -420,11 +423,12 @@ function formatLogOutput(data) {
                                     <pre
                                         v-if="expandedLogIds.has(log.id) && log.response_data"
                                         :data-testid="`log-output-content-${index}`"
-                                        class="mt-2 p-3 text-xs font-mono bg-[var(--color-bg-secondary)] rounded overflow-x-auto max-h-64 overflow-y-auto"
-                                    >{{ formatLogOutput(log.response_data) }}</pre>
+                                        class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-3 font-mono text-xs"
+                                        >{{ formatLogOutput(log.response_data) }}</pre
+                                    >
                                 </td>
                                 <td class="px-4 py-3 text-[var(--color-text-secondary)]">
-                                    {{ log.tested_at }}
+                                    {{ formatRelative(log.tested_at) }}
                                 </td>
                             </tr>
                             <tr v-if="service.logs.length === 0" class="border-t border-[var(--color-border)]">
