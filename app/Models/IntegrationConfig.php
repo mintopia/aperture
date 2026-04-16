@@ -14,7 +14,7 @@ class IntegrationConfig extends Model
     use HasFactory;
 
     /** @var list<string> */
-    public const ENCRYPTED_KEYS = ['api_key', 'password', 'secret', 'key'];
+    public const ENCRYPTED_KEYS = ['api_key', 'password', 'secret', 'key', 'client_secret'];
 
     protected $fillable = ['integration', 'key', 'value', 'encrypted'];
 
