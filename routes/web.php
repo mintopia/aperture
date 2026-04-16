@@ -39,6 +39,7 @@ Route::middleware(['guest'])->group(function () {
 Route::middleware(['auth'])->prefix('passkeys')->group(function () {
     Route::post('/register/options', [PasskeyController::class, 'registerOptions'])->name('passkeys.register.options');
     Route::post('/register', [PasskeyController::class, 'register'])->name('passkeys.register');
+    Route::delete('/{credentialId}', [PasskeyController::class, 'destroy'])->name('passkeys.destroy');
 });
 
 // Passkey authentication (guest)

@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
@@ -14,6 +15,11 @@ const needsVerification = (props.user.has_password || props.user.passkeys.length
 
 const verifyForm = useForm({ password: '' });
 const passwordForm = useForm({ password: '', password_confirmation: '' });
+
+const passkeyLoading = ref(false);
+const passkeyError = ref('');
+
+// ─── Password management ─────────────────────────────────────────────────────
 
 function verify() {
     verifyForm.post(route('account.verify'), { preserveScroll: true });
@@ -32,9 +38,130 @@ function clearPassword() {
     }
 }
 
-function deletePasskey(id) {
-    if (confirm('Remove this passkey?')) {
-        router.delete(route('passkeys.destroy', id));
+// ─── WebAuthn helpers ────────────────────────────────────────────────────────
+
+function base64ToBuffer(base64) {
+    const binary = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function bufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (const byte of bytes) {
+        binary += String.fromCharCode(byte);
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content;
+}
+
+// ─── Passkey management ──────────────────────────────────────────────────────
+
+async function registerPasskey() {
+    passkeyError.value = '';
+    passkeyLoading.value = true;
+
+    try {
+        // Step 1: Get creation options from server
+        const optionsResponse = await fetch('/passkeys/register/options', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+            },
+        });
+
+        if (!optionsResponse.ok) {
+            const data = await optionsResponse.json().catch(() => ({}));
+            throw new Error(data.message || 'Failed to get passkey options.');
+        }
+
+        const options = await optionsResponse.json();
+
+        // Step 2: Convert base64 fields to ArrayBuffers
+        options.challenge = base64ToBuffer(options.challenge);
+        options.user.id = base64ToBuffer(options.user.id);
+        if (options.excludeCredentials) {
+            options.excludeCredentials = options.excludeCredentials.map((cred) => ({
+                ...cred,
+                id: base64ToBuffer(cred.id),
+            }));
+        }
+
+        // Step 3: Call WebAuthn browser API
+        const credential = await navigator.credentials.create({ publicKey: options });
+
+        // Step 4: Send credential to server
+        const registerResponse = await fetch('/passkeys/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+            },
+            body: JSON.stringify({
+                id: credential.id,
+                rawId: bufferToBase64(credential.rawId),
+                type: credential.type,
+                response: {
+                    attestationObject: bufferToBase64(credential.response.attestationObject),
+                    clientDataJSON: bufferToBase64(credential.response.clientDataJSON),
+                },
+            }),
+        });
+
+        const result = await registerResponse.json();
+
+        if (result.success) {
+            router.reload();
+        } else {
+            throw new Error(result.message || 'Registration failed.');
+        }
+    } catch (error) {
+        if (error.name === 'NotAllowedError') {
+            passkeyError.value = 'Passkey registration was cancelled or not allowed.';
+        } else if (error.name === 'AbortError') {
+            passkeyError.value = 'Passkey registration was cancelled.';
+        } else {
+            passkeyError.value = error.message || 'An unexpected error occurred.';
+        }
+    } finally {
+        passkeyLoading.value = false;
+    }
+}
+
+async function deletePasskey(id) {
+    if (!confirm('Remove this passkey? This cannot be undone.')) {
+        return;
+    }
+
+    passkeyError.value = '';
+
+    try {
+        const response = await fetch(`/passkeys/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                Accept: 'application/json',
+            },
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            router.reload();
+        } else {
+            passkeyError.value = 'Failed to remove passkey. Please try again.';
+        }
+    } catch {
+        passkeyError.value = 'Failed to remove passkey. Please try again.';
     }
 }
 </script>
@@ -46,7 +173,7 @@ function deletePasskey(id) {
             <p class="mt-1 text-sm text-[var(--color-text-secondary)]">Manage your password and passkeys.</p>
         </div>
 
-        <!-- Re-verification gate -->
+        <!-- ── Re-verification gate (password section only) ─────────────────── -->
         <div
             v-if="needsVerification"
             data-testid="verify-form"
@@ -87,103 +214,141 @@ function deletePasskey(id) {
             </form>
         </div>
 
-        <!-- Settings (shown when verified or no verification needed) -->
-        <template v-else>
-            <!-- Password Section -->
-            <section
-                data-testid="password-section"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
-            >
-                <h2 class="mb-1 font-heading text-lg font-semibold text-[var(--color-text)]">Password</h2>
-                <p class="mb-4 text-sm text-[var(--color-text-secondary)]">
-                    {{ user.has_password ? 'Update or remove your password.' : 'Set a password to enable password-based login.' }}
-                </p>
+        <!-- ── Password section (shown once verified) ──────────────────────── -->
+        <section
+            v-else
+            data-testid="password-section"
+            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
+        >
+            <h2 class="mb-1 font-heading text-lg font-semibold text-[var(--color-text)]">Password</h2>
+            <p class="mb-4 text-sm text-[var(--color-text-secondary)]">
+                {{
+                    user.has_password
+                        ? 'Update or remove your password.'
+                        : 'Set a password to enable password-based login.'
+                }}
+            </p>
 
-                <form class="space-y-4" @submit.prevent="updatePassword">
-                    <FormField
-                        label="New Password"
-                        name="password-new"
-                        :required="true"
-                        :error="passwordForm.errors.password"
+            <form class="space-y-4" @submit.prevent="updatePassword">
+                <FormField
+                    label="New Password"
+                    name="password-new"
+                    :required="true"
+                    :error="passwordForm.errors.password"
+                >
+                    <input
+                        id="password-new"
+                        v-model="passwordForm.password"
+                        type="password"
+                        data-testid="password-new"
+                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]"
+                        placeholder="Minimum 8 characters"
+                        autocomplete="new-password"
+                    />
+                </FormField>
+
+                <FormField
+                    label="Confirm Password"
+                    name="password-confirm"
+                    :required="true"
+                    :error="passwordForm.errors.password_confirmation"
+                >
+                    <input
+                        id="password-confirm"
+                        v-model="passwordForm.password_confirmation"
+                        type="password"
+                        data-testid="password-confirm"
+                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]"
+                        placeholder="Repeat your password"
+                        autocomplete="new-password"
+                    />
+                </FormField>
+
+                <div class="flex items-center gap-3">
+                    <button
+                        type="submit"
+                        data-testid="password-save"
+                        class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                        :disabled="passwordForm.processing"
                     >
-                        <input
-                            id="password-new"
-                            v-model="passwordForm.password"
-                            type="password"
-                            data-testid="password-new"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]"
-                            placeholder="Minimum 8 characters"
-                            autocomplete="new-password"
-                        />
-                    </FormField>
+                        {{
+                            passwordForm.processing
+                                ? 'Saving…'
+                                : user.has_password
+                                  ? 'Update Password'
+                                  : 'Set Password'
+                        }}
+                    </button>
 
-                    <FormField
-                        label="Confirm Password"
-                        name="password-confirm"
-                        :required="true"
-                        :error="passwordForm.errors.password_confirmation"
+                    <button
+                        v-if="user.has_password"
+                        type="button"
+                        data-testid="password-clear"
+                        class="rounded-lg border border-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
+                        @click="clearPassword"
                     >
-                        <input
-                            id="password-confirm"
-                            v-model="passwordForm.password_confirmation"
-                            type="password"
-                            data-testid="password-confirm"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]"
-                            placeholder="Repeat your password"
-                            autocomplete="new-password"
-                        />
-                    </FormField>
-
-                    <div class="flex items-center gap-3">
-                        <button
-                            type="submit"
-                            data-testid="password-save"
-                            class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                            :disabled="passwordForm.processing"
-                        >
-                            {{ passwordForm.processing ? 'Saving…' : user.has_password ? 'Update Password' : 'Set Password' }}
-                        </button>
-
-                        <button
-                            v-if="user.has_password"
-                            type="button"
-                            data-testid="password-clear"
-                            class="rounded-lg border border-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
-                            @click="clearPassword"
-                        >
-                            Remove Password
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Passkey Section -->
-            <section
-                data-testid="passkey-section"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
-            >
-                <h2 class="mb-1 font-heading text-lg font-semibold text-[var(--color-text)]">Passkeys</h2>
-                <p class="mb-4 text-sm text-[var(--color-text-secondary)]">
-                    Passkeys let you sign in securely without a password.
-                </p>
-
-                <div v-if="user.passkeys.length > 0" class="mb-4 space-y-2">
-                    <div
-                        v-for="passkey in user.passkeys"
-                        :key="passkey.id"
-                        class="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3"
-                    >
-                        <div>
-                            <p class="text-sm font-medium text-[var(--color-text)]">{{ passkey.name }}</p>
-                            <p class="text-xs text-[var(--color-text-muted)]">Added {{ passkey.created_at }}</p>
-                        </div>
-                    </div>
+                        Remove Password
+                    </button>
                 </div>
+            </form>
+        </section>
 
-                <p v-else class="mb-4 text-sm text-[var(--color-text-muted)]">
-                    No passkeys registered. You can register one from the login page.
-                </p>
-            </section>
-        </template>
+        <!-- ── Passkey section (always shown — no gate) ────────────────────── -->
+        <section
+            data-testid="passkey-section"
+            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
+        >
+            <div class="mb-4 flex items-center justify-between">
+                <div>
+                    <h2 class="font-heading text-lg font-semibold text-[var(--color-text)]">Passkeys</h2>
+                    <p class="mt-0.5 text-sm text-[var(--color-text-secondary)]">
+                        Passkeys let you sign in securely without a password.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    data-testid="passkey-register"
+                    class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                    :disabled="passkeyLoading"
+                    @click="registerPasskey"
+                >
+                    <span>{{ passkeyLoading ? 'Registering…' : '+ Add Passkey' }}</span>
+                </button>
+            </div>
+
+            <p
+                v-if="passkeyError"
+                data-testid="passkey-error"
+                class="mb-3 rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-4 py-2 text-sm text-[var(--color-danger)]"
+            >
+                {{ passkeyError }}
+            </p>
+
+            <div v-if="user.passkeys.length > 0" data-testid="passkey-list" class="space-y-2">
+                <div
+                    v-for="passkey in user.passkeys"
+                    :key="passkey.id"
+                    :data-testid="'passkey-item-' + passkey.id"
+                    class="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3"
+                >
+                    <div>
+                        <p class="text-sm font-medium text-[var(--color-text)]">{{ passkey.name }}</p>
+                        <p class="text-xs text-[var(--color-text-muted)]">Added {{ passkey.created_at }}</p>
+                    </div>
+                    <button
+                        type="button"
+                        :data-testid="'passkey-delete-' + passkey.id"
+                        class="ml-4 rounded-lg border border-[var(--color-danger)]/40 px-3 py-1.5 text-xs font-semibold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
+                        @click="deletePasskey(passkey.id)"
+                    >
+                        Remove
+                    </button>
+                </div>
+            </div>
+
+            <p v-else class="text-sm text-[var(--color-text-muted)]">
+                No passkeys registered yet. Click <strong>+ Add Passkey</strong> to register one.
+            </p>
+        </section>
     </div>
 </template>
