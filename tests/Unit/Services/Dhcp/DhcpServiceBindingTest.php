@@ -109,6 +109,68 @@ class DhcpServiceBindingTest extends TestCase
         $this->assertEquals('', $this->getProtectedProperty($service, 'ipv6RangesPath'));
     }
 
+    public function test_dnsmasq_binding_passes_correct_field_maps(): void
+    {
+        IntegrationConfig::setValue('opnsense', 'dhcp_server', 'dnsmasq');
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+
+        $this->app->forgetInstance(DhcpInterface::class);
+        $service = $this->app->make(DhcpInterface::class);
+
+        $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
+
+        /** @var array<string, string> $leaseMap */
+        $leaseMap = $this->getProtectedProperty($service, 'leaseFieldMap');
+        $this->assertEquals('hwaddr', $leaseMap['mac']);
+        $this->assertEquals('expires', $leaseMap['expires']);
+
+        /** @var array<string, string> $rangeMap */
+        $rangeMap = $this->getProtectedProperty($service, 'rangeFieldMap');
+        $this->assertEquals('from', $rangeMap['range_from']);
+        $this->assertEquals('to', $rangeMap['range_to']);
+        $this->assertEquals('domain', $rangeMap['description']);
+    }
+
+    public function test_kea_binding_passes_correct_field_maps(): void
+    {
+        IntegrationConfig::setValue('opnsense', 'dhcp_server', 'kea');
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+
+        $this->app->forgetInstance(DhcpInterface::class);
+        $service = $this->app->make(DhcpInterface::class);
+
+        $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
+
+        /** @var array<string, string> $leaseMap */
+        $leaseMap = $this->getProtectedProperty($service, 'leaseFieldMap');
+        $this->assertEquals('hwaddr', $leaseMap['mac']);
+        $this->assertEquals('expire', $leaseMap['expires']);
+        $this->assertEquals('state', $leaseMap['status']);
+    }
+
+    public function test_isc_binding_uses_default_field_maps(): void
+    {
+        IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
+
+        $this->app->forgetInstance(DhcpInterface::class);
+        $service = $this->app->make(DhcpInterface::class);
+
+        $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
+
+        /** @var array<string, string> $leaseMap */
+        $leaseMap = $this->getProtectedProperty($service, 'leaseFieldMap');
+        $this->assertEquals('mac', $leaseMap['mac']);
+        $this->assertEquals('ends', $leaseMap['expires']);
+        $this->assertEquals('status', $leaseMap['status']);
+
+        /** @var array<string, string> $rangeMap */
+        $rangeMap = $this->getProtectedProperty($service, 'rangeFieldMap');
+        $this->assertEquals('range_from', $rangeMap['range_from']);
+        $this->assertEquals('range_to', $rangeMap['range_to']);
+        $this->assertEquals('description', $rangeMap['description']);
+    }
+
     private function getProtectedProperty(object $object, string $property): mixed
     {
         $reflection = new ReflectionProperty($object, $property);
