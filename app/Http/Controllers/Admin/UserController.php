@@ -13,6 +13,10 @@ class UserController extends Controller
 {
     public function index(Request $request): Response
     {
+        $request->validate([
+            'perPage' => 'sometimes|integer|min:1|max:100',
+        ]);
+
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
             'nickname' => $request->input('nickname', ''),
@@ -101,7 +105,8 @@ class UserController extends Controller
 
     public function block(Request $request, User $user): RedirectResponse
     {
-        $user->blocked = (int) $request->input('block');
+        $request->validate(['block' => 'required|boolean']);
+        $user->blocked = (int) $request->boolean('block');
         $user->save();
         if ($user->blocked !== 0) {
             $message = 'The user will be blocked from accessing the Internet from new IPs';

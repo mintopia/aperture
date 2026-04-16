@@ -23,7 +23,7 @@ use App\Http\Controllers\PortalController;
 use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Captive portal / login
 Route::get('/captive', [CaptivePortalController::class, 'index'])->name('captive.index');

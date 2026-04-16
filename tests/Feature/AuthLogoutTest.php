@@ -16,7 +16,7 @@ class AuthLogoutTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->get('/logout');
+        $response = $this->actingAs($user)->post('/logout');
 
         $response->assertRedirect(route('home'));
         $this->assertGuest();

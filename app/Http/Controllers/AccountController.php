@@ -14,7 +14,7 @@ class AccountController extends Controller
     {
         $user = $request->user();
         if (! $user) {
-            abort(403);
+            abort(403); // Required for PHPStan level 8 null-safety
         }
 
         return Inertia::render('Account/Settings', [
@@ -37,7 +37,7 @@ class AccountController extends Controller
     {
         $user = $request->user();
         if (! $user) {
-            abort(403);
+            abort(403); // Required for PHPStan level 8 null-safety
         }
 
         $request->validate(['password' => 'required|string']);
@@ -55,7 +55,7 @@ class AccountController extends Controller
     {
         $user = $request->user();
         if (! $user) {
-            abort(403);
+            abort(403); // Required for PHPStan level 8 null-safety
         }
 
         $request->validate([
@@ -72,7 +72,7 @@ class AccountController extends Controller
     {
         $user = $request->user();
         if (! $user) {
-            abort(403);
+            abort(403); // Required for PHPStan level 8 null-safety
         }
 
         $user->password = null;

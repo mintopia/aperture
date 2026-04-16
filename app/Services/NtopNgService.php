@@ -50,7 +50,9 @@ class NtopNgService
         $requestUrl = $endpoint.'/lua/pro/rest/v2/get/system/data.lua';
 
         try {
-            $response = Http::timeout(10)->get($requestUrl);
+            $response = Http::timeout(10)
+                ->withBasicAuth($config['username'] ?? '', $config['password'] ?? '')
+                ->get($requestUrl);
 
             $response->throw();
 
