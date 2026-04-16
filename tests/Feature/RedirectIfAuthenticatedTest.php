@@ -21,10 +21,10 @@ class RedirectIfAuthenticatedTest extends TestCase
         $response->assertRedirect(RouteServiceProvider::HOME);
     }
 
-    public function test_guest_login_redirects_to_captive(): void
+    public function test_guest_can_view_login_page(): void
     {
         $response = $this->get('/login');
-        $response->assertRedirect(route('captive.index'));
+        $response->assertOk();
     }
 
     public function test_unauthenticated_home_redirects_to_captive(): void
