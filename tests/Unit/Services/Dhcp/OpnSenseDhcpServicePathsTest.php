@@ -29,6 +29,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
         $mock = new MockHandler($responses);
         $handler = HandlerStack::create($mock);
         $handler->push(Middleware::history($history));
+
         $client = new Client(['handler' => $handler]);
 
         return new OpnSenseDhcpService($client, 254, $leasesPath, $ipv4RangesPath, $ipv6RangesPath);
@@ -184,11 +185,38 @@ class OpnSenseDhcpServicePathsTest extends TestCase
         );
 
         $service->getLeases();
+
         $ranges = $service->getRanges();
 
         $this->assertCount(1, $history, 'Only the leases request should be made; ISC has no range endpoints');
         $this->assertEquals('/api/dhcpv4/leases/search_lease', $history[0]['request']->getUri()->getPath());
         $this->assertEquals('GET', $history[0]['request']->getMethod());
         $this->assertCount(0, $ranges);
+    }
+
+    public function test_does_not_fetch_duplicates_when_ipv4_and_ipv6_paths_are_identical(): void
+    {
+        $history = [];
+        $service = $this->createServiceWithHistory(
+            [
+                new Response(200, [], (string) json_encode([
+                    'rows' => [
+                        ['interface' => 'lan', 'start_addr' => '10.0.0.100', 'end_addr' => '10.0.0.200', 'subnet_mask' => '255.255.255.0'],
+                        ['interface' => 'dmz', 'start_addr' => '10.1.0.100', 'end_addr' => '10.1.0.200', 'subnet_mask' => '255.255.255.0'],
+                    ],
+                ])),
+                new Response(200, [], (string) json_encode(['rows' => []])),
+            ],
+            $history,
+            ipv4RangesPath: '/api/dnsmasq/settings/search_range',
+            ipv6RangesPath: '/api/dnsmasq/settings/search_range',
+        );
+
+        $ranges = $service->getRanges();
+
+        $this->assertCount(2, $history);
+        $this->assertEquals('/api/dnsmasq/settings/search_range', $history[0]['request']->getUri()->getPath());
+        $this->assertEquals('/api/dhcpv4/leases/search_lease', $history[1]['request']->getUri()->getPath());
+        $this->assertCount(2, $ranges, 'Should not duplicate ranges when both IPv4 and IPv6 use the same endpoint');
     }
 }

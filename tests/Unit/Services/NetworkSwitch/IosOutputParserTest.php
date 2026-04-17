@@ -65,6 +65,21 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('', $result->vlan);
     }
 
+    public function test_parse_show_interface_extracts_description(): void
+    {
+        $output = implode("\r\n", [
+            'GigabitEthernet0/1 is up, line protocol is up (connected)',
+            '  Hardware is Gigabit Ethernet, address is 0000.0000.0001',
+            '  Description: Seat 24 - Row A',
+            '  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,',
+            '  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX',
+        ]);
+
+        $result = $this->parser->parseShowInterface($output);
+
+        $this->assertEquals('Seat 24 - Row A', $result->description);
+    }
+
     public function test_parse_interface_counters_extracts_values(): void
     {
         $output = implode("\r\n", [
@@ -112,16 +127,86 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('Gi1/0/1', $ports[0]->interface);
         $this->assertEquals('connected', $ports[0]->status);
         $this->assertEquals('a-1000', $ports[0]->speed);
+        $this->assertEquals('Server-1', $ports[0]->description);
+        $this->assertEquals('a-full', $ports[0]->duplex);
+        $this->assertEquals('100', $ports[0]->vlan);
+        $this->assertEquals('access', $ports[0]->switchportMode);
 
         $this->assertEquals('Gi1/0/2', $ports[1]->interface);
         $this->assertEquals('notconnect', $ports[1]->status);
         $this->assertEquals('auto', $ports[1]->speed);
+        $this->assertEquals('Server-2', $ports[1]->description);
+        $this->assertEquals('auto', $ports[1]->duplex);
+        $this->assertEquals('100', $ports[1]->vlan);
+        $this->assertEquals('access', $ports[1]->switchportMode);
 
         $this->assertEquals('Gi1/0/3', $ports[2]->interface);
         $this->assertEquals('disabled', $ports[2]->status);
+        $this->assertEquals('', $ports[2]->description);
+        $this->assertEquals('auto', $ports[2]->duplex);
+        $this->assertEquals('1', $ports[2]->vlan);
+        $this->assertEquals('access', $ports[2]->switchportMode);
 
         $this->assertEquals('Gi1/0/4', $ports[3]->interface);
-        $this->assertEquals('trunk', $ports[3]->vlan);
+        $this->assertEquals('Uplink', $ports[3]->description);
+        $this->assertEquals('a-full', $ports[3]->duplex);
+        $this->assertEquals('', $ports[3]->vlan);
+        $this->assertEquals('trunk', $ports[3]->switchportMode);
+    }
+
+    public function test_parse_interface_status_table_extracts_long_description(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi0/24    Seat 24 - Row A    connected    400        a-full  a-1000 10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('Seat 24 - Row A', $ports[0]->description);
+    }
+
+    public function test_parse_interface_status_table_maps_trunk_vlan_to_switchport_mode(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi0/3     Uplink to Core     connected    trunk      a-full  a-1000 10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('trunk', $ports[0]->switchportMode);
+        $this->assertEquals('', $ports[0]->vlan);
+    }
+
+    public function test_parse_interface_status_table_maps_routed_vlan_to_switchport_mode(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi0/4     Management         connected    routed     a-full  a-1000 10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('routed', $ports[0]->switchportMode);
+        $this->assertEquals('', $ports[0]->vlan);
+    }
+
+    public function test_parse_interface_status_table_maps_access_vlan_to_switchport_mode(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi0/2     Server Room        connected    400        a-full  a-1000 10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('access', $ports[0]->switchportMode);
+        $this->assertEquals('400', $ports[0]->vlan);
     }
 
     public function test_parse_interface_status_table_empty_output(): void

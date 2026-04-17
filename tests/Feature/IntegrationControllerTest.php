@@ -175,7 +175,7 @@ class IntegrationControllerTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(2, 'rules');
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             return str_contains($request->url(), 'new-endpoint.local');
         });
     }
@@ -203,7 +203,7 @@ class IntegrationControllerTest extends TestCase
     public function test_opnsense_shaper_rules_handles_connection_timeout(): void
     {
         Http::fake([
-            '*/api/trafficshaper/settings/search_rules' => function () {
+            '*/api/trafficshaper/settings/search_rules' => function (): void {
                 throw new ConnectionException('Connection timed out');
             },
         ]);
@@ -447,7 +447,7 @@ class IntegrationControllerTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(1, 'zones');
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             return str_contains($request->url(), 'new-endpoint.local');
         });
     }
@@ -475,7 +475,7 @@ class IntegrationControllerTest extends TestCase
     public function test_opnsense_zones_handles_connection_timeout(): void
     {
         Http::fake([
-            '*/api/captiveportal/settings/get' => function () {
+            '*/api/captiveportal/settings/get' => function (): void {
                 throw new ConnectionException('Connection timed out');
             },
         ]);

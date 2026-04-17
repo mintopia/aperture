@@ -113,6 +113,7 @@ class AccountControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
+
         $user->refresh();
         $this->assertTrue(Hash::check('newpassword123', $user->password));
     }
@@ -128,6 +129,7 @@ class AccountControllerTest extends TestCase
         $response = $this->actingAs($user)->delete('/account/settings/password');
 
         $response->assertRedirect();
+
         $user->refresh();
         $this->assertNull($user->password);
     }
@@ -225,7 +227,7 @@ class AccountControllerTest extends TestCase
     public function test_passkey_destroy_returns_false_for_other_users_credential(): void
     {
         $user = User::factory()->create();
-        $otherUser = User::factory()->create();
+        User::factory()->create();
 
         // Even if we had a real credential ID from otherUser, user cannot delete it
         $response = $this->actingAs($user)->deleteJson('/passkeys/credential-belonging-to-other');
@@ -257,7 +259,7 @@ class AccountControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $user = User::factory()->create();
 
-        $this->actingAs($admin)->put("/admin/users/{$user->id}", [
+        $this->actingAs($admin)->put('/admin/users/'.$user->id, [
             'nickname' => $user->nickname,
             'email' => $user->email,
             'password' => 'adminset123',

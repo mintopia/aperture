@@ -60,7 +60,7 @@ class OpnSenseTesterTest extends TestCase
             'secret' => 'my-api-secret',
         ]);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $auth = $request->header('Authorization');
 
             return ! empty($auth)
@@ -74,7 +74,7 @@ class OpnSenseTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://my-opnsense.example.com']);
 
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'my-opnsense.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'my-opnsense.example.com'));
     }
 
     public function test_trims_trailing_slash_from_endpoint(): void
@@ -83,7 +83,7 @@ class OpnSenseTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://opnsense.local/']);
 
-        Http::assertSent(fn ($req) => str_contains(
+        Http::assertSent(fn ($req): bool => str_contains(
             $req->url(),
             'https://opnsense.local/api/diagnostics/system/system_time'
         ));

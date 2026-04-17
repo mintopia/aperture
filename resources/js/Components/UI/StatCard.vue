@@ -5,6 +5,7 @@ defineProps({
     color: { type: String, default: 'text' },
     hero: { type: Boolean, default: false },
     accentBorder: { type: String, default: '' },
+    labelDotColor: { type: String, default: '' },
 });
 
 const colorMap = {
@@ -14,6 +15,14 @@ const colorMap = {
     success: 'text-[var(--color-success)]',
     danger: 'text-[var(--color-danger)]',
     warning: 'text-[var(--color-warning)]',
+};
+
+const dotColorMap = {
+    primary: 'bg-[var(--color-primary)]',
+    accent: 'bg-[var(--color-accent)]',
+    success: 'bg-[var(--color-success)]',
+    danger: 'bg-[var(--color-danger)]',
+    warning: 'bg-[var(--color-warning)]',
 };
 </script>
 
@@ -27,8 +36,16 @@ const colorMap = {
         :style="accentBorder ? `border-left-color: var(--color-${accentBorder})` : ''"
         class="rounded-xl border border-[var(--color-border)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
     >
-        <p class="text-[11px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-            {{ label }}
+        <p
+            class="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
+        >
+            <span
+                v-if="labelDotColor"
+                :class="dotColorMap[labelDotColor] ?? dotColorMap.primary"
+                data-testid="stat-label-dot"
+                class="inline-block h-2 w-2 rounded-full"
+            />
+            <span>{{ label }}</span>
         </p>
         <p
             data-testid="stat-value"

@@ -20,6 +20,11 @@ class PortalSettingsController extends Controller
                 'portal_session_timeout' => Setting::get('portal.session_timeout', 86400),
                 'portal_redirect_url' => Setting::get('portal.redirect_url', ''),
             ],
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Settings'],
+                ['label' => 'Portal'],
+            ],
         ]);
     }
 

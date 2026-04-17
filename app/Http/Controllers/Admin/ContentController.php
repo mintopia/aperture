@@ -17,6 +17,10 @@ class ContentController extends Controller
 
         return Inertia::render('Admin/Content/Index', [
             'blocks' => $blocks,
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Content'],
+            ],
         ]);
     }
 

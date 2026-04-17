@@ -1,13 +1,15 @@
 <script setup>
 import { router } from '@inertiajs/vue3';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import SettingsNav from '@/Components/Admin/SettingsNav.vue';
 import StatusPill from '@/Components/UI/StatusPill.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
 
-defineProps({
+const props = defineProps({
     services: { type: Array, default: () => [] },
+    capabilityDescriptions: { type: Object, default: () => ({}) },
 });
 
 function healthClass(health) {
@@ -146,6 +148,27 @@ function visitService(service) {
                     </tbody>
                 </table>
             </div>
+
+            <template v-if="Object.keys(props.capabilityDescriptions).length > 0">
+                <SectionHeader title="Capabilities Reference" accent-line class="mt-8" />
+                <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="capabilities-reference">
+                    <div
+                        v-for="(description, name) in props.capabilityDescriptions"
+                        :key="name"
+                        :data-testid="`capability-desc-${name}`"
+                        class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+                    >
+                        <span
+                            class="inline-flex items-center rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--color-primary)]"
+                        >
+                            {{ name }}
+                        </span>
+                        <p class="mt-2 text-sm text-[var(--color-text-secondary)]">
+                            {{ description }}
+                        </p>
+                    </div>
+                </div>
+            </template>
         </div>
     </SettingsNav>
 </template>

@@ -19,10 +19,15 @@ class IosOutputParser
         $status = '';
         $speed = '';
         $duplex = '';
+        $description = '';
 
         if (preg_match('/^(\S+) is (.+?), line protocol/', $output, $matches)) {
             $interface = $matches[1];
             $status = $matches[2];
+        }
+
+        if (preg_match('/^\s+Description:\s*(.+)$/m', $output, $matches)) {
+            $description = trim($matches[1]);
         }
 
         if (preg_match('/(\S*-?[Dd]uplex), ([^,\s]+)/', $output, $matches)) {
@@ -36,6 +41,7 @@ class IosOutputParser
             speed: $speed,
             duplex: $duplex,
             vlan: '',
+            description: $description,
         );
     }
 
@@ -88,12 +94,18 @@ class IosOutputParser
                 continue;
             }
 
-            if (preg_match('/^(\S+)\s+(.{0,18}?)\s+(connected|notconnect|disabled|err-disabled|monitoring)\s+(\S+)\s+(\S+)\s+(\S+)/', $line, $matches)) {
+            if (preg_match('/^(?P<interface>\S+)\s+(?P<description>.*?)\s{2,}(?P<status>connected|notconnect|disabled|err-disabled|monitoring)\s+(?P<vlan>\S+)\s+(?P<duplex>\S+)\s+(?P<speed>\S+)/', $line, $matches)) {
+                $switchportMode = in_array($matches['vlan'], ['trunk', 'routed'], true) ? $matches['vlan'] : 'access';
+                $vlan = $switchportMode === 'access' ? $matches['vlan'] : '';
+
                 $ports[] = new PortStatus(
-                    interface: $matches[1],
-                    status: $matches[3],
-                    speed: $matches[6],
-                    vlan: $matches[4],
+                    interface: $matches['interface'],
+                    status: $matches['status'],
+                    speed: $matches['speed'],
+                    duplex: $matches['duplex'],
+                    vlan: $vlan,
+                    description: trim($matches['description']),
+                    switchportMode: $switchportMode,
                 );
             }
         }

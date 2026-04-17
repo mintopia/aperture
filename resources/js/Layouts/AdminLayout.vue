@@ -1,10 +1,12 @@
 <script setup>
-import { Link, usePage } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import AppLogo from '@/Components/AppLogo.vue';
+import Breadcrumbs from '@/Components/Admin/Breadcrumbs.vue';
 import ThemeToggle from '@/Components/ThemeToggle.vue';
 import Sidebar from '@/Components/Admin/Sidebar.vue';
 import GlobalSearch from '@/Components/Admin/GlobalSearch.vue';
 import UserMenu from '@/Components/UserMenu.vue';
+import FlashMessages from '@/Components/UI/FlashMessages.vue';
 
 const page = usePage();
 </script>
@@ -18,7 +20,7 @@ const page = usePage();
         >
             <div class="flex items-center gap-4">
                 <AppLogo />
-                <slot name="breadcrumbs" />
+                <Breadcrumbs />
             </div>
 
             <div class="flex items-center gap-3">
@@ -30,6 +32,8 @@ const page = usePage();
                 </div>
             </div>
         </header>
+
+        <FlashMessages />
 
         <!-- Sidebar + Content -->
         <div class="flex flex-1">

@@ -16,6 +16,7 @@ use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
+use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NtopNgService;
 use App\Services\PiHole\PiHoleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -135,5 +136,10 @@ class AppServiceProviderTest extends TestCase
 
         $instance = $this->app->make(NetworkSwitchInterface::class);
         $this->assertInstanceOf(CiscoSwitchAdapter::class, $instance);
+    }
+
+    public function test_registers_switch_service_factory_singleton(): void
+    {
+        $this->assertInstanceOf(SwitchServiceFactory::class, $this->app->make(SwitchServiceFactory::class));
     }
 }

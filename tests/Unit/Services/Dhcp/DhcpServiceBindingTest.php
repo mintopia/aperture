@@ -78,7 +78,7 @@ class DhcpServiceBindingTest extends TestCase
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
         $this->assertEquals('/api/dhcpv4/leases/search_lease', $this->getProtectedProperty($service, 'leasesPath'));
         $this->assertEquals('', $this->getProtectedProperty($service, 'ipv4RangesPath'));
-        $this->assertEquals('', $this->getProtectedProperty($service, 'ipv6RangesPath'));
+        $this->assertEquals('/api/dhcpv6/leases/search_lease', $this->getProtectedProperty($service, 'ipv6RangesPath'));
     }
 
     public function test_kea_binding_uses_correct_api_paths(): void
@@ -106,7 +106,7 @@ class DhcpServiceBindingTest extends TestCase
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
         $this->assertEquals('/api/dnsmasq/leases/search', $this->getProtectedProperty($service, 'leasesPath'));
         $this->assertEquals('/api/dnsmasq/settings/search_range', $this->getProtectedProperty($service, 'ipv4RangesPath'));
-        $this->assertEquals('', $this->getProtectedProperty($service, 'ipv6RangesPath'));
+        $this->assertEquals('/api/dnsmasq/settings/search_range', $this->getProtectedProperty($service, 'ipv6RangesPath'));
     }
 
     public function test_dnsmasq_binding_passes_correct_field_maps(): void
@@ -122,13 +122,14 @@ class DhcpServiceBindingTest extends TestCase
         /** @var array<string, string> $leaseMap */
         $leaseMap = $this->getProtectedProperty($service, 'leaseFieldMap');
         $this->assertEquals('hwaddr', $leaseMap['mac']);
-        $this->assertEquals('expires', $leaseMap['expires']);
+        $this->assertEquals('expire', $leaseMap['expires']);
 
         /** @var array<string, string> $rangeMap */
         $rangeMap = $this->getProtectedProperty($service, 'rangeFieldMap');
-        $this->assertEquals('from', $rangeMap['range_from']);
-        $this->assertEquals('to', $rangeMap['range_to']);
-        $this->assertEquals('domain', $rangeMap['description']);
+        $this->assertEquals('start_addr', $rangeMap['range_from']);
+        $this->assertEquals('end_addr', $rangeMap['range_to']);
+        $this->assertEquals('%set_tag', $rangeMap['description']);
+        $this->assertEquals('subnet_mask', $rangeMap['subnet_mask']);
     }
 
     public function test_kea_binding_passes_correct_field_maps(): void

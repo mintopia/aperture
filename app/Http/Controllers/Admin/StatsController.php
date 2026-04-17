@@ -14,6 +14,10 @@ class StatsController extends Controller
     {
         return Inertia::render('Admin/Stats/Index', [
             'aggregateStats' => $trafficMonitor->getAggregateStats(),
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Stats'],
+            ],
         ]);
     }
 
@@ -21,6 +25,11 @@ class StatsController extends Controller
     {
         return Inertia::render('Admin/Stats/Bandwidth', [
             'topTalkers' => $trafficMonitor->getTopTalkers(),
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Stats', 'href' => route('admin.stats.index')],
+                ['label' => 'Bandwidth'],
+            ],
         ]);
     }
 

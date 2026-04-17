@@ -59,8 +59,8 @@ class OpnSenseApiService
             }
 
             return ['rules' => $rules];
-        } catch (Throwable $e) {
-            return ['rules' => [], 'error' => 'Failed to fetch shaper rules: '.$e->getMessage()];
+        } catch (Throwable $throwable) {
+            return ['rules' => [], 'error' => 'Failed to fetch shaper rules: '.$throwable->getMessage()];
         }
     }
 
@@ -103,11 +103,11 @@ class OpnSenseApiService
                 ];
             }
 
-            usort($zones, fn ($a, $b) => (int) $a['id'] <=> (int) $b['id']);
+            usort($zones, fn (array $a, array $b): int => (int) $a['id'] <=> (int) $b['id']);
 
             return ['zones' => $zones];
-        } catch (Throwable $e) {
-            return ['zones' => [], 'error' => 'Failed to fetch zones: '.$e->getMessage()];
+        } catch (Throwable $throwable) {
+            return ['zones' => [], 'error' => 'Failed to fetch zones: '.$throwable->getMessage()];
         }
     }
 

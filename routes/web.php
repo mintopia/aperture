@@ -8,11 +8,11 @@ use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\IpAddressController;
 use App\Http\Controllers\Admin\PortalSettingsController;
-use App\Http\Controllers\Admin\PortController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StatsController as AdminStatsController;
-use App\Http\Controllers\Admin\SwitchController;
+use App\Http\Controllers\Admin\SwitchManagementController;
+use App\Http\Controllers\Admin\SwitchPortController;
 use App\Http\Controllers\Admin\TestConnectionController;
 use App\Http\Controllers\Admin\ThemeSettingsController;
 use App\Http\Controllers\Admin\UserController;
@@ -89,12 +89,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('ips/{ip}/internet', [IpAddressController::class, 'internet'])->name('ips.internet');
         Route::post('ips/{ip}/limit', [IpAddressController::class, 'limit'])->name('ips.limit');
 
-        // Ports
-        Route::get('/ports', [PortController::class, 'index'])->name('ports.index');
-        Route::get('/ports/{portId}', [PortController::class, 'show'])->name('ports.show');
-        Route::post('/ports/{portId}/shutdown', [PortController::class, 'shutdown'])->name('ports.shutdown');
-        Route::post('/ports/{portId}/enable', [PortController::class, 'enable'])->name('ports.enable');
-
         // DHCP
         Route::get('/dhcp', [DhcpController::class, 'index'])->name('dhcp.index');
         Route::get('/dhcp/leases', [DhcpController::class, 'leases'])->name('dhcp.leases');
@@ -108,6 +102,24 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('content', ContentController::class)->except(['create', 'edit']);
         Route::post('/content/reorder', [ContentController::class, 'reorder'])->name('content.reorder');
 
+        // Switch Management (new top-level section)
+        Route::get('/switches', [SwitchManagementController::class, 'index'])->name('switches.index');
+        Route::get('/switches/create', [SwitchManagementController::class, 'create'])->name('switches.create');
+        Route::post('/switches', [SwitchManagementController::class, 'store'])->name('switches.store');
+        Route::get('/switches/{switchConfig}', [SwitchManagementController::class, 'show'])->name('switches.show');
+        Route::get('/switches/{switchConfig}/edit', [SwitchManagementController::class, 'edit'])->name('switches.edit');
+        Route::put('/switches/{switchConfig}', [SwitchManagementController::class, 'update'])->name('switches.update');
+        Route::delete('/switches/{switchConfig}', [SwitchManagementController::class, 'destroy'])->name('switches.destroy');
+        Route::post('/switches/{switchConfig}/sync', [SwitchManagementController::class, 'sync'])->name('switches.sync');
+        Route::post('/switches/{switchConfig}/test', [SwitchManagementController::class, 'testConnection'])->name('switches.test-connection');
+        Route::get('/switches/{switchConfig}/config', [SwitchManagementController::class, 'config'])->name('switches.config');
+
+        // Switch Port Management
+        Route::get('/switches/{switchConfig}/ports/{portId}', [SwitchPortController::class, 'show'])->name('switches.ports.show')->where('portId', '.+');
+        Route::post('/switches/{switchConfig}/ports/{portId}/shutdown', [SwitchPortController::class, 'shutdown'])->name('switches.ports.shutdown')->where('portId', '.+');
+        Route::post('/switches/{switchConfig}/ports/{portId}/enable', [SwitchPortController::class, 'enable'])->name('switches.ports.enable')->where('portId', '.+');
+        Route::post('/switches/{switchConfig}/ports/{portId}/bounce', [SwitchPortController::class, 'bounce'])->name('switches.ports.bounce')->where('portId', '.+');
+
         // Settings
         Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
         Route::get('/settings/theme', [ThemeSettingsController::class, 'show'])->name('settings.theme');
@@ -116,11 +128,6 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/settings/event', [EventSettingsController::class, 'update'])->name('settings.event.update');
         Route::get('/settings/portal', [PortalSettingsController::class, 'show'])->name('settings.portal');
         Route::put('/settings/portal', [PortalSettingsController::class, 'update'])->name('settings.portal.update');
-
-        Route::get('/settings/switches', [SwitchController::class, 'index'])->name('settings.switches');
-        Route::post('/settings/switches', [SwitchController::class, 'store'])->name('settings.switches.store');
-        Route::put('/settings/switches/{switchConfig}', [SwitchController::class, 'update'])->name('settings.switches.update');
-        Route::delete('/settings/switches/{switchConfig}', [SwitchController::class, 'destroy'])->name('settings.switches.destroy');
 
         Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
         Route::post('/settings/test/{service}', [TestConnectionController::class, 'test'])->name('settings.test');

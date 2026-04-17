@@ -6,7 +6,7 @@ import FormField from '@/Components/UI/FormField.vue';
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    user: Object,
+    user: { type: Object, default: () => null },
 });
 
 const form = useForm({

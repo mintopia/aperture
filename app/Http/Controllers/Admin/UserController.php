@@ -39,6 +39,10 @@ class UserController extends Controller
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
             'filters' => $filters,
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Users'],
+            ],
         ]);
     }
 
@@ -56,6 +60,11 @@ class UserController extends Controller
             'ips' => $ips,
             'downloaded' => $downloaded,
             'uploaded' => $uploaded,
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Users', 'href' => route('admin.users.index')],
+                ['label' => $user->nickname],
+            ],
         ]);
     }
 
@@ -70,6 +79,12 @@ class UserController extends Controller
                 'has_password' => $user->password !== null,
                 'roles' => $user->roles->pluck('code'),
                 'avatar_url' => $user->avatar_url,
+            ],
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Users', 'href' => route('admin.users.index')],
+                ['label' => $user->nickname, 'href' => route('admin.users.show', $user)],
+                ['label' => 'Edit'],
             ],
         ]);
     }

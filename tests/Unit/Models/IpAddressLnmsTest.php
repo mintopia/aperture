@@ -4,8 +4,11 @@ namespace Tests\Unit\Models;
 
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Models\SwitchConfig;
+use App\Models\SwitchPort;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -119,9 +122,21 @@ class IpAddressLnmsTest extends TestCase
             new PortDetail(hostname: 'sw', interface: 'GigabitEthernet0/1', status: 'up', adminStatus: 'up', speed: 1000),
         );
 
-        $switch = Mockery::mock(NetworkSwitchInterface::class);
-        $switch->shouldReceive('shutdownPort')->with('GigabitEthernet0/1')->once()->andReturnTrue();
-        $this->app->instance(NetworkSwitchInterface::class, $switch);
+        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'sw']);
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switchConfig->id,
+            'port_name' => 'GigabitEthernet0/1',
+        ]);
+
+        $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
+        $adapterMock->shouldReceive('shutdownPort')->with('GigabitEthernet0/1')->once()->andReturnTrue();
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switchConfig->id))
+            ->once()
+            ->andReturn($adapterMock);
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $ip->shutPort(false);
@@ -134,9 +149,21 @@ class IpAddressLnmsTest extends TestCase
             new PortDetail(hostname: 'sw', interface: 'GigabitEthernet0/1', status: 'up', adminStatus: 'up', speed: 1000),
         );
 
-        $switch = Mockery::mock(NetworkSwitchInterface::class);
-        $switch->shouldReceive('enablePort')->with('GigabitEthernet0/1')->once()->andReturnTrue();
-        $this->app->instance(NetworkSwitchInterface::class, $switch);
+        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'sw']);
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switchConfig->id,
+            'port_name' => 'GigabitEthernet0/1',
+        ]);
+
+        $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
+        $adapterMock->shouldReceive('enablePort')->with('GigabitEthernet0/1')->once()->andReturnTrue();
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switchConfig->id))
+            ->once()
+            ->andReturn($adapterMock);
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $ip->unshutPort(false);

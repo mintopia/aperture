@@ -17,7 +17,7 @@ class OpnSenseDhcpService implements DhcpInterface
 {
     /**
      * @param  array{ip: string, mac: string, hostname: string, expires: string, status: string}  $leaseFieldMap
-     * @param  array{interface: string, subnet: string, range_from: string, range_to: string, gateway: string, description: string, prefix: string}  $rangeFieldMap
+     * @param  array{interface: string, subnet: string, range_from: string, range_to: string, gateway: string, description: string, prefix: string, subnet_mask?: string, pools?: string}  $rangeFieldMap
      */
     public function __construct(
         protected Client $client,
@@ -41,6 +41,7 @@ class OpnSenseDhcpService implements DhcpInterface
             'description' => 'description',
             'prefix' => 'prefix',
         ],
+        protected bool $leasesUsePost = false,
     ) {}
 
     public function getPoolStatus(): DhcpPoolStatus
@@ -104,7 +105,7 @@ class OpnSenseDhcpService implements DhcpInterface
             }
         }
 
-        if ($this->ipv6RangesPath !== '') {
+        if ($this->ipv6RangesPath !== '' && $this->ipv6RangesPath !== $this->ipv4RangesPath) {
             try {
                 $response = $this->client->get($this->ipv6RangesPath);
 
@@ -138,6 +139,32 @@ class OpnSenseDhcpService implements DhcpInterface
         $rangeTo = isset($row[$this->rangeFieldMap['range_to']]) ? (string) $row[$this->rangeFieldMap['range_to']] : null;
         $prefix = isset($row[$this->rangeFieldMap['prefix']]) ? (string) $row[$this->rangeFieldMap['prefix']] : null;
 
+        // Handle Kea pools format: "START - END"
+        if (isset($this->rangeFieldMap['pools']) && isset($row[$this->rangeFieldMap['pools']])) {
+            $pools = (string) $row[$this->rangeFieldMap['pools']];
+            if (preg_match('/^\s*([^\s-]+)\s*-\s*([^\s-]+)\s*$/', $pools, $matches)) {
+                $rangeFrom = $rangeFrom ?: $matches[1];
+                $rangeTo = $rangeTo ?: $matches[2];
+            }
+        }
+
+        // Calculate subnet from start_addr and subnet_mask (dnsmasq IPv4)
+        if ($subnet === null && $rangeFrom !== null && isset($this->rangeFieldMap['subnet_mask']) && isset($row[$this->rangeFieldMap['subnet_mask']])) {
+            $subnetMask = (string) $row[$this->rangeFieldMap['subnet_mask']];
+            if ($subnetMask !== '') {
+                $subnet = $this->calculateSubnet($rangeFrom, $subnetMask);
+            }
+        }
+
+        // Handle dnsmasq IPv6 prefix_len: construct prefix from start address and prefix length
+        if ($prefix !== null && $rangeFrom !== null && str_contains($rangeFrom, ':')) {
+            // IPv6: construct prefix notation like "fd00::1/64" from start_addr and prefix_len
+            $prefixLen = $prefix;
+            if (is_numeric($prefixLen)) {
+                $prefix = $rangeFrom.'/'.$prefixLen;
+            }
+        }
+
         return new DhcpRange(
             interface: (string) ($row[$this->rangeFieldMap['interface']] ?? ''),
             type: $this->detectIpVersion($subnet, $rangeFrom, $prefix),
@@ -148,6 +175,36 @@ class OpnSenseDhcpService implements DhcpInterface
             gateway: isset($row[$this->rangeFieldMap['gateway']]) ? (string) $row[$this->rangeFieldMap['gateway']] : null,
             description: isset($row[$this->rangeFieldMap['description']]) ? (string) $row[$this->rangeFieldMap['description']] : null,
         );
+    }
+
+    private function calculateSubnet(string $ipAddress, string $subnetMask): ?string
+    {
+        $ip = ip2long($ipAddress);
+        $mask = ip2long($subnetMask);
+
+        if ($ip === false || $mask === false) {
+            return null;
+        }
+
+        $network = $ip & $mask;
+        $cidr = $this->subnetMaskToCidr($subnetMask);
+
+        return long2ip($network).($cidr !== null ? '/'.$cidr : '');
+    }
+
+    private function subnetMaskToCidr(string $subnetMask): ?int
+    {
+        $long = ip2long($subnetMask);
+        if ($long === false) {
+            return null;
+        }
+
+        $base = ip2long('255.255.255.255');
+        if ($base === false) {
+            return null;
+        }
+
+        return (int) (32 - log(($long ^ $base) + 1, 2));
     }
 
     private function detectIpVersion(?string $subnet, ?string $rangeFrom, ?string $prefix): string
@@ -278,7 +335,13 @@ class OpnSenseDhcpService implements DhcpInterface
      */
     protected function fetchLeases(): Collection
     {
-        $response = $this->client->get($this->leasesPath);
+        if ($this->leasesUsePost) {
+            $response = $this->client->post($this->leasesPath, [
+                'json' => ['current' => 1, 'rowCount' => 100],
+            ]);
+        } else {
+            $response = $this->client->get($this->leasesPath);
+        }
 
         /** @var array{rows?: list<array<string, mixed>>} $data */
         $data = json_decode($response->getBody()->getContents(), true);

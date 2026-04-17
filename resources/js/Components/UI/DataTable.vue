@@ -10,6 +10,7 @@ defineProps({
     rows: { type: Array, required: true },
     clickable: { type: Boolean, default: false },
     rowHref: { type: Function, default: null },
+    rowClass: { type: Function, default: null },
     emptyMessage: { type: String, default: 'No records found.' },
 });
 </script>
@@ -23,7 +24,7 @@ defineProps({
                         v-for="col in columns"
                         :key="col.key"
                         :class="[col.class, col.srOnly ? 'sr-only' : '']"
-                        class="px-4 py-2.5 text-left text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
+                        class="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
                     >
                         {{ col.label }}
                     </th>
@@ -46,6 +47,7 @@ defineProps({
                         clickable
                             ? 'cursor-pointer hover:border-l-2 hover:border-l-[var(--color-primary)] hover:bg-[var(--color-surface-hover)]'
                             : '',
+                        rowClass ? rowClass(row) : '',
                     ]"
                     @click="clickable && rowHref ? router.visit(rowHref(row)) : null"
                     @keydown.enter="clickable && rowHref ? router.visit(rowHref(row)) : null"

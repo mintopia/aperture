@@ -497,7 +497,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-borealis.test'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'new-borealis.test'));
     }
 
     public function test_borealis_test_sends_authenticated_post(): void
@@ -521,7 +521,7 @@ class TestConnectionControllerTest extends TestCase
 
         $this->actingAs($admin)->postJson('/admin/settings/test/borealis');
 
-        Http::assertSent(function ($req) {
+        Http::assertSent(function ($req): bool {
             return $req->method() === 'POST'
                 && str_contains($req->url(), '/oauth2/device')
                 && $req->hasHeader('Authorization');
@@ -559,7 +559,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'new.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'new.example.com'));
     }
 
     public function test_librenms_test_uses_request_values_over_db(): void
@@ -581,7 +581,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-librenms.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'new-librenms.example.com'));
     }
 
     public function test_ntopng_test_uses_request_values_over_db(): void
@@ -601,7 +601,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-ntopng.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'new-ntopng.example.com'));
     }
 
     public function test_pihole_test_uses_request_values_over_db(): void
@@ -624,7 +624,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-pihole.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'new-pihole.example.com'));
     }
 
     public function test_pihole_test_authenticates_via_api_auth(): void
@@ -644,7 +644,7 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), '/api/auth') && $req->method() === 'POST');
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), '/api/auth') && $req->method() === 'POST');
     }
 
     public function test_opnsense_test_falls_back_to_db_when_no_request_values(): void
@@ -664,6 +664,6 @@ class TestConnectionControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'db-opnsense.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'db-opnsense.example.com'));
     }
 }

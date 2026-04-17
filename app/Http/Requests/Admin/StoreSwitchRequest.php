@@ -31,6 +31,7 @@ class StoreSwitchRequest extends FormRequest
             'username' => 'required|string|max:255',
             'password' => 'required|string|max:500',
             'enable_password' => 'nullable|string|max:500',
+            'enabled' => 'sometimes|boolean',
             'port' => 'integer|min:1|max:65535',
             'timeout' => 'integer|min:1|max:300',
         ];

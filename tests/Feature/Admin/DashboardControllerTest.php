@@ -5,9 +5,13 @@ namespace Tests\Feature\Admin;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Dhcp\NullDhcpService;
+use App\Services\Interfaces\DhcpInterface;
+use App\Services\ValueObjects\DhcpRange;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class DashboardControllerTest extends TestCase
@@ -38,8 +42,14 @@ class DashboardControllerTest extends TestCase
             ->component('Admin/Dashboard')
             ->has('totalUsers')
             ->has('onlineUsers')
-            ->has('totalIps')
-            ->has('allowedIps')
+            ->has('activeIps')
+            ->has('blockedUsers')
+            ->missing('dhcpPools')
+            ->missing('recentUsers')
+            ->loadDeferredProps(fn ($reload) => $reload
+                ->has('dhcpPools')
+                ->has('recentUsers')
+            )
         );
     }
 
@@ -66,6 +76,7 @@ class DashboardControllerTest extends TestCase
         $user = $this->createAdminUser();
 
         User::factory()->count(3)->create();
+        User::factory()->blocked()->create();
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
@@ -76,9 +87,68 @@ class DashboardControllerTest extends TestCase
         $response = $this->actingAs($user)->get('/admin');
 
         $response->assertInertia(fn ($page) => $page
-            ->where('totalUsers', 4)
-            ->where('totalIps', 1)
-            ->where('allowedIps', 1)
+            ->where('totalUsers', 5)
+            ->where('activeIps', 1)
+            ->where('blockedUsers', 1)
+        );
+    }
+
+    public function test_dashboard_returns_deferred_dhcp_pools(): void
+    {
+        Queue::fake();
+        $user = $this->createAdminUser();
+
+        $this->app->instance(DhcpInterface::class, new class extends NullDhcpService
+        {
+            /** @return Collection<int, DhcpRange> */
+            public function getRanges(): Collection
+            {
+                return collect([
+                    new DhcpRange(
+                        interface: 'lan',
+                        type: 'ipv4',
+                        subnet: '10.0.0.0/24',
+                        rangeFrom: '10.0.0.10',
+                        rangeTo: '10.0.0.200',
+                        prefix: null,
+                        gateway: '10.0.0.1',
+                        description: 'Main Pool',
+                        totalAddresses: 190,
+                        usedAddresses: 25,
+                        utilisation: 0.1316,
+                    ),
+                ]);
+            }
+        });
+
+        $response = $this->actingAs($user)->get('/admin');
+
+        $response->assertInertia(fn ($page) => $page
+            ->missing('dhcpPools')
+            ->loadDeferredProps(fn ($reload) => $reload
+                ->has('dhcpPools', 1)
+                ->where('dhcpPools.0.name', 'Main Pool')
+                ->where('dhcpPools.0.used', 25)
+                ->where('dhcpPools.0.total', 190)
+                ->where('dhcpPools.0.utilisation', 0.1316)
+            )
+        );
+    }
+
+    public function test_dashboard_returns_deferred_recent_users(): void
+    {
+        Queue::fake();
+        $user = $this->createAdminUser();
+        User::factory()->count(3)->create();
+
+        $response = $this->actingAs($user)->get('/admin');
+
+        $response->assertInertia(fn ($page) => $page
+            ->missing('recentUsers')
+            ->loadDeferredProps(fn ($reload) => $reload
+                ->has('recentUsers')
+                ->has('recentUsers.data', 4)
+            )
         );
     }
 }

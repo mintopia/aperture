@@ -45,22 +45,26 @@ services:
     healthcheck:
       disable: true
 
-  ssh-daemon:
+  ssh-proxy:
     build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
+      context: ./ssh-proxy
+      dockerfile: Dockerfile
     restart: unless-stopped
-    entrypoint: [ "php", "artisan", "aperture:ssh-proxy" ]
-    env_file: .env
-    volumes:
-      - ./:/app
-    depends_on:
-      - db
-      - redis
+    environment:
+      - SSH_PROXY_API_KEY=${APERTURE_SSH_PROXY_API_KEY}
+      - SSH_PROXY_LISTEN_ADDR=0.0.0.0:8022
+      - SSH_PROXY_IDLE_TIMEOUT=600
+      - SSH_PROXY_SWEEP_INTERVAL=60
+      - SSH_PROXY_COMMAND_TIMEOUT=30
+      - SSH_PROXY_READ_TIMEOUT=5
+      - SSH_PROXY_CONNECT_TIMEOUT=10
     ports:
       - "8022:8022"
     healthcheck:
-      disable: true
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8022/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   scheduler:
     build:

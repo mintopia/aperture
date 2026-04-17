@@ -45,6 +45,7 @@ class OpnSenseDstPortBugTest extends TestCase
         ]);
         $handlerStack = HandlerStack::create($mock);
         $handlerStack->push(Middleware::history($history));
+
         $client = new Client(['handler' => $handlerStack]);
 
         $service = new OpnSense(

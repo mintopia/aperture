@@ -77,6 +77,85 @@ class MacAddressResolverTest extends TestCase
         $this->assertSame('AA:BB:CC:DD:EE:FF', $result);
     }
 
+    public function test_resolve_mac_to_ips_returns_matching_leases(): void
+    {
+        $dhcp = Mockery::mock(DhcpInterface::class);
+        $dhcp->shouldReceive('getLeases')
+            ->once()
+            ->andReturn(collect([
+                new DhcpLease(ip: '10.0.0.10', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'host1', expires: ''),
+                new DhcpLease(ip: '10.0.0.20', mac: '11:22:33:44:55:66', hostname: 'host2', expires: ''),
+            ]));
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+
+        $resolver = new MacAddressResolver($dhcp, $inventory);
+        $result = $resolver->resolveMacToIps('aa:bb:cc:dd:ee:ff');
+
+        $this->assertCount(1, $result);
+        $this->assertSame('10.0.0.10', $result[0]['ip']);
+        $this->assertSame('host1', $result[0]['hostname']);
+    }
+
+    public function test_resolve_mac_to_ips_returns_empty_array_when_no_match(): void
+    {
+        $dhcp = Mockery::mock(DhcpInterface::class);
+        $dhcp->shouldReceive('getLeases')
+            ->once()
+            ->andReturn(collect([
+                new DhcpLease(ip: '10.0.0.10', mac: '11:22:33:44:55:66', hostname: 'other', expires: ''),
+            ]));
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+
+        $resolver = new MacAddressResolver($dhcp, $inventory);
+        $result = $resolver->resolveMacToIps('aa:bb:cc:dd:ee:ff');
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_resolve_mac_to_ips_returns_multiple_ips_for_same_mac(): void
+    {
+        $dhcp = Mockery::mock(DhcpInterface::class);
+        $dhcp->shouldReceive('getLeases')
+            ->once()
+            ->andReturn(collect([
+                new DhcpLease(ip: '10.0.0.10', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'host1', expires: ''),
+                new DhcpLease(ip: '10.0.0.20', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'host2', expires: ''),
+                new DhcpLease(ip: '10.0.0.30', mac: '11:22:33:44:55:66', hostname: 'other', expires: ''),
+            ]));
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+
+        $resolver = new MacAddressResolver($dhcp, $inventory);
+        $result = $resolver->resolveMacToIps('aa:bb:cc:dd:ee:ff');
+
+        $this->assertCount(2, $result);
+        $this->assertSame('10.0.0.10', $result[0]['ip']);
+        $this->assertSame('host1', $result[0]['hostname']);
+        $this->assertSame('10.0.0.20', $result[1]['ip']);
+        $this->assertSame('host2', $result[1]['hostname']);
+    }
+
+    public function test_resolve_mac_to_ips_normalizes_mac_format(): void
+    {
+        $dhcp = Mockery::mock(DhcpInterface::class);
+        $dhcp->shouldReceive('getLeases')
+            ->once()
+            ->andReturn(collect([
+                new DhcpLease(ip: '10.0.0.10', mac: 'aabb.ccdd.eeff', hostname: 'cisco-host', expires: ''),
+            ]));
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+
+        $resolver = new MacAddressResolver($dhcp, $inventory);
+        $result = $resolver->resolveMacToIps('AA:BB:CC:DD:EE:FF');
+
+        $this->assertCount(1, $result);
+        $this->assertSame('10.0.0.10', $result[0]['ip']);
+        $this->assertSame('cisco-host', $result[0]['hostname']);
+    }
+
     public function test_container_binding_resolves_correctly(): void
     {
         $this->app->instance(DhcpInterface::class, Mockery::mock(DhcpInterface::class));

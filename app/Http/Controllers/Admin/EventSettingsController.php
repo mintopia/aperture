@@ -20,6 +20,11 @@ class EventSettingsController extends Controller
                 'event_name' => Setting::get('event.name', ''),
                 'event_description' => Setting::get('event.description', ''),
             ],
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Settings'],
+                ['label' => 'Event'],
+            ],
         ]);
     }
 

@@ -84,7 +84,7 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
 
         // Should also include all hardcoded fallback keys
         foreach (IntegrationConfig::ENCRYPTED_KEYS as $fallbackKey) {
-            $this->assertContains($fallbackKey, $keys, "Fallback key '{$fallbackKey}' should be present");
+            $this->assertContains($fallbackKey, $keys, sprintf("Fallback key '%s' should be present", $fallbackKey));
         }
     }
 
@@ -205,12 +205,13 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
                 }
             }
         }
+
         $passwordFieldKeys = array_values(array_unique($passwordFieldKeys));
 
         $encryptedKeys = IntegrationConfig::encryptedKeys();
 
         foreach ($passwordFieldKeys as $key) {
-            $this->assertContains($key, $encryptedKeys, "Password field '{$key}' from config should be in encryptedKeys()");
+            $this->assertContains($key, $encryptedKeys, sprintf("Password field '%s' from config should be in encryptedKeys()", $key));
         }
     }
 }

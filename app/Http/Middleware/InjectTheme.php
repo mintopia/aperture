@@ -17,9 +17,15 @@ class InjectTheme
     {
         $themeName = Setting::get('theme.name', 'cool-neon');
         $themeMode = Setting::get('theme.mode', 'dark');
+        $siteTitle = Setting::get('theme.site_title', 'Aperture');
+        $customColors = Setting::get('theme.custom_colors');
+        $customCss = Setting::get('theme.custom_css');
 
         View::share('themeName', $themeName);
         View::share('themeMode', $themeMode);
+        View::share('siteTitle', $siteTitle);
+        View::share('customColors', $customColors);
+        View::share('customCss', $customCss);
 
         return $next($request);
     }

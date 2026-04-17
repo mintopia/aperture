@@ -15,27 +15,43 @@ class DhcpController extends Controller
     public function index(DhcpInterface $dhcp): Response
     {
         return Inertia::render('Admin/Dhcp/Index', [
-            'pool' => $dhcp->getPoolStatus(),
             'ranges' => $dhcp->getRanges()->map(fn (DhcpRange $range): array => [
-                'interface' => $range->interface,
-                'type' => $range->type,
-                'subnet' => $range->subnet,
-                'range_from' => $range->rangeFrom,
-                'range_to' => $range->rangeTo,
-                'prefix' => $range->prefix,
-                'gateway' => $range->gateway,
-                'description' => $range->description,
-                'total_addresses' => $range->totalAddresses,
-                'used_addresses' => $range->usedAddresses,
-                'utilisation' => $range->utilisation,
+                'name' => $range->interface ?: ($range->description ?: 'Default'),
+                'ip_version' => $range->type === 'ipv4' ? 'IPv4' : 'IPv6',
+                'network' => $range->subnet ?: $range->prefix,
+                'start' => $range->rangeFrom,
+                'end' => $range->rangeTo,
+                'used' => $range->usedAddresses ?? 0,
+                'total' => $range->totalAddresses ?? 0,
+                'percentage' => $range->utilisation !== null ? round($range->utilisation * 100, 1) : 0,
             ]),
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'DHCP'],
+            ],
         ]);
     }
 
     public function leases(DhcpInterface $dhcp): Response
     {
         return Inertia::render('Admin/Dhcp/Leases', [
-            'leases' => $dhcp->getLeases(),
+            'leases' => $dhcp->getLeases()->map(fn ($lease): array => [
+                'ip' => $lease->ip,
+                'mac' => $lease->mac,
+                'hostname' => $lease->hostname,
+                'expires' => $lease->expires,
+            ])->values()->all(),
+            'ranges' => $dhcp->getRanges()->map(fn (DhcpRange $range): array => [
+                'name' => $range->interface ?: ($range->description ?: 'Default'),
+                'network' => $range->subnet ?: $range->prefix,
+                'start' => $range->rangeFrom,
+                'end' => $range->rangeTo,
+            ]),
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'DHCP', 'href' => route('admin.dhcp.index')],
+                ['label' => 'Leases'],
+            ],
         ]);
     }
 }

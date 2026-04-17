@@ -31,6 +31,21 @@ class MacAddressResolver implements MacAddressResolverInterface
         return null;
     }
 
+    /** @return array<int, array{ip: string, hostname: string}> */
+    public function resolveMacToIps(string $macAddress): array
+    {
+        $normalized = $this->normalizeMac($macAddress);
+
+        return $this->dhcp->getLeases()
+            ->filter(fn (DhcpLease $lease) => $this->normalizeMac($lease->mac) === $normalized)
+            ->map(fn (DhcpLease $lease) => [
+                'ip' => $lease->ip,
+                'hostname' => $lease->hostname,
+            ])
+            ->values()
+            ->all();
+    }
+
     private function normalizeMac(string $mac): string
     {
         $hex = strtoupper(preg_replace('/[^0-9A-Fa-f]/', '', $mac) ?? '');

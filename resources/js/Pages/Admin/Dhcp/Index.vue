@@ -1,142 +1,172 @@
 <script setup>
+import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import StatCard from '@/Components/UI/StatCard.vue';
-import ProgressBar from '@/Components/UI/ProgressBar.vue';
-import SectionHeader from '@/Components/UI/SectionHeader.vue';
-import DataTable from '@/Components/UI/DataTable.vue';
 
 defineOptions({ layout: AdminLayout });
 
-defineProps({
-    pool: { type: Object, default: () => ({}) },
+const props = defineProps({
     ranges: { type: Array, default: () => [] },
 });
 
+const sortColumn = ref('name');
+const sortDirection = ref('asc');
+
 const rangeColumns = [
-    { key: 'interface', label: 'Interface' },
-    { key: 'type', label: 'Type' },
-    { key: 'subnet', label: 'Subnet / Prefix' },
-    { key: 'range', label: 'Range' },
-    { key: 'usage', label: 'Usage' },
-    { key: 'gateway', label: 'Gateway' },
-    { key: 'description', label: 'Description' },
+    { key: 'name', label: 'Name', sortable: true },
+    { key: 'network', label: 'Network', sortable: true },
+    { key: 'start', label: 'Start', sortable: true },
+    { key: 'end', label: 'End', sortable: true },
+    { key: 'usage', label: 'Usage', sortable: true },
 ];
+
+const sortedRanges = computed(() => {
+    return [...props.ranges].sort((a, b) => {
+        let aVal = a[sortColumn.value];
+        let bVal = b[sortColumn.value];
+
+        // Special handling for usage column - sort by percentage
+        if (sortColumn.value === 'usage') {
+            aVal = a.percentage || 0;
+            bVal = b.percentage || 0;
+        }
+
+        // Handle null/undefined
+        if (aVal == null) aVal = '';
+        if (bVal == null) bVal = '';
+
+        // Numeric comparison for percentage
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return sortDirection.value === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+
+        // String comparison
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return sortDirection.value === 'asc' ? comparison : -comparison;
+    });
+});
+
+function toggleSort(columnKey) {
+    if (sortColumn.value === columnKey) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn.value = columnKey;
+        sortDirection.value = 'asc';
+    }
+}
 </script>
 
 <template>
     <div>
-        <h1 data-testid="page-title" class="font-heading mb-5 text-xl font-bold text-[var(--color-text)] sm:text-2xl">
-            DHCP
-        </h1>
-
-        <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total" :value="pool?.total ?? '—'" />
-            <StatCard label="Used" :value="pool?.used ?? '—'" color="accent" />
-            <StatCard label="Available" :value="pool?.available ?? '—'" color="success" />
-            <StatCard
-                label="Utilisation"
-                :value="pool?.utilisation ? (pool.utilisation * 100).toFixed(1) + '%' : '—'"
-            />
+        <div class="mb-5 flex items-center justify-between">
+            <h1 data-testid="page-title" class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl">
+                DHCP Ranges
+            </h1>
+            <Link
+                :href="route('admin.dhcp.leases')"
+                data-testid="view-leases-button"
+                class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+            >
+                View Leases
+            </Link>
         </div>
 
-        <template v-if="pool?.used && pool?.total">
-            <SectionHeader title="Pool Utilisation" accent-line />
-            <ProgressBar
-                label="DHCP Pool"
-                :value="pool.used"
-                :max="pool.total"
-                :color="pool.utilisation > 0.9 ? 'danger' : pool.utilisation > 0.7 ? 'warning' : 'primary'"
-                :display-value="`${pool.used}/${pool.total}`"
-            />
-        </template>
-
-        <div data-testid="dhcp-ranges" class="mt-6">
-            <SectionHeader title="DHCP Ranges" accent-line />
-            <DataTable :columns="rangeColumns" :rows="ranges" empty-message="No DHCP ranges configured.">
-                <template #row="{ row, index }">
-                    <td
-                        :data-testid="`range-row-${index}-interface`"
-                        class="px-4 py-2.5 text-sm font-medium text-[var(--color-text)]"
-                    >
-                        {{ row.interface || '—' }}
-                    </td>
-                    <td :data-testid="`range-row-${index}-type`" class="px-4 py-2.5 text-sm">
-                        <span
-                            :data-testid="`range-type-badge-${index}`"
-                            :class="
-                                row.type === 'ipv4'
-                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                    : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                            "
-                            class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold"
+        <div data-testid="dhcp-ranges" class="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b-2 border-[var(--color-border)] bg-[var(--color-surface)]">
+                        <th
+                            v-for="col in rangeColumns"
+                            :key="col.key"
+                            class="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
+                            :class="{ 'cursor-pointer hover:bg-[var(--color-surface-hover)]': col.sortable }"
+                            @click="col.sortable ? toggleSort(col.key) : null"
                         >
-                            {{ row.type === 'ipv4' ? 'IPv4' : 'IPv6' }}
-                        </span>
-                    </td>
-                    <td
-                        :data-testid="`range-row-${index}-subnet`"
-                        class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
-                    >
-                        {{ row.subnet || row.prefix || '—' }}
-                    </td>
-                    <td
-                        :data-testid="`range-row-${index}-range`"
-                        class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
-                    >
-                        {{ row.range_from && row.range_to ? `${row.range_from} – ${row.range_to}` : '—' }}
-                    </td>
-                    <td
-                        :data-testid="`range-row-${index}-usage`"
-                        class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]"
-                    >
-                        <template v-if="row.total_addresses != null">
-                            <div class="flex items-center gap-2">
-                                <div class="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--color-bg-tertiary)]">
-                                    <div
-                                        :data-testid="`range-usage-bar-${index}`"
-                                        class="h-full rounded-full transition-all"
-                                        :class="
-                                            row.utilisation > 0.9
-                                                ? 'bg-red-500'
-                                                : row.utilisation > 0.7
-                                                  ? 'bg-amber-500'
-                                                  : 'bg-emerald-500'
-                                        "
-                                        :style="{ width: `${Math.min((row.utilisation || 0) * 100, 100)}%` }"
-                                    />
-                                </div>
-                                <span class="font-mono text-xs whitespace-nowrap">
-                                    {{ row.used_addresses }} / {{ row.total_addresses }}
-                                    <span class="text-[var(--color-text-muted)]">
-                                        ({{ ((row.utilisation || 0) * 100).toFixed(1) }}%)
-                                    </span>
+                            <div class="flex items-center gap-1.5">
+                                {{ col.label }}
+                                <span v-if="col.sortable && sortColumn === col.key" class="text-[var(--color-primary)]">
+                                    {{ sortDirection === 'asc' ? '↑' : '↓' }}
                                 </span>
                             </div>
-                        </template>
-                        <template v-else>—</template>
-                    </td>
-                    <td
-                        :data-testid="`range-row-${index}-gateway`"
-                        class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-muted)]"
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="sortedRanges.length === 0" data-testid="data-table-empty">
+                        <td
+                            :colspan="rangeColumns.length"
+                            class="px-4 py-12 text-center text-[var(--color-text-muted)]"
+                        >
+                            No DHCP ranges configured.
+                        </td>
+                    </tr>
+                    <tr
+                        v-for="(row, index) in sortedRanges"
+                        :key="index"
+                        data-testid="data-table-row"
+                        class="border-b border-[var(--color-border)] transition-colors last:border-b-0"
                     >
-                        {{ row.gateway || '—' }}
-                    </td>
-                    <td
-                        :data-testid="`range-row-${index}-description`"
-                        class="px-4 py-2.5 text-sm text-[var(--color-text-muted)]"
-                    >
-                        {{ row.description || '—' }}
-                    </td>
-                </template>
-            </DataTable>
+                        <td
+                            :data-testid="`range-row-${index}-name`"
+                            class="px-4 py-2.5 text-sm font-medium text-[var(--color-text)]"
+                        >
+                            {{ row.name || '—' }}
+                        </td>
+                        <td
+                            :data-testid="`range-row-${index}-network`"
+                            class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
+                        >
+                            {{ row.network || '—' }}
+                        </td>
+                        <td
+                            :data-testid="`range-row-${index}-start`"
+                            class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
+                        >
+                            {{ row.start || '—' }}
+                        </td>
+                        <td
+                            :data-testid="`range-row-${index}-end`"
+                            class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
+                        >
+                            {{ row.end || '—' }}
+                        </td>
+                        <td :data-testid="`range-row-${index}-usage`" class="px-4 py-2.5">
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center gap-2">
+                                    <div class="h-2 w-32 overflow-hidden rounded-full bg-[var(--color-surface-hover)]">
+                                        <div
+                                            :data-testid="`range-usage-bar-${index}`"
+                                            class="h-full rounded-full transition-all"
+                                            :class="
+                                                (row.percentage ?? 0) > 90
+                                                    ? 'bg-[var(--color-danger)]'
+                                                    : (row.percentage ?? 0) > 70
+                                                      ? 'bg-[var(--color-warning)]'
+                                                      : 'bg-[var(--color-success)]'
+                                            "
+                                            :style="{
+                                                width: `${(row.percentage ?? 0) > 0 ? Math.max(Math.min(row.percentage ?? 0, 100), 2) : 0}%`,
+                                            }"
+                                        />
+                                    </div>
+                                    <span
+                                        :data-testid="`range-percentage-${index}`"
+                                        class="font-mono text-xs whitespace-nowrap text-[var(--color-text-muted)]"
+                                    >
+                                        {{ (row.percentage ?? 0).toFixed(1) }}%
+                                    </span>
+                                </div>
+                                <span
+                                    :data-testid="`range-used-${index}`"
+                                    class="font-mono text-xs text-[var(--color-text-secondary)]"
+                                >
+                                    {{ row.used }} / {{ row.total }}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-
-        <Link
-            :href="route('admin.dhcp.leases')"
-            class="mt-4 inline-block text-sm text-[var(--color-primary)] hover:underline"
-        >
-            View DHCP Leases →
-        </Link>
     </div>
 </template>

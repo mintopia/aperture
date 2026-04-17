@@ -142,7 +142,7 @@ class IntegrationControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
         ConnectionTestLog::record('opnsense', true, 'Connected successfully', null, '{"status":"ok"}', 'GET', 'https://opnsense.local/api/diagnostics/system/system_time', 200);
-        ConnectionTestLog::record('opnsense', false, 'Request failed', null, null, 'GET', 'https://opnsense.local/api/diagnostics/system/system_time', null);
+        ConnectionTestLog::record('opnsense', false, 'Request failed', null, null, 'GET', 'https://opnsense.local/api/diagnostics/system/system_time');
 
         $response = $this->actingAs($admin)->getJson('/admin/settings/integrations/opnsense/health-log');
 
@@ -300,7 +300,7 @@ class IntegrationControllerTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(1, 'groups');
 
-        Http::assertSent(function ($req) {
+        Http::assertSent(function ($req): bool {
             if (str_contains($req->url(), '/api/groups')) {
                 return $req->header('X-FTL-SID') === ['my-session-id'];
             }
@@ -324,7 +324,7 @@ class IntegrationControllerTest extends TestCase
             'password' => 'test',
         ]);
 
-        Http::assertSent(function ($req) {
+        Http::assertSent(function ($req): bool {
             if (str_contains($req->url(), '/api/auth')) {
                 return $req->header('Content-Type')[0] === 'application/json';
             }
@@ -355,7 +355,7 @@ class IntegrationControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonCount(1, 'groups');
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'new-pihole.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'new-pihole.example.com'));
     }
 
     public function test_pihole_groups_falls_back_to_db_config(): void
@@ -377,7 +377,7 @@ class IntegrationControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonCount(1, 'groups');
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'db-pihole.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'db-pihole.example.com'));
     }
 
     public function test_non_admin_cannot_fetch_pihole_groups(): void

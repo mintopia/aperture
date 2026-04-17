@@ -120,6 +120,7 @@ class ThemeSettingsControllerTest extends TestCase
             $setting->code = $code;
             $setting->name = $name;
         }
+
         $setting->value = $value;
         $setting->save();
     }

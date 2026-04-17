@@ -59,7 +59,7 @@ class NtopNgTesterTest extends TestCase
             'password' => 'secret123',
         ]);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $auth = $request->header('Authorization');
 
             return ! empty($auth)
@@ -73,7 +73,7 @@ class NtopNgTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://ntopng.local']);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $auth = $request->header('Authorization');
 
             return ! empty($auth)
@@ -87,7 +87,7 @@ class NtopNgTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://ntopng.local/']);
 
-        Http::assertSent(fn ($req) => str_contains(
+        Http::assertSent(fn ($req): bool => str_contains(
             $req->url(),
             'https://ntopng.local/lua/pro/rest/v2/get/system/data.lua'
         ));

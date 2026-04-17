@@ -9,15 +9,9 @@ const navGroups = [
         label: 'INTEGRATIONS',
         items: [
             { label: 'Services', href: route('admin.settings.integrations') },
-            { label: 'Switches', href: route('admin.settings.switches') },
-        ],
-    },
-    {
-        label: 'FEATURES',
-        items: [
-            { label: 'Auto-Allow', href: null, disabled: true },
-            { label: 'IPv6 Detection', href: null, disabled: true },
-            { label: 'DNS Warning', href: null, disabled: true },
+            { label: 'Switches', href: route('admin.switches.index') },
+            { label: 'IPv6 Detection', disabled: true },
+            { label: 'DNS Detection', disabled: true },
         ],
     },
     {
@@ -34,7 +28,7 @@ const navGroups = [
 ];
 
 function isActive(href) {
-    return href ? currentUrl.value.startsWith(href) : false;
+    return currentUrl.value.startsWith(href);
 }
 
 function testId(label) {
@@ -43,7 +37,7 @@ function testId(label) {
 
 function itemClass(item) {
     if (item.disabled) {
-        return 'cursor-not-allowed text-[var(--color-text-secondary)] opacity-40';
+        return 'cursor-not-allowed opacity-40 text-[var(--color-text-muted)]';
     }
 
     return isActive(item.href)
@@ -68,17 +62,30 @@ function itemClass(item) {
                         {{ group.label }}
                     </p>
 
-                    <component
-                        :is="item.disabled ? 'span' : Link"
-                        v-for="item in group.items"
-                        :key="item.label"
-                        :href="item.disabled ? undefined : item.href"
-                        :data-testid="testId(item.label)"
-                        :class="itemClass(item)"
-                        class="rounded-md px-2.5 py-1.5 text-[11px] transition-colors"
-                    >
-                        {{ item.label }}
-                    </component>
+                    <template v-for="item in group.items" :key="item.label">
+                        <span
+                            v-if="item.disabled"
+                            :data-testid="testId(item.label)"
+                            :class="itemClass(item)"
+                            class="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px]"
+                        >
+                            {{ item.label }}
+                            <span
+                                class="rounded bg-[var(--color-surface-hover)] px-1 py-0.5 text-[9px] leading-none text-[var(--color-text-muted)]"
+                                >Soon</span
+                            >
+                        </span>
+                        <component
+                            :is="Link"
+                            v-else
+                            :href="item.href"
+                            :data-testid="testId(item.label)"
+                            :class="itemClass(item)"
+                            class="rounded-md px-2.5 py-1.5 text-[11px] transition-colors"
+                        >
+                            {{ item.label }}
+                        </component>
+                    </template>
                 </div>
             </div>
         </nav>

@@ -39,4 +39,34 @@ class KernelTest extends TestCase
         $this->assertNotNull($found, 'aperture:expire-sessions should be scheduled');
         $this->assertEquals('*/5 * * * *', $found->expression);
     }
+
+    public function test_sync_switch_ports_is_scheduled(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+
+        $found = $events->first(fn ($event): bool => ($event->description ?? '') === 'sync-switch-ports');
+
+        $this->assertNotNull($found, 'sync-switch-ports should be scheduled');
+        $this->assertSame('*/5 * * * *', $found->expression);
+    }
+
+    public function test_sync_switch_ports_respects_config_interval(): void
+    {
+        config(['aperture.switch_sync_interval' => 10]);
+
+        // Re-invoke schedule with fresh config
+        $kernel = $this->app->make(Kernel::class);
+        $schedule = new Schedule;
+
+        $reflection = new ReflectionClass($kernel);
+        $method = $reflection->getMethod('schedule');
+        $method->invoke($kernel, $schedule);
+
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => ($event->description ?? '') === 'sync-switch-ports');
+
+        $this->assertNotNull($found, 'sync-switch-ports should be scheduled');
+        $this->assertSame('*/10 * * * *', $found->expression);
+    }
 }

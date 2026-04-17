@@ -19,7 +19,7 @@ class IntegrationTesterRegistry
 
     public function get(string $service): TestableIntegration
     {
-        return $this->testers[$service] ?? throw new InvalidArgumentException("No tester for: {$service}");
+        return $this->testers[$service] ?? throw new InvalidArgumentException('No tester for: '.$service);
     }
 
     public function has(string $service): bool

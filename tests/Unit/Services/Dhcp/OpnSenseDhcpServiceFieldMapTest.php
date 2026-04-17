@@ -249,6 +249,47 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         $this->assertNull($ranges->first()->gateway);
     }
 
+    public function test_dnsmasq_ipv6_range_constructs_prefix_from_start_and_prefix_len(): void
+    {
+        $rangeFieldMap = [
+            'interface' => 'interface',
+            'subnet' => 'subnet',
+            'range_from' => 'start_addr',
+            'range_to' => 'end_addr',
+            'gateway' => 'gateway',
+            'description' => '%set_tag',
+            'prefix' => 'prefix_len',
+        ];
+
+        $service = $this->createService(
+            responses: [
+                new Response(200, [], (string) json_encode([
+                    'rows' => [
+                        [
+                            'interface' => 'lan',
+                            'start_addr' => 'fd00::100',
+                            'end_addr' => 'fd00::200',
+                            'prefix_len' => '64',
+                            '%set_tag' => 'ipv6-lan',
+                        ],
+                    ],
+                ])),
+                new Response(200, [], (string) json_encode(['rows' => []])),
+            ],
+            ipv4RangesPath: '/api/dnsmasq/settings/search_range',
+            rangeFieldMap: $rangeFieldMap,
+        );
+
+        $ranges = $service->getRanges();
+
+        $this->assertCount(1, $ranges);
+        $this->assertEquals('ipv6', $ranges->first()->type);
+        $this->assertEquals('fd00::100', $ranges->first()->rangeFrom);
+        $this->assertEquals('fd00::200', $ranges->first()->rangeTo);
+        $this->assertEquals('fd00::100/64', $ranges->first()->prefix);
+        $this->assertEquals('ipv6-lan', $ranges->first()->description);
+    }
+
     public function test_isc_defaults_remain_backward_compatible(): void
     {
         $service = $this->createService(
@@ -281,6 +322,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         ]);
         $handler = HandlerStack::create($mock);
         $handler->push(Middleware::history($history));
+
         $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService($client, 254);
@@ -303,6 +345,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         ]);
         $handler = HandlerStack::create($mock);
         $handler->push(Middleware::history($history));
+
         $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService($client, 254, ipv4RangesPath: '/api/kea/dhcpv4/search_subnet');

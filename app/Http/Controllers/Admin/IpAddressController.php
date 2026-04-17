@@ -1,20 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IpAddressStoreRequest;
 use App\Models\IpAddress;
-use App\Services\CiscoService;
+use App\Models\SwitchConfig;
+use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\ValueObjects\PortDetail;
 use Carbon\Carbon;
-use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class IpAddressController extends Controller
 {
+    public function __construct(
+        protected SwitchServiceFactory $switchServiceFactory,
+    ) {}
+
     public function index(Request $request): Response
     {
         $filters = (object) [
@@ -64,6 +72,10 @@ class IpAddressController extends Controller
         return Inertia::render('Admin/Ips/Index', [
             'ips' => $ips,
             'filters' => $filters,
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'IP Addresses'],
+            ],
         ]);
     }
 
@@ -74,14 +86,14 @@ class IpAddressController extends Controller
         $shutdown = false;
         $port = $ip->port;
         if ($port !== null) {
+            $shutdown = $port->adminStatus === 'down';
+
             try {
-                $cisco = $this->createCiscoService($ip->port->hostname);
-                $status = $cisco->showInterface($ip->port->interface);
-                $config = $cisco->showInterfaceConfig($ip->port->interface);
-                $shutdown = str_contains($config, 'shutdown');
-            } catch (Exception $ex) {
+                $switch = $this->switchServiceFactory->make($this->resolveSwitchConfig($port));
+                $portStatus = $switch->getPortStatus($port->interface);
+                $status = sprintf('%s is %s', $portStatus->interface, $portStatus->status);
+            } catch (Throwable) {
                 $status = 'Unable to connect to switch';
-                $config = 'Unable to connect to switch';
             }
         }
 
@@ -94,6 +106,11 @@ class IpAddressController extends Controller
             'config' => $config,
             'shutdown' => $shutdown,
             'users' => $users,
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'IP Addresses', 'href' => route('admin.ips.index')],
+                ['label' => $ip->address],
+            ],
         ]);
     }
 
@@ -138,7 +155,13 @@ class IpAddressController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('Admin/Ips/Create');
+        return Inertia::render('Admin/Ips/Create', [
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'IP Addresses', 'href' => route('admin.ips.index')],
+                ['label' => 'Create'],
+            ],
+        ]);
     }
 
     public function store(IpAddressStoreRequest $request): RedirectResponse
@@ -146,7 +169,7 @@ class IpAddressController extends Controller
         $ip = new IpAddress;
         $ip->address = $request->input('address');
         $ip->comment = $request->input('comment');
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Carbon::now()->toDateTimeString();
         $ip->save();
         if ($request->input('allow')) {
             $ip->allow(true);
@@ -159,14 +182,27 @@ class IpAddressController extends Controller
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', 'The IP address has been added');
     }
 
-    protected function createCiscoService(string $hostname): CiscoService
+    protected function resolveSwitchConfig(PortDetail $port): SwitchConfig
     {
-        return new CiscoService(
-            hostname: $hostname,
-            username: (string) config('aperture.cisco.username', ''),
-            password: (string) config('aperture.cisco.password', ''),
-            enablePassword: (string) config('aperture.cisco.enablePassword', ''),
-            timeout: (int) config('aperture.cisco.timeout', 5),
-        );
+        $switchConfig = SwitchConfig::query()
+            ->where('enabled', true)
+            ->where('hostname', $port->hostname)
+            ->first();
+
+        if ($switchConfig instanceof SwitchConfig) {
+            return $switchConfig;
+        }
+
+        return new SwitchConfig([
+            'name' => 'Default Cisco Switch',
+            'hostname' => $port->hostname,
+            'type' => 'cisco',
+            'username' => (string) config('aperture.cisco.username', ''),
+            'password' => (string) config('aperture.cisco.password', ''),
+            'enable_password' => (string) config('aperture.cisco.enablePassword', ''),
+            'enabled' => true,
+            'port' => 22,
+            'timeout' => (int) config('aperture.cisco.timeout', 5),
+        ]);
     }
 }

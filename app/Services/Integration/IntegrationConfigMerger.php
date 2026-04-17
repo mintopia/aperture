@@ -21,9 +21,9 @@ class IntegrationConfigMerger
     public function merge(string $integration, Request $request): array
     {
         $dbConfig = IntegrationConfig::getAll($integration);
-        $allowedKeys = array_keys(config("integrations.{$integration}.fields", []));
+        $allowedKeys = array_keys(config(sprintf('integrations.%s.fields', $integration), []));
         $requestValues = $request->only($allowedKeys);
 
-        return array_merge($dbConfig, array_filter($requestValues, fn ($v) => $v !== null && $v !== ''));
+        return array_merge($dbConfig, array_filter($requestValues, fn ($v): bool => $v !== null && $v !== ''));
     }
 }

@@ -23,7 +23,7 @@ class AccountController extends Controller
                 'nickname' => $user->nickname,
                 'email' => $user->email,
                 'has_password' => $user->password !== null,
-                'passkeys' => $user->webAuthnCredentials()->get()->map(fn ($cred) => [
+                'passkeys' => $user->webAuthnCredentials()->get()->map(fn ($cred): array => [
                     'id' => $cred->id,
                     'name' => $cred->alias ?? 'Passkey',
                     'created_at' => $cred->created_at->toIso8601String(),

@@ -2,18 +2,21 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Http\Controllers\Admin\IpAddressController;
 use App\Models\IpAddress;
 use App\Models\Role;
+use App\Models\SwitchConfig;
 use App\Models\User;
-use App\Services\CiscoService;
 use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
+use App\Services\ValueObjects\PortStatus;
 use App\Services\ValueObjects\ResolvedPort;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
+use RuntimeException;
 use Tests\TestCase;
 
 class IpAddressControllerTest extends TestCase
@@ -313,13 +316,21 @@ class IpAddressControllerTest extends TestCase
         $inventory->shouldReceive('resolveIpToPort')
             ->andReturn(new ResolvedPort(ip: '10.0.0.200', mac: 'AA:BB:CC:DD:EE:FF', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
-            ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000));
+            ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'down', speed: 1000));
         $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.200';
         $ip->last_seen_at = Carbon::now();
         $ip->save();
+
+        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'switch01']);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $factory->shouldReceive('make')
+            ->once()
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($switchConfig)))
+            ->andThrow(new RuntimeException('Switch offline'));
+        $this->app->instance(SwitchServiceFactory::class, $factory);
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
 
@@ -329,11 +340,12 @@ class IpAddressControllerTest extends TestCase
             ->has('ip')
             ->has('port')
             ->where('status', 'Unable to connect to switch')
-            ->where('config', 'Unable to connect to switch')
+            ->where('shutdown', true)
+            ->where('config', null)
         );
     }
 
-    public function test_admin_can_view_ip_show_with_successful_cisco_connection(): void
+    public function test_admin_can_view_ip_show_with_successful_switch_connection(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -342,7 +354,7 @@ class IpAddressControllerTest extends TestCase
         $inventory->shouldReceive('resolveIpToPort')
             ->andReturn(new ResolvedPort(ip: '10.0.0.201', mac: 'AA:BB:CC:DD:EE:01', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
-            ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000));
+            ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'down', speed: 1000));
         $this->app->instance(NetworkInventoryInterface::class, $inventory);
 
         $ip = new IpAddress;
@@ -350,13 +362,24 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $ciscoMock = Mockery::mock(CiscoService::class);
-        $ciscoMock->shouldReceive('showInterface')->with('Gi0/1')->andReturn('Gi0/1 is up');
-        $ciscoMock->shouldReceive('showInterfaceConfig')->with('Gi0/1')->andReturn("interface Gi0/1\n shutdown\nend");
+        $switch = Mockery::mock(NetworkSwitchInterface::class);
+        $switch->shouldReceive('getPortStatus')
+            ->once()
+            ->with('Gi0/1')
+            ->andReturn(new PortStatus(
+                interface: 'Gi0/1',
+                status: 'up',
+                speed: '1000Mb/s',
+                duplex: 'full',
+            ));
 
-        $controllerMock = Mockery::mock(IpAddressController::class)->makePartial()->shouldAllowMockingProtectedMethods();
-        $controllerMock->shouldReceive('createCiscoService')->with('switch01')->andReturn($ciscoMock);
-        $this->app->instance(IpAddressController::class, $controllerMock);
+        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'switch01']);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $factory->shouldReceive('make')
+            ->once()
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($switchConfig)))
+            ->andReturn($switch);
+        $this->app->instance(SwitchServiceFactory::class, $factory);
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
 
