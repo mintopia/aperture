@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\NetworkSwitch;
 
 use App\Services\NetworkSwitch\IosOutputParser;
+use App\Services\ValueObjects\PortStatus;
 use Tests\TestCase;
 
 class IosOutputParserTest extends TestCase
@@ -123,6 +124,7 @@ class IosOutputParserTest extends TestCase
         $ports = $this->parser->parseInterfaceStatusTable($output);
 
         $this->assertCount(4, $ports);
+        $this->assertContainsOnlyInstancesOf(PortStatus::class, $ports);
 
         $this->assertEquals('Gi1/0/1', $ports[0]->interface);
         $this->assertEquals('connected', $ports[0]->status);
@@ -193,6 +195,82 @@ class IosOutputParserTest extends TestCase
         $this->assertCount(1, $ports);
         $this->assertEquals('routed', $ports[0]->switchportMode);
         $this->assertEquals('', $ports[0]->vlan);
+    }
+
+    public function test_parse_interface_status_table_handles_unassigned_vlan(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi0/5     Guest Desk         connected    unassigned a-full  a-1000 10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('unassigned', $ports[0]->switchportMode);
+        $this->assertEquals('', $ports[0]->vlan);
+    }
+
+    public function test_parse_interface_status_table_handles_suspended_vlan(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi0/6     Quarantine         connected    suspended  a-full  a-1000 10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('suspended', $ports[0]->switchportMode);
+        $this->assertEquals('', $ports[0]->vlan);
+    }
+
+    public function test_parse_interface_status_table_handles_monitoring_status(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi0/7     SPAN Session       monitoring   300        a-full  a-1000 10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('Gi0/7', $ports[0]->interface);
+        $this->assertEquals('SPAN Session', $ports[0]->description);
+        $this->assertEquals('monitoring', $ports[0]->status);
+    }
+
+    public function test_parse_interface_status_table_handles_ten_gigabit_interface(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Te1/0/49   Uplink-Core        connected    trunk      a-full  10G   10GBase-LR',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('Te1/0/49', $ports[0]->interface);
+        $this->assertEquals('Uplink-Core', $ports[0]->description);
+        $this->assertEquals('trunk', $ports[0]->switchportMode);
+        $this->assertEquals('10G', $ports[0]->speed);
+    }
+
+    public function test_parse_interface_status_table_handles_fast_ethernet_interface(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Fa0/1     Printer            connected    200        a-full  a-100  10/100BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(1, $ports);
+        $this->assertEquals('Fa0/1', $ports[0]->interface);
+        $this->assertEquals('a-100', $ports[0]->speed);
+        $this->assertEquals('a-full', $ports[0]->duplex);
+        $this->assertEquals('200', $ports[0]->vlan);
+        $this->assertEquals('access', $ports[0]->switchportMode);
     }
 
     public function test_parse_interface_status_table_maps_access_vlan_to_switchport_mode(): void

@@ -162,6 +162,8 @@ describe('formatVlan', () => {
         expect(formatVlan(null, 'trunk')).toBe('Trunk');
         expect(formatVlan(0, 'trunk')).toBe('Trunk');
         expect(formatVlan(null, 'routed')).toBe('Routed');
+        expect(formatVlan(null, 'unassigned')).toBe('Unassigned');
+        expect(formatVlan(null, 'suspended')).toBe('Suspended');
     });
 
     it('formats real VLAN IDs', () => {
