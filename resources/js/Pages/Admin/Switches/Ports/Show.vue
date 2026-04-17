@@ -283,6 +283,7 @@ function confirmShutdown() {
         <div class="mb-5 flex flex-wrap gap-2">
             <button
                 data-testid="action-refresh"
+                title="Sync this port's data from the switch"
                 :disabled="refreshing"
                 class="rounded-lg border border-[var(--color-border)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:opacity-50"
                 @click="refreshPort"
@@ -291,6 +292,7 @@ function confirmShutdown() {
             </button>
             <button
                 data-testid="action-bounce"
+                title="Briefly take this port offline and bring it back up"
                 :disabled="bouncing"
                 class="rounded-lg bg-[var(--color-warning)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-warning)]/80 disabled:opacity-50"
                 @click="bouncePort"
@@ -299,6 +301,11 @@ function confirmShutdown() {
             </button>
             <button
                 data-testid="action-toggle"
+                :title="
+                    port.admin_status === 'up'
+                        ? 'Administratively disable this port'
+                        : 'Administratively enable this port'
+                "
                 :disabled="toggling"
                 :class="
                     port.admin_status === 'up'
@@ -437,6 +444,18 @@ function confirmShutdown() {
                                 :color="(errors.collisions ?? 0) > 0 ? 'warning' : 'text'"
                             />
                         </div>
+                        <p
+                            v-if="
+                                (errors.input ?? 0) === 0 &&
+                                (errors.output ?? 0) === 0 &&
+                                (errors.crc ?? 0) === 0 &&
+                                (errors.collisions ?? 0) === 0
+                            "
+                            class="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--color-success)]"
+                        >
+                            <span aria-hidden="true">✓</span
+                            ><span data-testid="errors-clean">Clean — no errors detected</span>
+                        </p>
                         <div v-if="metricsAvailable" class="mt-4">
                             <TimeSeriesChart
                                 data-testid="errors-chart"
