@@ -2,19 +2,37 @@ import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import SettingsNav from '@/Components/Admin/SettingsNav.vue';
 
+let mockUrl = '/admin/settings/integrations';
+
 vi.mock('@inertiajs/vue3', () => ({
     Link: {
         name: 'Link',
         props: ['href'],
         template: '<a :href="href"><slot /></a>',
     },
-    usePage: () => ({ url: '/admin/settings/integrations' }),
+    usePage: () => ({ url: mockUrl }),
 }));
 
-globalThis.route = (name) => `/admin/settings/${name.replace('admin.settings.', '')}`;
+globalThis.route = (name, params) => {
+    if (name === 'admin.settings.integrations.show') {
+        return `/admin/settings/integrations/${params}`;
+    }
+
+    if (name === 'admin.settings.integrations') {
+        return '/admin/settings/integrations';
+    }
+
+    if (name === 'admin.switches.index') {
+        return '/admin/switches';
+    }
+
+    return `/admin/settings/${name.replace('admin.settings.', '')}`;
+};
 
 describe('SettingsNav.vue', () => {
-    function mountComponent() {
+    function mountComponent(url = '/admin/settings/integrations') {
+        mockUrl = url;
+
         return mount(SettingsNav, {
             slots: {
                 default: '<div>Settings content</div>',
@@ -22,45 +40,75 @@ describe('SettingsNav.vue', () => {
         });
     }
 
-    it('renders all group headers', () => {
+    it('renders the expected group headers', () => {
         const wrapper = mountComponent();
+        const groupHeaders = wrapper.findAll('nav p').map((group) => group.text());
 
-        expect(wrapper.text()).toContain('INTEGRATIONS');
-        expect(wrapper.text()).toContain('FEATURES');
-        expect(wrapper.text()).toContain('APPEARANCE');
-        expect(wrapper.text()).toContain('GENERAL');
+        expect(groupHeaders).toEqual(['INTEGRATIONS', 'APPEARANCE', 'GENERAL']);
+        expect(wrapper.text()).not.toContain('FEATURES');
     });
 
-    it('renders all nav items including disabled ones', () => {
+    it('renders all nav items', () => {
         const wrapper = mountComponent();
 
         expect(wrapper.find('[data-testid="settings-nav-services"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="settings-nav-switches"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="settings-nav-auto-allow"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="settings-nav-ipv6-detection"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="settings-nav-dns-warning"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="settings-nav-dns-detection"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="settings-nav-theme"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="settings-nav-event"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="settings-nav-portal"]').exists()).toBe(true);
     });
 
-    it('disabled items have opacity-40 class and no href', () => {
+    it('renders four integration items in the expected order', () => {
         const wrapper = mountComponent();
-        const disabledItems = [
-            wrapper.get('[data-testid="settings-nav-auto-allow"]'),
-            wrapper.get('[data-testid="settings-nav-ipv6-detection"]'),
-            wrapper.get('[data-testid="settings-nav-dns-warning"]'),
-        ];
+        const groups = wrapper.findAll('nav > div > div');
+        const integrationItems = groups[0].findAll('[data-testid^="settings-nav-"]');
 
-        for (const item of disabledItems) {
-            expect(item.classes()).toContain('opacity-40');
-            expect(item.classes()).toContain('cursor-not-allowed');
-            expect(item.attributes('href')).toBeUndefined();
-        }
+        expect(integrationItems).toHaveLength(4);
+        expect(integrationItems.map((item) => item.text().replace(/\s+/g, ' ').trim())).toEqual([
+            'Services',
+            'Switches',
+            'IPv6 Detection Soon',
+            'DNS Detection Soon',
+        ]);
+        expect(wrapper.get('[data-testid="settings-nav-services"]').attributes('href')).toBe(
+            '/admin/settings/integrations',
+        );
+        expect(wrapper.get('[data-testid="settings-nav-switches"]').attributes('href')).toBe('/admin/switches');
     });
 
-    it('active item gets highlighted class', () => {
+    it('renders disabled items as spans without href', () => {
         const wrapper = mountComponent();
+        const ipv6 = wrapper.get('[data-testid="settings-nav-ipv6-detection"]');
+        const dns = wrapper.get('[data-testid="settings-nav-dns-detection"]');
+
+        expect(ipv6.element.tagName).toBe('SPAN');
+        expect(ipv6.attributes('href')).toBeUndefined();
+        expect(ipv6.classes()).toContain('cursor-not-allowed');
+        expect(ipv6.classes()).toContain('opacity-40');
+
+        expect(dns.element.tagName).toBe('SPAN');
+        expect(dns.attributes('href')).toBeUndefined();
+        expect(dns.classes()).toContain('cursor-not-allowed');
+        expect(dns.classes()).toContain('opacity-40');
+    });
+
+    it('renders enabled nav items as clickable links', () => {
+        const wrapper = mountComponent();
+        const enabledItems = wrapper.findAll('[data-testid^="settings-nav-"]').filter((item) => item.element.tagName === 'A');
+
+        for (const item of enabledItems) {
+            expect(item.attributes('href')).toBeTruthy();
+            expect(item.classes()).not.toContain('opacity-40');
+            expect(item.classes()).not.toContain('cursor-not-allowed');
+        }
+
+        expect(enabledItems).toHaveLength(5);
+    });
+
+    it('highlights services link on the overview page', () => {
+        const wrapper = mountComponent('/admin/settings/integrations');
         const activeItem = wrapper.get('[data-testid="settings-nav-services"]');
 
         expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/10');
@@ -68,14 +116,32 @@ describe('SettingsNav.vue', () => {
         expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
     });
 
-    it('clicking a disabled item does not navigate', async () => {
+    it('highlights services link on a service sub-page', () => {
+        const wrapper = mountComponent('/admin/settings/integrations/opnsense');
+        const activeItem = wrapper.get('[data-testid="settings-nav-services"]');
+
+        expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/10');
+        expect(activeItem.classes()).toContain('font-semibold');
+        expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
+    });
+
+    it('keeps appearance and general groups unchanged', () => {
         const wrapper = mountComponent();
-        const disabledItem = wrapper.get('[data-testid="settings-nav-auto-allow"]');
-        const initialUrl = window.location.href;
+        const groups = wrapper.findAll('nav > div > div');
 
-        await disabledItem.trigger('click');
+        expect(groups[1].findAll('[data-testid^="settings-nav-"]').map((item) => item.text())).toEqual(['Theme']);
+        expect(wrapper.get('[data-testid="settings-nav-theme"]').attributes('href')).toBe('/admin/settings/theme');
+        expect(groups[2].findAll('[data-testid^="settings-nav-"]').map((item) => item.text())).toEqual([
+            'Event',
+            'Portal',
+        ]);
+        expect(wrapper.get('[data-testid="settings-nav-event"]').attributes('href')).toBe('/admin/settings/event');
+        expect(wrapper.get('[data-testid="settings-nav-portal"]').attributes('href')).toBe('/admin/settings/portal');
+    });
 
-        expect(disabledItem.attributes('href')).toBeUndefined();
-        expect(window.location.href).toBe(initialUrl);
+    it('renders slot content', () => {
+        const wrapper = mountComponent();
+
+        expect(wrapper.text()).toContain('Settings content');
     });
 });

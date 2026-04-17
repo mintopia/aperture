@@ -39,10 +39,10 @@ class ConnectionTester
                 responseBody: $response->body(),
                 output: $response->json() ?? $response->body(),
             );
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return new TestConnectionResult(
                 success: false,
-                message: 'Connection failed: '.$e->getMessage(),
+                message: 'Connection failed: '.$throwable->getMessage(),
                 requestMethod: $method,
                 requestUrl: $url,
             );

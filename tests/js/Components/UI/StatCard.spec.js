@@ -85,4 +85,12 @@ describe('StatCard', () => {
         expect(wrapper.find('.trend').exists()).toBe(true);
         expect(wrapper.text()).toContain('+5%');
     });
+
+    it('renders an optional label dot', () => {
+        const wrapper = mount(StatCard, {
+            props: { label: 'Online', value: 42, labelDotColor: 'success' },
+        });
+
+        expect(wrapper.find('[data-testid="stat-label-dot"]').exists()).toBe(true);
+    });
 });

@@ -74,11 +74,11 @@ class PiHoleApiService
 
             return ['groups' => array_values(collect($groups)->map(fn (array $g): array => [
                 'id' => $g['id'],
-                'name' => $g['name'] ?? "Group {$g['id']}",
+                'name' => $g['name'] ?? 'Group '.$g['id'],
                 'enabled' => $g['enabled'] ?? true,
             ])->all())];
-        } catch (Throwable $e) {
-            return ['groups' => [], 'error' => $e->getMessage()];
+        } catch (Throwable $throwable) {
+            return ['groups' => [], 'error' => $throwable->getMessage()];
         }
     }
 }

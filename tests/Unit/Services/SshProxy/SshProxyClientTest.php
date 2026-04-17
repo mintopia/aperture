@@ -202,6 +202,47 @@ class SshProxyClientTest extends TestCase
         $this->assertInstanceOf(SshProxyClient::class, $resolved);
     }
 
+    public function test_guzzle_client_has_timeout_configured(): void
+    {
+        config([
+            'aperture.ssh_proxy.host' => '127.0.0.1',
+            'aperture.ssh_proxy.port' => 8022,
+            'aperture.ssh_proxy.api_key' => 'test-api-key',
+            'aperture.ssh_proxy.request_timeout' => 90,
+            'aperture.ssh_proxy.connect_timeout' => 10,
+        ]);
+
+        // Clear the singleton so it gets re-resolved with new config
+        $this->app->forgetInstance(SshProxyClientInterface::class);
+
+        $resolved = $this->app->make(SshProxyClientInterface::class);
+
+        $reflection = new ReflectionClass($resolved);
+        $clientProp = $reflection->getProperty('client');
+        /** @var Client $guzzleClient */
+        $guzzleClient = $clientProp->getValue($resolved);
+
+        $guzzleConfig = $guzzleClient->getConfig();
+
+        $this->assertSame(90, $guzzleConfig['timeout']);
+        $this->assertSame(10, $guzzleConfig['connect_timeout']);
+    }
+
+    public function test_guzzle_client_has_default_timeouts(): void
+    {
+        $proxyClient = new SshProxyClient('http://localhost:8022', 'test-key');
+
+        $reflection = new ReflectionClass($proxyClient);
+        $clientProp = $reflection->getProperty('client');
+        /** @var Client $guzzleClient */
+        $guzzleClient = $clientProp->getValue($proxyClient);
+
+        $guzzleConfig = $guzzleClient->getConfig();
+
+        $this->assertSame(60, $guzzleConfig['timeout']);
+        $this->assertSame(5, $guzzleConfig['connect_timeout']);
+    }
+
     public function test_execute_rethrows_non_409_client_exception(): void
     {
         $proxyClient = $this->createClientWithMockHandler([

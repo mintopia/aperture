@@ -88,6 +88,7 @@ class EventSettingsControllerTest extends TestCase
             $setting->code = $code;
             $setting->name = $name;
         }
+
         $setting->value = $value;
         $setting->save();
     }

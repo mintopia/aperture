@@ -6,10 +6,12 @@ namespace App\Services;
 
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Models\SwitchConfig;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
 use stdClass;
 use Throwable;
@@ -18,7 +20,7 @@ class IpAddressActionService
 {
     public function __construct(
         protected FirewallBackendInterface $firewall,
-        protected NetworkSwitchInterface $switch,
+        protected SwitchServiceFactory $switchFactory,
         protected MacAddressResolverInterface $macResolver,
         protected NtopNgService $ntopng,
     ) {}
@@ -92,22 +94,47 @@ class IpAddressActionService
 
     public function shutPort(IpAddress $ip): void
     {
-        $portInfo = $ip->getPortInfo();
-        if (! $portInfo instanceof PortDetail) {
+        $result = $this->resolveAdapterAndPort($ip);
+        if ($result === null) {
             return;
         }
 
-        $this->switch->shutdownPort($portInfo->interface);
+        [$adapter, $portName] = $result;
+        $adapter->shutdownPort($portName);
     }
 
     public function unshutPort(IpAddress $ip): void
     {
-        $portInfo = $ip->getPortInfo();
-        if (! $portInfo instanceof PortDetail) {
+        $result = $this->resolveAdapterAndPort($ip);
+        if ($result === null) {
             return;
         }
 
-        $this->switch->enablePort($portInfo->interface);
+        [$adapter, $portName] = $result;
+        $adapter->enablePort($portName);
+    }
+
+    /**
+     * @return array{NetworkSwitchInterface, string}|null
+     */
+    private function resolveAdapterAndPort(IpAddress $ip): ?array
+    {
+        $portInfo = $ip->getPortInfo();
+        if (! $portInfo instanceof PortDetail) {
+            return null;
+        }
+
+        $switchConfig = SwitchConfig::where('hostname', $portInfo->hostname)->first();
+        if (! $switchConfig) {
+            return null;
+        }
+
+        $switchPort = $switchConfig->switchPorts()->where('port_name', $portInfo->interface)->first();
+        if (! $switchPort) {
+            return null;
+        }
+
+        return [$this->switchFactory->make($switchConfig), $portInfo->interface];
     }
 
     public function updateUsage(IpAddress $ip): void

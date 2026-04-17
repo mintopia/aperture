@@ -107,6 +107,33 @@ describe('DataTable', () => {
         expect(row.classes()).not.toContain('cursor-pointer');
     });
 
+    it('applies rowClass function to data rows', () => {
+        const rowClass = (row) => (row.name === 'Alice' ? 'highlight' : 'dim');
+        const wrapper = mount(DataTable, {
+            props: { columns, rows, rowClass },
+            global: { stubs },
+            slots: {
+                row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+            },
+        });
+        const tableRows = wrapper.findAll('[data-testid="data-table-row"]');
+        expect(tableRows[0].classes()).toContain('highlight');
+        expect(tableRows[1].classes()).toContain('dim');
+    });
+
+    it('does not add extra classes when rowClass is null', () => {
+        const wrapper = mount(DataTable, {
+            props: { columns, rows },
+            global: { stubs },
+            slots: {
+                row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+            },
+        });
+        const row = wrapper.find('[data-testid="data-table-row"]');
+        expect(row.classes()).not.toContain('highlight');
+        expect(row.classes()).not.toContain('dim');
+    });
+
     it('sets correct colspan on empty row', () => {
         const wrapper = mount(DataTable, {
             props: { columns, rows: [] },

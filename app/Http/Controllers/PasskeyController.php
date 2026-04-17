@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
 use Laragear\WebAuthn\Http\Requests\AssertedRequest;
 use Laragear\WebAuthn\Http\Requests\AssertionRequest;
 use Laragear\WebAuthn\Http\Requests\AttestationRequest;
@@ -36,7 +37,7 @@ class PasskeyController extends Controller
     {
         $user = $request->login();
 
-        if ($user) {
+        if ($user instanceof WebAuthnAuthenticatable) {
             $request->session()->regenerate();
 
             return response()->json(['success' => true, 'redirect' => '/']);

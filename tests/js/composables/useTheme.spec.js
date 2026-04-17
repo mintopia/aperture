@@ -119,6 +119,17 @@ describe('useTheme', () => {
         expect(themes).toEqual(['default', 'cool-neon', 'warm-neon', 'matrix', 'amber-glow']);
     });
 
+    it('includes default in valid themes', () => {
+        const { themes } = useTheme();
+        expect(themes).toContain('default');
+    });
+
+    it('setTheme accepts default theme', () => {
+        const { theme, setTheme } = useTheme();
+        setTheme('default');
+        expect(theme.value).toBe('default');
+    });
+
     it('previewTheme applies theme without saving to localStorage', () => {
         const { previewTheme } = useTheme();
         localStorageMock.setItem.mockClear();

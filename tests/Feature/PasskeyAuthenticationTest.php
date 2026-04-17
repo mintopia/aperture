@@ -48,7 +48,7 @@ class PasskeyAuthenticationTest extends TestCase
 
     public function test_passkey_authentication_options_endpoint_exists(): void
     {
-        $user = User::factory()->withPassword()->create([
+        User::factory()->withPassword()->create([
             'email' => 'passkey@test.com',
         ]);
 

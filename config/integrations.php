@@ -242,4 +242,45 @@ return [
             'scope' => 'nullable|string|max:255',
         ],
     ],
+    'prometheus' => [
+        'name' => 'Prometheus',
+        'description' => 'Time-series metrics database for network bandwidth and device monitoring.',
+        'capabilities' => ['port-bandwidth', 'port-errors', 'device-metrics', 'aggregate-stats'],
+        'fields' => [
+            'endpoint' => [
+                'type' => 'url',
+                'label' => 'Prometheus URL',
+                'placeholder' => 'https://prometheus.local:9090',
+                'help' => 'Base URL of your Prometheus instance.',
+            ],
+            'bearer_token' => [
+                'type' => 'password',
+                'label' => 'Bearer Token',
+                'help' => 'Optional bearer token for authentication.',
+            ],
+            'verify_ssl' => [
+                'type' => 'toggle',
+                'label' => 'Verify SSL',
+                'help' => 'Verify the SSL certificate when connecting.',
+            ],
+            'default_step' => [
+                'type' => 'text',
+                'label' => 'Default Step',
+                'placeholder' => '60',
+                'help' => 'Default query step interval in seconds.',
+            ],
+            'enabled' => [
+                'type' => 'toggle',
+                'label' => 'Enabled',
+                'help' => 'Enable or disable this integration.',
+            ],
+        ],
+        'validation' => [
+            'endpoint' => 'nullable|url|max:500',
+            'bearer_token' => 'nullable|string|max:500',
+            'verify_ssl' => 'nullable|string|in:0,1',
+            'default_step' => 'nullable|numeric|min:1|max:3600',
+            'enabled' => 'nullable|string|in:0,1',
+        ],
+    ],
 ];

@@ -110,6 +110,12 @@ class IntegrationController extends Controller
                 'health' => $latestTest?->success,
                 'logs' => $this->serializeLogs($logs),
             ],
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Settings'],
+                ['label' => 'Integrations', 'href' => route('admin.settings.integrations')],
+                ['label' => $meta['name']],
+            ],
         ]);
     }
 

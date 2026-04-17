@@ -12,10 +12,12 @@ class SshProxyClient implements SshProxyClientInterface
 {
     protected Client $client;
 
-    public function __construct(string $baseUrl, string $apiKey)
+    public function __construct(string $baseUrl, string $apiKey, int $timeout = 60, int $connectTimeout = 5)
     {
         $this->client = new Client([
             'base_uri' => rtrim($baseUrl, '/').'/',
+            'timeout' => $timeout,
+            'connect_timeout' => $connectTimeout,
             'headers' => [
                 'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
@@ -24,7 +26,7 @@ class SshProxyClient implements SshProxyClientInterface
         ]);
     }
 
-    public function execute(string $hostname, string $username, string $password, array $commands): CommandResult
+    public function execute(string $hostname, string $username, string $password, array $commands, int $port = 22): CommandResult
     {
         try {
             $response = $this->client->post('execute', [
@@ -33,6 +35,7 @@ class SshProxyClient implements SshProxyClientInterface
                     'username' => $username,
                     'password' => $password,
                     'commands' => $commands,
+                    'port' => $port,
                 ],
             ]);
 

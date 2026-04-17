@@ -22,6 +22,10 @@ interface NetworkSwitchInterface
 
     public function getPortStatistics(string $portId): PortStatistics;
 
+    public function getRunningConfig(): string;
+
+    public function getPortRunningConfig(string $portId): string;
+
     /** @return Collection<int, ForwardingEntry> */
     public function getForwardingDatabase(): Collection;
 }

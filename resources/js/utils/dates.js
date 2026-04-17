@@ -47,3 +47,29 @@ export function formatRelative(dateString) {
 
     return formatDate(dateString);
 }
+
+/**
+ * Format a date as a compact relative time (e.g., "5m", "2h", "3d").
+ * Falls back to an em dash when missing and the original string when invalid.
+ * @param {string|null} dateString
+ * @returns {string}
+ */
+export function formatRelativeTime(dateString) {
+    if (!dateString) return '—';
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSeconds < 60) return 'now';
+    if (diffMinutes < 60) return `${diffMinutes}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+
+    return `${diffDays}d`;
+}

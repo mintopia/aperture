@@ -1,0 +1,307 @@
+package pool
+
+import (
+	"sync"
+	"testing"
+	"time"
+)
+
+// mockCloser tracks whether Close was called.
+type mockCloser struct {
+	closed bool
+}
+
+func (m *mockCloser) Close() error {
+	m.closed = true
+	return nil
+}
+
+func TestPool_AcquireNew(t *testing.T) {
+	p := New(10 * time.Minute)
+
+	entry, isNew, err := p.Acquire("switch1.local")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isNew {
+		t.Error("expected isNew to be true")
+	}
+	if entry == nil {
+		t.Fatal("expected non-nil entry")
+	}
+	if !entry.Locked {
+		t.Error("expected entry to be locked")
+	}
+	if entry.Hostname != "switch1.local" {
+		t.Errorf("expected hostname 'switch1.local', got %q", entry.Hostname)
+	}
+}
+
+func TestPool_AcquireExisting(t *testing.T) {
+	p := New(10 * time.Minute)
+
+	// First acquire — creates entry
+	_, _, _ = p.Acquire("switch1.local")
+	conn := &mockCloser{}
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	// Second acquire — reuses entry
+	entry, isNew, err := p.Acquire("switch1.local")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if isNew {
+		t.Error("expected isNew to be false")
+	}
+	if entry.Conn != conn {
+		t.Error("expected same connection to be reused")
+	}
+	if !entry.Locked {
+		t.Error("expected entry to be locked after acquire")
+	}
+}
+
+func TestPool_AcquireLocked(t *testing.T) {
+	p := New(10 * time.Minute)
+
+	// First acquire — locks the entry
+	_, _, _ = p.Acquire("switch1.local")
+
+	// Second acquire — should fail with ErrHostLocked
+	_, _, err := p.Acquire("switch1.local")
+	if err != ErrHostLocked {
+		t.Fatalf("expected ErrHostLocked, got %v", err)
+	}
+}
+
+func TestPool_Release(t *testing.T) {
+	p := New(10 * time.Minute)
+
+	_, _, _ = p.Acquire("switch1.local")
+	p.Release("switch1.local")
+
+	// Should be able to acquire again
+	_, _, err := p.Acquire("switch1.local")
+	if err != nil {
+		t.Fatalf("unexpected error after release: %v", err)
+	}
+}
+
+func TestPool_ReleaseNonExistent(t *testing.T) {
+	p := New(10 * time.Minute)
+	// Should not panic
+	p.Release("nonexistent")
+}
+
+func TestPool_Remove(t *testing.T) {
+	p := New(10 * time.Minute)
+
+	_, _, _ = p.Acquire("switch1.local")
+	conn := &mockCloser{}
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	p.Remove("switch1.local")
+
+	if !conn.closed {
+		t.Error("expected connection to be closed on remove")
+	}
+
+	// Should create a new entry now
+	_, isNew, err := p.Acquire("switch1.local")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isNew {
+		t.Error("expected new entry after remove")
+	}
+}
+
+func TestPool_RemoveNonExistent(t *testing.T) {
+	p := New(10 * time.Minute)
+	// Should not panic
+	p.Remove("nonexistent")
+}
+
+func TestPool_SweepIdle(t *testing.T) {
+	// Use a very short idle timeout for testing.
+	p := New(50 * time.Millisecond)
+
+	_, _, _ = p.Acquire("idle-switch")
+	conn := &mockCloser{}
+	p.SetConnection("idle-switch", conn)
+	p.Release("idle-switch")
+
+	_, _, _ = p.Acquire("active-switch")
+	activeConn := &mockCloser{}
+	p.SetConnection("active-switch", activeConn)
+	p.Release("active-switch")
+
+	// Wait for idle timeout to expire
+	time.Sleep(100 * time.Millisecond)
+
+	// Touch the active switch to keep it alive
+	p.mu.Lock()
+	if entry, ok := p.entries["active-switch"]; ok {
+		entry.LastUsed = time.Now()
+	}
+	p.mu.Unlock()
+
+	removed := p.SweepIdle()
+	if removed != 1 {
+		t.Errorf("expected 1 removed, got %d", removed)
+	}
+	if !conn.closed {
+		t.Error("expected idle connection to be closed")
+	}
+	if activeConn.closed {
+		t.Error("expected active connection to NOT be closed")
+	}
+}
+
+func TestPool_SweepSkipsLocked(t *testing.T) {
+	p := New(1 * time.Millisecond)
+
+	_, _, _ = p.Acquire("locked-switch")
+	conn := &mockCloser{}
+	p.SetConnection("locked-switch", conn)
+	// Don't release — entry stays locked
+
+	time.Sleep(10 * time.Millisecond)
+
+	removed := p.SweepIdle()
+	if removed != 0 {
+		t.Errorf("expected 0 removed (locked), got %d", removed)
+	}
+	if conn.closed {
+		t.Error("locked connection should not be closed by sweep")
+	}
+}
+
+func TestPool_Status(t *testing.T) {
+	p := New(10 * time.Minute)
+
+	_, _, _ = p.Acquire("switch1.local")
+	p.SetConnection("switch1.local", &mockCloser{})
+	p.Release("switch1.local")
+
+	uptime, infos := p.Status()
+
+	if uptime < 0 {
+		t.Errorf("expected non-negative uptime, got %d", uptime)
+	}
+	if len(infos) != 1 {
+		t.Fatalf("expected 1 connection info, got %d", len(infos))
+	}
+	if infos[0].Hostname != "switch1.local" {
+		t.Errorf("expected hostname 'switch1.local', got %q", infos[0].Hostname)
+	}
+	if infos[0].Locked {
+		t.Error("expected connection to be unlocked")
+	}
+}
+
+func TestPool_DisconnectAll(t *testing.T) {
+	p := New(10 * time.Minute)
+
+	conn1 := &mockCloser{}
+	conn2 := &mockCloser{}
+
+	_, _, _ = p.Acquire("switch1")
+	p.SetConnection("switch1", conn1)
+	p.Release("switch1")
+
+	_, _, _ = p.Acquire("switch2")
+	p.SetConnection("switch2", conn2)
+	p.Release("switch2")
+
+	p.DisconnectAll()
+
+	if !conn1.closed {
+		t.Error("expected conn1 to be closed")
+	}
+	if !conn2.closed {
+		t.Error("expected conn2 to be closed")
+	}
+
+	_, infos := p.Status()
+	if len(infos) != 0 {
+		t.Errorf("expected 0 connections after disconnect all, got %d", len(infos))
+	}
+}
+
+func TestPool_ConcurrentAccess(t *testing.T) {
+	p := New(10 * time.Minute)
+	const goroutines = 50
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	lockedCount := 0
+	var lockedMu sync.Mutex
+
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer wg.Done()
+
+			_, _, err := p.Acquire("shared-switch")
+			if err == ErrHostLocked {
+				lockedMu.Lock()
+				lockedCount++
+				lockedMu.Unlock()
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			// Simulate work
+			time.Sleep(1 * time.Millisecond)
+			p.Release("shared-switch")
+		}()
+	}
+
+	wg.Wait()
+
+	// At least some goroutines should have been locked out
+	if lockedCount == 0 {
+		t.Log("Note: no lock contention detected (may be OK with fast execution)")
+	}
+}
+
+func TestPool_MultipleHostnames(t *testing.T) {
+	p := New(10 * time.Minute)
+
+	// Acquire different hostnames concurrently — should not interfere
+	hosts := []string{"switch1", "switch2", "switch3", "switch4", "switch5"}
+	var wg sync.WaitGroup
+	wg.Add(len(hosts))
+
+	for _, host := range hosts {
+		go func(h string) {
+			defer wg.Done()
+			entry, isNew, err := p.Acquire(h)
+			if err != nil {
+				t.Errorf("failed to acquire %s: %v", h, err)
+				return
+			}
+			if !isNew {
+				t.Errorf("expected new entry for %s", h)
+			}
+			if entry.Hostname != h {
+				t.Errorf("expected hostname %s, got %s", h, entry.Hostname)
+			}
+			p.SetConnection(h, &mockCloser{})
+			p.Release(h)
+		}(host)
+	}
+
+	wg.Wait()
+
+	_, infos := p.Status()
+	if len(infos) != len(hosts) {
+		t.Errorf("expected %d connections, got %d", len(hosts), len(infos))
+	}
+}

@@ -12,5 +12,7 @@ readonly class PortStatus
         public string $speed,
         public string $duplex = '',
         public string $vlan = '',
+        public string $description = '',
+        public string $switchportMode = '',
     ) {}
 }

@@ -34,8 +34,8 @@ class IntegrationFieldDefinitionsTest extends TestCase
     {
         $integrations = config('integrations');
         foreach ($integrations as $key => $integration) {
-            $this->assertArrayHasKey('fields', $integration, "Integration '{$key}' is missing 'fields' array.");
-            $this->assertNotEmpty($integration['fields'], "Integration '{$key}' has empty 'fields' array.");
+            $this->assertArrayHasKey('fields', $integration, sprintf("Integration '%s' is missing 'fields' array.", $key));
+            $this->assertNotEmpty($integration['fields'], sprintf("Integration '%s' has empty 'fields' array.", $key));
         }
     }
 
@@ -44,9 +44,9 @@ class IntegrationFieldDefinitionsTest extends TestCase
         $integrations = config('integrations');
         foreach ($integrations as $service => $integration) {
             foreach ($integration['fields'] as $fieldKey => $field) {
-                $this->assertArrayHasKey('type', $field, "Field '{$fieldKey}' in '{$service}' missing 'type'.");
-                $this->assertArrayHasKey('label', $field, "Field '{$fieldKey}' in '{$service}' missing 'label'.");
-                $this->assertContains($field['type'], ['text', 'url', 'password', 'toggle', 'number', 'select', 'select-remote'], "Field '{$fieldKey}' in '{$service}' has invalid type '{$field['type']}'.");
+                $this->assertArrayHasKey('type', $field, sprintf("Field '%s' in '%s' missing 'type'.", $fieldKey, $service));
+                $this->assertArrayHasKey('label', $field, sprintf("Field '%s' in '%s' missing 'label'.", $fieldKey, $service));
+                $this->assertContains($field['type'], ['text', 'url', 'password', 'toggle', 'number', 'select', 'select-remote'], sprintf("Field '%s' in '%s' has invalid type '%s'.", $fieldKey, $service, $field['type']));
             }
         }
     }
@@ -72,7 +72,7 @@ class IntegrationFieldDefinitionsTest extends TestCase
             $fieldKeys = array_keys($integration['fields']);
             $validationKeys = array_keys($integration['validation'] ?? []);
             foreach ($validationKeys as $vKey) {
-                $this->assertContains($vKey, $fieldKeys, "Validation key '{$vKey}' in '{$service}' has no corresponding field definition.");
+                $this->assertContains($vKey, $fieldKeys, sprintf("Validation key '%s' in '%s' has no corresponding field definition.", $vKey, $service));
             }
         }
     }

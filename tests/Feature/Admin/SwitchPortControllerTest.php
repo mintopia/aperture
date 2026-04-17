@@ -1,0 +1,770 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Admin;
+
+use App\Models\IpAddress;
+use App\Models\Role;
+use App\Models\SwitchConfig;
+use App\Models\SwitchPort;
+use App\Models\SwitchPortMac;
+use App\Models\User;
+use App\Models\UserIpAddress;
+use App\Services\Interfaces\MacAddressResolverInterface;
+use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\NetworkSwitch\SwitchServiceFactory;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
+use RuntimeException;
+use Tests\TestCase;
+
+class SwitchPortControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function createAdminUser(): User
+    {
+        $user = User::factory()->create();
+        $role = new Role;
+        $role->code = 'admin';
+        $role->name = 'Admin';
+        $role->save();
+        $user->roles()->attach($role);
+
+        return $user;
+    }
+
+    // -------------------------------------------------------------------------
+    // Authentication & Authorization
+    // -------------------------------------------------------------------------
+
+    public function test_unauthenticated_user_is_redirected_from_switch_port_show(): void
+    {
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertRedirect('/captive');
+    }
+
+    public function test_unauthenticated_user_is_redirected_from_port_shutdown(): void
+    {
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/shutdown');
+
+        $response->assertRedirect('/captive');
+    }
+
+    public function test_unauthenticated_user_is_redirected_from_port_enable(): void
+    {
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/enable');
+
+        $response->assertRedirect('/captive');
+    }
+
+    public function test_unauthenticated_user_is_redirected_from_port_bounce(): void
+    {
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/bounce');
+
+        $response->assertRedirect('/captive');
+    }
+
+    public function test_non_admin_cannot_view_switch_port(): void
+    {
+        $user = User::factory()->create();
+        $switch = SwitchConfig::factory()->create();
+
+        $this->actingAs($user)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1')->assertForbidden();
+    }
+
+    public function test_non_admin_cannot_shutdown_port(): void
+    {
+        $user = User::factory()->create();
+        $switch = SwitchConfig::factory()->create();
+
+        $this->actingAs($user)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/shutdown')->assertForbidden();
+    }
+
+    public function test_non_admin_cannot_enable_port(): void
+    {
+        $user = User::factory()->create();
+        $switch = SwitchConfig::factory()->create();
+
+        $this->actingAs($user)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/enable')->assertForbidden();
+    }
+
+    public function test_non_admin_cannot_bounce_port(): void
+    {
+        $user = User::factory()->create();
+        $switch = SwitchConfig::factory()->create();
+
+        $this->actingAs($user)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/bounce')->assertForbidden();
+    }
+
+    // -------------------------------------------------------------------------
+    // Show — data-testid: switch-port-show-page
+    // -------------------------------------------------------------------------
+
+    public function test_admin_can_view_switch_port_details(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create([
+            'name' => 'Core Switch',
+        ]);
+
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->has('port')
+            ->has('macs')
+            ->has('switchConfig')
+            ->where('switchConfig.name', 'Core Switch')
+            ->where('port.interface', 'Gi0/1')
+        );
+    }
+
+    public function test_port_show_includes_switch_context(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create([
+            'name' => 'Edge Switch',
+            'hostname' => 'edge-sw.local',
+        ]);
+
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'eth0',
+            'status' => 'up',
+            'speed' => '100',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/eth0');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->where('switchConfig.name', 'Edge Switch')
+            ->where('switchConfig.hostname', 'edge-sw.local')
+        );
+    }
+
+    public function test_port_show_returns_404_for_nonexistent_switch(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/switches/99999/ports/Gi0%2F1');
+
+        $response->assertNotFound();
+    }
+
+    public function test_port_show_returns_404_when_port_not_found(): void
+    {
+        $user = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->get(route('admin.switches.ports.show', [$switch, 'NonExistentPort']));
+
+        $response->assertNotFound();
+    }
+
+    public function test_port_show_includes_resolved_ips_for_macs(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'vlan' => 100,
+        ]);
+
+        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $mockResolver->shouldReceive('resolveMacToIps')
+            ->with('AA:BB:CC:DD:EE:FF')
+            ->andReturn([
+                ['ip' => '10.0.0.10', 'hostname' => 'test-host'],
+            ]);
+        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->has('macs', 1)
+            ->where('macs.0.mac_address', 'AA:BB:CC:DD:EE:FF')
+            ->where('macs.0.resolved_ips.0.ip', '10.0.0.10')
+            ->where('macs.0.resolved_ips.0.hostname', 'test-host')
+            ->where('macs.0.resolved_ips.0.user', null)
+        );
+    }
+
+    public function test_port_show_returns_empty_resolved_ips_when_dhcp_fails(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'vlan' => 100,
+        ]);
+
+        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $mockResolver->shouldReceive('resolveMacToIps')
+            ->andThrow(new RuntimeException('DHCP unavailable'));
+        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->has('macs', 1)
+            ->where('macs.0.resolved_ips', [])
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Prev / Next Port Navigation
+    // -------------------------------------------------------------------------
+
+    public function test_port_show_includes_prev_and_next_ports(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        SwitchPort::factory()->create(['switch_config_id' => $switch->id, 'port_name' => 'Gi0/1']);
+        SwitchPort::factory()->create(['switch_config_id' => $switch->id, 'port_name' => 'Gi0/2']);
+        SwitchPort::factory()->create(['switch_config_id' => $switch->id, 'port_name' => 'Gi0/3']);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F2');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->where('prevPort', 'Gi0/1')
+            ->where('nextPort', 'Gi0/3')
+        );
+    }
+
+    public function test_port_show_has_no_prev_for_first_port(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        SwitchPort::factory()->create(['switch_config_id' => $switch->id, 'port_name' => 'Gi0/1']);
+        SwitchPort::factory()->create(['switch_config_id' => $switch->id, 'port_name' => 'Gi0/2']);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->where('prevPort', null)
+            ->where('nextPort', 'Gi0/2')
+        );
+    }
+
+    public function test_port_show_has_no_next_for_last_port(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        SwitchPort::factory()->create(['switch_config_id' => $switch->id, 'port_name' => 'Gi0/1']);
+        SwitchPort::factory()->create(['switch_config_id' => $switch->id, 'port_name' => 'Gi0/2']);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F2');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->where('prevPort', 'Gi0/1')
+            ->where('nextPort', null)
+        );
+    }
+
+    public function test_port_show_has_no_prev_or_next_for_single_port(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        SwitchPort::factory()->create(['switch_config_id' => $switch->id, 'port_name' => 'Gi0/1']);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->where('prevPort', null)
+            ->where('nextPort', null)
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Shutdown — data-testid: switch-port-shutdown-action
+    // -------------------------------------------------------------------------
+
+    public function test_admin_can_shutdown_port(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
+        $adapterMock->shouldReceive('shutdownPort')
+            ->with('Gi0/1')
+            ->once()
+            ->andReturn(true);
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+            ->once()
+            ->andReturn($adapterMock);
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/shutdown');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+    }
+
+    public function test_shutdown_returns_redirect_to_port_or_switch(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
+        $adapterMock->shouldReceive('shutdownPort')
+            ->with('eth0')
+            ->once()
+            ->andReturn(true);
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+            ->once()
+            ->andReturn($adapterMock);
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/eth0/shutdown');
+
+        $response->assertRedirect();
+    }
+
+    public function test_shutdown_returns_404_for_nonexistent_switch(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->post('/admin/switches/99999/ports/Gi0%2F1/shutdown');
+
+        $response->assertNotFound();
+    }
+
+    public function test_shutdown_handles_failure_gracefully(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+            ->once()
+            ->andThrow(new RuntimeException('Connection timeout'));
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/shutdown');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+    }
+
+    // -------------------------------------------------------------------------
+    // Enable — data-testid: switch-port-enable-action
+    // -------------------------------------------------------------------------
+
+    public function test_admin_can_enable_port(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
+        $adapterMock->shouldReceive('enablePort')
+            ->with('Gi0/1')
+            ->once()
+            ->andReturn(true);
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+            ->once()
+            ->andReturn($adapterMock);
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/enable');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+    }
+
+    public function test_enable_returns_404_for_nonexistent_switch(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->post('/admin/switches/99999/ports/Gi0%2F1/enable');
+
+        $response->assertNotFound();
+    }
+
+    public function test_enable_handles_failure_gracefully(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+            ->once()
+            ->andThrow(new RuntimeException('Connection timeout'));
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/enable');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+    }
+
+    // -------------------------------------------------------------------------
+    // Bounce — data-testid: switch-port-bounce-action
+    // -------------------------------------------------------------------------
+
+    public function test_admin_can_bounce_port(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
+        $adapterMock->shouldReceive('shutdownPort')
+            ->with('Gi0/1')
+            ->once()
+            ->andReturn(true);
+        $adapterMock->shouldReceive('enablePort')
+            ->with('Gi0/1')
+            ->once()
+            ->andReturn(true);
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+            ->once()
+            ->andReturn($adapterMock);
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/bounce');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+    }
+
+    public function test_bounce_returns_404_for_nonexistent_switch(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->post('/admin/switches/99999/ports/Gi0%2F1/bounce');
+
+        $response->assertNotFound();
+    }
+
+    public function test_bounce_handles_failure_gracefully(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+            ->once()
+            ->andThrow(new RuntimeException('Connection lost during bounce'));
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/bounce');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+    }
+
+    // -------------------------------------------------------------------------
+    // Switch scoping — ensure port actions operate on the correct switch
+    // -------------------------------------------------------------------------
+
+    public function test_port_actions_are_scoped_to_switch(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch1 = SwitchConfig::factory()->create(['name' => 'Switch A']);
+        SwitchConfig::factory()->create(['name' => 'Switch B']);
+
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switch1->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        // View port on switch 1
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch1->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->where('switchConfig.name', 'Switch A')
+        );
+    }
+
+    public function test_port_shutdown_uses_correct_switch_context(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create(['name' => 'Target Switch']);
+
+        $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
+        $adapterMock->shouldReceive('shutdownPort')
+            ->with('Gi0/2')
+            ->once()
+            ->andReturn(true);
+
+        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+        $factoryMock->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+            ->once()
+            ->andReturn($adapterMock);
+        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F2/shutdown');
+
+        $response->assertRedirect();
+    }
+
+    // -------------------------------------------------------------------------
+    // Route names
+    // -------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------
+    // MAC → IP → User resolution
+    // -------------------------------------------------------------------------
+
+    public function test_port_show_includes_user_data_when_ip_user_relationship_exists(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'vlan' => 100,
+        ]);
+
+        $connectedUser = User::factory()->create(['nickname' => 'NeonGamer42']);
+        $ipRecord = IpAddress::factory()->create(['address' => '10.0.0.42']);
+
+        $userIp = new UserIpAddress;
+        $userIp->user()->associate($connectedUser);
+        $userIp->ip()->associate($ipRecord);
+        $userIp->last_seen_at = now();
+        $userIp->save();
+
+        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $mockResolver->shouldReceive('resolveMacToIps')
+            ->with('AA:BB:CC:DD:EE:FF')
+            ->andReturn([
+                ['ip' => '10.0.0.42', 'hostname' => 'neon-pc'],
+            ]);
+        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->has('macs', 1)
+            ->where('macs.0.resolved_ips.0.ip', '10.0.0.42')
+            ->where('macs.0.resolved_ips.0.hostname', 'neon-pc')
+            ->where('macs.0.resolved_ips.0.user.id', $connectedUser->id)
+            ->where('macs.0.resolved_ips.0.user.nickname', 'NeonGamer42')
+        );
+    }
+
+    public function test_port_show_returns_null_user_when_no_user_for_ip(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'vlan' => 200,
+        ]);
+
+        // Create IP record but no UserIpAddress association
+        IpAddress::factory()->create(['address' => '10.0.0.55']);
+
+        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $mockResolver->shouldReceive('resolveMacToIps')
+            ->with('AA:BB:CC:DD:EE:FF')
+            ->andReturn([
+                ['ip' => '10.0.0.55', 'hostname' => null],
+            ]);
+        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->has('macs', 1)
+            ->where('macs.0.resolved_ips.0.ip', '10.0.0.55')
+            ->where('macs.0.resolved_ips.0.user', null)
+        );
+    }
+
+    public function test_port_show_returns_null_user_when_no_ip_record_exists(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'vlan' => 100,
+        ]);
+
+        // No IpAddress record created — IP resolved via DHCP but not in our DB
+        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $mockResolver->shouldReceive('resolveMacToIps')
+            ->with('AA:BB:CC:DD:EE:FF')
+            ->andReturn([
+                ['ip' => '10.0.0.99', 'hostname' => 'unknown-host'],
+            ]);
+        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->has('macs', 1)
+            ->where('macs.0.resolved_ips.0.ip', '10.0.0.99')
+            ->where('macs.0.resolved_ips.0.user', null)
+        );
+    }
+
+    public function test_port_show_macs_work_when_no_ip_resolved(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => 'AA:BB:CC:FF:FE:01',
+            'vlan' => 1,
+        ]);
+
+        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $mockResolver->shouldReceive('resolveMacToIps')
+            ->with('AA:BB:CC:FF:FE:01')
+            ->andReturn([]);
+        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->has('macs', 1)
+            ->where('macs.0.mac_address', 'AA:BB:CC:FF:FE:01')
+            ->where('macs.0.resolved_ips', [])
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Route names
+    // -------------------------------------------------------------------------
+
+    public function test_route_names_for_switch_ports(): void
+    {
+        $switch = SwitchConfig::factory()->create();
+
+        $this->assertStringContainsString(
+            '/admin/switches/'.$switch->id.'/ports/',
+            route('admin.switches.ports.show', [$switch, 'Gi0/1'])
+        );
+        $this->assertStringContainsString(
+            '/ports/Gi0%2F1/shutdown',
+            route('admin.switches.ports.shutdown', [$switch, 'Gi0/1'])
+        );
+        $this->assertStringContainsString(
+            '/ports/Gi0%2F1/enable',
+            route('admin.switches.ports.enable', [$switch, 'Gi0/1'])
+        );
+        $this->assertStringContainsString(
+            '/ports/Gi0%2F1/bounce',
+            route('admin.switches.ports.bounce', [$switch, 'Gi0/1'])
+        );
+    }
+}

@@ -36,7 +36,7 @@ class UserPasswordManagementTest extends TestCase
         $admin = $this->createAdminUser();
         $target = User::factory()->create();
 
-        $response = $this->actingAs($admin)->get("/admin/users/{$target->id}/edit");
+        $response = $this->actingAs($admin)->get(sprintf('/admin/users/%d/edit', $target->id));
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
@@ -51,7 +51,7 @@ class UserPasswordManagementTest extends TestCase
         $admin = $this->createAdminUser();
         $target = User::factory()->withPassword('existing')->create();
 
-        $response = $this->actingAs($admin)->get("/admin/users/{$target->id}/edit");
+        $response = $this->actingAs($admin)->get(sprintf('/admin/users/%d/edit', $target->id));
 
         $response->assertInertia(fn ($page) => $page
             ->where('user.has_password', true)
@@ -63,7 +63,7 @@ class UserPasswordManagementTest extends TestCase
         $admin = $this->createAdminUser();
         $target = User::factory()->create();
 
-        $response = $this->actingAs($admin)->put("/admin/users/{$target->id}", [
+        $response = $this->actingAs($admin)->put('/admin/users/'.$target->id, [
             'nickname' => $target->nickname,
             'email' => $target->email,
             'password' => 'newpassword123',
@@ -71,6 +71,7 @@ class UserPasswordManagementTest extends TestCase
         ]);
 
         $response->assertRedirect();
+
         $target->refresh();
         $this->assertTrue(Hash::check('newpassword123', $target->password));
     }
@@ -80,12 +81,13 @@ class UserPasswordManagementTest extends TestCase
         $admin = $this->createAdminUser();
         $target = User::factory()->withPassword('existing')->create();
 
-        $response = $this->actingAs($admin)->put("/admin/users/{$target->id}", [
+        $response = $this->actingAs($admin)->put('/admin/users/'.$target->id, [
             'nickname' => 'Updated Name',
             'email' => $target->email,
         ]);
 
         $response->assertRedirect();
+
         $target->refresh();
         $this->assertEquals('Updated Name', $target->nickname);
         $this->assertTrue(Hash::check('existing', $target->password));
@@ -96,13 +98,14 @@ class UserPasswordManagementTest extends TestCase
         $admin = $this->createAdminUser();
         $target = User::factory()->withPassword('oldpass')->create();
 
-        $response = $this->actingAs($admin)->put("/admin/users/{$target->id}", [
+        $response = $this->actingAs($admin)->put('/admin/users/'.$target->id, [
             'nickname' => $target->nickname,
             'email' => $target->email,
             'clear_password' => true,
         ]);
 
         $response->assertRedirect();
+
         $target->refresh();
         $this->assertNull($target->password);
     }
@@ -112,7 +115,7 @@ class UserPasswordManagementTest extends TestCase
         $admin = $this->createAdminUser();
         $target = User::factory()->create();
 
-        $response = $this->actingAs($admin)->put("/admin/users/{$target->id}", [
+        $response = $this->actingAs($admin)->put('/admin/users/'.$target->id, [
             'nickname' => $target->nickname,
             'email' => $target->email,
             'password' => 'newpassword123',
@@ -127,7 +130,7 @@ class UserPasswordManagementTest extends TestCase
         $admin = $this->createAdminUser();
         $target = User::factory()->create();
 
-        $response = $this->actingAs($admin)->put("/admin/users/{$target->id}", [
+        $response = $this->actingAs($admin)->put('/admin/users/'.$target->id, [
             'nickname' => $target->nickname,
             'email' => $target->email,
             'password' => 'short',
@@ -142,7 +145,7 @@ class UserPasswordManagementTest extends TestCase
         $user = User::factory()->create();
         $target = User::factory()->create();
 
-        $response = $this->actingAs($user)->get("/admin/users/{$target->id}/edit");
+        $response = $this->actingAs($user)->get(sprintf('/admin/users/%d/edit', $target->id));
 
         $response->assertForbidden();
     }

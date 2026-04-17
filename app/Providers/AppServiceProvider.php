@@ -7,7 +7,6 @@ use App\Models\SwitchConfig;
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
-use App\Services\CiscoService;
 use App\Services\Dhcp\NullDhcpService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
@@ -17,19 +16,22 @@ use App\Services\Integration\LibreNmsTester;
 use App\Services\Integration\NtopNgTester;
 use App\Services\Integration\OpnSenseTester;
 use App\Services\Integration\PiHoleTester;
+use App\Services\Integration\PrometheusTester;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsBlockingInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
+use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\LibreNmsService;
 use App\Services\MacAddressResolver;
-use App\Services\NetworkSwitch\CiscoSwitchAdapter;
-use App\Services\NetworkSwitch\IosOutputParser;
+use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NtopNgService;
 use App\Services\PiHole\PiHoleService;
+use App\Services\Prometheus\NullMetricsProvider;
+use App\Services\Prometheus\PrometheusService;
 use App\Services\SshProxy\SshProxyClient;
 use App\Services\SshProxy\SshProxyClientInterface;
 use GuzzleHttp\Client;
@@ -46,13 +48,14 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(AuthProviderInterface::class, BorealisDeviceFlowService::class);
 
-        $this->app->singleton(IntegrationTesterRegistry::class, function (): IntegrationTesterRegistry {
+        $this->app->singleton(function (): IntegrationTesterRegistry {
             $registry = new IntegrationTesterRegistry;
             $registry->register('opnsense', new OpnSenseTester);
             $registry->register('pihole', new PiHoleTester);
             $registry->register('librenms', new LibreNmsTester);
             $registry->register('ntopng', new NtopNgTester);
             $registry->register('borealis', new BorealisTester);
+            $registry->register('prometheus', new PrometheusTester);
 
             return $registry;
         });
@@ -75,6 +78,31 @@ class AppServiceProvider extends ServiceProvider
             return new SshProxyClient(
                 sprintf('http://%s:%d', config('aperture.ssh_proxy.host'), config('aperture.ssh_proxy.port')),
                 (string) config('aperture.ssh_proxy.api_key'),
+                timeout: (int) config('aperture.ssh_proxy.request_timeout', 60),
+                connectTimeout: (int) config('aperture.ssh_proxy.connect_timeout', 5),
+            );
+        });
+
+        $this->app->singleton(function (Application $app): SwitchServiceFactory {
+            return new SwitchServiceFactory(
+                proxyClient: config('aperture.ssh_proxy.enabled', false) ? $app->make(SshProxyClientInterface::class) : null,
+                proxyEnabled: (bool) config('aperture.ssh_proxy.enabled', false),
+            );
+        });
+
+        $this->app->singleton(function (): MetricsProviderInterface {
+            $config = $this->getIntegrationDbConfig('prometheus');
+
+            $endpoint = $config['endpoint'] ?? '';
+            if ($endpoint === '' || ! ($config['enabled'] ?? false)) {
+                return new NullMetricsProvider;
+            }
+
+            return new PrometheusService(
+                endpoint: $endpoint,
+                bearerToken: $config['bearer_token'] ?? '',
+                verifySsl: (bool) ($config['verify_ssl'] ?? true),
+                defaultStep: (int) ($config['default_step'] ?? 60),
             );
         });
     }
@@ -135,12 +163,12 @@ class AppServiceProvider extends ServiceProvider
                 'dnsmasq' => [
                     'leases' => '/api/dnsmasq/leases/search',
                     'ipv4_ranges' => '/api/dnsmasq/settings/search_range',
-                    'ipv6_ranges' => '',
+                    'ipv6_ranges' => '/api/dnsmasq/settings/search_range',
                 ],
                 default => [
                     'leases' => '/api/dhcpv4/leases/search_lease',
                     'ipv4_ranges' => '',
-                    'ipv6_ranges' => '',
+                    'ipv6_ranges' => '/api/dhcpv6/leases/search_lease',
                 ],
             };
 
@@ -156,7 +184,7 @@ class AppServiceProvider extends ServiceProvider
                     'ip' => 'address',
                     'mac' => 'hwaddr',
                     'hostname' => 'hostname',
-                    'expires' => 'expires',
+                    'expires' => 'expire',
                     'status' => 'status',
                 ],
                 default => [
@@ -169,14 +197,25 @@ class AppServiceProvider extends ServiceProvider
             };
 
             $rangeFieldMap = match ($dhcpServer) {
+                'kea' => [
+                    'interface' => 'interface',
+                    'subnet' => 'subnet',
+                    'range_from' => 'range_from',
+                    'range_to' => 'range_to',
+                    'gateway' => 'option_data.routers',
+                    'description' => 'description',
+                    'prefix' => 'prefix',
+                    'pools' => 'pools',
+                ],
                 'dnsmasq' => [
                     'interface' => 'interface',
                     'subnet' => 'subnet',
-                    'range_from' => 'from',
-                    'range_to' => 'to',
+                    'range_from' => 'start_addr',
+                    'range_to' => 'end_addr',
                     'gateway' => 'gateway',
-                    'description' => 'domain',
-                    'prefix' => 'prefix',
+                    'description' => '%set_tag',
+                    'prefix' => 'prefix_len',
+                    'subnet_mask' => 'subnet_mask',
                 ],
                 default => [
                     'interface' => 'interface',
@@ -206,6 +245,7 @@ class AppServiceProvider extends ServiceProvider
                 $paths['ipv6_ranges'],
                 $leaseFieldMap,
                 $rangeFieldMap,
+                $dhcpServer === 'kea',
             );
         });
 
@@ -224,26 +264,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (Application $application): NetworkSwitchInterface {
-            $hostname = (string) config('aperture.cisco.hostname');
-
-            try {
-                $switchConfig = SwitchConfig::where('enabled', true)->first();
-                if ($switchConfig) {
-                    $hostname = $switchConfig->hostname;
-                }
-            } catch (Throwable) {
-                // DB not available — use env config
-            }
-
-            $ciscoService = new CiscoService(
-                hostname: $hostname,
-                username: (string) config('aperture.cisco.username', ''),
-                password: (string) config('aperture.cisco.password', ''),
-                enablePassword: (string) config('aperture.cisco.enablePassword', ''),
-                timeout: (int) config('aperture.cisco.timeout', 5),
-            );
-
-            return new CiscoSwitchAdapter($ciscoService, new IosOutputParser);
+            return $application->make(SwitchServiceFactory::class)->make($this->getDefaultSwitchConfig());
         });
 
         $this->app->singleton(function (Application $app): MacAddressResolverInterface {
@@ -266,5 +287,29 @@ class AppServiceProvider extends ServiceProvider
         } catch (Throwable) {
             return [];
         }
+    }
+
+    protected function getDefaultSwitchConfig(): SwitchConfig
+    {
+        try {
+            $switchConfig = SwitchConfig::query()->where('enabled', true)->orderBy('id')->first();
+            if ($switchConfig instanceof SwitchConfig) {
+                return $switchConfig;
+            }
+        } catch (Throwable) {
+            // DB not available — use config fallback
+        }
+
+        return new SwitchConfig([
+            'name' => 'Default Cisco Switch',
+            'hostname' => (string) config('aperture.cisco.hostname', ''),
+            'type' => 'cisco',
+            'username' => (string) config('aperture.cisco.username', ''),
+            'password' => (string) config('aperture.cisco.password', ''),
+            'enable_password' => (string) config('aperture.cisco.enablePassword', ''),
+            'enabled' => true,
+            'port' => 22,
+            'timeout' => (int) config('aperture.cisco.timeout', 5),
+        ]);
     }
 }

@@ -65,7 +65,7 @@ class BorealisTesterTest extends TestCase
             'client_secret' => 'my-client-secret',
         ]);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $auth = $request->header('Authorization');
 
             return ! empty($auth)
@@ -82,7 +82,7 @@ class BorealisTesterTest extends TestCase
             'scope' => 'discord',
         ]);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             parse_str($request->body(), $body);
 
             return isset($body['scope']) && $body['scope'] === 'discord';
@@ -95,7 +95,7 @@ class BorealisTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://borealis.example.com']);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             parse_str($request->body(), $body);
 
             return isset($body['scope']) && $body['scope'] === 'test';
@@ -108,7 +108,7 @@ class BorealisTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://borealis.example.com']);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $ct = $request->header('Content-Type')[0] ?? '';
 
             return str_contains($ct, 'application/x-www-form-urlencoded');
@@ -121,7 +121,7 @@ class BorealisTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://borealis.example.com/']);
 
-        Http::assertSent(fn ($req) => str_contains(
+        Http::assertSent(fn ($req): bool => str_contains(
             $req->url(),
             'https://borealis.example.com/oauth2/device'
         ));

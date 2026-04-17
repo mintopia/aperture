@@ -15,9 +15,9 @@ export default [
             },
         },
         rules: {
-            'vue/html-indent': ['warn', 4],
+            'vue/html-indent': 'off',
             'vue/script-indent': ['warn', 4],
-            'indent': ['warn', 4],
+            indent: ['warn', 4],
             'vue/multi-word-component-names': 'off',
             'vue/no-v-html': 'off',
             'vue/no-v-text-v-html-on-component': 'off',
@@ -35,12 +35,6 @@ export default [
         },
     },
     {
-        ignores: [
-            'vendor/**',
-            'node_modules/**',
-            'public/**',
-            'storage/**',
-            'resources/js/highlight.min.js',
-        ],
+        ignores: ['vendor/**', 'node_modules/**', 'public/**', 'storage/**', 'resources/js/highlight.min.js'],
     },
 ];

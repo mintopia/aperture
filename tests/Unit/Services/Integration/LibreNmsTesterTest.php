@@ -56,7 +56,7 @@ class LibreNmsTesterTest extends TestCase
             'api_key' => 'my-librenms-token',
         ]);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $token = $request->header('X-Auth-Token');
 
             return ! empty($token) && $token[0] === 'my-librenms-token';
@@ -69,7 +69,7 @@ class LibreNmsTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://librenms.local/']);
 
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'https://librenms.local/api/v0'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'https://librenms.local/api/v0'));
     }
 
     public function test_uses_endpoint_from_config(): void
@@ -78,6 +78,6 @@ class LibreNmsTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://my-librenms.example.com']);
 
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'my-librenms.example.com'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'my-librenms.example.com'));
     }
 }

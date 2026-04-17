@@ -56,7 +56,7 @@ class PiHoleTesterTest extends TestCase
             'password' => 'my-secret-password',
         ]);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $body = json_decode($request->body(), true);
 
             return isset($body['password']) && $body['password'] === 'my-secret-password';
@@ -69,7 +69,7 @@ class PiHoleTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://pihole.local']);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $ct = $request->header('Content-Type')[0] ?? '';
 
             return str_contains($ct, 'application/json');
@@ -82,6 +82,6 @@ class PiHoleTesterTest extends TestCase
 
         $this->tester->connect(['endpoint' => 'https://pihole.local/']);
 
-        Http::assertSent(fn ($req) => str_contains($req->url(), 'https://pihole.local/api/auth'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'https://pihole.local/api/auth'));
     }
 }

@@ -26,7 +26,7 @@ class NtopNgTestConnectionAuthTest extends TestCase
 
         $this->assertTrue($result->success);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $authHeader = $request->header('Authorization');
 
             return ! empty($authHeader)
@@ -49,7 +49,7 @@ class NtopNgTestConnectionAuthTest extends TestCase
 
         $this->assertTrue($result->success);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request): bool {
             $authHeader = $request->header('Authorization');
 
             return ! empty($authHeader)

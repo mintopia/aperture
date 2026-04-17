@@ -147,3 +147,17 @@ If you can make a reasonable decision yourself, do so and proceed. Do not ask qu
 **WORKER:** You have full tool access. Complete your work autonomously. Return results to the parent agent, not the user.
 
 See reminder.md for more details.
+
+---
+
+## Design Context
+
+This project has a comprehensive design context file at `.impeccable.md` in the project root. **All agents must read and follow `.impeccable.md` when making any UI or styling changes.** Key highlights:
+
+- **Brand**: Modern Professional Technical — evokes confident control
+- **Themes**: 5 themes (`default`, `cool-neon`, `warm-neon`, `matrix`, `amber-glow`) × 2 modes (light/dark) via CSS custom properties
+- **Typography**: Space Grotesk (headings), Plus Jakarta Sans (body), JetBrains Mono (code) — all locally hosted
+- **Anti-references**: Generic dashboards, bland/subtle aesthetics, AI-generated looks, cluttered enterprise tools
+- **Accessibility**: WCAG AA, status pills use icons not just colour, reduced motion support
+- **Wireframes**: `docs/mockups/v5-*.png` are the canonical reference for all page layouts
+- **Components**: Reusable library in `resources/js/Components/UI/` — check for existing components before creating new ones
