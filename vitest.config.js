@@ -13,6 +13,7 @@ export default defineConfig({
             reportsDirectory: 'storage/coverage/js',
             include: [
                 'resources/js/Components/UI/**/*.vue',
+                'resources/js/Pages/Admin/Switches/Ports/Show.vue',
                 'resources/js/Pages/Admin/Dashboard.vue',
                 'resources/js/Components/Blocks/DnsWarningBlock.vue',
                 'resources/js/composables/**/*.js',
