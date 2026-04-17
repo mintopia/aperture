@@ -9,7 +9,7 @@ import StatusPill from '@/Components/UI/StatusPill.vue';
 import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import { formatRelative, formatDate } from '@/utils/dates';
-import { typeLabel, statusLabel } from '@/utils/switches';
+import { typeLabel, statusLabel, formatSpeed, formatVlan } from '@/utils/switches';
 
 defineOptions({ layout: AdminLayout });
 
@@ -384,10 +384,10 @@ onBeforeUnmount(() => {
                     <StatusPill :status="statusType(row.status)" :label="statusLabel(row.status)" />
                 </td>
                 <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
-                    {{ row.speed || '—' }}
+                    {{ formatSpeed(row.speed) }}
                 </td>
                 <td class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]">
-                    {{ row.vlan ?? '—' }}
+                    {{ formatVlan(row.vlan ?? null, row.switchport_mode) }}
                 </td>
                 <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
                     {{ row.poe || '—' }}

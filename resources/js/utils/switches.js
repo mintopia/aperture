@@ -69,6 +69,8 @@ export function formatDuplex(raw) {
 export function formatVlan(vlan, switchportMode) {
     if (switchportMode === 'trunk' && (vlan === null || vlan === 0)) return 'Trunk';
     if (switchportMode === 'routed' && vlan === null) return 'Routed';
+    if (switchportMode === 'unassigned') return 'Unassigned';
+    if (switchportMode === 'suspended') return 'Suspended';
     if (vlan === null || vlan === 0) return '—';
     return String(vlan);
 }

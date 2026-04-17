@@ -95,7 +95,8 @@ class IosOutputParser
             }
 
             if (preg_match('/^(?P<interface>\S+)\s+(?P<description>.*?)\s{2,}(?P<status>connected|notconnect|disabled|err-disabled|monitoring)\s+(?P<vlan>\S+)\s+(?P<duplex>\S+)\s+(?P<speed>\S+)/', $line, $matches)) {
-                $switchportMode = in_array($matches['vlan'], ['trunk', 'routed'], true) ? $matches['vlan'] : 'access';
+                $nonNumericModes = ['trunk', 'routed', 'unassigned', 'suspended'];
+                $switchportMode = in_array($matches['vlan'], $nonNumericModes, true) ? $matches['vlan'] : 'access';
                 $vlan = $switchportMode === 'access' ? $matches['vlan'] : '';
 
                 $ports[] = new PortStatus(
