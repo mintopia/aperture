@@ -20,13 +20,29 @@ vi.mock('@inertiajs/vue3', () => ({
         props: ['href'],
         template: '<a :href="href"><slot /></a>',
     },
+    usePage: () => ({
+        props: {
+            auth: {
+                user: {
+                    is_admin: true,
+                },
+            },
+        },
+    }),
 }));
 
-// Mock PortalLayout to a passthrough
+// Mock layouts to passthroughs we can assert against
 vi.mock('@/Layouts/PortalLayout.vue', () => ({
     default: {
         name: 'PortalLayout',
-        template: '<div><slot /></div>',
+        template: '<div data-testid="portal-layout-mock"><slot /></div>',
+    },
+}));
+
+vi.mock('@/Layouts/AdminLayout.vue', () => ({
+    default: {
+        name: 'AdminLayout',
+        template: '<div data-testid="admin-layout-mock"><slot /></div>',
     },
 }));
 
@@ -154,13 +170,19 @@ describe('Account/Settings', () => {
         expect(wrapper.find('[data-testid="password-clear"]').exists()).toBe(false);
     });
 
-    // ── Passkey section always visible ──────────────────────────────────────
+    // ── Layout selection ────────────────────────────────────────────────────
 
-    it('shows passkey section even when verification gate is active', () => {
-        // User has password but hasn't verified — gate shown, passkey section still visible
+    it('renders with admin layout when user is admin', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="admin-layout-mock"]').exists()).toBe(true);
+    });
+
+    // ── Passkey section ─────────────────────────────────────────────────────
+
+    it('hides passkey section when verification gate is active', () => {
         const wrapper = mountComponent(userWithPassword, false);
         expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(false);
     });
 
     it('shows passkey section when verified', () => {
@@ -235,6 +257,48 @@ describe('Account/Settings', () => {
         await new Promise((r) => setTimeout(r, 10));
 
         expect(wrapper.find('[data-testid="passkey-error"]').exists()).toBe(true);
+    });
+
+    it('shows friendly error when passkey register response is not valid JSON', async () => {
+        const wrapper = mountComponent(userWithNeither, false);
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce({
+                ok: true,
+                json: () =>
+                    Promise.resolve({
+                        challenge: 'Y2hhbGxlbmdl',
+                        user: { id: 'dXNlci1pZA' },
+                        excludeCredentials: [],
+                    }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON at position 0')),
+            });
+
+        globalThis.navigator.credentials = {
+            create: vi.fn(() =>
+                Promise.resolve({
+                    id: 'cred-id',
+                    rawId: new Uint8Array([1, 2, 3]).buffer,
+                    type: 'public-key',
+                    response: {
+                        attestationObject: new Uint8Array([4, 5, 6]).buffer,
+                        clientDataJSON: new Uint8Array([7, 8, 9]).buffer,
+                    },
+                }),
+            ),
+        };
+
+        await wrapper.find('[data-testid="passkey-register"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 10));
+
+        const error = wrapper.find('[data-testid="passkey-error"]');
+        expect(error.exists()).toBe(true);
+        expect(error.text()).not.toContain('Unexpected token');
     });
 
     // ── Empty state ─────────────────────────────────────────────────────────

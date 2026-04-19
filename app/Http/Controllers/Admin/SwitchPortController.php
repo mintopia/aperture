@@ -11,6 +11,7 @@ use App\Models\SwitchPortMac;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use DateTimeInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -50,7 +51,8 @@ class SwitchPortController extends Controller
             'duplex' => $port->duplex,
             'switchport_mode' => $port->switchport_mode,
             'config_text' => $portConfig?->config_text,
-            'last_synced_at' => $port->last_synced_at?->toISOString(),
+            'interface_output' => $portConfig?->interface_output,
+            'last_synced_at' => $this->toIso8601String($port->last_synced_at),
         ];
         $bandwidth = ['in' => [], 'out' => [], 'in_bytes' => 0, 'out_bytes' => 0];
         $errors = ['input' => 0, 'output' => 0, 'crc' => 0, 'collisions' => 0, 'in_series' => [], 'out_series' => []];
@@ -92,8 +94,9 @@ class SwitchPortController extends Controller
 
         $allPortNames = $switchConfig->switchPorts()->orderBy('port_name')->pluck('port_name')->all();
         $currentIndex = array_search($portId, $allPortNames, true);
-        $prevPort = $currentIndex !== false && $currentIndex > 0 ? $allPortNames[$currentIndex - 1] : null;
-        $nextPort = $currentIndex !== false && $currentIndex < count($allPortNames) - 1 ? $allPortNames[$currentIndex + 1] : null;
+        $currentIndex = is_int($currentIndex) ? $currentIndex : null;
+        $prevPort = $currentIndex !== null && $currentIndex > 0 ? $allPortNames[$currentIndex - 1] : null;
+        $nextPort = $currentIndex !== null && $currentIndex < count($allPortNames) - 1 ? $allPortNames[$currentIndex + 1] : null;
 
         return Inertia::render('Admin/Switches/Ports/Show', [
             'switchConfig' => $switchConfig->toPublicArray(),
@@ -136,7 +139,7 @@ class SwitchPortController extends Controller
                 return [
                     'mac_address' => $mac->mac_address,
                     'vlan' => $mac->vlan,
-                    'last_seen_at' => $mac->last_seen_at?->toISOString(),
+                    'last_seen_at' => $this->toIso8601String($mac->last_seen_at),
                     'resolved_ips' => $resolvedIps,
                 ];
             }),
@@ -183,6 +186,15 @@ class SwitchPortController extends Controller
     private function sumSeriesValues(array $series): int
     {
         return (int) round(array_sum(array_column($series, 'value')));
+    }
+
+    private function toIso8601String(mixed $value): ?string
+    {
+        if (! $value instanceof DateTimeInterface) {
+            return null;
+        }
+
+        return $value->format(DateTimeInterface::ATOM);
     }
 
     public function shutdown(SwitchConfig $switchConfig, string $portId): RedirectResponse

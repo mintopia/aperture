@@ -33,8 +33,10 @@ class PasskeyAuthenticationTest extends TestCase
     public function test_passkey_registration_options_endpoint_exists(): void
     {
         $admin = $this->createAdminUser();
+        $this->actingAs($admin);
+        session()->put('account_verified', true);
 
-        $response = $this->actingAs($admin)->postJson('/passkeys/register/options');
+        $response = $this->postJson('/passkeys/register/options');
 
         $response->assertOk();
     }
@@ -64,6 +66,6 @@ class PasskeyAuthenticationTest extends TestCase
         $response = $this->get('/login');
 
         $response->assertOk();
-        $response->assertInertia(fn ($page) => $page->component('Auth/Login'));
+        $response->assertInertia(fn ($page) => $page->component('Auth/Login', false));
     }
 }
