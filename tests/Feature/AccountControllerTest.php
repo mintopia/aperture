@@ -39,7 +39,7 @@ class AccountControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->component('Account/Settings')
+            ->component('Account/Settings', false)
             ->has('user')
             ->has('verified')
         );
@@ -60,9 +60,9 @@ class AccountControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->component('Account/Settings')
+            ->component('Account/Settings', false)
             ->where('user.has_password', false)
-            ->where('verified', false)
+            ->where('verified', true)
         );
     }
 
@@ -74,7 +74,7 @@ class AccountControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->component('Account/Settings')
+            ->component('Account/Settings', false)
             ->where('user.has_password', true)
             ->where('verified', false)
         );
@@ -234,6 +234,58 @@ class AccountControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson(['success' => false]);
+    }
+
+    public function test_user_with_password_must_verify_before_registering_passkey(): void
+    {
+        $user = User::factory()->withPassword('secret123')->create();
+
+        $response = $this->actingAs($user)->postJson('/passkeys/register/options');
+
+        $response->assertForbidden();
+        $response->assertJson(['message' => 'Please verify your account before managing passkeys.']);
+    }
+
+    public function test_user_with_password_must_verify_before_deleting_passkey(): void
+    {
+        $user = User::factory()->withPassword('secret123')->create();
+
+        $response = $this->actingAs($user)->deleteJson('/passkeys/nonexistent-credential-id');
+
+        $response->assertForbidden();
+        $response->assertJson(['message' => 'Please verify your account before managing passkeys.']);
+    }
+
+    public function test_user_with_password_must_verify_before_updating_password(): void
+    {
+        $user = User::factory()->withPassword('oldpassword123')->create();
+
+        $response = $this->actingAs($user)->putJson('/account/settings/password', [
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        $response->assertForbidden();
+        $response->assertJson(['message' => 'Please verify your account before managing passkeys.']);
+    }
+
+    public function test_user_with_password_must_verify_before_clearing_password(): void
+    {
+        $user = User::factory()->withPassword('oldpassword123')->create();
+
+        $response = $this->actingAs($user)->deleteJson('/account/settings/password');
+
+        $response->assertForbidden();
+        $response->assertJson(['message' => 'Please verify your account before managing passkeys.']);
+    }
+
+    public function test_user_without_password_or_passkeys_can_register_passkey_without_verification(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson('/passkeys/register/options');
+
+        $response->assertOk();
     }
 
     public function test_user_can_verify_after_updating_own_password(): void

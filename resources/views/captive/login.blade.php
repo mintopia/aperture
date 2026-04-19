@@ -4,6 +4,24 @@
 
 @section('content')
     <div class="text-center" data-testid="captive-login">
+        @if (!empty($serviceUnavailable))
+            <div
+                data-testid="captive-config-error"
+                class="rounded-xl border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 p-6 text-left"
+            >
+                <h1 class="font-heading text-xl font-bold text-[var(--color-text)]">Portal authentication unavailable</h1>
+                <p class="mt-2 text-sm text-[var(--color-text-secondary)]">
+                    Portal authentication is currently unavailable.
+                    Please contact your administrator to configure the OAuth2 service.
+                </p>
+                <button
+                    onclick="window.location.reload()"
+                    class="mt-4 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+                >
+                    Try Again
+                </button>
+            </div>
+        @else
         <!-- Logo icon -->
         <div class="mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-primary)]">
             <span class="font-heading text-sm font-bold text-white">A</span>
@@ -68,10 +86,12 @@
                 </button>
             </div>
         </div>
+        @endif
     </div>
 @endsection
 
 @section('scripts')
+    @if (empty($serviceUnavailable))
     <script>
         (function() {
             var deviceCode = @json($deviceCode);
@@ -120,4 +140,5 @@
             setTimeout(poll, interval);
         })();
     </script>
+    @endif
 @endsection

@@ -173,94 +173,92 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div>
+    <div data-testid="switch-show-layout" class="space-y-6">
         <!-- Header -->
-        <div class="mb-4 flex items-center justify-between">
-            <div>
-                <h1
-                    data-testid="page-title"
-                    class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl"
-                >
-                    {{ switchConfig.name }}
-                </h1>
-                <p class="mt-0.5 font-mono text-sm text-[var(--color-text-secondary)]">
-                    {{ switchConfig.hostname }}
-                </p>
-            </div>
-            <div class="flex items-center gap-2">
-                <span
-                    data-testid="switch-type-badge"
-                    class="inline-flex rounded-md bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-semibold text-[var(--color-primary)]"
-                >
-                    {{ typeLabel(switchConfig.type) }}
-                </span>
-                <StatusPill
-                    data-testid="switch-status"
-                    :status="switchConfig.enabled ? 'success' : 'neutral'"
-                    :label="switchConfig.enabled ? 'Enabled' : 'Disabled'"
-                />
-            </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="mb-3 flex flex-wrap gap-2">
-            <Link
-                :href="route('admin.switches.edit', switchConfig.id)"
-                data-testid="action-edit"
-                class="rounded-lg border border-[var(--color-border)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
-            >
-                Edit
-            </Link>
-            <button
-                data-testid="action-sync"
-                title="Trigger a port sync from the switch"
-                :disabled="syncing"
-                class="rounded-lg bg-[var(--color-primary)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
-                @click="syncSwitch"
-            >
-                {{ syncing ? 'Syncing…' : 'Sync Now' }}
-            </button>
-            <button
-                data-testid="action-test"
-                title="Test SSH connectivity to this switch"
-                :disabled="testing"
-                class="rounded-lg border border-[var(--color-border)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:opacity-50"
-                @click="testConnection"
-            >
-                {{ testing ? 'Testing…' : 'Test Connection' }}
-            </button>
-            <button
-                data-testid="action-delete"
-                title="Remove this switch and all its data"
-                class="rounded-lg bg-[var(--color-danger)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-danger)]/80"
-                @click="showDeleteModal = true"
-            >
-                Delete
-            </button>
-        </div>
-
-        <!-- Test Connection Result -->
-        <div
-            v-if="testResult"
-            data-testid="test-result"
-            :class="[
-                'mb-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
-                testResult.success
-                    ? 'border-[var(--color-success)]/20 bg-[var(--color-success)]/10 text-[var(--color-success)]'
-                    : 'border-[var(--color-danger)]/20 bg-[var(--color-danger)]/10 text-[var(--color-danger)]',
-            ]"
+        <section
+            data-testid="switch-show-header-card"
+            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5"
         >
-            <span class="font-mono text-[10px] leading-none" aria-hidden="true">{{
-                testResult.success ? '✓' : '✕'
-            }}</span>
-            {{ testResult.message }}
-        </div>
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                    <h1
+                        data-testid="page-title"
+                        class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl"
+                    >
+                        {{ switchConfig.name }}
+                    </h1>
+                    <p class="mt-1 font-mono text-sm text-[var(--color-text-secondary)]">
+                        {{ switchConfig.hostname }}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span
+                        data-testid="switch-type-badge"
+                        class="inline-flex rounded-md bg-[var(--color-primary)]/10 px-2 py-0.5 text-xs font-semibold text-[var(--color-primary)]"
+                    >
+                        {{ typeLabel(switchConfig.type) }}
+                    </span>
+                    <StatusPill
+                        data-testid="switch-status"
+                        :status="switchConfig.enabled ? 'success' : 'neutral'"
+                        :label="switchConfig.enabled ? 'Enabled' : 'Disabled'"
+                    />
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div data-testid="switch-show-actions" class="mt-5 flex flex-wrap gap-2">
+                <Link
+                    :href="route('admin.switches.edit', switchConfig.id)"
+                    data-testid="action-edit"
+                    class="rounded-lg border border-[var(--color-border)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none"
+                >
+                    Edit
+                </Link>
+                <button
+                    data-testid="action-sync"
+                    title="Trigger a port sync from the switch"
+                    :disabled="syncing"
+                    class="rounded-lg bg-[var(--color-primary)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
+                    @click="syncSwitch"
+                >
+                    {{ syncing ? 'Syncing…' : 'Sync Now' }}
+                </button>
+                <button
+                    data-testid="action-test"
+                    title="Test SSH connectivity to this switch"
+                    :disabled="testing"
+                    class="rounded-lg border border-[var(--color-border)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
+                    @click="testConnection"
+                >
+                    {{ testing ? 'Testing…' : 'Test Connection' }}
+                </button>
+            </div>
+
+            <!-- Test Connection Result -->
+            <div
+                v-if="testResult"
+                data-testid="test-result"
+                role="status"
+                aria-live="polite"
+                :class="[
+                    'mt-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
+                    testResult.success
+                        ? 'border-[var(--color-success)]/20 bg-[var(--color-success)]/10 text-[var(--color-success)]'
+                        : 'border-[var(--color-danger)]/20 bg-[var(--color-danger)]/10 text-[var(--color-danger)]',
+                ]"
+            >
+                <span class="font-mono text-[10px] leading-none" aria-hidden="true">{{
+                    testResult.success ? '✓' : '✕'
+                }}</span>
+                {{ testResult.message }}
+            </div>
+        </section>
 
         <!-- Sync Status -->
-        <div
+        <section
             v-if="latestSync"
             data-testid="sync-status"
-            class="mb-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3"
+            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5"
         >
             <div class="flex flex-wrap items-center gap-3">
                 <span class="text-xs font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
@@ -284,125 +282,145 @@ onBeforeUnmount(() => {
             >
                 {{ latestSync.error }}
             </p>
-        </div>
-        <div v-else class="mb-5" />
+        </section>
 
-        <!-- Info Strip -->
-        <MetadataStrip
-            :items="[
-                { label: 'Hostname', value: switchConfig.hostname ?? '—', mono: true },
-                { label: 'Port', value: switchConfig.port ?? '—', mono: true },
-                { label: 'Type', value: typeLabel(switchConfig.type) },
-                { label: 'Timeout', value: switchConfig.timeout ? switchConfig.timeout + 's' : '—' },
-                {
-                    label: 'Last Synced',
-                    value: switchConfig.last_synced_at ? formatRelative(switchConfig.last_synced_at) : 'Never',
-                },
-                {
-                    label: 'Created',
-                    value: switchConfig.created_at ? formatDate(switchConfig.created_at) : '—',
-                },
-            ]"
-        />
+        <section
+            data-testid="switch-details-card"
+            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5"
+        >
+            <SectionHeader title="Switch Details" />
 
-        <!-- Ports Table -->
-        <SectionHeader title="Ports" accent-line class="mt-5" />
-
-        <!-- Port Search -->
-        <div class="mt-3">
-            <input
-                data-testid="port-search"
-                type="text"
-                placeholder="Search ports…"
-                :value="portSearch"
-                class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
-                @input="onSearchInput"
-            />
-        </div>
-
-        <!-- Port Filter Chips -->
-        <div class="mt-2 flex flex-wrap items-center gap-2">
-            <button
-                v-for="chip in [
-                    { key: 'all', label: 'All' },
-                    { key: 'up', label: 'Up' },
-                    { key: 'down', label: 'Down' },
-                    { key: 'errors', label: 'Errors' },
+            <!-- Info Strip -->
+            <MetadataStrip
+                :items="[
+                    { label: 'Hostname', value: switchConfig.hostname ?? '—', mono: true },
+                    { label: 'Port', value: switchConfig.port ?? '—', mono: true },
+                    { label: 'Type', value: typeLabel(switchConfig.type) },
+                    { label: 'Timeout', value: switchConfig.timeout ? switchConfig.timeout + 's' : '—' },
+                    {
+                        label: 'Last Synced',
+                        value: switchConfig.last_synced_at ? formatRelative(switchConfig.last_synced_at) : 'Never',
+                    },
+                    {
+                        label: 'Created',
+                        value: switchConfig.created_at ? formatDate(switchConfig.created_at) : '—',
+                    },
                 ]"
-                :key="chip.key"
-                :data-testid="`port-filter-${chip.key}`"
-                :class="
-                    portFilter === chip.key
-                        ? 'rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]'
-                        : 'rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
-                "
-                @click="portFilter = chip.key"
+            />
+        </section>
+
+        <section
+            data-testid="switch-ports-card"
+            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5"
+        >
+            <!-- Ports Table -->
+            <SectionHeader title="Ports" accent-line />
+
+            <!-- Port Search -->
+            <div class="mt-3">
+                <label for="port-search" class="sr-only">Search ports</label>
+                <input
+                    id="port-search"
+                    data-testid="port-search"
+                    type="text"
+                    placeholder="Search ports…"
+                    :value="portSearch"
+                    class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                    @input="onSearchInput"
+                />
+            </div>
+
+            <!-- Port Filter Chips -->
+            <div class="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label="Port status filters">
+                <button
+                    v-for="chip in [
+                        { key: 'all', label: 'All' },
+                        { key: 'up', label: 'Up' },
+                        { key: 'down', label: 'Down' },
+                        { key: 'errors', label: 'Errors' },
+                    ]"
+                    :key="chip.key"
+                    :data-testid="`port-filter-${chip.key}`"
+                    :aria-pressed="portFilter === chip.key"
+                    :class="
+                        portFilter === chip.key
+                            ? 'rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)] shadow-sm'
+                            : 'rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                    "
+                    @click="portFilter = chip.key"
+                >
+                    {{ chip.label }} ({{ portFilterCounts[chip.key] }})
+                </button>
+
+                <span data-testid="port-filter-count" class="ml-auto text-xs text-[var(--color-text-muted)]">
+                    Showing {{ filteredPorts.length }} of {{ ports.length }} ports
+                </span>
+            </div>
+
+            <!-- No Results -->
+            <div
+                v-if="filteredPorts.length === 0 && ports.length > 0"
+                data-testid="port-no-results"
+                class="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-8 text-center text-sm text-[var(--color-text-muted)]"
             >
-                {{ chip.label }} ({{ portFilterCounts[chip.key] }})
-            </button>
+                No ports match your search
+            </div>
 
-            <span data-testid="port-filter-count" class="ml-auto text-xs text-[var(--color-text-muted)]">
-                Showing {{ filteredPorts.length }} of {{ ports.length }} ports
-            </span>
-        </div>
-
-        <!-- No Results -->
-        <div
-            v-if="filteredPorts.length === 0 && ports.length > 0"
-            data-testid="port-no-results"
-            class="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-8 text-center text-sm text-[var(--color-text-muted)]"
-        >
-            No ports match your search
-        </div>
-
-        <DataTable
-            v-if="filteredPorts.length > 0 || ports.length === 0"
-            :columns="portColumns"
-            :rows="filteredPorts"
-            :row-class="
-                (row) =>
-                    row.admin_status === 'down'
-                        ? 'opacity-40'
-                        : row.status === 'down' || row.status === 'notconnect'
-                          ? 'opacity-50'
-                          : ''
-            "
-            clickable
-            :row-href="
-                (row) => route('admin.switches.ports.show', { switchConfig: switchConfig.id, portId: row.interface })
-            "
-            empty-message="No ports found. Sync this switch to discover ports."
-        >
-            <template #row="{ row }">
-                <td class="px-4 py-2.5 font-mono text-sm text-[var(--color-text)]">
-                    {{ row.interface }}
-                </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
-                    {{ row.description || '—' }}
-                </td>
-                <td class="px-4 py-2.5">
-                    <StatusPill :status="statusType(row.status)" :label="statusLabel(row.status)" />
-                </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
-                    {{ formatSpeed(row.speed) }}
-                </td>
-                <td class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]">
-                    {{ formatVlan(row.vlan ?? null, row.switchport_mode) }}
-                </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
-                    {{ row.poe || '—' }}
-                </td>
-            </template>
-        </DataTable>
+            <DataTable
+                v-if="filteredPorts.length > 0 || ports.length === 0"
+                :columns="portColumns"
+                :rows="filteredPorts"
+                :row-class="
+                    (row) =>
+                        row.admin_status === 'down'
+                            ? 'border-l-2 border-l-[var(--color-warning)] bg-[var(--color-warning)]/5'
+                            : row.status === 'down' || row.status === 'notconnect'
+                              ? 'border-l-2 border-l-[var(--color-text-muted)] bg-[var(--color-surface-hover)]'
+                              : ''
+                "
+                clickable
+                :row-href="
+                    (row) =>
+                        route('admin.switches.ports.show', { switchConfig: switchConfig.id, portId: row.interface })
+                "
+                :row-aria-label="(row) => `Open port ${row.interface}`"
+                empty-message="No ports found. Sync this switch to discover ports."
+            >
+                <template #row="{ row }">
+                    <td class="px-4 py-2.5 font-mono text-sm text-[var(--color-text)]">
+                        {{ row.interface }}
+                    </td>
+                    <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
+                        {{ row.description || '—' }}
+                    </td>
+                    <td class="px-4 py-2.5">
+                        <StatusPill :status="statusType(row.status)" :label="statusLabel(row.status)" />
+                    </td>
+                    <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
+                        {{ formatSpeed(row.speed) }}
+                    </td>
+                    <td class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]">
+                        {{ formatVlan(row.vlan ?? null, row.switchport_mode) }}
+                    </td>
+                    <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
+                        {{ row.poe || '—' }}
+                    </td>
+                </template>
+            </DataTable>
+        </section>
 
         <!-- Running Config -->
-        <div v-if="canDownloadConfig" class="mt-6">
+        <div
+            v-if="canDownloadConfig"
+            data-testid="running-config-card"
+            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5"
+        >
             <SectionHeader title="Running Config">
                 <template #actions>
                     <div class="flex gap-2">
                         <button
                             data-testid="action-toggle-config"
-                            class="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                            class="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none"
                             @click="showConfig = !showConfig"
                         >
                             {{ showConfig ? 'Hide Config' : 'View Running Config' }}
@@ -410,7 +428,7 @@ onBeforeUnmount(() => {
                         <a
                             :href="route('admin.switches.config', switchConfig.id)"
                             data-testid="action-download-config"
-                            class="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                            class="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none"
                         >
                             Download
                         </a>
@@ -425,6 +443,24 @@ onBeforeUnmount(() => {
             >
                 No running config available. Sync the switch to retrieve its configuration.
             </p>
+        </div>
+
+        <div
+            data-testid="danger-zone-switch"
+            class="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-4 sm:p-5"
+        >
+            <p class="text-xs font-bold tracking-wider text-[var(--color-danger)] uppercase">Danger Zone</p>
+            <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+                Deleting this switch removes it and all associated port data.
+            </p>
+            <button
+                data-testid="action-delete"
+                title="Remove this switch and all its data"
+                class="mt-3 rounded-lg bg-[var(--color-danger)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-danger)]/80 focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none"
+                @click="showDeleteModal = true"
+            >
+                Delete Switch
+            </button>
         </div>
 
         <!-- Delete Confirmation Modal -->

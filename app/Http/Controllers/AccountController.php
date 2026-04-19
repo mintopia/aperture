@@ -29,7 +29,7 @@ class AccountController extends Controller
                     'created_at' => $cred->created_at->toIso8601String(),
                 ]),
             ],
-            'verified' => $request->session()->get('account_verified', false),
+            'verified' => $request->session()->get('account_verified', $user->password === null),
         ]);
     }
 

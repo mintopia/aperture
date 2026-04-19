@@ -6,6 +6,7 @@ use App\Services\Auth\DeviceFlowResponse;
 use App\Services\Interfaces\AuthProviderInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use RuntimeException;
 use Tests\TestCase;
 
 class CaptivePortalViewTest extends TestCase
@@ -141,5 +142,17 @@ class CaptivePortalViewTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('/captive/poll/', false);
+    }
+
+    public function test_captive_login_shows_graceful_error_when_oauth_not_configured(): void
+    {
+        $mock = $this->mock(AuthProviderInterface::class);
+        $mock->shouldReceive('initiateDeviceFlow')->andThrow(new RuntimeException('OAuth2 not configured'));
+
+        $response = $this->get('/captive');
+
+        $response->assertStatus(503);
+        $response->assertSee('Portal authentication is currently unavailable.');
+        $response->assertSee('data-testid="captive-config-error"', false);
     }
 }

@@ -131,7 +131,8 @@ class TestConnectionController extends Controller
                 ],
             ]);
         } catch (RequestException $requestException) {
-            $statusCode = $requestException->hasResponse() ? $requestException->getResponse()->getStatusCode() : null;
+            $response = $requestException->getResponse();
+            $statusCode = $response?->getStatusCode();
 
             Log::error('SSH proxy request failed during switch test', [
                 'switch_id' => $switchConfig->id,

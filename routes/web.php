@@ -24,6 +24,7 @@ use App\Http\Controllers\Portal\DashboardController;
 use App\Http\Controllers\Portal\PiHoleController;
 use App\Http\Controllers\Portal\StatsController;
 use App\Http\Controllers\PortalController;
+use App\Http\Middleware\EnsureAccountSecurityVerified;
 use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 
@@ -40,7 +41,7 @@ Route::middleware(['guest'])->group(function () {
 });
 
 // Passkey registration (requires auth)
-Route::middleware(['auth'])->prefix('passkeys')->group(function () {
+Route::middleware(['auth', EnsureAccountSecurityVerified::class])->prefix('passkeys')->group(function () {
     Route::post('/register/options', [PasskeyController::class, 'registerOptions'])->name('passkeys.register.options');
     Route::post('/register', [PasskeyController::class, 'register'])->name('passkeys.register');
     Route::delete('/{credentialId}', [PasskeyController::class, 'destroy'])->name('passkeys.destroy');
@@ -61,8 +62,10 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('account')->group(function () {
         Route::get('/settings', [AccountController::class, 'show'])->name('account.settings');
         Route::post('/settings/verify', [AccountController::class, 'verify'])->name('account.verify');
-        Route::put('/settings/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
-        Route::delete('/settings/password', [AccountController::class, 'clearPassword'])->name('account.password.clear');
+        Route::middleware(EnsureAccountSecurityVerified::class)->group(function (): void {
+            Route::put('/settings/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+            Route::delete('/settings/password', [AccountController::class, 'clearPassword'])->name('account.password.clear');
+        });
     });
 
     // New portal routes

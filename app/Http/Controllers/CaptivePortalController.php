@@ -10,38 +10,55 @@ use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
+use Throwable;
 
 class CaptivePortalController extends Controller
 {
-    public function index(Request $request, AuthProviderInterface $authProvider): View
+    public function index(Request $request, AuthProviderInterface $authProvider): View|Response
     {
-        $scope = (string) IntegrationConfig::getWithFallback('borealis', 'scope', 'discord');
-        $deviceFlow = $authProvider->initiateDeviceFlow($scope);
+        try {
+            $scope = (string) IntegrationConfig::getWithFallback('borealis', 'scope', 'discord');
+            $deviceFlow = $authProvider->initiateDeviceFlow($scope);
 
-        Cache::put(
-            'device_flow:'.$deviceFlow->deviceCode,
-            ['status' => 'pending', 'ip' => $request->getClientIp()],
-            now()->addSeconds($deviceFlow->expiresIn)
-        );
+            Cache::put(
+                'device_flow:'.$deviceFlow->deviceCode,
+                ['status' => 'pending', 'ip' => $request->getClientIp()],
+                now()->addSeconds($deviceFlow->expiresIn)
+            );
 
-        $qrOptions = new QROptions([
-            'outputType' => QRCode::OUTPUT_MARKUP_SVG,
-            'svgUseCssProperties' => false,
-            'outputBase64' => false,
-        ]);
-        $qrCode = (new QRCode($qrOptions))->render($deviceFlow->verificationUriComplete ?? $deviceFlow->verificationUri);
+            $qrOptions = new QROptions([
+                'outputType' => QRCode::OUTPUT_MARKUP_SVG,
+                'svgUseCssProperties' => false,
+                'outputBase64' => false,
+            ]);
+            $qrCode = (new QRCode($qrOptions))->render($deviceFlow->verificationUriComplete ?? $deviceFlow->verificationUri);
 
-        return view('captive.login', [
-            'deviceCode' => $deviceFlow->deviceCode,
-            'userCode' => $deviceFlow->userCode,
-            'verificationUri' => $deviceFlow->verificationUri,
-            'qrCode' => $qrCode,
-            'expiresIn' => $deviceFlow->expiresIn,
-            'interval' => $deviceFlow->interval,
-        ]);
+            return view('captive.login', [
+                'serviceUnavailable' => false,
+                'deviceCode' => $deviceFlow->deviceCode,
+                'userCode' => $deviceFlow->userCode,
+                'verificationUri' => $deviceFlow->verificationUri,
+                'qrCode' => $qrCode,
+                'expiresIn' => $deviceFlow->expiresIn,
+                'interval' => $deviceFlow->interval,
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->view('captive.login', [
+                'serviceUnavailable' => true,
+                'deviceCode' => null,
+                'userCode' => null,
+                'verificationUri' => null,
+                'qrCode' => null,
+                'expiresIn' => 0,
+                'interval' => 0,
+            ], 503);
+        }
     }
 
     public function poll(

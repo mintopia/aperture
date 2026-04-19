@@ -238,9 +238,9 @@ function confirmShutdown() {
 </script>
 
 <template>
-    <div>
+    <div class="space-y-6">
         <!-- Header -->
-        <div class="mb-4">
+        <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <h1
                     data-testid="page-title"
@@ -253,42 +253,30 @@ function confirmShutdown() {
                         data-testid="action-refresh"
                         title="Sync this port's data from the switch"
                         :disabled="refreshing"
-                        class="rounded-lg border border-[var(--color-border)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:opacity-50"
+                        class="rounded-lg border border-[var(--color-border)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
                         @click="refreshPort"
                     >
                         {{ refreshing ? 'Refreshing…' : 'Refresh' }}
                     </button>
                     <button
-                        data-testid="action-bounce"
-                        title="Briefly take this port offline and bring it back up"
-                        :disabled="bouncing"
-                        class="rounded-lg border border-[var(--color-warning)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-warning)] transition-colors hover:bg-[var(--color-warning)]/10 disabled:opacity-50"
-                        @click="bouncePort"
-                    >
-                        {{ bouncing ? 'Bouncing…' : 'Bounce Port' }}
-                    </button>
-                    <button
+                        v-if="port.admin_status !== 'up'"
                         data-testid="action-toggle"
-                        :title="
-                            port.admin_status === 'up'
-                                ? 'Administratively disable this port'
-                                : 'Administratively enable this port'
-                        "
+                        title="Administratively enable this port"
                         :disabled="toggling"
-                        :class="
-                            port.admin_status === 'up'
-                                ? 'bg-[var(--color-danger)] hover:bg-[var(--color-danger)]/80'
-                                : 'bg-[var(--color-success)] hover:bg-[var(--color-success)]/80'
-                        "
-                        class="rounded-lg px-3.5 py-1.5 text-sm font-semibold text-white transition-colors disabled:opacity-50"
+                        class="rounded-lg bg-[var(--color-success)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-success)]/80 focus-visible:ring-2 focus-visible:ring-[var(--color-success)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
                         @click="togglePort"
                     >
-                        <template v-if="toggling">
-                            {{ port.admin_status === 'up' ? 'Shutting down…' : 'Enabling…' }}
-                        </template>
-                        <template v-else>
-                            {{ port.admin_status === 'up' ? 'Shutdown' : 'Enable' }}
-                        </template>
+                        {{ toggling ? 'Enabling…' : 'Enable' }}
+                    </button>
+                    <button
+                        v-else
+                        data-testid="action-toggle"
+                        title="Administratively disable this port"
+                        :disabled="toggling"
+                        class="rounded-lg bg-[var(--color-danger)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-danger)]/80 focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
+                        @click="togglePort"
+                    >
+                        {{ toggling ? 'Shutting down…' : 'Shutdown' }}
                     </button>
                     <StatusPill
                         data-testid="port-status"
@@ -297,45 +285,50 @@ function confirmShutdown() {
                     />
                 </div>
             </div>
-            <div class="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p class="text-sm text-[var(--color-text-secondary)]">
-                    on
-                    <Link
-                        data-testid="port-switch-link"
-                        :href="route('admin.switches.show', switchConfig.id)"
-                        class="font-medium hover:text-[var(--color-primary)]"
-                    >
-                        {{ switchConfig.name }}
-                    </Link>
-                    <span class="text-[var(--color-text-muted)]">({{ typeLabel(switchConfig.type) }})</span>
-                </p>
-                <div class="flex items-center gap-3">
-                    <Link
-                        v-if="prevPort"
-                        data-testid="port-nav-prev"
-                        :href="
-                            route('admin.switches.ports.show', {
-                                switchConfig: switchConfig.id,
-                                portId: prevPort,
-                            })
-                        "
-                        class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
-                    >
-                        ← {{ prevPort }}
-                    </Link>
-                    <Link
-                        v-if="nextPort"
-                        data-testid="port-nav-next"
-                        :href="
-                            route('admin.switches.ports.show', {
-                                switchConfig: switchConfig.id,
-                                portId: nextPort,
-                            })
-                        "
-                        class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
-                    >
-                        {{ nextPort }} →
-                    </Link>
+            <div
+                data-testid="port-context-strip"
+                class="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5 sm:px-4 sm:py-3"
+            >
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-sm text-[var(--color-text-secondary)]">
+                        on
+                        <Link
+                            data-testid="port-switch-link"
+                            :href="route('admin.switches.show', switchConfig.id)"
+                            class="font-medium hover:text-[var(--color-primary)] focus-visible:underline focus-visible:outline-none"
+                        >
+                            {{ switchConfig.name }}
+                        </Link>
+                        <span class="text-[var(--color-text-muted)]">({{ typeLabel(switchConfig.type) }})</span>
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <Link
+                            v-if="prevPort"
+                            data-testid="port-nav-prev"
+                            :href="
+                                route('admin.switches.ports.show', {
+                                    switchConfig: switchConfig.id,
+                                    portId: prevPort,
+                                })
+                            "
+                            class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] focus-visible:underline focus-visible:outline-none"
+                        >
+                            ← {{ prevPort }}
+                        </Link>
+                        <Link
+                            v-if="nextPort"
+                            data-testid="port-nav-next"
+                            :href="
+                                route('admin.switches.ports.show', {
+                                    switchConfig: switchConfig.id,
+                                    portId: nextPort,
+                                })
+                            "
+                            class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] focus-visible:underline focus-visible:outline-none"
+                        >
+                            {{ nextPort }} →
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
@@ -376,57 +369,73 @@ function confirmShutdown() {
             </template>
         </MetadataStrip>
 
-        <p data-testid="last-updated" class="mb-4 text-xs text-[var(--color-text-muted)]">
+        <p data-testid="last-updated" class="-mt-2 text-xs text-[var(--color-text-muted)]">
             Last updated {{ displayTime }}
         </p>
 
-        <!-- Main Content: two columns on desktop -->
-        <div class="mt-5 grid gap-6 lg:grid-cols-3">
-            <!-- Left Column (2/3) -->
-            <div class="lg:col-span-2">
-                <!-- Bandwidth -->
-                <div>
-                    <SectionHeader title="Bandwidth — Last 24 Hours" accent-line />
-                    <div
-                        data-testid="bandwidth-section"
-                        class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
-                    >
-                        <div class="mb-4 flex gap-6">
-                            <div>
-                                <p
-                                    class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
-                                >
-                                    In
-                                </p>
-                                <p class="font-mono text-lg font-bold text-[var(--color-success)]">
-                                    {{ formatBytes(bandwidth.in_bytes ?? 0) }}
-                                </p>
-                            </div>
-                            <div>
-                                <p
-                                    class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
-                                >
-                                    Out
-                                </p>
-                                <p class="font-mono text-lg font-bold text-[var(--color-primary)]">
-                                    {{ formatBytes(bandwidth.out_bytes ?? 0) }}
-                                </p>
-                            </div>
+        <div
+            data-testid="danger-zone-port"
+            class="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-4 sm:p-5"
+        >
+            <p class="text-xs font-bold tracking-wider text-[var(--color-danger)] uppercase">Danger Zone</p>
+            <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+                Bounce or shutdown operations can interrupt connected devices.
+            </p>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                    data-testid="action-bounce"
+                    title="Briefly take this port offline and bring it back up"
+                    :disabled="bouncing"
+                    class="rounded-lg border border-[var(--color-warning)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-warning)] transition-colors hover:bg-[var(--color-warning)]/10 focus-visible:ring-2 focus-visible:ring-[var(--color-warning)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
+                    @click="bouncePort"
+                >
+                    {{ bouncing ? 'Bouncing…' : 'Bounce Port' }}
+                </button>
+                <span v-if="port.admin_status !== 'up'" class="text-xs text-[var(--color-text-muted)]">
+                    Port is already administratively down.
+                </span>
+            </div>
+        </div>
+
+        <div data-testid="layout-row-primary" class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+            <!-- Bandwidth -->
+            <div>
+                <SectionHeader title="Bandwidth — Last 24 Hours" accent-line />
+                <div
+                    data-testid="bandwidth-section"
+                    class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+                >
+                    <div class="mb-4 flex flex-wrap gap-6">
+                        <div>
+                            <p class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
+                                In
+                            </p>
+                            <p class="font-mono text-lg font-bold text-[var(--color-success)]">
+                                {{ formatBytes(bandwidth.in_bytes ?? 0) }}
+                            </p>
                         </div>
-                        <TimeSeriesChart
-                            data-testid="bandwidth-chart"
-                            :series="bandwidthSeries"
-                            y-axis-label="bps"
-                            height="200px"
-                            :empty-message="
-                                metricsAvailable ? 'No bandwidth data for this port' : 'Prometheus not configured'
-                            "
-                        />
+                        <div>
+                            <p class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
+                                Out
+                            </p>
+                            <p class="font-mono text-lg font-bold text-[var(--color-primary)]">
+                                {{ formatBytes(bandwidth.out_bytes ?? 0) }}
+                            </p>
+                        </div>
                     </div>
+                    <TimeSeriesChart
+                        data-testid="bandwidth-chart"
+                        :series="bandwidthSeries"
+                        y-axis-label="bps"
+                        height="200px"
+                        :empty-message="
+                            metricsAvailable ? 'No bandwidth data for this port' : 'Prometheus not configured'
+                        "
+                    />
                 </div>
             </div>
 
-            <!-- Right Column (1/3): Connected Devices -->
+            <!-- Connected Devices -->
             <div data-testid="connected-devices-section">
                 <SectionHeader :title="`Connected Devices (${macs.length})`" accent-line />
                 <div
@@ -436,12 +445,12 @@ function confirmShutdown() {
                 >
                     <p class="text-center text-sm text-[var(--color-text-muted)]">No devices connected</p>
                 </div>
-                <div v-else class="space-y-3">
+                <div v-else class="space-y-2.5">
                     <div
                         v-for="(mac, index) in macs"
                         :key="index"
                         :data-testid="'connected-device-' + index"
-                        class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+                        class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5"
                     >
                         <!-- Device title: user name (linked) or MAC address -->
                         <template v-if="deviceHasUser(mac)">
@@ -502,7 +511,7 @@ function confirmShutdown() {
             </div>
         </div>
 
-        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <div data-testid="layout-row-secondary" class="mt-6 grid gap-6 xl:grid-cols-2">
             <!-- Interface Errors -->
             <div>
                 <SectionHeader title="Interface Errors" accent-line />
@@ -556,7 +565,7 @@ function confirmShutdown() {
             <!-- Running Config -->
             <div>
                 <SectionHeader title="Running Config" accent-line />
-                <ConfigBlock v-if="port.config_text" data-testid="port-config" :code="port.config_text" />
+                <ConfigBlock v-if="port.config_text" :code="port.config_text" />
                 <div
                     v-else
                     class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm text-[var(--color-text-muted)]"
@@ -564,6 +573,23 @@ function confirmShutdown() {
                     No running config available
                 </div>
             </div>
+        </div>
+
+        <div data-testid="interface-output-secondary" class="mt-4">
+            <details
+                data-testid="interface-output-collapsible"
+                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+            >
+                <summary
+                    class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                >
+                    Interface Output
+                </summary>
+                <div class="border-t border-[var(--color-border)] p-4">
+                    <ConfigBlock v-if="port.interface_output" :code="port.interface_output" />
+                    <div v-else class="text-sm text-[var(--color-text-muted)]">No interface output available</div>
+                </div>
+            </details>
         </div>
     </div>
 </template>
