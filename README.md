@@ -83,6 +83,56 @@ The current implementation is an MVP that works, but has some issues:
 
 ## Key Notes
 
+## Local Dev Environment (Traefik / 443)
+
+Use the root scripts to run the full stack (app, Vite HMR, Reverb, SSH proxy, Horizon, scheduler):
+
+```bash
+./dev-start.sh
+./dev-health.sh
+./dev-status.sh
+./dev-restart.sh
+./dev-stop.sh
+```
+
+- `./dev-restart.sh` runs stop then start using the same `DEV_START_MODE` / Traefik auto-detection flow.
+- `./dev-health.sh` checks hostname reachability for app/reverb/vite in compose mode, and checks process liveness + local endpoints in no-compose local mode.
+- `./dev-status.sh` shows a concise table of dev service state/source, pid, endpoint, and quick health.
+
+Expected HTTPS hostnames (defaults; override with `PUBLIC_APP_HOSTNAME`, `PUBLIC_REVERB_HOSTNAME`, `PUBLIC_VITE_HOSTNAME` in `.env`):
+
+- https://hallowed-rincewind.cloudagent.net
+- https://reverb.hallowed-rincewind.cloudagent.net
+- https://vite.hallowed-rincewind.cloudagent.net
+- https://ssh-proxy.hallowed-rincewind.cloudagent.net
+
+`./dev-start.sh` now auto-detects Traefik:
+
+- Traefik running: starts HTTPS hostname mode
+- Traefik missing: falls back to local ports (`http://127.0.0.1:8000`, `:5173`, `:8080`)
+- Compose unavailable: automatically falls back to local process mode (no docker required)
+
+You can force mode with `DEV_START_MODE=traefik` or `DEV_START_MODE=ports`.
+
+### No-compose local process mode
+
+When docker compose is unavailable (or docker engine is not reachable), the scripts run these services directly on the host and manage PID/log files under `.dev-env/`:
+
+- `aperture`: `php artisan serve` (default `127.0.0.1:8000`)
+- `reverb`: `php artisan reverb:start` (default `127.0.0.1:8080`)
+- `ssh-proxy`: `go run ./ssh-proxy` (default `127.0.0.1:8022`)
+- `horizon`: `php artisan horizon`
+- `scheduler`: `php artisan schedule:work`
+- `vite`: `npm run dev` (default `127.0.0.1:5173`)
+
+Useful local overrides:
+
+- `DEV_APP_HOST`, `DEV_APP_PORT`
+- `DEV_REVERB_HOST`, `DEV_REVERB_PORT`
+- `DEV_VITE_HOST`, `DEV_VITE_PORT`
+- `DEV_SSH_PROXY_HOST`, `DEV_SSH_PROXY_PORT`
+- `DEV_STOP_TIMEOUT` (seconds before force-kill on stop)
+
 ## Local CSS/JS
 
 All HTTP content served on the Captive Portal needs to be hosted locally as the user will not have Internet access and so will not be able to use resources from a CDN.
