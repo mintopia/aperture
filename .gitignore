@@ -5,6 +5,8 @@
 /public/storage
 /storage/*.key
 /vendor
+/playwright/.auth/
+/database/playwright.sqlite
 .env
 .env.backup
 .env.production
@@ -24,3 +26,5 @@ frankenphp-worker.php
 .DS_Store
 storage/coverage/
 .superpowers/
+
+.worktrees/
