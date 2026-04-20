@@ -115,7 +115,7 @@ describe('Show — Port Navigation Context', () => {
 
     it('renders switch type label next to the switch name', () => {
         const wrapper = mountShow();
-        const header = wrapper.find('.mt-1');
+        const header = wrapper.find('[data-testid="port-context-strip"]');
 
         expect(header.text()).toContain('TypeLabel(cisco_ios)');
     });
