@@ -22,6 +22,7 @@ LOCAL_REVERB_HOST="${DEV_REVERB_HOST:-0.0.0.0}"
 LOCAL_REVERB_PORT="${DEV_REVERB_PORT:-8080}"
 LOCAL_VITE_HOST="${DEV_VITE_HOST:-0.0.0.0}"
 LOCAL_VITE_PORT="${DEV_VITE_PORT:-5173}"
+LOCAL_VITE_SCHEME="${DEV_VITE_SCHEME:-https}"
 LOCAL_SSH_PROXY_HOST="${DEV_SSH_PROXY_HOST:-127.0.0.1}"
 LOCAL_SSH_PROXY_PORT="${DEV_SSH_PROXY_PORT:-8022}"
 
@@ -233,7 +234,7 @@ echo "PIDs: ${PID_DIR}"
 echo "Logs: ${LOG_DIR}"
 if [[ "${RUN_MODE}" == "local" ]]; then
     echo "App:    http://${LOCAL_APP_HOST}:${LOCAL_APP_PORT}"
-    echo "Vite:   http://${LOCAL_VITE_HOST}:${LOCAL_VITE_PORT}"
+    echo "Vite:   ${LOCAL_VITE_SCHEME}://${LOCAL_VITE_HOST}:${LOCAL_VITE_PORT}"
     echo "Reverb: http://${LOCAL_REVERB_HOST}:${LOCAL_REVERB_PORT}"
     echo "SSH Proxy: http://${LOCAL_SSH_PROXY_HOST}:${LOCAL_SSH_PROXY_PORT}"
 elif [[ "${ACTIVE_MODE}" == "ports" ]]; then

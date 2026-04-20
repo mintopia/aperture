@@ -21,6 +21,7 @@ LOCAL_REVERB_HOST="${DEV_REVERB_HOST:-127.0.0.1}"
 LOCAL_REVERB_PORT="${DEV_REVERB_PORT:-8080}"
 LOCAL_VITE_HOST="${DEV_VITE_HOST:-127.0.0.1}"
 LOCAL_VITE_PORT="${DEV_VITE_PORT:-5173}"
+LOCAL_VITE_SCHEME="${DEV_VITE_SCHEME:-https}"
 LOCAL_SSH_PROXY_HOST="${DEV_SSH_PROXY_HOST:-127.0.0.1}"
 LOCAL_SSH_PROXY_PORT="${DEV_SSH_PROXY_PORT:-8022}"
 
@@ -166,7 +167,7 @@ if [[ "${RUNTIME_MODE}" == "local" ]]; then
     check_tcp "reverb" "${LOCAL_REVERB_HOST}" "${LOCAL_REVERB_PORT}"
     check_http "reverb" "http://${LOCAL_REVERB_HOST}:${LOCAL_REVERB_PORT}"
     check_tcp "vite" "${LOCAL_VITE_HOST}" "${LOCAL_VITE_PORT}"
-    check_http "vite" "http://${LOCAL_VITE_HOST}:${LOCAL_VITE_PORT}"
+    check_http "vite" "${LOCAL_VITE_SCHEME}://${LOCAL_VITE_HOST}:${LOCAL_VITE_PORT}"
     check_tcp "ssh-proxy" "${LOCAL_SSH_PROXY_HOST}" "${LOCAL_SSH_PROXY_PORT}"
     check_http "ssh-proxy" "http://${LOCAL_SSH_PROXY_HOST}:${LOCAL_SSH_PROXY_PORT}/health"
 else
