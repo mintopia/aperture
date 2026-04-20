@@ -136,8 +136,8 @@ const ipColumns = [
                                 :class="[
                                     'inline-block h-[7px] w-[7px] rounded-full',
                                     row.ip?.allowed
-                                        ? 'bg-[var(--color-success)] shadow-[0_0_6px_oklch(72%_0.17_155_/_0.5)]'
-                                        : 'bg-[var(--color-danger)] shadow-[0_0_6px_oklch(65%_0.2_25_/_0.5)]',
+                                        ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
+                                        : 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]',
                                 ]"
                             />
                             <span

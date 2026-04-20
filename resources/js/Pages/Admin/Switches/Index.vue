@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import StatusPill from '@/Components/UI/StatusPill.vue';
 import EmptyState from '@/Components/UI/EmptyState.vue';
@@ -197,9 +197,9 @@ function syncStatusConfig(status) {
                             role="link"
                             :aria-label="`Open switch ${sw.name}`"
                             class="cursor-pointer border-b border-[var(--color-border)] align-middle transition-colors last:border-b-0 hover:border-l-2 hover:border-l-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] focus-visible:border-l-2 focus-visible:border-l-[var(--color-primary)] focus-visible:bg-[var(--color-surface-hover)] focus-visible:outline-none"
-                            @click="$inertia.visit(route('admin.switches.show', sw.id))"
-                            @keydown.enter.prevent="$inertia.visit(route('admin.switches.show', sw.id))"
-                            @keydown.space.prevent="$inertia.visit(route('admin.switches.show', sw.id))"
+                            @click="router.visit(route('admin.switches.show', sw.id))"
+                            @keydown.enter.prevent="router.visit(route('admin.switches.show', sw.id))"
+                            @keydown.space.prevent="router.visit(route('admin.switches.show', sw.id))"
                         >
                             <td class="px-4 py-2.5 text-sm font-medium text-[var(--color-text)]">
                                 {{ sw.name }}

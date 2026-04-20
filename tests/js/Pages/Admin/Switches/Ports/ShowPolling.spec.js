@@ -77,6 +77,7 @@ const defaultProps = {
 function mountShow(propsOverride = {}) {
     return mount(Show, {
         props: { ...defaultProps, ...propsOverride },
+        shallow: true,
         global: {
             mocks: {
                 route: (name, params) => {
@@ -88,15 +89,6 @@ function mountShow(propsOverride = {}) {
             },
             stubs: {
                 AdminLayout: { template: '<div><slot /></div>' },
-                MetadataStrip: { template: '<div />', props: ['items'] },
-                SectionHeader: { template: '<div><slot /></div>', props: ['title', 'accentLine'] },
-                StatusPill: { template: '<span>{{ label }}</span>', props: ['status', 'label'] },
-                StatCard: { template: '<div />', props: ['label', 'value', 'color'] },
-                ConfigBlock: { template: '<div />', props: ['code'] },
-                TimeSeriesChart: {
-                    template: '<div />',
-                    props: ['series', 'yAxisLabel', 'height', 'emptyMessage'],
-                },
                 teleport: true,
             },
         },
@@ -121,6 +113,15 @@ describe('Show — Polling & Last Updated', () => {
 
         expect(el.exists()).toBe(true);
         expect(el.text()).toContain('just now');
+    });
+
+    it('last-updated element is visible (not sr-only)', () => {
+        const wrapper = mountShow();
+        const el = wrapper.find('[data-testid="last-updated"]');
+
+        expect(el.exists()).toBe(true);
+        expect(el.classes()).not.toContain('sr-only');
+        expect(el.text()).toContain('updated');
     });
 
     it('sets up polling interval on mount', () => {

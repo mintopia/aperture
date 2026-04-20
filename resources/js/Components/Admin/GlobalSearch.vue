@@ -69,7 +69,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
             class="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
             @click.self="open = false"
         >
-            <div class="fixed inset-0 bg-black/50" />
+            <div class="fixed inset-0 bg-[oklch(12%_0.006_60_/_0.5)]" />
             <div
                 class="relative w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl"
             >
