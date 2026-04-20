@@ -425,39 +425,43 @@ function confirmToggle() {
                 <div data-testid="layout-column-right" class="space-y-6">
                     <!-- Bandwidth -->
                     <div data-testid="section-bandwidth">
-                <SectionHeader title="Bandwidth — Last 24 Hours" accent-line />
-                <div
-                    data-testid="bandwidth-section"
-                    class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
-                >
-                    <div class="mb-4 flex flex-wrap gap-6">
-                        <div>
-                            <p class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-                                In
-                            </p>
-                            <p class="font-mono text-lg font-bold text-[var(--color-success)]">
-                                {{ formatBytes(bandwidth.in_bytes ?? 0) }}
-                            </p>
+                        <SectionHeader title="Bandwidth — Last 24 Hours" accent-line />
+                        <div
+                            data-testid="bandwidth-section"
+                            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+                        >
+                            <div class="mb-4 flex flex-wrap gap-6">
+                                <div>
+                                    <p
+                                        class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                    >
+                                        In
+                                    </p>
+                                    <p class="font-mono text-lg font-bold text-[var(--color-success)]">
+                                        {{ formatBytes(bandwidth.in_bytes ?? 0) }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p
+                                        class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                    >
+                                        Out
+                                    </p>
+                                    <p class="font-mono text-lg font-bold text-[var(--color-primary)]">
+                                        {{ formatBytes(bandwidth.out_bytes ?? 0) }}
+                                    </p>
+                                </div>
+                            </div>
+                            <TimeSeriesChart
+                                data-testid="bandwidth-chart"
+                                :series="bandwidthSeries"
+                                y-axis-label="bps"
+                                height="200px"
+                                :empty-message="
+                                    metricsAvailable ? 'No bandwidth data for this port' : 'Prometheus not configured'
+                                "
+                            />
                         </div>
-                        <div>
-                            <p class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-                                Out
-                            </p>
-                            <p class="font-mono text-lg font-bold text-[var(--color-primary)]">
-                                {{ formatBytes(bandwidth.out_bytes ?? 0) }}
-                            </p>
-                        </div>
-                    </div>
-                    <TimeSeriesChart
-                        data-testid="bandwidth-chart"
-                        :series="bandwidthSeries"
-                        y-axis-label="bps"
-                        height="200px"
-                        :empty-message="
-                            metricsAvailable ? 'No bandwidth data for this port' : 'Prometheus not configured'
-                        "
-                    />
-                </div>
                     </div>
                     <div data-testid="layout-row-secondary" class="grid grid-cols-1 gap-6 xl:grid-cols-2">
                         <!-- Interface Errors -->
@@ -521,7 +525,10 @@ function confirmToggle() {
                                 >
                                     Interface Output
                                 </summary>
-                                <div data-testid="interface-output-section" class="border-t border-[var(--color-border)] p-4">
+                                <div
+                                    data-testid="interface-output-section"
+                                    class="border-t border-[var(--color-border)] p-4"
+                                >
                                     <ConfigBlock v-if="port.interface_output" :code="port.interface_output" />
                                     <div v-else class="text-sm text-[var(--color-text-muted)]">
                                         No interface output available
