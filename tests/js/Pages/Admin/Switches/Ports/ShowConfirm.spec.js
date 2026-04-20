@@ -124,6 +124,22 @@ describe('Admin Switch Port Show confirmation modal integration', () => {
         expect(router.post).not.toHaveBeenCalled();
     });
 
+    it('canceling enable confirmation closes modal without posting', async () => {
+        const wrapper = mountPage({
+            port: {
+                admin_status: 'down',
+            },
+        });
+
+        await wrapper.find('[data-testid="action-toggle"]').trigger('click');
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+
+        await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
+
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+        expect(router.post).not.toHaveBeenCalled();
+    });
+
     it('modal lists connected device names for toggle confirmation', async () => {
         const wrapper = mountPage();
 
