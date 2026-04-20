@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Index from '@/Pages/Admin/Dhcp/Index.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
+    router: { visit: vi.fn() },
     Link: {
         template: '<a><slot /></a>',
         props: ['href'],
@@ -62,9 +63,9 @@ describe('Dhcp/Index', () => {
         expect(wrapper.find('[data-testid="page-title"]').text()).toBe('DHCP Ranges');
     });
 
-    it('renders dhcp-ranges section', () => {
+    it('renders data-table section', () => {
         const wrapper = mountComponent();
-        expect(wrapper.find('[data-testid="dhcp-ranges"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="data-table"]').exists()).toBe(true);
     });
 
     it('shows empty message when no ranges configured', () => {

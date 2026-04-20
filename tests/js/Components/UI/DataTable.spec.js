@@ -224,4 +224,127 @@ describe('DataTable', () => {
         await wrapper.find('[data-testid="data-table-row"]').trigger('click');
         expect(router.visit).not.toHaveBeenCalled();
     });
+
+    describe('Sortable columns', () => {
+        const sortableColumns = [
+            { key: 'name', label: 'Name', sortable: true },
+            { key: 'email', label: 'Email' },
+        ];
+
+        it('renders sort button for sortable columns', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns: sortableColumns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const sortButton = wrapper.find('[data-testid="sort-name"]');
+            expect(sortButton.exists()).toBe(true);
+            expect(sortButton.element.tagName).toBe('BUTTON');
+        });
+
+        it('does not render sort button for non-sortable columns', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns: sortableColumns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            expect(wrapper.find('[data-testid="sort-email"]').exists()).toBe(false);
+        });
+
+        it('shows ascending arrow when column is active sort ascending', () => {
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns: sortableColumns,
+                    rows,
+                    sortColumn: 'name',
+                    sortDirection: 'asc',
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const sortButton = wrapper.find('[data-testid="sort-name"]');
+            expect(sortButton.text()).toContain('\u2191');
+        });
+
+        it('shows descending arrow when column is active sort descending', () => {
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns: sortableColumns,
+                    rows,
+                    sortColumn: 'name',
+                    sortDirection: 'desc',
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const sortButton = wrapper.find('[data-testid="sort-name"]');
+            expect(sortButton.text()).toContain('\u2193');
+        });
+
+        it('emits update:sort-column and update:sort-direction when clicking unsorted column', async () => {
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns: sortableColumns,
+                    rows,
+                    sortColumn: 'email',
+                    sortDirection: 'asc',
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            await wrapper.find('[data-testid="sort-name"]').trigger('click');
+            expect(wrapper.emitted('update:sort-column')).toEqual([['name']]);
+            expect(wrapper.emitted('update:sort-direction')).toEqual([['asc']]);
+        });
+
+        it('emits update:sort-direction toggle when clicking already-sorted column', async () => {
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns: sortableColumns,
+                    rows,
+                    sortColumn: 'name',
+                    sortDirection: 'asc',
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            await wrapper.find('[data-testid="sort-name"]').trigger('click');
+            expect(wrapper.emitted('update:sort-column')).toBeUndefined();
+            expect(wrapper.emitted('update:sort-direction')).toEqual([['desc']]);
+        });
+
+        it('sets aria-sort on sortable th', () => {
+            const allSortable = [
+                { key: 'name', label: 'Name', sortable: true },
+                { key: 'email', label: 'Email', sortable: true },
+            ];
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns: allSortable,
+                    rows,
+                    sortColumn: 'name',
+                    sortDirection: 'asc',
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const headers = wrapper.findAll('th');
+            expect(headers[0].attributes('aria-sort')).toBe('ascending');
+            expect(headers[1].attributes('aria-sort')).toBe('none');
+        });
+    });
 });

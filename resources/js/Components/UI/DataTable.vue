@@ -5,7 +5,7 @@ const props = defineProps({
     columns: {
         type: Array,
         required: true,
-        /* Array<{ key: string, label: string, class?: string, srOnly?: boolean }> */
+        /* Array<{ key: string, label: string, class?: string, srOnly?: boolean, sortable?: boolean }> */
     },
     rows: { type: Array, required: true },
     clickable: { type: Boolean, default: false },
@@ -13,7 +13,30 @@ const props = defineProps({
     rowAriaLabel: { type: Function, default: null },
     rowClass: { type: Function, default: null },
     emptyMessage: { type: String, default: 'No records found.' },
+    sortColumn: { type: String, default: null },
+    sortDirection: {
+        type: String,
+        default: 'asc',
+        validator: (v) => ['asc', 'desc'].includes(v),
+    },
 });
+
+const emit = defineEmits(['update:sort-column', 'update:sort-direction']);
+
+function toggleSort(columnKey) {
+    if (props.sortColumn === columnKey) {
+        emit('update:sort-direction', props.sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+        emit('update:sort-column', columnKey);
+        emit('update:sort-direction', 'asc');
+    }
+}
+
+function getAriaSortValue(col) {
+    if (!col.sortable) return undefined;
+    if (props.sortColumn !== col.key) return 'none';
+    return props.sortDirection === 'asc' ? 'ascending' : 'descending';
+}
 
 function navigateRow(row) {
     if (!props.clickable || !props.rowHref) return;
@@ -36,9 +59,22 @@ function getRowAriaLabel(row, index) {
                         v-for="col in columns"
                         :key="col.key"
                         :class="[col.class, col.srOnly ? 'sr-only' : '']"
+                        :aria-sort="getAriaSortValue(col)"
                         class="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
                     >
-                        {{ col.label }}
+                        <button
+                            v-if="col.sortable"
+                            :data-testid="`sort-${col.key}`"
+                            type="button"
+                            class="cursor-pointer hover:text-[var(--color-text)] focus-visible:outline-none"
+                            @click="toggleSort(col.key)"
+                        >
+                            {{ col.label }}
+                            <span v-if="sortColumn === col.key" class="text-[var(--color-primary)]">
+                                {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                            </span>
+                        </button>
+                        <span v-else>{{ col.label }}</span>
                     </th>
                 </tr>
             </thead>

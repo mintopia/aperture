@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import DataTable from '@/Components/UI/DataTable.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -45,15 +46,6 @@ const sortedRanges = computed(() => {
         return sortDirection.value === 'asc' ? comparison : -comparison;
     });
 });
-
-function toggleSort(columnKey) {
-    if (sortColumn.value === columnKey) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortColumn.value = columnKey;
-        sortDirection.value = 'asc';
-    }
-}
 </script>
 
 <template>
@@ -71,102 +63,63 @@ function toggleSort(columnKey) {
             </Link>
         </div>
 
-        <div data-testid="dhcp-ranges" class="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b-2 border-[var(--color-border)] bg-[var(--color-surface)]">
-                        <th
-                            v-for="col in rangeColumns"
-                            :key="col.key"
-                            class="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
-                            :class="{ 'cursor-pointer hover:bg-[var(--color-surface-hover)]': col.sortable }"
-                            @click="col.sortable ? toggleSort(col.key) : null"
-                        >
-                            <div class="flex items-center gap-1.5">
-                                {{ col.label }}
-                                <span v-if="col.sortable && sortColumn === col.key" class="text-[var(--color-primary)]">
-                                    {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                                </span>
+        <DataTable
+            :columns="rangeColumns"
+            :rows="sortedRanges"
+            :sort-column="sortColumn"
+            :sort-direction="sortDirection"
+            empty-message="No DHCP ranges configured."
+            @update:sort-column="sortColumn = $event"
+            @update:sort-direction="sortDirection = $event"
+        >
+            <template #row="{ row, index }">
+                <td :data-testid="`range-row-${index}-name`" class="font-medium text-[var(--color-text)]">
+                    {{ row.name || '—' }}
+                </td>
+                <td :data-testid="`range-row-${index}-network`" class="font-mono text-[var(--color-text-secondary)]">
+                    {{ row.network || '—' }}
+                </td>
+                <td :data-testid="`range-row-${index}-start`" class="font-mono text-[var(--color-text-secondary)]">
+                    {{ row.start || '—' }}
+                </td>
+                <td :data-testid="`range-row-${index}-end`" class="font-mono text-[var(--color-text-secondary)]">
+                    {{ row.end || '—' }}
+                </td>
+                <td :data-testid="`range-row-${index}-usage`">
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center gap-2">
+                            <div class="h-2 w-32 overflow-hidden rounded-full bg-[var(--color-surface-hover)]">
+                                <div
+                                    :data-testid="`range-usage-bar-${index}`"
+                                    class="h-full rounded-full transition-all"
+                                    :class="
+                                        (row.percentage ?? 0) > 90
+                                            ? 'bg-[var(--color-danger)]'
+                                            : (row.percentage ?? 0) > 70
+                                              ? 'bg-[var(--color-warning)]'
+                                              : 'bg-[var(--color-success)]'
+                                    "
+                                    :style="{
+                                        width: `${(row.percentage ?? 0) > 0 ? Math.max(Math.min(row.percentage ?? 0, 100), 2) : 0}%`,
+                                    }"
+                                />
                             </div>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-if="sortedRanges.length === 0" data-testid="data-table-empty">
-                        <td
-                            :colspan="rangeColumns.length"
-                            class="px-4 py-12 text-center text-[var(--color-text-muted)]"
+                            <span
+                                :data-testid="`range-percentage-${index}`"
+                                class="font-mono text-xs whitespace-nowrap text-[var(--color-text-muted)]"
+                            >
+                                {{ (row.percentage ?? 0).toFixed(1) }}%
+                            </span>
+                        </div>
+                        <span
+                            :data-testid="`range-used-${index}`"
+                            class="font-mono text-xs text-[var(--color-text-secondary)]"
                         >
-                            No DHCP ranges configured.
-                        </td>
-                    </tr>
-                    <tr
-                        v-for="(row, index) in sortedRanges"
-                        :key="index"
-                        data-testid="data-table-row"
-                        class="border-b border-[var(--color-border)] transition-colors last:border-b-0"
-                    >
-                        <td
-                            :data-testid="`range-row-${index}-name`"
-                            class="px-4 py-2.5 text-sm font-medium text-[var(--color-text)]"
-                        >
-                            {{ row.name || '—' }}
-                        </td>
-                        <td
-                            :data-testid="`range-row-${index}-network`"
-                            class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
-                        >
-                            {{ row.network || '—' }}
-                        </td>
-                        <td
-                            :data-testid="`range-row-${index}-start`"
-                            class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
-                        >
-                            {{ row.start || '—' }}
-                        </td>
-                        <td
-                            :data-testid="`range-row-${index}-end`"
-                            class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
-                        >
-                            {{ row.end || '—' }}
-                        </td>
-                        <td :data-testid="`range-row-${index}-usage`" class="px-4 py-2.5">
-                            <div class="flex flex-col gap-1.5">
-                                <div class="flex items-center gap-2">
-                                    <div class="h-2 w-32 overflow-hidden rounded-full bg-[var(--color-surface-hover)]">
-                                        <div
-                                            :data-testid="`range-usage-bar-${index}`"
-                                            class="h-full rounded-full transition-all"
-                                            :class="
-                                                (row.percentage ?? 0) > 90
-                                                    ? 'bg-[var(--color-danger)]'
-                                                    : (row.percentage ?? 0) > 70
-                                                      ? 'bg-[var(--color-warning)]'
-                                                      : 'bg-[var(--color-success)]'
-                                            "
-                                            :style="{
-                                                width: `${(row.percentage ?? 0) > 0 ? Math.max(Math.min(row.percentage ?? 0, 100), 2) : 0}%`,
-                                            }"
-                                        />
-                                    </div>
-                                    <span
-                                        :data-testid="`range-percentage-${index}`"
-                                        class="font-mono text-xs whitespace-nowrap text-[var(--color-text-muted)]"
-                                    >
-                                        {{ (row.percentage ?? 0).toFixed(1) }}%
-                                    </span>
-                                </div>
-                                <span
-                                    :data-testid="`range-used-${index}`"
-                                    class="font-mono text-xs text-[var(--color-text-secondary)]"
-                                >
-                                    {{ row.used }} / {{ row.total }}
-                                </span>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                            {{ row.used }} / {{ row.total }}
+                        </span>
+                    </div>
+                </td>
+            </template>
+        </DataTable>
     </div>
 </template>

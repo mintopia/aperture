@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import DataTable from '@/Components/UI/DataTable.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -66,15 +67,6 @@ const hasMoreLeases = computed(() => {
 
     return totalFiltered > displayLimit.value;
 });
-
-function toggleSort(columnKey) {
-    if (sortColumn.value === columnKey) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortColumn.value = columnKey;
-        sortDirection.value = 'asc';
-    }
-}
 
 function showMore() {
     displayLimit.value += 50;
@@ -150,7 +142,7 @@ function formatExpiry(expires) {
                 data-testid="back-to-ranges-link"
                 class="text-sm text-[var(--color-primary)] hover:underline"
             >
-                ← Back to Ranges
+                &larr; Back to Ranges
             </Link>
         </div>
 
@@ -171,66 +163,30 @@ function formatExpiry(expires) {
             </select>
         </div>
 
-        <div data-testid="data-table" class="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b-2 border-[var(--color-border)] bg-[var(--color-surface)]">
-                        <th
-                            v-for="col in columns"
-                            :key="col.key"
-                            class="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
-                            :class="{ 'cursor-pointer hover:bg-[var(--color-surface-hover)]': col.sortable }"
-                            @click="col.sortable ? toggleSort(col.key) : null"
-                        >
-                            <div class="flex items-center gap-1.5">
-                                {{ col.label }}
-                                <span v-if="col.sortable && sortColumn === col.key" class="text-[var(--color-primary)]">
-                                    {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                                </span>
-                            </div>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-if="filteredLeases.length === 0" data-testid="data-table-empty">
-                        <td :colspan="columns.length" class="px-4 py-12 text-center text-[var(--color-text-muted)]">
-                            No active leases
-                        </td>
-                    </tr>
-                    <tr
-                        v-for="(row, index) in filteredLeases"
-                        :key="index"
-                        data-testid="data-table-row"
-                        class="border-b border-[var(--color-border)] transition-colors last:border-b-0"
-                    >
-                        <td
-                            :data-testid="`lease-row-${index}-ip`"
-                            class="px-4 py-2.5 font-mono text-sm text-[var(--color-text)]"
-                        >
-                            {{ row.ip }}
-                        </td>
-                        <td
-                            :data-testid="`lease-row-${index}-mac`"
-                            class="px-4 py-2.5 font-mono text-sm text-[var(--color-text-secondary)]"
-                        >
-                            {{ row.mac }}
-                        </td>
-                        <td
-                            :data-testid="`lease-row-${index}-hostname`"
-                            class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]"
-                        >
-                            {{ row.hostname || '—' }}
-                        </td>
-                        <td
-                            :data-testid="`lease-row-${index}-expires`"
-                            class="px-4 py-2.5 text-sm text-[var(--color-text-muted)]"
-                        >
-                            {{ formatExpiry(row.expires) }}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <DataTable
+            :columns="columns"
+            :rows="filteredLeases"
+            :sort-column="sortColumn"
+            :sort-direction="sortDirection"
+            empty-message="No active leases"
+            @update:sort-column="sortColumn = $event"
+            @update:sort-direction="sortDirection = $event"
+        >
+            <template #row="{ row, index }">
+                <td :data-testid="`lease-row-${index}-ip`" class="font-mono text-[var(--color-text)]">
+                    {{ row.ip }}
+                </td>
+                <td :data-testid="`lease-row-${index}-mac`" class="font-mono text-[var(--color-text-secondary)]">
+                    {{ row.mac }}
+                </td>
+                <td :data-testid="`lease-row-${index}-hostname`" class="text-[var(--color-text-secondary)]">
+                    {{ row.hostname || '—' }}
+                </td>
+                <td :data-testid="`lease-row-${index}-expires`" class="text-[var(--color-text-muted)]">
+                    {{ formatExpiry(row.expires) }}
+                </td>
+            </template>
+        </DataTable>
 
         <div v-if="hasMoreLeases" class="mt-4 text-center">
             <button
