@@ -79,26 +79,36 @@ describe('Show — layout contract', () => {
         const rightColumn = wrapper.find('[data-testid="layout-column-right"]');
 
         expect(leftColumn.find('[data-testid="section-connected-devices"]').exists()).toBe(true);
-        expect(leftColumn.find('[data-testid="section-running-config"]').exists()).toBe(true);
+        expect(leftColumn.find('[data-testid="section-interface-output"]').exists()).toBe(true);
 
         expect(rightColumn.find('[data-testid="section-bandwidth"]').exists()).toBe(true);
         expect(rightColumn.find('[data-testid="section-errors"]').exists()).toBe(true);
-        expect(rightColumn.find('[data-testid="section-interface-output"]').exists()).toBe(true);
+        expect(rightColumn.find('[data-testid="section-interface-config"]').exists()).toBe(true);
+    });
+
+    it('orders sections as requested within each column', () => {
+        const wrapper = mountPage();
+        const leftIds = wrapper
+            .find('[data-testid="layout-column-left"]')
+            .findAll(':scope > div')
+            .map((node) => node.attributes('data-testid'));
+        const rightIds = wrapper
+            .find('[data-testid="layout-column-right"]')
+            .findAll(':scope > div')
+            .map((node) => node.attributes('data-testid'));
+
+        expect(leftIds).toEqual(['section-connected-devices', 'section-interface-output']);
+        expect(rightIds).toEqual(['section-bandwidth', 'section-errors', 'section-interface-config']);
     });
 
     it('keeps layout rows stacked on mobile while defining desktop column splits', () => {
         const wrapper = mountPage();
 
         const primaryRow = wrapper.find('[data-testid="layout-row-primary"]');
-        const secondaryRow = wrapper.find('[data-testid="layout-row-secondary"]');
 
         expect(primaryRow.exists()).toBe(true);
         expect(primaryRow.classes()).toContain('grid-cols-1');
         expect(primaryRow.classes().some((klass) => klass.startsWith('xl:grid-cols-'))).toBe(true);
-
-        expect(secondaryRow.exists()).toBe(true);
-        expect(secondaryRow.classes()).toContain('grid-cols-1');
-        expect(secondaryRow.classes()).toContain('xl:grid-cols-2');
     });
 
     it('shows state-aware toggle action labels explicitly (Shut / Unshut)', () => {

@@ -87,125 +87,7 @@ function mountShow(propsOverride = {}) {
 }
 
 describe('Show — Connected Devices sidebar', () => {
-    it('renders "Connected Devices (N)" with correct count', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: 'AA:BB:CC:DD:EE:FF',
-                    vlan: 100,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [{ ip: '10.0.1.42', hostname: 'test', user: { id: 1, nickname: 'NeonGamer42' } }],
-                },
-                {
-                    mac_address: '11:22:33:44:55:66',
-                    vlan: 200,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [],
-                },
-            ],
-        });
-
-        const section = wrapper.find('[data-testid="connected-devices-section"]');
-        expect(section.exists()).toBe(true);
-        expect(section.text()).toContain('Connected Devices (2)');
-    });
-
-    it('renders user name as link when user exists', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: 'AA:BB:CC:DD:EE:FF',
-                    vlan: 100,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [{ ip: '10.0.1.42', hostname: 'neon-pc', user: { id: 7, nickname: 'NeonGamer42' } }],
-                },
-            ],
-        });
-
-        const link = wrapper.find('[data-testid="device-user-link-0"]');
-        expect(link.exists()).toBe(true);
-        expect(link.text()).toBe('NeonGamer42');
-        expect(link.attributes('href')).toContain('admin.users.show');
-    });
-
-    it('renders MAC as title when no user', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: '00:1A:2B:3C:4D:5E',
-                    vlan: 200,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [{ ip: '10.0.1.55', hostname: null, user: null }],
-                },
-            ],
-        });
-
-        const card = wrapper.find('[data-testid="connected-device-0"]');
-        expect(card.exists()).toBe(true);
-        expect(card.text()).toContain('00:1A:2B:3C:4D:5E');
-
-        const link = wrapper.find('[data-testid="device-user-link-0"]');
-        expect(link.exists()).toBe(false);
-    });
-
-    it('shows "Allowed" badge when user exists', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: 'AA:BB:CC:DD:EE:FF',
-                    vlan: 100,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [{ ip: '10.0.1.42', hostname: 'neon-pc', user: { id: 1, nickname: 'NeonGamer42' } }],
-                },
-            ],
-        });
-
-        const status = wrapper.find('[data-testid="device-status-0"]');
-        expect(status.exists()).toBe(true);
-        const pill = status.find('[data-testid="status-pill"]');
-        expect(pill.text()).toBe('Allowed');
-        expect(pill.attributes('data-status')).toBe('success');
-    });
-
-    it('shows "Unknown Device" badge when IP exists but no user', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: '00:1A:2B:3C:4D:5E',
-                    vlan: 200,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [{ ip: '10.0.1.55', hostname: null, user: null }],
-                },
-            ],
-        });
-
-        const status = wrapper.find('[data-testid="device-status-0"]');
-        expect(status.exists()).toBe(true);
-        const pill = status.find('[data-testid="status-pill"]');
-        expect(pill.text()).toBe('Unknown Device');
-        expect(pill.attributes('data-status')).toBe('warning');
-    });
-
-    it('shows "Infrastructure" badge when no IP resolved', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: '00:1A:2B:FF:FE:01',
-                    vlan: 1,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [],
-                },
-            ],
-        });
-
-        const status = wrapper.find('[data-testid="device-status-0"]');
-        expect(status.exists()).toBe(true);
-        const pill = status.find('[data-testid="status-pill"]');
-        expect(pill.text()).toBe('Infrastructure');
-        expect(pill.attributes('data-status')).toBe('neutral');
-    });
-
-    it('shows IP and MAC in device card', () => {
+    it('renders connected devices as a table with MAC / IPv4 / IPv6 columns', () => {
         const wrapper = mountShow({
             macs: [
                 {
@@ -213,115 +95,82 @@ describe('Show — Connected Devices sidebar', () => {
                     vlan: 100,
                     last_seen_at: '2024-01-01T00:00:00Z',
                     resolved_ips: [
-                        { id: 42, ip: '10.0.1.42', hostname: 'neon-pc', user: { id: 1, nickname: 'NeonGamer42' } },
+                        { id: 42, ip: '10.0.1.42', hostname: 'test', user: { id: 1, nickname: 'NeonGamer42' } },
+                        { id: 43, ip: '10.0.1.43', hostname: 'test', user: null },
+                        { id: 44, ip: '2001:db8::1', hostname: 'test-v6', user: null },
                     ],
                 },
             ],
         });
 
-        const card = wrapper.find('[data-testid="connected-device-0"]');
-        expect(card.text()).toContain('10.0.1.42');
-        expect(card.text()).toContain('AA:BB:CC:DD:EE:FF');
+        const table = wrapper.find('[data-testid="connected-devices-table"]');
+        expect(table.exists()).toBe(true);
+
+        const headerCells = wrapper.findAll('thead th');
+        expect(headerCells).toHaveLength(3);
+        expect(headerCells[0].text()).toBe('MAC');
+        expect(headerCells[1].text()).toBe('IPv4');
+        expect(headerCells[2].text()).toBe('IPv6');
+
+        const ipv4First = wrapper.find('[data-testid="device-ipv4-link-0-0"]');
+        const ipv4Second = wrapper.find('[data-testid="device-ipv4-link-0-1"]');
+        const ipv6First = wrapper.find('[data-testid="device-ipv6-link-0-0"]');
+        expect(ipv4First.exists()).toBe(true);
+        expect(ipv4Second.exists()).toBe(true);
+        expect(ipv6First.exists()).toBe(true);
+        expect(ipv4First.attributes('href')).toContain('admin.ips.show');
+        expect(ipv4First.attributes('href')).toContain('42');
+        expect(ipv6First.attributes('href')).toContain('44');
     });
 
-    it('links resolved IPs to the IP detail page when an id is present', () => {
+    it('hides devices without IPv4/IPv6 links by default', () => {
         const wrapper = mountShow({
             macs: [
                 {
                     mac_address: 'AA:BB:CC:DD:EE:FF',
                     vlan: 100,
                     last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [
-                        { id: 42, ip: '10.0.1.42', hostname: 'neon-pc', user: { id: 1, nickname: 'NeonGamer42' } },
-                    ],
-                },
-            ],
-        });
-
-        const link = wrapper.find('[data-testid="device-ip-link-0-0"]');
-        expect(link.exists()).toBe(true);
-        expect(link.text()).toBe('10.0.1.42');
-        expect(link.attributes('href')).toContain('admin.ips.show');
-        expect(link.attributes('href')).toContain('42');
-    });
-
-    it('shows VLAN in device card', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: 'AA:BB:CC:DD:EE:FF',
-                    vlan: 100,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [],
-                },
-            ],
-        });
-
-        const card = wrapper.find('[data-testid="connected-device-0"]');
-        expect(card.text()).toContain('VLAN 100');
-    });
-
-    it('shows "No devices connected" when macs is empty', () => {
-        const wrapper = mountShow({ macs: [] });
-
-        const section = wrapper.find('[data-testid="connected-devices-section"]');
-        expect(section.exists()).toBe(true);
-        expect(section.text()).toContain('No devices connected');
-    });
-
-    it('shows last seen time for each device', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: 'AA:BB:CC:DD:EE:FF',
-                    vlan: 100,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [],
-                },
-            ],
-        });
-
-        const card = wrapper.find('[data-testid="connected-device-0"]');
-        expect(card.text()).toContain('Last seen relative(2024-01-01T00:00:00Z)');
-    });
-
-    it('renders multiple device cards with correct indices', () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: 'AA:BB:CC:DD:EE:FF',
-                    vlan: 100,
-                    last_seen_at: '2024-01-01T00:00:00Z',
-                    resolved_ips: [{ ip: '10.0.1.42', hostname: null, user: { id: 1, nickname: 'User1' } }],
+                    resolved_ips: [{ id: 1, ip: '10.0.1.42', hostname: null, user: { id: 1, nickname: 'User1' } }],
                 },
                 {
                     mac_address: '11:22:33:44:55:66',
                     vlan: 200,
                     last_seen_at: '2024-01-02T00:00:00Z',
-                    resolved_ips: [{ ip: '10.0.1.55', hostname: null, user: null }],
+                    resolved_ips: [],
                 },
                 {
                     mac_address: 'FF:EE:DD:CC:BB:AA',
                     vlan: 1,
                     last_seen_at: '2024-01-03T00:00:00Z',
+                    resolved_ips: [{ ip: '10.0.1.99', hostname: null, user: null }],
+                },
+            ],
+        });
+
+        expect(wrapper.findAll('tbody tr')).toHaveLength(1);
+        expect(wrapper.text()).toContain('Connected Devices (1)');
+        expect(wrapper.text()).toContain('Show devices without an IP');
+    });
+
+    it('shows devices without IP links when toggled on', async () => {
+        const wrapper = mountShow({
+            macs: [
+                {
+                    mac_address: 'AA:BB:CC:DD:EE:FF',
+                    resolved_ips: [{ id: 1, ip: '10.0.1.42' }],
+                },
+                {
+                    mac_address: '11:22:33:44:55:66',
                     resolved_ips: [],
                 },
             ],
         });
 
-        expect(wrapper.find('[data-testid="connected-device-0"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="connected-device-1"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="connected-device-2"]').exists()).toBe(true);
+        expect(wrapper.findAll('tbody tr')).toHaveLength(1);
 
-        // First: user → "Allowed"
-        expect(wrapper.find('[data-testid="device-status-0"] [data-testid="status-pill"]').text()).toBe('Allowed');
-        // Second: IP but no user → "Unknown Device"
-        expect(wrapper.find('[data-testid="device-status-1"] [data-testid="status-pill"]').text()).toBe(
-            'Unknown Device',
-        );
-        // Third: no IP → "Infrastructure"
-        expect(wrapper.find('[data-testid="device-status-2"] [data-testid="status-pill"]').text()).toBe(
-            'Infrastructure',
-        );
+        await wrapper.find('[data-testid="show-devices-without-ip-toggle"]').setValue(true);
+
+        expect(wrapper.findAll('tbody tr')).toHaveLength(2);
+        expect(wrapper.text()).toContain('Connected Devices (2)');
     });
 });
