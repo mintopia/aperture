@@ -1,0 +1,73 @@
+/* Dispatch — Operations console aesthetic
+   Warm charcoal base, OKLCH color space, accent-hue configurable.
+   Dark mode is primary. Light mode is the override. */
+
+[data-theme='dispatch'] {
+    /* Accent defaults (tangerine hue=55) — overridden at runtime by useAccentHue composable */
+    --color-primary: oklch(76% 0.16 55);
+    --color-primary-hover: oklch(69% 0.19 55);
+    --color-accent: oklch(76% 0.16 55);
+    --color-accent-hover: oklch(69% 0.19 55);
+    --color-accent-dim: oklch(76% 0.16 55 / 0.14);
+    --color-accent-text: oklch(98% 0.01 55);
+    --color-glow: oklch(76% 0.16 55 / 0.25);
+
+    /* Semantic — meaning only, never decoration */
+    --color-success: oklch(72% 0.17 155);
+    --color-warning: oklch(78% 0.15 85);
+    --color-danger: oklch(65% 0.2 25);
+    --color-info: oklch(70% 0.1 240);
+
+    /* Dark mode surfaces — warm charcoal base */
+    --color-bg: oklch(13% 0.006 60);
+    --color-surface: oklch(17% 0.006 60);
+    --color-surface-hover: oklch(21% 0.006 60);
+    --color-surface-alt: oklch(20% 0.008 60);
+
+    /* Text hierarchy — warm whites */
+    --color-text: oklch(95% 0.006 60);
+    --color-text-secondary: oklch(75% 0.006 60);
+    --color-text-muted: oklch(55% 0.006 60);
+
+    /* Hairline structure */
+    --color-border: oklch(26% 0.004 60);
+    --color-border-hover: oklch(33% 0.004 60);
+
+    /* Input */
+    --color-input-bg: oklch(15% 0.006 60);
+}
+
+[data-theme='dispatch'][data-mode='light'] {
+    /* Accent: same hue, tuned for light backgrounds */
+    --color-primary: oklch(55% 0.18 55);
+    --color-primary-hover: oklch(48% 0.2 55);
+    --color-accent: oklch(55% 0.18 55);
+    --color-accent-hover: oklch(48% 0.2 55);
+    --color-accent-dim: oklch(55% 0.18 55 / 0.1);
+    --color-accent-text: oklch(99% 0.005 55);
+    --color-glow: oklch(55% 0.18 55 / 0.15);
+
+    /* Semantic — darkened for light backgrounds */
+    --color-success: oklch(48% 0.15 155);
+    --color-warning: oklch(55% 0.14 85);
+    --color-danger: oklch(50% 0.2 25);
+    --color-info: oklch(50% 0.1 240);
+
+    /* Light mode surfaces */
+    --color-bg: oklch(97% 0.004 60);
+    --color-surface: oklch(100% 0 0);
+    --color-surface-hover: oklch(95% 0.004 60);
+    --color-surface-alt: oklch(96% 0.005 60);
+
+    /* Text hierarchy */
+    --color-text: oklch(15% 0.006 60);
+    --color-text-secondary: oklch(40% 0.006 60);
+    --color-text-muted: oklch(55% 0.006 60);
+
+    /* Structure */
+    --color-border: oklch(88% 0.004 60);
+    --color-border-hover: oklch(80% 0.004 60);
+
+    /* Input */
+    --color-input-bg: oklch(100% 0 0);
+}

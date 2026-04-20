@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aperture Portal — "Dispatch" Design Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================
+     DISPATCH — Portal & Captive Pages
+     ============================================
+     Same design system as admin, adapted for
+     public-facing / single-purpose pages.
+     Centered layouts, no sidebar, minimal chrome.
+  */
+
+  :root {
+    --bg:              oklch(13% 0.006 60);
+    --surface-1:       oklch(17% 0.006 60);
+    --surface-2:       oklch(21% 0.006 60);
+    --surface-3:       oklch(25% 0.006 60);
+    --text:            oklch(95% 0.006 60);
+    --text-2:          oklch(75% 0.006 60);
+    --text-3:          oklch(55% 0.006 60);
+    --divider:         oklch(26% 0.004 60);
+    --divider-strong:  oklch(33% 0.004 60);
+    --up:              oklch(72% 0.17 155);
+    --down:            oklch(65% 0.2 25);
+    --warn:            oklch(78% 0.15 85);
+    --info:            oklch(70% 0.1 240);
+    --accent:          oklch(76% 0.16 55);
+    --accent-hover:    oklch(69% 0.19 55);
+    --accent-dim:      oklch(76% 0.16 55 / 0.14);
+    --accent-text:     oklch(98% 0.01 55);
+    --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-body:    'Hanken Grotesk', system-ui, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-top: 38px;
+  }
+
+  .design-note {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: oklch(45% 0.12 55);
+    color: oklch(15% 0.02 55);
+    padding: 10px 24px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-display);
+    text-align: center;
+    z-index: 100;
+    letter-spacing: -0.01em;
+  }
+
+  /* ---- PAGE SEPARATOR ---- */
+  .page-separator {
+    border-top: 2px solid var(--divider-strong);
+    padding: 48px 0 16px;
+    text-align: center;
+  }
+  .page-separator h2 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    font-variation-settings: 'opsz' 16;
+  }
+
+  /* ---- CAPTIVE LAYOUT ---- */
+  .captive-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  .captive-container {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+
+  /* Logo mark */
+  .logo-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--accent);
+    margin-bottom: 16px;
+  }
+  .logo-mark span {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--bg);
+    letter-spacing: -0.03em;
+  }
+
+  .captive-title {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    font-variation-settings: 'opsz' 32;
+  }
+  .captive-subtitle {
+    font-size: 14px;
+    color: var(--text-2);
+    margin-top: 6px;
+  }
+
+  /* QR Container */
+  .qr-container {
+    width: 168px;
+    height: 168px;
+    margin: 28px auto;
+    border-radius: 14px;
+    border: 2px solid var(--accent);
+    padding: 6px;
+    box-shadow: 0 0 32px oklch(76% 0.16 55 / 0.15), 0 0 64px oklch(76% 0.16 55 / 0.06);
+  }
+  .qr-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #999;
+  }
+
+  /* User code */
+  .user-code {
+    font-family: var(--font-mono);
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin: 8px 0;
+  }
+  .code-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .verify-link {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 4px;
+  }
+  .verify-link a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: oklch(76% 0.16 55 / 0.3);
+    text-underline-offset: 2px;
+  }
+  .verify-link a:hover {
+    text-decoration-color: var(--accent);
+  }
+
+  /* Instructions */
+  .instructions {
+    margin-top: 28px;
+    background: var(--surface-1);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 16px 20px;
+    text-align: left;
+  }
+  .instructions-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 10px;
+  }
+  .instructions ol {
+    list-style: none;
+    counter-reset: steps;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .instructions li {
+    counter-increment: steps;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .instructions li::before {
+    content: counter(steps);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
+    margin-top: 1px;
+  }
+
+  /* Status indicator */
+  .captive-status {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--divider-strong);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ---- INTERSTITIAL ---- */
+  .interstitial-spinner {
+    width: 52px;
+    height: 52px;
+    border: 3px solid var(--divider-strong);
+    border-top-color: var(--up);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
+  .step-list {
+    max-width: 240px;
+    margin: 28px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .step-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .step-done .step-icon {
+    background: oklch(72% 0.17 155 / 0.12);
+    color: var(--up);
+  }
+  .step-active .step-icon {
+    background: var(--accent-dim);
+    color: var(--accent);
+    animation: pulse-dot 2s infinite;
+  }
+  .step-pending .step-icon {
+    background: var(--surface-2);
+    color: var(--text-3);
+  }
+  .step-done .step-label { color: var(--text-2); }
+  .step-active .step-label { color: var(--text); font-weight: 600; }
+  .step-pending .step-label { color: var(--text-3); }
+
+  /* ---- PORTAL LAYOUT ---- */
+  .portal-page {
+    min-height: 100vh;
+  }
+  .portal-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    padding: 0 24px;
+    background: oklch(17% 0.006 60 / 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--divider);
+  }
+  .portal-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .portal-logo svg {
+    color: var(--accent);
+  }
+  .portal-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .portal-content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+
+  /* ---- BLOCK GRID ---- */
+  .block-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .block {
+    background: var(--surface-1);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 20px;
+    transition: border-color 0.15s;
+  }
+  .block:hover {
+    border-color: var(--divider-strong);
+  }
+  .block-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 12px;
+    font-variation-settings: 'opsz' 14;
+  }
+  .block-full {
+    grid-column: 1 / -1;
+  }
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: oklch(72% 0.17 155 / 0.1);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--up);
+  }
+  .live-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--up);
+    box-shadow: 0 0 6px oklch(72% 0.17 155 / 0.5);
+    animation: pulse-dot 2s infinite;
+  }
+
+  /* Connection status block */
+  .conn-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .conn-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--up);
+    box-shadow: 0 0 8px oklch(72% 0.17 155 / 0.4);
+  }
+  .conn-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--up);
+  }
+  .conn-ip {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-2);
+    margin-top: 8px;
+  }
+
+  /* Bandwidth block */
+  .bw-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .bw-item-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 2px;
+  }
+  .bw-item-value {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 32;
+  }
+  .bw-item-unit {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-3);
+    margin-left: 2px;
+  }
+
+  /* Markdown block */
+  .md-content {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.7;
+  }
+  .md-content h3 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-variation-settings: 'opsz' 18;
+  }
+  .md-content p { margin-bottom: 8px; }
+  .md-content ul {
+    padding-left: 20px;
+    margin-bottom: 8px;
+  }
+  .md-content li { margin-bottom: 4px; }
+
+  /* DNS Warning */
+  .dns-warn {
+    padding: 14px 16px;
+    background: oklch(78% 0.15 85 / 0.08);
+    border: 1px solid oklch(78% 0.15 85 / 0.2);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--warn);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .dns-warn svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Toggle control */
+  .toggle-track {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-track.on { background: var(--accent); }
+  .toggle-track.off { background: var(--surface-3); }
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    transition: left 0.2s;
+  }
+  .toggle-track.on .toggle-thumb { left: 22px; }
+  .toggle-track.off .toggle-thumb { left: 2px; }
+
+  /* Service links grid */
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .service-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 8px;
+    background: var(--surface-1);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .service-link:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--surface-2);
+  }
+  .service-link svg {
+    width: 22px;
+    height: 22px;
+    color: var(--accent);
+  }
+  .service-link .service-external {
+    font-size: 9px;
+    color: var(--text-3);
+    font-weight: 400;
+    margin-top: -4px;
+  }
+
+  /* Map widget */
+  .map-embed {
+    width: 100%;
+    height: 200px;
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    background: var(--surface-2);
+  }
+  .map-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-3);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    background:
+      radial-gradient(circle at 30% 40%, oklch(25% 0.006 60) 0%, transparent 50%),
+      radial-gradient(circle at 70% 60%, oklch(22% 0.006 60) 0%, transparent 40%),
+      var(--surface-1);
+  }
+  .map-placeholder svg {
+    width: 28px;
+    height: 28px;
+    color: var(--accent);
+    opacity: 0.6;
+  }
+  .map-venue {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-2);
+    letter-spacing: -0.01em;
+  }
+  .map-address {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 4px;
+  }
+  .map-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    font-family: var(--font-mono);
+  }
+  .map-link:hover { text-decoration: underline; }
+
+  /* Chart placeholder for portal */
+  .portal-chart {
+    height: 120px;
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-3);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    position: relative;
+    overflow: hidden;
+    margin-top: 12px;
+  }
+  .portal-chart::before {
+    content: '';
+    position: absolute;
+    bottom: 25%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--up) 15%, oklch(72% 0.17 155 / 0.5) 35%, var(--up) 50%, oklch(72% 0.17 155 / 0.7) 70%, var(--up) 85%, transparent 100%);
+    opacity: 0.4;
+  }
+  .portal-chart::after {
+    content: '';
+    position: absolute;
+    bottom: 18%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--info) 10%, oklch(70% 0.1 240 / 0.4) 30%, var(--info) 55%, oklch(70% 0.1 240 / 0.6) 75%, var(--info) 90%, transparent 100%);
+    opacity: 0.3;
+  }
+
+  /* ---- CONNECTION STRIP ---- */
+  .conn-strip {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface-1);
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    padding: 10px 0;
+    margin-bottom: 20px;
+  }
+  .conn-strip-item {
+    flex: 1;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-right: 1px solid var(--divider);
+  }
+  .conn-strip-item:last-child {
+    border-right: none;
+  }
+  .conn-strip-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .conn-strip-value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ---- TWO-COL HERO ---- */
+  .hero-cols {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* User menu minimal */
+  .portal-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .portal-user:hover { background: var(--surface-2); }
+  .portal-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--bg);
+  }
+  .portal-user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+  }
+</style>
+</head>
+<body>
+
+<div class="design-note">
+  DISPATCH — Portal & Captive Page Prototypes &middot; Scroll for: Captive Login, Interstitial, User Dashboard
+</div>
+
+<!-- ======== PROTOTYPE: CAPTIVE PORTAL LOGIN ======== -->
+<div class="page-separator" style="border: none; padding-top: 24px;">
+  <h2>Captive Portal &mdash; Sign In</h2>
+</div>
+
+<div class="captive-page">
+  <div class="captive-container">
+    <div class="logo-mark">
+      <span>A</span>
+    </div>
+
+    <h1 class="captive-title">Connect to Network</h1>
+    <p class="captive-subtitle">Scan the QR code or enter the code below</p>
+
+    <!-- QR Code -->
+    <div class="qr-container">
+      <div class="qr-inner">
+        <!-- QR placeholder grid -->
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <rect x="10" y="10" width="24" height="24" rx="2" fill="#222"/>
+          <rect x="86" y="10" width="24" height="24" rx="2" fill="#222"/>
+          <rect x="10" y="86" width="24" height="24" rx="2" fill="#222"/>
+          <rect x="14" y="14" width="16" height="16" rx="1" fill="white"/>
+          <rect x="90" y="14" width="16" height="16" rx="1" fill="white"/>
+          <rect x="14" y="90" width="16" height="16" rx="1" fill="white"/>
+          <rect x="18" y="18" width="8" height="8" fill="#222"/>
+          <rect x="94" y="18" width="8" height="8" fill="#222"/>
+          <rect x="18" y="94" width="8" height="8" fill="#222"/>
+          <rect x="40" y="10" width="4" height="4" fill="#222"/>
+          <rect x="48" y="10" width="4" height="4" fill="#222"/>
+          <rect x="56" y="14" width="4" height="4" fill="#222"/>
+          <rect x="64" y="10" width="4" height="4" fill="#222"/>
+          <rect x="72" y="18" width="4" height="4" fill="#222"/>
+          <rect x="40" y="22" width="4" height="4" fill="#222"/>
+          <rect x="52" y="22" width="4" height="4" fill="#222"/>
+          <rect x="60" y="26" width="4" height="4" fill="#222"/>
+          <rect x="68" y="22" width="4" height="4" fill="#222"/>
+          <rect x="40" y="40" width="4" height="4" fill="#222"/>
+          <rect x="48" y="48" width="4" height="4" fill="#222"/>
+          <rect x="56" y="40" width="4" height="4" fill="#222"/>
+          <rect x="64" y="48" width="4" height="4" fill="#222"/>
+          <rect x="72" y="40" width="4" height="4" fill="#222"/>
+          <rect x="80" y="48" width="4" height="4" fill="#222"/>
+          <rect x="44" y="56" width="4" height="4" fill="#222"/>
+          <rect x="52" y="60" width="4" height="4" fill="#222"/>
+          <rect x="60" y="56" width="4" height="4" fill="#222"/>
+          <rect x="68" y="64" width="4" height="4" fill="#222"/>
+          <rect x="76" y="56" width="4" height="4" fill="#222"/>
+          <rect x="10" y="40" width="4" height="4" fill="#222"/>
+          <rect x="18" y="48" width="4" height="4" fill="#222"/>
+          <rect x="26" y="40" width="4" height="4" fill="#222"/>
+          <rect x="10" y="56" width="4" height="4" fill="#222"/>
+          <rect x="22" y="60" width="4" height="4" fill="#222"/>
+          <rect x="10" y="68" width="4" height="4" fill="#222"/>
+          <rect x="18" y="72" width="4" height="4" fill="#222"/>
+          <rect x="30" y="68" width="4" height="4" fill="#222"/>
+          <rect x="40" y="72" width="4" height="4" fill="#222"/>
+          <rect x="48" y="80" width="4" height="4" fill="#222"/>
+          <rect x="56" y="72" width="4" height="4" fill="#222"/>
+          <rect x="64" y="80" width="4" height="4" fill="#222"/>
+          <rect x="40" y="86" width="4" height="4" fill="#222"/>
+          <rect x="52" y="90" width="4" height="4" fill="#222"/>
+          <rect x="60" y="86" width="4" height="4" fill="#222"/>
+          <rect x="72" y="90" width="4" height="4" fill="#222"/>
+          <rect x="80" y="86" width="4" height="4" fill="#222"/>
+          <rect x="86" y="44" width="4" height="4" fill="#222"/>
+          <rect x="98" y="48" width="4" height="4" fill="#222"/>
+          <rect x="86" y="56" width="4" height="4" fill="#222"/>
+          <rect x="94" y="60" width="4" height="4" fill="#222"/>
+          <rect x="106" y="56" width="4" height="4" fill="#222"/>
+          <rect x="86" y="68" width="4" height="4" fill="#222"/>
+          <rect x="98" y="72" width="4" height="4" fill="#222"/>
+          <rect x="86" y="80" width="4" height="4" fill="#222"/>
+          <rect x="94" y="86" width="4" height="4" fill="#222"/>
+          <rect x="106" y="90" width="4" height="4" fill="#222"/>
+          <rect x="98" y="98" width="4" height="4" fill="#222"/>
+          <rect x="106" y="106" width="4" height="4" fill="#222"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="verify-link">Visit <a href="#">https://auth.example.com/device</a></div>
+
+    <div style="margin: 20px 0;">
+      <div class="code-label">Enter this code</div>
+      <div class="user-code">HXKR-WNPQ</div>
+    </div>
+
+    <div class="instructions">
+      <div class="instructions-label">How to connect</div>
+      <ol>
+        <li>Scan the QR code or visit the URL above on a device with internet</li>
+        <li>Enter the code shown above when prompted</li>
+        <li>Authorize the connection &mdash; you'll be connected automatically</li>
+      </ol>
+    </div>
+
+    <div class="captive-status">
+      <div class="spinner"></div>
+      <span>Waiting for authorization&hellip;</span>
+    </div>
+  </div>
+</div>
+
+<!-- ======== PROTOTYPE: CAPTIVE INTERSTITIAL ======== -->
+<div class="page-separator">
+  <h2>Captive Portal &mdash; Interstitial</h2>
+</div>
+
+<div class="captive-page">
+  <div class="captive-container">
+    <div class="interstitial-spinner"></div>
+
+    <h1 class="captive-title">Granting Network Access</h1>
+    <p class="captive-subtitle">Please wait while we configure your connection&hellip;</p>
+
+    <div class="step-list">
+      <div class="step step-done">
+        <div class="step-icon">&#10003;</div>
+        <span class="step-label">Identity verified</span>
+      </div>
+      <div class="step step-active">
+        <div class="step-icon">&#9679;</div>
+        <span class="step-label">Configuring access</span>
+      </div>
+      <div class="step step-pending">
+        <div class="step-icon">&#9675;</div>
+        <span class="step-label">Connecting to network</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== PROTOTYPE: USER DASHBOARD ======== -->
+<div class="page-separator">
+  <h2>User Dashboard</h2>
+</div>
+
+<div class="portal-page">
+  <div class="portal-header">
+    <a class="portal-logo" href="#">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 0 1 7.145 4.125m-2.53 9.98A8.214 8.214 0 0 1 12 20.25m-7.145-4.125A8.214 8.214 0 0 1 3.75 12m2.53-5.855A8.214 8.214 0 0 1 12 3.75m0 4.125A4.125 4.125 0 1 1 7.875 12 4.125 4.125 0 0 1 12 7.875Zm0-4.125v4.125m8.25 4.125h-4.125M12 20.25v-4.125M3.75 12h4.125"/>
+      </svg>
+      Aperture
+    </a>
+    <div class="portal-header-right">
+      <!-- Theme toggle placeholder -->
+      <button style="background: none; border: 1px solid var(--divider-strong); border-radius: 6px; padding: 5px 8px; cursor: pointer; color: var(--text-3); font-size: 14px;" title="Toggle theme">&#9790;</button>
+      <div class="portal-user">
+        <div class="portal-user-avatar">FM</div>
+        <span class="portal-user-name">FragMaster</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-3)"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="portal-content">
+    <!-- Welcome header -->
+    <div style="margin-bottom: 12px;">
+      <h1 style="font-family: var(--font-display); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; font-variation-settings: 'opsz' 36;">Welcome, FragMaster</h1>
+    </div>
+
+    <!-- DNS Warning — top of page, immediately visible -->
+    <div style="margin-bottom: 16px;">
+      <div class="dns-warn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+        <div>
+          <strong>Custom DNS detected.</strong> Your device is using non-standard DNS servers. Some network features (ad blocking, local domains) may not work correctly.
+          <a href="#" style="color: var(--warn); text-decoration: underline; text-underline-offset: 2px; margin-left: 4px;">Fix this</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection Strip — full width, compact -->
+    <div class="conn-strip">
+      <div class="conn-strip-item">
+        <span class="conn-strip-label">IPv4</span>
+        <span class="conn-strip-value">10.0.1.42</span>
+      </div>
+      <div class="conn-strip-item">
+        <span class="conn-strip-label">IPv6</span>
+        <span class="conn-strip-value">fd12:3456:789a::1:42</span>
+      </div>
+      <div class="conn-strip-item">
+        <span class="conn-strip-label">MAC Address</span>
+        <span class="conn-strip-value">AA:BB:CC:DD:EE:42</span>
+      </div>
+      <div class="conn-strip-item">
+        <span class="conn-strip-label">Status</span>
+        <span class="conn-strip-value" style="display: inline-flex; align-items: center; gap: 6px;">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--up); box-shadow: 0 0 6px oklch(72% 0.17 155 / 0.5);"></span>
+          <span style="color: var(--up); font-weight: 600;">Online</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Hero row: Bandwidth graph (left) + DNS settings (right) -->
+    <div class="hero-cols">
+      <!-- Bandwidth with graph -->
+      <div class="block">
+        <div class="block-title">Bandwidth</div>
+        <div class="bw-grid" style="margin-bottom: 4px;">
+          <div>
+            <div class="bw-item-label">Download</div>
+            <div class="bw-item-value" style="color: var(--up);">2.1<span class="bw-item-unit">GB</span></div>
+          </div>
+          <div>
+            <div class="bw-item-label">Upload</div>
+            <div class="bw-item-value" style="color: var(--info);">780<span class="bw-item-unit">MB</span></div>
+          </div>
+        </div>
+        <div class="portal-chart">
+          <span style="position: relative; z-index: 1;">[ Bandwidth chart ]</span>
+        </div>
+      </div>
+
+      <!-- DNS / Ad Blocking -->
+      <div class="block">
+        <div class="block-title">Ad Blocking</div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 14px; font-weight: 600;">Pi-hole</div>
+            <div style="font-size: 12px; color: var(--text-3); margin-top: 2px;">DNS-level ad blocking</div>
+          </div>
+          <div class="toggle-track on">
+            <div class="toggle-thumb"></div>
+          </div>
+        </div>
+        <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider); display: flex; gap: 24px;">
+          <div>
+            <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3);">Blocked</div>
+            <div style="font-family: var(--font-mono); font-size: 16px; font-weight: 600; color: var(--up);">1,247</div>
+          </div>
+          <div>
+            <div style="font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3);">Queries</div>
+            <div style="font-family: var(--font-mono); font-size: 16px; font-weight: 600;">8,421</div>
+          </div>
+        </div>
+        <!-- DNS Server info -->
+        <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider);">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <span style="font-size: 12px; color: var(--text-2);">DNS Server</span>
+            <span style="font-family: var(--font-mono); font-size: 12px; color: var(--text);">10.0.0.1</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 12px; color: var(--text-2);">Upstream</span>
+            <span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-3);">1.1.1.1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rest of content in block grid -->
+    <div class="block-grid">
+      <!-- Quick Links — services grid -->
+      <div class="block block-full">
+        <div class="block-title">Services</div>
+        <div class="services-grid">
+          <a class="service-link" href="#">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/></svg>
+            Seat Picker
+          </a>
+          <a class="service-link" href="#">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V4.846a2.25 2.25 0 0 0-1.632-2.163l-1.32-.377a1.803 1.803 0 1 0-.99 3.467l2.31.66A2.25 2.25 0 0 1 9 9Z"/></svg>
+            Music Requests
+          </a>
+          <a class="service-link" href="#">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+            Discord
+            <span class="service-external">External</span>
+          </a>
+          <a class="service-link" href="#">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"/></svg>
+            Google Maps
+            <span class="service-external">External</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Event Info -->
+      <div class="block block-full">
+        <div class="block-title">Event Info</div>
+        <div class="md-content">
+          <h3>QuakeCon 2026</h3>
+          <p>Welcome to the LAN! The network is configured for optimal gaming performance with QoS rules prioritising game traffic.</p>
+          <ul>
+            <li>Tournament matches start at <strong>14:00</strong> on Saturday</li>
+            <li>Steam downloads are throttled to 50 Mbps during peak hours</li>
+            <li>Report network issues to the NOC desk in Hall B</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Venue Map -->
+      <div class="block">
+        <div class="block-title">Venue</div>
+        <div class="map-embed">
+          <div class="map-placeholder">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"/></svg>
+            [ Google Maps embed ]
+          </div>
+        </div>
+        <div class="map-venue">Kay Bailey Hutchison Convention Center</div>
+        <div class="map-address">650 S Griffin St, Dallas, TX 75202</div>
+        <a class="map-link" href="#">Open in Google Maps &rarr;</a>
+      </div>
+
+      <!-- Network Stats -->
+      <div class="block">
+        <div class="block-title">Network Stats</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 13px; color: var(--text-2);">Devices</span>
+            <span style="font-family: var(--font-mono); font-size: 14px; font-weight: 600;">3</span>
+          </div>
+          <div style="border-top: 1px solid var(--divider);"></div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 13px; color: var(--text-2);">Latency</span>
+            <span style="font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--up);">2ms</span>
+          </div>
+          <div style="border-top: 1px solid var(--divider);"></div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 13px; color: var(--text-2);">Session</span>
+            <span style="font-family: var(--font-mono); font-size: 14px; font-weight: 600;">4h 22m</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
