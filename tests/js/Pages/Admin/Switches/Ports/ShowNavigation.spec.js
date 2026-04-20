@@ -185,10 +185,13 @@ describe('Show — Port Navigation Context', () => {
         expect(title.text()).toBe('Gi1/0/24');
     });
 
-    it('still renders the port status pill', () => {
+    it('uses simplified header controls and removes header status duplication', () => {
         const wrapper = mountShow();
-        const status = wrapper.find('[data-testid="port-status"]');
+        const headerActions = wrapper.find('[data-testid="header-actions"]');
 
-        expect(status.exists()).toBe(true);
+        expect(headerActions.exists()).toBe(true);
+        expect(headerActions.find('[data-testid="action-refresh"]').exists()).toBe(true);
+        expect(headerActions.find('[data-testid="action-toggle"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="port-status"]').exists()).toBe(false);
     });
 });
