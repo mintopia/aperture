@@ -416,3 +416,100 @@ Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for co
 6:40:04 AM [vite] (client) page reload .worktrees/switchport-show-layout-implementation/storage/coverage/js/js/Pages/Admin/index.html
 6:40:04 AM [vite] (client) page reload .worktrees/switchport-show-layout-implementation/storage/coverage/js/js/Pages/Admin/Switches/Ports/Show.vue.html
 6:40:04 AM [vite] (client) page reload .worktrees/switchport-show-layout-implementation/storage/coverage/js/js/Pages/Admin/Switches/Ports/index.html
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+
+  VITE v8.0.8  ready in 323 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+WebSocket server error:
+Error: listen EADDRNOTAVAIL: address not available 143.14.243.100:443
+    at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    at listenInCluster (node:net:1997:12)
+    at GetAddrInfoReqWrap.callback (node:net:2206:7)
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:134:8)
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+7:06:11 AM [vite] .env changed, restarting server...
+7:06:11 AM [vite] server restarted.
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+7:12:17 AM [vite] .env changed, restarting server...
+7:12:17 AM [vite] server restarted.
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+error when starting dev server:
+Error: Port 5173 is already in use
+    at httpServerStart (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:10660:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async startServer (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26304:30)
+    at async Object.listen (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26125:4)
+    at async CAC.<anonymous> (file:///home/workspace/aperture/node_modules/vite/dist/node/cli.js:722:3)
+The request id "/home/workspace/aperture/.git/config" is outside of Vite serving allow list.
+
+- /home/workspace/aperture
+
+Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for configurations and more details.
+
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+
+  VITE v8.0.8  ready in 314 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.cloudagent.net
+WebSocket server error:
+Error: listen EADDRNOTAVAIL: address not available 64.190.63.222:443
+    at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    at listenInCluster (node:net:1997:12)
+    at GetAddrInfoReqWrap.callback (node:net:2206:7)
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:134:8)
+8:17:19 AM [vite] vite.config.js changed, restarting server...
+8:17:19 AM [vite] server restarted.
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.cloudagent.net
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+error when starting dev server:
+Error: Port 5173 is already in use
+    at httpServerStart (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:10660:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async startServer (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26304:30)
+    at async Object.listen (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26125:4)
+    at async CAC.<anonymous> (file:///home/workspace/aperture/node_modules/vite/dist/node/cli.js:722:3)
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+
+  VITE v8.0.8  ready in 296 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
