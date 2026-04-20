@@ -1,8 +1,9 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
-import { useForm, Link } from '@inertiajs/vue3';
+import { ref, computed, reactive, watch } from 'vue';
+import { router, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
+import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -58,23 +59,41 @@ watch(
 function submit() {
     form.put(route('admin.switches.update', props.switchConfig.id));
 }
+
+const showDeleteModal = ref(false);
+const deleting = ref(false);
+
+function confirmDelete() {
+    deleting.value = true;
+    router.delete(route('admin.switches.destroy', props.switchConfig.id), {
+        onFinish: () => {
+            deleting.value = false;
+            showDeleteModal.value = false;
+        },
+    });
+}
 </script>
 
 <template>
-    <div class="space-y-6">
-        <div>
-            <h1 data-testid="page-title" class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl">
-                Edit Switch: {{ switchConfig.name }}
+    <div>
+        <div class="mb-2 flex items-start justify-between gap-6">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
+            >
+                Edit Switch
             </h1>
-            <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Update switch connectivity and authentication settings.
-            </p>
         </div>
-
-        <form data-testid="switch-form" class="space-y-6" @submit.prevent="submit">
+        <form data-testid="switch-form" class="mt-6 space-y-8" @submit.prevent="submit">
             <!-- Basic Info -->
-            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
-                <h2 class="mb-4 text-lg font-semibold text-[var(--color-text)]">Basic Information</h2>
+            <div class="space-y-4">
+                <h2
+                    class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
+                >
+                    Basic Information
+                </h2>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField label="Name" name="name" :required="true" :error="form.errors.name">
                         <input
@@ -82,7 +101,7 @@ function submit() {
                             v-model="form.name"
                             type="text"
                             data-testid="switch-name"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
 
@@ -93,7 +112,7 @@ function submit() {
                             type="text"
                             data-testid="switch-hostname"
                             placeholder="e.g. 192.168.1.1 or switch.local"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
 
@@ -102,7 +121,7 @@ function submit() {
                             id="type"
                             v-model="form.type"
                             data-testid="switch-type"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         >
                             <option value="" disabled>Select a type…</option>
                             <option v-for="t in switchTypes" :key="t.value" :value="t.value">
@@ -134,8 +153,13 @@ function submit() {
             </div>
 
             <!-- Connection -->
-            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
-                <h2 class="mb-4 text-lg font-semibold text-[var(--color-text)]">Connection</h2>
+            <div class="space-y-4">
+                <h2
+                    class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
+                >
+                    Connection
+                </h2>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField label="Port" name="port" :error="form.errors.port">
                         <input
@@ -145,7 +169,7 @@ function submit() {
                             data-testid="switch-port"
                             min="1"
                             max="65535"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
 
@@ -157,18 +181,20 @@ function submit() {
                             data-testid="switch-timeout"
                             min="1"
                             max="120"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
                 </div>
             </div>
 
             <!-- Credentials -->
-            <div
-                v-if="showCredentials"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6"
-            >
-                <h2 class="mb-4 text-lg font-semibold text-[var(--color-text)]">Credentials</h2>
+            <div v-if="showCredentials" class="space-y-4">
+                <h2
+                    class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
+                >
+                    Credentials
+                </h2>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField label="Username" name="username" :error="form.errors.username">
                         <input
@@ -177,7 +203,7 @@ function submit() {
                             type="text"
                             data-testid="switch-username"
                             autocomplete="off"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
 
@@ -189,7 +215,7 @@ function submit() {
                             data-testid="switch-password"
                             autocomplete="new-password"
                             placeholder="Leave blank to keep current"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
 
@@ -206,18 +232,20 @@ function submit() {
                             data-testid="switch-enable-password"
                             autocomplete="new-password"
                             placeholder="Leave blank to keep current"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
                 </div>
             </div>
 
             <!-- SNMP Community -->
-            <div
-                v-if="showCommunity"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6"
-            >
-                <h2 class="mb-4 text-lg font-semibold text-[var(--color-text)]">SNMP Settings</h2>
+            <div v-if="showCommunity" class="space-y-4">
+                <h2
+                    class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
+                >
+                    SNMP Settings
+                </h2>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField label="Community String" name="community" :error="form.errors.community">
                         <input
@@ -225,30 +253,58 @@ function submit() {
                             v-model="form.community"
                             type="text"
                             data-testid="switch-community"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
                 </div>
             </div>
 
             <!-- Actions -->
-            <div class="flex flex-wrap items-center gap-3 pt-1">
+            <div class="flex flex-wrap items-center gap-3 pt-4">
                 <button
                     type="submit"
                     data-testid="action-save"
                     :disabled="form.processing"
-                    class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:outline-none disabled:opacity-50"
+                    class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
                 >
                     {{ form.processing ? 'Saving…' : 'Save Changes' }}
                 </button>
                 <Link
                     :href="route('admin.switches.show', switchConfig.id)"
                     data-testid="action-cancel"
-                    class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:outline-none"
+                    class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
                 >
                     Cancel
                 </Link>
             </div>
         </form>
+
+        <div data-testid="danger-zone-switch" class="mt-8 border-t border-[var(--color-border)] pt-6">
+            <p class="mb-[3px] text-[11px] font-semibold tracking-[0.06em] text-[var(--color-danger)] uppercase">
+                Danger Zone
+            </p>
+            <p class="text-[13px] text-[var(--color-text-secondary)]">
+                Deleting this switch removes it and all associated port data.
+            </p>
+            <button
+                data-testid="action-delete"
+                title="Remove this switch and all its data"
+                class="mt-3 rounded-md border border-[var(--color-danger)]/40 px-4 py-[7px] text-[13px] font-semibold text-[var(--color-danger)] transition-colors hover:border-[var(--color-danger)] hover:bg-[var(--color-danger)]/12"
+                @click="showDeleteModal = true"
+            >
+                Delete Switch
+            </button>
+        </div>
+
+        <ConfirmModal
+            :show="showDeleteModal"
+            title="Delete Switch"
+            :message="`Are you sure you want to delete ${switchConfig.name}? This will remove the switch and all associated port data. This action cannot be undone.`"
+            confirm-label="Delete Switch"
+            variant="danger"
+            :loading="deleting"
+            @confirm="confirmDelete"
+            @cancel="showDeleteModal = false"
+        />
     </div>
 </template>

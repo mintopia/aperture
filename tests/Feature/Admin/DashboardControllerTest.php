@@ -10,8 +10,8 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpRange;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class DashboardControllerTest extends TestCase
@@ -45,9 +45,11 @@ class DashboardControllerTest extends TestCase
             ->has('activeIps')
             ->has('blockedUsers')
             ->missing('dhcpPools')
+            ->missing('uniqueIps')
             ->missing('recentUsers')
             ->loadDeferredProps(fn ($reload) => $reload
                 ->has('dhcpPools')
+                ->has('uniqueIps')
                 ->has('recentUsers')
             )
         );
@@ -128,6 +130,7 @@ class DashboardControllerTest extends TestCase
             ->loadDeferredProps(fn ($reload) => $reload
                 ->has('dhcpPools', 1)
                 ->where('dhcpPools.0.name', 'Main Pool')
+                ->where('dhcpPools.0.network', '10.0.0.0/24')
                 ->where('dhcpPools.0.used', 25)
                 ->where('dhcpPools.0.total', 190)
                 ->where('dhcpPools.0.utilisation', 0.1316)

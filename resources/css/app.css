@@ -1,22 +1,20 @@
 @import 'tailwindcss';
-@import '../fonts/space-grotesk/space-grotesk.css';
-@import '../fonts/plus-jakarta-sans/plus-jakarta-sans.css';
+@import '../fonts/bricolage-grotesque/bricolage-grotesque.css';
+@import '../fonts/hanken-grotesk/hanken-grotesk.css';
 @import '../fonts/jetbrains-mono/jetbrains-mono.css';
-@import './themes/default.css';
-@import './themes/cool-neon.css';
-@import './themes/warm-neon.css';
-@import './themes/matrix.css';
-@import './themes/amber-glow.css';
+@import './themes/dispatch.css';
 
 @theme {
-    --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-    --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 @layer base {
     html {
         font-family: var(--font-body);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
     h1,
     h2,

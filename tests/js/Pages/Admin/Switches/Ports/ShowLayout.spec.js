@@ -89,7 +89,7 @@ describe('Show — layout contract', () => {
         const wrapper = mountPage();
 
         const columns = wrapper.find('[data-testid="layout-columns"]');
-        expect(columns.classes()).toContain('xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]');
+        expect(columns.classes()).toContain('xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]');
     });
 
     it('orders sections as requested within each column', () => {
@@ -110,11 +110,11 @@ describe('Show — layout contract', () => {
     it('keeps layout rows stacked on mobile while defining desktop column splits', () => {
         const wrapper = mountPage();
 
-        const primaryRow = wrapper.find('[data-testid="layout-row-primary"]');
+        const columns = wrapper.find('[data-testid="layout-columns"]');
 
-        expect(primaryRow.exists()).toBe(true);
-        expect(primaryRow.classes()).toContain('grid-cols-1');
-        expect(primaryRow.classes().some((klass) => klass.startsWith('xl:grid-cols-'))).toBe(true);
+        expect(columns.exists()).toBe(true);
+        expect(columns.classes()).toContain('grid-cols-1');
+        expect(columns.classes().some((klass) => klass.startsWith('xl:grid-cols-'))).toBe(true);
     });
 
     it('shows state-aware toggle action labels explicitly (Shut / Unshut)', () => {

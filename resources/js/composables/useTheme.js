@@ -1,31 +1,22 @@
 import { ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { applyAccentHue } from './useAccentHue';
 
-const VALID_THEMES = ['default', 'cool-neon', 'warm-neon', 'matrix', 'amber-glow'];
 const VALID_MODES = ['light', 'dark'];
 
 export function useTheme() {
     const page = usePage();
     const sharedTheme = page.props.theme || {};
 
-    const theme = ref(sharedTheme.name || localStorage.getItem('theme') || 'cool-neon');
     const mode = ref(sharedTheme.mode || localStorage.getItem('themeMode') || 'dark');
-    const savedTheme = ref(theme.value);
     const savedMode = ref(mode.value);
+    const accentHue = ref(sharedTheme.accent_hue ?? 55);
 
     function applyTheme() {
         const el = document.documentElement;
-        el.setAttribute('data-theme', theme.value);
+        el.setAttribute('data-theme', 'dispatch');
         el.setAttribute('data-mode', mode.value);
-    }
-
-    function setTheme(name) {
-        if (VALID_THEMES.includes(name)) {
-            theme.value = name;
-            savedTheme.value = name;
-            localStorage.setItem('theme', name);
-            applyTheme();
-        }
+        applyAccentHue(accentHue.value, mode.value);
     }
 
     function toggleMode() {
@@ -44,13 +35,6 @@ export function useTheme() {
         }
     }
 
-    function previewTheme(name) {
-        if (VALID_THEMES.includes(name)) {
-            theme.value = name;
-            applyTheme();
-        }
-    }
-
     function previewMode(newMode) {
         if (VALID_MODES.includes(newMode)) {
             mode.value = newMode;
@@ -59,22 +43,17 @@ export function useTheme() {
     }
 
     function cancelPreview() {
-        theme.value = savedTheme.value;
         mode.value = savedMode.value;
         applyTheme();
     }
 
-    watch([theme, mode], applyTheme, { immediate: true });
+    watch(mode, () => applyTheme(), { immediate: true });
 
     return {
-        theme,
         mode,
-        setTheme,
         toggleMode,
         setMode,
-        previewTheme,
         previewMode,
         cancelPreview,
-        themes: VALID_THEMES,
     };
 }

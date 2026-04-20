@@ -6,28 +6,30 @@ defineProps({
 </script>
 
 <template>
-    <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-        <h3 class="mb-3 text-lg font-semibold text-[var(--color-text)]">Connection Status</h3>
-        <div class="space-y-3">
-            <div class="flex items-center justify-between">
-                <span class="text-sm text-[var(--color-text-secondary)]">IP Address</span>
+    <div data-testid="block-connection-status">
+        <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
+            Connection Status
+        </h3>
+        <div class="flex flex-col gap-3">
+            <div class="flex items-baseline justify-between">
+                <span class="text-[13px] text-[var(--color-text-secondary)]">IP Address</span>
                 <span class="font-mono text-sm text-[var(--color-text)]">{{ currentIp }}</span>
             </div>
-            <div class="flex items-center justify-between">
-                <span class="text-sm text-[var(--color-text-secondary)]">Status</span>
-                <span
-                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    :class="
-                        ipAllowed
-                            ? 'bg-[var(--color-success)]/10 text-[var(--color-success)]'
-                            : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
-                    "
-                >
+            <div class="border-t border-[var(--color-border)]"></div>
+            <div class="flex items-baseline justify-between">
+                <span class="text-[13px] text-[var(--color-text-secondary)]">Status</span>
+                <span class="inline-flex items-center gap-1.5 text-sm font-semibold">
                     <span
-                        class="h-1.5 w-1.5 rounded-full"
-                        :class="ipAllowed ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'"
+                        class="h-[7px] w-[7px] rounded-full"
+                        :class="
+                            ipAllowed
+                                ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
+                                : 'bg-[var(--color-danger)]'
+                        "
                     />
-                    {{ ipAllowed ? 'Connected' : 'Disconnected' }}
+                    <span :class="ipAllowed ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
+                        {{ ipAllowed ? 'Online' : 'Offline' }}
+                    </span>
                 </span>
             </div>
         </div>

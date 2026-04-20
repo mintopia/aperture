@@ -32,6 +32,7 @@ describe('MetadataStrip', () => {
         });
         const valueSpan = wrapper.findAll('span').find((s) => s.text() === 'abc-123');
         expect(valueSpan.classes()).toContain('font-mono');
+        expect(valueSpan.classes()).toContain('text-[14px]');
     });
 
     it('does not apply mono class when mono is not set', () => {
@@ -57,7 +58,36 @@ describe('MetadataStrip', () => {
             props: { items: [] },
         });
         expect(wrapper.find('[data-testid="metadata-strip"]').exists()).toBe(true);
-        expect(wrapper.findAll('.flex.flex-col')).toHaveLength(0);
+        expect(wrapper.findAll('[data-testid="metadata-item"]')).toHaveLength(0);
+    });
+
+    it('applies flex-none to each item for fixed sizing', () => {
+        const wrapper = mount(MetadataStrip, {
+            props: { items },
+        });
+        const itemDivs = wrapper.findAll('[data-testid="metadata-item"]');
+        itemDivs.forEach((item) => {
+            expect(item.classes()).toContain('flex-none');
+        });
+    });
+
+    it('applies border-right separator to non-last items only', () => {
+        const threeItems = [
+            { label: 'A', value: '1' },
+            { label: 'B', value: '2' },
+            { label: 'C', value: '3' },
+        ];
+        const wrapper = mount(MetadataStrip, {
+            props: { items: threeItems },
+        });
+        const itemDivs = wrapper.findAll('[data-testid="metadata-item"]');
+        expect(itemDivs[0].classes()).toContain('border-r');
+        expect(itemDivs[0].classes()).toContain('mr-8');
+        expect(itemDivs[0].classes()).toContain('pr-8');
+        expect(itemDivs[1].classes()).toContain('border-r');
+        expect(itemDivs[2].classes()).not.toContain('border-r');
+        expect(itemDivs[2].classes()).not.toContain('mr-8');
+        expect(itemDivs[2].classes()).not.toContain('pr-8');
     });
 
     it('renders scoped slot content for an item', () => {

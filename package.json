@@ -3,7 +3,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "build": "if [ -f public/hot ]; then cp public/hot public/hot.bak; fi && vite build && if [ -f public/hot.bak ]; then mv public/hot.bak public/hot; fi",
         "lint": "eslint resources/js/",
         "lint:fix": "eslint resources/js/ --fix",
         "format": "prettier --write resources/js/ resources/css/",

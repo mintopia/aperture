@@ -24,12 +24,19 @@ describe('Edit User', () => {
         avatar_url: null,
     };
 
+    const mockRoute = (name, params) => `/${name.replace(/\./g, '/')}/${params ?? ''}`;
+
     function mountEdit(user = defaultUser) {
         return mount(Edit, {
             props: { user },
             global: {
                 stubs: {
                     AdminLayout: { template: '<div><slot /></div>' },
+                },
+                config: {
+                    globalProperties: {
+                        route: mockRoute,
+                    },
                 },
             },
         });

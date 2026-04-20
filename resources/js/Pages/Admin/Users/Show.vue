@@ -116,7 +116,7 @@ const ipColumns = [
         />
 
         <section data-testid="user-ips-section">
-            <SectionHeader title="IP Addresses" />
+            <SectionHeader title="IP Addresses" class="mt-5" />
 
             <DataTable
                 :columns="ipColumns"

@@ -52,8 +52,8 @@ function testId(label) {
 
 function itemClass(href) {
     return isActive(href)
-        ? 'border-l-2 border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-        : 'border-l-2 border-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]';
+        ? 'bg-[var(--color-accent-dim)] text-[var(--color-primary)] font-semibold [&_svg]:opacity-100'
+        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] [&_svg]:opacity-60';
 }
 
 function checkBreakpoint() {
@@ -71,40 +71,41 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <!-- Desktop: 172px vertical sidebar -->
+    <!-- Desktop: 220px vertical sidebar -->
     <aside
         v-if="isDesktop"
         data-testid="admin-sidebar"
-        class="flex w-[172px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]"
+        class="flex w-[220px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]"
     >
-        <div class="border-b border-[var(--color-border)] px-4 py-3">
-            <div class="flex items-center gap-2">
+        <div class="mb-2 px-5 pt-5 pb-4">
+            <div class="flex items-center gap-3">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     stroke-width="1.5"
-                    class="h-4 w-4 text-[var(--color-primary)]"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="h-9 w-9 shrink-0 text-[var(--color-primary)]"
                     aria-hidden="true"
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M12 3.75a8.25 8.25 0 0 1 7.145 4.125m-2.53 9.98A8.214 8.214 0 0 1 12 20.25m-7.145-4.125A8.214 8.214 0 0 1 3.75 12m2.53-5.855A8.214 8.214 0 0 1 12 3.75m0 4.125A4.125 4.125 0 1 1 7.875 12 4.125 4.125 0 0 1 12 7.875Zm0-4.125v4.125m8.25 4.125h-4.125M12 20.25v-4.125M3.75 12h4.125"
-                    />
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="14.31" y1="8" x2="20.05" y2="17.94" />
+                    <line x1="9.69" y1="8" x2="21.17" y2="8" />
+                    <line x1="7.38" y1="12" x2="13.12" y2="2.06" />
+                    <line x1="9.69" y1="16" x2="3.95" y2="6.06" />
+                    <line x1="14.31" y1="16" x2="2.83" y2="16" />
+                    <line x1="16.62" y1="12" x2="10.88" y2="21.94" />
                 </svg>
-                <span class="font-heading text-sm font-bold text-[var(--color-text)]">Aperture</span>
+                <span class="font-heading text-[22px] font-bold tracking-tight text-[var(--color-text)]">Aperture</span>
             </div>
         </div>
-        <nav class="flex-1 overflow-y-auto p-2">
-            <section
-                v-for="(group, index) in navGroups"
-                :key="group.label"
-                :class="index > 0 ? 'mt-4' : ''"
-                class="flex flex-col gap-1"
-            >
-                <p class="px-3 pb-1 text-[8px] font-bold tracking-[1.5px] text-[var(--color-text-muted)] uppercase">
+        <nav class="flex flex-1 flex-col gap-6 overflow-y-auto">
+            <section v-for="group in navGroups" :key="group.label" class="flex flex-col gap-px">
+                <p
+                    class="mb-1 px-5 text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
+                >
                     {{ group.label }}
                 </p>
                 <Link
@@ -113,7 +114,7 @@ onUnmounted(() => {
                     :href="item.href"
                     :data-testid="testId(item.label)"
                     :class="itemClass(item.href)"
-                    class="mb-0.5 flex items-center gap-2 rounded-r-lg px-3 py-1.5 text-sm transition-colors"
+                    class="flex items-center gap-2.5 px-5 py-2 text-sm transition-all"
                 >
                     <!-- eslint-disable-next-line vue/no-v-html -->
                     <span v-html="item.icon" />
@@ -135,7 +136,9 @@ onUnmounted(() => {
             :class="index > 0 ? 'border-l border-[var(--color-border)] pl-3' : ''"
             class="flex shrink-0 items-center gap-1"
         >
-            <span class="pr-1 text-[8px] font-bold tracking-[1.5px] text-[var(--color-text-muted)] uppercase">
+            <span
+                class="font-body mb-1 px-5 text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
+            >
                 {{ group.label }}
             </span>
             <Link
@@ -144,7 +147,7 @@ onUnmounted(() => {
                 :href="item.href"
                 :data-testid="testId(item.label)"
                 :class="itemClass(item.href)"
-                class="flex shrink-0 items-center gap-1.5 rounded-r-lg px-3 py-1.5 text-sm transition-colors"
+                class="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-sm transition-colors"
             >
                 <!-- eslint-disable-next-line vue/no-v-html -->
                 <span v-html="item.icon" />

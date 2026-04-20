@@ -1,7 +1,6 @@
-import { mount, flushPromises } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Show from '@/Pages/Admin/Switches/Show.vue';
-import { router } from '@inertiajs/vue3';
 
 vi.mock('@inertiajs/vue3', () => ({
     router: {
@@ -26,6 +25,8 @@ vi.mock('@/utils/dates', () => ({
 vi.mock('@/utils/switches', () => ({
     typeLabel: vi.fn((v) => v),
     statusLabel: vi.fn((v) => v ?? '—'),
+    formatSpeed: vi.fn((v) => v ?? '—'),
+    formatVlan: vi.fn((vlan) => (vlan == null ? '—' : String(vlan))),
 }));
 
 // Set up global route function for script setup
@@ -44,9 +45,6 @@ const defaultProps = {
         created_at: '2024-01-01T00:00:00Z',
     },
     ports: [],
-    canDownloadConfig: false,
-    runningConfig: '',
-    latestSync: null,
 };
 
 function mountShow(propsOverride = {}) {
@@ -59,13 +57,6 @@ function mountShow(propsOverride = {}) {
             stubs: {
                 AdminLayout: { template: '<div><slot /></div>' },
                 MetadataStrip: { template: '<div />', props: ['items'] },
-                SectionHeader: { template: '<div><slot /></div>', props: ['title'] },
-                StatusPill: {
-                    template: '<span data-testid="status-pill">{{ label }}</span>',
-                    props: ['status', 'label'],
-                },
-                ConfigBlock: { template: '<div />', props: ['code'] },
-                // Don't stub ConfirmModal - let it render for real
                 teleport: true,
             },
         },
@@ -77,7 +68,7 @@ describe('Show.vue - Polish', () => {
         vi.clearAllMocks();
     });
 
-    describe('Delete functionality with ConfirmModal', () => {
+    describe('Layout structure', () => {
         it('renders updated layout wrappers for wireframe parity', () => {
             const wrapper = mountShow();
             expect(wrapper.find('[data-testid="switch-show-layout"]').exists()).toBe(true);
@@ -87,88 +78,9 @@ describe('Show.vue - Polish', () => {
             expect(wrapper.find('[data-testid="switch-ports-card"]').exists()).toBe(true);
         });
 
-        it('renders ConfirmModal for delete', async () => {
+        it('does not render delete button on Show page', () => {
             const wrapper = mountShow();
-
-            // Click delete button
-            const deleteButton = wrapper.find('[data-testid="action-delete"]');
-            expect(deleteButton.exists()).toBe(true);
-            await deleteButton.trigger('click');
-            await flushPromises();
-
-            // Expect ConfirmModal to be visible
-            expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
-        });
-
-        it('delete confirm triggers router.delete', async () => {
-            const wrapper = mountShow();
-
-            // Click delete button
-            await wrapper.find('[data-testid="action-delete"]').trigger('click');
-            await flushPromises();
-
-            // Click confirm in modal
-            const confirmButton = wrapper.find('[data-testid="confirm-modal-confirm"]');
-            expect(confirmButton.exists()).toBe(true);
-            await confirmButton.trigger('click');
-            await flushPromises();
-
-            // Expect router.delete to have been called
-            expect(router.delete).toHaveBeenCalledWith(
-                '/mocked/admin.switches.destroy',
-                expect.objectContaining({
-                    onFinish: expect.any(Function),
-                }),
-            );
-        });
-
-        it('cancel closes the modal', async () => {
-            const wrapper = mountShow();
-
-            // Click delete button
-            await wrapper.find('[data-testid="action-delete"]').trigger('click');
-            await flushPromises();
-
-            // Modal should be visible
-            expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
-
-            // Click cancel
-            const cancelButton = wrapper.find('[data-testid="confirm-modal-cancel"]');
-            expect(cancelButton.exists()).toBe(true);
-            await cancelButton.trigger('click');
-            await flushPromises();
-
-            // Modal should be gone
-            expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
-
-            // router.delete should NOT have been called
-            expect(router.delete).not.toHaveBeenCalled();
-        });
-
-        it('shows loading state during delete', async () => {
-            // Make router.delete hang - don't call onFinish immediately
-            vi.mocked(router.delete).mockImplementation((_url, _options) => {
-                // Don't call onFinish - simulating an in-progress request
-            });
-
-            const wrapper = mountShow();
-
-            // Click delete button
-            await wrapper.find('[data-testid="action-delete"]').trigger('click');
-            await flushPromises();
-
-            // Click confirm
-            let confirmButton = wrapper.find('[data-testid="confirm-modal-confirm"]');
-            await confirmButton.trigger('click');
-            await flushPromises();
-            await wrapper.vm.$nextTick();
-
-            // Re-find button after state change
-            confirmButton = wrapper.find('[data-testid="confirm-modal-confirm"]');
-
-            // Confirm button should show loading state
-            // ConfirmModal appends "…" to confirmLabel when loading=true
-            expect(confirmButton.text()).toBe('Delete Switch…');
+            expect(wrapper.find('[data-testid="action-delete"]').exists()).toBe(false);
         });
     });
 
@@ -185,11 +97,6 @@ describe('Show.vue - Polish', () => {
             const testButton = wrapper.find('[data-testid="action-test"]');
             expect(testButton.exists()).toBe(true);
             expect(testButton.attributes('title')).toBe('Test SSH connectivity to this switch');
-
-            // Check delete button tooltip
-            const deleteButton = wrapper.find('[data-testid="action-delete"]');
-            expect(deleteButton.exists()).toBe(true);
-            expect(deleteButton.attributes('title')).toBe('Remove this switch and all its data');
         });
     });
 });

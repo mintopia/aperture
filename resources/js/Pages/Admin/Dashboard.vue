@@ -3,17 +3,32 @@ import { computed } from 'vue';
 import { Deferred, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DhcpPoolsCard from '@/Components/Admin/DhcpPoolsCard.vue';
-import PortErrorsCard from '@/Components/Admin/PortErrorsCard.vue';
+import UniqueIpsChart from '@/Components/Admin/UniqueIpsChart.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import EmptyState from '@/Components/UI/EmptyState.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import StatCard from '@/Components/UI/StatCard.vue';
-import StatusPill from '@/Components/UI/StatusPill.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelativeTime } from '@/utils/dates';
 
 defineOptions({ layout: AdminLayout });
+
+function statusDotClass(type) {
+    const map = {
+        success: 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]',
+        danger: 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]',
+    };
+    return map[type] || map.success;
+}
+
+function statusTextClass(type) {
+    const map = {
+        success: 'text-[var(--color-success)]',
+        danger: 'text-[var(--color-danger)]',
+    };
+    return map[type] || map.success;
+}
 
 const props = defineProps({
     totalUsers: { type: Number, default: 0 },
@@ -21,6 +36,7 @@ const props = defineProps({
     activeIps: { type: Number, default: 0 },
     blockedUsers: { type: Number, default: 0 },
     dhcpPools: { type: Array, default: undefined },
+    uniqueIps: { type: Array, default: undefined },
     recentUsers: { type: Object, default: undefined },
 });
 
@@ -33,16 +49,20 @@ const onlinePercentage = computed(() => {
 const recentUserColumns = [
     { key: 'nickname', label: 'Nickname' },
     { key: 'email', label: 'Email' },
-    { key: 'ips_count', label: 'IPs', class: 'w-[90px]' },
-    { key: 'bandwidth', label: 'Bandwidth', class: 'w-[140px]' },
-    { key: 'status', label: 'Status', class: 'w-[120px]' },
-    { key: 'seen', label: 'Seen', class: 'w-[90px]' },
+    { key: 'ips_count', label: 'IPs' },
+    { key: 'bandwidth', label: 'Bandwidth' },
+    { key: 'status', label: 'Status' },
+    { key: 'seen', label: 'Seen' },
 ];
 
 const recentUserRows = computed(() => props.recentUsers?.data ?? []);
 
 function userStatus(user) {
-    return user.blocked ? { status: 'danger', label: 'Blocked' } : { status: 'success', label: 'Active' };
+    return user.blocked ? 'danger' : 'success';
+}
+
+function userStatusLabel(user) {
+    return user.blocked ? 'Blocked' : 'Active';
 }
 
 function userHref(id) {
@@ -51,39 +71,47 @@ function userHref(id) {
 </script>
 
 <template>
-    <div class="space-y-6">
-        <h1 data-testid="page-title" class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl">
-            Dashboard
-        </h1>
-
-        <div data-testid="dashboard-stats" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="ONLINE NOW" :value="onlineUsers" color="success" hero label-dot-color="success">
-                <div class="mt-3 flex items-end justify-between gap-3">
-                    <div class="text-[10px] tracking-[0.2em] text-[var(--color-success)]/80 uppercase">
-                        Live sessions
-                    </div>
-                    <div class="text-right text-[11px]">
-                        <p class="text-[var(--color-text-muted)]">of {{ totalUsers }}</p>
-                        <p class="font-semibold text-[var(--color-success)]">{{ onlinePercentage }}%</p>
-                    </div>
-                </div>
-            </StatCard>
-
-            <StatCard label="TOTAL USERS" :value="totalUsers" />
-            <StatCard label="IPS ACTIVE" :value="activeIps" />
-            <StatCard label="BLOCKED" :value="blockedUsers" color="danger" />
+    <div>
+        <div class="mb-2 flex items-start justify-between gap-6">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
+            >
+                Dashboard
+            </h1>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <!-- Stat Strip -->
+        <div data-testid="dashboard-stats" class="my-6 mb-7 flex gap-0 border-b border-[var(--color-border)] pb-5">
+            <div class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8">
+                <StatCard label="Online Now" :value="onlineUsers" color="success" label-dot-color="success">
+                    <p class="mt-[2px] font-mono text-[11px] text-[var(--color-text-muted)]">
+                        of {{ totalUsers }} &middot;
+                        <span class="text-[var(--color-success)]">{{ onlinePercentage }}%</span>
+                    </p>
+                </StatCard>
+            </div>
+
+            <div class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8">
+                <StatCard label="Total Users" :value="totalUsers" />
+            </div>
+
+            <div class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8">
+                <StatCard label="IPs Active" :value="activeIps" />
+            </div>
+
+            <div class="flex-1">
+                <StatCard label="Blocked" :value="blockedUsers" color="danger" />
+            </div>
+        </div>
+
+        <!-- Two Column: DHCP Pools + Unique IPs Chart -->
+        <div class="mb-10 grid grid-cols-[3fr_2fr] gap-10">
             <Deferred data="dhcpPools">
                 <template #fallback>
-                    <div
-                        data-testid="dhcp-pools-loading"
-                        class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
-                    >
-                        <h3 class="mb-4 text-[11px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-                            DHCP Pools
-                        </h3>
+                    <div data-testid="dhcp-pools-loading">
+                        <SectionHeader title="DHCP Pools" />
                         <div class="space-y-3">
                             <div
                                 v-for="i in 3"
@@ -97,16 +125,25 @@ function userHref(id) {
                 <DhcpPoolsCard :pools="dhcpPools ?? []" />
             </Deferred>
 
-            <PortErrorsCard />
+            <Deferred data="uniqueIps">
+                <template #fallback>
+                    <div data-testid="unique-ips-loading">
+                        <SectionHeader title="Unique IPs — Last 7 Days" />
+                        <div
+                            class="flex h-[200px] animate-pulse items-center justify-center rounded border border-[var(--color-border)] bg-[var(--color-surface-hover)]"
+                        />
+                    </div>
+                </template>
+
+                <UniqueIpsChart :data="uniqueIps ?? []" />
+            </Deferred>
         </div>
 
+        <!-- Recent Users Table -->
         <Deferred data="recentUsers">
             <template #fallback>
-                <div
-                    data-testid="recent-users-loading"
-                    class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
-                >
-                    <SectionHeader title="TOP BANDWIDTH &amp; RECENT USERS" />
+                <div data-testid="recent-users-loading">
+                    <SectionHeader title="Top Bandwidth &amp; Recent Users" />
                     <div class="space-y-3">
                         <div
                             v-for="i in 5"
@@ -117,16 +154,13 @@ function userHref(id) {
                 </div>
             </template>
 
-            <section
-                data-testid="recent-users-section"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
-            >
-                <SectionHeader title="TOP BANDWIDTH &amp; RECENT USERS" />
+            <section data-testid="recent-users-section">
+                <SectionHeader title="Top Bandwidth &amp; Recent Users" />
 
                 <div v-if="recentUserRows.length" class="space-y-4">
                     <DataTable :columns="recentUserColumns" :rows="recentUserRows">
                         <template #row="{ row }">
-                            <td class="px-4 py-3 text-sm">
+                            <td class="py-[10px] text-[13px]">
                                 <Link
                                     :href="userHref(row.id)"
                                     class="font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
@@ -134,19 +168,29 @@ function userHref(id) {
                                     {{ row.nickname }}
                                 </Link>
                             </td>
-                            <td class="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                            <td class="py-[10px] text-[13px] text-[var(--color-text-secondary)]">
                                 {{ row.email }}
                             </td>
-                            <td class="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                            <td class="py-[10px] font-mono text-[13px] text-[var(--color-text-secondary)]">
                                 {{ row.ips_count ?? 0 }}
                             </td>
-                            <td class="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                            <td class="py-[10px] font-mono text-[13px] text-[var(--color-text-secondary)]">
                                 {{ formatBytes(row.total_bandwidth ?? 0) }}
                             </td>
-                            <td class="px-4 py-3">
-                                <StatusPill :status="userStatus(row).status" :label="userStatus(row).label" />
+                            <td class="py-[10px]">
+                                <span class="inline-flex items-center gap-1.5 text-[12px]">
+                                    <span
+                                        :class="[
+                                            'inline-block h-[7px] w-[7px] rounded-full',
+                                            statusDotClass(userStatus(row)),
+                                        ]"
+                                    ></span>
+                                    <span :class="['font-semibold', statusTextClass(userStatus(row))]">{{
+                                        userStatusLabel(row)
+                                    }}</span>
+                                </span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                            <td class="py-[10px] font-mono text-[12px] text-[var(--color-text-muted)]">
                                 {{ formatRelativeTime(row.last_seen) }}
                             </td>
                         </template>

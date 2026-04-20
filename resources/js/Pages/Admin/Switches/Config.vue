@@ -24,24 +24,27 @@ function downloadConfig() {
 
 <template>
     <div>
-        <div class="mb-4 flex items-center justify-between">
-            <h1 data-testid="page-title" class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl">
-                Running Config: {{ switchConfig.name }}
+        <div class="mb-2 flex items-start justify-between gap-6">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
+            >
+                Running Config
             </h1>
             <Link
                 :href="route('admin.switches.show', switchConfig.id)"
                 data-testid="action-back"
-                class="rounded-lg border border-[var(--color-border)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
             >
                 Back to Switch
             </Link>
         </div>
-
-        <SectionHeader title="Running Config" accent-line>
+        <SectionHeader title="Running Config">
             <template v-if="config" #actions>
                 <button
                     data-testid="action-download-config"
-                    class="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                    class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
                     @click="downloadConfig"
                 >
                     Download
@@ -50,11 +53,7 @@ function downloadConfig() {
         </SectionHeader>
 
         <ConfigBlock v-if="config" data-testid="config-content" :code="config" />
-        <p
-            v-else
-            data-testid="config-empty"
-            class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-8 text-center text-sm text-[var(--color-text-muted)]"
-        >
+        <p v-else data-testid="config-empty" class="px-4 py-8 text-center text-sm text-[var(--color-text-muted)]">
             No running config available. The switch may not be reachable.
         </p>
     </div>

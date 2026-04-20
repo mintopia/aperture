@@ -34,8 +34,8 @@ class HandleInertiaRequests extends Middleware
                 'info' => fn () => $request->session()->get('info'),
             ],
             'theme' => [
-                'name' => fn (): mixed => Setting::get('theme.name', 'cool-neon'),
                 'mode' => fn (): mixed => Setting::get('theme.mode', 'dark'),
+                'accent_hue' => fn (): int => (int) Setting::get('theme.accent_hue', 55),
             ],
         ]);
     }

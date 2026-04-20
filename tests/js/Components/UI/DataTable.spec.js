@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import DataTable from '@/Components/UI/DataTable.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
@@ -223,6 +223,137 @@ describe('DataTable', () => {
         });
         await wrapper.find('[data-testid="data-table-row"]').trigger('click');
         expect(router.visit).not.toHaveBeenCalled();
+    });
+
+    describe('Dispatch mockup styling', () => {
+        it('table uses 13px font size and border-collapse', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const table = wrapper.find('table');
+            expect(table.classes()).toContain('text-[13px]');
+            expect(table.classes()).toContain('border-collapse');
+        });
+
+        it('outer wrapper has no card styles (no bg, border, rounded, shadow)', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const container = wrapper.find('[data-testid="data-table"]');
+            const classList = container.classes();
+            const hasCard = classList.some(
+                (c) => c.startsWith('bg-') || c.startsWith('rounded') || c.startsWith('shadow') || c === 'border',
+            );
+            expect(hasCard).toBe(false);
+        });
+
+        it('header th has correct mockup classes', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const th = wrapper.find('th');
+            expect(th.classes()).toContain('text-[11px]');
+            expect(th.classes()).toContain('font-semibold');
+            expect(th.classes()).toContain('tracking-[0.05em]');
+            expect(th.classes()).toContain('uppercase');
+            expect(th.classes()).toContain('text-[var(--color-text-muted)]');
+            expect(th.classes()).toContain('py-2');
+        });
+
+        it('header th border uses --color-border-hover (1px, not 2px)', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const th = wrapper.find('th');
+            expect(th.classes()).toContain('border-b');
+            expect(th.classes()).toContain('border-[var(--color-border-hover)]');
+            expect(th.classes()).not.toContain('border-b-2');
+        });
+
+        it('header tr has no border or background classes', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const headerTr = wrapper.find('thead tr');
+            const classList = headerTr.classes();
+            const hasBorderOrBg = classList.some(
+                (c) => c.startsWith('border') || c.startsWith('bg-'),
+            );
+            expect(hasBorderOrBg).toBe(false);
+        });
+
+        it('data rows have no inline border classes (borders are on td via CSS)', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const row = wrapper.find('[data-testid="data-table-row"]');
+            expect(row.classes()).toContain('transition-colors');
+            expect(row.classes()).not.toContain('border-b');
+            expect(row.classes()).not.toContain('border-[var(--color-border)]');
+            expect(row.classes()).not.toContain('last:border-b-0');
+        });
+
+        it('rows have no hover:border-l-2 class', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows, clickable: true, rowHref: (row) => `/users/${row.id}` },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const row = wrapper.find('[data-testid="data-table-row"]');
+            const classList = row.classes();
+            const hasBorderLHover = classList.some((c) => c.includes('border-l'));
+            expect(hasBorderLHover).toBe(false);
+        });
+
+        it('clickable rows use bg hover only', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows, clickable: true, rowHref: (row) => `/users/${row.id}` },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const row = wrapper.find('[data-testid="data-table-row"]');
+            expect(row.classes()).toContain('hover:bg-[var(--color-surface-hover)]');
+        });
+
+        it('header th has no px-4 padding', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns, rows },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const th = wrapper.find('th');
+            expect(th.classes()).not.toContain('px-4');
+        });
     });
 
     describe('Sortable columns', () => {

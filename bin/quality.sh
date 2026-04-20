@@ -64,7 +64,9 @@ fi
 pass "Vitest (${JS_COVERAGE}% line coverage)"
 
 step "JS: Vite build"
-npm run build && pass "Build" || fail "Vite build failed"
+[[ -f public/hot ]] && cp public/hot public/hot.bak
+npm run build && pass "Build" || { [[ -f public/hot.bak ]] && mv public/hot.bak public/hot; fail "Vite build failed"; }
+[[ -f public/hot.bak ]] && mv public/hot.bak public/hot
 
 echo -e "\n${GREEN}══════════════════════════════════════${NC}"
 echo -e "${GREEN}  All quality checks passed!${NC}"

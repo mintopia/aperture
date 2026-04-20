@@ -12,16 +12,32 @@ defineProps({
 
 <template>
     <div>
-        <h1 data-testid="page-title" class="font-heading mb-5 text-xl font-bold text-[var(--color-text)] sm:text-2xl">
-            Network Stats
-        </h1>
+        <div class="mb-2 flex items-start justify-between gap-6">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
+            >
+                Network Stats
+            </h1>
+        </div>
 
-        <SectionHeader title="Overview" accent-line />
+        <div class="mt-6">
+            <SectionHeader title="Overview" />
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="Total Users" :value="aggregateStats?.totalUsers ?? '—'" />
-            <StatCard label="Total Devices" :value="aggregateStats?.totalDevices ?? '—'" />
-            <StatCard label="Total Bandwidth" :value="aggregateStats?.totalBandwidth ?? '—'" />
+            <div data-testid="stats-overview" class="mt-3 mb-7 flex gap-0 border-b border-[var(--color-border)] pb-5">
+                <div class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8">
+                    <StatCard label="Total Users" :value="aggregateStats?.totalUsers ?? '—'" />
+                </div>
+
+                <div class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8">
+                    <StatCard label="Total Devices" :value="aggregateStats?.totalDevices ?? '—'" />
+                </div>
+
+                <div class="flex-1">
+                    <StatCard label="Total Bandwidth" :value="aggregateStats?.totalBandwidth ?? '—'" />
+                </div>
+            </div>
         </div>
     </div>
 </template>

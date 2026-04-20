@@ -22,8 +22,8 @@ const formattedName = computed(() =>
 
 const stateClasses = computed(() =>
     props.active
-        ? ['bg-[var(--color-primary)]/15', 'text-[var(--color-primary)]']
-        : ['bg-[var(--color-text-muted)]/10', 'text-[var(--color-text-muted)]', 'opacity-40'],
+        ? ['bg-[var(--color-primary)]/[0.14]', 'text-[var(--color-primary)]']
+        : ['bg-[var(--color-surface-hover)]', 'text-[var(--color-text-muted)]'],
 );
 </script>
 
@@ -31,7 +31,7 @@ const stateClasses = computed(() =>
     <span
         :class="stateClasses"
         :data-testid="`capability-tag-${name}`"
-        class="rounded-full px-2 py-0.5 text-[10px] font-medium"
+        class="rounded px-2 py-0.5 text-[11px] font-semibold"
     >
         {{ formattedName }}
     </span>

@@ -12,7 +12,7 @@ describe('DnsWarningBlock', () => {
             },
         });
 
-        expect(wrapper.text()).toContain('DNS Misconfigured');
+        expect(wrapper.text()).toContain('Custom DNS detected.');
         expect(wrapper.text()).toContain('10.0.0.1');
         expect(wrapper.text()).toContain('8.8.8.8');
     });
@@ -26,7 +26,7 @@ describe('DnsWarningBlock', () => {
             },
         });
 
-        expect(wrapper.text()).not.toContain('DNS Misconfigured');
+        expect(wrapper.text()).not.toContain('Custom DNS detected.');
     });
 
     it('reads expectedDns from settings prop when provided', () => {

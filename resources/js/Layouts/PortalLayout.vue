@@ -12,29 +12,23 @@ const page = usePage();
         <!-- Header -->
         <header
             data-testid="portal-header"
-            class="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm"
+            class="sticky top-0 z-50 flex h-[52px] items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]/85 px-6 backdrop-blur-xl"
         >
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div
-                    class="flex h-14 flex-col justify-center gap-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between"
-                >
-                    <Link :href="route('home')" class="flex items-center">
-                        <AppLogo class="drop-shadow-[0_0_12px_var(--color-glow)]" />
-                    </Link>
+            <Link :href="route('home')" class="flex items-center gap-2.5">
+                <AppLogo />
+            </Link>
 
-                    <div class="flex items-center gap-3">
-                        <ThemeToggle />
+            <div class="flex items-center gap-3">
+                <ThemeToggle />
 
-                        <div v-if="page.props.auth.user" class="flex items-center gap-3">
-                            <UserMenu :user="page.props.auth.user" />
-                        </div>
-                    </div>
+                <div v-if="page.props.auth.user" class="flex items-center">
+                    <UserMenu :user="page.props.auth.user" />
                 </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <main class="mx-auto max-w-[1100px] px-6 pt-8 pb-16">
             <slot />
         </main>
     </div>

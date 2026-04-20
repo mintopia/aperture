@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import DataTable from '@/Components/UI/DataTable.vue';
+import FilterBar from '@/Components/UI/FilterBar.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -11,7 +11,8 @@ const props = defineProps({
     ranges: { type: Array, default: () => [] },
 });
 
-const selectedRange = ref('all');
+const search = ref('');
+const filterValues = ref({ range: '' });
 const sortColumn = ref('ip');
 const sortDirection = ref('asc');
 const displayLimit = ref(50);
@@ -23,15 +24,66 @@ const columns = [
     { key: 'expires', label: 'Expires', sortable: true },
 ];
 
+const rangeFilterDef = computed(() => {
+    if (props.ranges.length === 0) return [];
+    return [
+        {
+            key: 'range',
+            label: 'Range',
+            allLabel: 'All Ranges',
+            options: props.ranges.map((r) => ({
+                value: r.name,
+                label: r.network ? `${r.network}` : r.name,
+            })),
+        },
+    ];
+});
+
+const totalFilteredCount = computed(() => {
+    let filtered = props.leases;
+
+    const selectedRange = filterValues.value.range;
+    if (selectedRange) {
+        const range = props.ranges.find((r) => r.name === selectedRange);
+        if (range && range.start && range.end) {
+            filtered = filtered.filter((lease) => isIpInRange(lease.ip, range.start, range.end));
+        }
+    }
+
+    const term = search.value.toLowerCase().trim();
+    if (term) {
+        filtered = filtered.filter((lease) => {
+            const ip = (lease.ip || '').toLowerCase();
+            const mac = (lease.mac || '').toLowerCase();
+            const hostname = (lease.hostname || '').toLowerCase();
+            return ip.includes(term) || mac.includes(term) || hostname.includes(term);
+        });
+    }
+
+    return filtered.length;
+});
+
 const filteredLeases = computed(() => {
     let filtered = props.leases;
 
     // Filter by range
-    if (selectedRange.value !== 'all') {
-        const range = props.ranges.find((r) => r.name === selectedRange.value);
+    const selectedRange = filterValues.value.range;
+    if (selectedRange) {
+        const range = props.ranges.find((r) => r.name === selectedRange);
         if (range && range.start && range.end) {
             filtered = filtered.filter((lease) => isIpInRange(lease.ip, range.start, range.end));
         }
+    }
+
+    // Filter by search
+    const term = search.value.toLowerCase().trim();
+    if (term) {
+        filtered = filtered.filter((lease) => {
+            const ip = (lease.ip || '').toLowerCase();
+            const mac = (lease.mac || '').toLowerCase();
+            const hostname = (lease.hostname || '').toLowerCase();
+            return ip.includes(term) || mac.includes(term) || hostname.includes(term);
+        });
     }
 
     // Sort
@@ -40,13 +92,11 @@ const filteredLeases = computed(() => {
         const bVal = b[sortColumn.value] || '';
 
         if (sortColumn.value === 'ip') {
-            // IP sorting - convert to numbers for proper comparison
             const aNum = aVal.includes(':') ? aVal : ipToNumber(aVal);
             const bNum = bVal.includes(':') ? bVal : ipToNumber(bVal);
             return sortDirection.value === 'asc' ? (aNum > bNum ? 1 : -1) : aNum < bNum ? 1 : -1;
         }
 
-        // String comparison for other columns
         const comparison = aVal.toString().localeCompare(bVal.toString());
         return sortDirection.value === 'asc' ? comparison : -comparison;
     });
@@ -55,18 +105,16 @@ const filteredLeases = computed(() => {
     return filtered.slice(0, displayLimit.value);
 });
 
-const hasMoreLeases = computed(() => {
-    let totalFiltered = props.leases.length;
+const hasMoreLeases = computed(() => totalFilteredCount.value > displayLimit.value);
 
-    if (selectedRange.value !== 'all') {
-        const range = props.ranges.find((r) => r.name === selectedRange.value);
-        if (range && range.start && range.end) {
-            totalFiltered = props.leases.filter((lease) => isIpInRange(lease.ip, range.start, range.end)).length;
-        }
+function toggleSort(columnKey) {
+    if (sortColumn.value === columnKey) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn.value = columnKey;
+        sortDirection.value = 'asc';
     }
-
-    return totalFiltered > displayLimit.value;
-});
+}
 
 function showMore() {
     displayLimit.value += 50;
@@ -75,13 +123,10 @@ function showMore() {
 function isIpInRange(ip, start, end) {
     if (!ip || !start || !end) return false;
 
-    // Check if IPv4 or IPv6
     if (ip.includes(':')) {
-        // IPv6 - simple string comparison for now
         return ip >= start && ip <= end;
     }
 
-    // IPv4 - convert to numbers for comparison
     const ipNum = ipToNumber(ip);
     const startNum = ipToNumber(start);
     const endNum = ipToNumber(end);
@@ -96,10 +141,8 @@ function ipToNumber(ip) {
 function formatExpiry(expires) {
     if (!expires) return 'Never';
 
-    // Check if it's a unix timestamp (numeric string)
     if (/^\d+$/.test(expires)) {
         const timestamp = parseInt(expires, 10);
-        // Handle both seconds and milliseconds timestamps
         const ms = timestamp > 1e12 ? timestamp : timestamp * 1000;
         return new Date(ms).toLocaleString('en-US', {
             year: 'numeric',
@@ -110,7 +153,6 @@ function formatExpiry(expires) {
         });
     }
 
-    // Already formatted or ISO string - parse and reformat
     try {
         const date = new Date(expires);
         if (!isNaN(date.getTime())) {
@@ -126,86 +168,108 @@ function formatExpiry(expires) {
         // Fall through to return as-is
     }
 
-    // Return as-is if parsing fails
     return expires;
 }
 </script>
 
 <template>
     <div>
-        <div class="mb-5 flex items-center justify-between gap-4">
-            <h1 data-testid="page-title" class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl">
+        <div class="mb-2 flex items-start justify-between gap-6">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
+            >
                 DHCP Leases
             </h1>
             <Link
                 :href="route('admin.dhcp.index')"
                 data-testid="back-to-ranges-link"
-                class="text-sm text-[var(--color-primary)] hover:underline"
+                class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
             >
                 &larr; Back to Ranges
             </Link>
         </div>
 
-        <div v-if="ranges.length > 0" class="mb-4">
-            <label for="range-filter" class="mb-2 block text-sm font-medium text-[var(--color-text)]">
-                Filter by Range
-            </label>
-            <select
-                id="range-filter"
-                v-model="selectedRange"
-                data-testid="range-filter"
-                class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none"
-            >
-                <option value="all">All Ranges</option>
-                <option v-for="range in ranges" :key="range.name" :value="range.name">
-                    {{ range.name }} ({{ range.network }})
-                </option>
-            </select>
-        </div>
+        <FilterBar
+            :search="search"
+            search-placeholder="Search leases…"
+            :filters="rangeFilterDef"
+            :filter-values="filterValues"
+            :total-count="leases.length"
+            :filtered-count="totalFilteredCount"
+            @update:search="search = $event"
+            @update:filter-values="filterValues = $event"
+        />
 
-        <DataTable
-            :columns="columns"
-            :rows="filteredLeases"
-            :sort-column="sortColumn"
-            :sort-direction="sortDirection"
-            empty-message="No active leases"
-            @update:sort-column="sortColumn = $event"
-            @update:sort-direction="sortDirection = $event"
-        >
-            <template #row="{ row, index }">
-                <td :data-testid="`lease-row-${index}-ip`" class="font-mono text-[var(--color-text)]">
-                    {{ row.ip }}
-                </td>
-                <td :data-testid="`lease-row-${index}-mac`" class="font-mono text-[var(--color-text-secondary)]">
-                    {{ row.mac }}
-                </td>
-                <td :data-testid="`lease-row-${index}-hostname`" class="text-[var(--color-text-secondary)]">
-                    {{ row.hostname || '—' }}
-                </td>
-                <td :data-testid="`lease-row-${index}-expires`" class="text-[var(--color-text-muted)]">
-                    {{ formatExpiry(row.expires) }}
-                </td>
-            </template>
-        </DataTable>
+        <div data-testid="data-table" class="overflow-x-auto">
+            <table class="w-full border-collapse text-[13px]">
+                <thead>
+                    <tr>
+                        <th
+                            v-for="(col, colIdx) in columns"
+                            :key="col.key"
+                            class="border-b border-[var(--color-border-hover)] py-2 text-left text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
+                            :class="[col.sortable ? 'cursor-pointer' : '', colIdx > 0 ? 'pl-6' : '']"
+                            @click="col.sortable ? toggleSort(col.key) : null"
+                        >
+                            <div class="flex items-center gap-1.5">
+                                {{ col.label }}
+                                <span v-if="col.sortable && sortColumn === col.key" class="text-[var(--color-primary)]">
+                                    {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                                </span>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="filteredLeases.length === 0" data-testid="data-table-empty">
+                        <td :colspan="columns.length" class="py-12 text-center text-[var(--color-text-muted)]">
+                            No active leases
+                        </td>
+                    </tr>
+                    <tr
+                        v-for="(row, index) in filteredLeases"
+                        :key="index"
+                        data-testid="data-table-row"
+                        class="transition-colors"
+                    >
+                        <td
+                            :data-testid="`lease-row-${index}-ip`"
+                            class="border-b border-[var(--color-border)] py-[10px] align-top font-mono text-[13px] text-[var(--color-text)]"
+                        >
+                            {{ row.ip }}
+                        </td>
+                        <td
+                            :data-testid="`lease-row-${index}-mac`"
+                            class="border-b border-[var(--color-border)] py-[10px] pl-6 align-top font-mono text-[13px] text-[var(--color-text-secondary)]"
+                        >
+                            {{ row.mac }}
+                        </td>
+                        <td
+                            :data-testid="`lease-row-${index}-hostname`"
+                            class="border-b border-[var(--color-border)] py-[10px] pl-6 align-top text-[13px] text-[var(--color-text-secondary)]"
+                        >
+                            {{ row.hostname || '—' }}
+                        </td>
+                        <td
+                            :data-testid="`lease-row-${index}-expires`"
+                            class="border-b border-[var(--color-border)] py-[10px] pl-6 align-top text-[13px] text-[var(--color-text-muted)]"
+                        >
+                            {{ formatExpiry(row.expires) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <div v-if="hasMoreLeases" class="mt-4 text-center">
             <button
                 data-testid="show-more-button"
-                class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-6 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
                 @click="showMore"
             >
-                Show More ({{ filteredLeases.length }} of
-                {{
-                    selectedRange === 'all'
-                        ? leases.length
-                        : leases.filter((l) =>
-                              isIpInRange(
-                                  l.ip,
-                                  ranges.find((r) => r.name === selectedRange)?.start,
-                                  ranges.find((r) => r.name === selectedRange)?.end,
-                              ),
-                          ).length
-                }})
+                Show More ({{ filteredLeases.length }} of {{ totalFilteredCount }})
             </button>
         </div>
     </div>

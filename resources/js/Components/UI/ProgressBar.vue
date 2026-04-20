@@ -19,11 +19,12 @@ const colorMap = {
 <template>
     <div data-testid="progress-bar" class="flex items-center gap-1.5 text-[11px]">
         <span class="w-[90px] text-[var(--color-text-secondary)]">{{ label }}</span>
-        <div class="h-[5px] flex-1 rounded-full bg-[var(--color-surface-hover)]">
+        <div class="mt-[6px] h-[6px] flex-1 overflow-hidden rounded-[3px] bg-[var(--color-surface-hover)]">
             <div
+                data-testid="progress-bar-fill"
                 :class="colorMap[color]"
                 :style="{ width: `${Math.min((value / max) * 100, 100)}%` }"
-                class="h-full rounded-full transition-all"
+                class="h-full rounded-[3px] transition-[width] duration-300"
             />
         </div>
         <span class="min-w-[50px] text-right font-mono text-[10px]">{{ displayValue || `${value}/${max}` }}</span>

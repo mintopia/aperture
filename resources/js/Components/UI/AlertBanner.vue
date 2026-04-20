@@ -9,24 +9,20 @@ defineProps({
 
 const config = {
     warning: {
-        bg: 'bg-[var(--color-warning)]/10',
-        border: 'border-[var(--color-warning)]/15',
-        borderLeft: 'border-l-[var(--color-warning)]',
+        bg: 'bg-[var(--color-warning)]/5',
+        border: 'border-[var(--color-warning)]/20',
     },
     info: {
-        bg: 'bg-[var(--color-primary)]/10',
-        border: 'border-[var(--color-primary)]/15',
-        borderLeft: 'border-l-[var(--color-primary)]',
+        bg: 'bg-[var(--color-info)]/5',
+        border: 'border-[var(--color-info)]/20',
     },
     danger: {
-        bg: 'bg-[var(--color-danger)]/10',
-        border: 'border-[var(--color-danger)]/15',
-        borderLeft: 'border-l-[var(--color-danger)]',
+        bg: 'bg-[var(--color-danger)]/5',
+        border: 'border-[var(--color-danger)]/20',
     },
     success: {
-        bg: 'bg-[var(--color-success)]/10',
-        border: 'border-[var(--color-success)]/15',
-        borderLeft: 'border-l-[var(--color-success)]',
+        bg: 'bg-[var(--color-success)]/5',
+        border: 'border-[var(--color-success)]/20',
     },
 };
 </script>
@@ -34,8 +30,8 @@ const config = {
 <template>
     <div
         data-testid="alert-banner"
-        :class="[config[type].bg, config[type].border, config[type].borderLeft]"
-        class="flex items-center justify-between rounded-lg border border-l-[3px] px-3.5 py-2.5"
+        :class="[config[type].bg, config[type].border]"
+        class="flex items-center justify-between rounded border p-4"
     >
         <slot />
     </div>

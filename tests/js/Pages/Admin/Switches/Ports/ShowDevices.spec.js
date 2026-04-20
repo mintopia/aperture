@@ -30,6 +30,7 @@ vi.mock('@/utils/switches', () => ({
 
 vi.mock('@/helpers.js', () => ({
     formatBytes: vi.fn((v) => `${v} B`),
+    formatBytesComponents: vi.fn((v) => ({ value: `${v}`, unit: 'B' })),
 }));
 
 const defaultProps = {
@@ -68,7 +69,7 @@ function mountShow(propsOverride = {}) {
                 MetadataStrip: { template: '<div />', props: ['items'] },
                 SectionHeader: {
                     template: '<div data-testid="section-header">{{ title }}<slot /></div>',
-                    props: ['title', 'accentLine'],
+                    props: ['title'],
                 },
                 StatusPill: {
                     template: '<span data-testid="status-pill" :data-status="status">{{ label }}</span>',
@@ -109,7 +110,7 @@ describe('Show — Connected Devices sidebar', () => {
 
         const headerCells = wrapper.findAll('thead th');
         expect(headerCells).toHaveLength(3);
-        expect(headerCells[0].text()).toBe('MAC');
+        expect(headerCells[0].text()).toBe('MAC Address');
         expect(headerCells[1].text()).toBe('IPv4');
         expect(headerCells[2].text()).toBe('IPv6');
 
@@ -128,7 +129,7 @@ describe('Show — Connected Devices sidebar', () => {
         expect(ipv6Second.attributes('href')).toContain('2001:db8::2');
     });
 
-    it('hides devices without IPv4/IPv6 text by default', () => {
+    it('renders all devices including those without IPs', () => {
         const wrapper = mountShow({
             macs: [
                 {
@@ -152,32 +153,10 @@ describe('Show — Connected Devices sidebar', () => {
             ],
         });
 
-        expect(wrapper.findAll('tbody tr')).toHaveLength(2);
-        expect(wrapper.text()).toContain('Connected Devices (2)');
-        expect(wrapper.text()).toContain('Include devices without any IP address');
+        expect(wrapper.findAll('tbody tr')).toHaveLength(3);
+        expect(wrapper.text()).toContain('Connected Devices (3)');
+        expect(wrapper.find('[data-testid="show-devices-without-ip-toggle"]').exists()).toBe(false);
         expect(wrapper.find('[data-testid="connected-devices-table-wrapper"]').classes()).toContain('overflow-x-auto');
         expect(wrapper.find('[data-testid="device-ipv4-link-0-0"]').classes()).toContain('break-all');
-    });
-
-    it('shows devices without IP links when toggled on', async () => {
-        const wrapper = mountShow({
-            macs: [
-                {
-                    mac_address: 'AA:BB:CC:DD:EE:FF',
-                    resolved_ips: [{ id: 1, ip: '10.0.1.42' }],
-                },
-                {
-                    mac_address: '11:22:33:44:55:66',
-                    resolved_ips: [],
-                },
-            ],
-        });
-
-        expect(wrapper.findAll('tbody tr')).toHaveLength(1);
-
-        await wrapper.find('[data-testid="show-devices-without-ip-toggle"]').setValue(true);
-
-        expect(wrapper.findAll('tbody tr')).toHaveLength(2);
-        expect(wrapper.text()).toContain('Connected Devices (2)');
     });
 });

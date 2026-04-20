@@ -22,7 +22,7 @@ const mockLeases = [
 
 const mockRanges = [
     { name: 'lan', network: '10.0.0.0/24', start: '10.0.0.1', end: '10.0.0.254' },
-    { name: 'wifi', network: '10.0.1.0/24', start: '10.0.1.1', end: '10.0.1.254' },
+    { name: 'guest', network: '10.0.1.0/24', start: '10.0.1.1', end: '10.0.1.254' },
 ];
 
 const defaultProps = {
@@ -60,36 +60,112 @@ describe('Dhcp/Leases', () => {
         expect(wrapper.find('[data-testid="back-to-ranges-link"]').exists()).toBe(true);
     });
 
-    describe('Range filter', () => {
+    describe('FilterBar integration', () => {
+        it('renders the FilterBar component', () => {
+            const wrapper = mountLeases();
+            expect(wrapper.find('[data-testid="filter-bar"]').exists()).toBe(true);
+        });
+
+        it('renders a search input', () => {
+            const wrapper = mountLeases();
+            expect(wrapper.find('[data-testid="filter-search-input"]').exists()).toBe(true);
+        });
+
         it('renders range filter dropdown when ranges exist', () => {
             const wrapper = mountLeases();
-            expect(wrapper.find('[data-testid="range-filter"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="filter-select-range"]').exists()).toBe(true);
         });
 
         it('does not render range filter when no ranges', () => {
             const wrapper = mountLeases({ ranges: [] });
-            expect(wrapper.find('[data-testid="range-filter"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="filter-select-range"]').exists()).toBe(false);
         });
 
-        it('shows range options with name and network labels', () => {
+        it('shows range options with network/CIDR labels', () => {
             const wrapper = mountLeases();
-            const select = wrapper.find('[data-testid="range-filter"]');
+            const select = wrapper.find('[data-testid="filter-select-range"]');
             const options = select.findAll('option');
             expect(options).toHaveLength(3);
             expect(options[0].text()).toBe('All Ranges');
-            expect(options[1].text()).toBe('lan (10.0.0.0/24)');
-            expect(options[2].text()).toBe('wifi (10.0.1.0/24)');
+            expect(options[1].text()).toBe('10.0.0.0/24');
+            expect(options[2].text()).toBe('10.0.1.0/24');
+        });
+
+        it('shows total count', () => {
+            const wrapper = mountLeases();
+            expect(wrapper.find('[data-testid="filter-count"]').text()).toBe('4 of 4');
+        });
+
+        it('search filters leases by IP', async () => {
+            const wrapper = mountLeases();
+            const input = wrapper.find('[data-testid="filter-search-input"]');
+
+            await input.setValue('10.0.0.10');
+            await input.trigger('input');
+            await wrapper.vm.$nextTick();
+
+            const rows = wrapper.findAll('[data-testid="data-table-row"]');
+            expect(rows).toHaveLength(1);
+        });
+
+        it('search filters leases by hostname', async () => {
+            const wrapper = mountLeases();
+            const input = wrapper.find('[data-testid="filter-search-input"]');
+
+            await input.setValue('web-server');
+            await input.trigger('input');
+            await wrapper.vm.$nextTick();
+
+            const rows = wrapper.findAll('[data-testid="data-table-row"]');
+            expect(rows).toHaveLength(1);
+        });
+
+        it('search filters leases by MAC address', async () => {
+            const wrapper = mountLeases();
+            const input = wrapper.find('[data-testid="filter-search-input"]');
+
+            await input.setValue('EE:03');
+            await input.trigger('input');
+            await wrapper.vm.$nextTick();
+
+            const rows = wrapper.findAll('[data-testid="data-table-row"]');
+            expect(rows).toHaveLength(1);
         });
 
         it('range filter narrows results', async () => {
             const wrapper = mountLeases();
-            const select = wrapper.find('[data-testid="range-filter"]');
+            const select = wrapper.find('[data-testid="filter-select-range"]');
 
             await select.setValue('lan');
             await wrapper.vm.$nextTick();
 
             const rows = wrapper.findAll('[data-testid="data-table-row"]');
             expect(rows).toHaveLength(2);
+        });
+
+        it('updates count when range filter is applied', async () => {
+            const wrapper = mountLeases();
+            const select = wrapper.find('[data-testid="filter-select-range"]');
+
+            await select.setValue('guest');
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.find('[data-testid="filter-count"]').text()).toBe('2 of 4');
+        });
+
+        it('search + range filter work together', async () => {
+            const wrapper = mountLeases();
+
+            await wrapper.find('[data-testid="filter-select-range"]').setValue('lan');
+            await wrapper.vm.$nextTick();
+
+            const input = wrapper.find('[data-testid="filter-search-input"]');
+            await input.setValue('web');
+            await input.trigger('input');
+            await wrapper.vm.$nextTick();
+
+            const rows = wrapper.findAll('[data-testid="data-table-row"]');
+            expect(rows).toHaveLength(1);
         });
     });
 
@@ -126,11 +202,6 @@ describe('Dhcp/Leases', () => {
             expect(wrapper.find('[data-testid="data-table-empty"]').exists()).toBe(true);
             expect(wrapper.find('[data-testid="data-table-empty"]').text()).toBe('No active leases');
         });
-
-        it('renders data-table wrapper from DataTable component', () => {
-            const wrapper = mountLeases();
-            expect(wrapper.find('[data-testid="data-table"]').exists()).toBe(true);
-        });
     });
 
     describe('Sorting', () => {
@@ -140,11 +211,11 @@ describe('Dhcp/Leases', () => {
             expect(firstIp.text()).toBe('10.0.0.10');
         });
 
-        it('toggles sort direction on sort button click', async () => {
+        it('toggles sort direction on column click', async () => {
             const wrapper = mountLeases();
-            const sortButton = wrapper.find('[data-testid="sort-ip"]');
+            const ipHeader = wrapper.findAll('th')[0];
 
-            await sortButton.trigger('click');
+            await ipHeader.trigger('click');
             await wrapper.vm.$nextTick();
 
             const firstIp = wrapper.find('[data-testid="lease-row-0-ip"]');
@@ -153,8 +224,8 @@ describe('Dhcp/Leases', () => {
 
         it('shows sort indicator on active column', () => {
             const wrapper = mountLeases();
-            const sortButton = wrapper.find('[data-testid="sort-ip"]');
-            expect(sortButton.text()).toContain('↑');
+            const ipHeader = wrapper.findAll('th')[0];
+            expect(ipHeader.text()).toContain('↑');
         });
     });
 

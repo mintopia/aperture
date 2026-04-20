@@ -20,9 +20,15 @@ const columns = [
 
 <template>
     <div>
-        <h1 data-testid="page-title" class="font-heading mb-5 text-xl font-bold text-[var(--color-text)] sm:text-2xl">
-            Content Blocks
-        </h1>
+        <div class="mb-2 flex items-start justify-between gap-6">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
+            >
+                Content Blocks
+            </h1>
+        </div>
 
         <EmptyState
             v-if="!blocks?.length"
@@ -30,24 +36,26 @@ const columns = [
             description="Content blocks will appear on the portal dashboard."
         />
 
-        <DataTable v-else :columns="columns" :rows="blocks">
-            <template #row="{ row }">
-                <td class="px-4 py-2.5 text-sm font-medium text-[var(--color-text)]">
-                    {{ row.title }}
-                </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
-                    {{ row.type }}
-                </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-muted)]">
-                    {{ row.sort_order }}
-                </td>
-                <td class="px-4 py-2.5">
-                    <StatusPill
-                        :status="row.is_active ? 'success' : 'neutral'"
-                        :label="row.is_active ? 'Active' : 'Inactive'"
-                    />
-                </td>
-            </template>
-        </DataTable>
+        <div v-else class="mt-6">
+            <DataTable :columns="columns" :rows="blocks">
+                <template #row="{ row }">
+                    <td class="py-2.5 text-[13px] font-medium text-[var(--color-text)]">
+                        {{ row.title }}
+                    </td>
+                    <td class="py-2.5 text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.type }}
+                    </td>
+                    <td class="py-2.5 text-[13px] text-[var(--color-text-muted)]">
+                        {{ row.sort_order }}
+                    </td>
+                    <td class="py-2.5">
+                        <StatusPill
+                            :status="row.is_active ? 'success' : 'neutral'"
+                            :label="row.is_active ? 'Active' : 'Inactive'"
+                        />
+                    </td>
+                </template>
+            </DataTable>
+        </div>
     </div>
 </template>

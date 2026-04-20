@@ -9,17 +9,24 @@ defineProps({
 </script>
 
 <template>
-    <div
-        data-testid="metadata-strip"
-        class="mb-3.5 flex flex-wrap gap-x-7 gap-y-2 border-b-2 border-[var(--color-border)] pb-3.5"
-    >
-        <div v-for="item in items" :key="item.label" class="flex flex-col">
-            <span class="text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">{{
-                item.label
-            }}</span>
+    <div data-testid="metadata-strip" class="mt-6 mb-7 flex gap-0 border-b border-[var(--color-border)] pb-5">
+        <div
+            v-for="(item, index) in items"
+            :key="item.label"
+            data-testid="metadata-item"
+            :class="[index < items.length - 1 ? 'mr-8 border-r border-[var(--color-border)] pr-8' : '']"
+            class="flex flex-none flex-col"
+        >
             <span
-                :class="[item.mono ? 'font-mono' : '', item.large ? 'text-sm font-semibold' : 'text-[13px]']"
-                class="text-[var(--color-text)]"
+                class="mb-[3px] text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
+                >{{ item.label }}</span
+            >
+            <span
+                :class="[
+                    item.mono ? 'font-mono text-[14px]' : '',
+                    item.large ? 'text-sm font-semibold' : 'text-[15px]',
+                ]"
+                class="font-medium text-[var(--color-text)]"
             >
                 <slot :name="item.label" :item="item">{{ item.value }}</slot>
             </span>

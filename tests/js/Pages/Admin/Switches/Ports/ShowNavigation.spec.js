@@ -32,6 +32,7 @@ vi.mock('@/utils/switches', () => ({
 
 vi.mock('@/helpers.js', () => ({
     formatBytes: vi.fn((v) => `${v} bytes`),
+    formatBytesComponents: vi.fn((v) => ({ value: `${v}`, unit: 'bytes' })),
 }));
 
 const defaultProps = {
@@ -87,7 +88,7 @@ function mountShow(propsOverride = {}) {
                 },
                 SectionHeader: {
                     template: '<div :data-title="title"><span>{{ title }}</span><slot /></div>',
-                    props: ['title', 'accentLine'],
+                    props: ['title'],
                 },
                 StatusPill: {
                     template: '<span>{{ label }}</span>',
@@ -106,60 +107,43 @@ function mountShow(propsOverride = {}) {
 }
 
 describe('Show — Port Navigation Context', () => {
-    it('renders the top context strip and metadata strip hierarchy', () => {
+    it('renders metadata strip below the page title', () => {
         const wrapper = mountShow();
-        const contextStrip = wrapper.find('[data-testid="port-context-strip"]');
         const metadataStrip = wrapper.find('[data-testid="metadata-strip"]');
 
-        expect(contextStrip.exists()).toBe(true);
         expect(metadataStrip.exists()).toBe(true);
-        expect(wrapper.html().indexOf('port-context-strip')).toBeLessThan(wrapper.html().indexOf('metadata-strip'));
+        expect(wrapper.html().indexOf('page-title')).toBeLessThan(wrapper.html().indexOf('metadata-strip'));
     });
 
-    it('renders primary layout row with columns for S7 structure', () => {
+    it('renders two-column layout with left and right columns', () => {
         const wrapper = mountShow();
-        const primaryRow = wrapper.find('[data-testid="layout-row-primary"]');
         const layoutColumns = wrapper.find('[data-testid="layout-columns"]');
 
-        expect(primaryRow.exists()).toBe(true);
-        expect(primaryRow.classes()).toContain('xl:grid-cols-[minmax(0,1fr)]');
         expect(layoutColumns.exists()).toBe(true);
-        expect(layoutColumns.classes()).toContain('xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]');
-        expect(primaryRow.find('[data-testid="bandwidth-section"]').exists()).toBe(true);
-        expect(primaryRow.find('[data-testid="connected-devices-section"]').exists()).toBe(true);
+        expect(layoutColumns.classes()).toContain('xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]');
+        expect(wrapper.find('[data-testid="layout-column-left"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="layout-column-right"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="connected-devices-section"]').exists()).toBe(true);
         expect(
-            primaryRow.find('[data-testid="errors-section"]').exists() ||
-                primaryRow.find('[data-testid="errors-fallback"]').exists(),
+            wrapper.find('[data-testid="errors-section"]').exists() ||
+                wrapper.find('[data-testid="errors-fallback"]').exists(),
         ).toBe(true);
-        expect(primaryRow.find('[data-testid="running-config-section"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="running-config-section"]').exists()).toBe(true);
     });
 
-    it('renders interface output as a collapsed section', () => {
+    it('renders interface output section', () => {
         const wrapper = mountShow();
         const interfaceOutputSection = wrapper.find('[data-testid="section-interface-output"]');
-        const collapsible = wrapper.find('[data-testid="interface-output-collapsible"]');
 
         expect(interfaceOutputSection.exists()).toBe(true);
-        expect(collapsible.exists()).toBe(true);
-        expect(collapsible.attributes('open')).toBeUndefined();
-        expect(collapsible.text()).toContain('Interface Output');
+        expect(interfaceOutputSection.text()).toContain('Interface Output');
     });
 
-    it('renders switch name as a link to the switch detail page', () => {
+    it('does not render switch context strip in page header (context is in breadcrumbs)', () => {
         const wrapper = mountShow();
-        const link = wrapper.find('[data-testid="port-switch-link"]');
 
-        expect(link.exists()).toBe(true);
-        expect(link.text()).toBe('sw-lab');
-        expect(link.attributes('href')).toContain('admin.switches.show');
-        expect(link.attributes('href')).toContain('42');
-    });
-
-    it('renders switch type label next to the switch name', () => {
-        const wrapper = mountShow();
-        const header = wrapper.find('[data-testid="port-context-strip"]');
-
-        expect(header.text()).toContain('TypeLabel(cisco_ios)');
+        expect(wrapper.find('[data-testid="port-context-strip"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="port-switch-link"]').exists()).toBe(false);
     });
 
     it('renders prev port link when prevPort is provided', () => {

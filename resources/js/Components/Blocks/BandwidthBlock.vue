@@ -34,18 +34,22 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-        <h3 class="mb-3 text-lg font-semibold text-[var(--color-text)]">Your Bandwidth</h3>
+    <div data-testid="block-bandwidth">
+        <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
+            Bandwidth
+        </h3>
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <p class="text-xs text-[var(--color-text-muted)]">Downloaded</p>
-                <p class="text-xl font-bold text-[var(--color-accent)]">
+                <p class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
+                    Download
+                </p>
+                <p class="font-heading text-2xl font-bold tracking-tight text-[var(--color-success)]">
                     {{ formatBytes(bandwidthData.totalReceived) }}
                 </p>
             </div>
             <div>
-                <p class="text-xs text-[var(--color-text-muted)]">Uploaded</p>
-                <p class="text-xl font-bold text-[var(--color-primary)]">
+                <p class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">Upload</p>
+                <p class="font-heading text-2xl font-bold tracking-tight text-[var(--color-info)]">
                     {{ formatBytes(bandwidthData.totalSent) }}
                 </p>
             </div>

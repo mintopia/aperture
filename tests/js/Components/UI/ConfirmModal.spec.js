@@ -79,14 +79,47 @@ describe('ConfirmModal', () => {
 
     it('applies danger variant styling', () => {
         const wrapper = mountComponent({ variant: 'danger' });
+        const btn = wrapper.find('[data-testid="confirm-modal-confirm"]');
 
-        expect(wrapper.find('[data-testid="confirm-modal-confirm"]').classes()).toContain('bg-[var(--color-danger)]');
+        expect(btn.classes()).toContain('text-[var(--color-danger)]');
+        expect(btn.classes()).toContain('border-[var(--color-danger)]/40');
     });
 
     it('applies warning variant styling', () => {
         const wrapper = mountComponent({ variant: 'warning' });
+        const btn = wrapper.find('[data-testid="confirm-modal-confirm"]');
 
-        expect(wrapper.find('[data-testid="confirm-modal-confirm"]').classes()).toContain('bg-[var(--color-warning)]');
+        expect(btn.classes()).toContain('text-[var(--color-warning)]');
+        expect(btn.classes()).toContain('border-[var(--color-warning)]/40');
+    });
+
+    it('applies primary variant styling', () => {
+        const wrapper = mountComponent({ variant: 'primary' });
+        const btn = wrapper.find('[data-testid="confirm-modal-confirm"]');
+
+        expect(btn.classes()).toContain('bg-[var(--color-primary)]');
+        expect(btn.classes()).toContain('text-white');
+    });
+
+    it('uses Dispatch modal surface styling', () => {
+        const wrapper = mountComponent();
+        const dialog = wrapper.find('[role="dialog"]');
+
+        expect(dialog.classes()).toContain('rounded');
+        expect(dialog.classes()).toContain('border');
+        expect(dialog.classes()).toContain('border-[var(--color-border)]');
+    });
+
+    it('uses Dispatch button sizing', () => {
+        const wrapper = mountComponent();
+        const cancelBtn = wrapper.find('[data-testid="confirm-modal-cancel"]');
+        const confirmBtn = wrapper.find('[data-testid="confirm-modal-confirm"]');
+
+        expect(cancelBtn.classes()).toContain('rounded-md');
+        expect(cancelBtn.classes()).toContain('text-[13px]');
+        expect(cancelBtn.classes()).toContain('border');
+        expect(confirmBtn.classes()).toContain('rounded-md');
+        expect(confirmBtn.classes()).toContain('text-[13px]');
     });
 
     it('uses dialog accessibility semantics', () => {

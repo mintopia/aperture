@@ -51,36 +51,36 @@ function getRowAriaLabel(row, index) {
 </script>
 
 <template>
-    <div data-testid="data-table" class="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-        <table class="w-full text-sm">
+    <div data-testid="data-table" class="overflow-x-auto">
+        <table class="w-full border-collapse text-[13px]">
             <thead>
-                <tr class="border-b-2 border-[var(--color-border)] bg-[var(--color-surface)]">
+                <tr>
                     <th
                         v-for="col in columns"
                         :key="col.key"
                         :class="[col.class, col.srOnly ? 'sr-only' : '']"
                         :aria-sort="getAriaSortValue(col)"
-                        class="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
+                        class="border-b border-[var(--color-border-hover)] py-2 text-left text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
                     >
                         <button
                             v-if="col.sortable"
-                            :data-testid="`sort-${col.key}`"
                             type="button"
-                            class="cursor-pointer hover:text-[var(--color-text)] focus-visible:outline-none"
+                            :data-testid="'sort-' + col.key"
+                            class="inline-flex items-center gap-1"
                             @click="toggleSort(col.key)"
                         >
                             {{ col.label }}
                             <span v-if="sortColumn === col.key" class="text-[var(--color-primary)]">
-                                {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                                {{ sortDirection === 'asc' ? '\u2191' : '\u2193' }}
                             </span>
                         </button>
-                        <span v-else>{{ col.label }}</span>
+                        <template v-else>{{ col.label }}</template>
                     </th>
                 </tr>
             </thead>
             <tbody>
                 <tr v-if="rows.length === 0" data-testid="data-table-empty">
-                    <td :colspan="columns.length" class="px-4 py-12 text-center text-[var(--color-text-muted)]">
+                    <td :colspan="columns.length" class="py-12 text-center text-[var(--color-text-muted)]">
                         {{ emptyMessage }}
                     </td>
                 </tr>
@@ -92,9 +92,9 @@ function getRowAriaLabel(row, index) {
                     :role="props.clickable && props.rowHref ? 'link' : undefined"
                     :aria-label="getRowAriaLabel(row, i)"
                     :class="[
-                        'border-b border-[var(--color-border)] transition-colors last:border-b-0',
+                        'transition-colors',
                         props.clickable
-                            ? 'cursor-pointer hover:border-l-2 hover:border-l-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] focus-visible:border-l-2 focus-visible:border-l-[var(--color-primary)] focus-visible:bg-[var(--color-surface-hover)] focus-visible:outline-none'
+                            ? 'cursor-pointer hover:bg-[var(--color-surface-hover)] focus-visible:bg-[var(--color-surface-hover)] focus-visible:outline-none'
                             : '',
                         props.rowClass ? props.rowClass(row) : '',
                     ]"
@@ -108,3 +108,19 @@ function getRowAriaLabel(row, index) {
         </table>
     </div>
 </template>
+
+<style scoped>
+:deep(tbody td) {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+}
+:deep(tbody tr:last-child td) {
+    border-bottom: none;
+}
+:deep(tbody td:not(:first-child)),
+:deep(thead th:not(:first-child)) {
+    padding-left: 24px;
+}
+</style>

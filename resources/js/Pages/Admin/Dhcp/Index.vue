@@ -50,14 +50,18 @@ const sortedRanges = computed(() => {
 
 <template>
     <div>
-        <div class="mb-5 flex items-center justify-between">
-            <h1 data-testid="page-title" class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl">
+        <div class="mb-2 flex items-start justify-between gap-6">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
+            >
                 DHCP Ranges
             </h1>
             <Link
                 :href="route('admin.dhcp.leases')"
                 data-testid="view-leases-button"
-                class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-white"
             >
                 View Leases
             </Link>

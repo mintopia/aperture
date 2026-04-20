@@ -243,8 +243,8 @@ elif [[ "${ACTIVE_MODE}" == "ports" ]]; then
     echo "Reverb ws endpoint: ws://127.0.0.1:8080"
     echo "SSH Proxy: http://127.0.0.1:8022"
 else
-    echo "App:   https://${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.cloudagent.net}"
-    echo "Vite:  https://${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.cloudagent.net}"
-    echo "Reverb: wss://${PUBLIC_REVERB_HOSTNAME:-reverb.hallowed-rincewind.cloudagent.net}"
-    echo "SSH Proxy: https://${PUBLIC_SSH_PROXY_HOSTNAME:-ssh-proxy.hallowed-rincewind.cloudagent.net}"
+    echo "App:   https://${PUBLIC_APP_HOSTNAME}"
+    echo "Vite:  https://${PUBLIC_VITE_HOSTNAME}"
+    echo "Reverb: wss://${PUBLIC_REVERB_HOSTNAME}"
+    echo "SSH Proxy: https://${PUBLIC_SSH_PROXY_HOSTNAME}"
 fi

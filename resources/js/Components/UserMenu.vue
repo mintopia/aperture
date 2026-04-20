@@ -30,15 +30,17 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                 v-if="user.avatar_url"
                 :src="user.avatar_url"
                 :alt="user.nickname"
-                class="h-8 w-8 rounded-full object-cover"
+                class="h-[26px] w-[26px] rounded-full object-cover"
             />
             <div
                 v-else
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-primary)] text-xs font-bold text-white"
+                class="font-heading flex h-[26px] w-[26px] items-center justify-center rounded-full bg-[var(--color-accent-dim)] text-[11px] font-bold text-[var(--color-primary)]"
             >
                 {{ user.nickname?.charAt(0)?.toUpperCase() }}
             </div>
-            <span class="hidden text-sm text-[var(--color-text)] sm:inline">{{ user.nickname }}</span>
+            <span class="hidden text-[12px] font-medium text-[var(--color-text-secondary)] sm:inline">{{
+                user.nickname
+            }}</span>
             <svg
                 class="h-4 w-4 shrink-0 text-[var(--color-text-muted)] transition-transform"
                 :class="{ 'rotate-180': open }"

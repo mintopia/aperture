@@ -202,4 +202,43 @@ describe('FlashMessages', () => {
         const btn = wrapper.find('[data-testid="flash-dismiss"]');
         expect(btn.attributes('aria-label')).toBe('Dismiss error message');
     });
+
+    it('uses Dispatch rounded styling (4px) instead of rounded-lg', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { success: 'Done!' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        const msg = wrapper.find('[data-testid="flash-message-success"]');
+        expect(msg.classes()).toContain('rounded');
+        expect(msg.classes()).not.toContain('rounded-lg');
+    });
+
+    it('uses Dispatch text sizing (13px)', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { error: 'Oops' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        const text = wrapper.find('[data-testid="flash-message-error"] p');
+        expect(text.classes()).toContain('text-[13px]');
+    });
+
+    it('uses semantic info color instead of primary', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { info: 'Note' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        const msg = wrapper.find('[data-testid="flash-message-info"]');
+        expect(msg.classes()).toContain('text-[var(--color-info)]');
+        expect(msg.classes()).toContain('bg-[var(--color-info)]/10');
+        expect(msg.classes()).toContain('border-[var(--color-info)]/20');
+    });
 });

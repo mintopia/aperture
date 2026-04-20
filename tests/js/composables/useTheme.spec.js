@@ -6,6 +6,10 @@ vi.mock('@inertiajs/vue3', () => ({
     usePage: vi.fn(() => ({ props: { theme: null } })),
 }));
 
+vi.mock('@/composables/useAccentHue', () => ({
+    applyAccentHue: vi.fn(),
+}));
+
 const localStorageMock = (() => {
     let store = {};
     return {
@@ -34,45 +38,28 @@ describe('useTheme', () => {
         usePage.mockReturnValue({ props: { theme: null } });
     });
 
-    it('returns theme and mode refs', () => {
-        const { theme, mode } = useTheme();
-        expect(theme.value).toBeDefined();
+    it('returns mode ref', () => {
+        const { mode } = useTheme();
         expect(mode.value).toBeDefined();
     });
 
-    it('defaults to cool-neon theme and dark mode', () => {
-        const { theme, mode } = useTheme();
-        expect(theme.value).toBe('cool-neon');
+    it('defaults to dark mode', () => {
+        const { mode } = useTheme();
         expect(mode.value).toBe('dark');
     });
 
-    it('uses shared page props when available', () => {
+    it('uses shared page props mode when available', () => {
         usePage.mockReturnValue({
-            props: { theme: { name: 'matrix', mode: 'light' } },
+            props: { theme: { mode: 'light', accent_hue: 230 } },
         });
-        const { theme, mode } = useTheme();
-        expect(theme.value).toBe('matrix');
+        const { mode } = useTheme();
         expect(mode.value).toBe('light');
     });
 
-    it('uses localStorage values when no page props', () => {
-        localStorage.setItem('theme', 'warm-neon');
+    it('uses localStorage mode when no page props', () => {
         localStorage.setItem('themeMode', 'light');
-        const { theme, mode } = useTheme();
-        expect(theme.value).toBe('warm-neon');
+        const { mode } = useTheme();
         expect(mode.value).toBe('light');
-    });
-
-    it('setTheme updates theme for valid theme names', () => {
-        const { theme, setTheme } = useTheme();
-        setTheme('matrix');
-        expect(theme.value).toBe('matrix');
-    });
-
-    it('setTheme ignores invalid theme names', () => {
-        const { theme, setTheme } = useTheme();
-        setTheme('invalid-theme');
-        expect(theme.value).toBe('cool-neon');
     });
 
     it('toggleMode switches between dark and light', () => {
@@ -96,54 +83,20 @@ describe('useTheme', () => {
         expect(mode.value).toBe('dark');
     });
 
-    it('applyTheme sets data-theme and data-mode on document.documentElement', () => {
+    it('always sets data-theme to dispatch', () => {
         useTheme();
-        expect(document.documentElement.getAttribute('data-theme')).toBe('cool-neon');
-        expect(document.documentElement.getAttribute('data-mode')).toBe('dark');
+        expect(document.documentElement.getAttribute('data-theme')).toBe('dispatch');
     });
 
-    it('setTheme saves to localStorage', () => {
-        const { setTheme } = useTheme();
-        setTheme('amber-glow');
-        expect(localStorage.getItem('theme')).toBe('amber-glow');
+    it('sets data-mode on document.documentElement', () => {
+        useTheme();
+        expect(document.documentElement.getAttribute('data-mode')).toBe('dark');
     });
 
     it('toggleMode saves to localStorage', () => {
         const { toggleMode } = useTheme();
         toggleMode();
         expect(localStorage.getItem('themeMode')).toBe('light');
-    });
-
-    it('exposes themes array (VALID_THEMES)', () => {
-        const { themes } = useTheme();
-        expect(themes).toEqual(['default', 'cool-neon', 'warm-neon', 'matrix', 'amber-glow']);
-    });
-
-    it('includes default in valid themes', () => {
-        const { themes } = useTheme();
-        expect(themes).toContain('default');
-    });
-
-    it('setTheme accepts default theme', () => {
-        const { theme, setTheme } = useTheme();
-        setTheme('default');
-        expect(theme.value).toBe('default');
-    });
-
-    it('previewTheme applies theme without saving to localStorage', () => {
-        const { previewTheme } = useTheme();
-        localStorageMock.setItem.mockClear();
-        previewTheme('matrix');
-        expect(document.documentElement.getAttribute('data-theme')).toBe('matrix');
-        expect(localStorageMock.setItem).not.toHaveBeenCalledWith('theme', 'matrix');
-    });
-
-    it('cancelPreview restores original theme', () => {
-        const { previewTheme, cancelPreview, theme } = useTheme();
-        const original = theme.value;
-        previewTheme('matrix');
-        cancelPreview();
-        expect(document.documentElement.getAttribute('data-theme')).toBe(original);
     });
 
     it('previewMode applies mode without saving to localStorage', () => {

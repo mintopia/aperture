@@ -39,28 +39,34 @@ function search() {
 
 <template>
     <div>
-        <h1 data-testid="page-title" class="font-heading mb-5 text-xl font-bold text-[var(--color-text)] sm:text-2xl">
-            IP Addresses
-        </h1>
+        <div class="mb-2 flex items-start justify-between gap-6">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
+            >
+                IP Addresses
+            </h1>
+        </div>
 
-        <div class="mb-4 flex flex-wrap gap-3">
+        <div class="mb-5 flex flex-wrap items-center gap-2.5">
             <input
                 v-model="address"
                 data-testid="search-address"
                 placeholder="Filter by address..."
-                class="rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-1.5 text-sm text-[var(--color-text)]"
+                class="rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)]"
                 @keyup.enter="search"
             />
             <input
                 v-model="nickname"
                 data-testid="search-nickname"
                 placeholder="Filter by user..."
-                class="rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-1.5 text-sm text-[var(--color-text)]"
+                class="rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)]"
                 @keyup.enter="search"
             />
             <button
                 data-testid="action-search"
-                class="rounded-lg bg-[var(--color-primary)] px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-[var(--color-primary-hover)]"
+                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-white"
                 @click="search"
             >
                 Search
@@ -74,19 +80,19 @@ function search() {
             :row-href="(row) => route('admin.ips.show', row.address)"
         >
             <template #row="{ row }">
-                <td class="px-4 py-2.5 font-mono text-sm text-[var(--color-text)]">
+                <td class="font-mono text-[13px] text-[var(--color-primary)]">
                     {{ row.address }}
                 </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
+                <td class="text-[13px] text-[var(--color-text-secondary)]">
                     {{ row.users?.[0]?.user?.nickname ?? '—' }}
                 </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
+                <td class="font-mono text-[13px] text-[var(--color-text-secondary)]">
                     {{ formatBytes(row.received) }}
                 </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
+                <td class="font-mono text-[13px] text-[var(--color-text-secondary)]">
                     {{ formatBytes(row.sent) }}
                 </td>
-                <td class="px-4 py-2.5">
+                <td>
                     <StatusPill
                         :status="row.allowed ? 'success' : 'danger'"
                         :label="row.allowed ? 'Allowed' : 'Denied'"

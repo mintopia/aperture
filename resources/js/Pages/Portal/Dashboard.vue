@@ -1,11 +1,15 @@
 <script setup>
+import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import BlockGrid from '@/Components/BlockGrid.vue';
+import DnsWarningBlock from '@/Components/Blocks/DnsWarningBlock.vue';
+import BandwidthBlock from '@/Components/Blocks/BandwidthBlock.vue';
+import PiHoleToggleBlock from '@/Components/Blocks/PiHoleToggleBlock.vue';
 
 defineOptions({ layout: PortalLayout });
 
-defineProps({
+const props = defineProps({
     blocks: {
         type: Array,
         default: () => [],
@@ -15,22 +19,101 @@ defineProps({
 });
 
 const user = usePage().props.auth?.user;
+
+/* Extract DNS warning block (shown at top, outside grid) */
+const dnsBlock = computed(() => props.blocks.find((b) => b.type === 'dns_warning'));
+
+/* Extract hero blocks (bandwidth + pihole, shown in hero cols) */
+const bandwidthBlock = computed(() => props.blocks.find((b) => b.type === 'bandwidth'));
+const piholeBlock = computed(() => props.blocks.find((b) => b.type === 'pihole_toggle'));
+
+/* Remaining blocks for the standard grid (exclude hero + dns) */
+const heroTypes = ['dns_warning', 'bandwidth', 'pihole_toggle'];
+const gridBlocks = computed(() => props.blocks.filter((b) => !heroTypes.includes(b.type)));
 </script>
 
 <template>
-    <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <div class="mb-5 flex items-center justify-between">
-            <h1 data-testid="page-title" class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl">
+    <div>
+        <!-- Welcome heading -->
+        <div class="mb-3">
+            <h1
+                data-testid="page-title"
+                class="font-heading text-[28px] font-bold tracking-tight text-[var(--color-text)]"
+            >
                 Welcome, {{ user?.nickname ?? 'Guest' }}
             </h1>
-            <span
-                v-if="ipAllowed"
-                class="rounded-full bg-[var(--color-accent)]/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-[var(--color-accent)] uppercase shadow-[0_0_12px_var(--color-glow)]"
-            >
-                Live
-            </span>
         </div>
 
-        <BlockGrid :blocks="blocks" :current-ip="currentIp" :ip-allowed="ipAllowed" />
+        <!-- DNS Warning (top of page) -->
+        <div v-if="dnsBlock" class="mb-4">
+            <DnsWarningBlock
+                :has-dns-issue="true"
+                :expected-dns="dnsBlock.settings?.expectedDns ?? ''"
+                :actual-dns="dnsBlock.settings?.actualDns ?? ''"
+                :settings="dnsBlock.settings"
+            />
+        </div>
+
+        <!-- Connection strip -->
+        <div
+            data-testid="connection-strip"
+            class="mb-5 flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5"
+        >
+            <div class="flex flex-1 flex-col gap-0.5 border-r border-[var(--color-border)] px-5">
+                <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                    >IPv4</span
+                >
+                <span class="font-mono text-[13px] font-medium text-[var(--color-text)]">{{ currentIp || '—' }}</span>
+            </div>
+            <div class="flex flex-1 flex-col gap-0.5 border-r border-[var(--color-border)] px-5">
+                <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                    >IPv6</span
+                >
+                <span class="font-mono text-[13px] font-medium text-[var(--color-text)]">—</span>
+            </div>
+            <div class="flex flex-1 flex-col gap-0.5 border-r border-[var(--color-border)] px-5">
+                <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                    >MAC Address</span
+                >
+                <span class="font-mono text-[13px] font-medium text-[var(--color-text)]">—</span>
+            </div>
+            <div class="flex flex-1 flex-col gap-0.5 px-5">
+                <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                    >Status</span
+                >
+                <span class="inline-flex items-center gap-1.5 font-mono text-[13px] font-semibold">
+                    <span
+                        class="h-[7px] w-[7px] rounded-full"
+                        :class="
+                            ipAllowed
+                                ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
+                                : 'bg-[var(--color-danger)]'
+                        "
+                    />
+                    <span :class="ipAllowed ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
+                        {{ ipAllowed ? 'Online' : 'Offline' }}
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Hero columns: Bandwidth (left) + Ad Blocking (right) -->
+        <div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
+            <div
+                v-if="bandwidthBlock"
+                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
+            >
+                <BandwidthBlock :stats="bandwidthBlock.settings" />
+            </div>
+            <div
+                v-if="piholeBlock"
+                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
+            >
+                <PiHoleToggleBlock :title="piholeBlock.title" :content="piholeBlock.content" />
+            </div>
+        </div>
+
+        <!-- Block grid for remaining blocks -->
+        <BlockGrid :blocks="gridBlocks" :current-ip="currentIp" :ip-allowed="ipAllowed" />
     </div>
 </template>

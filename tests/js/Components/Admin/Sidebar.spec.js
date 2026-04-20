@@ -84,14 +84,13 @@ describe('Sidebar.vue', () => {
         }
     });
 
-    it('applies active styling with primary color and left border accent', async () => {
+    it('applies active styling with accent background and primary text', async () => {
         const wrapper = await mountSidebar();
         const activeItem = wrapper.get('[data-testid="nav-users"]');
 
-        expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/10');
+        expect(activeItem.classes()).toContain('bg-[var(--color-accent-dim)]');
         expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
-        expect(activeItem.classes()).toContain('border-l-2');
-        expect(activeItem.classes()).toContain('border-[var(--color-primary)]');
+        expect(activeItem.classes()).toContain('font-semibold');
     });
 
     it('applies secondary text color to non-active items', async () => {

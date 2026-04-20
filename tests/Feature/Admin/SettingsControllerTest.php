@@ -92,12 +92,12 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'matrix',
+            'accent_hue' => 230,
             'theme_mode' => 'light',
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals('matrix', Setting::get('theme.name'));
+        $this->assertEquals('230', Setting::get('theme.accent_hue'));
         $this->assertEquals('light', Setting::get('theme.mode'));
     }
 
@@ -106,24 +106,24 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'invalid-theme',
+            'accent_hue' => 500,
             'theme_mode' => 'dark',
         ]);
 
-        $response->assertSessionHasErrors('theme_name');
+        $response->assertSessionHasErrors('accent_hue');
     }
 
-    public function test_admin_can_update_theme_with_default_theme(): void
+    public function test_admin_can_update_theme_with_default_accent_hue(): void
     {
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'default',
+            'accent_hue' => 55,
             'theme_mode' => 'dark',
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals('default', Setting::get('theme.name'));
+        $this->assertEquals('55', Setting::get('theme.accent_hue'));
     }
 
     public function test_theme_page_returns_all_settings_including_new_fields(): void
@@ -131,10 +131,10 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         // Set up all theme settings
-        $setting = Setting::whereCode('theme.name')->first() ?? new Setting;
-        $setting->code = 'theme.name';
-        $setting->name = 'Theme Name';
-        $setting->value = 'matrix';
+        $setting = Setting::whereCode('theme.accent_hue')->first() ?? new Setting;
+        $setting->code = 'theme.accent_hue';
+        $setting->name = 'Accent Hue';
+        $setting->value = '230';
         $setting->save();
 
         $setting = Setting::whereCode('theme.mode')->first() ?? new Setting;
@@ -149,12 +149,6 @@ class SettingsControllerTest extends TestCase
         $setting->value = 'My Custom Site';
         $setting->save();
 
-        $setting = Setting::whereCode('theme.custom_colors')->first() ?? new Setting;
-        $setting->code = 'theme.custom_colors';
-        $setting->name = 'Custom Colors';
-        $setting->value = '{"primary":"#ff0000","accent":"#00ff00"}';
-        $setting->save();
-
         $setting = Setting::whereCode('theme.custom_css')->first() ?? new Setting;
         $setting->code = 'theme.custom_css';
         $setting->name = 'Custom CSS';
@@ -167,10 +161,9 @@ class SettingsControllerTest extends TestCase
         $response->assertInertia(fn (Assert $page): Assert => $page
             ->component('Admin/Settings/Theme')
             ->has('settings')
-            ->where('settings.theme_name', 'matrix')
+            ->where('settings.accent_hue', 230)
             ->where('settings.theme_mode', 'light')
             ->where('settings.site_title', 'My Custom Site')
-            ->where('settings.custom_colors', '{"primary":"#ff0000","accent":"#00ff00"}')
             ->where('settings.custom_css', 'body { font-size: 16px; }')
         );
     }
@@ -180,7 +173,7 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
+            'accent_hue' => 55,
             'theme_mode' => 'dark',
             'site_title' => 'My Awesome Site',
         ]);
@@ -194,62 +187,12 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
+            'accent_hue' => 55,
             'theme_mode' => 'dark',
             'site_title' => str_repeat('a', 256), // 256 characters, max is 255
         ]);
 
         $response->assertSessionHasErrors('site_title');
-    }
-
-    public function test_admin_can_save_custom_colors(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $customColors = [
-            'primary' => '#ff0000',
-            'accent' => '#00ff00',
-            'success' => '#0000ff',
-        ];
-
-        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
-            'theme_mode' => 'dark',
-            'custom_colors' => $customColors,
-        ]);
-
-        $response->assertRedirect();
-        $this->assertEquals(json_encode($customColors), Setting::get('theme.custom_colors'));
-    }
-
-    public function test_custom_colors_validates_hex_format(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
-            'theme_mode' => 'dark',
-            'custom_colors' => [
-                'primary' => 'not-a-hex-color',
-            ],
-        ]);
-
-        $response->assertSessionHasErrors('custom_colors.primary');
-    }
-
-    public function test_custom_colors_rejects_invalid_keys(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
-            'theme_mode' => 'dark',
-            'custom_colors' => [
-                'invalid_key' => '#ff0000',
-            ],
-        ]);
-
-        $response->assertSessionHasErrors('custom_colors.invalid_key');
     }
 
     public function test_admin_can_save_custom_css(): void
@@ -259,7 +202,7 @@ class SettingsControllerTest extends TestCase
         $customCss = 'body { background-color: #000; color: #fff; }';
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
+            'accent_hue' => 55,
             'theme_mode' => 'dark',
             'custom_css' => $customCss,
         ]);
@@ -273,7 +216,7 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
+            'accent_hue' => 55,
             'theme_mode' => 'dark',
             'custom_css' => str_repeat('a', 10001), // 10001 characters, max is 10000
         ]);
@@ -286,7 +229,7 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
+            'accent_hue' => 55,
             'theme_mode' => 'dark',
             'custom_css' => 'body { color: red; } <script>alert("xss")</script>',
         ]);
@@ -298,24 +241,17 @@ class SettingsControllerTest extends TestCase
     {
         $admin = $this->createAdminUser();
 
-        $customColors = [
-            'primary' => '#ff0000',
-            'accent' => '#00ff00',
-        ];
-
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'matrix',
+            'accent_hue' => 230,
             'theme_mode' => 'light',
             'site_title' => 'Full Featured Site',
-            'custom_colors' => $customColors,
             'custom_css' => 'body { font-size: 18px; }',
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals('matrix', Setting::get('theme.name'));
+        $this->assertEquals('230', Setting::get('theme.accent_hue'));
         $this->assertEquals('light', Setting::get('theme.mode'));
         $this->assertEquals('Full Featured Site', Setting::get('theme.site_title'));
-        $this->assertEquals(json_encode($customColors), Setting::get('theme.custom_colors'));
         $this->assertEquals('body { font-size: 18px; }', Setting::get('theme.custom_css'));
     }
 
@@ -338,16 +274,14 @@ class SettingsControllerTest extends TestCase
 
         // Now clear them
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'cool-neon',
+            'accent_hue' => 55,
             'theme_mode' => 'dark',
             'site_title' => null,
-            'custom_colors' => null,
             'custom_css' => null,
         ]);
 
         $response->assertRedirect();
         $this->assertNull(Setting::get('theme.site_title'));
-        $this->assertNull(Setting::get('theme.custom_colors'));
         $this->assertNull(Setting::get('theme.custom_css'));
     }
 }

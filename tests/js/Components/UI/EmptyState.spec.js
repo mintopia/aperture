@@ -61,13 +61,23 @@ describe('EmptyState', () => {
         expect(wrapper.find('button').exists()).toBe(true);
     });
 
-    it('uses dashed card styling for visual alignment', () => {
+    it('has no card container styling (no border, no bg, no rounded)', () => {
         const wrapper = mount(EmptyState, {
             props: { title: 'Empty' },
         });
 
         const emptyState = wrapper.find('[data-testid="empty-state"]');
-        expect(emptyState.classes()).toContain('border-dashed');
-        expect(emptyState.classes()).toContain('rounded-xl');
+        expect(emptyState.classes()).not.toContain('border-dashed');
+        expect(emptyState.classes()).not.toContain('rounded-xl');
+    });
+
+    it('uses font-heading and text-secondary for the title', () => {
+        const wrapper = mount(EmptyState, {
+            props: { title: 'Empty' },
+        });
+
+        const title = wrapper.findAll('p')[0];
+        expect(title.classes()).toContain('font-heading');
+        expect(title.classes()).toContain('text-[var(--color-text-secondary)]');
     });
 });

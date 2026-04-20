@@ -31,40 +31,14 @@ describe('UniqueIpsChart', () => {
         expect(wrapper.text()).toContain('Last 7 Days');
     });
 
-    it('renders a line chart SVG', () => {
+    it('renders a bar for each day', () => {
         const wrapper = mount(UniqueIpsChart, {
             props: { data: sampleData },
         });
 
-        expect(wrapper.find('[data-testid="unique-ips-line-chart"]').exists()).toBe(true);
-    });
+        const bars = wrapper.findAll('[data-testid="unique-ips-bar"]');
 
-    it('renders a polyline for the data', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
-        });
-
-        const line = wrapper.find('[data-testid="unique-ips-line"]');
-        expect(line.exists()).toBe(true);
-        expect(line.attributes('points')).toBeTruthy();
-    });
-
-    it('renders an area fill under the line', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
-        });
-
-        expect(wrapper.find('[data-testid="unique-ips-area"]').exists()).toBe(true);
-    });
-
-    it('polyline has correct number of coordinate pairs', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
-        });
-
-        const line = wrapper.find('[data-testid="unique-ips-line"]');
-        const points = line.attributes('points').split(' ');
-        expect(points).toHaveLength(7);
+        expect(bars).toHaveLength(7);
     });
 
     it('shows peak count below the chart', () => {
@@ -91,13 +65,24 @@ describe('UniqueIpsChart', () => {
         expect(wrapper.text()).toContain('Yday');
     });
 
-    it('renders a day label for each data point', () => {
+    it('tallest bar gets 100% height based on max count', () => {
         const wrapper = mount(UniqueIpsChart, {
             props: { data: sampleData },
         });
 
-        const labels = wrapper.findAll('[data-testid="unique-ips-day-label"]');
-        expect(labels).toHaveLength(7);
+        const bars = wrapper.findAll('[data-testid="unique-ips-bar"]');
+        // The bar with count 61 (index 3) should be 100%
+        expect(bars[3].attributes('style')).toContain('height: 100%');
+    });
+
+    it('shorter bars get proportional heights', () => {
+        const wrapper = mount(UniqueIpsChart, {
+            props: { data: [{ date: '2026-04-20', count: 50 }, { date: '2026-04-19', count: 100 }] },
+        });
+
+        const bars = wrapper.findAll('[data-testid="unique-ips-bar"]');
+        expect(bars[0].attributes('style')).toContain('height: 50%');
+        expect(bars[1].attributes('style')).toContain('height: 100%');
     });
 
     it('shows empty state when no data', () => {
@@ -115,13 +100,5 @@ describe('UniqueIpsChart', () => {
         });
 
         expect(wrapper.find('[data-testid="unique-ips-peak"]').exists()).toBe(false);
-    });
-
-    it('does not render line chart when no data', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: [] },
-        });
-
-        expect(wrapper.find('[data-testid="unique-ips-line-chart"]').exists()).toBe(false);
     });
 });

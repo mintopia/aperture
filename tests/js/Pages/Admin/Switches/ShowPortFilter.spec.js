@@ -85,8 +85,6 @@ const defaultProps = {
         created_at: '2024-01-01T00:00:00Z',
     },
     ports: mockPorts,
-    canDownloadConfig: false,
-    runningConfig: '',
 };
 
 function mountShow(propsOverride = {}) {
@@ -99,12 +97,6 @@ function mountShow(propsOverride = {}) {
             stubs: {
                 AdminLayout: { template: '<div><slot /></div>' },
                 MetadataStrip: { template: '<div />', props: ['items'] },
-                SectionHeader: { template: '<div><slot /></div>', props: ['title'] },
-                StatusPill: {
-                    template: '<span>{{ label }}</span>',
-                    props: ['status', 'label'],
-                },
-                ConfigBlock: { template: '<div />', props: ['code'] },
                 teleport: true,
             },
         },
@@ -130,17 +122,20 @@ describe('Show — Port Search & Filter', () => {
         expect(wrapper.find('label[for="port-search"]').exists()).toBe(true);
     });
 
-    it('renders all filter chips with counts', () => {
+    it('renders the status filter dropdown with options', () => {
         const wrapper = mountShow();
-        expect(wrapper.find('[data-testid="port-filter-all"]').text()).toContain('All (4)');
-        expect(wrapper.find('[data-testid="port-filter-up"]').text()).toContain('Up (2)');
-        expect(wrapper.find('[data-testid="port-filter-down"]').text()).toContain('Down (1)');
-        expect(wrapper.find('[data-testid="port-filter-errors"]').text()).toContain('Errors (1)');
-    });
+        const select = wrapper.find('[data-testid="port-filter-status"]');
+        expect(select.exists()).toBe(true);
 
-    it('displays correct count "Showing X of Y ports"', () => {
-        const wrapper = mountShow();
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 4 of 4 ports');
+        const options = select.findAll('option');
+        expect(options).toHaveLength(4);
+        expect(options[0].text()).toBe('All Status');
+        expect(options[1].text()).toContain('Up');
+        expect(options[1].text()).toContain('2');
+        expect(options[2].text()).toContain('Down');
+        expect(options[2].text()).toContain('1');
+        expect(options[3].text()).toContain('Errors');
+        expect(options[3].text()).toContain('1');
     });
 
     it('search filters ports by interface name', async () => {
@@ -152,7 +147,6 @@ describe('Show — Port Search & Filter', () => {
         vi.advanceTimersByTime(300);
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 1 of 4 ports');
         const rows = wrapper.findAll('[data-testid="data-table-row"]');
         expect(rows).toHaveLength(1);
     });
@@ -166,7 +160,8 @@ describe('Show — Port Search & Filter', () => {
         vi.advanceTimersByTime(300);
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 1 of 4 ports');
+        const rows = wrapper.findAll('[data-testid="data-table-row"]');
+        expect(rows).toHaveLength(1);
     });
 
     it('search filters by VLAN', async () => {
@@ -178,7 +173,8 @@ describe('Show — Port Search & Filter', () => {
         vi.advanceTimersByTime(300);
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 1 of 4 ports');
+        const rows = wrapper.findAll('[data-testid="data-table-row"]');
+        expect(rows).toHaveLength(1);
     });
 
     it('search is case-insensitive', async () => {
@@ -190,7 +186,8 @@ describe('Show — Port Search & Filter', () => {
         vi.advanceTimersByTime(300);
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 1 of 4 ports');
+        const rows = wrapper.findAll('[data-testid="data-table-row"]');
+        expect(rows).toHaveLength(1);
     });
 
     it('search is debounced at 300ms', async () => {
@@ -202,63 +199,67 @@ describe('Show — Port Search & Filter', () => {
 
         // Before debounce fires, all ports should still be visible
         await wrapper.vm.$nextTick();
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 4 of 4 ports');
+        expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(4);
 
         // After debounce fires
         vi.advanceTimersByTime(300);
         await wrapper.vm.$nextTick();
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 1 of 4 ports');
+        expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(1);
     });
 
-    it('filter chip "Up" shows only connected ports', async () => {
+    it('status filter "up" shows only connected ports', async () => {
         const wrapper = mountShow();
-        await wrapper.find('[data-testid="port-filter-up"]').trigger('click');
+        const select = wrapper.find('[data-testid="port-filter-status"]');
+
+        await select.setValue('up');
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 2 of 4 ports');
         const rows = wrapper.findAll('[data-testid="data-table-row"]');
         expect(rows).toHaveLength(2);
     });
 
-    it('filter chip "Down" shows only down/notconnect ports', async () => {
+    it('status filter "down" shows only down/notconnect ports', async () => {
         const wrapper = mountShow();
-        await wrapper.find('[data-testid="port-filter-down"]').trigger('click');
+        const select = wrapper.find('[data-testid="port-filter-status"]');
+
+        await select.setValue('down');
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 1 of 4 ports');
         const rows = wrapper.findAll('[data-testid="data-table-row"]');
         expect(rows).toHaveLength(1);
     });
 
-    it('filter chip "Errors" shows only err-disabled ports', async () => {
+    it('status filter "errors" shows only err-disabled ports', async () => {
         const wrapper = mountShow();
-        await wrapper.find('[data-testid="port-filter-errors"]').trigger('click');
+        const select = wrapper.find('[data-testid="port-filter-status"]');
+
+        await select.setValue('errors');
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 1 of 4 ports');
         const rows = wrapper.findAll('[data-testid="data-table-row"]');
         expect(rows).toHaveLength(1);
     });
 
-    it('"All" chip resets filter', async () => {
+    it('"all" resets filter', async () => {
         const wrapper = mountShow();
+        const select = wrapper.find('[data-testid="port-filter-status"]');
 
         // First apply a filter
-        await wrapper.find('[data-testid="port-filter-up"]').trigger('click');
+        await select.setValue('up');
         await wrapper.vm.$nextTick();
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 2 of 4 ports');
+        expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(2);
 
-        // Reset with "All"
-        await wrapper.find('[data-testid="port-filter-all"]').trigger('click');
+        // Reset with "all"
+        await select.setValue('all');
         await wrapper.vm.$nextTick();
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 4 of 4 ports');
+        expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(4);
     });
 
     it('combined search + filter works', async () => {
         const wrapper = mountShow();
 
-        // Apply "Up" filter first (2 connected ports: Gi1/0/1 and Gi1/0/2)
-        await wrapper.find('[data-testid="port-filter-up"]').trigger('click');
+        // Apply "up" filter first (2 connected ports: Gi1/0/1 and Gi1/0/2)
+        await wrapper.find('[data-testid="port-filter-status"]').setValue('up');
         await wrapper.vm.$nextTick();
 
         // Then search for "AP-Lobby" (only Gi1/0/2)
@@ -268,7 +269,8 @@ describe('Show — Port Search & Filter', () => {
         vi.advanceTimersByTime(300);
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('Showing 1 of 4 ports');
+        const rows = wrapper.findAll('[data-testid="data-table-row"]');
+        expect(rows).toHaveLength(1);
     });
 
     it('shows "No ports match your search" when no results', async () => {
@@ -289,30 +291,30 @@ describe('Show — Port Search & Filter', () => {
         expect(wrapper.find('[data-testid="port-no-results"]').exists()).toBe(false);
     });
 
-    it('active filter chip has primary styling', async () => {
+    it('defaults to "all" status filter', () => {
         const wrapper = mountShow();
+        const select = wrapper.find('[data-testid="port-filter-status"]');
+        expect(select.element.value).toBe('all');
+    });
 
-        // "All" is active by default
-        const allChip = wrapper.find('[data-testid="port-filter-all"]');
-        expect(allChip.classes()).toContain('text-[var(--color-primary)]');
-        expect(allChip.attributes('aria-pressed')).toBe('true');
+    it('shows filtered count', () => {
+        const wrapper = mountShow();
+        const count = wrapper.find('[data-testid="port-filter-count"]');
+        expect(count.exists()).toBe(true);
+        expect(count.text()).toBe('4 of 4');
+    });
 
-        // "Up" should be inactive
-        const upChip = wrapper.find('[data-testid="port-filter-up"]');
-        expect(upChip.classes()).toContain('text-[var(--color-text-secondary)]');
-        expect(upChip.attributes('aria-pressed')).toBe('false');
-
-        // Click "Up" chip
-        await upChip.trigger('click');
+    it('updates filtered count when filter is applied', async () => {
+        const wrapper = mountShow();
+        await wrapper.find('[data-testid="port-filter-status"]').setValue('up');
         await wrapper.vm.$nextTick();
 
-        const updatedUpChip = wrapper.find('[data-testid="port-filter-up"]');
-        expect(updatedUpChip.classes()).toContain('text-[var(--color-primary)]');
-        expect(updatedUpChip.attributes('aria-pressed')).toBe('true');
+        expect(wrapper.find('[data-testid="port-filter-count"]').text()).toBe('2 of 4');
+    });
 
-        const updatedAllChip = wrapper.find('[data-testid="port-filter-all"]');
-        expect(updatedAllChip.classes()).toContain('text-[var(--color-text-secondary)]');
-        expect(updatedAllChip.attributes('aria-pressed')).toBe('false');
+    it('hides count when no ports exist', () => {
+        const wrapper = mountShow({ ports: [] });
+        expect(wrapper.find('[data-testid="port-filter-count"]').exists()).toBe(false);
     });
 
     it('shows DataTable empty message when switch has no ports at all', () => {

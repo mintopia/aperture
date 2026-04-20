@@ -41,16 +41,14 @@ function itemClass(item) {
     }
 
     return isActive(item.href)
-        ? 'bg-[var(--color-primary)]/10 font-semibold text-[var(--color-primary)]'
+        ? 'bg-[var(--color-primary)]/[0.14] text-[var(--color-primary)] font-semibold'
         : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]';
 }
 </script>
 
 <template>
     <div data-testid="settings-nav" class="flex flex-col lg:flex-row lg:gap-0">
-        <nav
-            class="shrink-0 border-b border-[var(--color-border)] p-2 lg:w-[172px] lg:border-r-2 lg:border-b-0 lg:py-3"
-        >
+        <nav class="shrink-0 border-b border-[var(--color-border)] p-2 lg:w-[172px] lg:border-r lg:border-b-0 lg:py-3">
             <div class="flex flex-wrap gap-3 lg:flex-col lg:gap-0">
                 <div
                     v-for="(group, index) in navGroups"
@@ -58,7 +56,9 @@ function itemClass(item) {
                     :class="index > 0 ? 'mt-3' : ''"
                     class="flex min-w-[120px] flex-col gap-1"
                 >
-                    <p class="px-2 pb-1 text-[8px] font-bold tracking-[1.5px] text-[var(--color-text-muted)] uppercase">
+                    <p
+                        class="font-body px-2 pb-1 text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
+                    >
                         {{ group.label }}
                     </p>
 
@@ -67,7 +67,7 @@ function itemClass(item) {
                             v-if="item.disabled"
                             :data-testid="testId(item.label)"
                             :class="itemClass(item)"
-                            class="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px]"
+                            class="flex items-center gap-1.5 rounded-md px-5 py-1.5 text-[13px]"
                         >
                             {{ item.label }}
                             <span
@@ -81,7 +81,7 @@ function itemClass(item) {
                             :href="item.href"
                             :data-testid="testId(item.label)"
                             :class="itemClass(item)"
-                            class="rounded-md px-2.5 py-1.5 text-[11px] transition-colors"
+                            class="rounded-md px-5 py-1.5 text-[13px] transition-all duration-100"
                         >
                             {{ item.label }}
                         </component>

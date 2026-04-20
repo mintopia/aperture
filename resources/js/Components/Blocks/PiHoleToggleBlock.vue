@@ -32,21 +32,20 @@ async function toggle() {
 </script>
 
 <template>
-    <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-        <h3 class="mb-3 text-lg font-semibold text-[var(--color-text)]">
+    <div data-testid="block-pihole-toggle">
+        <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
             {{ title ?? 'Ad Blocking' }}
         </h3>
-        <p v-if="content" class="mb-4 text-sm text-[var(--color-text-secondary)]">
-            {{ content }}
-        </p>
         <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--color-text-secondary)]">
-                {{ enabled ? 'Enabled' : 'Disabled' }}
-            </span>
+            <div>
+                <div class="text-sm font-semibold text-[var(--color-text)]">Pi-hole</div>
+                <div class="mt-0.5 text-xs text-[var(--color-text-muted)]">DNS-level ad blocking</div>
+            </div>
             <button
                 :disabled="loading"
-                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                :class="enabled ? 'bg-[var(--color-success)]' : 'bg-[var(--color-border)]'"
+                data-testid="pihole-toggle"
+                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none"
+                :class="enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface-alt)]'"
                 @click="toggle"
             >
                 <span
@@ -55,5 +54,11 @@ async function toggle() {
                 />
             </button>
         </div>
+        <p
+            v-if="content"
+            class="mt-3 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-text-secondary)]"
+        >
+            {{ content }}
+        </p>
     </div>
 </template>

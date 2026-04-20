@@ -63,12 +63,26 @@ describe('AlertBanner', () => {
         expect(wrapper.find('strong').text()).toBe('Bold alert');
     });
 
-    it('applies left border styling', () => {
+    it('uses full border without left stripe', () => {
         const wrapper = mount(AlertBanner, {
             props: { type: 'warning' },
             slots: { default: 'Test' },
         });
         const banner = wrapper.find('[data-testid="alert-banner"]');
-        expect(banner.classes()).toContain('border-l-[3px]');
+        expect(banner.classes()).toContain('border');
+        expect(banner.classes()).not.toContain('border-l-[3px]');
+        expect(banner.classes()).not.toContain('border-l-2');
+        expect(banner.classes()).not.toContain('border-l-4');
+    });
+
+    it('uses rounded border-radius and 16px padding', () => {
+        const wrapper = mount(AlertBanner, {
+            props: { type: 'info' },
+            slots: { default: 'Test' },
+        });
+        const banner = wrapper.find('[data-testid="alert-banner"]');
+        expect(banner.classes()).toContain('rounded');
+        expect(banner.classes()).not.toContain('rounded-lg');
+        expect(banner.classes()).toContain('p-4');
     });
 });

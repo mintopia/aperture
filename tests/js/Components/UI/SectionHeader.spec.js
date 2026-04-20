@@ -24,15 +24,25 @@ describe('SectionHeader', () => {
         expect(wrapper.find('h2').text()).toBe('My Section');
     });
 
-    it('shows accent line when accentLine is true', () => {
+    it('applies uppercase tracking and secondary typography to the title', () => {
         const wrapper = mount(SectionHeader, {
-            props: { title: 'Title', accentLine: true },
+            props: { title: 'Title' },
         });
-        const children = wrapper.find('[data-testid="section-header"]').element.children;
-        expect(children.length).toBe(2);
+        const h2 = wrapper.find('h2');
+        expect(h2.classes()).toContain('uppercase');
+        expect(h2.classes()).toContain('tracking-[0.04em]');
+        expect(h2.classes()).toContain('text-[14px]');
     });
 
-    it('hides accent line when accentLine is false (default)', () => {
+    it('applies font-variation-settings inline style for optical sizing', () => {
+        const wrapper = mount(SectionHeader, {
+            props: { title: 'Title' },
+        });
+        const h2 = wrapper.find('h2');
+        expect(h2.attributes('style')).toContain("font-variation-settings: 'opsz' 16");
+    });
+
+    it('renders only one child element (no accent line)', () => {
         const wrapper = mount(SectionHeader, {
             props: { title: 'Title' },
         });

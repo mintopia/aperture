@@ -237,7 +237,7 @@ watch(
         <div
             v-if="loading"
             data-testid="chart-loading"
-            class="flex h-full items-center justify-center rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-bg)]"
+            class="flex h-full items-center justify-center rounded border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]"
         >
             <div class="flex flex-col items-center gap-2">
                 <div
@@ -249,11 +249,11 @@ watch(
         <div
             v-else-if="!hasData"
             data-testid="chart-empty"
-            class="flex h-full items-center justify-center rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-bg)]"
+            class="flex h-full items-center justify-center rounded border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]"
         >
             <span class="text-sm text-[var(--color-text-muted)]">{{ emptyMessage }}</span>
         </div>
-        <div v-else class="h-full">
+        <div v-else class="h-full rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
             <canvas ref="canvas" data-testid="chart-canvas"></canvas>
         </div>
     </div>

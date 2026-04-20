@@ -44,12 +44,12 @@ class ThemeSettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'matrix',
+            'accent_hue' => 230,
             'theme_mode' => 'light',
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals('matrix', Setting::get('theme.name'));
+        $this->assertEquals(230, Setting::get('theme.accent_hue'));
         $this->assertEquals('light', Setting::get('theme.mode'));
     }
 
@@ -59,25 +59,32 @@ class ThemeSettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'invalid-theme',
+            'accent_hue' => -1,
             'theme_mode' => 'dark',
         ]);
 
-        $response->assertSessionHasErrors('theme_name');
+        $response->assertSessionHasErrors('accent_hue');
+
+        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
+            'accent_hue' => 500,
+            'theme_mode' => 'dark',
+        ]);
+
+        $response->assertSessionHasErrors('accent_hue');
     }
 
-    public function test_admin_can_set_default_theme(): void
+    public function test_admin_can_set_default_accent_hue(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'default',
+            'accent_hue' => 55,
             'theme_mode' => 'dark',
         ]);
 
         $response->assertRedirect();
-        $this->assertEquals('default', Setting::get('theme.name'));
+        $this->assertEquals(55, Setting::get('theme.accent_hue'));
     }
 
     public function test_non_admin_cannot_access_theme_settings(): void
@@ -87,7 +94,7 @@ class ThemeSettingsControllerTest extends TestCase
 
         $this->actingAs($user)->get('/admin/settings/theme')->assertForbidden();
         $this->actingAs($user)->put('/admin/settings/theme', [
-            'theme_name' => 'matrix',
+            'accent_hue' => 230,
             'theme_mode' => 'dark',
         ])->assertForbidden();
     }
@@ -98,7 +105,7 @@ class ThemeSettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         // Set known values
-        $this->saveSetting('theme.name', 'Theme Name', 'warm-neon');
+        $this->saveSetting('theme.accent_hue', 'Accent Hue', 230);
         $this->saveSetting('theme.mode', 'Theme Mode', 'light');
 
         $response = $this->actingAs($admin)->get('/admin/settings/theme');
@@ -107,7 +114,7 @@ class ThemeSettingsControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Settings/Theme')
             ->has('settings')
-            ->where('settings.theme_name', 'warm-neon')
+            ->where('settings.accent_hue', 230)
             ->where('settings.theme_mode', 'light')
         );
     }
@@ -131,7 +138,7 @@ class ThemeSettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'theme_name' => 'matrix',
+            'accent_hue' => 55,
             'theme_mode' => 'invalid-mode',
         ]);
 

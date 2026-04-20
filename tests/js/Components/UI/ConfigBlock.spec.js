@@ -50,10 +50,10 @@ describe('ConfigBlock', () => {
         expect(pre.classes()).toContain('font-mono');
     });
 
-    it('uses a distinct background from surface cards', () => {
+    it('uses surface background', () => {
         const wrapper = mount(ConfigBlock, {
             props: { code: 'test' },
         });
-        expect(wrapper.find('pre').classes()).toContain('bg-[var(--color-bg)]');
+        expect(wrapper.find('pre').classes()).toContain('bg-[var(--color-surface)]');
     });
 });

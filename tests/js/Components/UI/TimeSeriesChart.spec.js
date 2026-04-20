@@ -83,4 +83,36 @@ describe('TimeSeriesChart', () => {
 
         expect(wrapper.find('[data-testid="time-series-chart"]').exists()).toBe(true);
     });
+
+    it('applies Dispatch chart-area styling to canvas container', () => {
+        const wrapper = mount(TimeSeriesChart, {
+            props: { series: sampleSeries },
+        });
+
+        const chartArea = wrapper.find('[data-testid="chart-canvas"]').element.parentElement;
+        expect(chartArea.classList.contains('rounded')).toBe(true);
+        expect(chartArea.classList.contains('border')).toBe(true);
+        expect(chartArea.classList.contains('border-[var(--color-border)]')).toBe(true);
+        expect(chartArea.classList.contains('bg-[var(--color-surface)]')).toBe(true);
+    });
+
+    it('applies surface bg to loading state', () => {
+        const wrapper = mount(TimeSeriesChart, {
+            props: { series: sampleSeries, loading: true },
+        });
+
+        const loadingEl = wrapper.find('[data-testid="chart-loading"]');
+        expect(loadingEl.classes()).toContain('bg-[var(--color-surface)]');
+        expect(loadingEl.classes()).toContain('rounded');
+    });
+
+    it('applies surface bg to empty state', () => {
+        const wrapper = mount(TimeSeriesChart, {
+            props: { series: [] },
+        });
+
+        const emptyEl = wrapper.find('[data-testid="chart-empty"]');
+        expect(emptyEl.classes()).toContain('bg-[var(--color-surface)]');
+        expect(emptyEl.classes()).toContain('rounded');
+    });
 });

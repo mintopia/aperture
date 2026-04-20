@@ -8,18 +8,18 @@ const breadcrumbs = computed(() => page.props.breadcrumbs || []);
 
 <template>
     <nav v-if="breadcrumbs.length" aria-label="Breadcrumb" data-testid="breadcrumbs">
-        <ol class="flex items-center gap-1 text-sm">
+        <ol class="flex items-center gap-1 font-mono text-[13px] font-normal text-[var(--color-text-muted)]">
             <li v-for="(crumb, index) in breadcrumbs" :key="index" class="flex items-center gap-1">
                 <span v-if="index > 0" class="text-[var(--color-text-muted)]">/</span>
                 <Link
                     v-if="crumb.href"
                     :href="crumb.href"
                     data-testid="breadcrumb-link"
-                    class="text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)]"
+                    class="text-[var(--color-text-secondary)] no-underline transition-colors hover:text-[var(--color-text)]"
                 >
                     {{ crumb.label }}
                 </Link>
-                <span v-else data-testid="breadcrumb-current" class="font-medium text-[var(--color-text)]">
+                <span v-else data-testid="breadcrumb-current" class="text-[var(--color-text-muted)]">
                     {{ crumb.label }}
                 </span>
             </li>

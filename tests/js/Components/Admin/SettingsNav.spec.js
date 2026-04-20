@@ -111,7 +111,7 @@ describe('SettingsNav.vue', () => {
         const wrapper = mountComponent('/admin/settings/integrations');
         const activeItem = wrapper.get('[data-testid="settings-nav-services"]');
 
-        expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/10');
+        expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/[0.14]');
         expect(activeItem.classes()).toContain('font-semibold');
         expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
     });
@@ -120,7 +120,7 @@ describe('SettingsNav.vue', () => {
         const wrapper = mountComponent('/admin/settings/integrations/opnsense');
         const activeItem = wrapper.get('[data-testid="settings-nav-services"]');
 
-        expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/10');
+        expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/[0.14]');
         expect(activeItem.classes()).toContain('font-semibold');
         expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
     });

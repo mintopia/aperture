@@ -55,10 +55,16 @@ function mountIndex(switches = [baseSwitchData]) {
             },
             stubs: {
                 AdminLayout: { template: '<div><slot /></div>' },
-                SectionHeader: { template: '<div data-testid="section-header-stub"><slot /></div>', props: ['title'] },
-                StatusPill: {
-                    template: '<span data-testid="status-pill" :data-status="status">{{ label }}</span>',
-                    props: ['status', 'label'],
+                FilterBar: {
+                    template: '<div data-testid="filter-bar-stub" />',
+                    props: [
+                        'search',
+                        'searchPlaceholder',
+                        'filters',
+                        'filterValues',
+                        'totalCount',
+                        'filteredCount',
+                    ],
                 },
                 EmptyState: {
                     template: '<div data-testid="empty-state"><slot /></div>',
@@ -101,7 +107,7 @@ describe('Index — Port Breakdown', () => {
 });
 
 describe('Index — Layout parity', () => {
-    it('renders v5 header and table grouping wrappers', () => {
+    it('renders header and table grouping wrappers', () => {
         const wrapper = mountIndex();
         expect(wrapper.find('[data-testid="switches-index-layout"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="switches-index-header"]').exists()).toBe(true);
@@ -115,44 +121,40 @@ describe('Index — Layout parity', () => {
         expect(wrapper.find('[data-testid="switches-table-card"]').exists()).toBe(false);
         expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(true);
     });
+
+    it('renders filter bar when switches exist', () => {
+        const wrapper = mountIndex();
+        expect(wrapper.find('[data-testid="filter-bar-stub"]').exists()).toBe(true);
+    });
 });
 
-describe('Index — Sync Status', () => {
-    it('shows sync status pill for completed sync', () => {
+describe('Index — Sync Status (inline dot)', () => {
+    it('shows inline sync status for completed sync', () => {
         const wrapper = mountIndex();
         const cell = wrapper.find('[data-testid="sync-status-1"]');
         expect(cell.exists()).toBe(true);
-        const pill = cell.find('[data-testid="status-pill"]');
-        expect(pill.exists()).toBe(true);
-        expect(pill.attributes('data-status')).toBe('success');
-        expect(pill.text()).toBe('Completed');
+        expect(cell.text()).toContain('Completed');
     });
 
-    it('shows sync status pill for failed sync', () => {
+    it('shows inline sync status for failed sync', () => {
         const sw = { ...baseSwitchData, latest_sync_status: 'failed' };
         const wrapper = mountIndex([sw]);
         const cell = wrapper.find('[data-testid="sync-status-1"]');
-        const pill = cell.find('[data-testid="status-pill"]');
-        expect(pill.attributes('data-status')).toBe('danger');
-        expect(pill.text()).toBe('Failed');
+        expect(cell.text()).toContain('Failed');
     });
 
-    it('shows sync status pill for running sync', () => {
+    it('shows inline sync status for running sync', () => {
         const sw = { ...baseSwitchData, latest_sync_status: 'running', last_synced_at: null };
         const wrapper = mountIndex([sw]);
         const cell = wrapper.find('[data-testid="sync-status-1"]');
-        const pill = cell.find('[data-testid="status-pill"]');
-        expect(pill.attributes('data-status')).toBe('warning');
-        expect(pill.text()).toBe('Running');
+        expect(cell.text()).toContain('Running');
     });
 
-    it('shows sync status pill for pending sync', () => {
+    it('shows inline sync status for pending sync', () => {
         const sw = { ...baseSwitchData, latest_sync_status: 'pending', last_synced_at: null };
         const wrapper = mountIndex([sw]);
         const cell = wrapper.find('[data-testid="sync-status-1"]');
-        const pill = cell.find('[data-testid="status-pill"]');
-        expect(pill.attributes('data-status')).toBe('neutral');
-        expect(pill.text()).toBe('Pending');
+        expect(cell.text()).toContain('Pending');
     });
 
     it('shows "Never synced" when no sync data', () => {

@@ -55,10 +55,10 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
 
     public function test_shares_theme_data(): void
     {
-        $setting = Setting::whereCode('theme.name')->first() ?? new Setting;
-        $setting->code = 'theme.name';
-        $setting->name = 'Theme Name';
-        $setting->value = 'warm-neon';
+        $setting = Setting::whereCode('theme.accent_hue')->first() ?? new Setting;
+        $setting->code = 'theme.accent_hue';
+        $setting->name = 'Theme Accent Hue';
+        $setting->value = '230';
         $setting->save();
 
         $setting = Setting::whereCode('theme.mode')->first() ?? new Setting;
@@ -77,7 +77,7 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
         $shared = $middleware->share($request);
 
         $this->assertArrayHasKey('theme', $shared);
-        $this->assertArrayHasKey('name', $shared['theme']);
+        $this->assertArrayHasKey('accent_hue', $shared['theme']);
         $this->assertArrayHasKey('mode', $shared['theme']);
     }
 }

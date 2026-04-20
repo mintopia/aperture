@@ -8,8 +8,10 @@ use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpRange;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,6 +25,7 @@ class HomeController extends Controller
             'activeIps' => IpAddress::where('allowed', true)->count(),
             'blockedUsers' => User::where('blocked', true)->count(),
             'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools($dhcp)),
+            'uniqueIps' => Inertia::defer(fn (): array => $this->getUniqueIpsOverTime()),
             'recentUsers' => Inertia::defer(fn (): LengthAwarePaginator => $this->getRecentUsers()),
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
@@ -38,18 +41,40 @@ class HomeController extends Controller
         return redirect()->route('admin.home')->with('success', 'Portal reset initiated.');
     }
 
-    /** @return list<array{name: string, used: int, total: int, utilisation: float}> */
+    /** @return list<array{name: string, network: string|null, used: int, total: int, utilisation: float}> */
     private function getDhcpPools(DhcpInterface $dhcp): array
     {
-        /** @var list<array{name: string, used: int, total: int, utilisation: float}> $pools */
+        /** @var list<array{name: string, network: string|null, used: int, total: int, utilisation: float}> $pools */
         $pools = array_values($dhcp->getRanges()->map(fn (DhcpRange $range): array => [
             'name' => $range->description ?? $range->interface,
+            'network' => $range->subnet ?: $range->prefix,
             'used' => $range->usedAddresses ?? 0,
             'total' => $range->totalAddresses ?? 0,
             'utilisation' => $range->utilisation ?? 0.0,
         ])->all());
 
         return $pools;
+    }
+
+    /** @return list<array{date: string, count: int}> */
+    private function getUniqueIpsOverTime(): array
+    {
+        $start = CarbonImmutable::now()->subDays(6)->startOfDay();
+
+        /** @var list<array{date: string, count: int}> $results */
+        $results = DB::table('ip_addresses')
+            ->selectRaw('DATE(last_seen_at) as date, COUNT(DISTINCT id) as count')
+            ->where('last_seen_at', '>=', $start)
+            ->groupByRaw('DATE(last_seen_at)')
+            ->orderBy('date')
+            ->get()
+            ->map(fn (object $row): array => [
+                'date' => (string) $row->date,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+
+        return $results;
     }
 
     /** @return LengthAwarePaginator<int, User> */

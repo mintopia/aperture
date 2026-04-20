@@ -6,10 +6,13 @@ defineProps({
 </script>
 
 <template>
-    <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-        <h3 class="mb-3 text-lg font-semibold text-[var(--color-text)]">
+    <div data-testid="block-event-info">
+        <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
             {{ title }}
         </h3>
-        <div class="prose prose-sm text-[var(--color-text-secondary)]" v-html="content" />
+        <div
+            class="prose prose-sm [&_h3]:font-heading text-sm leading-relaxed text-[var(--color-text-secondary)] [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-[var(--color-text)] [&_li]:mb-1 [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:pl-5"
+            v-html="content"
+        />
     </div>
 </template>

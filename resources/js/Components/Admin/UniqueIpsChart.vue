@@ -9,33 +9,17 @@ const props = defineProps({
     },
 });
 
-const viewBoxWidth = computed(() => {
-    if (props.data.length <= 1) return 100;
-    return (props.data.length - 1) * 100;
-});
-
 const chartData = computed(() => {
     if (!props.data.length) return [];
 
     const max = Math.max(...props.data.map((d) => d.count), 1);
 
-    return props.data.map((d, i, arr) => ({
+    return props.data.map((d) => ({
         date: d.date,
         count: d.count,
         pct: (d.count / max) * 100,
-        x: arr.length > 1 ? (i / (arr.length - 1)) * viewBoxWidth.value : viewBoxWidth.value / 2,
-        y: 100 - Math.max((d.count / max) * 96, 0) - 2,
         label: formatDayLabel(d.date),
     }));
-});
-
-const linePoints = computed(() => chartData.value.map((p) => `${p.x},${p.y}`).join(' '));
-
-const areaPoints = computed(() => {
-    if (!chartData.value.length) return '';
-    const first = chartData.value[0];
-    const last = chartData.value[chartData.value.length - 1];
-    return `${first.x},100 ${linePoints.value} ${last.x},100`;
 });
 
 const maxCount = computed(() => {
@@ -60,55 +44,28 @@ function formatDayLabel(dateStr) {
 
         <div
             v-if="chartData.length"
-            class="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4 pt-6"
+            class="flex h-[200px] items-end gap-[6px] rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4 pt-6"
         >
-            <div class="relative h-[160px]">
-                <svg
-                    data-testid="unique-ips-line-chart"
-                    :viewBox="`0 0 ${viewBoxWidth} 100`"
-                    class="absolute inset-0 h-full w-full overflow-visible"
-                    preserveAspectRatio="none"
-                    role="img"
-                    :aria-label="`Line chart showing unique IPs over ${chartData.length} days, peak ${maxCount}`"
-                >
-                    <polygon
-                        data-testid="unique-ips-area"
-                        :points="areaPoints"
-                        fill="var(--color-primary)"
-                        opacity="0.06"
+            <div
+                v-for="bar in chartData"
+                :key="bar.date"
+                class="group relative flex flex-1 flex-col items-center"
+                style="height: 100%"
+            >
+                <div class="flex w-full flex-1 items-end">
+                    <div
+                        data-testid="unique-ips-bar"
+                        class="w-full rounded-t-[3px] bg-[var(--color-primary)] transition-[height] duration-300"
+                        :style="{ height: `${Math.max(bar.pct, 2)}%` }"
                     />
-                    <polyline
-                        data-testid="unique-ips-line"
-                        :points="linePoints"
-                        fill="none"
-                        stroke="var(--color-primary)"
-                        stroke-width="2"
-                        vector-effect="non-scaling-stroke"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    />
-                </svg>
-
-                <div class="absolute inset-0 flex">
-                    <div v-for="point in chartData" :key="point.date" class="group relative flex-1">
-                        <span
-                            class="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 rounded bg-[var(--color-text)] px-1.5 py-0.5 font-mono text-[10px] whitespace-nowrap text-[var(--color-bg)] opacity-0 transition-opacity group-hover:opacity-100"
-                            :style="{ bottom: `${Math.max(point.pct, 4) + 6}%` }"
-                        >
-                            {{ point.count }}
-                        </span>
-                    </div>
                 </div>
-            </div>
+                <span class="mt-1.5 text-[9px] text-[var(--color-text-muted)]">{{ bar.label }}</span>
 
-            <div class="mt-2 flex justify-between">
+                <!-- Tooltip -->
                 <span
-                    v-for="point in chartData"
-                    :key="point.date"
-                    data-testid="unique-ips-day-label"
-                    class="text-[9px] text-[var(--color-text-muted)]"
+                    class="pointer-events-none absolute -top-6 left-1/2 z-10 -translate-x-1/2 rounded bg-[var(--color-text)] px-1.5 py-0.5 font-mono text-[10px] whitespace-nowrap text-[var(--color-bg)] opacity-0 transition-opacity group-hover:opacity-100"
                 >
-                    {{ point.label }}
+                    {{ bar.count }}
                 </span>
             </div>
         </div>

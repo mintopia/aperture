@@ -25,6 +25,8 @@ vi.mock('@/utils/dates', () => ({
 vi.mock('@/utils/switches', () => ({
     typeLabel: vi.fn((v) => v),
     statusLabel: vi.fn((v) => v ?? '—'),
+    formatSpeed: vi.fn((v) => v ?? '—'),
+    formatVlan: vi.fn((vlan) => (vlan == null ? '—' : String(vlan))),
 }));
 
 const defaultProps = {
@@ -40,9 +42,6 @@ const defaultProps = {
         created_at: '2024-01-01T00:00:00Z',
     },
     ports: [],
-    canDownloadConfig: false,
-    runningConfig: '',
-    latestSync: null,
 };
 
 function mountShow(propsOverride = {}) {
@@ -55,12 +54,6 @@ function mountShow(propsOverride = {}) {
             stubs: {
                 AdminLayout: { template: '<div><slot /></div>' },
                 MetadataStrip: { template: '<div />', props: ['items'] },
-                SectionHeader: { template: '<div><slot /></div>', props: ['title'] },
-                StatusPill: {
-                    template: '<span data-testid="status-pill">{{ label }}</span>',
-                    props: ['status', 'label'],
-                },
-                ConfigBlock: { template: '<div />', props: ['code'] },
                 teleport: true,
             },
         },
@@ -78,142 +71,6 @@ function removeCsrfMeta() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     if (meta) meta.remove();
 }
-
-describe('Show — Sync Status', () => {
-    beforeEach(() => {
-        vi.useFakeTimers();
-        vi.clearAllMocks();
-    });
-
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
-    it('does not render sync status when latestSync is null', () => {
-        const wrapper = mountShow({ latestSync: null });
-        expect(wrapper.find('[data-testid="sync-status"]').exists()).toBe(false);
-    });
-
-    it('displays sync status when latestSync is completed', () => {
-        const wrapper = mountShow({
-            latestSync: {
-                status: 'completed',
-                started_at: '2024-01-01T00:00:00Z',
-                finished_at: '2024-01-01T00:05:00Z',
-                error: null,
-                ports_created: 24,
-                ports_updated: 12,
-                macs_created: 0,
-                macs_updated: 0,
-            },
-        });
-
-        const syncStatus = wrapper.find('[data-testid="sync-status"]');
-        expect(syncStatus.exists()).toBe(true);
-        expect(syncStatus.text()).toContain('Completed');
-        expect(syncStatus.text()).toContain('24 created');
-        expect(syncStatus.text()).toContain('12 updated');
-        expect(wrapper.find('[data-testid="sync-error"]').exists()).toBe(false);
-    });
-
-    it('displays sync status when latestSync shows failed with error', () => {
-        const wrapper = mountShow({
-            latestSync: {
-                status: 'failed',
-                started_at: '2024-01-01T00:00:00Z',
-                finished_at: '2024-01-01T00:01:00Z',
-                error: 'Connection timed out',
-                ports_created: 0,
-                ports_updated: 0,
-                macs_created: 0,
-                macs_updated: 0,
-            },
-        });
-
-        const syncStatus = wrapper.find('[data-testid="sync-status"]');
-        expect(syncStatus.exists()).toBe(true);
-        expect(syncStatus.text()).toContain('Failed');
-
-        const syncError = wrapper.find('[data-testid="sync-error"]');
-        expect(syncError.exists()).toBe(true);
-        expect(syncError.text()).toBe('Connection timed out');
-    });
-
-    it('displays sync status when latestSync shows running', () => {
-        const wrapper = mountShow({
-            latestSync: {
-                status: 'running',
-                started_at: '2024-01-01T00:00:00Z',
-                finished_at: null,
-                error: null,
-                ports_created: 0,
-                ports_updated: 0,
-                macs_created: 0,
-                macs_updated: 0,
-            },
-        });
-
-        const syncStatus = wrapper.find('[data-testid="sync-status"]');
-        expect(syncStatus.exists()).toBe(true);
-        expect(syncStatus.text()).toContain('Running');
-        expect(syncStatus.text()).toContain('Started');
-    });
-
-    it('displays sync status when latestSync shows pending', () => {
-        const wrapper = mountShow({
-            latestSync: {
-                status: 'pending',
-                started_at: null,
-                finished_at: null,
-                error: null,
-                ports_created: 0,
-                ports_updated: 0,
-                macs_created: 0,
-                macs_updated: 0,
-            },
-        });
-
-        const syncStatus = wrapper.find('[data-testid="sync-status"]');
-        expect(syncStatus.exists()).toBe(true);
-        expect(syncStatus.text()).toContain('Pending');
-    });
-
-    it('does not show port counts for non-completed sync', () => {
-        const wrapper = mountShow({
-            latestSync: {
-                status: 'running',
-                started_at: '2024-01-01T00:00:00Z',
-                finished_at: null,
-                error: null,
-                ports_created: 0,
-                ports_updated: 0,
-                macs_created: 0,
-                macs_updated: 0,
-            },
-        });
-
-        const syncStatus = wrapper.find('[data-testid="sync-status"]');
-        expect(syncStatus.text()).not.toContain('created');
-        expect(syncStatus.text()).not.toContain('updated');
-    });
-
-    it('does not show error for failed sync without error message', () => {
-        const wrapper = mountShow({
-            latestSync: {
-                status: 'failed',
-                started_at: '2024-01-01T00:00:00Z',
-                finished_at: '2024-01-01T00:01:00Z',
-                error: null,
-                ports_created: 0,
-                ports_updated: 0,
-                macs_created: 0,
-                macs_updated: 0,
-            },
-        });
-
-        expect(wrapper.find('[data-testid="sync-error"]').exists()).toBe(false);
-    });
-});
 
 describe('Show — Test Connection Feedback', () => {
     let fetchMock;

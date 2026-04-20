@@ -29,9 +29,9 @@ const typeConfig = {
     },
     info: {
         icon: '●',
-        bg: 'bg-[var(--color-primary)]/10',
-        text: 'text-[var(--color-primary)]',
-        border: 'border-[var(--color-primary)]/20',
+        bg: 'bg-[var(--color-info)]/10',
+        text: 'text-[var(--color-info)]',
+        border: 'border-[var(--color-info)]/20',
     },
 };
 
@@ -93,13 +93,13 @@ onBeforeUnmount(() => {
                 :key="msg.id"
                 :data-testid="`flash-message-${msg.type}`"
                 :class="[typeConfig[msg.type].bg, typeConfig[msg.type].text, typeConfig[msg.type].border]"
-                class="flex w-80 items-start gap-3 rounded-lg border px-4 py-3 shadow-lg backdrop-blur-sm"
+                class="flex w-80 items-start gap-3 rounded border p-4 shadow-lg backdrop-blur-sm"
                 role="alert"
             >
                 <span class="mt-0.5 font-mono text-sm leading-none" aria-hidden="true">
                     {{ typeConfig[msg.type].icon }}
                 </span>
-                <p class="flex-1 text-sm leading-snug text-[var(--color-text)]">
+                <p class="flex-1 text-[13px] leading-snug text-[var(--color-text)]">
                     {{ msg.text }}
                 </p>
                 <button

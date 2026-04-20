@@ -6,11 +6,11 @@ defineProps({
 </script>
 
 <template>
-    <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-        <h3 class="mb-3 text-lg font-semibold text-[var(--color-text)]">
+    <div data-testid="block-custom-markdown">
+        <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
             {{ title }}
         </h3>
-        <div class="text-sm whitespace-pre-wrap text-[var(--color-text-secondary)]">
+        <div class="text-sm leading-relaxed whitespace-pre-wrap text-[var(--color-text-secondary)]">
             {{ content }}
         </div>
     </div>

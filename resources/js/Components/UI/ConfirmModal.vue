@@ -27,9 +27,10 @@ const descriptionId = `${modalId}-description`;
 
 const confirmButtonClass = computed(() => {
     const variants = {
-        danger: 'bg-[var(--color-danger)] hover:bg-[var(--color-danger)]/80',
-        warning: 'bg-[var(--color-warning)] hover:bg-[var(--color-warning)]/80',
-        primary: 'bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/80',
+        danger: 'border border-[var(--color-danger)]/40 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/12',
+        warning:
+            'border border-[var(--color-warning)]/40 text-[var(--color-warning)] hover:bg-[var(--color-warning)]/12',
+        primary: 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/80',
     };
 
     return variants[props.variant] ?? variants.danger;
@@ -102,7 +103,7 @@ onBeforeUnmount(() => {
             v-if="show"
             ref="overlayRef"
             data-testid="confirm-modal"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-[oklch(12%_0.006_60_/_0.5)] p-4"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]"
             @keydown="onOverlayKeydown"
         >
             <div
@@ -111,15 +112,19 @@ onBeforeUnmount(() => {
                 aria-modal="true"
                 :aria-labelledby="titleId"
                 :aria-describedby="descriptionId"
-                class="w-full max-w-md rounded-lg bg-[var(--color-surface)] p-6 text-[var(--color-text)] shadow-xl focus:outline-none"
+                class="w-full max-w-md rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-[var(--color-text)] shadow-xl focus:outline-none"
             >
-                <h2 :id="titleId" data-testid="confirm-modal-title" class="text-lg font-bold text-[var(--color-text)]">
+                <h2
+                    :id="titleId"
+                    data-testid="confirm-modal-title"
+                    class="font-heading text-[14px] font-bold text-[var(--color-text)]"
+                >
                     {{ title }}
                 </h2>
                 <p
                     :id="descriptionId"
                     data-testid="confirm-modal-message"
-                    class="mt-2 text-sm text-[var(--color-text-secondary)]"
+                    class="mt-2 text-[13px] text-[var(--color-text-secondary)]"
                 >
                     {{ message }}
                 </p>
@@ -131,7 +136,7 @@ onBeforeUnmount(() => {
                         ref="cancelButtonRef"
                         data-testid="confirm-modal-cancel"
                         type="button"
-                        class="rounded-lg px-3.5 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                        class="rounded-md border border-[var(--color-border-hover)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                         :disabled="loading"
                         @click="emit('cancel')"
                     >
@@ -141,7 +146,7 @@ onBeforeUnmount(() => {
                         ref="confirmButtonRef"
                         data-testid="confirm-modal-confirm"
                         type="button"
-                        class="rounded-lg px-3.5 py-2 text-sm font-semibold text-[var(--color-bg)] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                        class="rounded-md px-4 py-[7px] text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                         :class="confirmButtonClass"
                         :disabled="loading"
                         @click="emit('confirm')"

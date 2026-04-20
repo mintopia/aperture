@@ -159,7 +159,7 @@ describe('Ports/Show.vue - Polish', () => {
 
         it('uses a plain header container with no card/well classes', () => {
             const wrapper = mountPage();
-            const headerContainer = wrapper.find('[data-testid="page-title"]').element.closest('.space-y-4');
+            const headerContainer = wrapper.find('[data-testid="page-title"]').element.parentElement;
 
             expect(headerContainer).not.toBeNull();
             expect(headerContainer.className).not.toContain('rounded-xl');

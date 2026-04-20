@@ -17,12 +17,6 @@ class InjectThemeMiddlewareTest extends TestCase
 
     public function test_theme_data_shared_with_blade_views(): void
     {
-        $setting = Setting::whereCode('theme.name')->first() ?? new Setting;
-        $setting->code = 'theme.name';
-        $setting->name = 'Theme Name';
-        $setting->value = 'matrix';
-        $setting->save();
-
         $setting = Setting::whereCode('theme.mode')->first() ?? new Setting;
         $setting->code = 'theme.mode';
         $setting->name = 'Theme Mode';
@@ -34,7 +28,7 @@ class InjectThemeMiddlewareTest extends TestCase
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
             $shared = View::getShared();
-            $this->assertEquals('matrix', $shared['themeName']);
+            $this->assertEquals('dispatch', $shared['themeName']);
             $this->assertEquals('light', $shared['themeMode']);
 
             return response('OK');
@@ -48,8 +42,9 @@ class InjectThemeMiddlewareTest extends TestCase
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
             $shared = View::getShared();
-            $this->assertEquals('cool-neon', $shared['themeName']);
+            $this->assertEquals('dispatch', $shared['themeName']);
             $this->assertEquals('dark', $shared['themeMode']);
+            $this->assertEquals(55, $shared['accentHue']);
 
             return response('OK');
         });
@@ -87,12 +82,12 @@ class InjectThemeMiddlewareTest extends TestCase
         });
     }
 
-    public function test_injects_custom_colors_from_settings(): void
+    public function test_injects_accent_hue_from_settings(): void
     {
-        $setting = Setting::whereCode('theme.custom_colors')->first() ?? new Setting;
-        $setting->code = 'theme.custom_colors';
-        $setting->name = 'Custom Colors';
-        $setting->value = '{"primary":"#ff0000","accent":"#00ff00"}';
+        $setting = Setting::whereCode('theme.accent_hue')->first() ?? new Setting;
+        $setting->code = 'theme.accent_hue';
+        $setting->name = 'Accent Hue';
+        $setting->value = '230';
         $setting->save();
 
         $middleware = new InjectTheme;
@@ -100,7 +95,7 @@ class InjectThemeMiddlewareTest extends TestCase
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
             $shared = View::getShared();
-            $this->assertEquals('{"primary":"#ff0000","accent":"#00ff00"}', $shared['customColors']);
+            $this->assertEquals(230, $shared['accentHue']);
 
             return response('OK');
         });
@@ -132,9 +127,9 @@ class InjectThemeMiddlewareTest extends TestCase
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
             $shared = View::getShared();
-            $this->assertArrayHasKey('customColors', $shared);
+            $this->assertArrayHasKey('accentHue', $shared);
             $this->assertArrayHasKey('customCss', $shared);
-            $this->assertNull($shared['customColors']);
+            $this->assertEquals(55, $shared['accentHue']);
             $this->assertNull($shared['customCss']);
 
             return response('OK');

@@ -1,8 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
 import Edit from '@/Pages/Admin/Switches/Edit.vue';
+import { router } from '@inertiajs/vue3';
 
 vi.mock('@inertiajs/vue3', () => ({
+    router: {
+        delete: vi.fn(),
+    },
     useForm: vi.fn((initial) => ({
         ...initial,
         errors: {},
@@ -15,7 +19,13 @@ vi.mock('@inertiajs/vue3', () => ({
     },
 }));
 
+globalThis.route = (...args) => `/mocked/${args[0]}`;
+
 describe('Switches/Edit', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     function mountEdit() {
         return mount(Edit, {
             props: {
@@ -41,6 +51,7 @@ describe('Switches/Edit', () => {
                 },
                 stubs: {
                     FormField: { template: '<div><slot /></div>' },
+                    teleport: true,
                 },
             },
         });
@@ -74,5 +85,75 @@ describe('Switches/Edit', () => {
         await wrapper.find('[data-testid="switch-type"]').setValue('snmp');
 
         expect(wrapper.find('[data-testid="switch-community"]').element.value).toBe('');
+    });
+
+    describe('Delete functionality', () => {
+        it('renders delete button in danger zone', () => {
+            const wrapper = mountEdit();
+            expect(wrapper.find('[data-testid="danger-zone-switch"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="action-delete"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="action-delete"]').attributes('title')).toBe(
+                'Remove this switch and all its data',
+            );
+        });
+
+        it('opens ConfirmModal when delete is clicked', async () => {
+            const wrapper = mountEdit();
+
+            await wrapper.find('[data-testid="action-delete"]').trigger('click');
+            await flushPromises();
+
+            expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+        });
+
+        it('delete confirm triggers router.delete', async () => {
+            const wrapper = mountEdit();
+
+            await wrapper.find('[data-testid="action-delete"]').trigger('click');
+            await flushPromises();
+
+            await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
+            await flushPromises();
+
+            expect(router.delete).toHaveBeenCalledWith(
+                '/mocked/admin.switches.destroy',
+                expect.objectContaining({
+                    onFinish: expect.any(Function),
+                }),
+            );
+        });
+
+        it('cancel closes the modal without deleting', async () => {
+            const wrapper = mountEdit();
+
+            await wrapper.find('[data-testid="action-delete"]').trigger('click');
+            await flushPromises();
+
+            expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+
+            await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
+            await flushPromises();
+
+            expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+            expect(router.delete).not.toHaveBeenCalled();
+        });
+
+        it('shows loading state during delete', async () => {
+            vi.mocked(router.delete).mockImplementation(() => {
+                // Don't call onFinish - simulating an in-progress request
+            });
+
+            const wrapper = mountEdit();
+
+            await wrapper.find('[data-testid="action-delete"]').trigger('click');
+            await flushPromises();
+
+            await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+
+            const confirmButton = wrapper.find('[data-testid="confirm-modal-confirm"]');
+            expect(confirmButton.text()).toBe('Delete Switch…');
+        });
     });
 });

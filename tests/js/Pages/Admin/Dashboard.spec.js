@@ -42,9 +42,14 @@ describe('Dashboard', () => {
         activeIps: 89,
         blockedUsers: 3,
         dhcpPools: [
-            { name: 'Users', used: 89, total: 200, utilisation: 0.445 },
-            { name: 'Infrastructure', used: 12, total: 50, utilisation: 0.24 },
-            { name: 'Guest', used: 45, total: 50, utilisation: 0.9 },
+            { name: 'Users', network: '10.0.1.0/24', used: 89, total: 200, utilisation: 0.445 },
+            { name: 'Infrastructure', network: '10.0.2.0/24', used: 12, total: 50, utilisation: 0.24 },
+            { name: 'Guest', network: '10.0.3.0/24', used: 45, total: 50, utilisation: 0.9 },
+        ],
+        uniqueIps: [
+            { date: '2026-04-14', count: 45 },
+            { date: '2026-04-15', count: 52 },
+            { date: '2026-04-16', count: 61 },
         ],
         recentUsers: {
             current_page: 1,
@@ -92,7 +97,7 @@ describe('Dashboard', () => {
         vi.useRealTimers();
     });
 
-    it('renders Dashboard title and removes legacy reset UI', () => {
+    it('renders Dashboard title', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
             global: {
@@ -103,7 +108,6 @@ describe('Dashboard', () => {
         });
 
         expect(wrapper.find('[data-testid="page-title"]').text()).toBe('Dashboard');
-        expect(wrapper.find('[data-testid="reset-button"]').exists()).toBe(false);
     });
 
     it('renders the four stat cards with the correct labels and values', () => {
@@ -119,17 +123,17 @@ describe('Dashboard', () => {
         const cards = wrapper.findAll('[data-testid="stat-card"]');
 
         expect(cards).toHaveLength(4);
-        expect(wrapper.text()).toContain('ONLINE NOW');
+        expect(wrapper.text()).toContain('Online Now');
         expect(wrapper.text()).toContain('42');
-        expect(wrapper.text()).toContain('TOTAL USERS');
+        expect(wrapper.text()).toContain('Total Users');
         expect(wrapper.text()).toContain('128');
-        expect(wrapper.text()).toContain('IPS ACTIVE');
+        expect(wrapper.text()).toContain('IPs Active');
         expect(wrapper.text()).toContain('89');
-        expect(wrapper.text()).toContain('BLOCKED');
+        expect(wrapper.text()).toContain('Blocked');
         expect(wrapper.text()).toContain('3');
     });
 
-    it('renders online now hero card details including dot, total, and percentage', () => {
+    it('renders online now sub text in mockup format "of N · X%"', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
             global: {
@@ -157,10 +161,11 @@ describe('Dashboard', () => {
         });
 
         expect(wrapper.find('[data-testid="dhcp-pools-loading"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="unique-ips-loading"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="recent-users-loading"]').exists()).toBe(true);
     });
 
-    it('renders DHCP pools and the port errors placeholder card', () => {
+    it('renders DHCP pools with network/CIDR and unique IPs chart', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
             global: {
@@ -171,14 +176,13 @@ describe('Dashboard', () => {
         });
 
         expect(wrapper.find('[data-testid="dhcp-pools-card"]').exists()).toBe(true);
-        expect(wrapper.text()).toContain('Users');
-        expect(wrapper.text()).toContain('Infrastructure');
-        expect(wrapper.text()).toContain('Guest');
-        expect(wrapper.find('[data-testid="port-errors-card"]').exists()).toBe(true);
-        expect(wrapper.text()).toContain('No error data available');
+        expect(wrapper.text()).toContain('10.0.1.0/24');
+        expect(wrapper.text()).toContain('10.0.2.0/24');
+        expect(wrapper.text()).toContain('10.0.3.0/24');
+        expect(wrapper.find('[data-testid="unique-ips-chart"]').exists()).toBe(true);
     });
 
-    it('renders the recent users table with columns, linked nicknames, and status pills', () => {
+    it('renders the recent users table with inline status dots instead of pills', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
             global: {
@@ -188,14 +192,17 @@ describe('Dashboard', () => {
             },
         });
 
-        const headers = wrapper.findAll('th').map((header) => header.text());
+        const recentUsersSection = wrapper.find('[data-testid="recent-users-section"]');
+        const headers = recentUsersSection.findAll('th').map((header) => header.text());
 
-        expect(wrapper.text()).toContain('TOP BANDWIDTH & RECENT USERS');
+        expect(wrapper.text()).toContain('Top Bandwidth & Recent Users');
         expect(headers).toEqual(['Nickname', 'Email', 'IPs', 'Bandwidth', 'Status', 'Seen']);
         expect(wrapper.find('a[href="/mocked/admin.users.show/1"]').text()).toBe('alice');
         expect(wrapper.text()).toContain('1.5 KB');
         expect(wrapper.text()).toContain('5.0 GB');
-        expect(wrapper.findAll('[data-testid="status-pill"]')).toHaveLength(2);
+
+        // Status should be inline dots, not StatusPill
+        expect(wrapper.findAll('[data-testid="status-pill"]')).toHaveLength(0);
         expect(wrapper.text()).toContain('Active');
         expect(wrapper.text()).toContain('Blocked');
         expect(wrapper.text()).toContain('5m');

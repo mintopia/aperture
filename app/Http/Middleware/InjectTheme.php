@@ -15,16 +15,15 @@ class InjectTheme
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $themeName = Setting::get('theme.name', 'cool-neon');
         $themeMode = Setting::get('theme.mode', 'dark');
         $siteTitle = Setting::get('theme.site_title', 'Aperture');
-        $customColors = Setting::get('theme.custom_colors');
+        $accentHue = (int) Setting::get('theme.accent_hue', 55);
         $customCss = Setting::get('theme.custom_css');
 
-        View::share('themeName', $themeName);
+        View::share('themeName', 'dispatch');
         View::share('themeMode', $themeMode);
         View::share('siteTitle', $siteTitle);
-        View::share('customColors', $customColors);
+        View::share('accentHue', $accentHue);
         View::share('customCss', $customCss);
 
         return $next($request);

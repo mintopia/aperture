@@ -14,14 +14,16 @@ describe('CapabilityTag', () => {
         const wrapper = mount(CapabilityTag, {
             props: { name: 'dhcp', active: true },
         });
-        expect(wrapper.classes()).not.toContain('opacity-40');
+        expect(wrapper.classes()).toContain('text-[var(--color-primary)]');
+        expect(wrapper.classes()).toContain('bg-[var(--color-primary)]/[0.14]');
     });
 
     it('applies inactive styling when not active', () => {
         const wrapper = mount(CapabilityTag, {
             props: { name: 'dhcp', active: false },
         });
-        expect(wrapper.classes()).toContain('opacity-40');
+        expect(wrapper.classes()).toContain('text-[var(--color-text-muted)]');
+        expect(wrapper.classes()).toContain('bg-[var(--color-surface-hover)]');
     });
 
     it('has correct data-testid', () => {
@@ -35,6 +37,7 @@ describe('CapabilityTag', () => {
         const wrapper = mount(CapabilityTag, {
             props: { name: 'dhcp' },
         });
-        expect(wrapper.classes()).toContain('opacity-40');
+        expect(wrapper.classes()).toContain('text-[var(--color-text-muted)]');
+        expect(wrapper.classes()).toContain('bg-[var(--color-surface-hover)]');
     });
 });

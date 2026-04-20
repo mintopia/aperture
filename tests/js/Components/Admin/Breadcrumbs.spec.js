@@ -35,36 +35,44 @@ describe('Breadcrumbs.vue', () => {
         expect(wrapper.get('[data-testid="breadcrumbs"]').exists()).toBe(true);
     });
 
-    it('has the correct container classes: flex, items-center, gap-1, text-sm', () => {
+    it('has the correct container classes: font-mono, text-[13px], font-normal, text-[var(--color-text-muted)]', () => {
         const wrapper = mountBreadcrumbs([{ label: 'Home' }]);
         const ol = wrapper.get('ol');
 
-        expect(ol.classes()).toContain('flex');
-        expect(ol.classes()).toContain('items-center');
-        expect(ol.classes()).toContain('gap-1');
-        expect(ol.classes()).toContain('text-sm');
+        expect(ol.classes()).toContain('font-mono');
+        expect(ol.classes()).toContain('text-[13px]');
+        expect(ol.classes()).toContain('font-normal');
+        expect(ol.classes()).toContain('text-[var(--color-text-muted)]');
     });
 
     it('renders ancestor links with correct styling', () => {
-        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
+        const wrapper = mountBreadcrumbs([
+            { label: 'Admin', href: '/admin' },
+            { label: 'Users' },
+        ]);
         const link = wrapper.get('[data-testid="breadcrumb-link"]');
 
         expect(link.classes()).toContain('text-[var(--color-text-secondary)]');
-        expect(link.classes()).toContain('transition-colors');
+        expect(link.classes()).toContain('no-underline');
         expect(link.classes()).toContain('hover:text-[var(--color-text)]');
     });
 
-    it('renders the current page (last segment) as a span with primary text', () => {
-        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
+    it('renders the current page (last segment) as a span with muted text', () => {
+        const wrapper = mountBreadcrumbs([
+            { label: 'Admin', href: '/admin' },
+            { label: 'Users' },
+        ]);
         const current = wrapper.get('[data-testid="breadcrumb-current"]');
 
         expect(current.text()).toBe('Users');
-        expect(current.classes()).toContain('text-[var(--color-text)]');
-        expect(current.classes()).toContain('font-medium');
+        expect(current.classes()).toContain('text-[var(--color-text-muted)]');
     });
 
     it('renders separator between segments with muted text color', () => {
-        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
+        const wrapper = mountBreadcrumbs([
+            { label: 'Admin', href: '/admin' },
+            { label: 'Users' },
+        ]);
         const items = wrapper.findAll('li');
         const separator = items[1].find('span');
 
@@ -73,7 +81,10 @@ describe('Breadcrumbs.vue', () => {
     });
 
     it('does not render a separator before the first segment', () => {
-        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
+        const wrapper = mountBreadcrumbs([
+            { label: 'Admin', href: '/admin' },
+            { label: 'Users' },
+        ]);
         const firstItem = wrapper.findAll('li')[0];
         const spans = firstItem.findAll('span');
 
@@ -98,7 +109,10 @@ describe('Breadcrumbs.vue', () => {
     });
 
     it('does not render any card wrappers or accent borders', () => {
-        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
+        const wrapper = mountBreadcrumbs([
+            { label: 'Admin', href: '/admin' },
+            { label: 'Users' },
+        ]);
         const nav = wrapper.get('nav');
 
         // No card-like wrapper classes

@@ -22,14 +22,15 @@ function submit() {
 
 <template>
     <SettingsNav>
-        <h1 data-testid="page-title" class="font-heading mb-5 text-xl font-bold text-[var(--color-text)] sm:text-2xl">
+        <h1
+            data-testid="page-title"
+            class="font-heading mb-2 text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+            :style="{ fontVariationSettings: '\'opsz\' 48' }"
+        >
             Portal Settings
         </h1>
 
-        <form
-            class="space-y-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
-            @submit.prevent="submit"
-        >
+        <form class="space-y-4" @submit.prevent="submit">
             <FormField
                 label="Session Timeout (seconds)"
                 name="portal_session_timeout"
@@ -41,7 +42,7 @@ function submit() {
                     v-model.number="form.portal_session_timeout"
                     type="number"
                     min="300"
-                    class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)]"
+                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                 />
             </FormField>
 
@@ -50,7 +51,7 @@ function submit() {
                     id="portal_redirect_url"
                     v-model="form.portal_redirect_url"
                     type="url"
-                    class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text)]"
+                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                 />
             </FormField>
 
@@ -58,7 +59,7 @@ function submit() {
                 type="submit"
                 data-testid="action-save"
                 :disabled="form.processing"
-                class="rounded-lg bg-[var(--color-primary)] px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-[var(--color-primary-hover)]"
+                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-white"
             >
                 Save Settings
             </button>

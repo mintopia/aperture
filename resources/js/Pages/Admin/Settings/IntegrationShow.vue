@@ -177,7 +177,7 @@ function formatLogOutput(data) {
             <Link
                 :href="route('admin.settings.integrations')"
                 data-testid="back-link"
-                class="inline-flex items-center text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)]"
+                class="inline-flex items-center text-[13px] text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)]"
             >
                 ← Back to Services
             </Link>
@@ -187,7 +187,8 @@ function formatLogOutput(data) {
                     <div class="space-y-1">
                         <h1
                             data-testid="page-title"
-                            class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl"
+                            class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                            :style="{ fontVariationSettings: '\'opsz\' 48' }"
                         >
                             {{ service.name }}
                         </h1>
@@ -207,12 +208,12 @@ function formatLogOutput(data) {
                     <StatusPill :status="healthStatus(service.health)" :label="healthLabel(service.health)" />
                 </div>
 
-                <p class="max-w-3xl text-sm text-[var(--color-text-secondary)]">
+                <p class="max-w-3xl text-[13px] text-[var(--color-text-secondary)]">
                     {{ service.description }}
                 </p>
             </div>
 
-            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+            <div>
                 <form data-testid="config-form" class="space-y-4" @submit.prevent="submit">
                     <div class="grid gap-4 md:grid-cols-2">
                         <FormField
@@ -255,7 +256,7 @@ function formatLogOutput(data) {
                                         v-model="form.config[field.key]"
                                         :name="field.key"
                                         :data-testid="`field-select-${field.key}`"
-                                        class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                                        class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                                     >
                                         <option value="">
                                             {{ field.placeholder || 'Select…' }}
@@ -271,7 +272,7 @@ function formatLogOutput(data) {
                                     <button
                                         type="button"
                                         :data-testid="`field-refresh-${field.key}`"
-                                        class="shrink-0 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)]"
+                                        class="shrink-0 rounded-md border border-[var(--color-border-hover)] bg-transparent px-3 py-2 text-[13px] font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-hover)]"
                                         :disabled="remoteOptions[field.key]?.loading"
                                         @click="fetchRemoteOptions(field)"
                                     >
@@ -290,7 +291,7 @@ function formatLogOutput(data) {
                                     v-model="form.config[field.key]"
                                     :name="field.key"
                                     :data-testid="`field-${field.key}`"
-                                    class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                                 >
                                     <option v-for="(label, value) in field.options" :key="value" :value="value">
                                         {{ label }}
@@ -307,7 +308,7 @@ function formatLogOutput(data) {
                                     :type="field.type"
                                     :placeholder="field.placeholder"
                                     :data-testid="`field-input-${field.key}`"
-                                    class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                                 />
                             </template>
 
@@ -325,7 +326,7 @@ function formatLogOutput(data) {
                         <button
                             type="submit"
                             data-testid="action-save"
-                            class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                            class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-white disabled:opacity-50"
                             :disabled="form.processing"
                         >
                             Save
@@ -334,7 +335,7 @@ function formatLogOutput(data) {
                         <button
                             type="button"
                             data-testid="action-test-connection"
-                            class="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface-hover)] disabled:opacity-50"
+                            class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] disabled:opacity-50"
                             :disabled="testingConnection"
                             @click="testConnection"
                         >
@@ -343,7 +344,10 @@ function formatLogOutput(data) {
                     </div>
 
                     <div v-if="testResult" class="mt-2">
-                        <p class="text-sm" :class="testResult.success ? 'text-green-600' : 'text-red-600'">
+                        <p
+                            class="text-[13px]"
+                            :class="testResult.success ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'"
+                        >
                             {{ testResultMessage(testResult) }}
                         </p>
                         <div
@@ -369,7 +373,7 @@ function formatLogOutput(data) {
                         <pre
                             v-if="showTestOutput && testResult.output"
                             data-testid="test-output-content"
-                            class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-3 font-mono text-xs"
+                            class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4 font-mono text-[12px] leading-[1.7] text-[var(--color-text-secondary)]"
                             >{{
                                 typeof testResult.output === 'string'
                                     ? testResult.output
@@ -380,10 +384,15 @@ function formatLogOutput(data) {
                 </form>
             </div>
 
-            <div class="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+            <div class="space-y-3">
                 <div>
-                    <h2 class="text-lg font-semibold text-[var(--color-text)]">Capabilities</h2>
-                    <p class="text-sm text-[var(--color-text-secondary)]">
+                    <h2
+                        class="font-heading text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                        :style="{ fontVariationSettings: '\'opsz\' 16' }"
+                    >
+                        Capabilities
+                    </h2>
+                    <p class="mt-1 text-[13px] text-[var(--color-text-secondary)]">
                         Toggle which features this service actively provides.
                     </p>
                 </div>
@@ -394,7 +403,7 @@ function formatLogOutput(data) {
                         :key="capability.name"
                         :data-testid="`capability-${capability.name}`"
                         type="button"
-                        class="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-2 py-1 transition hover:bg-[var(--color-surface-hover)]"
+                        class="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-hover)] px-2 py-1 transition hover:bg-[var(--color-surface-hover)]"
                         @click="toggleCapability(capability.name, capability.active)"
                     >
                         <CapabilityTag :name="capability.name" :active="capability.active" />
@@ -405,18 +414,23 @@ function formatLogOutput(data) {
                 </div>
             </div>
 
-            <div class="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+            <div class="space-y-3">
                 <div>
-                    <h2 class="text-lg font-semibold text-[var(--color-text)]">Connection Health Log</h2>
-                    <p class="text-sm text-[var(--color-text-secondary)]">
+                    <h2
+                        class="font-heading text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                        :style="{ fontVariationSettings: '\'opsz\' 16' }"
+                    >
+                        Connection Health Log
+                    </h2>
+                    <p class="mt-1 text-[13px] text-[var(--color-text-secondary)]">
                         Recent connectivity checks for this service.
                     </p>
                 </div>
 
-                <div class="overflow-hidden rounded-lg border border-[var(--color-border)]">
-                    <table data-testid="health-log-table" class="w-full text-sm">
+                <div class="overflow-x-auto">
+                    <table data-testid="health-log-table" class="w-full text-[13px]">
                         <thead
-                            class="bg-[var(--color-surface-hover)] text-left text-xs tracking-wider text-[var(--color-text-muted)] uppercase"
+                            class="text-left text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
                         >
                             <tr>
                                 <th class="px-4 py-3">Status</th>
@@ -461,7 +475,7 @@ function formatLogOutput(data) {
                                     <pre
                                         v-if="expandedLogIds.has(log.id) && log.response_data"
                                         :data-testid="`log-output-content-${index}`"
-                                        class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-3 font-mono text-xs"
+                                        class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4 font-mono text-[12px] leading-[1.7] text-[var(--color-text-secondary)]"
                                         >{{ formatLogOutput(log.response_data) }}</pre
                                     >
                                 </td>

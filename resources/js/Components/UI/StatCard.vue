@@ -2,9 +2,8 @@
 defineProps({
     label: { type: String, required: true },
     value: { type: [String, Number], required: true },
+    sub: { type: String, default: '' },
     color: { type: String, default: 'text' },
-    hero: { type: Boolean, default: false },
-    accentBorder: { type: String, default: '' },
     labelDotColor: { type: String, default: '' },
 });
 
@@ -27,17 +26,9 @@ const dotColorMap = {
 </script>
 
 <template>
-    <div
-        data-testid="stat-card"
-        :class="[
-            hero ? 'border-[var(--color-success)]/15 bg-[var(--color-success)]/5' : 'bg-[var(--color-surface)]',
-            accentBorder ? 'border-l-[3px]' : '',
-        ]"
-        :style="accentBorder ? `border-left-color: var(--color-${accentBorder})` : ''"
-        class="rounded-xl border border-[var(--color-border)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
-    >
+    <div data-testid="stat-card">
         <p
-            class="inline-flex items-center gap-2 text-[11px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
+            class="mb-[3px] inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
         >
             <span
                 v-if="labelDotColor"
@@ -49,10 +40,14 @@ const dotColorMap = {
         </p>
         <p
             data-testid="stat-value"
-            :class="[colorMap[color] ?? colorMap.text, hero ? 'text-[40px] leading-none tracking-tight' : 'text-2xl']"
-            class="font-heading mt-1 font-bold"
+            :class="[colorMap[color] ?? colorMap.text]"
+            class="font-heading text-[28px] font-bold tracking-[-0.02em]"
+            style="font-variation-settings: 'opsz' 36"
         >
             {{ value }}
+        </p>
+        <p v-if="sub" data-testid="stat-sub" class="mt-[2px] font-mono text-[11px] text-[var(--color-text-muted)]">
+            {{ sub }}
         </p>
         <slot />
     </div>

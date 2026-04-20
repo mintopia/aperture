@@ -51,23 +51,21 @@ function visitService(service) {
             <div>
                 <h1
                     data-testid="page-title"
-                    class="font-heading text-xl font-bold text-[var(--color-text)] sm:text-2xl"
+                    class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                    :style="{ fontVariationSettings: '\'opsz\' 48' }"
                 >
                     Integrations
                 </h1>
-                <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+                <p class="mt-1 text-[13px] text-[var(--color-text-secondary)]">
                     Review service status, connection health, and active capabilities.
                 </p>
             </div>
 
-            <div
-                class="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
-                data-testid="integrations-table"
-            >
-                <table class="w-full text-sm">
+            <div class="overflow-x-auto" data-testid="integrations-table">
+                <table class="w-full text-[13px]">
                     <thead>
                         <tr
-                            class="border-b border-[var(--color-border)] text-left text-xs tracking-wider text-[var(--color-text-muted)] uppercase"
+                            class="border-b border-[var(--color-border)] text-left text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
                         >
                             <th class="px-4 py-3">Service</th>
                             <th class="px-4 py-3">Status</th>
@@ -150,20 +148,20 @@ function visitService(service) {
             </div>
 
             <template v-if="Object.keys(props.capabilityDescriptions).length > 0">
-                <SectionHeader title="Capabilities Reference" accent-line class="mt-8" />
+                <SectionHeader title="Capabilities Reference" class="mt-8" />
                 <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="capabilities-reference">
                     <div
                         v-for="(description, name) in props.capabilityDescriptions"
                         :key="name"
                         :data-testid="`capability-desc-${name}`"
-                        class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+                        class="p-4"
                     >
                         <span
                             class="inline-flex items-center rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--color-primary)]"
                         >
                             {{ name }}
                         </span>
-                        <p class="mt-2 text-sm text-[var(--color-text-secondary)]">
+                        <p class="mt-2 text-[13px] text-[var(--color-text-secondary)]">
                             {{ description }}
                         </p>
                     </div>

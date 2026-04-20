@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatBytes } from '@/helpers.js';
+import { formatBytes, formatBytesComponents } from '@/helpers.js';
 
 describe('formatBytes', () => {
     it('returns "0 B" for zero', () => {
@@ -40,5 +40,27 @@ describe('formatBytes', () => {
 
     it('formats large MB values', () => {
         expect(formatBytes(524288000)).toBe('500.0 MB');
+    });
+});
+
+describe('formatBytesComponents', () => {
+    it('returns value "0" and unit "B" for zero', () => {
+        expect(formatBytesComponents(0)).toEqual({ value: '0', unit: 'B' });
+    });
+
+    it('returns value "0" and unit "B" for null', () => {
+        expect(formatBytesComponents(null)).toEqual({ value: '0', unit: 'B' });
+    });
+
+    it('splits kilobytes into value and unit', () => {
+        expect(formatBytesComponents(1536)).toEqual({ value: '1.5', unit: 'KB' });
+    });
+
+    it('splits megabytes into value and unit', () => {
+        expect(formatBytesComponents(204800000)).toEqual({ value: '195.3', unit: 'MB' });
+    });
+
+    it('splits gigabytes into value and unit', () => {
+        expect(formatBytesComponents(1073741824)).toEqual({ value: '1.0', unit: 'GB' });
     });
 });
