@@ -345,7 +345,7 @@ function confirmToggle() {
                                     type="checkbox"
                                     class="h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                                 />
-                                <span>Show devices without an IP</span>
+                                <span>Include devices without any IP address</span>
                             </label>
                             <div
                                 v-if="visibleMacs.length === 0"
@@ -357,7 +357,7 @@ function confirmToggle() {
                             <div
                                 v-else
                                 data-testid="connected-devices-table-wrapper"
-                                class="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+                                class="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
                             >
                                 <table
                                     data-testid="connected-devices-table"
@@ -382,16 +382,16 @@ function confirmToggle() {
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-[var(--color-border)]">
+                                    <tbody class="divide-y divide-[var(--color-border)] text-sm">
                                         <tr
                                             v-for="(mac, index) in visibleMacs"
                                             :key="index"
                                             :data-testid="'connected-device-row-' + index"
                                         >
-                                            <td class="px-4 py-2 font-mono text-xs text-[var(--color-text)]">
+                                            <td class="px-4 py-2 font-mono text-sm text-[var(--color-text)]">
                                                 {{ mac.mac_address ?? '—' }}
                                             </td>
-                                            <td class="px-4 py-2">
+                                            <td class="px-4 py-2 break-all">
                                                 <div
                                                     v-if="resolveIpEntries(mac, 'ipv4').length"
                                                     class="flex flex-col gap-1"
@@ -403,15 +403,15 @@ function confirmToggle() {
                                                         <Link
                                                             :href="route('admin.ips.show', resolved.ip)"
                                                             :data-testid="`device-ipv4-link-${index}-${rIdx}`"
-                                                            class="font-mono text-xs text-[var(--color-accent)] hover:underline"
+                                                            class="font-mono text-sm break-all text-[var(--color-accent)] hover:underline"
                                                         >
                                                             {{ resolved.ip }}
                                                         </Link>
                                                     </template>
                                                 </div>
-                                                <span v-else class="text-xs text-[var(--color-text-muted)]">—</span>
+                                                <span v-else class="text-sm text-[var(--color-text-muted)]">—</span>
                                             </td>
-                                            <td class="px-4 py-2">
+                                            <td class="px-4 py-2 break-all">
                                                 <div
                                                     v-if="resolveIpEntries(mac, 'ipv6').length"
                                                     class="flex flex-col gap-1"
@@ -423,13 +423,13 @@ function confirmToggle() {
                                                         <Link
                                                             :href="route('admin.ips.show', resolved.ip)"
                                                             :data-testid="`device-ipv6-link-${index}-${rIdx}`"
-                                                            class="font-mono text-xs text-[var(--color-accent)] hover:underline"
+                                                            class="font-mono text-sm break-all text-[var(--color-accent)] hover:underline"
                                                         >
                                                             {{ resolved.ip }}
                                                         </Link>
                                                     </template>
                                                 </div>
-                                                <span v-else class="text-xs text-[var(--color-text-muted)]">—</span>
+                                                <span v-else class="text-sm text-[var(--color-text-muted)]">—</span>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -517,6 +517,9 @@ function confirmToggle() {
                                     empty-message="No error data for this port"
                                 />
                             </div>
+                            <p v-else data-testid="errors-fallback" class="text-sm text-[var(--color-text-muted)]">
+                                Prometheus not configured
+                            </p>
                         </div>
                     </div>
 

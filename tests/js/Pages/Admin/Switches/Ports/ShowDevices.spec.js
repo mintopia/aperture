@@ -154,7 +154,9 @@ describe('Show — Connected Devices sidebar', () => {
 
         expect(wrapper.findAll('tbody tr')).toHaveLength(2);
         expect(wrapper.text()).toContain('Connected Devices (2)');
-        expect(wrapper.text()).toContain('Show devices without an IP');
+        expect(wrapper.text()).toContain('Include devices without any IP address');
+        expect(wrapper.find('[data-testid="connected-devices-table-wrapper"]').classes()).toContain('overflow-x-auto');
+        expect(wrapper.find('[data-testid="device-ipv4-link-0-0"]').classes()).toContain('break-all');
     });
 
     it('shows devices without IP links when toggled on', async () => {

@@ -88,6 +88,16 @@ describe('Ports/Show.vue - Polish', () => {
             expect(wrapper.find('[data-testid="stat-card"]').exists()).toBe(false);
             expect(wrapper.find('[data-testid="errors-chart"]').exists()).toBe(true);
         });
+
+        it('shows an explicit fallback when metrics are unavailable', () => {
+            const wrapper = mountPage({
+                metricsAvailable: false,
+            });
+
+            const fallback = wrapper.find('[data-testid="errors-fallback"]');
+            expect(fallback.exists()).toBe(true);
+            expect(fallback.text()).toContain('Prometheus not configured');
+        });
     });
 
     describe('Header control polish', () => {
