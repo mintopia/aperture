@@ -17,6 +17,8 @@ export function resolveHmrHost(appUrl = process.env.APP_URL) {
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
+    const hmrClientPort = env.VITE_HMR_PORT ? Number(env.VITE_HMR_PORT) : undefined;
+    const hmrServerPort = env.VITE_HMR_SERVER_PORT ? Number(env.VITE_HMR_SERVER_PORT) : undefined;
 
     return {
         plugins: [
@@ -47,8 +49,8 @@ export default defineConfig(({ mode }) => {
             host: '0.0.0.0',
             hmr: {
                 host: env.VITE_HMR_HOST || resolveHmrHost(env.APP_URL),
-                port: env.VITE_HMR_PORT ? Number(env.VITE_HMR_PORT) : undefined,
-                clientPort: env.VITE_HMR_PORT ? Number(env.VITE_HMR_PORT) : undefined,
+                port: hmrServerPort,
+                clientPort: hmrClientPort,
                 protocol: env.VITE_HMR_PROTOCOL || undefined,
             },
         },
