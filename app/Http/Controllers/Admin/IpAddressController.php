@@ -124,7 +124,7 @@ class IpAddressController extends Controller
             $message = 'The network port will be enabled';
         }
 
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', $message);
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
 
     public function limit(Request $request, IpAddress $ip): RedirectResponse
@@ -137,7 +137,7 @@ class IpAddressController extends Controller
             $message = 'The rate limit will be removed for this IP';
         }
 
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', $message);
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
 
     public function internet(Request $request, IpAddress $ip): RedirectResponse
@@ -150,7 +150,7 @@ class IpAddressController extends Controller
             $message = 'Internet will be disabled for this IP';
         }
 
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', $message);
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
 
     public function create(): Response
@@ -179,7 +179,7 @@ class IpAddressController extends Controller
             $ip->limit(true);
         }
 
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip->id])->with('success', 'The IP address has been added');
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', 'The IP address has been added');
     }
 
     protected function resolveSwitchConfig(PortDetail $port): SwitchConfig

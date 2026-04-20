@@ -63,7 +63,7 @@ const ipColumns = [
             :columns="ipColumns"
             :rows="ips"
             clickable
-            :row-href="(row) => route('admin.ips.show', row.ip?.id)"
+            :row-href="(row) => route('admin.ips.show', row.ip?.address)"
             empty-message="No IP addresses found"
         >
             <template #row="{ row }">

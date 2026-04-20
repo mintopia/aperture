@@ -53,6 +53,11 @@ class IpAddress extends Model
 
     protected string $stringDescriptionProperty = 'address';
 
+    public function getRouteKeyName(): string
+    {
+        return 'address';
+    }
+
     public function __get($name)
     {
         switch ($name) {

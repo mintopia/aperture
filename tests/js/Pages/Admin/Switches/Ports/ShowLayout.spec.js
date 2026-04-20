@@ -53,7 +53,6 @@ function mountPage(overrides = {}) {
                 MetadataStrip: { template: '<div><slot /></div>' },
                 SectionHeader: { template: '<div><slot /></div>' },
                 StatusPill: { template: '<div />' },
-                StatCard: { template: '<div />' },
                 ConfigBlock: { template: '<div />' },
                 TimeSeriesChart: { template: '<div />' },
                 ConnectedDevicesSummary: { template: '<div />' },
@@ -84,6 +83,13 @@ describe('Show — layout contract', () => {
         expect(rightColumn.find('[data-testid="section-bandwidth"]').exists()).toBe(true);
         expect(rightColumn.find('[data-testid="section-errors"]').exists()).toBe(true);
         expect(rightColumn.find('[data-testid="section-interface-config"]').exists()).toBe(true);
+    });
+
+    it('uses a wider left column than right on xl screens', () => {
+        const wrapper = mountPage();
+
+        const columns = wrapper.find('[data-testid="layout-columns"]');
+        expect(columns.classes()).toContain('xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]');
     });
 
     it('orders sections as requested within each column', () => {
@@ -129,5 +135,12 @@ describe('Show — layout contract', () => {
         });
         expect(downWrapper.find('[data-testid="action-toggle"]').isVisible()).toBe(true);
         expect(downWrapper.find('[data-testid="action-toggle"]').text()).toBe('Unshut');
+    });
+
+    it('shows interface config in an always-expanded block (no collapse toggle)', () => {
+        const wrapper = mountPage();
+
+        expect(wrapper.find('[data-testid="running-config-section"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="interface-config-collapsible"]').exists()).toBe(false);
     });
 });

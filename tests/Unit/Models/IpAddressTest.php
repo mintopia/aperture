@@ -38,6 +38,12 @@ class IpAddressTest extends TestCase
         $this->assertStringContainsString('[IpAddress:', (string) $ip);
     }
 
+    public function test_route_key_name_is_address(): void
+    {
+        $ip = new IpAddress;
+        $this->assertSame('address', $ip->getRouteKeyName());
+    }
+
     public function test_mac_returns_null_when_no_mac_address_linked(): void
     {
         $ip = IpAddress::factory()->create(['mac_address_id' => null]);

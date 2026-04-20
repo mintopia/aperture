@@ -115,19 +115,17 @@ describe('Show — Connected Devices sidebar', () => {
 
         const ipv4First = wrapper.find('[data-testid="device-ipv4-link-0-0"]');
         const ipv6First = wrapper.find('[data-testid="device-ipv6-link-0-0"]');
-        const ipv4Plain = wrapper.find('[data-testid="device-ipv4-text-0-1"]');
-        const ipv6Plain = wrapper.find('[data-testid="device-ipv6-text-0-1"]');
+        const ipv4Second = wrapper.find('[data-testid="device-ipv4-link-0-1"]');
+        const ipv6Second = wrapper.find('[data-testid="device-ipv6-link-0-1"]');
         expect(ipv4First.exists()).toBe(true);
         expect(ipv6First.exists()).toBe(true);
-        expect(ipv4Plain.exists()).toBe(true);
-        expect(ipv6Plain.exists()).toBe(true);
-        expect(wrapper.find('[data-testid="device-ipv4-link-0-1"]').exists()).toBe(false);
-        expect(wrapper.find('[data-testid="device-ipv6-link-0-1"]').exists()).toBe(false);
+        expect(ipv4Second.exists()).toBe(true);
+        expect(ipv6Second.exists()).toBe(true);
         expect(ipv4First.attributes('href')).toContain('admin.ips.show');
-        expect(ipv4First.attributes('href')).toContain('42');
-        expect(ipv6First.attributes('href')).toContain('44');
-        expect(ipv4Plain.text()).toBe('10.0.1.43');
-        expect(ipv6Plain.text()).toBe('2001:db8::2');
+        expect(ipv4First.attributes('href')).toContain('10.0.1.42');
+        expect(ipv6First.attributes('href')).toContain('2001:db8::1');
+        expect(ipv4Second.attributes('href')).toContain('10.0.1.43');
+        expect(ipv6Second.attributes('href')).toContain('2001:db8::2');
     });
 
     it('hides devices without IPv4/IPv6 text by default', () => {

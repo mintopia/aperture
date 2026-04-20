@@ -64,13 +64,20 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Ips/Show')
             ->has('ip')
         );
+    }
+
+    public function test_ip_show_route_uses_ip_address_parameter(): void
+    {
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.222']);
+
+        $this->assertSame('/admin/ips/10.0.0.222', route('admin.ips.show', ['ip' => $ip], false));
     }
 
     public function test_admin_can_create_ip(): void
@@ -172,7 +179,7 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Ips/Show')
@@ -191,10 +198,10 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/port', [
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/port', [
             'shutdown' => 1,
         ]);
-        $response->assertRedirect();
+        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
     }
 
     public function test_admin_can_enable_port(): void
@@ -207,10 +214,10 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/port', [
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/port', [
             'shutdown' => 0,
         ]);
-        $response->assertRedirect();
+        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
     }
 
     public function test_admin_can_limit_ip(): void
@@ -223,10 +230,10 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/limit', [
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', [
             'limit' => 1,
         ]);
-        $response->assertRedirect();
+        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
     }
 
     public function test_admin_can_unlimit_ip(): void
@@ -239,10 +246,10 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/limit', [
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', [
             'limit' => 0,
         ]);
-        $response->assertRedirect();
+        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
     }
 
     public function test_admin_can_allow_internet(): void
@@ -255,10 +262,10 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/internet', [
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', [
             'allow' => 1,
         ]);
-        $response->assertRedirect();
+        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
     }
 
     public function test_admin_can_deny_internet(): void
@@ -271,10 +278,10 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->id.'/internet', [
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', [
             'allow' => 0,
         ]);
-        $response->assertRedirect();
+        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
     }
 
     public function test_admin_can_store_new_ip(): void
@@ -288,7 +295,7 @@ class IpAddressControllerTest extends TestCase
             'allow' => false,
             'limit' => false,
         ]);
-        $response->assertRedirect();
+        $response->assertRedirect('/admin/ips/10.0.0.100');
         $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.100']);
     }
 
@@ -303,7 +310,7 @@ class IpAddressControllerTest extends TestCase
             'allow' => true,
             'limit' => true,
         ]);
-        $response->assertRedirect();
+        $response->assertRedirect('/admin/ips/10.0.0.101');
         $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.101']);
     }
 
@@ -332,7 +339,7 @@ class IpAddressControllerTest extends TestCase
             ->andThrow(new RuntimeException('Switch offline'));
         $this->app->instance(SwitchServiceFactory::class, $factory);
 
-        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
@@ -381,7 +388,7 @@ class IpAddressControllerTest extends TestCase
             ->andReturn($switch);
         $this->app->instance(SwitchServiceFactory::class, $factory);
 
-        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->id);
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page

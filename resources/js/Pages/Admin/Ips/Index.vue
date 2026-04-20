@@ -67,7 +67,12 @@ function search() {
             </button>
         </div>
 
-        <DataTable :columns="columns" :rows="ips.data" clickable :row-href="(row) => route('admin.ips.show', row.id)">
+        <DataTable
+            :columns="columns"
+            :rows="ips.data"
+            clickable
+            :row-href="(row) => route('admin.ips.show', row.address)"
+        >
             <template #row="{ row }">
                 <td class="px-4 py-2.5 font-mono text-sm text-[var(--color-text)]">
                     {{ row.address }}

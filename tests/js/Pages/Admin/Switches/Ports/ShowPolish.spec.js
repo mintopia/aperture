@@ -61,7 +61,6 @@ const mountPage = (overrides = {}) =>
                 MetadataStrip: { template: '<div data-testid="metadata-strip" />' },
                 SectionHeader: { template: '<div><slot /></div>' },
                 StatusPill: { template: '<div data-testid="status-pill" />' },
-                StatCard: { template: '<div data-testid="stat-card" />' },
                 ConfigBlock: { template: '<div data-testid="config-block" />' },
                 TimeSeriesChart: { template: '<div data-testid="time-series-chart" />' },
                 ConnectedDevicesSummary: { template: '<div data-testid="connected-devices-summary" />' },
@@ -77,33 +76,17 @@ describe('Ports/Show.vue - Polish', () => {
     });
 
     describe('Error status display', () => {
-        it('shows "Clean — no errors detected" when all error counts are 0', () => {
+        it('removes metric stat cards above the interface errors graph', () => {
             const wrapper = mountPage({
+                metricsAvailable: true,
                 errors: {
-                    input: 0,
-                    output: 0,
-                    crc: 0,
-                    collisions: 0,
+                    in_series: [{ timestamp: 1, value: 0 }],
+                    out_series: [{ timestamp: 1, value: 0 }],
                 },
             });
 
-            const cleanMessage = wrapper.find('[data-testid="errors-clean"]');
-            expect(cleanMessage.exists()).toBe(true);
-            expect(cleanMessage.text()).toBe('Clean — no errors detected');
-        });
-
-        it('does not show clean message when any error count > 0', () => {
-            const wrapper = mountPage({
-                errors: {
-                    input: 5,
-                    output: 0,
-                    crc: 0,
-                    collisions: 0,
-                },
-            });
-
-            const cleanMessage = wrapper.find('[data-testid="errors-clean"]');
-            expect(cleanMessage.exists()).toBe(false);
+            expect(wrapper.find('[data-testid="stat-card"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="errors-chart"]').exists()).toBe(true);
         });
     });
 
@@ -162,6 +145,16 @@ describe('Ports/Show.vue - Polish', () => {
         it('does not duplicate status pill in the header controls', () => {
             const wrapper = mountPage();
             expect(wrapper.find('[data-testid="port-status"]').exists()).toBe(false);
+        });
+
+        it('uses a plain header container with no card/well classes', () => {
+            const wrapper = mountPage();
+            const headerContainer = wrapper.find('[data-testid="page-title"]').element.closest('.space-y-4');
+
+            expect(headerContainer).not.toBeNull();
+            expect(headerContainer.className).not.toContain('rounded-xl');
+            expect(headerContainer.className).not.toContain('border');
+            expect(headerContainer.className).not.toContain('bg-[var(--color-surface)]');
         });
     });
 

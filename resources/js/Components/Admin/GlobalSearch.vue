@@ -46,9 +46,9 @@ function navigateToUser(userId) {
     router.visit(route('admin.users.show', userId));
 }
 
-function navigateToIp(ipId) {
+function navigateToIp(ipAddress) {
     open.value = false;
-    router.visit(route('admin.ips.show', ipId));
+    router.visit(route('admin.ips.show', ipAddress));
 }
 
 onMounted(() => document.addEventListener('keydown', handleKeydown));
@@ -101,7 +101,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                             v-for="ip in results.ips"
                             :key="ip.id"
                             class="flex w-full items-center gap-3 rounded-lg px-3 py-2 font-mono text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
-                            @click="navigateToIp(ip.id)"
+                            @click="navigateToIp(ip.address)"
                         >
                             {{ ip.address }}
                         </button>

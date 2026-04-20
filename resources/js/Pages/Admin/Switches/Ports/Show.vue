@@ -5,7 +5,6 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import StatusPill from '@/Components/UI/StatusPill.vue';
-import StatCard from '@/Components/UI/StatCard.vue';
 import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
@@ -226,7 +225,7 @@ function confirmToggle() {
 <template>
     <div class="space-y-6">
         <!-- Header -->
-        <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5">
+        <div class="space-y-4">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <h1
                     data-testid="page-title"
@@ -255,10 +254,7 @@ function confirmToggle() {
                     </button>
                 </div>
             </div>
-            <div
-                data-testid="port-context-strip"
-                class="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5 sm:px-4 sm:py-3"
-            >
+            <div data-testid="port-context-strip" class="pt-1">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-sm text-[var(--color-text-secondary)]">
                         on
@@ -333,7 +329,7 @@ function confirmToggle() {
         <div data-testid="layout-row-primary" class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)]">
             <div
                 data-testid="layout-columns"
-                class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]"
+                class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]"
             >
                 <div data-testid="layout-column-left" class="space-y-6">
                     <!-- Connected Devices -->
@@ -405,20 +401,12 @@ function confirmToggle() {
                                                         :key="'ipv4-' + rIdx"
                                                     >
                                                         <Link
-                                                            v-if="resolved.id"
-                                                            :href="route('admin.ips.show', resolved.id)"
+                                                            :href="route('admin.ips.show', resolved.ip)"
                                                             :data-testid="`device-ipv4-link-${index}-${rIdx}`"
                                                             class="font-mono text-xs text-[var(--color-accent)] hover:underline"
                                                         >
                                                             {{ resolved.ip }}
                                                         </Link>
-                                                        <span
-                                                            v-else
-                                                            :data-testid="`device-ipv4-text-${index}-${rIdx}`"
-                                                            class="font-mono text-xs text-[var(--color-text)]"
-                                                        >
-                                                            {{ resolved.ip }}
-                                                        </span>
                                                     </template>
                                                 </div>
                                                 <span v-else class="text-xs text-[var(--color-text-muted)]">—</span>
@@ -433,20 +421,12 @@ function confirmToggle() {
                                                         :key="'ipv6-' + rIdx"
                                                     >
                                                         <Link
-                                                            v-if="resolved.id"
-                                                            :href="route('admin.ips.show', resolved.id)"
+                                                            :href="route('admin.ips.show', resolved.ip)"
                                                             :data-testid="`device-ipv6-link-${index}-${rIdx}`"
                                                             class="font-mono text-xs text-[var(--color-accent)] hover:underline"
                                                         >
                                                             {{ resolved.ip }}
                                                         </Link>
-                                                        <span
-                                                            v-else
-                                                            :data-testid="`device-ipv6-text-${index}-${rIdx}`"
-                                                            class="font-mono text-xs text-[var(--color-text)]"
-                                                        >
-                                                            {{ resolved.ip }}
-                                                        </span>
                                                     </template>
                                                 </div>
                                                 <span v-else class="text-xs text-[var(--color-text-muted)]">—</span>
@@ -528,41 +508,7 @@ function confirmToggle() {
                     <div data-testid="section-errors">
                         <SectionHeader title="Interface Errors" accent-line />
                         <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-                            <div data-testid="errors-section" class="grid grid-cols-2 gap-4">
-                                <StatCard
-                                    label="Input Errors"
-                                    :value="errors.input ?? 0"
-                                    :color="(errors.input ?? 0) > 0 ? 'danger' : 'text'"
-                                />
-                                <StatCard
-                                    label="Output Errors"
-                                    :value="errors.output ?? 0"
-                                    :color="(errors.output ?? 0) > 0 ? 'danger' : 'text'"
-                                />
-                                <StatCard
-                                    label="CRC Errors"
-                                    :value="errors.crc ?? 0"
-                                    :color="(errors.crc ?? 0) > 0 ? 'warning' : 'text'"
-                                />
-                                <StatCard
-                                    label="Collisions"
-                                    :value="errors.collisions ?? 0"
-                                    :color="(errors.collisions ?? 0) > 0 ? 'warning' : 'text'"
-                                />
-                            </div>
-                            <p
-                                v-if="
-                                    (errors.input ?? 0) === 0 &&
-                                    (errors.output ?? 0) === 0 &&
-                                    (errors.crc ?? 0) === 0 &&
-                                    (errors.collisions ?? 0) === 0
-                                "
-                                class="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--color-success)]"
-                            >
-                                <span aria-hidden="true">✓</span
-                                ><span data-testid="errors-clean">Clean — no errors detected</span>
-                            </p>
-                            <div v-if="metricsAvailable" class="mt-4">
+                            <div v-if="metricsAvailable" data-testid="errors-section">
                                 <TimeSeriesChart
                                     data-testid="errors-chart"
                                     :series="errorSeries"
@@ -577,14 +523,12 @@ function confirmToggle() {
                     <!-- Interface Config -->
                     <div data-testid="section-interface-config">
                         <SectionHeader title="Interface Config" accent-line />
-                        <div data-testid="running-config-section">
+                        <div
+                            data-testid="running-config-section"
+                            class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+                        >
                             <ConfigBlock v-if="port.config_text" :code="port.config_text" />
-                            <div
-                                v-else
-                                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm text-[var(--color-text-muted)]"
-                            >
-                                No running config available
-                            </div>
+                            <div v-else class="text-sm text-[var(--color-text-muted)]">No running config available</div>
                         </div>
                     </div>
                 </div>
