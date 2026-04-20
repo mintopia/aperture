@@ -116,28 +116,30 @@ describe('Show — Port Navigation Context', () => {
         expect(wrapper.html().indexOf('port-context-strip')).toBeLessThan(wrapper.html().indexOf('metadata-strip'));
     });
 
-    it('renders primary and secondary desktop layout rows for S7 structure', () => {
+    it('renders primary layout row with columns for S7 structure', () => {
         const wrapper = mountShow();
         const primaryRow = wrapper.find('[data-testid="layout-row-primary"]');
-        const secondaryRow = wrapper.find('[data-testid="layout-row-secondary"]');
+        const layoutColumns = wrapper.find('[data-testid="layout-columns"]');
 
         expect(primaryRow.exists()).toBe(true);
-        expect(primaryRow.classes()).toContain('xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]');
+        expect(primaryRow.classes()).toContain('xl:grid-cols-[minmax(0,1fr)]');
+        expect(layoutColumns.exists()).toBe(true);
+        expect(layoutColumns.classes()).toContain('xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]');
         expect(primaryRow.find('[data-testid="bandwidth-section"]').exists()).toBe(true);
         expect(primaryRow.find('[data-testid="connected-devices-section"]').exists()).toBe(true);
-
-        expect(secondaryRow.exists()).toBe(true);
-        expect(secondaryRow.classes()).toContain('xl:grid-cols-2');
-        expect(secondaryRow.find('[data-testid="errors-section"]').exists()).toBe(true);
-        expect(secondaryRow.text()).toContain('Running Config');
+        expect(
+            primaryRow.find('[data-testid="errors-section"]').exists() ||
+                primaryRow.find('[data-testid="errors-fallback"]').exists(),
+        ).toBe(true);
+        expect(primaryRow.find('[data-testid="running-config-section"]').exists()).toBe(true);
     });
 
-    it('renders interface output as a secondary collapsed section', () => {
+    it('renders interface output as a collapsed section', () => {
         const wrapper = mountShow();
-        const interfaceOutputSecondary = wrapper.find('[data-testid="interface-output-secondary"]');
+        const interfaceOutputSection = wrapper.find('[data-testid="section-interface-output"]');
         const collapsible = wrapper.find('[data-testid="interface-output-collapsible"]');
 
-        expect(interfaceOutputSecondary.exists()).toBe(true);
+        expect(interfaceOutputSection.exists()).toBe(true);
         expect(collapsible.exists()).toBe(true);
         expect(collapsible.attributes('open')).toBeUndefined();
         expect(collapsible.text()).toContain('Interface Output');
