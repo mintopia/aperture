@@ -160,11 +160,10 @@ describe('Index — Sorting', () => {
         ];
         const wrapper = mountIndex(switches);
 
-        const headers = wrapper.findAll('th');
-        const portsHeader = headers.find((h) => h.text().includes('Ports'));
-        expect(portsHeader).toBeTruthy();
+        const portsSortButton = wrapper.find('[data-testid="sort-port_count"]');
+        expect(portsSortButton.exists()).toBe(true);
 
-        await portsHeader.trigger('click');
+        await portsSortButton.trigger('click');
         await wrapper.vm.$nextTick();
 
         const rows = wrapper.findAll('[data-testid^="switch-row-"]');

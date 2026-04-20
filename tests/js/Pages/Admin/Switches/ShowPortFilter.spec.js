@@ -25,6 +25,8 @@ vi.mock('@/utils/dates', () => ({
 vi.mock('@/utils/switches', () => ({
     typeLabel: vi.fn((v) => v),
     statusLabel: vi.fn((v) => v ?? '—'),
+    formatSpeed: vi.fn((v) => v ?? '—'),
+    formatVlan: vi.fn((vlan) => (vlan == null ? '—' : String(vlan))),
 }));
 
 const mockPorts = [
