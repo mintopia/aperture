@@ -87,15 +87,6 @@ describe('Admin Switch Port Show confirmation modal integration', () => {
         vi.clearAllMocks();
     });
 
-    it('shows bounce confirmation modal with connected devices when clicking bounce', async () => {
-        const wrapper = mountPage();
-
-        await wrapper.find('[data-testid="action-bounce"]').trigger('click');
-
-        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="confirm-modal-title"]').text()).toContain('Bounce');
-    });
-
     it('shows shutdown confirmation modal when clicking shutdown on an up port', async () => {
         const wrapper = mountPage();
 
@@ -103,9 +94,10 @@ describe('Admin Switch Port Show confirmation modal integration', () => {
 
         expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="confirm-modal-title"]').text()).toContain('Shut Down');
+        expect(router.post).not.toHaveBeenCalled();
     });
 
-    it('does NOT show confirmation when enabling a shut-down port', async () => {
+    it('shows enable confirmation modal when clicking unshut on a down port', async () => {
         const wrapper = mountPage({
             port: {
                 admin_status: 'down',
@@ -114,48 +106,49 @@ describe('Admin Switch Port Show confirmation modal integration', () => {
 
         await wrapper.find('[data-testid="action-toggle"]').trigger('click');
 
-        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
-        expect(router.post).toHaveBeenCalledWith(expect.stringContaining('enable'), {}, expect.any(Object));
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+        expect(router.post).not.toHaveBeenCalled();
     });
 
-    it('modal lists connected device names', async () => {
+    it('modal lists connected device names for toggle confirmation', async () => {
         const wrapper = mountPage();
 
-        await wrapper.find('[data-testid="action-bounce"]').trigger('click');
+        await wrapper.find('[data-testid="action-toggle"]').trigger('click');
 
         const modal = wrapper.find('[data-testid="confirm-modal"]');
         expect(modal.exists()).toBe(true);
         expect(modal.text()).toContain('Alice');
     });
 
-    it('modal lists MAC addresses for devices without users', async () => {
+    it('modal lists MAC addresses for devices without users during toggle confirmation', async () => {
         const wrapper = mountPage();
 
-        await wrapper.find('[data-testid="action-bounce"]').trigger('click');
+        await wrapper.find('[data-testid="action-toggle"]').trigger('click');
 
         const modal = wrapper.find('[data-testid="confirm-modal"]');
         expect(modal.exists()).toBe(true);
         expect(modal.text()).toContain('AA:BB:CC:DD:EE:02');
     });
 
-    it('confirms bounce action triggers router.post', async () => {
+    it('confirms shutdown action triggers router.post', async () => {
         const wrapper = mountPage();
 
-        await wrapper.find('[data-testid="action-bounce"]').trigger('click');
+        await wrapper.find('[data-testid="action-toggle"]').trigger('click');
         await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
 
-        expect(router.post).toHaveBeenCalledWith(expect.stringContaining('bounce'), {}, expect.any(Object));
+        expect(router.post).toHaveBeenCalledWith(expect.stringContaining('shutdown'), {}, expect.any(Object));
     });
 
-    it('cancel closes modal without action', async () => {
-        const wrapper = mountPage();
+    it('confirms enable action triggers router.post after confirmation', async () => {
+        const wrapper = mountPage({
+            port: {
+                admin_status: 'down',
+            },
+        });
 
-        await wrapper.find('[data-testid="action-bounce"]').trigger('click');
-        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+        await wrapper.find('[data-testid="action-toggle"]').trigger('click');
+        await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
 
-        await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
-
-        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
-        expect(router.post).not.toHaveBeenCalled();
+        expect(router.post).toHaveBeenCalledWith(expect.stringContaining('enable'), {}, expect.any(Object));
     });
 });

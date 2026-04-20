@@ -107,8 +107,8 @@ describe('Ports/Show.vue - Polish', () => {
         });
     });
 
-    describe('Action button tooltips', () => {
-        it('action buttons have title attributes', () => {
+    describe('Header control polish', () => {
+        it('renders simplified header action controls only', () => {
             const wrapper = mountPage({
                 port: {
                     ...defaultProps.port,
@@ -116,23 +116,34 @@ describe('Ports/Show.vue - Polish', () => {
                 },
             });
 
-            // Check refresh button tooltip
+            const headerActions = wrapper.find('[data-testid="header-actions"]');
+            expect(headerActions.exists()).toBe(true);
+
+            const actionButtons = headerActions.findAll('button');
+            expect(actionButtons).toHaveLength(2);
+
+            expect(headerActions.find('[data-testid="action-refresh"]').exists()).toBe(true);
+            expect(headerActions.find('[data-testid="action-toggle"]').exists()).toBe(true);
+        });
+
+        it('header actions keep accessible title attributes', () => {
+            const wrapper = mountPage({
+                port: {
+                    ...defaultProps.port,
+                    admin_status: 'up',
+                },
+            });
+
             const refreshButton = wrapper.find('[data-testid="action-refresh"]');
             expect(refreshButton.exists()).toBe(true);
             expect(refreshButton.attributes('title')).toBe("Sync this port's data from the switch");
 
-            // Check bounce button tooltip
-            const bounceButton = wrapper.find('[data-testid="action-bounce"]');
-            expect(bounceButton.exists()).toBe(true);
-            expect(bounceButton.attributes('title')).toBe('Briefly take this port offline and bring it back up');
-
-            // Check toggle button tooltip (admin_status is 'up')
             const toggleButton = wrapper.find('[data-testid="action-toggle"]');
             expect(toggleButton.exists()).toBe(true);
             expect(toggleButton.attributes('title')).toBe('Administratively disable this port');
         });
 
-        it('toggle button has correct title when port admin_status is down', () => {
+        it('toggle button has correct title when port admin_status is down and remains in header actions', () => {
             const wrapper = mountPage({
                 port: {
                     ...defaultProps.port,
@@ -140,9 +151,17 @@ describe('Ports/Show.vue - Polish', () => {
                 },
             });
 
+            const headerActions = wrapper.find('[data-testid="header-actions"]');
+            expect(headerActions.exists()).toBe(true);
+
             const toggleButton = wrapper.find('[data-testid="action-toggle"]');
             expect(toggleButton.exists()).toBe(true);
             expect(toggleButton.attributes('title')).toBe('Administratively enable this port');
+        });
+
+        it('does not duplicate status pill in the header controls', () => {
+            const wrapper = mountPage();
+            expect(wrapper.find('[data-testid="port-status"]').exists()).toBe(false);
         });
     });
 });
