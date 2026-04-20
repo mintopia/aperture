@@ -96,8 +96,9 @@ describe('Show — Connected Devices sidebar', () => {
                     last_seen_at: '2024-01-01T00:00:00Z',
                     resolved_ips: [
                         { id: 42, ip: '10.0.1.42', hostname: 'test', user: { id: 1, nickname: 'NeonGamer42' } },
-                        { id: 43, ip: '10.0.1.43', hostname: 'test', user: null },
+                        { ip: '10.0.1.43', hostname: 'test', user: null },
                         { id: 44, ip: '2001:db8::1', hostname: 'test-v6', user: null },
+                        { ip: '2001:db8::2', hostname: 'test-v6', user: null },
                     ],
                 },
             ],
@@ -113,17 +114,23 @@ describe('Show — Connected Devices sidebar', () => {
         expect(headerCells[2].text()).toBe('IPv6');
 
         const ipv4First = wrapper.find('[data-testid="device-ipv4-link-0-0"]');
-        const ipv4Second = wrapper.find('[data-testid="device-ipv4-link-0-1"]');
         const ipv6First = wrapper.find('[data-testid="device-ipv6-link-0-0"]');
+        const ipv4Plain = wrapper.find('[data-testid="device-ipv4-text-0-1"]');
+        const ipv6Plain = wrapper.find('[data-testid="device-ipv6-text-0-1"]');
         expect(ipv4First.exists()).toBe(true);
-        expect(ipv4Second.exists()).toBe(true);
         expect(ipv6First.exists()).toBe(true);
+        expect(ipv4Plain.exists()).toBe(true);
+        expect(ipv6Plain.exists()).toBe(true);
+        expect(wrapper.find('[data-testid="device-ipv4-link-0-1"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="device-ipv6-link-0-1"]').exists()).toBe(false);
         expect(ipv4First.attributes('href')).toContain('admin.ips.show');
         expect(ipv4First.attributes('href')).toContain('42');
         expect(ipv6First.attributes('href')).toContain('44');
+        expect(ipv4Plain.text()).toBe('10.0.1.43');
+        expect(ipv6Plain.text()).toBe('2001:db8::2');
     });
 
-    it('hides devices without IPv4/IPv6 links by default', () => {
+    it('hides devices without IPv4/IPv6 text by default', () => {
         const wrapper = mountShow({
             macs: [
                 {
@@ -147,8 +154,8 @@ describe('Show — Connected Devices sidebar', () => {
             ],
         });
 
-        expect(wrapper.findAll('tbody tr')).toHaveLength(1);
-        expect(wrapper.text()).toContain('Connected Devices (1)');
+        expect(wrapper.findAll('tbody tr')).toHaveLength(2);
+        expect(wrapper.text()).toContain('Connected Devices (2)');
         expect(wrapper.text()).toContain('Show devices without an IP');
     });
 

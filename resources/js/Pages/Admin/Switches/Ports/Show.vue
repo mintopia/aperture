@@ -147,7 +147,7 @@ function isIpv6Address(ip) {
 
 function resolveIpEntries(mac, version) {
     return (mac.resolved_ips ?? []).filter((resolved) => {
-        if (!resolved?.id || !resolved?.ip) return false;
+        if (!resolved?.ip) return false;
         return version === 'ipv6' ? isIpv6Address(resolved.ip) : !isIpv6Address(resolved.ip);
     });
 }
@@ -400,15 +400,26 @@ function confirmToggle() {
                                                     v-if="resolveIpEntries(mac, 'ipv4').length"
                                                     class="flex flex-col gap-1"
                                                 >
-                                                    <Link
+                                                    <template
                                                         v-for="(resolved, rIdx) in resolveIpEntries(mac, 'ipv4')"
                                                         :key="'ipv4-' + rIdx"
-                                                        :href="route('admin.ips.show', resolved.id)"
-                                                        :data-testid="`device-ipv4-link-${index}-${rIdx}`"
-                                                        class="font-mono text-xs text-[var(--color-accent)] hover:underline"
                                                     >
-                                                        {{ resolved.ip }}
-                                                    </Link>
+                                                        <Link
+                                                            v-if="resolved.id"
+                                                            :href="route('admin.ips.show', resolved.id)"
+                                                            :data-testid="`device-ipv4-link-${index}-${rIdx}`"
+                                                            class="font-mono text-xs text-[var(--color-accent)] hover:underline"
+                                                        >
+                                                            {{ resolved.ip }}
+                                                        </Link>
+                                                        <span
+                                                            v-else
+                                                            :data-testid="`device-ipv4-text-${index}-${rIdx}`"
+                                                            class="font-mono text-xs text-[var(--color-text)]"
+                                                        >
+                                                            {{ resolved.ip }}
+                                                        </span>
+                                                    </template>
                                                 </div>
                                                 <span v-else class="text-xs text-[var(--color-text-muted)]">—</span>
                                             </td>
@@ -417,15 +428,26 @@ function confirmToggle() {
                                                     v-if="resolveIpEntries(mac, 'ipv6').length"
                                                     class="flex flex-col gap-1"
                                                 >
-                                                    <Link
+                                                    <template
                                                         v-for="(resolved, rIdx) in resolveIpEntries(mac, 'ipv6')"
                                                         :key="'ipv6-' + rIdx"
-                                                        :href="route('admin.ips.show', resolved.id)"
-                                                        :data-testid="`device-ipv6-link-${index}-${rIdx}`"
-                                                        class="font-mono text-xs text-[var(--color-accent)] hover:underline"
                                                     >
-                                                        {{ resolved.ip }}
-                                                    </Link>
+                                                        <Link
+                                                            v-if="resolved.id"
+                                                            :href="route('admin.ips.show', resolved.id)"
+                                                            :data-testid="`device-ipv6-link-${index}-${rIdx}`"
+                                                            class="font-mono text-xs text-[var(--color-accent)] hover:underline"
+                                                        >
+                                                            {{ resolved.ip }}
+                                                        </Link>
+                                                        <span
+                                                            v-else
+                                                            :data-testid="`device-ipv6-text-${index}-${rIdx}`"
+                                                            class="font-mono text-xs text-[var(--color-text)]"
+                                                        >
+                                                            {{ resolved.ip }}
+                                                        </span>
+                                                    </template>
                                                 </div>
                                                 <span v-else class="text-xs text-[var(--color-text-muted)]">—</span>
                                             </td>
