@@ -1,10 +1,12 @@
 <script setup>
+import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
+import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import { formatRelative } from '@/utils/dates';
 
 defineOptions({ layout: AdminLayout });
@@ -18,10 +20,28 @@ const props = defineProps({
     users: { type: Array, default: () => [] },
 });
 
-function toggleInternet(ip) {
-    router.post(route('admin.ips.internet', ip.id), {
-        allow: ip.allowed ? 0 : 1,
-    });
+const showAccessModal = ref(false);
+const togglingAccess = ref(false);
+
+function toggleInternet() {
+    showAccessModal.value = true;
+}
+
+function confirmToggleInternet() {
+    togglingAccess.value = true;
+    router.post(
+        route('admin.ips.internet', props.ip.id),
+        {
+            allow: props.ip.allowed ? 0 : 1,
+        },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                togglingAccess.value = false;
+                showAccessModal.value = false;
+            },
+        },
+    );
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -39,22 +59,46 @@ const userColumns = [
 
 <template>
     <div>
-        <div class="mb-4 flex items-center justify-between">
+        <div class="mb-2 flex items-start justify-between gap-6">
             <h1
                 data-testid="page-title"
-                class="font-heading font-mono text-xl font-bold text-[var(--color-text)] sm:text-2xl"
+                class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                :style="{ fontVariationSettings: '\'opsz\' 48' }"
             >
                 {{ ip.address }}
             </h1>
             <button
                 :data-testid="ip.allowed ? 'action-revoke' : 'action-grant'"
-                :class="ip.allowed ? 'bg-[var(--color-danger)]' : 'bg-[var(--color-success)]'"
-                class="rounded-lg px-3.5 py-1.5 text-sm font-semibold text-white transition-colors"
-                @click="toggleInternet(ip)"
+                :class="
+                    ip.allowed
+                        ? 'border-[var(--color-danger)] bg-[var(--color-danger)]'
+                        : 'border-[var(--color-success)] bg-[var(--color-success)]'
+                "
+                class="rounded-md border px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)]"
+                @click="toggleInternet"
             >
                 {{ ip.allowed ? 'Revoke Access' : 'Grant Access' }}
             </button>
         </div>
+
+        <ConfirmModal
+            :show="showAccessModal"
+            :title="ip.allowed ? 'Revoke Access?' : 'Grant Access?'"
+            :message="
+                ip.allowed
+                    ? 'This will deny internet access for this IP address.'
+                    : 'This will restore internet access for this IP address.'
+            "
+            :confirm-label="ip.allowed ? 'Revoke Access' : 'Grant Access'"
+            :variant="ip.allowed ? 'danger' : 'primary'"
+            :loading="togglingAccess"
+            @confirm="confirmToggleInternet"
+            @cancel="showAccessModal = false"
+        >
+            <p v-if="users && users.length" class="mt-2 text-[13px] text-[var(--color-text-secondary)]">
+                This IP has {{ users.length }} associated user(s).
+            </p>
+        </ConfirmModal>
 
         <MetadataStrip
             :items="[
@@ -63,7 +107,7 @@ const userColumns = [
             ]"
         />
 
-        <SectionHeader title="Associated Users" accent-line class="mt-5" />
+        <SectionHeader title="Associated Users" class="mt-5" />
 
         <DataTable
             :columns="userColumns"
@@ -73,17 +117,17 @@ const userColumns = [
             empty-message="No associated users"
         >
             <template #row="{ row }">
-                <td class="px-4 py-2.5 text-sm text-[var(--color-primary)]">
+                <td class="font-mono text-[13px] text-[var(--color-primary)]">
                     {{ row.user?.nickname }}
                 </td>
-                <td class="px-4 py-2.5 text-sm text-[var(--color-text-secondary)]">
+                <td class="text-[13px] text-[var(--color-text-secondary)]">
                     {{ formatRelative(row.last_seen_at) }}
                 </td>
             </template>
         </DataTable>
 
         <template v-if="port">
-            <SectionHeader title="Switch Port" accent-line class="mt-5" />
+            <SectionHeader title="Switch Port" class="mt-5" />
             <ConfigBlock v-if="status" :code="status" />
         </template>
     </div>
