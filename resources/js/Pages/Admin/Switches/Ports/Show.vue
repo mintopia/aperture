@@ -28,10 +28,8 @@ const props = defineProps({
 });
 
 const refreshing = ref(false);
-const bouncing = ref(false);
 const toggling = ref(false);
-const showBounceModal = ref(false);
-const showShutdownModal = ref(false);
+const showToggleModal = ref(false);
 
 const lastUpdated = ref(new Date());
 const displayTime = ref('just now');
@@ -174,54 +172,35 @@ function refreshPort() {
     );
 }
 
-function bouncePort() {
-    showBounceModal.value = true;
-}
-
-function confirmBounce() {
-    bouncing.value = true;
-    router.post(
-        route('admin.switches.ports.bounce', {
-            switchConfig: props.switchConfig.id,
-            portId: props.port.interface,
-        }),
-        {},
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                bouncing.value = false;
-                showBounceModal.value = false;
-            },
-        },
-    );
-}
+const isAdminUp = computed(() => props.port.admin_status === 'up');
+const toggleLabel = computed(() => (isAdminUp.value ? 'Shut' : 'Unshut'));
+const toggleTitle = computed(() =>
+    isAdminUp.value ? 'Administratively disable this port' : 'Administratively enable this port',
+);
+const toggleLoadingLabel = computed(() => (isAdminUp.value ? 'Shutting down…' : 'Enabling…'));
+const toggleClass = computed(() =>
+    isAdminUp.value
+        ? 'rounded-lg bg-[var(--color-danger)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-danger)]/80 focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50'
+        : 'rounded-lg bg-[var(--color-success)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-success)]/80 focus-visible:ring-2 focus-visible:ring-[var(--color-success)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50',
+);
+const toggleConfirmTitle = computed(() => (isAdminUp.value ? 'Shut Down Port?' : 'Enable Port?'));
+const toggleConfirmMessage = computed(() =>
+    isAdminUp.value
+        ? `This will disable ${props.port.interface}. All connected devices will lose connectivity.`
+        : `This will enable ${props.port.interface} and restore connectivity for connected devices.`,
+);
+const toggleConfirmLabel = computed(() => (isAdminUp.value ? 'Shut Down' : 'Enable'));
+const toggleConfirmVariant = computed(() => (isAdminUp.value ? 'danger' : 'primary'));
 
 function togglePort() {
-    if (props.port.admin_status === 'up') {
-        showShutdownModal.value = true;
-        return;
-    }
-
-    toggling.value = true;
-    router.post(
-        route('admin.switches.ports.enable', {
-            switchConfig: props.switchConfig.id,
-            portId: props.port.interface,
-        }),
-        {},
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                toggling.value = false;
-            },
-        },
-    );
+    showToggleModal.value = true;
 }
 
-function confirmShutdown() {
+function confirmToggle() {
+    const action = isAdminUp.value ? 'shutdown' : 'enable';
     toggling.value = true;
     router.post(
-        route('admin.switches.ports.shutdown', {
+        route(`admin.switches.ports.${action}`, {
             switchConfig: props.switchConfig.id,
             portId: props.port.interface,
         }),
@@ -230,7 +209,7 @@ function confirmShutdown() {
             preserveScroll: true,
             onFinish: () => {
                 toggling.value = false;
-                showShutdownModal.value = false;
+                showToggleModal.value = false;
             },
         },
     );
@@ -248,7 +227,7 @@ function confirmShutdown() {
                 >
                     {{ port.interface }}
                 </h1>
-                <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+                <div data-testid="header-actions" class="flex flex-wrap items-center gap-2 lg:justify-end">
                     <button
                         data-testid="action-refresh"
                         title="Sync this port's data from the switch"
@@ -259,30 +238,14 @@ function confirmShutdown() {
                         {{ refreshing ? 'Refreshing…' : 'Refresh' }}
                     </button>
                     <button
-                        v-if="port.admin_status !== 'up'"
                         data-testid="action-toggle"
-                        title="Administratively enable this port"
+                        :title="toggleTitle"
                         :disabled="toggling"
-                        class="rounded-lg bg-[var(--color-success)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-success)]/80 focus-visible:ring-2 focus-visible:ring-[var(--color-success)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
+                        :class="toggleClass"
                         @click="togglePort"
                     >
-                        {{ toggling ? 'Enabling…' : 'Enable' }}
+                        {{ toggling ? toggleLoadingLabel : toggleLabel }}
                     </button>
-                    <button
-                        v-else
-                        data-testid="action-toggle"
-                        title="Administratively disable this port"
-                        :disabled="toggling"
-                        class="rounded-lg bg-[var(--color-danger)] px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-danger)]/80 focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
-                        @click="togglePort"
-                    >
-                        {{ toggling ? 'Shutting down…' : 'Shutdown' }}
-                    </button>
-                    <StatusPill
-                        data-testid="port-status"
-                        :status="statusType(port.status)"
-                        :label="formatPortStatus(port.admin_status, port.status)"
-                    />
                 </div>
             </div>
             <div
@@ -334,27 +297,14 @@ function confirmShutdown() {
         </div>
 
         <ConfirmModal
-            :show="showBounceModal"
-            title="Bounce Port?"
-            :message="`This will briefly take ${port.interface} offline and bring it back up. Any connected devices will be temporarily disconnected.`"
-            confirm-label="Bounce Port"
-            variant="warning"
-            :loading="bouncing"
-            @confirm="confirmBounce"
-            @cancel="showBounceModal = false"
-        >
-            <ConnectedDevicesSummary :macs="macs" />
-        </ConfirmModal>
-
-        <ConfirmModal
-            :show="showShutdownModal"
-            title="Shut Down Port?"
-            :message="`This will disable ${port.interface}. All connected devices will lose connectivity.`"
-            confirm-label="Shut Down"
-            variant="danger"
+            :show="showToggleModal"
+            :title="toggleConfirmTitle"
+            :message="toggleConfirmMessage"
+            :confirm-label="toggleConfirmLabel"
+            :variant="toggleConfirmVariant"
             :loading="toggling"
-            @confirm="confirmShutdown"
-            @cancel="showShutdownModal = false"
+            @confirm="confirmToggle"
+            @cancel="showToggleModal = false"
         >
             <ConnectedDevicesSummary :macs="macs" />
         </ConfirmModal>
@@ -373,33 +323,108 @@ function confirmShutdown() {
             Last updated {{ displayTime }}
         </p>
 
-        <div
-            data-testid="danger-zone-port"
-            class="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 p-4 sm:p-5"
-        >
-            <p class="text-xs font-bold tracking-wider text-[var(--color-danger)] uppercase">Danger Zone</p>
-            <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Bounce or shutdown operations can interrupt connected devices.
-            </p>
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                    data-testid="action-bounce"
-                    title="Briefly take this port offline and bring it back up"
-                    :disabled="bouncing"
-                    class="rounded-lg border border-[var(--color-warning)] px-3.5 py-1.5 text-sm font-semibold text-[var(--color-warning)] transition-colors hover:bg-[var(--color-warning)]/10 focus-visible:ring-2 focus-visible:ring-[var(--color-warning)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] focus-visible:outline-none disabled:opacity-50"
-                    @click="bouncePort"
-                >
-                    {{ bouncing ? 'Bouncing…' : 'Bounce Port' }}
-                </button>
-                <span v-if="port.admin_status !== 'up'" class="text-xs text-[var(--color-text-muted)]">
-                    Port is already administratively down.
-                </span>
-            </div>
-        </div>
+        <div data-testid="layout-row-primary" class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)]">
+            <div
+                data-testid="layout-columns"
+                class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]"
+            >
+                <div data-testid="layout-column-left" class="space-y-6">
+                    <!-- Connected Devices -->
+                    <div data-testid="section-connected-devices">
+                        <div data-testid="connected-devices-section">
+                            <SectionHeader :title="`Connected Devices (${macs.length})`" accent-line />
+                            <div
+                                v-if="macs.length === 0"
+                                data-testid="mac-list-empty"
+                                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+                            >
+                                <p class="text-center text-sm text-[var(--color-text-muted)]">No devices connected</p>
+                            </div>
+                            <div v-else class="space-y-2.5">
+                                <div
+                                    v-for="(mac, index) in macs"
+                                    :key="index"
+                                    :data-testid="'connected-device-' + index"
+                                    class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5"
+                                >
+                                    <template v-if="deviceHasUser(mac)">
+                                        <Link
+                                            v-for="(resolved, rIdx) in deviceUserLinks(mac)"
+                                            :key="'user-' + rIdx"
+                                            :href="route('admin.users.show', resolved.user.id)"
+                                            :data-testid="'device-user-link-' + index"
+                                            class="block text-sm font-semibold text-[var(--color-primary)] hover:underline"
+                                        >
+                                            {{ resolved.user.nickname }}
+                                        </Link>
+                                    </template>
+                                    <p v-else class="font-mono text-sm font-semibold text-[var(--color-text)]">
+                                        {{ mac.mac_address }}
+                                    </p>
 
-        <div data-testid="layout-row-primary" class="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-            <!-- Bandwidth -->
-            <div>
+                                    <div v-if="deviceHasResolvedIps(mac)" class="mt-1 space-y-0.5">
+                                        <div
+                                            v-for="(resolved, rIdx) in mac.resolved_ips"
+                                            :key="'ip-' + rIdx"
+                                            class="flex items-center gap-2"
+                                        >
+                                            <Link
+                                                v-if="resolved.id"
+                                                :href="route('admin.ips.show', resolved.id)"
+                                                :data-testid="`device-ip-link-${index}-${rIdx}`"
+                                                class="font-mono text-xs text-[var(--color-accent)] hover:underline"
+                                            >
+                                                {{ resolved.ip }}
+                                            </Link>
+                                            <span v-else class="font-mono text-xs text-[var(--color-accent)]">{{
+                                                resolved.ip
+                                            }}</span>
+                                            <span class="font-mono text-xs text-[var(--color-text-muted)]">
+                                                {{ mac.mac_address }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+                                        VLAN {{ mac.vlan ?? '—' }}
+                                    </p>
+
+                                    <div class="mt-1.5" :data-testid="'device-status-' + index">
+                                        <StatusPill v-if="deviceHasUser(mac)" status="success" label="Allowed" />
+                                        <StatusPill
+                                            v-else-if="deviceHasResolvedIps(mac)"
+                                            status="warning"
+                                            label="Unknown Device"
+                                        />
+                                        <StatusPill v-else status="neutral" label="Infrastructure" />
+                                    </div>
+
+                                    <p v-if="mac.last_seen_at" class="mt-1 text-xs text-[var(--color-text-muted)]">
+                                        Last seen {{ formatRelative(mac.last_seen_at) }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Running Config -->
+                    <div data-testid="section-running-config">
+                        <SectionHeader title="Running Config" accent-line />
+                        <div data-testid="running-config-section">
+                            <ConfigBlock v-if="port.config_text" :code="port.config_text" />
+                            <div
+                                v-else
+                                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm text-[var(--color-text-muted)]"
+                            >
+                                No running config available
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div data-testid="layout-column-right" class="space-y-6">
+                    <!-- Bandwidth -->
+                    <div data-testid="section-bandwidth">
                 <SectionHeader title="Bandwidth — Last 24 Hours" accent-line />
                 <div
                     data-testid="bandwidth-section"
@@ -433,163 +458,80 @@ function confirmShutdown() {
                         "
                     />
                 </div>
-            </div>
-
-            <!-- Connected Devices -->
-            <div data-testid="connected-devices-section">
-                <SectionHeader :title="`Connected Devices (${macs.length})`" accent-line />
-                <div
-                    v-if="macs.length === 0"
-                    data-testid="mac-list-empty"
-                    class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
-                >
-                    <p class="text-center text-sm text-[var(--color-text-muted)]">No devices connected</p>
-                </div>
-                <div v-else class="space-y-2.5">
-                    <div
-                        v-for="(mac, index) in macs"
-                        :key="index"
-                        :data-testid="'connected-device-' + index"
-                        class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5"
-                    >
-                        <!-- Device title: user name (linked) or MAC address -->
-                        <template v-if="deviceHasUser(mac)">
-                            <Link
-                                v-for="(resolved, rIdx) in deviceUserLinks(mac)"
-                                :key="'user-' + rIdx"
-                                :href="route('admin.users.show', resolved.user.id)"
-                                :data-testid="'device-user-link-' + index"
-                                class="block text-sm font-semibold text-[var(--color-primary)] hover:underline"
-                            >
-                                {{ resolved.user.nickname }}
-                            </Link>
-                        </template>
-                        <p v-else class="font-mono text-sm font-semibold text-[var(--color-text)]">
-                            {{ mac.mac_address }}
-                        </p>
-
-                        <!-- IP + MAC line -->
-                        <div v-if="deviceHasResolvedIps(mac)" class="mt-1 space-y-0.5">
-                            <div
-                                v-for="(resolved, rIdx) in mac.resolved_ips"
-                                :key="'ip-' + rIdx"
-                                class="flex items-center gap-2"
-                            >
-                                <Link
-                                    v-if="resolved.id"
-                                    :href="route('admin.ips.show', resolved.id)"
-                                    :data-testid="`device-ip-link-${index}-${rIdx}`"
-                                    class="font-mono text-xs text-[var(--color-accent)] hover:underline"
+                    </div>
+                    <div data-testid="layout-row-secondary" class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                        <!-- Interface Errors -->
+                        <div data-testid="section-errors">
+                            <SectionHeader title="Interface Errors" accent-line />
+                            <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                                <div data-testid="errors-section" class="grid grid-cols-2 gap-4">
+                                    <StatCard
+                                        label="Input Errors"
+                                        :value="errors.input ?? 0"
+                                        :color="(errors.input ?? 0) > 0 ? 'danger' : 'text'"
+                                    />
+                                    <StatCard
+                                        label="Output Errors"
+                                        :value="errors.output ?? 0"
+                                        :color="(errors.output ?? 0) > 0 ? 'danger' : 'text'"
+                                    />
+                                    <StatCard
+                                        label="CRC Errors"
+                                        :value="errors.crc ?? 0"
+                                        :color="(errors.crc ?? 0) > 0 ? 'warning' : 'text'"
+                                    />
+                                    <StatCard
+                                        label="Collisions"
+                                        :value="errors.collisions ?? 0"
+                                        :color="(errors.collisions ?? 0) > 0 ? 'warning' : 'text'"
+                                    />
+                                </div>
+                                <p
+                                    v-if="
+                                        (errors.input ?? 0) === 0 &&
+                                        (errors.output ?? 0) === 0 &&
+                                        (errors.crc ?? 0) === 0 &&
+                                        (errors.collisions ?? 0) === 0
+                                    "
+                                    class="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--color-success)]"
                                 >
-                                    {{ resolved.ip }}
-                                </Link>
-                                <span v-else class="font-mono text-xs text-[var(--color-accent)]">{{
-                                    resolved.ip
-                                }}</span>
-                                <span class="font-mono text-xs text-[var(--color-text-muted)]">
-                                    {{ mac.mac_address }}
-                                </span>
+                                    <span aria-hidden="true">✓</span
+                                    ><span data-testid="errors-clean">Clean — no errors detected</span>
+                                </p>
+                                <div v-if="metricsAvailable" class="mt-4">
+                                    <TimeSeriesChart
+                                        data-testid="errors-chart"
+                                        :series="errorSeries"
+                                        y-axis-label="errors/s"
+                                        height="160px"
+                                        empty-message="No error data for this port"
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        <!-- VLAN -->
-                        <p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">VLAN {{ mac.vlan ?? '—' }}</p>
-
-                        <!-- Status Badge -->
-                        <div class="mt-1.5" :data-testid="'device-status-' + index">
-                            <StatusPill v-if="deviceHasUser(mac)" status="success" label="Allowed" />
-                            <StatusPill v-else-if="deviceHasResolvedIps(mac)" status="warning" label="Unknown Device" />
-                            <StatusPill v-else status="neutral" label="Infrastructure" />
+                        <!-- Interface Output -->
+                        <div data-testid="section-interface-output">
+                            <details
+                                data-testid="interface-output-collapsible"
+                                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+                            >
+                                <summary
+                                    class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                                >
+                                    Interface Output
+                                </summary>
+                                <div data-testid="interface-output-section" class="border-t border-[var(--color-border)] p-4">
+                                    <ConfigBlock v-if="port.interface_output" :code="port.interface_output" />
+                                    <div v-else class="text-sm text-[var(--color-text-muted)]">
+                                        No interface output available
+                                    </div>
+                                </div>
+                            </details>
                         </div>
-
-                        <!-- Last seen -->
-                        <p v-if="mac.last_seen_at" class="mt-1 text-xs text-[var(--color-text-muted)]">
-                            Last seen {{ formatRelative(mac.last_seen_at) }}
-                        </p>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div data-testid="layout-row-secondary" class="mt-6 grid gap-6 xl:grid-cols-2">
-            <!-- Interface Errors -->
-            <div>
-                <SectionHeader title="Interface Errors" accent-line />
-                <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-                    <div data-testid="errors-section" class="grid grid-cols-2 gap-4">
-                        <StatCard
-                            label="Input Errors"
-                            :value="errors.input ?? 0"
-                            :color="(errors.input ?? 0) > 0 ? 'danger' : 'text'"
-                        />
-                        <StatCard
-                            label="Output Errors"
-                            :value="errors.output ?? 0"
-                            :color="(errors.output ?? 0) > 0 ? 'danger' : 'text'"
-                        />
-                        <StatCard
-                            label="CRC Errors"
-                            :value="errors.crc ?? 0"
-                            :color="(errors.crc ?? 0) > 0 ? 'warning' : 'text'"
-                        />
-                        <StatCard
-                            label="Collisions"
-                            :value="errors.collisions ?? 0"
-                            :color="(errors.collisions ?? 0) > 0 ? 'warning' : 'text'"
-                        />
-                    </div>
-                    <p
-                        v-if="
-                            (errors.input ?? 0) === 0 &&
-                            (errors.output ?? 0) === 0 &&
-                            (errors.crc ?? 0) === 0 &&
-                            (errors.collisions ?? 0) === 0
-                        "
-                        class="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--color-success)]"
-                    >
-                        <span aria-hidden="true">✓</span
-                        ><span data-testid="errors-clean">Clean — no errors detected</span>
-                    </p>
-                    <div v-if="metricsAvailable" class="mt-4">
-                        <TimeSeriesChart
-                            data-testid="errors-chart"
-                            :series="errorSeries"
-                            y-axis-label="errors/s"
-                            height="160px"
-                            empty-message="No error data for this port"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Running Config -->
-            <div>
-                <SectionHeader title="Running Config" accent-line />
-                <ConfigBlock v-if="port.config_text" :code="port.config_text" />
-                <div
-                    v-else
-                    class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm text-[var(--color-text-muted)]"
-                >
-                    No running config available
-                </div>
-            </div>
-        </div>
-
-        <div data-testid="interface-output-secondary" class="mt-4">
-            <details
-                data-testid="interface-output-collapsible"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
-            >
-                <summary
-                    class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-                >
-                    Interface Output
-                </summary>
-                <div class="border-t border-[var(--color-border)] p-4">
-                    <ConfigBlock v-if="port.interface_output" :code="port.interface_output" />
-                    <div v-else class="text-sm text-[var(--color-text-muted)]">No interface output available</div>
-                </div>
-            </details>
         </div>
     </div>
 </template>
