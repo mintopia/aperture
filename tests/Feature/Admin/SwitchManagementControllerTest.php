@@ -488,7 +488,7 @@ class SwitchManagementControllerTest extends TestCase
         );
     }
 
-    public function test_show_includes_can_download_config_false_for_other_types(): void
+    public function test_show_includes_can_download_config_true_for_cisco(): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create(['type' => 'cisco']);
@@ -497,7 +497,7 @@ class SwitchManagementControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->where('canDownloadConfig', false)
+            ->where('canDownloadConfig', true)
         );
     }
 

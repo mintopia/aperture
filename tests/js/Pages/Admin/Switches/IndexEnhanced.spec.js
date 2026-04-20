@@ -55,6 +55,7 @@ function mountIndex(switches = [baseSwitchData]) {
             },
             stubs: {
                 AdminLayout: { template: '<div><slot /></div>' },
+                SectionHeader: { template: '<div data-testid="section-header-stub"><slot /></div>', props: ['title'] },
                 StatusPill: {
                     template: '<span data-testid="status-pill" :data-status="status">{{ label }}</span>',
                     props: ['status', 'label'],
@@ -96,6 +97,23 @@ describe('Index — Port Breakdown', () => {
         const wrapper = mountIndex([sw]);
         const cell = wrapper.find('[data-testid="port-breakdown-1"]');
         expect(cell.text()).toBe('—');
+    });
+});
+
+describe('Index — Layout parity', () => {
+    it('renders v5 header and table grouping wrappers', () => {
+        const wrapper = mountIndex();
+        expect(wrapper.find('[data-testid="switches-index-layout"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="switches-index-header"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="switches-summary"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="switches-table-card"]').exists()).toBe(true);
+    });
+
+    it('hides summary and table card when no switches are configured', () => {
+        const wrapper = mountIndex([]);
+        expect(wrapper.find('[data-testid="switches-summary"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="switches-table-card"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(true);
     });
 });
 
@@ -160,16 +178,35 @@ describe('Index — Sorting', () => {
         ];
         const wrapper = mountIndex(switches);
 
-        const headers = wrapper.findAll('th');
-        const portsHeader = headers.find((h) => h.text().includes('Ports'));
-        expect(portsHeader).toBeTruthy();
+        const portsSortButton = wrapper.find('[data-testid="sort-port_count"]');
+        expect(portsSortButton.exists()).toBe(true);
 
-        await portsHeader.trigger('click');
+        await portsSortButton.trigger('click');
         await wrapper.vm.$nextTick();
 
         const rows = wrapper.findAll('[data-testid^="switch-row-"]');
         expect(rows[0].attributes('data-testid')).toBe('switch-row-3');
         expect(rows[1].attributes('data-testid')).toBe('switch-row-1');
         expect(rows[2].attributes('data-testid')).toBe('switch-row-2');
+    });
+
+    it('adds aria-sort for sortable header state', async () => {
+        const wrapper = mountIndex();
+        const portHeader = wrapper.findAll('th').find((th) => th.text().includes('Ports'));
+
+        expect(portHeader.attributes('aria-sort')).toBe('none');
+
+        await wrapper.find('[data-testid="sort-port_count"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        const updatedPortHeader = wrapper.findAll('th').find((th) => th.text().includes('Ports'));
+        expect(updatedPortHeader.attributes('aria-sort')).toBe('ascending');
+    });
+
+    it('adds accessible labels to interactive switch rows', () => {
+        const wrapper = mountIndex();
+        const row = wrapper.find('[data-testid="switch-row-1"]');
+        expect(row.attributes('role')).toBe('link');
+        expect(row.attributes('aria-label')).toBe('Open switch Core Switch');
     });
 });

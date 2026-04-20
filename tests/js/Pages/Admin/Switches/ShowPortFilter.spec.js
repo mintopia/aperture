@@ -25,6 +25,8 @@ vi.mock('@/utils/dates', () => ({
 vi.mock('@/utils/switches', () => ({
     typeLabel: vi.fn((v) => v),
     statusLabel: vi.fn((v) => v ?? '—'),
+    formatSpeed: vi.fn((v) => v ?? '—'),
+    formatVlan: vi.fn((vlan) => `${vlan ?? '—'}`),
 }));
 
 const mockPorts = [
@@ -123,7 +125,9 @@ describe('Show — Port Search & Filter', () => {
         const wrapper = mountShow();
         const input = wrapper.find('[data-testid="port-search"]');
         expect(input.exists()).toBe(true);
+        expect(input.attributes('id')).toBe('port-search');
         expect(input.attributes('placeholder')).toBe('Search ports…');
+        expect(wrapper.find('label[for="port-search"]').exists()).toBe(true);
     });
 
     it('renders all filter chips with counts', () => {
@@ -291,10 +295,12 @@ describe('Show — Port Search & Filter', () => {
         // "All" is active by default
         const allChip = wrapper.find('[data-testid="port-filter-all"]');
         expect(allChip.classes()).toContain('text-[var(--color-primary)]');
+        expect(allChip.attributes('aria-pressed')).toBe('true');
 
         // "Up" should be inactive
         const upChip = wrapper.find('[data-testid="port-filter-up"]');
         expect(upChip.classes()).toContain('text-[var(--color-text-secondary)]');
+        expect(upChip.attributes('aria-pressed')).toBe('false');
 
         // Click "Up" chip
         await upChip.trigger('click');
@@ -302,9 +308,11 @@ describe('Show — Port Search & Filter', () => {
 
         const updatedUpChip = wrapper.find('[data-testid="port-filter-up"]');
         expect(updatedUpChip.classes()).toContain('text-[var(--color-primary)]');
+        expect(updatedUpChip.attributes('aria-pressed')).toBe('true');
 
         const updatedAllChip = wrapper.find('[data-testid="port-filter-all"]');
         expect(updatedAllChip.classes()).toContain('text-[var(--color-text-secondary)]');
+        expect(updatedAllChip.attributes('aria-pressed')).toBe('false');
     });
 
     it('shows DataTable empty message when switch has no ports at all', () => {

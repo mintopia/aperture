@@ -1,0 +1,1814 @@
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+
+   INFO  Running scheduled tasks.  
+
+
+   INFO  Running scheduled tasks.  
+
+
+   INFO  Running scheduled tasks.  
+
+  2026-04-19 19:50:00 Running ['artisan' aperture:expire-sessions]  136.42ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 19:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.82ms DONE
+  2026-04-19 19:50:00 Running [sync-switch-ports] .................... 4s DONE
+
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 19:55:00 Running ['artisan' aperture:expire-sessions]  146.97ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 19:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 14.12ms DONE
+  2026-04-19 19:55:00 Running [sync-switch-ports] ............... 21.49ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:00:00 Running ['artisan' aperture:expire-sessions]  133.39ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:00:00 Running [App\Jobs\ReapplyAccessRules] .... 960.21ms DONE
+  2026-04-19 20:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.65ms DONE
+  2026-04-19 20:00:01 Running [sync-switch-ports] ............... 12.76ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:05:00 Running ['artisan' aperture:expire-sessions]  135.18ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.61ms DONE
+  2026-04-19 20:05:00 Running [sync-switch-ports] ............... 24.64ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:10:00 Running ['artisan' aperture:expire-sessions]  138.57ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.01ms DONE
+  2026-04-19 20:10:00 Running [sync-switch-ports] ............... 25.77ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:15:00 Running ['artisan' aperture:expire-sessions]  136.25ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:15:00 Running [App\Jobs\ReapplyAccessRules] .... 829.22ms DONE
+  2026-04-19 20:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.62ms DONE
+  2026-04-19 20:15:01 Running [sync-switch-ports] ............... 10.77ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:20:00 Running ['artisan' aperture:expire-sessions]  137.48ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.47ms DONE
+  2026-04-19 20:20:00 Running [sync-switch-ports] ............... 20.80ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:25:00 Running ['artisan' aperture:expire-sessions]  140.42ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.55ms DONE
+  2026-04-19 20:25:00 Running [sync-switch-ports] ............... 25.15ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:30:00 Running ['artisan' aperture:expire-sessions]  143.83ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:30:00 Running [App\Jobs\ReapplyAccessRules] .... 774.04ms DONE
+  2026-04-19 20:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.86ms DONE
+  2026-04-19 20:30:01 Running [sync-switch-ports] ............... 11.32ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:35:00 Running ['artisan' aperture:expire-sessions]  132.61ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.65ms DONE
+  2026-04-19 20:35:00 Running [sync-switch-ports] ............... 18.50ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:40:00 Running ['artisan' aperture:expire-sessions]  136.14ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.53ms DONE
+  2026-04-19 20:40:00 Running [sync-switch-ports] ............... 18.19ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:45:00 Running ['artisan' aperture:expire-sessions]  130.12ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:45:00 Running [App\Jobs\ReapplyAccessRules] .... 707.37ms DONE
+  2026-04-19 20:45:00 Running [App\Jobs\ScanNetworkDevices] ...... 0.59ms DONE
+  2026-04-19 20:45:00 Running [sync-switch-ports] ............... 11.75ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:50:00 Running ['artisan' aperture:expire-sessions]  139.28ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.21ms DONE
+  2026-04-19 20:50:00 Running [sync-switch-ports] ............... 25.75ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 20:55:00 Running ['artisan' aperture:expire-sessions]  132.06ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 20:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.73ms DONE
+  2026-04-19 20:55:00 Running [sync-switch-ports] ............... 26.44ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:00:00 Running ['artisan' aperture:expire-sessions]  135.37ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:00:00 Running [App\Jobs\ReapplyAccessRules] .... 892.97ms DONE
+  2026-04-19 21:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.76ms DONE
+  2026-04-19 21:00:01 Running [sync-switch-ports] ............... 10.63ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:05:00 Running ['artisan' aperture:expire-sessions]  135.99ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.10ms DONE
+  2026-04-19 21:05:00 Running [sync-switch-ports] ............... 24.11ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:10:00 Running ['artisan' aperture:expire-sessions]  135.00ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.77ms DONE
+  2026-04-19 21:10:00 Running [sync-switch-ports] ............... 18.34ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:15:00 Running ['artisan' aperture:expire-sessions]  142.09ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:15:00 Running [App\Jobs\ReapplyAccessRules] .... 864.95ms DONE
+  2026-04-19 21:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.62ms DONE
+  2026-04-19 21:15:01 Running [sync-switch-ports] ................ 9.78ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:20:00 Running ['artisan' aperture:expire-sessions]  135.72ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.77ms DONE
+  2026-04-19 21:20:00 Running [sync-switch-ports] ............... 20.92ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:25:00 Running ['artisan' aperture:expire-sessions]  136.45ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.13ms DONE
+  2026-04-19 21:25:00 Running [sync-switch-ports] ............... 24.42ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:30:00 Running ['artisan' aperture:expire-sessions]  134.84ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:30:00 Running [App\Jobs\ReapplyAccessRules] .... 707.14ms DONE
+  2026-04-19 21:30:00 Running [App\Jobs\ScanNetworkDevices] ...... 0.84ms DONE
+  2026-04-19 21:30:00 Running [sync-switch-ports] ............... 11.03ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:35:00 Running ['artisan' aperture:expire-sessions]  131.03ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.68ms DONE
+  2026-04-19 21:35:00 Running [sync-switch-ports] ............... 25.70ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:40:00 Running ['artisan' aperture:expire-sessions]  135.70ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.09ms DONE
+  2026-04-19 21:40:00 Running [sync-switch-ports] ............... 22.97ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:45:00 Running ['artisan' aperture:expire-sessions]  137.51ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:45:00 Running [App\Jobs\ReapplyAccessRules] .... 953.62ms DONE
+  2026-04-19 21:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.83ms DONE
+  2026-04-19 21:45:01 Running [sync-switch-ports] ............... 10.19ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:50:00 Running ['artisan' aperture:expire-sessions]  135.51ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.63ms DONE
+  2026-04-19 21:50:00 Running [sync-switch-ports] ............... 26.29ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 21:55:00 Running ['artisan' aperture:expire-sessions]  139.72ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 21:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.52ms DONE
+  2026-04-19 21:55:00 Running [sync-switch-ports] ............... 18.32ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:00:00 Running ['artisan' aperture:expire-sessions]  133.46ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-19 22:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.80ms DONE
+  2026-04-19 22:00:01 Running [sync-switch-ports] ............... 11.80ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:05:00 Running ['artisan' aperture:expire-sessions]  138.81ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.41ms DONE
+  2026-04-19 22:05:00 Running [sync-switch-ports] ............... 18.10ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:10:00 Running ['artisan' aperture:expire-sessions]  137.54ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.55ms DONE
+  2026-04-19 22:10:00 Running [sync-switch-ports] ............... 24.58ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:15:00 Running ['artisan' aperture:expire-sessions]  135.48ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-19 22:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.72ms DONE
+  2026-04-19 22:15:01 Running [sync-switch-ports] ............... 12.01ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:20:00 Running ['artisan' aperture:expire-sessions]  135.80ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.66ms DONE
+  2026-04-19 22:20:00 Running [sync-switch-ports] ............... 17.94ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:25:00 Running ['artisan' aperture:expire-sessions]  140.79ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.66ms DONE
+  2026-04-19 22:25:00 Running [sync-switch-ports] ............... 24.18ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:30:00 Running ['artisan' aperture:expire-sessions]  133.90ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-19 22:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.59ms DONE
+  2026-04-19 22:30:01 Running [sync-switch-ports] ............... 10.56ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:35:00 Running ['artisan' aperture:expire-sessions]  129.60ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.64ms DONE
+  2026-04-19 22:35:00 Running [sync-switch-ports] ............... 17.61ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:40:00 Running ['artisan' aperture:expire-sessions]  137.28ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.41ms DONE
+  2026-04-19 22:40:00 Running [sync-switch-ports] ............... 26.29ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:45:00 Running ['artisan' aperture:expire-sessions]  149.63ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:45:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-19 22:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.79ms DONE
+  2026-04-19 22:45:01 Running [sync-switch-ports] ............... 10.57ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:50:00 Running ['artisan' aperture:expire-sessions]  137.23ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.46ms DONE
+  2026-04-19 22:50:00 Running [sync-switch-ports] ............... 24.15ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 22:55:00 Running ['artisan' aperture:expire-sessions]  133.93ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 22:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.87ms DONE
+  2026-04-19 22:55:00 Running [sync-switch-ports] ............... 21.01ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:00:00 Running ['artisan' aperture:expire-sessions]  137.90ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-19 23:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.78ms DONE
+  2026-04-19 23:00:01 Running [sync-switch-ports] ............... 11.91ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:05:00 Running ['artisan' aperture:expire-sessions]  135.38ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.80ms DONE
+  2026-04-19 23:05:00 Running [sync-switch-ports] ............... 24.85ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:10:00 Running ['artisan' aperture:expire-sessions]  134.51ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.01ms DONE
+  2026-04-19 23:10:00 Running [sync-switch-ports] ............... 24.78ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:15:00 Running ['artisan' aperture:expire-sessions]  142.21ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-19 23:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.69ms DONE
+  2026-04-19 23:15:01 Running [sync-switch-ports] ............... 12.96ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:20:00 Running ['artisan' aperture:expire-sessions]  135.83ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 14.98ms DONE
+  2026-04-19 23:20:00 Running [sync-switch-ports] ............... 18.96ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:25:00 Running ['artisan' aperture:expire-sessions]  140.06ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.45ms DONE
+  2026-04-19 23:25:00 Running [sync-switch-ports] ............... 17.90ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:30:00 Running ['artisan' aperture:expire-sessions]  129.70ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-19 23:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.84ms DONE
+  2026-04-19 23:30:01 Running [sync-switch-ports] ............... 11.47ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:35:00 Running ['artisan' aperture:expire-sessions]  137.02ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.50ms DONE
+  2026-04-19 23:35:00 Running [sync-switch-ports] ............... 24.31ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:40:00 Running ['artisan' aperture:expire-sessions]  137.90ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.99ms DONE
+  2026-04-19 23:40:00 Running [sync-switch-ports] ............... 26.57ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:45:00 Running ['artisan' aperture:expire-sessions]  129.84ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:45:00 Running [App\Jobs\ReapplyAccessRules] ......... 23s DONE
+  2026-04-19 23:45:23 Running [App\Jobs\ScanNetworkDevices] ...... 0.62ms DONE
+  2026-04-19 23:45:23 Running [sync-switch-ports] ............... 10.98ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-19 23:50:00 Running ['artisan' aperture:expire-sessions]  132.41ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.24ms DONE
+  2026-04-19 23:50:00 Running [sync-switch-ports] ............... 27.05ms DONE
+
+The environment file is invalid!
+Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
+The environment file is invalid!
+Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+  2026-04-19 23:55:00 Running ['artisan' aperture:expire-sessions]  128.26ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-19 23:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.07ms DONE
+  2026-04-19 23:55:00 Running [sync-switch-ports] ............... 19.95ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:00:00 Running ['artisan' aperture:expire-sessions]  188.44ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 00:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.68ms DONE
+  2026-04-20 00:00:01 Running [sync-switch-ports] ............... 11.91ms DONE
+
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:05:00 Running ['artisan' aperture:expire-sessions]  135.89ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.07ms DONE
+  2026-04-20 00:05:00 Running [sync-switch-ports] ............... 19.59ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:10:00 Running ['artisan' aperture:expire-sessions]  131.48ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.55ms DONE
+  2026-04-20 00:10:00 Running [sync-switch-ports] ............... 21.08ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:15:00 Running ['artisan' aperture:expire-sessions]  133.54ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 00:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.77ms DONE
+  2026-04-20 00:15:01 Running [sync-switch-ports] ............... 11.41ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:20:00 Running ['artisan' aperture:expire-sessions]  129.87ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.51ms DONE
+  2026-04-20 00:20:00 Running [sync-switch-ports] ............... 24.15ms DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+  2026-04-20 00:25:00 Running ['artisan' aperture:expire-sessions]  132.64ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.42ms DONE
+  2026-04-20 00:25:00 Running [sync-switch-ports] 
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:30:00 Running ['artisan' aperture:expire-sessions]  137.98ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 00:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.63ms DONE
+  2026-04-20 00:30:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:35:00 Running ['artisan' aperture:expire-sessions]  128.65ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.89ms DONE
+  2026-04-20 00:35:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:40:00 Running ['artisan' aperture:expire-sessions]  132.98ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.77ms DONE
+  2026-04-20 00:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:45:00 Running ['artisan' aperture:expire-sessions]  137.69ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:45:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 00:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.58ms DONE
+  2026-04-20 00:45:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:50:00 Running ['artisan' aperture:expire-sessions]  129.49ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.57ms DONE
+  2026-04-20 00:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 00:55:00 Running ['artisan' aperture:expire-sessions]  127.57ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 00:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 11.84ms DONE
+  2026-04-20 00:55:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:00:00 Running ['artisan' aperture:expire-sessions]  133.67ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 01:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.74ms DONE
+  2026-04-20 01:00:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:05:00 Running ['artisan' aperture:expire-sessions]  137.24ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.10ms DONE
+  2026-04-20 01:05:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:10:00 Running ['artisan' aperture:expire-sessions]  140.27ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.35ms DONE
+  2026-04-20 01:10:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:15:00 Running ['artisan' aperture:expire-sessions]  132.56ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 01:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.80ms DONE
+  2026-04-20 01:15:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:20:00 Running ['artisan' aperture:expire-sessions]  134.12ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.05ms DONE
+  2026-04-20 01:20:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:25:00 Running ['artisan' aperture:expire-sessions]  137.24ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.76ms DONE
+  2026-04-20 01:25:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:30:00 Running ['artisan' aperture:expire-sessions]  152.31ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 01:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.92ms DONE
+  2026-04-20 01:30:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:35:00 Running ['artisan' aperture:expire-sessions]  134.57ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.66ms DONE
+  2026-04-20 01:35:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:40:00 Running ['artisan' aperture:expire-sessions]  130.94ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.93ms DONE
+  2026-04-20 01:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:45:00 Running ['artisan' aperture:expire-sessions]  128.91ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:45:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 01:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.94ms DONE
+  2026-04-20 01:45:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:50:00 Running ['artisan' aperture:expire-sessions]  132.56ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.76ms DONE
+  2026-04-20 01:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 01:55:00 Running ['artisan' aperture:expire-sessions]  131.41ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 01:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.09ms DONE
+  2026-04-20 01:55:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:00:00 Running ['artisan' aperture:expire-sessions]  129.29ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 02:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.77ms DONE
+  2026-04-20 02:00:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:05:00 Running ['artisan' aperture:expire-sessions]  135.09ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.49ms DONE
+  2026-04-20 02:05:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:10:00 Running ['artisan' aperture:expire-sessions]  136.01ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 17.65ms DONE
+  2026-04-20 02:10:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:15:00 Running ['artisan' aperture:expire-sessions]  132.64ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 02:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.93ms DONE
+  2026-04-20 02:15:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:20:00 Running ['artisan' aperture:expire-sessions]  131.62ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.51ms DONE
+  2026-04-20 02:20:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:25:00 Running ['artisan' aperture:expire-sessions]  136.17ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.96ms DONE
+  2026-04-20 02:25:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:30:00 Running ['artisan' aperture:expire-sessions]  136.45ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 02:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.90ms DONE
+  2026-04-20 02:30:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:35:00 Running ['artisan' aperture:expire-sessions]  131.87ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.56ms DONE
+  2026-04-20 02:35:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:40:00 Running ['artisan' aperture:expire-sessions]  134.48ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.99ms DONE
+  2026-04-20 02:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:45:00 Running ['artisan' aperture:expire-sessions]  134.82ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:45:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 02:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.68ms DONE
+  2026-04-20 02:45:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:50:00 Running ['artisan' aperture:expire-sessions]  133.60ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.41ms DONE
+  2026-04-20 02:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 02:55:00 Running ['artisan' aperture:expire-sessions]  144.21ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 02:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.53ms DONE
+  2026-04-20 02:55:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:00:00 Running ['artisan' aperture:expire-sessions]  132.38ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 03:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.56ms DONE
+  2026-04-20 03:00:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:05:00 Running ['artisan' aperture:expire-sessions]  135.90ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.30ms DONE
+  2026-04-20 03:05:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:10:00 Running ['artisan' aperture:expire-sessions]  134.54ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.27ms DONE
+  2026-04-20 03:10:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:15:00 Running ['artisan' aperture:expire-sessions]  136.16ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 03:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.67ms DONE
+  2026-04-20 03:15:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:20:00 Running ['artisan' aperture:expire-sessions]  145.22ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.04ms DONE
+  2026-04-20 03:20:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:25:00 Running ['artisan' aperture:expire-sessions]  138.03ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.25ms DONE
+  2026-04-20 03:25:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:30:00 Running ['artisan' aperture:expire-sessions]  144.45ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 03:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.82ms DONE
+  2026-04-20 03:30:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:35:00 Running ['artisan' aperture:expire-sessions]  137.66ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.94ms DONE
+  2026-04-20 03:35:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:40:00 Running ['artisan' aperture:expire-sessions]  133.56ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.23ms DONE
+  2026-04-20 03:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:45:00 Running ['artisan' aperture:expire-sessions]  140.31ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:45:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 03:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.80ms DONE
+  2026-04-20 03:45:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:50:00 Running ['artisan' aperture:expire-sessions]  135.97ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.94ms DONE
+  2026-04-20 03:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 03:55:00 Running ['artisan' aperture:expire-sessions]  137.85ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 03:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.21ms DONE
+  2026-04-20 03:55:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:00:00 Running ['artisan' aperture:expire-sessions]  137.81ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 04:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.93ms DONE
+  2026-04-20 04:00:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:05:00 Running ['artisan' aperture:expire-sessions]  137.85ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.50ms DONE
+  2026-04-20 04:05:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:10:00 Running ['artisan' aperture:expire-sessions]  137.59ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.81ms DONE
+  2026-04-20 04:10:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:15:00 Running ['artisan' aperture:expire-sessions]  138.07ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 04:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.76ms DONE
+  2026-04-20 04:15:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:20:00 Running ['artisan' aperture:expire-sessions]  140.33ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.17ms DONE
+  2026-04-20 04:20:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:25:00 Running ['artisan' aperture:expire-sessions]  138.21ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.49ms DONE
+  2026-04-20 04:25:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:30:00 Running ['artisan' aperture:expire-sessions]  130.76ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 04:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.72ms DONE
+  2026-04-20 04:30:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:35:00 Running ['artisan' aperture:expire-sessions]  135.18ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.87ms DONE
+  2026-04-20 04:35:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:40:00 Running ['artisan' aperture:expire-sessions]  136.42ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.03ms DONE
+  2026-04-20 04:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:45:00 Running ['artisan' aperture:expire-sessions]  143.00ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:45:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 04:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.83ms DONE
+  2026-04-20 04:45:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:50:00 Running ['artisan' aperture:expire-sessions]  138.81ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.95ms DONE
+  2026-04-20 04:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 04:55:00 Running ['artisan' aperture:expire-sessions]  146.73ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 04:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.70ms DONE
+  2026-04-20 04:55:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:00:00 Running ['artisan' aperture:expire-sessions]  136.31ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 05:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.68ms DONE
+  2026-04-20 05:00:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:05:00 Running ['artisan' aperture:expire-sessions]  142.42ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.81ms DONE
+  2026-04-20 05:05:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:10:00 Running ['artisan' aperture:expire-sessions]  144.32ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 15.54ms DONE
+  2026-04-20 05:10:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:15:00 Running ['artisan' aperture:expire-sessions]  142.27ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 05:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.75ms DONE
+  2026-04-20 05:15:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:20:00 Running ['artisan' aperture:expire-sessions]  133.44ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.24ms DONE
+  2026-04-20 05:20:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:25:00 Running ['artisan' aperture:expire-sessions]  138.20ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.23ms DONE
+  2026-04-20 05:25:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:30:00 Running ['artisan' aperture:expire-sessions]  143.12ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 05:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.64ms DONE
+  2026-04-20 05:30:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:35:00 Running ['artisan' aperture:expire-sessions]  143.01ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.99ms DONE
+  2026-04-20 05:35:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:40:00 Running ['artisan' aperture:expire-sessions]  150.00ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.74ms DONE
+  2026-04-20 05:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:45:00 Running ['artisan' aperture:expire-sessions]  137.10ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:45:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 05:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.66ms DONE
+  2026-04-20 05:45:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:50:00 Running ['artisan' aperture:expire-sessions]  136.45ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.02ms DONE
+  2026-04-20 05:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 05:55:00 Running ['artisan' aperture:expire-sessions]  136.55ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 05:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.33ms DONE
+  2026-04-20 05:55:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:00:00 Running ['artisan' aperture:expire-sessions]  139.88ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:00:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 06:00:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.79ms DONE
+  2026-04-20 06:00:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:05:00 Running ['artisan' aperture:expire-sessions]  138.93ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.34ms DONE
+  2026-04-20 06:05:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:10:00 Running ['artisan' aperture:expire-sessions]  197.81ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 14.11ms DONE
+  2026-04-20 06:10:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:15:00 Running ['artisan' aperture:expire-sessions]  142.80ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:15:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 06:15:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.72ms DONE
+  2026-04-20 06:15:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:20:00 Running ['artisan' aperture:expire-sessions]  176.38ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.82ms DONE
+  2026-04-20 06:20:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:25:00 Running ['artisan' aperture:expire-sessions]  139.93ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.31ms DONE
+  2026-04-20 06:25:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:30:00 Running ['artisan' aperture:expire-sessions]  144.87ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:30:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 06:30:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.79ms DONE
+  2026-04-20 06:30:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:35:00 Running ['artisan' aperture:expire-sessions]  133.77ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.68ms DONE
+  2026-04-20 06:35:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:40:00 Running ['artisan' aperture:expire-sessions]  147.12ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.45ms DONE
+  2026-04-20 06:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:45:00 Running ['artisan' aperture:expire-sessions]  135.55ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:45:00 Running [App\Jobs\ReapplyAccessRules] .......... 1s DONE
+  2026-04-20 06:45:01 Running [App\Jobs\ScanNetworkDevices] ...... 0.68ms DONE
+  2026-04-20 06:45:01 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:50:00 Running ['artisan' aperture:expire-sessions]  140.33ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.29ms DONE
+  2026-04-20 06:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-20 06:55:00 Running ['artisan' aperture:expire-sessions]  138.91ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-20 06:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.76ms DONE
+  2026-04-20 06:55:00 Running [sync-switch-ports] 

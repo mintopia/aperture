@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue';
+
 const props = defineProps({
     status: {
         type: String,
@@ -41,7 +43,7 @@ const config = {
     },
 };
 
-const c = config[props.status];
+const c = computed(() => config[props.status]);
 </script>
 
 <template>

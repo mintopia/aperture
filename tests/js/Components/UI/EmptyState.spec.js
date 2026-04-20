@@ -60,4 +60,14 @@ describe('EmptyState', () => {
         expect(wrapper.find('.icon').exists()).toBe(true);
         expect(wrapper.find('button').exists()).toBe(true);
     });
+
+    it('uses dashed card styling for visual alignment', () => {
+        const wrapper = mount(EmptyState, {
+            props: { title: 'Empty' },
+        });
+
+        const emptyState = wrapper.find('[data-testid="empty-state"]');
+        expect(emptyState.classes()).toContain('border-dashed');
+        expect(emptyState.classes()).toContain('rounded-xl');
+    });
 });

@@ -10,8 +10,11 @@ use App\Models\SwitchPortConfig;
 use App\Models\SwitchPortMac;
 use App\Models\SwitchSyncRun;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\NetworkSwitch\CiscoSwitchAdapter;
+use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NetworkSwitch\PortSyncService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\NetworkSwitch\Transport\SwitchCommandTransportInterface;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -150,6 +153,65 @@ class PortSyncServiceTest extends TestCase
         ]);
     }
 
+    public function test_sync_trims_running_config_preamble_before_persisting_config_text(): void
+    {
+        $rawConfigText = "Building configuration...\n\nCurrent configuration : 121 bytes\ninterface Gi1/0/1\n description Workstation\n switchport access vlan 100\nend";
+        $trimmedConfigText = "interface Gi1/0/1\n description Workstation\n switchport access vlan 100\nend";
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getPortRunningConfig')
+            ->with('Gi1/0/1')
+            ->once()
+            ->andReturn($rawConfigText);
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/1')
+            ->firstOrFail();
+
+        $persistedConfig = SwitchPortConfig::query()
+            ->where('switch_port_id', $port->id)
+            ->firstOrFail();
+
+        $this->assertSame($trimmedConfigText, $persistedConfig->config_text);
+        $this->assertSame(md5($trimmedConfigText), $persistedConfig->config_hash);
+        $this->assertStringNotContainsString('Building configuration...', $persistedConfig->config_text);
+        $this->assertStringNotContainsString('Current configuration :', $persistedConfig->config_text);
+    }
+
+    public function test_sync_trims_preamble_and_leading_standalone_bang_line_before_persisting_config_text(): void
+    {
+        $rawConfigText = "Building configuration...\n\nCurrent configuration : 121 bytes\n!\ninterface Gi1/0/1\n description Workstation\n switchport access vlan 100\nend";
+        $trimmedConfigText = "interface Gi1/0/1\n description Workstation\n switchport access vlan 100\nend";
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getPortRunningConfig')
+            ->with('Gi1/0/1')
+            ->once()
+            ->andReturn($rawConfigText);
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/1')
+            ->firstOrFail();
+
+        $persistedConfig = SwitchPortConfig::query()
+            ->where('switch_port_id', $port->id)
+            ->firstOrFail();
+
+        $this->assertSame($trimmedConfigText, $persistedConfig->config_text);
+        $this->assertSame(md5($trimmedConfigText), $persistedConfig->config_hash);
+        $this->assertStringStartsNotWith("!\n", $persistedConfig->config_text);
+    }
+
     public function test_sync_updates_config_when_changed(): void
     {
         $port = SwitchPort::factory()->create([
@@ -251,6 +313,265 @@ class PortSyncServiceTest extends TestCase
             'config_text' => $configText,
             'config_hash' => md5($configText),
         ]);
+    }
+
+    public function test_sync_treats_cisco_cli_invalid_input_output_as_config_fetch_failure(): void
+    {
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/24', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getPortRunningConfig')
+            ->with('Gi1/0/24')
+            ->once()
+            ->andReturn("% Invalid input detected at '^' marker.\nshow running-config interface Gi1/0/24");
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $syncRun = $this->service->syncSwitch($this->switchConfig);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/24')
+            ->firstOrFail();
+
+        $this->assertSame('completed', $syncRun->status);
+        $this->assertDatabaseMissing('switch_port_configs', [
+            'switch_port_id' => $port->id,
+        ]);
+    }
+
+    public function test_sync_treats_invalid_input_phrase_inside_regular_config_text_as_valid_config(): void
+    {
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/23', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getPortRunningConfig')
+            ->with('Gi1/0/23')
+            ->once()
+            ->andReturn($configText = "!\ninterface Gi1/0/23\n description audit-note: % Invalid input detected was seen in old logs\n switchport access vlan 100\n end");
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/23')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'config_text' => $configText,
+            'config_hash' => md5($configText),
+        ]);
+    }
+
+    public function test_sync_removes_legacy_invalid_config_when_cisco_cli_returns_invalid_input_output(): void
+    {
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/24',
+        ]);
+        SwitchPortConfig::factory()->create([
+            'switch_port_id' => $port->id,
+            'config_text' => $legacyInvalidConfig = "% Invalid input detected at '^' marker.\nshow running-config interface Gi1/0/24",
+            'config_hash' => md5($legacyInvalidConfig),
+            'last_fetched_at' => now()->subDay(),
+        ]);
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/24', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getPortRunningConfig')
+            ->with('Gi1/0/24')
+            ->once()
+            ->andReturn("% Invalid input detected at '^' marker.\nshow running-config interface Gi1/0/24");
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertDatabaseMissing('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'config_text' => $legacyInvalidConfig,
+        ]);
+    }
+
+    public function test_sync_persists_interface_output_separately_from_running_config(): void
+    {
+        $runningConfig = "!\ninterface Gi1/0/50\n description Uplink\n end";
+        $interfaceOutput = 'GigabitEthernet1/0/50 is up, line protocol is up (connected)';
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/50', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getPortRunningConfig')
+            ->with('Gi1/0/50')
+            ->once()
+            ->andReturn($runningConfig);
+        $this->switchAdapter->shouldReceive('getPortStatus')
+            ->with('Gi1/0/50')
+            ->once()
+            ->andReturn(new PortStatus(
+                interface: 'Gi1/0/50',
+                status: 'connected',
+                speed: '1000Mb/s',
+                duplex: 'Full-duplex',
+                description: $interfaceOutput,
+            ));
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/50')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'config_text' => $runningConfig,
+            'interface_output' => $interfaceOutput,
+        ]);
+    }
+
+    public function test_sync_captures_interface_output_from_show_interface_command_not_status_description(): void
+    {
+        $statusDescription = 'Cached status description should not be used as interface output';
+        $runningConfig = "!\ninterface Gi1/0/7\n description Uplink\n end";
+        $rawShowInterfaceOutput = implode("\r\n", [
+            'GigabitEthernet1/0/7 is up, line protocol is up (connected)',
+            '  Hardware is Gigabit Ethernet, address is aabb.ccdd.ee07',
+            '  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX',
+            '  Last input never, output 00:00:00, output hang never',
+        ]);
+
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show interface status')
+            ->once()
+            ->ordered()
+            ->andReturn(implode("\r\n", [
+                'Port      Name               Status       Vlan       Duplex  Speed Type',
+                sprintf('Gi1/0/7   %s  connected    100        a-full  a-1000 10/100/1000BaseTX', $statusDescription),
+            ]));
+        $transport->shouldReceive('execute')
+            ->with('show run interface Gi1/0/7')
+            ->once()
+            ->ordered()
+            ->andReturn($runningConfig);
+        $transport->shouldReceive('execute')
+            ->with('show interface Gi1/0/7')
+            ->once()
+            ->ordered()
+            ->andReturn($rawShowInterfaceOutput);
+        $transport->shouldReceive('execute')
+            ->with('show mac address-table')
+            ->once()
+            ->ordered()
+            ->andReturn('');
+
+        $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
+        $this->factory->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
+            ->once()
+            ->andReturn($adapter);
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/7')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'config_text' => $runningConfig,
+            'interface_output' => $rawShowInterfaceOutput,
+        ]);
+        $this->assertDatabaseMissing('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'interface_output' => $statusDescription,
+        ]);
+    }
+
+    public function test_sync_does_not_store_switchport_fallback_output_in_running_config_field(): void
+    {
+        $fallbackSwitchportOutput = "Name: Gi1/0/24\nSwitchport: Enabled\nAdministrative Mode: static access";
+        $interfaceOutput = 'GigabitEthernet1/0/24 is up, line protocol is up (connected)';
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/24', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getPortRunningConfig')
+            ->with('Gi1/0/24')
+            ->once()
+            ->andReturn($fallbackSwitchportOutput);
+        $this->switchAdapter->shouldReceive('getPortStatus')
+            ->with('Gi1/0/24')
+            ->once()
+            ->andReturn(new PortStatus(
+                interface: 'Gi1/0/24',
+                status: 'connected',
+                speed: '1000Mb/s',
+                duplex: 'Full-duplex',
+                description: $interfaceOutput,
+            ));
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/24')
+            ->firstOrFail();
+
+        $this->assertDatabaseMissing('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'config_text' => $fallbackSwitchportOutput,
+        ]);
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'interface_output' => $interfaceOutput,
+        ]);
+    }
+
+    public function test_sync_preserves_existing_config_text_when_running_config_is_invalid_but_interface_output_is_available(): void
+    {
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/24',
+        ]);
+        $existingConfigText = "!\ninterface Gi1/0/24\n description Existing valid config\n switchport access vlan 100\n end";
+        $existingConfig = SwitchPortConfig::factory()->create([
+            'switch_port_id' => $port->id,
+            'config_text' => $existingConfigText,
+            'config_hash' => md5($existingConfigText),
+            'interface_output' => 'old interface output',
+            'last_fetched_at' => now()->subDay(),
+        ]);
+
+        $newInterfaceOutput = 'GigabitEthernet1/0/24 is up, line protocol is up (connected)';
+        $invalidRunningConfigOutput = "Name: Gi1/0/24\nSwitchport: Enabled\nAdministrative Mode: static access";
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/24', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getPortRunningConfig')
+            ->with('Gi1/0/24')
+            ->once()
+            ->andReturn($invalidRunningConfigOutput);
+        $this->switchAdapter->shouldReceive('getPortStatus')
+            ->with('Gi1/0/24')
+            ->once()
+            ->andReturn(new PortStatus(
+                interface: 'Gi1/0/24',
+                status: 'connected',
+                speed: '1000Mb/s',
+                duplex: 'Full-duplex',
+                description: $newInterfaceOutput,
+            ));
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $existingConfig->refresh();
+
+        $this->assertSame($existingConfigText, $existingConfig->config_text);
+        $this->assertSame(md5($existingConfigText), $existingConfig->config_hash);
+        $this->assertSame($newInterfaceOutput, $existingConfig->interface_output);
     }
 
     public function test_sync_stores_switch_description(): void

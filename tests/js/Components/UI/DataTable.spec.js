@@ -171,6 +171,33 @@ describe('DataTable', () => {
         expect(router.visit).toHaveBeenCalledWith('/users/1');
     });
 
+    it('navigates via keyboard space when clickable and rowHref', async () => {
+        const rowHref = (row) => `/users/${row.id}`;
+        router.visit.mockClear();
+        const wrapper = mount(DataTable, {
+            props: { columns, rows, clickable: true, rowHref },
+            global: { stubs },
+            slots: {
+                row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+            },
+        });
+        await wrapper.find('[data-testid="data-table-row"]').trigger('keydown.space');
+        expect(router.visit).toHaveBeenCalledWith('/users/1');
+    });
+
+    it('adds accessible row label when row is interactive', () => {
+        const rowHref = (row) => `/users/${row.id}`;
+        const wrapper = mount(DataTable, {
+            props: { columns, rows, clickable: true, rowHref },
+            global: { stubs },
+            slots: {
+                row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+            },
+        });
+        const row = wrapper.find('[data-testid="data-table-row"]');
+        expect(row.attributes('aria-label')).toBe('Open row 1');
+    });
+
     it('does not navigate when clickable is false', async () => {
         const rowHref = (row) => `/users/${row.id}`;
         router.visit.mockClear();

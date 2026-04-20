@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Services\NetworkSwitch;
 
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\SupportsInterfaceOutputCapture;
 use App\Services\NetworkSwitch\Transport\SwitchCommandTransportInterface;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\PortStatistics;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Support\Collection;
 
-class CiscoSwitchAdapter implements NetworkSwitchInterface
+class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOutputCapture
 {
     public function __construct(
         protected SwitchCommandTransportInterface $transport,
@@ -20,9 +21,23 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface
 
     public function getPortStatus(string $portId): PortStatus
     {
-        $output = $this->transport->execute('show interface '.$portId);
+        $output = $this->getPortInterfaceOutput($portId);
+        $parsed = $this->parser->parseShowInterface($output);
 
-        return $this->parser->parseShowInterface($output);
+        return new PortStatus(
+            interface: $parsed->interface,
+            status: $parsed->status,
+            speed: $parsed->speed,
+            duplex: $parsed->duplex,
+            vlan: $parsed->vlan,
+            description: $output,
+            switchportMode: $parsed->switchportMode,
+        );
+    }
+
+    public function getPortInterfaceOutput(string $portId): string
+    {
+        return $this->transport->execute('show interface '.$portId);
     }
 
     /** @return Collection<int, PortStatus> */
@@ -73,7 +88,7 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface
 
     public function getPortRunningConfig(string $portId): string
     {
-        return $this->transport->execute('show running-config interface '.$portId);
+        return $this->transport->execute('show run interface '.$portId);
     }
 
     /** @return Collection<int, ForwardingEntry> */

@@ -1,7 +1,7 @@
 <script setup>
 import { router } from '@inertiajs/vue3';
 
-defineProps({
+const props = defineProps({
     columns: {
         type: Array,
         required: true,
@@ -10,9 +10,21 @@ defineProps({
     rows: { type: Array, required: true },
     clickable: { type: Boolean, default: false },
     rowHref: { type: Function, default: null },
+    rowAriaLabel: { type: Function, default: null },
     rowClass: { type: Function, default: null },
     emptyMessage: { type: String, default: 'No records found.' },
 });
+
+function navigateRow(row) {
+    if (!props.clickable || !props.rowHref) return;
+    router.visit(props.rowHref(row));
+}
+
+function getRowAriaLabel(row, index) {
+    if (!props.clickable || !props.rowHref) return undefined;
+    if (props.rowAriaLabel) return props.rowAriaLabel(row, index);
+    return `Open row ${index + 1}`;
+}
 </script>
 
 <template>
@@ -40,17 +52,19 @@ defineProps({
                     v-for="(row, i) in rows"
                     :key="row.id ?? i"
                     data-testid="data-table-row"
-                    :tabindex="clickable ? 0 : undefined"
-                    :role="clickable ? 'link' : undefined"
+                    :tabindex="props.clickable && props.rowHref ? 0 : undefined"
+                    :role="props.clickable && props.rowHref ? 'link' : undefined"
+                    :aria-label="getRowAriaLabel(row, i)"
                     :class="[
                         'border-b border-[var(--color-border)] transition-colors last:border-b-0',
-                        clickable
-                            ? 'cursor-pointer hover:border-l-2 hover:border-l-[var(--color-primary)] hover:bg-[var(--color-surface-hover)]'
+                        props.clickable
+                            ? 'cursor-pointer hover:border-l-2 hover:border-l-[var(--color-primary)] hover:bg-[var(--color-surface-hover)] focus-visible:border-l-2 focus-visible:border-l-[var(--color-primary)] focus-visible:bg-[var(--color-surface-hover)] focus-visible:outline-none'
                             : '',
-                        rowClass ? rowClass(row) : '',
+                        props.rowClass ? props.rowClass(row) : '',
                     ]"
-                    @click="clickable && rowHref ? router.visit(rowHref(row)) : null"
-                    @keydown.enter="clickable && rowHref ? router.visit(rowHref(row)) : null"
+                    @click="navigateRow(row)"
+                    @keydown.enter.prevent="navigateRow(row)"
+                    @keydown.space.prevent="navigateRow(row)"
                 >
                     <slot name="row" :row="row" :index="i" />
                 </tr>

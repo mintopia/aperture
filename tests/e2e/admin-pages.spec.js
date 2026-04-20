@@ -38,18 +38,41 @@ test.describe('IP Pages', () => {
     });
 });
 
-test.describe('Port Pages', () => {
-    test('port list renders data table', async ({ page }) => {
-        await page.goto('/admin/ports');
-        await expect(page.getByTestId('page-title')).toContainText('Switch Ports');
-        await expect(page.getByTestId('data-table')).toBeVisible();
+test.describe('Switch Pages', () => {
+    test('switch list renders', async ({ page }) => {
+        await page.goto('/admin/switches');
+        await expect(page.getByTestId('page-title')).toContainText('Switches');
+        const emptyState = page.getByTestId('empty-state');
+        const switchesTable = page.getByTestId('switches-table');
+        const hasEmpty = await emptyState.isVisible().catch(() => false);
+        const hasTable = await switchesTable.isVisible().catch(() => false);
+        expect(hasEmpty || hasTable).toBe(true);
     });
 
-    test('port list shows status pills', async ({ page }) => {
-        await page.goto('/admin/ports');
+    test('switch list shows status pills when data is present', async ({ page }) => {
+        await page.goto('/admin/switches');
         const pills = page.locator('[data-testid="status-pill"]');
-        const dataTable = page.getByTestId('data-table');
-        await expect(dataTable).toBeVisible();
+        const switchesTable = page.getByTestId('switches-table');
+        const tableVisible = await switchesTable.isVisible().catch(() => false);
+        if (tableVisible) {
+            await expect(pills.first()).toBeVisible();
+        } else {
+            await expect(page.getByTestId('empty-state')).toBeVisible();
+        }
+    });
+
+    test('switch detail and seeded port page render', async ({ page }) => {
+        await page.goto('/admin/switches');
+        await expect(page.getByText('Playwright Switch')).toBeVisible();
+
+        await page.getByText('Playwright Switch').click();
+        await expect(page.getByTestId('page-title')).toContainText('Playwright Switch');
+        await expect(page.getByTestId('data-table')).toBeVisible();
+
+        await page.getByTestId('data-table-row').first().click();
+        await expect(page.getByTestId('page-title')).toContainText('Gi1/0/1');
+        await expect(page.getByTestId('port-status')).toBeVisible();
+        await expect(page.getByTestId('port-switch-link')).toContainText('Playwright Switch');
     });
 });
 

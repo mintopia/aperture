@@ -11,6 +11,7 @@ func TestLoad_Defaults(t *testing.T) {
 	// Clear any env vars that might interfere
 	envVars := []string{
 		"SSH_PROXY_API_KEY",
+		"APERTURE_SSH_PROXY_API_KEY",
 		"SSH_PROXY_LISTEN_ADDR",
 		"SSH_PROXY_IDLE_TIMEOUT",
 		"SSH_PROXY_SWEEP_INTERVAL",
@@ -97,6 +98,28 @@ func TestLoad_InvalidDuration(t *testing.T) {
 	// Should fall back to default
 	if cfg.IdleTimeout != 600*time.Second {
 		t.Errorf("expected default idle timeout 600s on invalid input, got %v", cfg.IdleTimeout)
+	}
+}
+
+func TestLoad_APIKeyUsesApertureFallbackOnlyWhenPrimaryIsUnset(t *testing.T) {
+	t.Setenv("APERTURE_SSH_PROXY_API_KEY", "shared-dev-key")
+	_ = os.Unsetenv("SSH_PROXY_API_KEY")
+
+	cfg := Load()
+
+	if cfg.APIKey != "shared-dev-key" {
+		t.Errorf("expected API key fallback from APERTURE_SSH_PROXY_API_KEY when SSH_PROXY_API_KEY is unset, got %q", cfg.APIKey)
+	}
+}
+
+func TestLoad_APIKeyExplicitEmptyPrimaryDisablesFallback(t *testing.T) {
+	t.Setenv("SSH_PROXY_API_KEY", "")
+	t.Setenv("APERTURE_SSH_PROXY_API_KEY", "shared-dev-key")
+
+	cfg := Load()
+
+	if cfg.APIKey != "" {
+		t.Errorf("expected explicit-empty SSH_PROXY_API_KEY to take precedence and keep API key empty, got %q", cfg.APIKey)
 	}
 }
 

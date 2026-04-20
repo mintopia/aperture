@@ -99,20 +99,21 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         $proxyCommands = [];
 
         $enablePassword = $this->switchConfig->enable_password ?? '';
+        $defaultPromptExpectation = $enablePassword !== '' ? '/^.*#\s*$/' : '/^.*[>#]\s*$/';
 
         if ($enablePassword !== '') {
             // Use "if" conditions so enable commands are skipped on pooled
             // connections that are already in privileged-exec mode.
             $proxyCommands[] = ['command' => 'en', 'if' => '/>\s*$/', 'expect' => '/Password:/'];
-            $proxyCommands[] = ['command' => $enablePassword, 'if' => '/Password:/', 'expect' => '/#\s*$/'];
+            $proxyCommands[] = ['command' => $enablePassword, 'if' => '/Password:/', 'expect' => $defaultPromptExpectation];
         }
 
-        $proxyCommands[] = ['command' => 'terminal length 0', 'expect' => '/^.*[>#]$/'];
+        $proxyCommands[] = ['command' => 'terminal length 0', 'expect' => $defaultPromptExpectation];
 
         foreach ($commands as $command) {
             $proxyCommands[] = [
                 'command' => $command,
-                'expect' => $this->expectedPromptFor($command),
+                'expect' => $this->expectedPromptFor($command, $defaultPromptExpectation),
             ];
         }
 
@@ -149,13 +150,13 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         return $command;
     }
 
-    protected function expectedPromptFor(string $command): string
+    protected function expectedPromptFor(string $command, string $defaultPromptExpectation): string
     {
         return match (true) {
-            in_array($command, ['configure terminal', 'conf t'], true) => '/\\(config\\)#$/',
-            str_starts_with($command, 'interface ') || str_starts_with($command, 'int ') => '/\\(config-if\\)#$/',
-            in_array($command, ['shutdown', 'no shutdown', 'shut', 'no shut'], true) => '/\\(config-if\\)#$/',
-            default => ($this->switchConfig->enable_password ?? '') === '' ? '/^.*[>#]$/' : '/^.*#$/',
+            in_array($command, ['configure terminal', 'conf t'], true) => '/\\(config\\)#\s*$/',
+            str_starts_with($command, 'interface ') || str_starts_with($command, 'int ') => '/\\(config-if\\)#\s*$/',
+            in_array($command, ['shutdown', 'no shutdown', 'shut', 'no shut'], true) => '/\\(config-if\\)#\s*$/',
+            default => $defaultPromptExpectation,
         };
     }
 
@@ -172,7 +173,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
                 continue;
             }
 
-            $outputs[$output->command] = $output->output;
+            $outputs[$output->command] = $this->sanitizeOutput($output->command, $output->output);
         }
 
         foreach ($commands as $command) {
@@ -190,5 +191,30 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         }
 
         return $outputs;
+    }
+
+    protected function sanitizeOutput(string $command, string $response): string
+    {
+        $lines = preg_split("/\r\n|\n|\r/", $response) ?: [];
+
+        if ($lines !== [] && $this->isEchoedCommandLine($command, $lines[0])) {
+            array_shift($lines);
+        }
+
+        if ($lines !== [] && $this->isPromptLine($lines[array_key_last($lines)])) {
+            array_pop($lines);
+        }
+
+        return trim(implode("\r\n", $lines));
+    }
+
+    protected function isEchoedCommandLine(string $command, string $line): bool
+    {
+        return trim($line) === trim($command);
+    }
+
+    protected function isPromptLine(string $line): bool
+    {
+        return preg_match('/^.*[>#]\s*$/', rtrim($line)) === 1;
     }
 }

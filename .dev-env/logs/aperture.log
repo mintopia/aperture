@@ -1,0 +1,1317 @@
+  Failed to listen on 127.0.0.1:8000 (reason: Address already in use)
+  Failed to listen on 127.0.0.1:8000 (reason: Address already in use)
+  Failed to listen on 127.0.0.1:8000 (reason: Address already in use)
+  Failed to listen on 127.0.0.1:8000 (reason: Address already in use)
+  Failed to listen on 127.0.0.1:8000 (reason: Address already in use)
+
+   INFO  Server running on [http://127.0.0.1:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-19 19:54:20 .............................................. ~ 0.07ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-19 21:03:01 / ............................................ ~ 0.07ms
+  2026-04-19 21:03:01 /captive ......................................... ~ 1s
+  2026-04-19 21:03:02 /favicon.ico ................................. ~ 0.02ms
+  2026-04-19 21:03:02 /_boost/browser-logs ......................... ~ 0.01ms
+  2026-04-19 21:03:03 / ............................................ ~ 0.05ms
+  2026-04-19 21:06:32 / ............................................ ~ 0.06ms
+  2026-04-19 21:10:00 / ............................................ ~ 0.06ms
+  2026-04-19 21:10:01 /captive ......................................... ~ 2s
+  2026-04-19 21:10:39 / ............................................ ~ 0.07ms
+  2026-04-19 21:10:41 /captive ..................................... ~ 0.06ms
+  2026-04-19 21:35:08 /robots.txt .................................. ~ 0.11ms
+  2026-04-19 21:35:08 / ............................................ ~ 0.04ms
+  2026-04-19 21:35:08 /captive ................................... ~ 500.33ms
+  2026-04-19 21:35:19 /captive ................................... ~ 500.25ms
+  2026-04-19 21:35:19 /favicon.ico ................................. ~ 0.06ms
+  2026-04-19 21:35:20 /_boost/browser-logs ......................... ~ 0.01ms
+  2026-04-19 21:35:25 / ............................................ ~ 0.06ms
+  2026-04-19 21:35:25 /captive ................................... ~ 500.26ms
+  2026-04-19 21:35:26 /_boost/browser-logs ....................... ~ 500.29ms
+  2026-04-19 21:35:29 /login ....................................... ~ 0.06ms
+  2026-04-19 21:35:29 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 21:35:29 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.01ms
+  2026-04-19 21:35:29 /build/assets/app-DwiY5p3P.js .............. ~ 500.39ms
+  2026-04-19 21:35:30 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.02ms
+  2026-04-19 21:35:37 /login ..................................... ~ 500.28ms
+  2026-04-19 21:35:38 /login ....................................... ~ 0.03ms
+  2026-04-19 21:37:23 / ............................................ ~ 0.08ms
+  2026-04-19 21:37:23 /captive ................................... ~ 500.24ms
+  2026-04-19 21:37:30 / ............................................ ~ 0.07ms
+  2026-04-19 21:37:30 /captive ................................... ~ 500.31ms
+  2026-04-19 21:40:41 / ............................................ ~ 0.07ms
+  2026-04-19 21:40:41 /captive ..................................... ~ 0.01ms
+  2026-04-19 21:53:13 /login ....................................... ~ 0.08ms
+  2026-04-19 21:53:13 /build/assets/app-DeGUrHZN.css ............... ~ 0.04ms
+  2026-04-19 21:53:13 /build/assets/app-DwiY5p3P.js .............. ~ 500.44ms
+  2026-04-19 21:53:14 /favicon.ico ................................. ~ 0.03ms
+  2026-04-19 21:53:20 /login ....................................... ~ 0.06ms
+  2026-04-19 21:53:21 / .......................................... ~ 500.32ms
+  2026-04-19 21:53:21 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 21:53:23 /status ...................................... ~ 0.06ms
+  2026-04-19 21:53:26 /admin ....................................... ~ 0.06ms
+  2026-04-19 21:53:26 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 21:53:26 /build/assets/app-DwiY5p3P.js .............. ~ 500.31ms
+  2026-04-19 21:53:27 /admin ..................................... ~ 500.33ms
+  2026-04-19 21:53:27 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.02ms
+  2026-04-19 21:53:32 /account/settings ............................ ~ 0.07ms
+  2026-04-19 21:53:32 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-19 21:53:32 /build/assets/app-DwiY5p3P.js .............. ~ 500.29ms
+  2026-04-19 21:53:34 /passkeys/register/options ................... ~ 0.07ms
+  2026-04-19 21:53:39 /passkeys/register ........................... ~ 0.07ms
+  2026-04-19 21:53:39 /account/settings ............................ ~ 0.02ms
+  2026-04-19 21:53:42 /account/settings ............................ ~ 0.06ms
+  2026-04-19 21:53:42 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-19 21:53:42 /build/assets/app-DwiY5p3P.js .............. ~ 500.37ms
+  2026-04-19 21:53:42 /favicon.ico ................................. ~ 0.03ms
+  2026-04-19 21:53:47 /account/settings/verify ..................... ~ 0.06ms
+  2026-04-19 21:53:47 /account/settings ............................ ~ 0.01ms
+  2026-04-19 21:53:49 /account/settings/verify ..................... ~ 0.07ms
+  2026-04-19 21:53:49 /account/settings ............................ ~ 0.01ms
+  2026-04-19 21:53:51 /account/settings ............................ ~ 0.06ms
+  2026-04-19 21:53:51 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 21:53:51 /build/assets/app-DwiY5p3P.js .............. ~ 500.44ms
+  2026-04-19 21:53:53 /passkeys/register/options ................... ~ 0.06ms
+  2026-04-19 21:53:58 /passkeys/register ........................... ~ 0.06ms
+  2026-04-19 21:53:58 /account/settings ............................ ~ 0.02ms
+  2026-04-19 21:54:18 /account/settings ............................ ~ 0.07ms
+  2026-04-19 21:54:18 /captive ................................... ~ 500.33ms
+  2026-04-19 21:54:19 /favicon.ico ................................. ~ 0.04ms
+  2026-04-19 21:54:19 /_boost/browser-logs ......................... ~ 0.08ms
+  2026-04-19 21:54:22 /admin ....................................... ~ 0.06ms
+  2026-04-19 21:54:22 /captive ................................... ~ 500.36ms
+  2026-04-19 21:54:22 /_boost/browser-logs ......................... ~ 0.08ms
+  2026-04-19 21:54:25 /login ....................................... ~ 0.06ms
+  2026-04-19 21:54:25 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 21:54:25 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.06ms
+  2026-04-19 21:54:25 /build/assets/app-DwiY5p3P.js .............. ~ 500.41ms
+  2026-04-19 21:54:25 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.01ms
+  2026-04-19 21:54:32 /login ....................................... ~ 0.06ms
+  2026-04-19 21:54:32 /admin ....................................... ~ 0.02ms
+  2026-04-19 21:54:32 /admin ..................................... ~ 500.33ms
+  2026-04-19 21:54:32 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.02ms
+  2026-04-19 21:54:35 /account/settings ............................ ~ 0.06ms
+  2026-04-19 21:54:35 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 21:54:35 /build/assets/app-DwiY5p3P.js ................ ~ 0.09ms
+  2026-04-19 21:54:39 /account/settings/verify ..................... ~ 0.07ms
+  2026-04-19 21:54:39 /account/settings ............................ ~ 0.02ms
+  2026-04-19 21:54:40 /account/settings ............................ ~ 0.06ms
+  2026-04-19 21:54:40 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 21:54:40 /build/assets/app-DwiY5p3P.js .............. ~ 500.29ms
+  2026-04-19 21:54:42 /passkeys/register/options ................... ~ 0.07ms
+  2026-04-19 21:54:47 /passkeys/register ........................... ~ 0.06ms
+  2026-04-19 21:54:47 /account/settings ............................ ~ 0.02ms
+  2026-04-19 22:01:29 /admin/settings/integrations ................. ~ 0.09ms
+  2026-04-19 22:01:31 /admin/settings/integrations/librenms ........ ~ 0.06ms
+  2026-04-19 22:01:33 /admin/settings/integrations/opnsense ........ ~ 0.06ms
+  2026-04-19 22:01:33 /admin/settings/integrations/opnsense/zones .. ~ 0.03ms
+  2026-04-19 22:01:33 /admin/settings/integrations/opnsense/shaper-rules  ~ 0.09ms
+  2026-04-19 22:01:33 /admin/settings/integrations/opnsense/shaper-rules  ~ 500.37ms
+  2026-04-19 22:01:33 /admin/settings/integrations/opnsense/zones  ~ 500.46ms
+  2026-04-19 22:01:37 /admin/settings/capabilities ................. ~ 0.08ms
+  2026-04-19 22:01:37 /admin/settings/integrations/opnsense ........ ~ 0.03ms
+  2026-04-19 22:01:38 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:01:38 /admin/settings/integrations/opnsense ........ ~ 0.01ms
+  2026-04-19 22:01:39 /admin/settings/capabilities ................. ~ 0.07ms
+  2026-04-19 22:01:39 /admin/settings/integrations/opnsense ........ ~ 0.01ms
+  2026-04-19 22:01:39 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:01:39 /admin/settings/integrations/opnsense ........ ~ 0.01ms
+  2026-04-19 22:01:41 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:01:41 /admin/settings/integrations/opnsense ........ ~ 0.01ms
+  2026-04-19 22:01:42 /admin/settings/capabilities ................. ~ 0.05ms
+  2026-04-19 22:01:43 /admin/settings/integrations/opnsense ........ ~ 0.01ms
+  2026-04-19 22:01:45 /admin/settings/integrations/opnsense ........ ~ 0.06ms
+  2026-04-19 22:01:45 /admin/settings/integrations/opnsense ........ ~ 0.01ms
+  2026-04-19 22:01:50 /admin/settings/integrations ................. ~ 0.07ms
+  2026-04-19 22:01:52 /admin/settings/integrations/ntopng .......... ~ 0.06ms
+  2026-04-19 22:02:05 /admin/settings/test/ntopng ...................... ~ 1s
+  2026-04-19 22:02:16 /admin/settings/integrations/ntopng .......... ~ 0.07ms
+  2026-04-19 22:02:16 /admin/settings/integrations/ntopng .......... ~ 0.02ms
+  2026-04-19 22:02:17 /admin/settings/test/ntopng .................. ~ 0.06ms
+  2026-04-19 22:02:19 /admin/settings/integrations/ntopng .......... ~ 0.10ms
+  2026-04-19 22:02:19 /admin/settings/integrations/ntopng .......... ~ 0.03ms
+  2026-04-19 22:02:22 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:02:22 /admin/settings/integrations/ntopng .......... ~ 0.02ms
+  2026-04-19 22:02:24 /admin/settings/integrations ................. ~ 0.05ms
+  2026-04-19 22:02:27 /admin/settings/integrations/pihole .......... ~ 0.06ms
+  2026-04-19 22:02:27 /admin/settings/integrations/pihole/groups ... ~ 0.01ms
+  2026-04-19 22:02:38 /admin/settings/integrations/pihole/groups ... ~ 0.06ms
+  2026-04-19 22:02:42 /admin/settings/test/pihole ................ ~ 500.22ms
+  2026-04-19 22:02:43 /admin/settings/integrations/pihole .......... ~ 0.07ms
+  2026-04-19 22:02:43 /admin/settings/integrations/pihole .......... ~ 0.01ms
+  2026-04-19 22:02:46 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-19 22:02:50 /admin/settings/integrations/borealis ........ ~ 0.06ms
+  2026-04-19 22:03:35 / ............................................ ~ 0.06ms
+  2026-04-19 22:03:35 /captive ................................... ~ 500.32ms
+  2026-04-19 22:03:37 /static/style/protect/index.js ............... ~ 0.09ms
+  2026-04-19 22:03:39 /js/lkk_ch.js ................................ ~ 0.07ms
+  2026-04-19 22:03:39 /assets/js/qr_modal.js ....................... ~ 0.01ms
+  2026-04-19 22:03:39 /css/support_parent.css ...................... ~ 0.06ms
+  2026-04-19 22:03:41 /assets/js/auth.js ........................... ~ 0.06ms
+  2026-04-19 22:03:41 /robots.txt .................................. ~ 0.02ms
+  2026-04-19 22:03:43 /bot-connect.js .............................. ~ 0.06ms
+  2026-04-19 22:03:43 /js/twint_ch.js .............................. ~ 0.01ms
+  2026-04-19 22:03:43 /assets/js/message.js ........................ ~ 0.01ms
+  2026-04-19 22:03:43 /static/style/sys_files/index.js ............. ~ 0.01ms
+  2026-04-19 22:03:52 /admin/settings/test/borealis .............. ~ 500.25ms
+  2026-04-19 22:03:53 /admin/settings/integrations/borealis ........ ~ 0.08ms
+  2026-04-19 22:03:53 /admin/settings/integrations/borealis ........ ~ 0.03ms
+  2026-04-19 22:03:56 /admin/settings/integrations/borealis ........ ~ 0.06ms
+  2026-04-19 22:03:56 /admin/settings/integrations/borealis ........ ~ 0.01ms
+  2026-04-19 22:04:00 /admin/settings/capabilities ................. ~ 0.07ms
+  2026-04-19 22:04:01 /admin/settings/integrations/borealis ........ ~ 0.01ms
+  2026-04-19 22:04:01 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:04:01 /admin/settings/integrations/borealis ........ ~ 0.02ms
+  2026-04-19 22:04:02 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:04:02 /admin/settings/integrations/borealis ........ ~ 0.02ms
+  2026-04-19 22:04:04 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-19 22:04:08 /admin/settings/integrations/prometheus ...... ~ 0.08ms
+  2026-04-19 22:04:10 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:04:10 /admin/settings/integrations/prometheus ...... ~ 0.01ms
+  2026-04-19 22:04:11 /admin/settings/capabilities ................. ~ 0.07ms
+  2026-04-19 22:04:11 /admin/settings/integrations/prometheus ...... ~ 0.01ms
+  2026-04-19 22:04:12 /admin/settings/capabilities ................. ~ 0.08ms
+  2026-04-19 22:04:12 /admin/settings/integrations/prometheus ...... ~ 0.03ms
+  2026-04-19 22:04:12 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:04:13 /admin/settings/integrations/prometheus ...... ~ 0.01ms
+  2026-04-19 22:04:14 /admin/settings/integrations/prometheus ...... ~ 0.08ms
+  2026-04-19 22:04:15 /admin/settings/integrations/prometheus ...... ~ 0.03ms
+  2026-04-19 22:04:17 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-19 22:04:19 /admin/settings/integrations/pihole .......... ~ 0.06ms
+  2026-04-19 22:04:19 /admin/settings/integrations/pihole/groups ... ~ 0.01ms
+  2026-04-19 22:04:22 /admin/settings/capabilities ................. ~ 0.06ms
+  2026-04-19 22:04:22 /admin/settings/integrations/pihole .......... ~ 0.02ms
+  2026-04-19 22:04:24 /admin/settings/integrations/pihole .......... ~ 0.06ms
+  2026-04-19 22:04:24 /admin/settings/integrations/pihole ........ ~ 500.32ms
+  2026-04-19 22:04:26 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-19 22:04:40 /admin/switches .............................. ~ 0.09ms
+  2026-04-19 22:04:43 /admin/switches/6 ............................ ~ 0.08ms
+  2026-04-19 22:04:46 /admin/switches/6 ............................ ~ 0.06ms
+  2026-04-19 22:04:46 /admin/switches ............................ ~ 500.22ms
+  2026-04-19 22:04:47 /admin/switches/3 ............................ ~ 0.06ms
+  2026-04-19 22:04:49 /admin/switches/3 ............................ ~ 0.09ms
+  2026-04-19 22:04:49 /admin/switches .............................. ~ 0.03ms
+  2026-04-19 22:04:50 /admin/switches/4 ............................ ~ 0.06ms
+  2026-04-19 22:04:53 /admin/switches/4 ............................ ~ 0.06ms
+  2026-04-19 22:04:53 /admin/switches .............................. ~ 0.01ms
+  2026-04-19 22:04:53 /admin/switches/5 ............................ ~ 0.07ms
+  2026-04-19 22:04:55 /admin/switches/5 ............................ ~ 0.07ms
+  2026-04-19 22:04:55 /admin/switches .............................. ~ 0.01ms
+  2026-04-19 22:04:57 /admin/switches/1 ............................ ~ 0.06ms
+  2026-04-19 22:04:59 /admin/switches/1 ............................ ~ 0.06ms
+  2026-04-19 22:04:59 /admin/switches .............................. ~ 0.02ms
+  2026-04-19 22:05:00 /admin/switches/2 ............................ ~ 0.07ms
+  2026-04-19 22:05:03 /admin/switches/2/test ....................... ~ 0.06ms
+  2026-04-19 22:05:05 /admin/switches/2/edit ....................... ~ 0.06ms
+  2026-04-19 22:05:16 /admin/switches/2 ............................ ~ 0.06ms
+  2026-04-19 22:05:16 /admin/switches/2/edit ....................... ~ 0.01ms
+  2026-04-19 22:05:20 /admin/switches/2 ............................ ~ 0.06ms
+  2026-04-19 22:05:21 /admin/switches/2/test ....................... ~ 0.06ms
+  2026-04-19 22:10:44 / ............................................ ~ 0.06ms
+  2026-04-19 22:10:46 /captive ................................... ~ 500.28ms
+  2026-04-19 22:58:51 / ............................................ ~ 0.06ms
+  2026-04-19 22:58:51 / ............................................ ~ 0.06ms
+  2026-04-19 22:58:51 /captive ..................................... ~ 0.24ms
+  2026-04-19 22:58:52 /captive ................................... ~ 500.24ms
+  2026-04-19 23:22:47 /captive ..................................... ~ 0.06ms
+  2026-04-19 23:22:48 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 23:22:48 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.06ms
+  2026-04-19 23:22:48 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.12ms
+  2026-04-19 23:22:48 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.15ms
+  2026-04-19 23:22:48 /favicon.ico ................................. ~ 0.07ms
+  2026-04-19 23:22:52 /captive ..................................... ~ 0.06ms
+  2026-04-19 23:22:53 /build/assets/app-DeGUrHZN.css ............... ~ 0.06ms
+  2026-04-19 23:22:53 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.08ms
+  2026-04-19 23:22:53 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.12ms
+  2026-04-19 23:22:53 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.15ms
+  2026-04-19 23:22:54 /favicon.ico ................................. ~ 0.07ms
+  2026-04-19 23:26:10 /admin/switches/2 ............................ ~ 0.06ms
+  2026-04-19 23:26:10 /build/assets/app-DeGUrHZN.css ............... ~ 0.01ms
+  2026-04-19 23:26:10 /build/assets/app-DwiY5p3P.js ................ ~ 0.01ms
+  2026-04-19 23:26:13 /account/settings ............................ ~ 0.08ms
+  2026-04-19 23:26:13 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-19 23:26:13 /build/assets/app-DwiY5p3P.js ................ ~ 0.20ms
+  2026-04-19 23:26:18 /passkeys/register/options ................... ~ 0.07ms
+  2026-04-19 23:26:23 /passkeys/register ........................... ~ 0.07ms
+  2026-04-19 23:26:23 /account/settings ............................ ~ 0.02ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-19 23:27:19 /account/settings .......................... ~ 500.24ms
+  2026-04-19 23:27:19 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-19 23:27:19 /build/assets/app-DwiY5p3P.js .............. ~ 500.48ms
+  2026-04-19 23:27:22 /passkeys/register/options ................... ~ 0.06ms
+  2026-04-19 23:27:27 /passkeys/register ........................... ~ 0.06ms
+  2026-04-19 23:27:27 /account/settings ............................ ~ 0.01ms
+  2026-04-19 23:28:12 /account/settings ............................ ~ 0.06ms
+  2026-04-19 23:28:12 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 23:28:12 /build/assets/app-DwiY5p3P.js ................ ~ 0.09ms
+  2026-04-19 23:28:35 .............................................. ~ 0.07ms
+  2026-04-19 23:29:27 /account/settings ............................... ~ 10s
+  2026-04-19 23:29:37 /favicon.ico ................................. ~ 0.02ms
+  2026-04-19 23:29:41 /account/settings ............................... ~ 10s
+  2026-04-19 23:29:51 /favicon.ico ................................. ~ 0.02ms
+
+   INFO  Environment modified. Restarting server...  
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-19 23:33:19 /account/settings ............................ ~ 0.08ms
+  2026-04-19 23:33:19 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-19 23:33:19 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.01ms
+  2026-04-19 23:33:19 /build/assets/app-DwiY5p3P.js .............. ~ 500.34ms
+  2026-04-19 23:33:20 /favicon.ico ................................. ~ 0.02ms
+  2026-04-19 23:33:20 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.01ms
+  2026-04-19 23:33:23 /passkeys/register/options ................... ~ 0.06ms
+  2026-04-19 23:33:28 /passkeys/register ........................... ~ 0.06ms
+  2026-04-19 23:33:28 /account/settings ............................ ~ 0.01ms
+  2026-04-19 23:33:35 /portal .................................... ~ 500.28ms
+  2026-04-19 23:33:36 /build/assets/app-DeGUrHZN.css ............... ~ 0.01ms
+  2026-04-19 23:33:36 /build/assets/app-DwiY5p3P.js ................ ~ 0.10ms
+  2026-04-19 23:33:38 /admin ....................................... ~ 0.06ms
+  2026-04-19 23:33:38 /admin ..................................... ~ 500.27ms
+  2026-04-19 23:33:40 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-19 23:33:48 /admin/switches .............................. ~ 0.06ms
+  2026-04-19 23:33:49 /admin/switches/2 ............................ ~ 0.06ms
+  2026-04-19 23:36:07 .............................................. ~ 0.07ms
+  2026-04-19 23:36:08 .............................................. ~ 0.02ms
+  2026-04-19 23:36:08 / ............................................ ~ 0.01ms
+  2026-04-19 23:36:16 .............................................. ~ 0.06ms
+  2026-04-19 23:36:16 .............................................. ~ 0.07ms
+  2026-04-19 23:36:16 / ............................................ ~ 0.01ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-19 23:36:54 .............................................. ~ 6.57ms
+  2026-04-19 23:36:54 .............................................. ~ 0.03ms
+  2026-04-19 23:36:54 / .......................................... ~ 500.24ms
+  2026-04-19 23:37:19 .............................................. ~ 0.06ms
+  2026-04-19 23:37:19 .............................................. ~ 0.07ms
+  2026-04-19 23:37:19 / ............................................ ~ 0.01ms
+  2026-04-19 23:37:46 .............................................. ~ 0.06ms
+  2026-04-19 23:37:46 .............................................. ~ 0.06ms
+  2026-04-19 23:37:46 / ............................................ ~ 0.01ms
+  2026-04-19 23:37:55 .............................................. ~ 0.06ms
+  2026-04-19 23:37:55 .............................................. ~ 0.01ms
+  2026-04-19 23:37:55 / ............................................ ~ 0.01ms
+  2026-04-19 23:48:26 /admin/switches/2 .......................... ~ 500.28ms
+  2026-04-19 23:48:26 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-19 23:48:26 /build/assets/app-DwiY5p3P.js ................ ~ 0.09ms
+  2026-04-19 23:48:33 /admin/switches/2/test ....................... ~ 0.08ms
+  2026-04-19 23:49:27 .............................................. ~ 0.06ms
+
+   INFO  Environment modified. Restarting server...  
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+
+   INFO  Environment modified. Restarting server...  
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+
+   INFO  Environment modified. Restarting server...  
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+
+   INFO  Environment modified. Restarting server...  
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+The environment file is invalid!
+Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-19 23:52:40 /admin/switches/2 ............................... ~ 10s
+  2026-04-19 23:52:55 /admin/switches/2 ............................... ~ 10s
+  2026-04-19 23:53:05 /favicon.ico ................................. ~ 0.04ms
+
+   INFO  Environment modified. Restarting server...  
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-19 23:54:34 /admin/switches/2 ............................ ~ 0.10ms
+  2026-04-19 23:54:35 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-19 23:54:35 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.02ms
+  2026-04-19 23:54:35 /build/assets/app-DwiY5p3P.js .............. ~ 500.41ms
+  2026-04-19 23:54:35 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.04ms
+  2026-04-19 23:54:35 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.12ms
+  2026-04-19 23:54:35 /favicon.ico ................................. ~ 0.03ms
+  2026-04-19 23:54:48 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.06ms
+  2026-04-19 23:54:48 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.13ms
+  2026-04-19 23:54:48 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.16ms
+  2026-04-19 23:54:57 /admin/switches/2/test ....................... ~ 0.06ms
+  2026-04-19 23:54:58 /admin/switches/2 ............................ ~ 0.09ms
+  2026-04-19 23:54:58 /build/assets/app-DeGUrHZN.css ............... ~ 0.04ms
+  2026-04-19 23:54:58 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.03ms
+  2026-04-19 23:54:58 /build/assets/app-DwiY5p3P.js ................ ~ 0.28ms
+  2026-04-19 23:54:59 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.06ms
+  2026-04-19 23:54:59 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.12ms
+  2026-04-19 23:54:59 /favicon.ico ................................. ~ 0.04ms
+  2026-04-19 23:57:28 .............................................. ~ 0.07ms
+  2026-04-19 23:58:31 /admin/switches/2/test ....................... ~ 0.06ms
+  2026-04-19 23:58:32 /admin/switches/2 ............................ ~ 0.07ms
+  2026-04-19 23:58:32 /build/assets/app-DeGUrHZN.css ............... ~ 0.05ms
+  2026-04-19 23:58:32 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.06ms
+  2026-04-19 23:58:32 /build/assets/app-DwiY5p3P.js .............. ~ 500.55ms
+  2026-04-19 23:58:33 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.02ms
+  2026-04-19 23:58:33 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.06ms
+  2026-04-19 23:58:33 /favicon.ico ................................. ~ 0.01ms
+  2026-04-20 00:00:40 .............................................. ~ 0.07ms
+  2026-04-20 00:00:40 .............................................. ~ 0.02ms
+  2026-04-20 00:00:40 / ............................................ ~ 0.01ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-20 00:01:08 .............................................. ~ 0.10ms
+  2026-04-20 00:01:08 .............................................. ~ 0.03ms
+  2026-04-20 00:01:08 / .......................................... ~ 500.22ms
+  2026-04-20 00:18:31 /admin/switches/2 ............................ ~ 0.10ms
+  2026-04-20 00:18:31 /build/assets/app-DeGUrHZN.css ............... ~ 0.05ms
+  2026-04-20 00:18:31 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.03ms
+  2026-04-20 00:18:31 /build/assets/app-DwiY5p3P.js .............. ~ 500.64ms
+  2026-04-20 00:18:31 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.03ms
+  2026-04-20 00:18:31 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.12ms
+  2026-04-20 00:18:31 /favicon.ico ................................. ~ 0.03ms
+  2026-04-20 00:18:32 /admin/switches/2/test ....................... ~ 0.06ms
+  2026-04-20 00:18:35 /admin/switches/2/test ....................... ~ 0.06ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-20 00:20:08 .............................................. ~ 0.08ms
+  2026-04-20 00:20:17 .............................................. ~ 0.09ms
+  2026-04-20 00:20:17 / ............................................ ~ 0.01ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-20 00:24:59 /admin/switches/2 ............................ ~ 0.07ms
+  2026-04-20 00:25:00 /favicon.ico ................................. ~ 0.02ms
+
+   INFO  Environment modified. Restarting server...  
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-20 00:25:41 /admin/switches/2 .......................... ~ 500.32ms
+  2026-04-20 00:25:42 /build/assets/app-DeGUrHZN.css ............... ~ 0.05ms
+  2026-04-20 00:25:42 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.04ms
+  2026-04-20 00:25:42 /build/assets/app-DwiY5p3P.js ................ ~ 0.28ms
+  2026-04-20 00:25:42 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.06ms
+  2026-04-20 00:25:42 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.11ms
+  2026-04-20 00:25:42 /favicon.ico ................................. ~ 0.01ms
+  2026-04-20 00:25:50 /admin/switches/2/test ....................... ~ 0.06ms
+  2026-04-20 00:25:55 /admin/switches/2/test ....................... ~ 0.06ms
+  2026-04-20 00:26:35 /admin/switches/2/test ........................... ~ 5s
+  2026-04-20 00:26:47 /admin/switches/2 ............................ ~ 0.10ms
+  2026-04-20 00:26:47 /build/assets/app-DeGUrHZN.css ............... ~ 0.05ms
+  2026-04-20 00:26:47 /build/assets/app-DwiY5p3P.js .............. ~ 500.45ms
+  2026-04-20 00:26:50 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:27:23 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 00:27:53 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:28:23 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:28:53 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:29:23 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:29:53 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:30:24 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:30:55 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:31:25 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:31:56 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:32:25 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:32:56 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:33:26 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:33:56 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:34:26 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:34:58 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:35:28 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:35:59 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:36:29 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:36:59 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:37:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:38:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:38:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:39:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:42:02 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:42:32 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:43:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:43:32 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:44:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:44:32 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:45:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:45:33 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:46:03 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:46:33 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:46:59 / ............................................ ~ 0.09ms
+  2026-04-20 00:46:59 /captive ................................... ~ 500.28ms
+  2026-04-20 00:47:00 /static/style/sys_files/index.js ............. ~ 0.02ms
+  2026-04-20 00:47:00 /css/support_parent.css ...................... ~ 0.01ms
+  2026-04-20 00:47:00 /js/lkk_ch.js ................................ ~ 0.01ms
+  2026-04-20 00:47:00 /js/twint_ch.js .............................. ~ 0.01ms
+  2026-04-20 00:47:00 /assets/js/auth.js ........................... ~ 0.01ms
+  2026-04-20 00:47:00 /assets/js/message.js ........................ ~ 0.01ms
+  2026-04-20 00:47:00 /assets/js/qr_modal.js ....................... ~ 0.02ms
+  2026-04-20 00:47:00 /robots.txt .................................. ~ 0.01ms
+  2026-04-20 00:47:00 /bot-connect.js .............................. ~ 0.01ms
+  2026-04-20 00:47:00 /build/assets/app-DeGUrHZN.css ............... ~ 0.07ms
+  2026-04-20 00:47:00 /static/style/protect/index.js ............... ~ 0.01ms
+  2026-04-20 00:47:04 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:47:34 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:48:05 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:48:35 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:49:05 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:49:35 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:50:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:50:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:51:05 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 00:51:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:52:00 / ............................................ ~ 0.07ms
+  2026-04-20 00:52:00 /captive ..................................... ~ 0.02ms
+  2026-04-20 00:52:06 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:52:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:53:06 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:53:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:54:06 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:54:21 / ............................................ ~ 0.08ms
+  2026-04-20 00:54:21 / ............................................ ~ 0.03ms
+  2026-04-20 00:54:21 /captive ..................................... ~ 0.03ms
+  2026-04-20 00:54:21 /captive ..................................... ~ 0.03ms
+  2026-04-20 00:54:21 /build/assets/app-DeGUrHZN.css ............... ~ 0.08ms
+  2026-04-20 00:54:21 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-20 00:54:21 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.04ms
+  2026-04-20 00:54:21 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.11ms
+  2026-04-20 00:54:21 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.10ms
+  2026-04-20 00:54:21 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.04ms
+  2026-04-20 00:54:21 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.11ms
+  2026-04-20 00:54:21 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.16ms
+  2026-04-20 00:54:22 /favicon.ico ................................. ~ 0.03ms
+  2026-04-20 00:54:22 /favicon.ico ................................. ~ 0.03ms
+  2026-04-20 00:54:26 /captive/poll/e6a536b0-effe-46ae-a146-0028de4bf0eb  ~ 0.06ms
+  2026-04-20 00:54:26 /captive/poll/c7f1917a-5601-4c66-8ee0-e5d02e8b0d6c  ~ 0.01ms
+  2026-04-20 00:54:31 /captive/poll/e6a536b0-effe-46ae-a146-0028de4bf0eb  ~ 0.08ms
+  2026-04-20 00:54:31 /captive/poll/c7f1917a-5601-4c66-8ee0-e5d02e8b0d6c  ~ 0.03ms
+  2026-04-20 00:54:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:55:07 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:55:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:56:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:56:37 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:57:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:57:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:58:07 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:58:37 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 00:59:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 00:59:37 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:00:07 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:00:37 /admin/switches/2/ports/Gi0/8 .................... ~ 6s
+  2026-04-20 01:01:07 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:01:37 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:02:07 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:02:38 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:03:08 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:03:38 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:04:08 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:04:39 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:05:09 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:05:39 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:06:09 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:06:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:07:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:07:40 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:08:10 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:08:40 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:09:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:09:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:09:47 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:09:50 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-20 01:09:50 /build/assets/app-DwiY5p3P.js .............. ~ 500.36ms
+  2026-04-20 01:10:21 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:10:51 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:11:21 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:11:52 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:12:22 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:12:52 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:13:23 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:13:54 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:14:25 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:14:56 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:15:27 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:15:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:16:28 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:16:58 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:17:29 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:18:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:18:30 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:19:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:19:31 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:20:01 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:20:32 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:21:02 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:21:32 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:22:03 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:22:33 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:23:03 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:23:33 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:24:04 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:24:34 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:25:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:25:10 / ............................................ ~ 0.06ms
+  2026-04-20 01:25:28 /robots.txt .................................. ~ 0.06ms
+  2026-04-20 01:25:29 / ............................................ ~ 0.06ms
+  2026-04-20 01:25:29 /captive ..................................... ~ 0.01ms
+  2026-04-20 01:25:34 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:25:38 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-20 01:25:44 /build/assets/PlusJakartaSans-Variable-LatinExt-DmpS2jIq.woff2  ~ 0.07ms
+  2026-04-20 01:25:46 /build/assets/SpaceGrotesk-Variable-LatinExt-D9tNdqV9.woff2  ~ 0.06ms
+  2026-04-20 01:25:48 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.09ms
+  2026-04-20 01:25:50 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.07ms
+  2026-04-20 01:25:52 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 500.27ms
+  2026-04-20 01:26:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:26:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:27:07 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:27:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:28:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:28:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:28:54 /captive ..................................... ~ 0.06ms
+  2026-04-20 01:29:08 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:29:38 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:30:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:30:40 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:31:10 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:31:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:32:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:32:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:33:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:33:29 /captive ..................................... ~ 0.06ms
+  2026-04-20 01:33:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:34:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:34:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:35:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:35:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:36:12 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 01:36:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:37:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:37:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:38:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:38:44 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:39:14 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:39:45 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:40:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:40:47 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:41:17 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:41:22 / ............................................ ~ 0.07ms
+  2026-04-20 01:41:41 /captive ..................................... ~ 0.06ms
+  2026-04-20 01:41:48 /favicon.ico ................................. ~ 0.06ms
+  2026-04-20 01:41:48 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:42:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:42:48 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:43:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:43:49 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:44:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:44:50 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:45:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:45:50 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:46:20 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:46:51 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:47:21 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:47:52 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:48:22 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:48:52 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:49:22 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:49:41 /_boost/browser-logs ............................. ~ 1s
+  2026-04-20 01:49:52 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:50:23 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:50:53 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:51:00 /.git/config ................................. ~ 0.08ms
+  2026-04-20 01:51:23 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:51:54 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:52:24 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:52:55 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:53:25 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:53:57 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:54:27 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:54:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:55:27 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:55:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 01:56:28 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:56:59 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:57:29 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:58:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:58:30 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:59:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 01:59:31 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:00:01 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:00:31 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:01:02 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 02:01:21 /.git/config ................................. ~ 0.05ms
+  2026-04-20 02:01:32 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:02:03 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:02:33 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:03:03 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:03:34 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:04:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:04:34 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:05:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:05:34 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:06:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:06:34 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:07:04 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:07:35 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 02:08:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:08:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:09:00 / ............................................ ~ 0.07ms
+  2026-04-20 02:09:00 /captive ..................................... ~ 0.05ms
+  2026-04-20 02:09:06 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:09:36 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 02:10:06 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:10:36 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 02:11:06 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:11:36 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:12:06 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:12:36 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:13:06 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:13:37 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:14:08 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:14:38 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:15:08 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:15:38 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:16:09 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:16:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:17:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:17:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:18:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:18:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:19:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:19:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:20:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:20:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:21:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:21:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:22:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:22:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:23:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:23:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:24:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:24:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:25:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:25:34 / ............................................ ~ 0.06ms
+  2026-04-20 02:25:36 /captive ................................... ~ 500.34ms
+  2026-04-20 02:25:39 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:25:42 /wordpress/ .................................. ~ 0.02ms
+  2026-04-20 02:26:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:26:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:27:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:27:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:28:09 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:28:39 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:29:10 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:29:40 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:30:10 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:30:40 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:31:10 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:31:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:32:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:32:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:33:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:33:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:34:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:34:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:35:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:35:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:36:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:36:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:37:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:37:24 /robots.txt .................................. ~ 0.07ms
+  2026-04-20 02:37:24 / ............................................ ~ 0.07ms
+  2026-04-20 02:37:25 /captive ..................................... ~ 0.06ms
+  2026-04-20 02:37:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:38:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:38:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:39:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:39:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:40:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:40:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:41:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:41:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:42:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:42:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:43:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:43:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:44:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:44:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:44:59 / ............................................ ~ 0.08ms
+  2026-04-20 02:44:59 /captive ..................................... ~ 0.03ms
+  2026-04-20 02:45:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:45:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:46:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:46:42 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:47:12 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:47:42 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:48:12 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:48:42 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:49:12 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:49:42 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:50:12 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:50:42 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:51:12 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:51:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:52:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:52:42 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 02:53:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:53:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:54:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:54:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:55:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:55:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:56:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:56:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:57:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:57:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:58:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:58:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:59:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 02:59:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:00:13 /admin/switches/2/ports/Gi0/8 .................... ~ 6s
+  2026-04-20 03:00:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:01:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:01:43 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:02:13 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:02:43 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:03:15 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:03:45 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:04:15 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:04:45 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:05:15 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:05:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:06:16 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:06:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:07:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:07:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:08:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:08:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:09:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:09:46 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:10:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:10:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:11:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:11:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:12:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:12:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:13:16 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:13:46 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:14:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:14:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:15:17 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:15:47 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:15:51 / ............................................ ~ 0.02ms
+  2026-04-20 03:15:51 /captive ..................................... ~ 0.06ms
+  2026-04-20 03:16:17 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:16:47 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:17:17 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:17:47 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:18:17 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:18:48 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:19:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:19:48 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:20:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:20:48 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:21:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:21:48 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:22:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:22:48 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:23:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:23:48 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:24:19 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:24:49 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:25:19 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:25:49 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:26:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:26:49 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:27:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:27:49 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:28:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:28:49 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:29:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:29:49 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:30:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:30:49 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:31:12 / ............................................ ~ 0.23ms
+  2026-04-20 03:31:12 /captive ..................................... ~ 0.02ms
+  2026-04-20 03:31:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:31:50 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:32:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:32:50 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:33:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:33:50 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:34:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:34:51 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:35:21 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:35:51 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:36:21 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:36:51 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:37:21 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:37:51 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:38:21 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:38:51 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:39:21 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:39:51 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:40:21 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:40:51 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:41:22 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:41:52 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:42:23 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:42:54 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:43:24 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:43:54 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:44:24 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:44:55 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:45:25 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:45:55 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:46:25 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:46:55 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 03:47:26 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:47:56 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:48:26 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:48:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:49:27 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:49:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:50:28 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:50:59 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:51:29 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:52:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:52:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:53:01 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:53:31 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:54:02 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:54:32 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:55:02 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:55:33 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 03:56:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:56:34 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:57:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:57:34 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:58:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:58:34 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:59:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 03:59:34 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:00:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:00:34 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:01:04 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:01:34 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:02:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:02:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:03:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:03:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:04:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:04:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:05:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:05:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:06:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:06:35 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:07:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:07:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:08:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:08:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:09:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:09:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:10:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:10:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:11:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:11:35 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:12:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:12:35 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:13:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:13:35 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:14:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:14:35 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:15:06 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:15:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:16:06 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:16:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:17:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:17:38 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:18:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:18:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:19:10 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:19:40 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:20:10 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:23:40 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:24:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:24:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:25:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:25:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:26:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:26:53 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:27:24 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:27:54 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:28:32 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:29:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:29:32 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:30:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:30:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:31:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:31:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:32:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:32:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:33:25 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:33:56 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:34:11 / ............................................ ~ 0.08ms
+  2026-04-20 04:34:12 /captive ..................................... ~ 0.06ms
+  2026-04-20 04:34:12 /admin/switches/2/ports/Gi0/8 ................... ~ 17s
+  2026-04-20 04:34:58 /captive ..................................... ~ 0.08ms
+  2026-04-20 04:34:58 /build/assets/app-DeGUrHZN.css ............... ~ 0.04ms
+  2026-04-20 04:34:58 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.12ms
+  2026-04-20 04:34:58 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.05ms
+  2026-04-20 04:34:58 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 500.35ms
+  2026-04-20 04:34:58 /favicon.ico ................................. ~ 0.02ms
+  2026-04-20 04:35:04 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:35:07 /captive/poll/adf4d183-64b9-4be2-9a3a-bee53445bb7c  ~ 0.02ms
+  2026-04-20 04:35:12 /captive/poll/adf4d183-64b9-4be2-9a3a-bee53445bb7c  ~ 0.07ms
+  2026-04-20 04:35:34 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:36:04 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 04:36:44 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 04:37:14 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:37:44 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:38:24 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:38:54 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:39:25 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:40:03 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:40:33 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:41:03 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:41:43 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:42:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:42:43 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:43:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:43:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:44:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:44:54 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:45:24 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:45:55 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:46:25 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:46:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:47:27 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:48:08 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:48:38 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:49:08 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:49:38 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:50:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:50:39 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:51:20 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:51:50 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:52:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:53:04 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:53:34 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:54:04 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:54:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:55:07 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 04:55:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:56:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:56:40 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:57:10 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:57:53 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:58:23 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:58:53 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 04:59:25 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 04:59:58 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:00:28 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:00:59 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:01:32 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:02:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:02:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:03:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:03:46 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:04:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:04:54 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:05:24 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:06:09 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:06:39 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:07:09 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:07:43 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:08:18 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:08:48 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:09:22 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:09:58 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:10:28 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:11:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:11:37 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 05:12:07 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 05:12:38 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 05:13:15 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 05:13:45 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:14:16 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 05:14:55 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:15:25 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:16:10 /admin/switches/2/ports/Gi0/8 .................... ~ 1s
+  2026-04-20 05:16:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:17:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:17:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:18:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:18:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:19:14 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:19:53 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:20:23 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:20:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:21:34 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:22:05 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:22:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:23:06 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:23:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:24:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:24:37 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 05:25:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:25:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:26:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:26:50 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:27:24 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:28:03 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:28:33 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:29:08 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:29:47 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:30:17 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:30:51 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:31:30 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:32:01 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:32:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:33:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:33:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:34:22 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:34:52 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:35:23 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:35:53 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:36:23 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:36:54 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:37:24 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:37:54 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:38:25 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:38:56 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:39:26 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:39:56 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:40:32 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:41:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:41:33 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:42:04 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:42:35 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:43:05 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:43:36 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:44:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:44:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:45:07 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:45:38 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:46:09 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:46:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:47:10 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:47:41 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:48:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:48:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:49:13 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:49:44 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:50:14 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:50:17 / ............................................ ~ 0.03ms
+  2026-04-20 05:50:17 /captive ..................................... ~ 0.03ms
+  2026-04-20 05:50:17 /.env ........................................ ~ 0.03ms
+  2026-04-20 05:50:17 /.env.bak .................................... ~ 0.03ms
+  2026-04-20 05:50:17 /.env.save ................................... ~ 0.03ms
+  2026-04-20 05:50:17 /.env.local .................................. ~ 0.03ms
+  2026-04-20 05:50:17 /backend/.env ................................ ~ 0.03ms
+  2026-04-20 05:50:17 /admin/.env .................................. ~ 0.03ms
+  2026-04-20 05:50:17 /.git/config ................................. ~ 0.03ms
+  2026-04-20 05:50:17 /wp-config.php ............................... ~ 0.06ms
+  2026-04-20 05:50:17 /wp-config.php.old ........................... ~ 0.01ms
+  2026-04-20 05:50:18 /config.php .................................. ~ 0.01ms
+  2026-04-20 05:50:18 /config.php.bak .............................. ~ 0.01ms
+  2026-04-20 05:50:18 /config.js ................................... ~ 0.02ms
+  2026-04-20 05:50:18 /aws-config.js ............................... ~ 0.02ms
+  2026-04-20 05:50:18 /aws.config.js ............................... ~ 0.01ms
+  2026-04-20 05:50:18 /phpinfo.php ................................. ~ 0.01ms
+  2026-04-20 05:50:18 /.git/HEAD ................................... ~ 0.01ms
+  2026-04-20 05:50:18 /.git/config ................................. ~ 0.01ms
+  2026-04-20 05:50:45 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:51:15 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:51:45 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:52:15 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:52:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:53:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:53:46 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:54:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:54:47 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:55:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:55:49 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:56:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:56:50 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:57:20 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 05:57:51 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:58:22 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:58:53 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:59:24 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 05:59:56 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:00:26 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:00:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:01:28 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:02:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:02:31 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:03:03 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:03:33 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:04:05 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:04:36 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:05:08 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:05:38 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:06:09 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:06:39 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:07:10 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:07:40 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:08:10 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:08:40 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:09:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:09:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:10:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:10:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:11:11 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:11:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:12:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:12:42 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 06:13:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:13:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:14:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:14:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:15:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:15:43 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:16:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:16:44 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:17:14 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:17:44 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:18:14 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:18:44 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:19:14 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:19:44 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:20:14 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:20:44 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:21:15 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:21:45 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:22:15 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:22:45 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:23:16 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:23:46 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:24:17 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:24:48 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:25:18 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:25:48 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:26:13 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:26:15 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-20 06:26:15 /build/assets/app-DwiY5p3P.js .............. ~ 500.29ms
+  2026-04-20 06:26:46 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 06:27:16 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:27:47 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:28:17 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:28:47 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:29:18 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:29:49 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:30:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:30:50 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:31:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:31:50 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:32:20 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:32:50 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:33:21 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:33:52 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:34:22 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:34:52 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:35:22 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:35:53 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:36:24 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:36:54 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:37:25 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:37:55 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:38:25 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:38:56 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:39:27 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:39:58 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:40:28 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:40:59 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:41:29 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:41:59 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:42:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:42:59 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:43:29 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:44:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:44:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:45:00 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:45:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:46:00 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:46:30 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:47:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:47:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:48:01 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:48:31 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:49:01 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:49:31 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:50:01 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:50:31 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 06:51:01 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:51:32 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:52:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:52:32 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:53:03 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:53:33 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:54:03 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 06:54:07 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:54:10 /build/assets/app-DeGUrHZN.css ............... ~ 0.02ms
+  2026-04-20 06:54:10 /build/assets/app-DwiY5p3P.js ................ ~ 0.10ms
+  2026-04-20 06:54:19 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:54:23 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-20 06:54:23 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.07ms
+  2026-04-20 06:54:23 /build/assets/app-DwiY5p3P.js .............. ~ 500.53ms
+  2026-04-20 06:54:23 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.02ms
+  2026-04-20 06:54:23 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.05ms
+  2026-04-20 06:54:23 /favicon.ico ................................. ~ 0.07ms
+  2026-04-20 06:54:33 /favicon.ico ................................. ~ 0.10ms
+  2026-04-20 06:54:37 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 06:54:40 /build/assets/app-DeGUrHZN.css ............... ~ 0.03ms
+  2026-04-20 06:54:40 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.01ms
+  2026-04-20 06:54:40 /build/assets/app-DwiY5p3P.js .............. ~ 500.39ms
+  2026-04-20 06:54:40 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.02ms
+  2026-04-20 06:54:40 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.06ms
+  2026-04-20 06:54:41 /favicon.ico ................................. ~ 0.06ms

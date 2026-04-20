@@ -8,6 +8,7 @@ use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
+use App\Models\SwitchPortConfig;
 use App\Models\SwitchPortMac;
 use App\Models\User;
 use App\Models\UserIpAddress;
@@ -160,6 +161,32 @@ class SwitchPortControllerTest extends TestCase
             ->component('Admin/Switches/Ports/Show')
             ->where('switchConfig.name', 'Edge Switch')
             ->where('switchConfig.hostname', 'edge-sw.local')
+        );
+    }
+
+    public function test_port_show_includes_interface_output_property_alongside_running_config(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        SwitchPortConfig::factory()->create([
+            'switch_port_id' => $port->id,
+            'config_text' => "interface Gi0/1\n description Test",
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('port.config_text', "interface Gi0/1\n description Test")
+            ->has('port.interface_output')
         );
     }
 

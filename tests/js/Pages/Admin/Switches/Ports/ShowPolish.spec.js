@@ -145,4 +145,19 @@ describe('Ports/Show.vue - Polish', () => {
             expect(toggleButton.attributes('title')).toBe('Administratively enable this port');
         });
     });
+
+    describe('Config rendering', () => {
+        it('renders both Running Config and Interface Output blocks when both are provided', () => {
+            const wrapper = mountPage({
+                port: {
+                    ...defaultProps.port,
+                    config_text: 'interface Gi1/0/1\n description Desk 42',
+                    interface_output: 'GigabitEthernet1/0/1 is up, line protocol is up (connected)',
+                },
+            });
+
+            const configBlocks = wrapper.findAll('[data-testid="config-block"]');
+            expect(configBlocks).toHaveLength(2);
+        });
+    });
 });

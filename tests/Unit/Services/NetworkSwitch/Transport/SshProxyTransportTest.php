@@ -110,8 +110,8 @@ class SshProxyTransportTest extends TestCase
                 'admin',
                 'password',
                 [
-                    ['command' => 'terminal length 0', 'expect' => '/^.*[>#]$/'],
-                    ['command' => 'show interface status', 'expect' => '/^.*[>#]$/'],
+                    ['command' => 'terminal length 0', 'expect' => '/^.*[>#]\s*$/'],
+                    ['command' => 'show interface status', 'expect' => '/^.*[>#]\s*$/'],
                 ],
                 22,
             )
@@ -128,7 +128,50 @@ class SshProxyTransportTest extends TestCase
         $this->assertSame('Gi1/0/1 connected', $transport->execute('show interface status'));
     }
 
-    public function test_enable_commands_have_if_conditions_for_pooled_connections(): void
+    public function test_execute_builds_enable_sequence_with_privileged_prompt_after_enable_password(): void
+    {
+        $switchConfig = SwitchConfig::factory()->make([
+            'hostname' => 'switch.local',
+            'username' => 'admin',
+            'password' => 'password',
+            'enable_password' => 'enable-pass',
+        ]);
+
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->with(
+                'switch.local',
+                'admin',
+                'password',
+                Mockery::on(function (array $commands): bool {
+                    $this->assertSame([
+                        ['command' => 'en', 'if' => '/>\s*$/', 'expect' => '/Password:/'],
+                        ['command' => 'enable-pass', 'if' => '/Password:/', 'expect' => '/^.*#\s*$/'],
+                        ['command' => 'terminal length 0', 'expect' => '/^.*#\s*$/'],
+                        ['command' => 'show interface status', 'expect' => '/^.*#\s*$/'],
+                    ], $commands);
+
+                    return true;
+                }),
+                22,
+            )
+            ->andReturn(new CommandResult(
+                success: true,
+                output: [
+                    new CommandOutput('terminal length 0', ''),
+                    new CommandOutput('en', ''),
+                    new CommandOutput('enable-pass', ''),
+                    new CommandOutput('show interface status', 'Gi1/0/1 connected'),
+                ],
+            ));
+
+        $transport = new SshProxyTransport($proxyClient, $switchConfig);
+
+        $this->assertSame('Gi1/0/1 connected', $transport->execute('show interface status'));
+    }
+
+    public function test_enable_sequence_keeps_if_conditions_and_uses_privileged_prompts_for_pooled_connections(): void
     {
         $switchConfig = SwitchConfig::factory()->make([
             'hostname' => 'switch.local',
@@ -151,7 +194,7 @@ class SshProxyTransportTest extends TestCase
 
                     // password command must have 'if' to skip when en was skipped
                     $this->assertSame('/Password:/', $commands[1]['if']);
-                    $this->assertSame('/#\s*$/', $commands[1]['expect']);
+                    $this->assertSame('/^.*#\s*$/', $commands[1]['expect']);
 
                     // terminal length 0 must not have 'if' — always runs
                     $this->assertArrayNotHasKey('if', $commands[2]);
@@ -171,6 +214,230 @@ class SshProxyTransportTest extends TestCase
         $transport = new SshProxyTransport($proxyClient, $switchConfig);
 
         $this->assertSame('Gi1/0/1 connected', $transport->execute('show interface status'));
+    }
+
+    public function test_execute_uses_prompt_regex_that_tolerates_trailing_whitespace_without_enable_password(): void
+    {
+        $switchConfig = SwitchConfig::factory()->make([
+            'hostname' => 'switch.local',
+            'username' => 'admin',
+            'password' => 'password',
+            'enable_password' => null,
+        ]);
+
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->with(
+                'switch.local',
+                'admin',
+                'password',
+                Mockery::on(function (array $commands): bool {
+                    foreach ($commands as $command) {
+                        $expectPattern = $command['expect'];
+
+                        $this->assertSame(
+                            1,
+                            preg_match($expectPattern, 'switch#   '),
+                            "Expected [{$expectPattern}] to match prompt with trailing spaces.",
+                        );
+                        $this->assertSame(
+                            1,
+                            preg_match($expectPattern, "switch>\t\n"),
+                            "Expected [{$expectPattern}] to match prompt with trailing whitespace/newline.",
+                        );
+                    }
+
+                    return true;
+                }),
+                22,
+            )
+            ->andReturn(new CommandResult(
+                success: true,
+                output: [
+                    new CommandOutput('terminal length 0', ''),
+                    new CommandOutput('show interface status', 'Gi1/0/1 connected'),
+                ],
+            ));
+
+        $transport = new SshProxyTransport($proxyClient, $switchConfig);
+
+        $this->assertSame('Gi1/0/1 connected', $transport->execute('show interface status'));
+    }
+
+    public function test_execute_uses_privileged_prompt_regex_after_enable_password(): void
+    {
+        $switchConfig = SwitchConfig::factory()->make([
+            'hostname' => 'switch.local',
+            'username' => 'admin',
+            'password' => 'password',
+            'enable_password' => 'enable-pass',
+        ]);
+
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->with(
+                'switch.local',
+                'admin',
+                'password',
+                Mockery::on(function (array $commands): bool {
+                    $postEnablePromptRegex = $commands[1]['expect'];
+                    $commandPromptRegex = $commands[2]['expect'];
+
+                    $this->assertSame(
+                        1,
+                        preg_match($postEnablePromptRegex, 'switch#   '),
+                        "Expected [{$postEnablePromptRegex}] to match prompt with trailing spaces.",
+                    );
+                    $this->assertSame(
+                        1,
+                        preg_match($postEnablePromptRegex, "switch# \n"),
+                        "Expected [{$postEnablePromptRegex}] to match prompt with trailing whitespace/newline.",
+                    );
+
+                    $this->assertSame(
+                        1,
+                        preg_match($commandPromptRegex, 'switch#   '),
+                        "Expected [{$commandPromptRegex}] to match prompt with trailing spaces.",
+                    );
+                    $this->assertSame(
+                        1,
+                        preg_match($commandPromptRegex, "switch#\t\n"),
+                        "Expected [{$commandPromptRegex}] to match prompt with trailing whitespace/newline.",
+                    );
+                    $this->assertSame(0, preg_match($commandPromptRegex, "switch>\t\n"));
+
+                    return true;
+                }),
+                22,
+            )
+            ->andReturn(new CommandResult(
+                success: true,
+                output: [
+                    new CommandOutput('en', ''),
+                    new CommandOutput('enable-pass', ''),
+                    new CommandOutput('terminal length 0', ''),
+                    new CommandOutput('show interface status', 'Gi1/0/1 connected'),
+                ],
+            ));
+
+        $transport = new SshProxyTransport($proxyClient, $switchConfig);
+
+        $this->assertSame('Gi1/0/1 connected', $transport->execute('show interface status'));
+    }
+
+    public function test_execute_requires_privileged_prompt_expectations_after_enable_password(): void
+    {
+        $switchConfig = SwitchConfig::factory()->make([
+            'hostname' => 'switch.local',
+            'username' => 'admin',
+            'password' => 'password',
+            'enable_password' => 'enable-pass',
+        ]);
+
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->with(
+                'switch.local',
+                'admin',
+                'password',
+                Mockery::on(function (array $commands): bool {
+                    $privilegedPromptRegex = '/^.*#\s*$/';
+
+                    // Once enable is requested, prompt expectations must require privileged mode (#).
+                    $this->assertSame($privilegedPromptRegex, $commands[1]['expect']);
+                    $this->assertSame($privilegedPromptRegex, $commands[2]['expect']);
+                    $this->assertSame($privilegedPromptRegex, $commands[3]['expect']);
+
+                    // Optional trailing whitespace should be allowed.
+                    $this->assertSame(1, preg_match($commands[1]['expect'], "switch# \n"));
+                    $this->assertSame(1, preg_match($commands[2]['expect'], "switch#\t"));
+                    $this->assertSame(1, preg_match($commands[3]['expect'], 'switch#   '));
+
+                    // Non-privileged prompt must not satisfy post-enable expectations.
+                    $this->assertSame(0, preg_match($commands[1]['expect'], 'switch>'));
+                    $this->assertSame(0, preg_match($commands[2]['expect'], 'switch>   '));
+                    $this->assertSame(0, preg_match($commands[3]['expect'], "switch>\n"));
+
+                    return true;
+                }),
+                22,
+            )
+            ->andReturn(new CommandResult(
+                success: true,
+                output: [
+                    new CommandOutput('en', ''),
+                    new CommandOutput('enable-pass', ''),
+                    new CommandOutput('terminal length 0', ''),
+                    new CommandOutput('show interface status', 'Gi1/0/1 connected'),
+                ],
+            ));
+
+        $transport = new SshProxyTransport($proxyClient, $switchConfig);
+
+        $this->assertSame('Gi1/0/1 connected', $transport->execute('show interface status'));
+    }
+
+    public function test_execute_strips_command_echo_and_trailing_hash_prompt_from_show_run_interface_output(): void
+    {
+        $switchConfig = SwitchConfig::factory()->make();
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->andReturn(new CommandResult(
+                success: true,
+                output: [
+                    new CommandOutput('terminal length 0', ''),
+                    new CommandOutput(
+                        'show run interface Gi1/0/1',
+                        "show run interface Gi1/0/1\r\n".
+                        "interface Gi1/0/1\r\n".
+                        " description Uplink\r\n".
+                        " switchport mode trunk\r\n".
+                        "!\r\n".
+                        'switch01#'
+                    ),
+                ],
+            ));
+
+        $transport = new SshProxyTransport($proxyClient, $switchConfig);
+
+        $this->assertSame(
+            "interface Gi1/0/1\r\n description Uplink\r\n switchport mode trunk\r\n!",
+            $transport->execute('show run interface Gi1/0/1')
+        );
+    }
+
+    public function test_execute_strips_command_echo_and_trailing_angle_prompt_from_show_interface_output(): void
+    {
+        $switchConfig = SwitchConfig::factory()->make([
+            'enable_password' => null,
+        ]);
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->andReturn(new CommandResult(
+                success: true,
+                output: [
+                    new CommandOutput('terminal length 0', ''),
+                    new CommandOutput(
+                        'show interface Gi1/0/1',
+                        "show interface Gi1/0/1\r\n".
+                        "GigabitEthernet1/0/1 is up, line protocol is up\r\n".
+                        "  MTU 1500 bytes, BW 1000000 Kbit/sec\r\n".
+                        'switch01>'
+                    ),
+                ],
+            ));
+
+        $transport = new SshProxyTransport($proxyClient, $switchConfig);
+
+        $this->assertSame(
+            "GigabitEthernet1/0/1 is up, line protocol is up\r\n  MTU 1500 bytes, BW 1000000 Kbit/sec",
+            $transport->execute('show interface Gi1/0/1')
+        );
     }
 
     public function test_execute_throws_when_proxy_output_is_missing_for_requested_command(): void

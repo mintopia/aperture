@@ -95,7 +95,7 @@ class SwitchManagementController extends Controller
                 'duplex' => $port->duplex,
                 'switchport_mode' => $port->switchport_mode,
             ]),
-            'canDownloadConfig' => in_array($switchConfig->type, ['cisco_ios', 'cisco_nxos']),
+            'canDownloadConfig' => in_array($switchConfig->type, ['cisco', 'cisco_ios', 'cisco_nxos'], true),
             'latestSync' => $latestSync,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],

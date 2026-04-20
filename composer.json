@@ -14,6 +14,7 @@
         "laravel/horizon": "^5.34",
         "laravel/octane": "^2.12",
         "laravel/prompts": "^0.3.0",
+        "laravel/reverb": "^1.5",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
         "phpseclib/phpseclib": "^3.0",

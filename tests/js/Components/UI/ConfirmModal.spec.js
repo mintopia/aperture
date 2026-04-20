@@ -88,4 +88,21 @@ describe('ConfirmModal', () => {
 
         expect(wrapper.find('[data-testid="confirm-modal-confirm"]').classes()).toContain('bg-[var(--color-warning)]');
     });
+
+    it('uses dialog accessibility semantics', () => {
+        const wrapper = mountComponent();
+        const dialog = wrapper.find('[role="dialog"]');
+
+        expect(dialog.exists()).toBe(true);
+        expect(dialog.attributes('aria-modal')).toBe('true');
+        expect(dialog.attributes('aria-labelledby')).toBeTruthy();
+        expect(dialog.attributes('aria-describedby')).toBeTruthy();
+    });
+
+    it('emits cancel on Escape key', async () => {
+        const wrapper = mountComponent();
+        await wrapper.find('[data-testid="confirm-modal"]').trigger('keydown', { key: 'Escape' });
+
+        expect(wrapper.emitted('cancel')).toHaveLength(1);
+    });
 });

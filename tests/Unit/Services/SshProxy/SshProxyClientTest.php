@@ -14,6 +14,7 @@ use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use RuntimeException;
 use Tests\TestCase;
@@ -257,5 +258,56 @@ class SshProxyClientTest extends TestCase
             'password',
             [['command' => 'show version']],
         );
+    }
+
+    public function test_invalid_configured_host_throws_actionable_laravel_exception(): void
+    {
+        config([
+            'aperture.ssh_proxy.host' => 'http://bad host',
+            'aperture.ssh_proxy.port' => 8022,
+            'aperture.ssh_proxy.api_key' => 'test-api-key',
+        ]);
+
+        $this->app->forgetInstance(SshProxyClientInterface::class);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid SSH proxy host configuration [aperture.ssh_proxy.host]. Use a plain hostname or IP without scheme/path.');
+
+        /** @var SshProxyClientInterface $resolved */
+        $resolved = $this->app->make(SshProxyClientInterface::class);
+        $resolved->status();
+    }
+
+    #[DataProvider('invalidSshProxyHostsProvider')]
+    public function test_invalid_configured_host_with_special_characters_throws_actionable_laravel_exception(string $invalidHost): void
+    {
+        config([
+            'aperture.ssh_proxy.host' => $invalidHost,
+            'aperture.ssh_proxy.port' => 8022,
+            'aperture.ssh_proxy.api_key' => 'test-api-key',
+        ]);
+
+        $this->app->forgetInstance(SshProxyClientInterface::class);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Invalid SSH proxy host configuration [aperture.ssh_proxy.host]. Use a plain hostname or IP without scheme/path.');
+
+        /** @var SshProxyClientInterface $resolved */
+        $resolved = $this->app->make(SshProxyClientInterface::class);
+        $resolved->status();
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function invalidSshProxyHostsProvider(): array
+    {
+        return [
+            'contains userinfo separator' => ['switch-admin@10.0.0.5'],
+            'contains query delimiter' => ['10.0.0.5?debug=1'],
+            'contains fragment delimiter' => ['10.0.0.5#fragment'],
+            'contains path segment' => ['10.0.0.5/path'],
+            'contains scheme and userinfo style host' => ['http://user@10.0.0.5'],
+        ];
     }
 }

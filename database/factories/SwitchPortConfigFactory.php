@@ -26,6 +26,7 @@ class SwitchPortConfigFactory extends Factory
             'switch_port_id' => SwitchPort::factory(),
             'config_text' => $configText,
             'config_hash' => md5($configText),
+            'interface_output' => null,
             'last_fetched_at' => now(),
         ];
     }

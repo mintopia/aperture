@@ -78,6 +78,15 @@ describe('Show.vue - Polish', () => {
     });
 
     describe('Delete functionality with ConfirmModal', () => {
+        it('renders updated layout wrappers for wireframe parity', () => {
+            const wrapper = mountShow();
+            expect(wrapper.find('[data-testid="switch-show-layout"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="switch-show-header-card"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="switch-show-actions"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="switch-details-card"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="switch-ports-card"]').exists()).toBe(true);
+        });
+
         it('renders ConfirmModal for delete', async () => {
             const wrapper = mountShow();
 

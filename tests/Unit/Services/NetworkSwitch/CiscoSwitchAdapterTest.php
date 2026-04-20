@@ -38,6 +38,27 @@ class CiscoSwitchAdapterTest extends TestCase
         $this->assertEquals('Full-duplex', $result->duplex);
     }
 
+    public function test_get_port_status_exposes_raw_show_interface_output_for_interface_output_capture(): void
+    {
+        $rawOutput = implode("\r\n", [
+            'GigabitEthernet1/0/7 is up, line protocol is up (connected)',
+            '  Hardware is Gigabit Ethernet, address is aabb.ccdd.ee07',
+            '  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX',
+            '  Last input never, output 00:00:00, output hang never',
+        ]);
+
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show interface Gi1/0/7')
+            ->once()
+            ->andReturn($rawOutput);
+
+        $adapter = $this->createAdapter($transport);
+        $result = $adapter->getPortStatus('Gi1/0/7');
+
+        $this->assertSame($rawOutput, $result->description);
+    }
+
     public function test_get_all_ports_returns_collection(): void
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
@@ -124,7 +145,7 @@ class CiscoSwitchAdapterTest extends TestCase
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
         $transport->shouldReceive('execute')
-            ->with('show running-config interface Gi1/0/1')
+            ->with('show run interface Gi1/0/1')
             ->once()
             ->andReturn("interface Gi1/0/1\n description Test");
 
@@ -137,7 +158,7 @@ class CiscoSwitchAdapterTest extends TestCase
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
         $transport->shouldReceive('execute')
-            ->with('show running-config interface Gi1/0/1')
+            ->with('show run interface Gi1/0/1')
             ->once()
             ->andReturn("interface Gi1/0/1\n switchport access vlan 100");
 
@@ -145,6 +166,23 @@ class CiscoSwitchAdapterTest extends TestCase
         $result = $adapter->getPortRunningConfig('Gi1/0/1');
 
         $this->assertSame("interface Gi1/0/1\n switchport access vlan 100", $result);
+    }
+
+    public function test_get_port_running_config_does_not_fall_back_to_switchport_output_when_running_config_command_is_invalid(): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show run interface Gi1/0/1')
+            ->once()
+            ->andReturn("% Invalid input detected at '^' marker.\nshow running-config interface Gi1/0/1");
+
+        $adapter = $this->createAdapter($transport);
+        $result = $adapter->getPortRunningConfig('Gi1/0/1');
+
+        $this->assertSame(
+            "% Invalid input detected at '^' marker.\nshow running-config interface Gi1/0/1",
+            $result
+        );
     }
 
     public function test_get_forwarding_database_returns_collection(): void

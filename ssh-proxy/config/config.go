@@ -25,7 +25,7 @@ type Config struct {
 // for any values not set.
 func Load() Config {
 	return Config{
-		APIKey:         getEnv("SSH_PROXY_API_KEY", ""),
+		APIKey:         getAPIKeyEnv(),
 		ListenAddr:     getEnv("SSH_PROXY_LISTEN_ADDR", "0.0.0.0:8022"),
 		IdleTimeout:    getDurationEnv("SSH_PROXY_IDLE_TIMEOUT", 600),
 		SweepInterval:  getDurationEnv("SSH_PROXY_SWEEP_INTERVAL", 60),
@@ -34,6 +34,13 @@ func Load() Config {
 		ConnectTimeout: getDurationEnv("SSH_PROXY_CONNECT_TIMEOUT", 10),
 		LogLevel:       strings.ToLower(getEnv("SSH_PROXY_LOG_LEVEL", "info")),
 	}
+}
+
+func getAPIKeyEnv() string {
+	if val, ok := os.LookupEnv("SSH_PROXY_API_KEY"); ok {
+		return val
+	}
+	return getEnv("APERTURE_SSH_PROXY_API_KEY", "")
 }
 
 // SlogLevel converts the string log level to a slog.Level.

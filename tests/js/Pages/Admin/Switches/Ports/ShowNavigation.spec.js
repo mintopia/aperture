@@ -85,7 +85,10 @@ function mountShow(propsOverride = {}) {
                         '<div data-testid="metadata-strip"><span v-for="item in items" :key="item.label" :data-testid="\'meta-\' + item.label">{{ item.label }}: {{ item.value }}</span></div>',
                     props: ['items'],
                 },
-                SectionHeader: { template: '<div><slot /></div>', props: ['title'] },
+                SectionHeader: {
+                    template: '<div :data-title="title"><span>{{ title }}</span><slot /></div>',
+                    props: ['title', 'accentLine'],
+                },
                 StatusPill: {
                     template: '<span>{{ label }}</span>',
                     props: ['status', 'label'],
@@ -103,6 +106,43 @@ function mountShow(propsOverride = {}) {
 }
 
 describe('Show — Port Navigation Context', () => {
+    it('renders the top context strip and metadata strip hierarchy', () => {
+        const wrapper = mountShow();
+        const contextStrip = wrapper.find('[data-testid="port-context-strip"]');
+        const metadataStrip = wrapper.find('[data-testid="metadata-strip"]');
+
+        expect(contextStrip.exists()).toBe(true);
+        expect(metadataStrip.exists()).toBe(true);
+        expect(wrapper.html().indexOf('port-context-strip')).toBeLessThan(wrapper.html().indexOf('metadata-strip'));
+    });
+
+    it('renders primary and secondary desktop layout rows for S7 structure', () => {
+        const wrapper = mountShow();
+        const primaryRow = wrapper.find('[data-testid="layout-row-primary"]');
+        const secondaryRow = wrapper.find('[data-testid="layout-row-secondary"]');
+
+        expect(primaryRow.exists()).toBe(true);
+        expect(primaryRow.classes()).toContain('xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]');
+        expect(primaryRow.find('[data-testid="bandwidth-section"]').exists()).toBe(true);
+        expect(primaryRow.find('[data-testid="connected-devices-section"]').exists()).toBe(true);
+
+        expect(secondaryRow.exists()).toBe(true);
+        expect(secondaryRow.classes()).toContain('xl:grid-cols-2');
+        expect(secondaryRow.find('[data-testid="errors-section"]').exists()).toBe(true);
+        expect(secondaryRow.text()).toContain('Running Config');
+    });
+
+    it('renders interface output as a secondary collapsed section', () => {
+        const wrapper = mountShow();
+        const interfaceOutputSecondary = wrapper.find('[data-testid="interface-output-secondary"]');
+        const collapsible = wrapper.find('[data-testid="interface-output-collapsible"]');
+
+        expect(interfaceOutputSecondary.exists()).toBe(true);
+        expect(collapsible.exists()).toBe(true);
+        expect(collapsible.attributes('open')).toBeUndefined();
+        expect(collapsible.text()).toContain('Interface Output');
+    });
+
     it('renders switch name as a link to the switch detail page', () => {
         const wrapper = mountShow();
         const link = wrapper.find('[data-testid="port-switch-link"]');
@@ -115,9 +155,7 @@ describe('Show — Port Navigation Context', () => {
 
     it('renders switch type label next to the switch name', () => {
         const wrapper = mountShow();
-        const header = wrapper.find('.mt-1');
-
-        expect(header.text()).toContain('TypeLabel(cisco_ios)');
+        expect(wrapper.text()).toContain('TypeLabel(cisco_ios)');
     });
 
     it('renders prev port link when prevPort is provided', () => {

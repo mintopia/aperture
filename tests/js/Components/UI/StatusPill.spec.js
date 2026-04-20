@@ -76,4 +76,14 @@ describe('StatusPill', () => {
         const iconSpan = wrapper.find('[aria-hidden="true"]');
         expect(iconSpan.exists()).toBe(true);
     });
+
+    it('updates icon/classes when status prop changes', async () => {
+        const wrapper = mount(StatusPill, {
+            props: { status: 'success', label: 'Active' },
+        });
+
+        expect(wrapper.text()).toContain('✓');
+        await wrapper.setProps({ status: 'danger' });
+        expect(wrapper.text()).toContain('✕');
+    });
 });

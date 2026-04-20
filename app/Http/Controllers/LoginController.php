@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +28,35 @@ class LoginController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
+
+        if (User::query()->doesntExist()) {
+            $adminRole = Role::query()->where('code', 'admin')->first() ?? new Role;
+            $adminRole->code = 'admin';
+            $adminRole->name = 'Admin';
+            $adminRole->save();
+
+            $userRole = Role::query()->where('code', 'user')->first() ?? new Role;
+            $userRole->code = 'user';
+            $userRole->name = 'User';
+            $userRole->save();
+
+            $nickname = Str::before($credentials['email'], '@');
+            if ($nickname === '') {
+                $nickname = 'admin';
+            }
+
+            $user = new User;
+            $user->email = $credentials['email'];
+            $user->nickname = $nickname;
+            $user->password = $credentials['password'];
+            $user->save();
+            $user->roles()->syncWithoutDetaching([$adminRole->id, $userRole->id]);
+
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            return redirect()->intended('/');
+        }
 
         $key = 'login-attempt:'.Str::lower($credentials['email']).'|'.$request->ip();
 

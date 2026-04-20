@@ -9,8 +9,10 @@ use App\Models\SwitchPort;
 use App\Models\SwitchPortConfig;
 use App\Models\SwitchPortMac;
 use App\Models\SwitchSyncRun;
+use App\Services\Interfaces\SupportsInterfaceOutputCapture;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 class PortSyncService
@@ -103,23 +105,67 @@ class PortSyncService
                             'port' => $port->port_name,
                         ]);
 
-                        $configText = $adapter->getPortRunningConfig($port->port_name);
-                        $configHash = md5($configText);
                         $existingConfig = $port->config;
+                        $configText = $this->trimRunningConfigPreamble(
+                            $adapter->getPortRunningConfig($port->port_name),
+                        );
+                        $interfaceOutput = null;
+
+                        try {
+                            if ($adapter instanceof SupportsInterfaceOutputCapture) {
+                                $rawInterfaceOutput = $adapter->getPortInterfaceOutput($port->port_name);
+                                $interfaceOutput = $rawInterfaceOutput !== '' ? $rawInterfaceOutput : null;
+                            } else {
+                                $portStatus = $adapter->getPortStatus($port->port_name);
+                                $interfaceOutput = $portStatus->description !== '' ? $portStatus->description : null;
+                            }
+                        } catch (Throwable $throwable) {
+                            Log::debug('PortSyncService: interface output fetch failed for port', [
+                                'switch' => $switchConfig->hostname,
+                                'port' => $port->port_name,
+                                'error' => $throwable->getMessage(),
+                            ]);
+                        }
+
+                        $hasUsableRunningConfig = ! $this->isCiscoCliErrorOutput($configText) && ! $this->isSwitchportOutput($configText);
+
+                        if (! $hasUsableRunningConfig && ! is_string($interfaceOutput)) {
+                            if ($existingConfig instanceof SwitchPortConfig && $this->isCiscoCliErrorOutput($existingConfig->config_text)) {
+                                $existingConfig->delete();
+                            }
+
+                            throw new RuntimeException('Cisco CLI returned error output while fetching running config.');
+                        }
+
+                        $persistedConfigText = $hasUsableRunningConfig ? $configText : '';
+
+                        if (
+                            ! $hasUsableRunningConfig
+                            && $existingConfig instanceof SwitchPortConfig
+                            && $existingConfig->config_text !== ''
+                        ) {
+                            $persistedConfigText = $existingConfig->config_text;
+                        }
+                        $configHash = md5($persistedConfigText);
 
                         if ($existingConfig instanceof SwitchPortConfig && $existingConfig->config_hash === $configHash) {
-                            $existingConfig->update(['last_fetched_at' => $syncStartedAt]);
+                            $existingConfig->update([
+                                'interface_output' => $interfaceOutput,
+                                'last_fetched_at' => $syncStartedAt,
+                            ]);
                         } elseif ($existingConfig instanceof SwitchPortConfig) {
                             $existingConfig->update([
-                                'config_text' => $configText,
+                                'config_text' => $persistedConfigText,
                                 'config_hash' => $configHash,
+                                'interface_output' => $interfaceOutput,
                                 'last_fetched_at' => $syncStartedAt,
                             ]);
                         } else {
                             SwitchPortConfig::create([
                                 'switch_port_id' => $port->id,
-                                'config_text' => $configText,
+                                'config_text' => $persistedConfigText,
                                 'config_hash' => $configHash,
+                                'interface_output' => $interfaceOutput,
                                 'last_fetched_at' => $syncStartedAt,
                             ]);
                         }
@@ -134,6 +180,7 @@ class PortSyncService
                             'port' => $port->port_name,
                             'error' => $e->getMessage(),
                         ]);
+
                         continue;
                     }
                 }
@@ -217,5 +264,36 @@ class PortSyncService
         }
 
         return $syncRun;
+    }
+
+    private function isCiscoCliErrorOutput(string $output): bool
+    {
+        return (bool) preg_match(
+            '/^\s*%\s+Invalid input detected at \'\^\' marker\.?\s*$/mi',
+            $output,
+        );
+    }
+
+    private function isSwitchportOutput(string $output): bool
+    {
+        return str_contains($output, 'Switchport:') && str_contains($output, 'Administrative Mode:');
+    }
+
+    private function trimRunningConfigPreamble(string $configText): string
+    {
+        $preambleTrimCount = 0;
+        $trimmedConfigText = preg_replace(
+            '/\A(?:[ \t]*\R)*(?:(?:Building configuration\.\.\.[ \t]*\R(?:[ \t]*\R)*)?(?:Current configuration\s*:\s*[0-9,]+\s+bytes[ \t]*\R)|(?:Building configuration\.\.\.[ \t]*\R))(?:[ \t]*\R)*/i',
+            '',
+            $configText,
+            1,
+            $preambleTrimCount,
+        ) ?? $configText;
+
+        if ($preambleTrimCount === 0) {
+            return $trimmedConfigText;
+        }
+
+        return preg_replace('/\A(?:[ \t]*![ \t]*(?:\R|$))+/', '', $trimmedConfigText, 1) ?? $trimmedConfigText;
     }
 }

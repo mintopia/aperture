@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -48,6 +49,33 @@ class LoginControllerTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_first_login_bootstraps_admin_user_when_no_users_exist(): void
+    {
+        $adminRole = new Role;
+        $adminRole->code = 'admin';
+        $adminRole->name = 'Admin';
+        $adminRole->save();
+
+        $userRole = new Role;
+        $userRole->code = 'user';
+        $userRole->name = 'User';
+        $userRole->save();
+
+        $response = $this->post('/login', [
+            'email' => 'first-admin@test.com',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertRedirect('/');
+
+        $createdUser = User::query()->where('email', 'first-admin@test.com')->first();
+
+        $this->assertNotNull($createdUser);
+        $this->assertTrue($createdUser->hasRole('admin'));
+        $this->assertTrue($createdUser->hasRole('user'));
+        $this->assertAuthenticatedAs($createdUser);
+    }
+
     public function test_login_fails_with_wrong_password(): void
     {
         User::factory()->withPassword('secret123')->create([
@@ -81,6 +109,10 @@ class LoginControllerTest extends TestCase
 
     public function test_login_fails_for_nonexistent_email(): void
     {
+        User::factory()->withPassword('secret123')->create([
+            'email' => 'existing@test.com',
+        ]);
+
         $response = $this->post('/login', [
             'email' => 'nobody@test.com',
             'password' => 'anything',

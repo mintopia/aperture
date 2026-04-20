@@ -1,0 +1,58 @@
+
+   INFO  Horizon started successfully.  
+
+  2026-04-19 18:51:27 App\Jobs\SyncSwitchPortsJob .................... RUNNING
+  2026-04-19 18:51:27 App\Jobs\IpAddressAction ....................... RUNNING
+  2026-04-19 18:51:28 App\Jobs\IpAddressAction ................. 502.97ms DONE
+  2026-04-19 18:51:30 App\Jobs\SyncSwitchPortsJob .................... 2s FAIL
+  2026-04-19 18:51:31 App\Jobs\SyncSwitchPortsJob .................... RUNNING
+  2026-04-19 18:51:33 App\Jobs\SyncSwitchPortsJob .................... 2s FAIL
+  2026-04-19 18:51:39 App\Jobs\SyncSwitchPortsJob .................... RUNNING
+  2026-04-19 18:51:42 App\Jobs\SyncSwitchPortsJob .................... 2s FAIL
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+The environment file is invalid!
+Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+
+
+   INFO  Horizon started successfully.  
+

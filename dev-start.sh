@@ -25,6 +25,17 @@ LOCAL_VITE_PORT="${DEV_VITE_PORT:-5173}"
 LOCAL_SSH_PROXY_HOST="${DEV_SSH_PROXY_HOST:-127.0.0.1}"
 LOCAL_SSH_PROXY_PORT="${DEV_SSH_PROXY_PORT:-8022}"
 
+if [[ -z "${APERTURE_SSH_PROXY_API_KEY:-}" && -f "${ROOT_DIR}/.env" ]]; then
+    raw_ssh_proxy_key="$(grep -m1 '^APERTURE_SSH_PROXY_API_KEY=' "${ROOT_DIR}/.env" | cut -d= -f2- || true)"
+    raw_ssh_proxy_key="${raw_ssh_proxy_key%\"}"
+    raw_ssh_proxy_key="${raw_ssh_proxy_key#\"}"
+    raw_ssh_proxy_key="${raw_ssh_proxy_key%\'}"
+    raw_ssh_proxy_key="${raw_ssh_proxy_key#\'}"
+    if [[ -n "${raw_ssh_proxy_key}" ]]; then
+        APERTURE_SSH_PROXY_API_KEY="${raw_ssh_proxy_key}"
+    fi
+fi
+
 compose_available() {
     if docker compose version >/dev/null 2>&1; then
         COMPOSE=(docker compose)
@@ -59,6 +70,26 @@ is_tcp_reachable() {
     timeout 2 bash -c ":</dev/tcp/${host}/${port}" >/dev/null 2>&1
 }
 
+detect_listener_pid() {
+    local port="$1"
+    local pid=""
+
+    if command -v ss >/dev/null 2>&1; then
+        pid="$(ss -ltnp "sport = :${port}" 2>/dev/null | awk -F'pid=' 'NR>1 {split($2,a,","); if (a[1] ~ /^[0-9]+$/) {print a[1]; exit}}')"
+    fi
+
+    if [[ -z "${pid}" ]] && command -v lsof >/dev/null 2>&1; then
+        pid="$(lsof -t -iTCP:"${port}" -sTCP:LISTEN 2>/dev/null | head -n1 || true)"
+    fi
+
+    if [[ "${pid}" =~ ^[0-9]+$ ]]; then
+        echo "${pid}"
+        return 0
+    fi
+
+    return 1
+}
+
 start_local_service() {
     local service="$1"
     local command="$2"
@@ -83,7 +114,13 @@ start_local_service() {
     sleep 1
     if ! kill -0 "${pid}" >/dev/null 2>&1; then
         if [[ -n "${probe_host}" && -n "${probe_port}" ]] && is_tcp_reachable "${probe_host}" "${probe_port}"; then
-            echo "[local] ${service} already listening on ${probe_host}:${probe_port}; leaving existing process in place."
+            if listener_pid="$(detect_listener_pid "${probe_port}")"; then
+                echo "[local] ${service} already listening on ${probe_host}:${probe_port}; adopting pid ${listener_pid}."
+                echo "${listener_pid}" > "${pid_file}"
+                return 0
+            fi
+
+            echo "[local] ${service} already listening on ${probe_host}:${probe_port}; keeping external process."
             echo "external:${probe_host}:${probe_port}" > "${pid_file}"
             return 0
         fi
@@ -178,6 +215,9 @@ else
     start_local_service "horizon" "php artisan horizon" || failed_services+=("horizon")
     start_local_service "scheduler" "php artisan schedule:work" || failed_services+=("scheduler")
     start_local_service "vite" "npm run dev -- --host=${LOCAL_VITE_HOST} --port=${LOCAL_VITE_PORT} --strictPort" "${LOCAL_VITE_HOST}" "${LOCAL_VITE_PORT}" || failed_services+=("vite")
+    if [[ -z "${APERTURE_SSH_PROXY_API_KEY:-}" ]]; then
+        echo "Warning: APERTURE_SSH_PROXY_API_KEY is empty. SSH proxy auth may return 401."
+    fi
     start_local_service "ssh-proxy" "cd ssh-proxy && env SSH_PROXY_API_KEY='${APERTURE_SSH_PROXY_API_KEY:-}' SSH_PROXY_LISTEN_ADDR=0.0.0.0:${LOCAL_SSH_PROXY_PORT} go run ." "${LOCAL_SSH_PROXY_HOST}" "${LOCAL_SSH_PROXY_PORT}" || failed_services+=("ssh-proxy")
 
     if [[ "${#failed_services[@]}" -gt 0 ]]; then

@@ -19,6 +19,7 @@ class SwitchPortConfig extends Model
         'switch_port_id',
         'config_text',
         'config_hash',
+        'interface_output',
         'last_fetched_at',
     ];
 
