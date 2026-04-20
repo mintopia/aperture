@@ -85,4 +85,39 @@ describe('Show — layout contract', () => {
         expect(rightColumn.find('[data-testid="section-errors"]').exists()).toBe(true);
         expect(rightColumn.find('[data-testid="section-interface-output"]').exists()).toBe(true);
     });
+
+    it('keeps layout rows stacked on mobile while defining desktop column splits', () => {
+        const wrapper = mountPage();
+
+        const primaryRow = wrapper.find('[data-testid="layout-row-primary"]');
+        const secondaryRow = wrapper.find('[data-testid="layout-row-secondary"]');
+
+        expect(primaryRow.exists()).toBe(true);
+        expect(primaryRow.classes()).toContain('grid-cols-1');
+        expect(primaryRow.classes().some((klass) => klass.startsWith('xl:grid-cols-'))).toBe(true);
+
+        expect(secondaryRow.exists()).toBe(true);
+        expect(secondaryRow.classes()).toContain('grid-cols-1');
+        expect(secondaryRow.classes()).toContain('xl:grid-cols-2');
+    });
+
+    it('shows state-aware toggle action labels explicitly (Shut / Unshut)', () => {
+        const upWrapper = mountPage({
+            port: {
+                ...defaultProps.port,
+                admin_status: 'up',
+            },
+        });
+        expect(upWrapper.find('[data-testid="action-toggle"]').isVisible()).toBe(true);
+        expect(upWrapper.find('[data-testid="action-toggle"]').text()).toBe('Shut');
+
+        const downWrapper = mountPage({
+            port: {
+                ...defaultProps.port,
+                admin_status: 'down',
+            },
+        });
+        expect(downWrapper.find('[data-testid="action-toggle"]').isVisible()).toBe(true);
+        expect(downWrapper.find('[data-testid="action-toggle"]').text()).toBe('Unshut');
+    });
 });
