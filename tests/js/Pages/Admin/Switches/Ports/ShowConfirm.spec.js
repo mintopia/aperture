@@ -97,6 +97,18 @@ describe('Admin Switch Port Show confirmation modal integration', () => {
         expect(router.post).not.toHaveBeenCalled();
     });
 
+    it('canceling shutdown confirmation closes modal without posting', async () => {
+        const wrapper = mountPage();
+
+        await wrapper.find('[data-testid="action-toggle"]').trigger('click');
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+
+        await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
+
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+        expect(router.post).not.toHaveBeenCalled();
+    });
+
     it('shows enable confirmation modal when clicking unshut on a down port', async () => {
         const wrapper = mountPage({
             port: {
@@ -107,6 +119,8 @@ describe('Admin Switch Port Show confirmation modal integration', () => {
         await wrapper.find('[data-testid="action-toggle"]').trigger('click');
 
         expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="confirm-modal-title"]').text()).toMatch(/enable|unshut/i);
+        expect(wrapper.find('[data-testid="confirm-modal-message"]').text()).toMatch(/enable|unshut|restore/i);
         expect(router.post).not.toHaveBeenCalled();
     });
 
