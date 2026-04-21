@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -35,12 +36,12 @@ class DnsDetectionSettingsController extends Controller
                 'nullable',
                 'string',
                 'max:500',
-                function (string $attribute, mixed $value, \Closure $fail): void {
+                function (string $attribute, mixed $value, Closure $fail): void {
                     if ($value !== null && $value !== '' && ! str_contains($value, '{uuid}')) {
                         $fail('The URL must contain the {uuid} placeholder.');
                     }
                 },
-                function (string $attribute, mixed $value, \Closure $fail): void {
+                function (string $attribute, mixed $value, Closure $fail): void {
                     if ($value !== null && $value !== '' && ! filter_var(str_replace('{uuid}', 'test', $value), FILTER_VALIDATE_URL)) {
                         $fail('The URL must be a valid URL.');
                     }

@@ -44,10 +44,7 @@ const gridBlocks = computed(() => props.blocks.filter((b) => !heroTypes.includes
 
         <!-- DNS Warning (top of page) -->
         <div v-if="dnsDetection" class="mb-4">
-            <DnsWarningBlock
-                :check-url="dnsDetection.checkUrl"
-                :warning-message="dnsDetection.warningMessage"
-            />
+            <DnsWarningBlock :check-url="dnsDetection.checkUrl" :warning-message="dnsDetection.warningMessage" />
         </div>
 
         <!-- Connection strip -->
