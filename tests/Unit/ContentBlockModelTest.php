@@ -21,15 +21,15 @@ class ContentBlockModelTest extends TestCase
         $this->assertEquals('Active', $active->first()->title);
     }
 
-    public function test_active_scope_orders_by_sort_order(): void
+    public function test_active_scope_orders_by_grid_row_then_grid_col(): void
     {
-        ContentBlock::factory()->create(['sort_order' => 30, 'title' => 'Third', 'is_active' => true]);
-        ContentBlock::factory()->create(['sort_order' => 10, 'title' => 'First', 'is_active' => true]);
-        ContentBlock::factory()->create(['sort_order' => 20, 'title' => 'Second', 'is_active' => true]);
+        ContentBlock::factory()->create(['grid_row' => 2, 'grid_col' => 1, 'title' => 'Row2Col1', 'is_active' => true]);
+        ContentBlock::factory()->create(['grid_row' => 1, 'grid_col' => 3, 'title' => 'Row1Col3', 'is_active' => true]);
+        ContentBlock::factory()->create(['grid_row' => 1, 'grid_col' => 1, 'title' => 'Row1Col1', 'is_active' => true]);
 
         $blocks = ContentBlock::active()->get();
 
-        $this->assertEquals(['First', 'Second', 'Third'], $blocks->pluck('title')->toArray());
+        $this->assertEquals(['Row1Col1', 'Row1Col3', 'Row2Col1'], $blocks->pluck('title')->toArray());
     }
 
     public function test_settings_cast_to_array(): void

@@ -13,11 +13,23 @@ class ContentBlock extends Model
     /** @use HasFactory<ContentBlockFactory> */
     use HasFactory;
 
+    /** @var list<string> */
+    public const SINGLETON_TYPES = [
+        'connection_strip',
+        'bandwidth',
+        'network_stats',
+        'dns_filter',
+        'connection_status',
+    ];
+
     protected $fillable = [
         'type',
         'title',
         'content',
-        'sort_order',
+        'grid_col',
+        'grid_row',
+        'col_span',
+        'row_span',
         'is_active',
         'settings',
     ];
@@ -40,6 +52,8 @@ class ContentBlock extends Model
     #[Scope]
     protected function active(Builder $query): Builder
     {
-        return $query->where('is_active', true)->orderBy('sort_order');
+        return $query->where('is_active', true)
+            ->orderBy('grid_row')
+            ->orderBy('grid_col');
     }
 }

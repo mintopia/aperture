@@ -21,7 +21,10 @@ class ContentBlockFactory extends Factory
             'type' => fake()->randomElement(['event_info', 'connection_status', 'bandwidth', 'network_stats', 'custom_markdown']),
             'title' => fake()->sentence(3),
             'content' => fake()->optional()->paragraph(),
-            'sort_order' => fake()->numberBetween(0, 100),
+            'grid_col' => 1,
+            'grid_row' => 1,
+            'col_span' => 1,
+            'row_span' => 1,
             'is_active' => true,
             'settings' => null,
         ];
@@ -49,6 +52,49 @@ class ContentBlockFactory extends Factory
             'type' => 'custom_markdown',
             'title' => fake()->sentence(3),
             'content' => fake()->paragraphs(2, true),
+        ]);
+    }
+
+    public function connectionStrip(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'connection_strip',
+            'title' => 'Connection Status',
+        ]);
+    }
+
+    public function dnsFilter(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'dns_filter',
+            'title' => 'DNS Ad Blocking',
+            'content' => 'Toggle DNS filtering for your connection.',
+        ]);
+    }
+
+    public function bandwidth(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'bandwidth',
+            'title' => 'Bandwidth',
+        ]);
+    }
+
+    public function networkStats(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'network_stats',
+            'title' => 'Network Stats',
+        ]);
+    }
+
+    public function atPosition(int $col, int $row, int $colSpan = 1, int $rowSpan = 1): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'grid_col' => $col,
+            'grid_row' => $row,
+            'col_span' => $colSpan,
+            'row_span' => $rowSpan,
         ]);
     }
 }
