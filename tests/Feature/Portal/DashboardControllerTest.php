@@ -167,7 +167,7 @@ class DashboardControllerTest extends TestCase
 
         // Pre-create an IP with a known address, allowed, and associate a MAC
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
-        $ip = IpAddress::factory()->allowed()->create([
+        IpAddress::factory()->allowed()->create([
             'address' => '10.0.0.1',
             'mac_address_id' => $mac->id,
         ]);

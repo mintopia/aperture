@@ -149,6 +149,7 @@ class ContentControllerGridTest extends TestCase
         ]);
 
         $response->assertCreated();
+
         $block = ContentBlock::where('title', 'New Block')->first();
         $this->assertEquals(3, $block->grid_col);
         $this->assertEquals(1, $block->grid_row);

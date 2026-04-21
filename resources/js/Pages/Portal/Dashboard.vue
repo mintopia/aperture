@@ -6,7 +6,7 @@ import DnsWarningBlock from '@/Components/Blocks/DnsWarningBlock.vue';
 
 defineOptions({ layout: PortalLayout });
 
-const props = defineProps({
+defineProps({
     blocks: {
         type: Array,
         default: () => [],

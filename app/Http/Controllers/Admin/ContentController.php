@@ -153,10 +153,11 @@ class ContentController extends Controller
         foreach ($blocks as $block) {
             for ($c = $block['grid_col']; $c < $block['grid_col'] + $block['col_span']; $c++) {
                 for ($r = $block['grid_row']; $r < $block['grid_row'] + $block['row_span']; $r++) {
-                    $key = "{$c},{$r}";
+                    $key = sprintf('%d,%d', $c, $r);
                     if (isset($occupied[$key])) {
                         return true;
                     }
+
                     $occupied[$key] = true;
                 }
             }
@@ -176,7 +177,7 @@ class ContentController extends Controller
         foreach ($blocks as $block) {
             for ($c = $block->grid_col; $c < $block->grid_col + $block->col_span; $c++) {
                 for ($r = $block->grid_row; $r < $block->grid_row + $block->row_span; $r++) {
-                    $occupied["{$c},{$r}"] = true;
+                    $occupied[sprintf('%s,%s', $c, $r)] = true;
                 }
             }
         }
@@ -184,7 +185,7 @@ class ContentController extends Controller
         // Scan row by row, col by col
         for ($row = 1; $row <= 100; $row++) {
             for ($col = 1; $col <= 3; $col++) {
-                if (! isset($occupied["{$col},{$row}"])) {
+                if (! isset($occupied[sprintf('%d,%d', $col, $row)])) {
                     return ['col' => $col, 'row' => $row];
                 }
             }
