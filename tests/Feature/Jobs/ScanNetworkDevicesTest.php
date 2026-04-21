@@ -6,6 +6,7 @@ use App\Jobs\ScanNetworkDevices;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
@@ -199,6 +200,45 @@ class ScanNetworkDevicesTest extends TestCase
             'address' => '10.0.0.80',
             'allowed' => true,
             'mac_address_id' => $mac->id,
+        ]);
+    }
+
+    public function test_auto_allow_associates_ip_with_mac_owner_user(): void
+    {
+        $user = User::factory()->create();
+        $mac = MacAddress::factory()->allowed()->create([
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'user_id' => $user->id,
+        ]);
+
+        $resolver = Mockery::mock(MacAddressResolverInterface::class);
+        $resolver->shouldReceive('resolveIpToMac')->andReturnNull();
+        $this->app->instance(MacAddressResolverInterface::class, $resolver);
+
+        $dhcp = Mockery::mock(DhcpInterface::class);
+        $dhcp->shouldReceive('getLeases')->andReturn(collect([
+            new DhcpLease(ip: '10.0.0.55', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'phone', expires: ''),
+        ]));
+        $this->app->instance(DhcpInterface::class, $dhcp);
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('getArpTable')->andReturn(collect([]));
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+
+        (new ScanNetworkDevices)->handle();
+
+        $this->assertDatabaseHas('ip_addresses', [
+            'address' => '10.0.0.55',
+            'allowed' => true,
+            'mac_address_id' => $mac->id,
+        ]);
+        $this->assertDatabaseHas('user_ip_addresses', [
+            'user_id' => $user->id,
+        ]);
+        $ip = IpAddress::where('address', '10.0.0.55')->first();
+        $this->assertDatabaseHas('user_ip_addresses', [
+            'user_id' => $user->id,
+            'ip_address_id' => $ip->id,
         ]);
     }
 

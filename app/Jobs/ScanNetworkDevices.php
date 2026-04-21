@@ -106,19 +106,23 @@ class ScanNetworkDevices implements ShouldQueue
 
     private function autoAllowIp(string $ipAddress, MacAddress $macAddress): void
     {
-        $ip = IpAddress::where('address', $ipAddress)->first();
-        if ($ip === null) {
-            $ip = new IpAddress;
-            $ip->address = $ipAddress;
-            $ip->last_seen_at = now()->toDateTimeString();
+        if ($macAddress->user_id !== null && $macAddress->user) {
+            $ip = $macAddress->user->addIp($ipAddress);
+        } else {
+            $ip = IpAddress::where('address', $ipAddress)->first();
+            if ($ip === null) {
+                $ip = new IpAddress;
+                $ip->address = $ipAddress;
+                $ip->last_seen_at = now()->toDateTimeString();
+                $ip->save();
+            }
         }
 
         $ip->mac_address_id = (int) $macAddress->id; // @phpstan-ignore assign.propertyType
+        $ip->save();
+
         if (! $ip->allowed) {
-            $ip->save();
             $ip->allow();
-        } else {
-            $ip->save();
         }
     }
 
