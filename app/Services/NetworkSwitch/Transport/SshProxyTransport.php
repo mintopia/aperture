@@ -56,7 +56,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
                 'error' => $result->error,
                 'commands' => $commands,
                 'output_count' => count($result->output),
-                'outputs' => array_map(fn (CommandOutput $o) => [
+                'outputs' => array_map(fn (CommandOutput $o): array => [
                     'command' => $this->sanitizeCommandForLog($o->command),
                     'output_length' => strlen($o->output),
                     'output_tail' => substr($o->output, -200),
@@ -68,7 +68,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         Log::debug('SshProxyTransport: commands executed successfully', [
             'hostname' => $this->switchConfig->hostname,
             'output_count' => count($result->output),
-            'outputs' => array_map(fn (CommandOutput $o) => [
+            'outputs' => array_map(fn (CommandOutput $o): array => [
                 'command' => $this->sanitizeCommandForLog($o->command),
                 'output_length' => strlen($o->output),
             ], $result->output),
@@ -128,7 +128,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
      */
     protected function sanitizeCommandsForLog(array $commands): array
     {
-        return array_map(fn (array $cmd) => [
+        return array_map(fn (array $cmd): array => [
             'command' => $this->sanitizeCommandForLog($cmd['command']),
             ...array_filter([
                 'expect' => $cmd['expect'] ?? null,
@@ -182,7 +182,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
                     'hostname' => $this->switchConfig->hostname,
                     'command' => $command,
                     'available_commands' => array_map(
-                        fn (CommandOutput $o) => $this->sanitizeCommandForLog($o->command),
+                        fn (CommandOutput $o): string => $this->sanitizeCommandForLog($o->command),
                         $result->output
                     ),
                 ]);

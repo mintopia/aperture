@@ -37,8 +37,8 @@ class MacAddressResolver implements MacAddressResolverInterface
         $normalized = $this->normalizeMac($macAddress);
 
         return $this->dhcp->getLeases()
-            ->filter(fn (DhcpLease $lease) => $this->normalizeMac($lease->mac) === $normalized)
-            ->map(fn (DhcpLease $lease) => [
+            ->filter(fn (DhcpLease $lease): bool => $this->normalizeMac($lease->mac) === $normalized)
+            ->map(fn (DhcpLease $lease): array => [
                 'ip' => $lease->ip,
                 'hostname' => $lease->hostname,
             ])

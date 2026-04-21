@@ -239,12 +239,12 @@ class SshProxyTransportTest extends TestCase
                         $this->assertSame(
                             1,
                             preg_match($expectPattern, 'switch#   '),
-                            "Expected [{$expectPattern}] to match prompt with trailing spaces.",
+                            sprintf('Expected [%s] to match prompt with trailing spaces.', $expectPattern),
                         );
                         $this->assertSame(
                             1,
                             preg_match($expectPattern, "switch>\t\n"),
-                            "Expected [{$expectPattern}] to match prompt with trailing whitespace/newline.",
+                            sprintf('Expected [%s] to match prompt with trailing whitespace/newline.', $expectPattern),
                         );
                     }
 
@@ -288,23 +288,23 @@ class SshProxyTransportTest extends TestCase
                     $this->assertSame(
                         1,
                         preg_match($postEnablePromptRegex, 'switch#   '),
-                        "Expected [{$postEnablePromptRegex}] to match prompt with trailing spaces.",
+                        sprintf('Expected [%s] to match prompt with trailing spaces.', $postEnablePromptRegex),
                     );
                     $this->assertSame(
                         1,
                         preg_match($postEnablePromptRegex, "switch# \n"),
-                        "Expected [{$postEnablePromptRegex}] to match prompt with trailing whitespace/newline.",
+                        sprintf('Expected [%s] to match prompt with trailing whitespace/newline.', $postEnablePromptRegex),
                     );
 
                     $this->assertSame(
                         1,
                         preg_match($commandPromptRegex, 'switch#   '),
-                        "Expected [{$commandPromptRegex}] to match prompt with trailing spaces.",
+                        sprintf('Expected [%s] to match prompt with trailing spaces.', $commandPromptRegex),
                     );
                     $this->assertSame(
                         1,
                         preg_match($commandPromptRegex, "switch#\t\n"),
-                        "Expected [{$commandPromptRegex}] to match prompt with trailing whitespace/newline.",
+                        sprintf('Expected [%s] to match prompt with trailing whitespace/newline.', $commandPromptRegex),
                     );
                     $this->assertSame(0, preg_match($commandPromptRegex, "switch>\t\n"));
 

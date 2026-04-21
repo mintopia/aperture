@@ -46,8 +46,8 @@ class CaptivePortalController extends Controller
                 'expiresIn' => $deviceFlow->expiresIn,
                 'interval' => $deviceFlow->interval,
             ]);
-        } catch (Throwable $exception) {
-            report($exception);
+        } catch (Throwable $throwable) {
+            report($throwable);
 
             return response()->view('captive.login', [
                 'serviceUnavailable' => true,

@@ -57,14 +57,7 @@ function mountIndex(switches = [baseSwitchData]) {
                 AdminLayout: { template: '<div><slot /></div>' },
                 FilterBar: {
                     template: '<div data-testid="filter-bar-stub" />',
-                    props: [
-                        'search',
-                        'searchPlaceholder',
-                        'filters',
-                        'filterValues',
-                        'totalCount',
-                        'filteredCount',
-                    ],
+                    props: ['search', 'searchPlaceholder', 'filters', 'filterValues', 'totalCount', 'filteredCount'],
                 },
                 EmptyState: {
                     template: '<div data-testid="empty-state"><slot /></div>',

@@ -10,13 +10,16 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\SignatureInvalidException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use InvalidArgumentException;
+use OpenSSLAsymmetricKey;
+use RuntimeException;
 use Tests\TestCase;
 
 class Ipv6JwtServiceTest extends TestCase
 {
     private string $jwksUrl = 'https://ipv6.example.com/.well-known/jwks.json';
 
-    private \OpenSSLAsymmetricKey $privateKey;
+    private OpenSSLAsymmetricKey $privateKey;
 
     private string $kid = 'test-key-1';
 
@@ -29,10 +32,10 @@ class Ipv6JwtServiceTest extends TestCase
             'private_key_bits' => 2048,
             'private_key_type' => OPENSSL_KEYTYPE_RSA,
         ]);
-        assert($keyPair instanceof \OpenSSLAsymmetricKey);
+        assert($keyPair instanceof OpenSSLAsymmetricKey);
         openssl_pkey_export($keyPair, $privatePem);
         $privateKey = openssl_pkey_get_private((string) $privatePem);
-        assert($privateKey instanceof \OpenSSLAsymmetricKey);
+        assert($privateKey instanceof OpenSSLAsymmetricKey);
         $this->privateKey = $privateKey;
     }
 
@@ -87,7 +90,7 @@ class Ipv6JwtServiceTest extends TestCase
         $service = app(Ipv6JwtService::class);
         $jwt = $this->makeJwt('192.168.1.1');
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('not a valid IPv6');
 
         $service->verifyAndExtract($jwt, $this->jwksUrl);
@@ -104,10 +107,10 @@ class Ipv6JwtServiceTest extends TestCase
             'private_key_bits' => 2048,
             'private_key_type' => OPENSSL_KEYTYPE_RSA,
         ]);
-        assert($otherKey instanceof \OpenSSLAsymmetricKey);
+        assert($otherKey instanceof OpenSSLAsymmetricKey);
         openssl_pkey_export($otherKey, $otherPem);
         $otherPrivate = openssl_pkey_get_private((string) $otherPem);
-        assert($otherPrivate instanceof \OpenSSLAsymmetricKey);
+        assert($otherPrivate instanceof OpenSSLAsymmetricKey);
         $badJwt = JWT::encode(
             ['sub' => '2001:db8::1', 'iat' => time(), 'exp' => time() + 300],
             $otherPrivate,
@@ -157,7 +160,7 @@ class Ipv6JwtServiceTest extends TestCase
         $service = app(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1');
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Failed to fetch JWKS');
 
         $service->verifyAndExtract($jwt, $this->jwksUrl);

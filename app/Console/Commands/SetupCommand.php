@@ -110,6 +110,7 @@ class SetupCommand extends Command
         if (! $setting->exists) {
             $setting->value = true;
         }
+
         $setting->save();
 
         $this->info('Aperture setup complete.');

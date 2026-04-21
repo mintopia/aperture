@@ -8,6 +8,7 @@ use App\Services\Ipv6JwtService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Throwable;
 
 class PortalController extends Controller
 {
@@ -58,7 +59,7 @@ class PortalController extends Controller
 
         try {
             $ipv6 = $jwtService->verifyAndExtract($request->input('token'), $jwksUrl);
-        } catch (\Throwable $e) {
+        } catch (Throwable $throwable) {
             return response()->json(['error' => 'Invalid token'], 422);
         }
 

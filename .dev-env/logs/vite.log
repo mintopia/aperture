@@ -632,3 +632,50 @@ Error: Port 5173 is already in use
   LARAVEL v13.4.0  plugin v3.0.1
 
   ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+12:54:19 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:54:25 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:54:29 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:54:41 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Integrations.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:54:48 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Integrations.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:54:57 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Integrations.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:55:06 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Integrations.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:55:12 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Integrations.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:55:20 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:55:27 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:55:33 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:55:45 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:55:52 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:57:33 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Integrations.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:57:40 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:57:47 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:58:49 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+12:58:49 AM [vite] (client) hmr update /resources/css/app.css?direct, /resources/css/app.css
+12:58:49 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+1:55:24 AM [vite] (client) hmr update /resources/js/Components/UI/DataTable.vue, /resources/css/app.css?direct, /resources/css/app.css
+1:55:37 AM [vite] (client) hmr update /resources/js/Pages/Admin/Dhcp/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+1:56:50 AM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:00:32 AM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:00:43 AM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:16:16 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:19:50 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:23:46 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:23:47 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:24:02 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/IntegrationShow.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:43:03 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:52:41 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:52:48 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:52:53 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+2:52:57 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:04:52 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:04:58 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:05:02 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:05:07 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:31:39 AM [vite] (client) hmr update /resources/js/Components/Admin/SettingsNav.vue, /resources/css/app.css?direct, /resources/css/app.css
+The request id "/home/workspace/aperture/.env" is outside of Vite serving allow list.
+
+- /home/workspace/aperture
+
+Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for configurations and more details.
+
+The request id "/home/workspace/aperture/.git/config" is outside of Vite serving allow list.
+The request id "/home/workspace/aperture/.env" is outside of Vite serving allow list.

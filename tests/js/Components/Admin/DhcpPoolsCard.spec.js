@@ -3,8 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import DhcpPoolsCard from '@/Components/Admin/DhcpPoolsCard.vue';
 
 beforeEach(() => {
-    config.global.mocks.route = (name, params) =>
-        `/mock/${name}/${Object.values(params ?? {}).join('/')}`;
+    config.global.mocks.route = (name, params) => `/mock/${name}/${Object.values(params ?? {}).join('/')}`;
 });
 
 const samplePools = [

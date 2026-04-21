@@ -27,10 +27,8 @@ class PrepareE2eCommand extends Command
 
     public function handle(): int
     {
-        if ((bool) $this->option('verify-redis')) {
-            if (! $this->verifyRedisConnections()) {
-                return self::FAILURE;
-            }
+        if ((bool) $this->option('verify-redis') && ! $this->verifyRedisConnections()) {
+            return self::FAILURE;
         }
 
         $email = (string) $this->option('email');

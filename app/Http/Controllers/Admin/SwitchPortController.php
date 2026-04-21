@@ -95,6 +95,7 @@ class SwitchPortController extends Controller
         $allPortNames = $switchConfig->switchPorts()->orderBy('port_name')->pluck('port_name')->all();
         $currentIndex = array_search($portId, $allPortNames, true);
         $currentIndex = is_int($currentIndex) ? $currentIndex : null;
+
         $prevPort = $currentIndex !== null && $currentIndex > 0 ? $allPortNames[$currentIndex - 1] : null;
         $nextPort = $currentIndex !== null && $currentIndex < count($allPortNames) - 1 ? $allPortNames[$currentIndex + 1] : null;
 

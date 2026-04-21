@@ -46,10 +46,7 @@ describe('Breadcrumbs.vue', () => {
     });
 
     it('renders ancestor links with correct styling', () => {
-        const wrapper = mountBreadcrumbs([
-            { label: 'Admin', href: '/admin' },
-            { label: 'Users' },
-        ]);
+        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
         const link = wrapper.get('[data-testid="breadcrumb-link"]');
 
         expect(link.classes()).toContain('text-[var(--color-text-secondary)]');
@@ -58,10 +55,7 @@ describe('Breadcrumbs.vue', () => {
     });
 
     it('renders the current page (last segment) as a span with muted text', () => {
-        const wrapper = mountBreadcrumbs([
-            { label: 'Admin', href: '/admin' },
-            { label: 'Users' },
-        ]);
+        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
         const current = wrapper.get('[data-testid="breadcrumb-current"]');
 
         expect(current.text()).toBe('Users');
@@ -69,10 +63,7 @@ describe('Breadcrumbs.vue', () => {
     });
 
     it('renders separator between segments with muted text color', () => {
-        const wrapper = mountBreadcrumbs([
-            { label: 'Admin', href: '/admin' },
-            { label: 'Users' },
-        ]);
+        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
         const items = wrapper.findAll('li');
         const separator = items[1].find('span');
 
@@ -81,10 +72,7 @@ describe('Breadcrumbs.vue', () => {
     });
 
     it('does not render a separator before the first segment', () => {
-        const wrapper = mountBreadcrumbs([
-            { label: 'Admin', href: '/admin' },
-            { label: 'Users' },
-        ]);
+        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
         const firstItem = wrapper.findAll('li')[0];
         const spans = firstItem.findAll('span');
 
@@ -109,10 +97,7 @@ describe('Breadcrumbs.vue', () => {
     });
 
     it('does not render any card wrappers or accent borders', () => {
-        const wrapper = mountBreadcrumbs([
-            { label: 'Admin', href: '/admin' },
-            { label: 'Users' },
-        ]);
+        const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
         const nav = wrapper.get('nav');
 
         // No card-like wrapper classes

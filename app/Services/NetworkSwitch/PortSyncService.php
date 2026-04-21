@@ -146,6 +146,7 @@ class PortSyncService
                         ) {
                             $persistedConfigText = $existingConfig->config_text;
                         }
+
                         $configHash = md5($persistedConfigText);
 
                         if ($existingConfig instanceof SwitchPortConfig && $existingConfig->config_hash === $configHash) {

@@ -10,6 +10,8 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\SignatureInvalidException;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Facades\Http;
+use InvalidArgumentException;
+use RuntimeException;
 
 class Ipv6JwtService
 {
@@ -20,8 +22,8 @@ class Ipv6JwtService
     /**
      * Verify an RS256 JWT via JWKS and extract the IPv6 address from the sub claim.
      *
-     * @throws \InvalidArgumentException When sub is not a valid IPv6 address
-     * @throws \RuntimeException When JWKS fetch fails
+     * @throws InvalidArgumentException When sub is not a valid IPv6 address
+     * @throws RuntimeException When JWKS fetch fails
      * @throws SignatureInvalidException When signature verification fails
      * @throws ExpiredException When JWT has expired
      */
@@ -33,7 +35,7 @@ class Ipv6JwtService
 
         $ipv6 = $decoded->sub ?? '';
         if (! filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            throw new \InvalidArgumentException("JWT sub claim is not a valid IPv6 address: {$ipv6}");
+            throw new InvalidArgumentException('JWT sub claim is not a valid IPv6 address: '.$ipv6);
         }
 
         return $ipv6;
@@ -50,7 +52,7 @@ class Ipv6JwtService
             $response = Http::timeout(10)->get($jwksUrl);
 
             if (! $response->successful()) {
-                throw new \RuntimeException("Failed to fetch JWKS from {$jwksUrl}: HTTP {$response->status()}");
+                throw new RuntimeException(sprintf('Failed to fetch JWKS from %s: HTTP %d', $jwksUrl, $response->status()));
             }
 
             return $response->json();
