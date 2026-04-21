@@ -185,6 +185,7 @@ Replacement happens on the frontend before rendering. Missing keys render as emp
 ### Renamed Components
 
 - **`PiHoleToggleBlock.vue` → `DnsFilterBlock.vue`** — refactored to use the `dns-filtering` capability via `CapabilityAssignment` rather than being pihole-specific. Accepts editable title and description props.
+- **`PiHoleController.php` → `DnsFilterController.php`** — generic controller name. Route changes from `POST /pihole/toggle` (`portal.pihole.toggle`) to `POST /dns-filter/toggle` (`portal.dns-filter.toggle`).
 
 ### Modified Components
 
@@ -196,6 +197,7 @@ Replacement happens on the frontend before rendering. Missing keys render as emp
 
 - Remove `dns_warning` from BlockGrid's component registry (already settings-driven)
 - Remove `PiHoleToggleBlock.vue` after creating `DnsFilterBlock.vue`
+- Rename `PiHoleController` → `DnsFilterController`, route `portal.pihole.toggle` → `portal.dns-filter.toggle`
 - Remove `ContentController@reorder` and its route
 - Drop `sort_order` from content_blocks table
 - Update `ContentBlockSeeder` with new types and default grid coordinates

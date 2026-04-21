@@ -35,6 +35,9 @@
 - `tests/js/composables/useGridEditor.spec.js`
 - `tests/js/utils/contentTemplating.spec.js`
 
+### Renamed Files
+- `app/Http/Controllers/Portal/PiHoleController.php` → `app/Http/Controllers/Portal/DnsFilterController.php` — generic dns-filter toggle
+
 ### Modified Files
 - `app/Models/ContentBlock.php` — active scope ordering, SINGLETON_TYPES constant
 - `app/Http/Controllers/Admin/ContentController.php` — singleton enforcement, updateLayout, editor route, remove reorder
@@ -44,7 +47,7 @@
 - `resources/js/Components/BlockGrid.vue` — CSS Grid renderer, updated component registry
 - `resources/js/Pages/Portal/Dashboard.vue` — remove hardcoded layout, pass blockContext
 - `resources/js/Pages/Admin/Content/Index.vue` — add/delete/toggle UI, link to editor
-- `routes/web.php` — new routes, remove reorder
+- `routes/web.php` — new routes, remove reorder, rename pihole route to dns-filter
 - `tests/Feature/Admin/ContentControllerTest.php` — update reorder test, add grid tests
 - `tests/Unit/ContentBlockModelTest.php` — update sort_order tests to grid ordering
 - `tests/Feature/Portal/DashboardControllerTest.php` — blockContext tests
@@ -53,6 +56,7 @@
 
 ### Deleted Files
 - `resources/js/Components/Blocks/PiHoleToggleBlock.vue` — replaced by DnsFilterBlock.vue
+- `app/Http/Controllers/Portal/PiHoleController.php` — replaced by DnsFilterController.php
 
 ---
 
@@ -1236,7 +1240,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import DnsFilterBlock from '@/Components/Blocks/DnsFilterBlock.vue';
 
-vi.stubGlobal('route', vi.fn(() => '/mock/pihole/toggle'));
+vi.stubGlobal('route', vi.fn(() => '/mock/dns-filter/toggle'));
 
 describe('DnsFilterBlock', () => {
     beforeEach(() => {
@@ -1278,7 +1282,7 @@ describe('DnsFilterBlock', () => {
         await wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
 
         expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining('pihole/toggle'),
+            expect.stringContaining('dns-filter/toggle'),
             expect.objectContaining({ method: 'POST' }),
         );
     });
@@ -1314,7 +1318,7 @@ const loading = ref(false);
 async function toggle() {
     loading.value = true;
     try {
-        const response = await fetch(route('portal.pihole.toggle'), {
+        const response = await fetch(route('portal.dns-filter.toggle'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1360,13 +1364,54 @@ async function toggle() {
 </template>
 ```
 
-- [ ] **Step 4: Delete PiHoleToggleBlock.vue**
+- [ ] **Step 4: Rename PiHoleController to DnsFilterController**
+
+Rename `app/Http/Controllers/Portal/PiHoleController.php` to `app/Http/Controllers/Portal/DnsFilterController.php`. Update the class name and namespace accordingly. The `toggle` method stays the same — it already uses `DnsBlockingInterface`, so only the class/file name changes.
+
+```bash
+mv app/Http/Controllers/Portal/PiHoleController.php app/Http/Controllers/Portal/DnsFilterController.php
+```
+
+In `app/Http/Controllers/Portal/DnsFilterController.php`, change:
+```php
+class PiHoleController extends Controller
+```
+to:
+```php
+class DnsFilterController extends Controller
+```
+
+- [ ] **Step 5: Update portal route**
+
+In `routes/web.php`, replace:
+```php
+use App\Http\Controllers\Portal\PiHoleController;
+```
+with:
+```php
+use App\Http\Controllers\Portal\DnsFilterController;
+```
+
+Replace:
+```php
+Route::post('/pihole/toggle', [PiHoleController::class, 'toggle'])->name('portal.pihole.toggle');
+```
+with:
+```php
+Route::post('/dns-filter/toggle', [DnsFilterController::class, 'toggle'])->name('portal.dns-filter.toggle');
+```
+
+- [ ] **Step 6: Update PiHoleController tests**
+
+In `tests/Feature/Portal/PiHoleControllerTest.php` (or equivalent), update the route references from `portal.pihole.toggle` to `portal.dns-filter.toggle` and rename the test file to `tests/Feature/Portal/DnsFilterControllerTest.php`.
+
+- [ ] **Step 7: Delete PiHoleToggleBlock.vue**
 
 ```bash
 rm resources/js/Components/Blocks/PiHoleToggleBlock.vue
 ```
 
-- [ ] **Step 5: Delete old test and rename**
+- [ ] **Step 8: Delete old test and rename**
 
 ```bash
 rm tests/js/Components/Blocks/PiHoleToggleBlock.spec.js
@@ -1374,20 +1419,21 @@ rm tests/js/Components/Blocks/PiHoleToggleBlock.spec.js
 
 (The new test file was already created in Step 1)
 
-- [ ] **Step 6: Run tests**
+- [ ] **Step 9: Run tests**
 
 ```bash
 npx vitest run tests/js/Components/Blocks/DnsFilterBlock.spec.js
+php artisan test --compact --filter=DnsFilter
 ```
 
-Expected: All 5 pass
+Expected: All pass
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
-git add resources/js/Components/Blocks/DnsFilterBlock.vue tests/js/Components/Blocks/DnsFilterBlock.spec.js
-git rm resources/js/Components/Blocks/PiHoleToggleBlock.vue tests/js/Components/Blocks/PiHoleToggleBlock.spec.js
-git commit -m "feat: replace PiHoleToggleBlock with DnsFilterBlock using dns-filtering capability"
+git add resources/js/Components/Blocks/DnsFilterBlock.vue tests/js/Components/Blocks/DnsFilterBlock.spec.js app/Http/Controllers/Portal/DnsFilterController.php routes/web.php
+git rm resources/js/Components/Blocks/PiHoleToggleBlock.vue tests/js/Components/Blocks/PiHoleToggleBlock.spec.js app/Http/Controllers/Portal/PiHoleController.php
+git commit -m "feat: replace PiHoleToggle with DnsFilter — generic controller, route, and component"
 ```
 
 ---
