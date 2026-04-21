@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\IntegrationConfig;
 use App\Models\User;
+use App\Services\Ipv6JwtService;
+use Firebase\JWT\SignatureInvalidException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Mockery;
 use Tests\TestCase;
 
 class PortalControllerTest extends TestCase
@@ -39,27 +42,77 @@ class PortalControllerTest extends TestCase
         $response->assertJsonStructure(['ip', 'allowed']);
     }
 
-    public function test_ipv6_adds_ipv6_address(): void
+    public function test_ipv6_verifies_jwt_and_registers_address(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json')
+            ->andReturn('2001:db8::1');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $response = $this->actingAs($user)->postJson('/ipv6', [
+            'token' => 'valid.jwt.token',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure(['ip', 'allowed']);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::1']);
+    }
+
+    public function test_ipv6_rejects_invalid_jwt(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->andThrow(new SignatureInvalidException('bad sig'));
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $response = $this->actingAs($user)->postJson('/ipv6', [
+            'token' => 'invalid.jwt.token',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_ipv6_returns_503_when_jwks_not_configured(): void
     {
         Queue::fake();
         $user = User::factory()->create(['blocked' => false]);
 
         $response = $this->actingAs($user)->postJson('/ipv6', [
-            'ipv6' => '2001:db8::1',
+            'token' => 'any.jwt.token',
         ]);
-        $response->assertStatus(200);
-        $response->assertJsonStructure(['ip', 'allowed']);
+
+        $response->assertStatus(503);
     }
 
-    public function test_ipv6_works_for_blocked_user(): void
+    public function test_ipv6_does_not_allow_for_blocked_user(): void
     {
         Queue::fake();
         $user = User::factory()->create(['blocked' => true]);
 
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->andReturn('2001:db8::2');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
         $response = $this->actingAs($user)->postJson('/ipv6', [
-            'ipv6' => '2001:db8::2',
+            'token' => 'valid.jwt.token',
         ]);
+
         $response->assertStatus(200);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::2', 'allowed' => false]);
     }
 
     public function test_unauthenticated_user_redirects_to_captive(): void

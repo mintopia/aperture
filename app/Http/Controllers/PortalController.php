@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\IntegrationConfig;
 use App\Models\User;
+use App\Services\Ipv6JwtService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,11 +45,26 @@ class PortalController extends Controller
         ]);
     }
 
-    public function ipv6(Request $request): JsonResponse
+    public function ipv6(Request $request, Ipv6JwtService $jwtService): JsonResponse
     {
+        $request->validate(['token' => 'required|string']);
+
+        $dbConfig = IntegrationConfig::getAll('ipv6');
+        $jwksUrl = $dbConfig['jwks_url'] ?? '';
+
+        if ($jwksUrl === '') {
+            return response()->json(['error' => 'IPv6 detection not configured'], 503);
+        }
+
+        try {
+            $ipv6 = $jwtService->verifyAndExtract($request->input('token'), $jwksUrl);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Invalid token'], 422);
+        }
+
         /** @var User $user */
         $user = $request->user();
-        $ip = $user->addIp($request->input('ipv6'));
+        $ip = $user->addIp($ipv6);
         if (! $user->blocked) {
             $ip->allow(true);
         }
