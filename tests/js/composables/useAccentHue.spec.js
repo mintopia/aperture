@@ -1,4 +1,7 @@
+/* eslint-disable vue/one-component-per-file */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { defineComponent } from 'vue';
+import { mount } from '@vue/test-utils';
 import { usePage } from '@inertiajs/vue3';
 import { ACCENT_PRESETS, applyAccentHue, useAccentHue } from '@/composables/useAccentHue';
 
@@ -114,5 +117,45 @@ describe('useAccentHue', () => {
         const { presets } = useAccentHue();
         expect(presets).toBe(ACCENT_PRESETS);
         expect(presets).toHaveLength(8);
+    });
+
+    it('applies accent hue on mount (via component context)', async () => {
+        usePage.mockReturnValue({ props: { theme: { accent_hue: 230 } } });
+        document.documentElement.removeAttribute('data-mode');
+        document.documentElement.style.cssText = '';
+
+        const TestComponent = defineComponent({
+            setup() {
+                return useAccentHue();
+            },
+            template: '<div></div>',
+        });
+
+        const wrapper = mount(TestComponent);
+        await wrapper.vm.$nextTick();
+
+        // onMounted fires applyAccentHue(230, 'dark') since no data-mode attribute
+        expect(document.documentElement.style.getPropertyValue('--color-primary')).toContain('230');
+    });
+
+    it('uses data-mode attribute from documentElement in onMounted', async () => {
+        usePage.mockReturnValue({ props: { theme: { accent_hue: 135 } } });
+        document.documentElement.setAttribute('data-mode', 'light');
+        document.documentElement.style.cssText = '';
+
+        const TestComponent = defineComponent({
+            setup() {
+                return useAccentHue();
+            },
+            template: '<div></div>',
+        });
+
+        const wrapper = mount(TestComponent);
+        await wrapper.vm.$nextTick();
+
+        // light mode: lightL = max(80 - 21, 40) = 59
+        expect(document.documentElement.style.getPropertyValue('--color-accent-dim')).toContain('0.1');
+
+        document.documentElement.removeAttribute('data-mode');
     });
 });

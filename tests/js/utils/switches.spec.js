@@ -155,6 +155,10 @@ describe('formatDuplex', () => {
         expect(formatDuplex(undefined)).toBe('—');
         expect(formatDuplex('')).toBe('—');
     });
+
+    it('capitalizes unknown duplex values', () => {
+        expect(formatDuplex('custom')).toBe('Custom');
+    });
 });
 
 describe('formatVlan', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatDate, formatRelative } from '@/utils/dates';
+import { formatDate, formatRelative, formatRelativeTime } from '@/utils/dates';
 
 describe('formatDate', () => {
     it('formats ISO date to human readable', () => {
@@ -84,5 +84,48 @@ describe('formatRelative', () => {
 
     it('returns original string for invalid date', () => {
         expect(formatRelative('not-a-date')).toBe('not-a-date');
+    });
+});
+
+describe('formatRelativeTime', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-04-16T12:00:00Z'));
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('returns em-dash for null', () => {
+        expect(formatRelativeTime(null)).toBe('—');
+    });
+
+    it('returns em-dash for undefined', () => {
+        expect(formatRelativeTime(undefined)).toBe('—');
+    });
+
+    it('returns em-dash for empty string', () => {
+        expect(formatRelativeTime('')).toBe('—');
+    });
+
+    it('returns original string for invalid date', () => {
+        expect(formatRelativeTime('not-a-date')).toBe('not-a-date');
+    });
+
+    it('returns "now" for very recent dates (under 60s)', () => {
+        expect(formatRelativeTime('2026-04-16T11:59:30Z')).toBe('now');
+    });
+
+    it('returns minutes for dates under an hour', () => {
+        expect(formatRelativeTime('2026-04-16T11:45:00Z')).toBe('15m');
+    });
+
+    it('returns hours for dates under a day', () => {
+        expect(formatRelativeTime('2026-04-16T09:00:00Z')).toBe('3h');
+    });
+
+    it('returns days for dates older than a day', () => {
+        expect(formatRelativeTime('2026-04-14T12:00:00Z')).toBe('2d');
     });
 });

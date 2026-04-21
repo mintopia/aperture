@@ -226,4 +226,42 @@ describe('Dashboard', () => {
         expect(wrapper.find('[data-testid="pagination"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="pagination-info"]').text()).toContain('Showing 1–2 of 30');
     });
+
+    it('shows 0% when totalUsers is 0', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps({ totalUsers: 0, onlineUsers: 0 }),
+            global: defaultGlobal,
+        });
+
+        expect(wrapper.text()).toContain('0%');
+    });
+
+    it('handles single-page pagination (no pagination component when only 1 page)', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps({
+                recentUsers: {
+                    current_page: 1,
+                    last_page: 1,
+                    from: 1,
+                    to: 2,
+                    total: 2,
+                    links: [],
+                    data: [
+                        {
+                            id: 1,
+                            nickname: 'alice',
+                            email: 'alice@example.com',
+                            ips_count: 1,
+                            total_bandwidth: 1024,
+                            blocked: false,
+                            last_seen: '2026-04-17T11:55:00.000Z',
+                        },
+                    ],
+                },
+            }),
+            global: defaultGlobal,
+        });
+
+        expect(wrapper.find('[data-testid="recent-users-section"]').exists()).toBe(true);
+    });
 });

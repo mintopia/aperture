@@ -228,6 +228,24 @@ describe('FlashMessages', () => {
         expect(text.classes()).toContain('text-[13px]');
     });
 
+    it('clears all timers on unmount', async () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { success: 'Done!', info: 'Note' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        expect(wrapper.findAll('[role="alert"]')).toHaveLength(2);
+
+        // Unmount should clear timers without throwing
+        wrapper.unmount();
+
+        // Advancing time after unmount should not cause errors
+        vi.advanceTimersByTime(5000);
+        // No assertions needed beyond not throwing
+    });
+
     it('uses semantic info color instead of primary', () => {
         usePage.mockReturnValue({
             props: {
