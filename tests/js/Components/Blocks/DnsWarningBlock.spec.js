@@ -1,64 +1,159 @@
-import { mount } from '@vue/test-utils';
-import { describe, it, expect } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DnsWarningBlock from '@/Components/Blocks/DnsWarningBlock.vue';
 
 describe('DnsWarningBlock', () => {
-    it('shows warning when hasDnsIssue is true', () => {
-        const wrapper = mount(DnsWarningBlock, {
-            props: {
-                hasDnsIssue: true,
-                expectedDns: '10.0.0.1',
-                actualDns: '8.8.8.8',
-            },
-        });
+    let fetchMock;
 
-        expect(wrapper.text()).toContain('Custom DNS detected.');
-        expect(wrapper.text()).toContain('10.0.0.1');
-        expect(wrapper.text()).toContain('8.8.8.8');
+    beforeEach(() => {
+        vi.useFakeTimers();
+        fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+        vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'test-uuid-1234') });
     });
 
-    it('hides when hasDnsIssue is false', () => {
-        const wrapper = mount(DnsWarningBlock, {
-            props: {
-                hasDnsIssue: false,
-                expectedDns: '10.0.0.1',
-                actualDns: '10.0.0.1',
-            },
-        });
-
-        expect(wrapper.text()).not.toContain('Custom DNS detected.');
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
     });
 
-    it('reads expectedDns from settings prop when provided', () => {
-        const wrapper = mount(DnsWarningBlock, {
-            props: {
-                hasDnsIssue: true,
-                settings: { expectedDns: '10.0.0.1' },
-                actualDns: '8.8.8.8',
-            },
+    function mountBlock(props = {}) {
+        return mount(DnsWarningBlock, { props });
+    }
+
+    function mockFetchResponse(server) {
+        fetchMock.mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ server }),
         });
+    }
 
-        expect(wrapper.text()).toContain('10.0.0.1');
-    });
+    function mockFetchError() {
+        fetchMock.mockRejectedValueOnce(new Error('Network error'));
+    }
 
-    it('uses top-level expectedDns over settings', () => {
-        const wrapper = mount(DnsWarningBlock, {
-            props: {
-                hasDnsIssue: true,
-                expectedDns: '10.0.0.2',
-                settings: { expectedDns: '10.0.0.1' },
-                actualDns: '8.8.8.8',
-            },
-        });
-
-        expect(wrapper.text()).toContain('10.0.0.2');
-    });
-
-    it('has no visible content when hasDnsIssue is undefined', () => {
-        const wrapper = mount(DnsWarningBlock, {
-            props: {},
-        });
-
+    it('renders nothing when no checkUrl provided', () => {
+        const wrapper = mountBlock({});
         expect(wrapper.text()).toBe('');
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('shows warning when fetch returns server "online"', async () => {
+        mockFetchResponse('online');
+
+        const wrapper = mountBlock({
+            checkUrl: 'https://{uuid}.example.com',
+            warningMessage: 'Fix your DNS!',
+        });
+
+        await flushPromises();
+        expect(wrapper.find('[data-testid="block-dns-warning"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain('Fix your DNS!');
+    });
+
+    it('hides warning when fetch returns server "event"', async () => {
+        mockFetchResponse('event');
+
+        const wrapper = mountBlock({
+            checkUrl: 'https://{uuid}.example.com',
+            warningMessage: 'Fix your DNS!',
+        });
+
+        await flushPromises();
+        expect(wrapper.find('[data-testid="block-dns-warning"]').exists()).toBe(false);
+    });
+
+    it('treats fetch errors as pass (no warning)', async () => {
+        mockFetchError();
+
+        const wrapper = mountBlock({
+            checkUrl: 'https://{uuid}.example.com',
+            warningMessage: 'Fix your DNS!',
+        });
+
+        await flushPromises();
+        expect(wrapper.find('[data-testid="block-dns-warning"]').exists()).toBe(false);
+    });
+
+    it('replaces {uuid} in URL with a random UUID', async () => {
+        mockFetchResponse('event');
+
+        mountBlock({
+            checkUrl: 'https://{uuid}.example.com',
+            warningMessage: 'Fix your DNS!',
+        });
+
+        await flushPromises();
+        expect(fetchMock).toHaveBeenCalledWith('https://test-uuid-1234.example.com');
+    });
+
+    it('retries every 60 seconds after failure', async () => {
+        mockFetchResponse('online');
+
+        const wrapper = mountBlock({
+            checkUrl: 'https://{uuid}.example.com',
+            warningMessage: 'Fix your DNS!',
+        });
+
+        await flushPromises();
+        expect(wrapper.find('[data-testid="block-dns-warning"]').exists()).toBe(true);
+
+        // Advance 60 seconds, trigger retry
+        mockFetchResponse('event');
+        vi.advanceTimersByTime(60000);
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="block-dns-warning"]').exists()).toBe(false);
+    });
+
+    it('manual refresh triggers re-check', async () => {
+        mockFetchResponse('online');
+
+        const wrapper = mountBlock({
+            checkUrl: 'https://{uuid}.example.com',
+            warningMessage: 'Fix your DNS!',
+        });
+
+        await flushPromises();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        mockFetchResponse('event');
+        await wrapper.find('[data-testid="dns-refresh"]').trigger('click');
+        await flushPromises();
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(wrapper.find('[data-testid="block-dns-warning"]').exists()).toBe(false);
+    });
+
+    it('clears interval on unmount', async () => {
+        mockFetchResponse('online');
+
+        const wrapper = mountBlock({
+            checkUrl: 'https://{uuid}.example.com',
+            warningMessage: 'Fix your DNS!',
+        });
+
+        await flushPromises();
+        const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+        wrapper.unmount();
+        expect(clearIntervalSpy).toHaveBeenCalled();
+    });
+
+    it('stops retrying after pass', async () => {
+        mockFetchResponse('event');
+
+        mountBlock({
+            checkUrl: 'https://{uuid}.example.com',
+            warningMessage: 'Fix your DNS!',
+        });
+
+        await flushPromises();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        // Advancing time should NOT trigger another fetch
+        vi.advanceTimersByTime(120000);
+        await flushPromises();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 });
