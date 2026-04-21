@@ -6,10 +6,9 @@ const currentUrl = computed(() => usePage().url);
 
 const navGroups = [
     {
-        label: 'INTEGRATIONS',
+        label: 'SERVICES',
         items: [
-            { label: 'Services', href: route('admin.settings.integrations') },
-            { label: 'Switches', href: route('admin.switches.index') },
+            { label: 'Integrations', href: route('admin.settings.integrations') },
             { label: 'IPv6 Detection', disabled: true },
             { label: 'DNS Detection', disabled: true },
         ],
@@ -48,7 +47,9 @@ function itemClass(item) {
 
 <template>
     <div data-testid="settings-nav" class="flex flex-col lg:flex-row lg:gap-0">
-        <nav class="shrink-0 border-b border-[var(--color-border)] p-2 lg:w-[172px] lg:border-r lg:border-b-0 lg:py-3">
+        <nav
+            class="shrink-0 border-b border-[var(--color-border)] p-2 lg:w-[180px] lg:border-r lg:border-b-0 lg:px-0 lg:py-6"
+        >
             <div class="flex flex-wrap gap-3 lg:flex-col lg:gap-0">
                 <div
                     v-for="(group, index) in navGroups"
@@ -67,7 +68,7 @@ function itemClass(item) {
                             v-if="item.disabled"
                             :data-testid="testId(item.label)"
                             :class="itemClass(item)"
-                            class="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px]"
+                            class="flex items-center gap-1.5 rounded-md px-5 py-1.5 text-[13px]"
                         >
                             {{ item.label }}
                             <span
@@ -81,7 +82,7 @@ function itemClass(item) {
                             :href="item.href"
                             :data-testid="testId(item.label)"
                             :class="itemClass(item)"
-                            class="rounded-md px-2 py-1.5 text-[13px] transition-all duration-100"
+                            class="rounded-md px-5 py-1.5 text-[13px] transition-all duration-100"
                         >
                             {{ item.label }}
                         </component>

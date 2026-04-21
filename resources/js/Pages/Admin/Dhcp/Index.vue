@@ -85,6 +85,13 @@ function barColor(pct) {
             ]"
         />
 
+        <h2
+            class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+            style="font-variation-settings: 'opsz' 16"
+        >
+            Configured Ranges
+        </h2>
+
         <DataTable
             :columns="rangeColumns"
             :rows="sortedRanges"

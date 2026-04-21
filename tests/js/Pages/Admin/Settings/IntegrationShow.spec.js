@@ -100,14 +100,6 @@ describe('IntegrationShow.vue', () => {
                 stubs: {
                     AdminLayout: { template: '<div><slot /></div>' },
                     SettingsNav: { template: '<div><slot /></div>' },
-                    StatusPill: {
-                        template: '<span>{{ label }}</span>',
-                        props: ['status', 'label'],
-                    },
-                    CapabilityTag: {
-                        template: '<span>{{ name }}</span>',
-                        props: ['name', 'active'],
-                    },
                     FormField: {
                         template: '<div><label>{{ label }}</label><slot /></div>',
                         props: ['label', 'name', 'error'],
@@ -135,16 +127,18 @@ describe('IntegrationShow.vue', () => {
         expect(wrapper.find('[data-testid="page-title"]').text()).toBe('OPNsense');
     });
 
-    it('renders back link', () => {
-        const wrapper = mountPage();
-
-        expect(wrapper.find('[data-testid="back-link"]').text()).toContain('Back to Services');
-    });
-
     it('shows health status', () => {
         const wrapper = mountPage();
 
         expect(wrapper.find('[data-testid="health-status"]').text()).toContain('Healthy');
+    });
+
+    it('renders Configuration section title', () => {
+        const wrapper = mountPage();
+        const headings = wrapper.findAll('h2');
+        const configHeading = headings.find((h) => h.text() === 'Configuration');
+
+        expect(configHeading).toBeDefined();
     });
 
     it('renders config form fields', () => {
@@ -234,6 +228,24 @@ describe('IntegrationShow.vue', () => {
         expect(body).toHaveProperty('verify_ssl', '1');
     });
 
+    it('save button does not submit form on click (type=button)', () => {
+        const wrapper = mountPage();
+        const saveButton = wrapper.find('[data-testid="action-save"]');
+
+        expect(saveButton.exists()).toBe(true);
+        expect(saveButton.attributes('type')).toBe('button');
+    });
+
+    it('save button is in page header', () => {
+        const wrapper = mountPage();
+        const form = wrapper.find('[data-testid="config-form"]');
+        const saveButton = wrapper.find('[data-testid="action-save"]');
+
+        expect(saveButton.exists()).toBe(true);
+        // The save button should not be a descendant of the form
+        expect(form.find('[data-testid="action-save"]').exists()).toBe(false);
+    });
+
     describe('test output toggle', () => {
         it('shows toggle button when test result has output', async () => {
             global.fetch = vi.fn().mockResolvedValue({
@@ -250,7 +262,6 @@ describe('IntegrationShow.vue', () => {
             await flushPromises();
 
             expect(wrapper.find('[data-testid="test-output-toggle"]').exists()).toBe(true);
-            expect(wrapper.find('[data-testid="test-output-toggle"]').text()).toBe('Show Output');
         });
 
         it('does not show toggle button when test result has no output', async () => {
@@ -283,18 +294,25 @@ describe('IntegrationShow.vue', () => {
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
 
-            // Initially hidden
-            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(false);
+            // details element exists
+            const details = wrapper.find('[data-testid="test-output-details"]');
+            expect(details.exists()).toBe(true);
 
-            // Click to show
-            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
+            // Content is always in DOM when output is present
             expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(true);
-            expect(wrapper.find('[data-testid="test-output-toggle"]').text()).toBe('Hide Output');
 
-            // Click to hide
-            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
-            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(false);
-            expect(wrapper.find('[data-testid="test-output-toggle"]').text()).toBe('Show Output');
+            // Initially closed (no open attribute)
+            expect(details.attributes('open')).toBeUndefined();
+
+            // Manually toggle open (native details behaviour)
+            await details.element.setAttribute('open', '');
+            await wrapper.vm.$nextTick();
+            expect(details.attributes('open')).toBe('');
+
+            // Manually toggle closed
+            await details.element.removeAttribute('open');
+            await wrapper.vm.$nextTick();
+            expect(details.attributes('open')).toBeUndefined();
         });
 
         it('displays JSON output formatted', async () => {
@@ -310,7 +328,6 @@ describe('IntegrationShow.vue', () => {
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
-            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
 
             const content = wrapper.find('[data-testid="test-output-content"]').text();
             expect(content).toContain('"status": "ok"');
@@ -330,7 +347,6 @@ describe('IntegrationShow.vue', () => {
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
-            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
 
             const content = wrapper.find('[data-testid="test-output-content"]').text();
             expect(content).toBe('plain text response');
@@ -358,16 +374,56 @@ describe('IntegrationShow.vue', () => {
 
             const wrapper = mountPage();
 
-            // First test — show output
+            // First test
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
-            await wrapper.find('[data-testid="test-output-toggle"]').trigger('click');
-            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="test-output-details"]').exists()).toBe(true);
 
-            // Second test — output should be hidden again
+            // Second test — details element re-rendered for new result
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
-            expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(false);
+            expect(wrapper.find('[data-testid="test-output-details"]').exists()).toBe(true);
+        });
+    });
+
+    describe('test result panel styling', () => {
+        it('test result panel has success styling', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        message: 'Connected',
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            const panel = wrapper.find('[data-testid="test-result-panel"]');
+            expect(panel.exists()).toBe(true);
+            // Panel should carry a success-related class (bg or border)
+            const classes = panel.classes().join(' ');
+            expect(classes).toMatch(/success/);
+        });
+
+        it('test result panel has danger styling', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                json: () =>
+                    Promise.resolve({
+                        success: false,
+                        message: 'Connection failed',
+                    }),
+            });
+
+            const wrapper = mountPage();
+            await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
+            await flushPromises();
+
+            const panel = wrapper.find('[data-testid="test-result-panel"]');
+            expect(panel.exists()).toBe(true);
+            const classes = panel.classes().join(' ');
+            expect(classes).toMatch(/danger/);
         });
     });
 
@@ -412,9 +468,10 @@ describe('IntegrationShow.vue', () => {
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
 
-            const status = wrapper.find('[data-testid="test-response-status"]');
-            expect(status.exists()).toBe(true);
-            expect(status.text()).toContain('200');
+            const detail = wrapper.find('[data-testid="test-request-detail"]');
+            expect(detail.exists()).toBe(true);
+            expect(detail.text()).toContain('200');
+            expect(detail.text()).toContain('Status');
         });
 
         it('does not show request detail when request_method is absent', async () => {
@@ -431,7 +488,6 @@ describe('IntegrationShow.vue', () => {
             await flushPromises();
 
             expect(wrapper.find('[data-testid="test-request-detail"]').exists()).toBe(false);
-            expect(wrapper.find('[data-testid="test-response-status"]').exists()).toBe(false);
         });
 
         it('does not show response status for failed tests without status', async () => {
@@ -449,8 +505,9 @@ describe('IntegrationShow.vue', () => {
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
 
-            expect(wrapper.find('[data-testid="test-request-detail"]').exists()).toBe(true);
-            expect(wrapper.find('[data-testid="test-response-status"]').exists()).toBe(false);
+            const detail = wrapper.find('[data-testid="test-request-detail"]');
+            expect(detail.exists()).toBe(true);
+            expect(detail.text()).not.toContain('Status');
         });
     });
 

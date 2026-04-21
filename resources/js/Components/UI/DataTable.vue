@@ -66,11 +66,11 @@ function getRowAriaLabel(row, index) {
                             v-if="col.sortable"
                             type="button"
                             :data-testid="'sort-' + col.key"
-                            class="inline-flex items-center gap-1"
+                            class="flex w-full cursor-pointer items-center gap-1 text-left hover:text-[var(--color-text)] focus-visible:outline-none"
                             @click="toggleSort(col.key)"
                         >
                             {{ col.label }}
-                            <span v-if="sortColumn === col.key" class="text-[var(--color-primary)]">
+                            <span v-if="sortColumn === col.key" class="ml-0.5 text-[var(--color-primary)]">
                                 {{ sortDirection === 'asc' ? '\u2191' : '\u2193' }}
                             </span>
                         </button>

@@ -2,7 +2,6 @@
 import { router } from '@inertiajs/vue3';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import SettingsNav from '@/Components/Admin/SettingsNav.vue';
-import StatusPill from '@/Components/UI/StatusPill.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -12,10 +11,14 @@ const props = defineProps({
     capabilityDescriptions: { type: Object, default: () => ({}) },
 });
 
-function healthStatus(health) {
-    if (health === true) return 'success';
-    if (health === false) return 'danger';
-    return 'neutral';
+function statusDotClass(enabled) {
+    return enabled ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]' : 'bg-[var(--color-text-muted)]';
+}
+
+function healthDotClass(health) {
+    if (health === true) return 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]';
+    if (health === false) return 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]';
+    return 'bg-[var(--color-text-muted)]';
 }
 
 function healthLabel(health) {
@@ -88,36 +91,53 @@ function visitService(service) {
                                     <span class="font-medium text-[var(--color-text)]">{{ service.name }}</span>
                                     <span
                                         v-if="service.readonly"
-                                        class="rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--color-text-muted)] uppercase"
+                                        class="rounded-[3px] border border-[var(--color-border-hover)] px-1.5 py-px text-[10px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
                                     >
                                         Read only
                                     </span>
                                 </div>
                             </td>
                             <td class="px-4 py-3">
-                                <StatusPill
-                                    :status="service.enabled ? 'success' : 'neutral'"
-                                    :label="service.enabled ? 'Enabled' : 'Disabled'"
-                                />
+                                <span class="inline-flex items-center gap-1.5 font-semibold">
+                                    <span
+                                        class="h-[7px] w-[7px] rounded-full"
+                                        :class="statusDotClass(service.enabled)"
+                                    />
+                                    <span
+                                        class="text-[12px] font-semibold"
+                                        :class="
+                                            service.enabled
+                                                ? 'text-[var(--color-success)]'
+                                                : 'text-[var(--color-text-muted)]'
+                                        "
+                                    >
+                                        {{ service.enabled ? 'Enabled' : 'Disabled' }}
+                                    </span>
+                                </span>
                             </td>
                             <td class="px-4 py-3" :data-testid="`integration-health-${service.id}`">
-                                <StatusPill
-                                    :status="healthStatus(service.health)"
-                                    :label="healthLabel(service.health)"
-                                />
+                                <span class="inline-flex items-center gap-1.5">
+                                    <span
+                                        class="h-[7px] w-[7px] rounded-full"
+                                        :class="healthDotClass(service.health)"
+                                    />
+                                    <span class="text-[12px] text-[var(--color-text-secondary)]">
+                                        {{ healthLabel(service.health) }}
+                                    </span>
+                                </span>
                             </td>
                             <td class="px-4 py-3">
-                                <div class="flex flex-wrap gap-2">
+                                <div class="flex flex-wrap gap-1.5">
                                     <span
                                         v-for="capability in service.capabilities"
                                         :key="capability.name"
                                         :data-testid="`integration-capability-${service.id}-${capability.name}`"
                                         :class="
                                             capability.active
-                                                ? 'border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-                                                : 'border-[var(--color-border)] bg-[var(--color-surface-hover)] text-[var(--color-text-muted)]'
+                                                ? 'bg-[var(--color-primary)]/[0.14] text-[var(--color-primary)]'
+                                                : 'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)]'
                                         "
-                                        class="rounded border px-2.5 py-1 text-xs font-medium"
+                                        class="rounded px-2 py-0.5 text-[11px] font-semibold"
                                     >
                                         {{ capability.name }}
                                     </span>
@@ -138,7 +158,7 @@ function visitService(service) {
                         class="p-4"
                     >
                         <span
-                            class="inline-flex items-center rounded border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--color-primary)]"
+                            class="inline-flex items-center rounded bg-[var(--color-primary)]/[0.14] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-primary)]"
                         >
                             {{ name }}
                         </span>

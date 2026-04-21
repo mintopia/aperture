@@ -42,7 +42,8 @@ describe('Dhcp/Index', () => {
             },
             global: {
                 mocks: {
-                    route: (name, params) => `/mocked/${name}${params ? '?' + new URLSearchParams(params).toString() : ''}`,
+                    route: (name, params) =>
+                        `/mocked/${name}${params ? '?' + new URLSearchParams(params).toString() : ''}`,
                 },
                 stubs: {
                     AdminLayout: { template: '<div><slot /></div>' },
@@ -60,6 +61,13 @@ describe('Dhcp/Index', () => {
     it('renders page title', () => {
         const wrapper = mountComponent();
         expect(wrapper.find('[data-testid="page-title"]').text()).toBe('DHCP Ranges');
+    });
+
+    it('renders section header for configured ranges', () => {
+        const wrapper = mountComponent({ ranges: [ipv4Range] });
+        const h2 = wrapper.find('h2.font-heading');
+        expect(h2.exists()).toBe(true);
+        expect(h2.text()).toBe('Configured Ranges');
     });
 
     it('renders data-table section', () => {

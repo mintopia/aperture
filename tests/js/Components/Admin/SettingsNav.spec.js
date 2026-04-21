@@ -44,15 +44,14 @@ describe('SettingsNav.vue', () => {
         const wrapper = mountComponent();
         const groupHeaders = wrapper.findAll('nav p').map((group) => group.text());
 
-        expect(groupHeaders).toEqual(['INTEGRATIONS', 'APPEARANCE', 'GENERAL']);
+        expect(groupHeaders).toEqual(['SERVICES', 'APPEARANCE', 'GENERAL']);
         expect(wrapper.text()).not.toContain('FEATURES');
     });
 
     it('renders all nav items', () => {
         const wrapper = mountComponent();
 
-        expect(wrapper.find('[data-testid="settings-nav-services"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="settings-nav-switches"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="settings-nav-integrations"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="settings-nav-ipv6-detection"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="settings-nav-dns-detection"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="settings-nav-theme"]').exists()).toBe(true);
@@ -60,22 +59,20 @@ describe('SettingsNav.vue', () => {
         expect(wrapper.find('[data-testid="settings-nav-portal"]').exists()).toBe(true);
     });
 
-    it('renders four integration items in the expected order', () => {
+    it('renders three services items in the expected order', () => {
         const wrapper = mountComponent();
         const groups = wrapper.findAll('nav > div > div');
-        const integrationItems = groups[0].findAll('[data-testid^="settings-nav-"]');
+        const serviceItems = groups[0].findAll('[data-testid^="settings-nav-"]');
 
-        expect(integrationItems).toHaveLength(4);
-        expect(integrationItems.map((item) => item.text().replace(/\s+/g, ' ').trim())).toEqual([
-            'Services',
-            'Switches',
+        expect(serviceItems).toHaveLength(3);
+        expect(serviceItems.map((item) => item.text().replace(/\s+/g, ' ').trim())).toEqual([
+            'Integrations',
             'IPv6 Detection Soon',
             'DNS Detection Soon',
         ]);
-        expect(wrapper.get('[data-testid="settings-nav-services"]').attributes('href')).toBe(
+        expect(wrapper.get('[data-testid="settings-nav-integrations"]').attributes('href')).toBe(
             '/admin/settings/integrations',
         );
-        expect(wrapper.get('[data-testid="settings-nav-switches"]').attributes('href')).toBe('/admin/switches');
     });
 
     it('renders disabled items as spans without href', () => {
@@ -104,21 +101,21 @@ describe('SettingsNav.vue', () => {
             expect(item.classes()).not.toContain('cursor-not-allowed');
         }
 
-        expect(enabledItems).toHaveLength(5);
+        expect(enabledItems).toHaveLength(4);
     });
 
-    it('highlights services link on the overview page', () => {
+    it('highlights integrations link on the overview page', () => {
         const wrapper = mountComponent('/admin/settings/integrations');
-        const activeItem = wrapper.get('[data-testid="settings-nav-services"]');
+        const activeItem = wrapper.get('[data-testid="settings-nav-integrations"]');
 
         expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/[0.14]');
         expect(activeItem.classes()).toContain('font-semibold');
         expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
     });
 
-    it('highlights services link on a service sub-page', () => {
+    it('highlights integrations link on a service sub-page', () => {
         const wrapper = mountComponent('/admin/settings/integrations/opnsense');
-        const activeItem = wrapper.get('[data-testid="settings-nav-services"]');
+        const activeItem = wrapper.get('[data-testid="settings-nav-integrations"]');
 
         expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/[0.14]');
         expect(activeItem.classes()).toContain('font-semibold');

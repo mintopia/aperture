@@ -1,9 +1,7 @@
 <script setup>
-import { useForm, Link, router } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import SettingsNav from '@/Components/Admin/SettingsNav.vue';
-import CapabilityTag from '@/Components/UI/CapabilityTag.vue';
-import StatusPill from '@/Components/UI/StatusPill.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { ref, onMounted } from 'vue';
 import { formatRelative } from '@/utils/dates';
@@ -26,7 +24,6 @@ const form = useForm({
 
 const testingConnection = ref(false);
 const testResult = ref(null);
-const showTestOutput = ref(false);
 const expandedLogIds = ref(new Set());
 const remoteOptions = ref({});
 
@@ -82,7 +79,6 @@ function submit() {
 async function testConnection() {
     testingConnection.value = true;
     testResult.value = null;
-    showTestOutput.value = false;
 
     try {
         const response = await fetch(route('admin.settings.test', { service: props.service.id }), {
@@ -129,12 +125,18 @@ function healthLabel(health) {
     return health ? 'Healthy' : 'Unhealthy';
 }
 
-function healthStatus(health) {
-    if (health === null || health === undefined) {
-        return 'neutral';
-    }
+function healthDotClass(health) {
+    if (health === true) return 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]';
+    if (health === false) return 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]';
+    return 'bg-[var(--color-text-muted)]';
+}
 
-    return health ? 'success' : 'danger';
+function formatCapabilityName(name) {
+    return name
+        .split('-')
+        .filter(Boolean)
+        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+        .join(' ');
 }
 
 function toggleField(key) {
@@ -161,22 +163,20 @@ function formatLogOutput(data) {
         return data;
     }
 }
+
+function formatTestOutput(output) {
+    if (typeof output === 'string') return output;
+    return JSON.stringify(output, null, 2);
+}
 </script>
 
 <template>
     <SettingsNav>
         <div class="space-y-6">
-            <Link
-                :href="route('admin.settings.integrations')"
-                data-testid="back-link"
-                class="inline-flex items-center text-[13px] text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)]"
-            >
-                ← Back to Services
-            </Link>
-
-            <div class="space-y-3">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="space-y-1">
+            <!-- Page Header with actions -->
+            <div>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
                         <h1
                             data-testid="page-title"
                             class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
@@ -184,23 +184,51 @@ function formatLogOutput(data) {
                         >
                             {{ service.name }}
                         </h1>
+                        <span data-testid="health-status" class="mt-1.5 inline-flex items-center gap-1.5">
+                            <span class="h-[7px] w-[7px] rounded-full" :class="healthDotClass(service.health)" />
+                            <span class="text-[13px] text-[var(--color-text-secondary)]">
+                                {{ healthLabel(service.health) }}
+                            </span>
+                        </span>
                     </div>
-
-                    <StatusPill
-                        data-testid="health-status"
-                        :status="healthStatus(service.health)"
-                        :label="healthLabel(service.health)"
-                    />
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            data-testid="action-test-connection"
+                            class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-hover)] disabled:opacity-50"
+                            :disabled="testingConnection"
+                            @click="testConnection"
+                        >
+                            {{ testingConnection ? 'Testing\u2026' : 'Test Connection' }}
+                        </button>
+                        <button
+                            type="button"
+                            data-testid="action-save"
+                            class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-bold text-[var(--color-bg)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+                            :disabled="form.processing"
+                            @click="submit"
+                        >
+                            Save
+                        </button>
+                    </div>
                 </div>
 
-                <p class="max-w-3xl text-[13px] text-[var(--color-text-secondary)]">
+                <p class="mt-1 max-w-[60ch] text-[13px] leading-[1.6] text-[var(--color-text-secondary)]">
                     {{ service.description }}
                 </p>
             </div>
 
+            <!-- Configuration Form -->
             <div>
+                <h2
+                    class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
+                >
+                    Configuration
+                </h2>
+
                 <form data-testid="config-form" class="space-y-4" @submit.prevent="submit">
-                    <div class="grid gap-4 md:grid-cols-2">
+                    <div class="grid gap-5 md:grid-cols-2">
                         <FormField
                             v-for="field in service.fields"
                             :key="field.key"
@@ -244,7 +272,7 @@ function formatLogOutput(data) {
                                         class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                                     >
                                         <option value="">
-                                            {{ field.placeholder || 'Select…' }}
+                                            {{ field.placeholder || 'Select\u2026' }}
                                         </option>
                                         <option
                                             v-for="option in remoteOptions[field.key]?.options || []"
@@ -261,7 +289,7 @@ function formatLogOutput(data) {
                                         :disabled="remoteOptions[field.key]?.loading"
                                         @click="fetchRemoteOptions(field)"
                                     >
-                                        {{ remoteOptions[field.key]?.loading ? '…' : '↻' }}
+                                        {{ remoteOptions[field.key]?.loading ? '\u2026' : '\u21BB' }}
                                     </button>
                                 </div>
                                 <p v-if="remoteOptions[field.key]?.error" class="text-xs text-[var(--color-danger)]">
@@ -306,69 +334,69 @@ function formatLogOutput(data) {
                     <div v-if="service.fields.length === 0" class="text-sm text-[var(--color-text-muted)]">
                         No saved configuration values yet.
                     </div>
-
-                    <div class="flex flex-wrap items-center gap-3">
-                        <button
-                            type="submit"
-                            data-testid="action-save"
-                            class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-white disabled:opacity-50"
-                            :disabled="form.processing"
-                        >
-                            Save
-                        </button>
-
-                        <button
-                            type="button"
-                            data-testid="action-test-connection"
-                            class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] disabled:opacity-50"
-                            :disabled="testingConnection"
-                            @click="testConnection"
-                        >
-                            {{ testingConnection ? 'Testing…' : 'Test Connection' }}
-                        </button>
-                    </div>
-
-                    <div v-if="testResult" class="mt-2">
-                        <p
-                            class="text-[13px]"
-                            :class="testResult.success ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'"
-                        >
-                            {{ testResultMessage(testResult) }}
-                        </p>
-                        <div
-                            v-if="testResult.request_method"
-                            class="mt-1 space-y-1 text-xs text-[var(--color-text-secondary)]"
-                        >
-                            <p data-testid="test-request-detail">
-                                <span class="font-mono font-semibold">{{ testResult.request_method }}</span>
-                                <span class="ml-1 font-mono">{{ testResult.request_url }}</span>
-                            </p>
-                            <p v-if="testResult.response_status" data-testid="test-response-status">
-                                Status: <span class="font-mono">{{ testResult.response_status }}</span>
-                            </p>
-                        </div>
-                        <button
-                            v-if="testResult.output"
-                            data-testid="test-output-toggle"
-                            class="mt-1 cursor-pointer text-xs text-[var(--color-text-secondary)] underline"
-                            @click="showTestOutput = !showTestOutput"
-                        >
-                            {{ showTestOutput ? 'Hide Output' : 'Show Output' }}
-                        </button>
-                        <pre
-                            v-if="showTestOutput && testResult.output"
-                            data-testid="test-output-content"
-                            class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4 font-mono text-[12px] leading-[1.7] text-[var(--color-text-secondary)]"
-                            >{{
-                                typeof testResult.output === 'string'
-                                    ? testResult.output
-                                    : JSON.stringify(testResult.output, null, 2)
-                            }}</pre
-                        >
-                    </div>
                 </form>
             </div>
 
+            <!-- Test Connection Result -->
+            <div
+                v-if="testResult"
+                data-testid="test-result-panel"
+                class="rounded border p-3"
+                :class="
+                    testResult.success
+                        ? 'border-[var(--color-success)]/20 bg-[var(--color-success)]/[0.08]'
+                        : 'border-[var(--color-danger)]/20 bg-[var(--color-danger)]/[0.08]'
+                "
+            >
+                <div class="flex items-center gap-2">
+                    <span
+                        class="h-[7px] w-[7px] rounded-full"
+                        :class="
+                            testResult.success
+                                ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
+                                : 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]'
+                        "
+                    />
+                    <span
+                        class="text-[13px] font-semibold"
+                        :class="testResult.success ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'"
+                    >
+                        {{ testResultMessage(testResult) }}
+                    </span>
+                </div>
+                <div
+                    v-if="testResult.request_method"
+                    data-testid="test-request-detail"
+                    class="mt-1.5 font-mono text-[12px] text-[var(--color-text-secondary)]"
+                >
+                    <span class="font-semibold">{{ testResult.request_method }}</span>
+                    {{ testResult.request_url }}
+                    <template v-if="testResult.response_status">
+                        &middot; Status
+                        <span
+                            :class="testResult.success ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'"
+                        >
+                            {{ testResult.response_status }}
+                        </span>
+                    </template>
+                </div>
+                <details v-if="testResult.output" class="mt-2" data-testid="test-output-details">
+                    <summary
+                        data-testid="test-output-toggle"
+                        class="cursor-pointer list-none text-[11px] text-[var(--color-text-muted)]"
+                    >
+                        <span class="inline-block font-mono text-[10px] transition-transform">&#9656;</span>
+                        Show Output
+                    </summary>
+                    <pre
+                        data-testid="test-output-content"
+                        class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-3 font-mono text-[12px] leading-[1.7] text-[var(--color-text-secondary)]"
+                        >{{ formatTestOutput(testResult.output) }}</pre
+                    >
+                </details>
+            </div>
+
+            <!-- Capabilities -->
             <div class="space-y-3">
                 <div>
                     <h2
@@ -382,23 +410,40 @@ function formatLogOutput(data) {
                     </p>
                 </div>
 
-                <div class="flex flex-wrap gap-3">
+                <div class="flex flex-wrap gap-2">
                     <button
                         v-for="capability in service.capabilities"
                         :key="capability.name"
                         :data-testid="`capability-${capability.name}`"
                         type="button"
-                        class="inline-flex items-center gap-2 rounded border border-[var(--color-border-hover)] px-2 py-1 transition hover:bg-[var(--color-surface-hover)]"
+                        :class="
+                            capability.active
+                                ? 'border-[var(--color-primary)]/30 bg-[var(--color-primary)]/[0.14] text-[var(--color-primary)]'
+                                : 'border-[var(--color-border-hover)] bg-transparent text-[var(--color-text-muted)]'
+                        "
+                        class="inline-flex items-center gap-2 rounded border px-3.5 py-1.5 text-[13px] font-semibold transition"
                         @click="toggleCapability(capability.name, capability.active)"
                     >
-                        <CapabilityTag :name="capability.name" :active="capability.active" />
-                        <span class="text-xs text-[var(--color-text-secondary)]">
+                        <span
+                            class="h-2 w-2 rounded-full"
+                            :class="
+                                capability.active
+                                    ? 'bg-[var(--color-primary)]'
+                                    : 'bg-[var(--color-text-muted)] opacity-40'
+                            "
+                        />
+                        {{ formatCapabilityName(capability.name) }}
+                        <span
+                            class="text-[11px] font-normal"
+                            :class="capability.active ? 'text-[var(--color-text-muted)]' : ''"
+                        >
                             {{ capability.active ? 'On' : 'Off' }}
                         </span>
                     </button>
                 </div>
             </div>
 
+            <!-- Connection Health Log -->
             <div class="space-y-3">
                 <div>
                     <h2
@@ -433,24 +478,41 @@ function formatLogOutput(data) {
                                 class="border-t border-[var(--color-border)]"
                             >
                                 <td class="px-4 py-3">
-                                    <StatusPill
-                                        :status="log.success ? 'success' : 'danger'"
-                                        :label="log.success ? 'Success' : 'Failure'"
-                                    />
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <span
+                                            class="h-[7px] w-[7px] rounded-full"
+                                            :class="
+                                                log.success
+                                                    ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
+                                                    : 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]'
+                                            "
+                                        />
+                                        <span
+                                            class="text-[12px] font-semibold"
+                                            :class="
+                                                log.success
+                                                    ? 'text-[var(--color-success)]'
+                                                    : 'text-[var(--color-danger)]'
+                                            "
+                                        >
+                                            {{ log.success ? 'Success' : 'Failure' }}
+                                        </span>
+                                    </span>
                                 </td>
                                 <td class="px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)]">
                                     <span v-if="log.request_method"
                                         >{{ log.request_method }} {{ log.request_url }}</span
                                     >
-                                    <span v-else>—</span>
+                                    <span v-else>&mdash;</span>
                                 </td>
                                 <td class="px-4 py-3 font-mono text-xs text-[var(--color-text-secondary)]">
-                                    {{ log.response_status ?? '—' }}
+                                    {{ log.response_status ?? '\u2014' }}
                                 </td>
                                 <td class="px-4 py-3 text-[var(--color-text-secondary)]">
-                                    <div>{{ log.message || '—' }}</div>
+                                    <div>{{ log.message || '\u2014' }}</div>
                                     <button
                                         v-if="log.response_data"
+                                        type="button"
                                         :data-testid="`log-output-toggle-${index}`"
                                         class="mt-1 cursor-pointer text-xs text-[var(--color-text-secondary)] underline"
                                         @click="toggleLogOutput(log.id)"

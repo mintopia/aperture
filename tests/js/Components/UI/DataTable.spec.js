@@ -296,9 +296,7 @@ describe('DataTable', () => {
             });
             const headerTr = wrapper.find('thead tr');
             const classList = headerTr.classes();
-            const hasBorderOrBg = classList.some(
-                (c) => c.startsWith('border') || c.startsWith('bg-'),
-            );
+            const hasBorderOrBg = classList.some((c) => c.startsWith('border') || c.startsWith('bg-'));
             expect(hasBorderOrBg).toBe(false);
         });
 
@@ -476,6 +474,45 @@ describe('DataTable', () => {
             const headers = wrapper.findAll('th');
             expect(headers[0].attributes('aria-sort')).toBe('ascending');
             expect(headers[1].attributes('aria-sort')).toBe('none');
+        });
+
+        it('sort button has interactive styling (full-width, cursor, hover)', () => {
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns: sortableColumns,
+                    rows,
+                    sortColumn: 'name',
+                    sortDirection: 'asc',
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const sortButton = wrapper.find('[data-testid="sort-name"]');
+            expect(sortButton.classes()).toContain('flex');
+            expect(sortButton.classes()).toContain('w-full');
+            expect(sortButton.classes()).toContain('cursor-pointer');
+            expect(sortButton.classes()).toContain('text-left');
+            expect(sortButton.classes()).not.toContain('inline-flex');
+        });
+
+        it('sort indicator has ml-0.5 spacing', () => {
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns: sortableColumns,
+                    rows,
+                    sortColumn: 'name',
+                    sortDirection: 'asc',
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
+                },
+            });
+            const sortButton = wrapper.find('[data-testid="sort-name"]');
+            const indicator = sortButton.find('span');
+            expect(indicator.classes()).toContain('ml-0.5');
         });
     });
 });

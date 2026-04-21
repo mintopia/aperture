@@ -55,10 +55,6 @@ describe('Integrations.vue', () => {
                 stubs: {
                     AdminLayout: { template: '<div><slot /></div>' },
                     SettingsNav: { template: '<div><slot /></div>' },
-                    StatusPill: {
-                        template: '<span :data-testid="`status-${label}`">{{ label }}</span>',
-                        props: ['status', 'label'],
-                    },
                 },
             },
         });
