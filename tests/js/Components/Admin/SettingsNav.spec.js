@@ -70,7 +70,7 @@ describe('SettingsNav.vue', () => {
         expect(serviceItems.map((item) => item.text().replace(/\s+/g, ' ').trim())).toEqual([
             'Integrations',
             'IPv6 Detection',
-            'DNS Detection Soon',
+            'DNS Detection',
         ]);
         expect(wrapper.get('[data-testid="settings-nav-integrations"]').attributes('href')).toBe(
             'https://aperture.local.js42.io/admin/settings/integrations',
@@ -78,16 +78,9 @@ describe('SettingsNav.vue', () => {
         expect(wrapper.get('[data-testid="settings-nav-ipv6-detection"]').attributes('href')).toBe(
             'https://aperture.local.js42.io/admin/settings/ipv6-detection',
         );
-    });
-
-    it('renders disabled items as spans without href', () => {
-        const wrapper = mountComponent();
-        const dns = wrapper.get('[data-testid="settings-nav-dns-detection"]');
-
-        expect(dns.element.tagName).toBe('SPAN');
-        expect(dns.attributes('href')).toBeUndefined();
-        expect(dns.classes()).toContain('cursor-not-allowed');
-        expect(dns.classes()).toContain('opacity-40');
+        expect(wrapper.get('[data-testid="settings-nav-dns-detection"]').attributes('href')).toBe(
+            'https://aperture.local.js42.io/admin/settings/dns-detection',
+        );
     });
 
     it('renders IPv6 Detection as a clickable link', () => {
@@ -112,7 +105,7 @@ describe('SettingsNav.vue', () => {
             expect(item.classes()).not.toContain('cursor-not-allowed');
         }
 
-        expect(enabledItems).toHaveLength(5);
+        expect(enabledItems).toHaveLength(6);
     });
 
     it('highlights integrations link on the overview page', () => {

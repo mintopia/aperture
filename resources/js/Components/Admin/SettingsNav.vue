@@ -10,7 +10,7 @@ const navGroups = [
         items: [
             { label: 'Integrations', href: route('admin.settings.integrations') },
             { label: 'IPv6 Detection', href: route('admin.settings.ipv6-detection') },
-            { label: 'DNS Detection', disabled: true },
+            { label: 'DNS Detection', href: route('admin.settings.dns-detection') },
         ],
     },
     {
