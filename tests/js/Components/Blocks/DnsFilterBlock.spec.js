@@ -136,4 +136,48 @@ describe('DnsFilterBlock', () => {
         const wrapper = mount(DnsFilterBlock, { props: {} });
         expect(wrapper.find('[data-testid="block-dns-filter"]').exists()).toBe(true);
     });
+
+    it('uses settings.title when available', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: {
+                title: 'Prop Title',
+                content: 'Prop Content',
+                settings: { title: 'Settings Title', description: 'Settings Desc' },
+            },
+        });
+        expect(wrapper.text()).toContain('Settings Title');
+    });
+
+    it('uses settings.description when available', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: {
+                title: 'Prop Title',
+                content: 'Prop Content',
+                settings: { title: 'T', description: 'Custom description text' },
+            },
+        });
+        expect(wrapper.text()).toContain('Custom description text');
+    });
+
+    it('falls back to title prop when settings.title is empty', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: {
+                title: 'Fallback Title',
+                content: 'Fallback Content',
+                settings: {},
+            },
+        });
+        expect(wrapper.text()).toContain('Fallback Title');
+    });
+
+    it('falls back to content prop when settings.description is empty', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: {
+                title: 'T',
+                content: 'Fallback description',
+                settings: {},
+            },
+        });
+        expect(wrapper.text()).toContain('Fallback description');
+    });
 });

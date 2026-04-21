@@ -1,12 +1,15 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     title: { type: String, default: 'DNS Ad Blocking' },
     content: { type: String, default: 'Toggle DNS filtering for your connection.' },
     settings: { type: Object, default: () => ({}) },
     blockContext: { type: Object, default: () => ({}) },
 });
+
+const displayTitle = computed(() => props.settings?.title || props.title);
+const displayDescription = computed(() => props.settings?.description || props.content);
 
 const enabled = ref(false);
 const loading = ref(false);
@@ -36,12 +39,12 @@ async function toggle() {
 <template>
     <div data-testid="block-dns-filter">
         <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-            {{ title }}
+            {{ displayTitle }}
         </h3>
         <div class="flex items-center justify-between">
             <div>
                 <div class="text-sm font-semibold text-[var(--color-text)]">DNS Filtering</div>
-                <div class="mt-0.5 text-xs text-[var(--color-text-muted)]">{{ content }}</div>
+                <div class="mt-0.5 text-xs text-[var(--color-text-muted)]">{{ displayDescription }}</div>
             </div>
             <button
                 :disabled="loading"
