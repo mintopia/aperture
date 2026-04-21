@@ -17,9 +17,7 @@ const renderedContent = computed(() => {
 
 <template>
     <div data-testid="block-custom-markdown">
-        <h3
-            class="mb-3 font-heading text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase"
-        >
+        <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
             {{ title }}
         </h3>
         <div
