@@ -18,8 +18,6 @@ class Ipv6JwtServiceTest extends TestCase
 
     private \OpenSSLAsymmetricKey $privateKey;
 
-    private string $publicKeyPem;
-
     private string $kid = 'test-key-1';
 
     protected function setUp(): void
@@ -31,15 +29,20 @@ class Ipv6JwtServiceTest extends TestCase
             'private_key_bits' => 2048,
             'private_key_type' => OPENSSL_KEYTYPE_RSA,
         ]);
+        assert($keyPair instanceof \OpenSSLAsymmetricKey);
         openssl_pkey_export($keyPair, $privatePem);
-        $this->privateKey = openssl_pkey_get_private($privatePem);
-        $details = openssl_pkey_get_details($keyPair);
-        $this->publicKeyPem = $details['key'];
+        $privateKey = openssl_pkey_get_private((string) $privatePem);
+        assert($privateKey instanceof \OpenSSLAsymmetricKey);
+        $this->privateKey = $privateKey;
     }
 
+    /**
+     * @return array<string, list<array<string, string>>>
+     */
     private function makeJwks(): array
     {
         $details = openssl_pkey_get_details($this->privateKey);
+        assert(is_array($details));
         $n = rtrim(strtr(base64_encode($details['rsa']['n']), '+/', '-_'), '=');
         $e = rtrim(strtr(base64_encode($details['rsa']['e']), '+/', '-_'), '=');
 
@@ -101,10 +104,13 @@ class Ipv6JwtServiceTest extends TestCase
             'private_key_bits' => 2048,
             'private_key_type' => OPENSSL_KEYTYPE_RSA,
         ]);
+        assert($otherKey instanceof \OpenSSLAsymmetricKey);
         openssl_pkey_export($otherKey, $otherPem);
+        $otherPrivate = openssl_pkey_get_private((string) $otherPem);
+        assert($otherPrivate instanceof \OpenSSLAsymmetricKey);
         $badJwt = JWT::encode(
             ['sub' => '2001:db8::1', 'iat' => time(), 'exp' => time() + 300],
-            openssl_pkey_get_private($otherPem),
+            $otherPrivate,
             'RS256',
             $this->kid,
         );
