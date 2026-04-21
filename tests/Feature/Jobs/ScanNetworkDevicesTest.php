@@ -232,10 +232,8 @@ class ScanNetworkDevicesTest extends TestCase
             'allowed' => true,
             'mac_address_id' => $mac->id,
         ]);
-        $this->assertDatabaseHas('user_ip_addresses', [
-            'user_id' => $user->id,
-        ]);
         $ip = IpAddress::where('address', '10.0.0.55')->first();
+        $this->assertNotNull($ip);
         $this->assertDatabaseHas('user_ip_addresses', [
             'user_id' => $user->id,
             'ip_address_id' => $ip->id,
