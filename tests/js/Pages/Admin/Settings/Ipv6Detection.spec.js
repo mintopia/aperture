@@ -55,7 +55,7 @@ describe('Ipv6Detection.vue', () => {
         expect(wrapper.find('[data-testid="detection-enabled-toggle"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="detection-endpoint-input"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="jwks-url-input"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="save-button"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="action-save"]').exists()).toBe(true);
     });
 
     it('populates form with existing settings', () => {

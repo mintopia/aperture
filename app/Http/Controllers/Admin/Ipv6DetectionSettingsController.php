@@ -35,8 +35,8 @@ class Ipv6DetectionSettingsController extends Controller
     {
         $validated = $request->validate([
             'detection_enabled' => 'required|boolean',
-            'detection_endpoint' => ['nullable', 'string', 'max:500', 'regex:/^https?:\/\/.+/'],
-            'jwks_url' => 'nullable|url|max:500',
+            'detection_endpoint' => ['nullable', 'string', 'max:500', 'regex:/^https:\/\/.+/'],
+            'jwks_url' => 'nullable|url:https|max:500',
         ]);
 
         IntegrationConfig::setValue('ipv6', 'detection_enabled', $validated['detection_enabled'] ? '1' : '0');

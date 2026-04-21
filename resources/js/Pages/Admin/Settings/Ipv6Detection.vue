@@ -31,7 +31,7 @@ function submit() {
             IPv6 Detection
         </h1>
 
-        <form class="mt-6 space-y-4" data-testid="ipv6-settings-form" @submit.prevent="submit">
+        <form class="space-y-4" data-testid="ipv6-settings-form" @submit.prevent="submit">
             <FormField label="Enable Detection" name="detection_enabled" :error="form.errors.detection_enabled">
                 <label class="relative inline-flex cursor-pointer items-center gap-3">
                     <input
@@ -53,30 +53,32 @@ function submit() {
 
             <FormField label="Detection Endpoint" name="detection_endpoint" :error="form.errors.detection_endpoint">
                 <input
+                    id="detection_endpoint"
                     v-model="form.detection_endpoint"
                     data-testid="detection-endpoint-input"
                     type="url"
                     placeholder="https://{random}.ipv6.example.com"
-                    class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-[13px] text-[var(--color-text)] transition-colors outline-none focus:border-[var(--color-primary)]"
+                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                 />
             </FormField>
 
             <FormField label="JWKS URL" name="jwks_url" :error="form.errors.jwks_url">
                 <input
+                    id="jwks_url"
                     v-model="form.jwks_url"
                     data-testid="jwks-url-input"
                     type="url"
                     placeholder="https://ipv6.example.com/.well-known/jwks.json"
-                    class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-[13px] text-[var(--color-text)] transition-colors outline-none focus:border-[var(--color-primary)]"
+                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                 />
             </FormField>
 
             <div class="pt-2">
                 <button
-                    data-testid="save-button"
                     type="submit"
+                    data-testid="action-save"
                     :disabled="form.processing"
-                    class="rounded-md bg-[var(--color-primary)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+                    class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-white"
                 >
                     Save Settings
                 </button>

@@ -8,6 +8,7 @@ use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class Ipv6DetectionSettingsTest extends TestCase
@@ -19,6 +20,7 @@ class Ipv6DetectionSettingsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Queue::fake();
         $this->admin = $this->createAdminUser();
     }
 
@@ -87,6 +89,17 @@ class Ipv6DetectionSettingsTest extends TestCase
             'detection_enabled' => true,
             'detection_endpoint' => 'not-a-url',
             'jwks_url' => 'also-not-a-url',
+        ]);
+
+        $response->assertSessionHasErrors(['detection_endpoint', 'jwks_url']);
+    }
+
+    public function test_update_rejects_http_urls(): void
+    {
+        $response = $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
+            'detection_enabled' => true,
+            'detection_endpoint' => 'http://{random}.ipv6.test.com',
+            'jwks_url' => 'http://ipv6.test.com/.well-known/jwks.json',
         ]);
 
         $response->assertSessionHasErrors(['detection_endpoint', 'jwks_url']);
