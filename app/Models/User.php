@@ -114,6 +114,12 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
         return $this->hasMany(MacAddress::class);
     }
 
+    /** @return HasMany<UserParameter, $this> */
+    public function parameters(): HasMany
+    {
+        return $this->hasMany(UserParameter::class);
+    }
+
     /** @return BelongsToMany<Role, $this> */
     public function roles(): BelongsToMany
     {
