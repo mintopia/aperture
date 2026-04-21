@@ -69,28 +69,35 @@ describe('SettingsNav.vue', () => {
         expect(serviceItems).toHaveLength(3);
         expect(serviceItems.map((item) => item.text().replace(/\s+/g, ' ').trim())).toEqual([
             'Integrations',
-            'IPv6 Detection Soon',
+            'IPv6 Detection',
             'DNS Detection Soon',
         ]);
         expect(wrapper.get('[data-testid="settings-nav-integrations"]').attributes('href')).toBe(
             'https://aperture.local.js42.io/admin/settings/integrations',
         );
+        expect(wrapper.get('[data-testid="settings-nav-ipv6-detection"]').attributes('href')).toBe(
+            'https://aperture.local.js42.io/admin/settings/ipv6-detection',
+        );
     });
 
     it('renders disabled items as spans without href', () => {
         const wrapper = mountComponent();
-        const ipv6 = wrapper.get('[data-testid="settings-nav-ipv6-detection"]');
         const dns = wrapper.get('[data-testid="settings-nav-dns-detection"]');
-
-        expect(ipv6.element.tagName).toBe('SPAN');
-        expect(ipv6.attributes('href')).toBeUndefined();
-        expect(ipv6.classes()).toContain('cursor-not-allowed');
-        expect(ipv6.classes()).toContain('opacity-40');
 
         expect(dns.element.tagName).toBe('SPAN');
         expect(dns.attributes('href')).toBeUndefined();
         expect(dns.classes()).toContain('cursor-not-allowed');
         expect(dns.classes()).toContain('opacity-40');
+    });
+
+    it('renders IPv6 Detection as a clickable link', () => {
+        const wrapper = mountComponent();
+        const ipv6 = wrapper.get('[data-testid="settings-nav-ipv6-detection"]');
+
+        expect(ipv6.element.tagName).toBe('A');
+        expect(ipv6.attributes('href')).toBe('https://aperture.local.js42.io/admin/settings/ipv6-detection');
+        expect(ipv6.classes()).not.toContain('opacity-40');
+        expect(ipv6.classes()).not.toContain('cursor-not-allowed');
     });
 
     it('renders enabled nav items as clickable links', () => {
@@ -105,7 +112,7 @@ describe('SettingsNav.vue', () => {
             expect(item.classes()).not.toContain('cursor-not-allowed');
         }
 
-        expect(enabledItems).toHaveLength(4);
+        expect(enabledItems).toHaveLength(5);
     });
 
     it('highlights integrations link on the overview page', () => {
