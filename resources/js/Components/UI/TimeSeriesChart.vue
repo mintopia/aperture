@@ -39,10 +39,6 @@ const rootAttrs = computed(() => {
 });
 
 function getComputedColor(varName, fallback = '') {
-    if (typeof window === 'undefined') {
-        return fallback;
-    }
-
     return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || fallback;
 }
 

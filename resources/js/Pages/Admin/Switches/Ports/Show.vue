@@ -62,10 +62,6 @@ onBeforeUnmount(() => {
 });
 
 function getThemeColor(variableName, fallback) {
-    if (typeof window === 'undefined') {
-        return fallback;
-    }
-
     return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback;
 }
 
