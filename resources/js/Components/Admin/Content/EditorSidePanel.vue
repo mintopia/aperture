@@ -7,7 +7,7 @@ const props = defineProps({
 
 const emit = defineEmits(['save', 'delete', 'close']);
 
-const textTypes = ['event_info', 'custom_markdown'];
+const textTypes = ['custom_markdown'];
 
 const title = ref(props.block.title);
 const content = ref(props.block.content ?? '');

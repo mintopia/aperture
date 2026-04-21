@@ -16,7 +16,7 @@ describe('Admin Content Editor', () => {
         blocks: [
             {
                 id: 1,
-                type: 'event_info',
+                type: 'custom_markdown',
                 title: 'Welcome',
                 content: 'Hello',
                 grid_col: 1,
@@ -39,8 +39,8 @@ describe('Admin Content Editor', () => {
                 settings: null,
             },
         ],
-        singletonTypes: ['bandwidth', 'connection_strip', 'network_stats', 'dns_filter', 'connection_status'],
-        existingTypes: ['event_info', 'bandwidth'],
+        singletonTypes: ['bandwidth', 'connection_strip', 'dns_filter'],
+        existingTypes: ['custom_markdown', 'bandwidth'],
     };
 
     it('renders the page title', () => {

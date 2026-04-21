@@ -131,12 +131,9 @@ function blockStyle(block) {
 const displayRows = () => Math.max(totalRows.value + 1, 3);
 
 const blockTypeColors = {
-    event_info: 'rgba(34,197,94,0.3)',
     custom_markdown: 'rgba(34,197,94,0.3)',
     connection_strip: 'rgba(99,102,241,0.4)',
-    connection_status: 'rgba(99,102,241,0.4)',
     bandwidth: 'rgba(59,130,246,0.3)',
-    network_stats: 'rgba(251,191,36,0.3)',
     dns_filter: 'rgba(236,72,153,0.3)',
 };
 </script>

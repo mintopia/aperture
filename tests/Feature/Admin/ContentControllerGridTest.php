@@ -127,7 +127,7 @@ class ContentControllerGridTest extends TestCase
         $admin = $this->createAdminUser();
         ContentBlock::factory()->count(3)->create();
 
-        $response = $this->actingAs($admin)->get('/admin/content/editor');
+        $response = $this->actingAs($admin)->get('/admin/content');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page

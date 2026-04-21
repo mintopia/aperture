@@ -1,19 +1,13 @@
 <script setup>
-import EventInfoBlock from './Blocks/EventInfoBlock.vue';
-import ConnectionStatusBlock from './Blocks/ConnectionStatusBlock.vue';
 import ConnectionStripBlock from './Blocks/ConnectionStripBlock.vue';
 import BandwidthBlock from './Blocks/BandwidthBlock.vue';
-import NetworkStatsBlock from './Blocks/NetworkStatsBlock.vue';
 import DnsFilterBlock from './Blocks/DnsFilterBlock.vue';
 import CustomMarkdownBlock from './Blocks/CustomMarkdownBlock.vue';
 import { renderTemplate } from '@/utils/contentTemplating.js';
 
 const blockComponents = {
-    event_info: EventInfoBlock,
-    connection_status: ConnectionStatusBlock,
     connection_strip: ConnectionStripBlock,
     bandwidth: BandwidthBlock,
-    network_stats: NetworkStatsBlock,
     dns_filter: DnsFilterBlock,
     custom_markdown: CustomMarkdownBlock,
 };
@@ -37,7 +31,7 @@ function blockStyle(block) {
 }
 
 function templateContent(block) {
-    if (['event_info', 'custom_markdown'].includes(block.type)) {
+    if (block.type === 'custom_markdown') {
         return renderTemplate(block.content, props.blockContext);
     }
     return block.content;

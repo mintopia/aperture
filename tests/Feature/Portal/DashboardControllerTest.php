@@ -40,13 +40,13 @@ class DashboardControllerTest extends TestCase
         $user = User::factory()->create();
 
         ContentBlock::factory()->atPosition(1, 1)->create([
-            'type' => 'event_info',
+            'type' => 'custom_markdown',
             'title' => 'Welcome',
             'is_active' => true,
         ]);
 
         ContentBlock::factory()->atPosition(2, 1)->create([
-            'type' => 'connection_status',
+            'type' => 'connection_strip',
             'title' => 'Status',
             'is_active' => true,
         ]);
@@ -72,7 +72,7 @@ class DashboardControllerTest extends TestCase
         ]);
 
         ContentBlock::factory()->atPosition(1, 1)->create([
-            'type' => 'event_info',
+            'type' => 'custom_markdown',
             'title' => 'First',
             'is_active' => true,
         ]);
@@ -92,7 +92,7 @@ class DashboardControllerTest extends TestCase
         $user = User::factory()->create();
 
         ContentBlock::factory()->create([
-            'type' => 'event_info',
+            'type' => 'custom_markdown',
             'title' => 'Active Block',
             'is_active' => true,
         ]);

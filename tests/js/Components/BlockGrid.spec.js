@@ -27,7 +27,7 @@ describe('BlockGrid', () => {
         const blocks = [
             {
                 id: 1,
-                type: 'event_info',
+                type: 'custom_markdown',
                 title: 'Info',
                 content: 'Hello',
                 grid_col: 2,
@@ -41,7 +41,7 @@ describe('BlockGrid', () => {
         const wrapper = mount(BlockGrid, {
             props: { blocks, blockContext: defaultContext },
         });
-        const blockEl = wrapper.find('[data-testid="block-event_info-wrapper"]');
+        const blockEl = wrapper.find('[data-testid="block-custom_markdown-wrapper"]');
         expect(blockEl.attributes('style')).toContain('grid-column: 2 / span 2');
         expect(blockEl.attributes('style')).toContain('grid-row: 3 / span 1');
     });
@@ -73,7 +73,7 @@ describe('BlockGrid', () => {
         const blocks = [
             {
                 id: 1,
-                type: 'event_info',
+                type: 'custom_markdown',
                 title: 'A',
                 content: 'Hello',
                 grid_col: 1,
@@ -99,8 +99,7 @@ describe('BlockGrid', () => {
         const wrapper = mount(BlockGrid, {
             props: { blocks, blockContext: defaultContext },
         });
-        expect(wrapper.find('[data-testid="block-event_info-wrapper"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="block-custom_markdown-wrapper"]').exists()).toBe(true);
+        expect(wrapper.findAll('[data-testid="block-custom_markdown-wrapper"]').length).toBe(2);
     });
 
     it('passes blockContext to block components', () => {

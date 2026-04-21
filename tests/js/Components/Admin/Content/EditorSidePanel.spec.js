@@ -5,7 +5,7 @@ import EditorSidePanel from '@/Components/Admin/Content/EditorSidePanel.vue';
 describe('EditorSidePanel', () => {
     const block = {
         id: 1,
-        type: 'event_info',
+        type: 'custom_markdown',
         title: 'Welcome',
         content: 'Hello world',
         col_span: 2,
@@ -15,7 +15,7 @@ describe('EditorSidePanel', () => {
 
     it('renders block type as read-only', () => {
         const wrapper = mount(EditorSidePanel, { props: { block } });
-        expect(wrapper.text()).toContain('event_info');
+        expect(wrapper.text()).toContain('custom_markdown');
     });
 
     it('renders title input with block title', () => {
