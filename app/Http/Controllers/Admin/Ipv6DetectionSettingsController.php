@@ -19,7 +19,6 @@ class Ipv6DetectionSettingsController extends Controller
 
         return Inertia::render('Admin/Settings/Ipv6Detection', [
             'settings' => [
-                'detection_enabled' => (bool) ($config['detection_enabled'] ?? false),
                 'detection_endpoint' => $config['detection_endpoint'] ?? '',
                 'jwks_url' => $config['jwks_url'] ?? '',
             ],
@@ -34,12 +33,10 @@ class Ipv6DetectionSettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'detection_enabled' => 'required|boolean',
             'detection_endpoint' => ['nullable', 'string', 'max:500', 'regex:/^https:\/\/.+/'],
             'jwks_url' => 'nullable|url:https|max:500',
         ]);
 
-        IntegrationConfig::setValue('ipv6', 'detection_enabled', $validated['detection_enabled'] ? '1' : '0');
         IntegrationConfig::setValue('ipv6', 'detection_endpoint', $validated['detection_endpoint'] ?? '');
         IntegrationConfig::setValue('ipv6', 'jwks_url', $validated['jwks_url'] ?? '');
 

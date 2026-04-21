@@ -132,27 +132,24 @@ class PortalControllerTest extends TestCase
         $response->assertRedirect(route('captive.index'));
     }
 
-    public function test_index_passes_ipv6_config_when_enabled(): void
+    public function test_index_passes_ipv6_endpoint_when_configured(): void
     {
         Queue::fake();
-        IntegrationConfig::setValue('ipv6', 'detection_enabled', '1');
         IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
         $user = User::factory()->create(['blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
-        $response->assertViewHas('ipv6DetectionEnabled', true);
         $response->assertViewHas('ipv6DetectionEndpoint', 'https://{random}.ipv6.example.com');
     }
 
-    public function test_index_passes_ipv6_config_when_disabled(): void
+    public function test_index_passes_empty_ipv6_endpoint_when_not_configured(): void
     {
         Queue::fake();
         $user = User::factory()->create(['blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
-        $response->assertViewHas('ipv6DetectionEnabled', false);
         $response->assertViewHas('ipv6DetectionEndpoint', '');
     }
 

@@ -97,7 +97,7 @@
             }
         }).catch(() => {});
 
-        @if($ipv6DetectionEnabled && $ipv6DetectionEndpoint)
+        @if($ipv6DetectionEndpoint)
         var ipv6Endpoint = '{{ $ipv6DetectionEndpoint }}'.replace('{random}', crypto.randomUUID());
         fetch(ipv6Endpoint)
             .then(response => response.ok ? response.text() : null)

@@ -17,13 +17,11 @@ class PortalControllerConfigTest extends TestCase
         Queue::fake();
         $user = User::factory()->create();
 
-        IntegrationConfig::setValue('ipv6', 'detection_enabled', '1');
         IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://ipv6-db.example.com/detect');
 
         $response = $this->actingAs($user)->get('/');
 
         $response->assertOk();
-        $response->assertViewHas('ipv6DetectionEnabled', true);
         $response->assertViewHas('ipv6DetectionEndpoint', 'https://ipv6-db.example.com/detect');
     }
 
@@ -35,7 +33,6 @@ class PortalControllerConfigTest extends TestCase
         $response = $this->actingAs($user)->get('/');
 
         $response->assertOk();
-        $response->assertViewHas('ipv6DetectionEnabled', false);
         $response->assertViewHas('ipv6DetectionEndpoint', '');
     }
 }

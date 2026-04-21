@@ -31,7 +31,6 @@ describe('Ipv6Detection.vue', () => {
         return mount(Ipv6Detection, {
             props: {
                 settings: {
-                    detection_enabled: false,
                     detection_endpoint: '',
                     jwks_url: '',
                     ...settings,
@@ -52,7 +51,7 @@ describe('Ipv6Detection.vue', () => {
     it('renders form with all fields', () => {
         const wrapper = mountComponent();
 
-        expect(wrapper.find('[data-testid="detection-enabled-toggle"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="detection-enabled-toggle"]').exists()).toBe(false);
         expect(wrapper.find('[data-testid="detection-endpoint-input"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="jwks-url-input"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="action-save"]').exists()).toBe(true);
@@ -60,7 +59,6 @@ describe('Ipv6Detection.vue', () => {
 
     it('populates form with existing settings', () => {
         const wrapper = mountComponent({
-            detection_enabled: true,
             detection_endpoint: 'https://{random}.ipv6.test.com',
             jwks_url: 'https://ipv6.test.com/.well-known/jwks.json',
         });

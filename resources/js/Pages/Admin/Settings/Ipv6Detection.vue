@@ -11,7 +11,6 @@ const props = defineProps({
 });
 
 const form = useForm({
-    detection_enabled: props.settings?.detection_enabled ?? false,
     detection_endpoint: props.settings?.detection_endpoint ?? '',
     jwks_url: props.settings?.jwks_url ?? '',
 });
@@ -32,25 +31,6 @@ function submit() {
         </h1>
 
         <form class="space-y-4" data-testid="ipv6-settings-form" @submit.prevent="submit">
-            <FormField label="Enable Detection" name="detection_enabled" :error="form.errors.detection_enabled">
-                <label class="relative inline-flex cursor-pointer items-center gap-3">
-                    <input
-                        v-model="form.detection_enabled"
-                        data-testid="detection-enabled-toggle"
-                        type="checkbox"
-                        class="peer sr-only"
-                        :true-value="true"
-                        :false-value="false"
-                    />
-                    <span
-                        class="h-5 w-9 rounded-full bg-[var(--color-border)] transition-colors peer-checked:bg-[var(--color-primary)] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:after:translate-x-4"
-                    />
-                    <span class="text-[13px] text-[var(--color-text-secondary)]">
-                        {{ form.detection_enabled ? 'Enabled' : 'Disabled' }}
-                    </span>
-                </label>
-            </FormField>
-
             <FormField label="Detection Endpoint" name="detection_endpoint" :error="form.errors.detection_endpoint">
                 <input
                     id="detection_endpoint"

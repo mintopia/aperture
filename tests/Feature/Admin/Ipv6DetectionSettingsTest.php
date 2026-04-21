@@ -44,7 +44,6 @@ class Ipv6DetectionSettingsTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Settings/Ipv6Detection')
             ->has('settings')
-            ->where('settings.detection_enabled', false)
             ->where('settings.detection_endpoint', '')
             ->where('settings.jwks_url', '')
         );
@@ -52,7 +51,6 @@ class Ipv6DetectionSettingsTest extends TestCase
 
     public function test_show_returns_existing_config(): void
     {
-        IntegrationConfig::setValue('ipv6', 'detection_enabled', '1');
         IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
         IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
 
@@ -60,16 +58,25 @@ class Ipv6DetectionSettingsTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
-            ->where('settings.detection_enabled', true)
             ->where('settings.detection_endpoint', 'https://{random}.ipv6.example.com')
             ->where('settings.jwks_url', 'https://ipv6.example.com/.well-known/jwks.json')
+        );
+    }
+
+    public function test_show_does_not_return_detection_enabled(): void
+    {
+        $response = $this->actingAs($this->admin)->get('/admin/settings/ipv6-detection');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Settings/Ipv6Detection')
+            ->missing('settings.detection_enabled')
         );
     }
 
     public function test_update_saves_settings(): void
     {
         $response = $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
-            'detection_enabled' => true,
             'detection_endpoint' => 'https://{random}.ipv6.test.com',
             'jwks_url' => 'https://ipv6.test.com/.well-known/jwks.json',
         ]);
@@ -78,15 +85,24 @@ class Ipv6DetectionSettingsTest extends TestCase
         $response->assertSessionHas('success');
 
         $config = IntegrationConfig::getAll('ipv6');
-        $this->assertSame('1', $config['detection_enabled']);
         $this->assertSame('https://{random}.ipv6.test.com', $config['detection_endpoint']);
         $this->assertSame('https://ipv6.test.com/.well-known/jwks.json', $config['jwks_url']);
+    }
+
+    public function test_update_does_not_save_detection_enabled(): void
+    {
+        $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
+            'detection_endpoint' => 'https://{random}.ipv6.test.com',
+            'jwks_url' => 'https://ipv6.test.com/.well-known/jwks.json',
+        ]);
+
+        $config = IntegrationConfig::getAll('ipv6');
+        $this->assertArrayNotHasKey('detection_enabled', $config);
     }
 
     public function test_update_validates_urls(): void
     {
         $response = $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
-            'detection_enabled' => true,
             'detection_endpoint' => 'not-a-url',
             'jwks_url' => 'also-not-a-url',
         ]);
@@ -97,7 +113,6 @@ class Ipv6DetectionSettingsTest extends TestCase
     public function test_update_rejects_http_urls(): void
     {
         $response = $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
-            'detection_enabled' => true,
             'detection_endpoint' => 'http://{random}.ipv6.test.com',
             'jwks_url' => 'http://ipv6.test.com/.well-known/jwks.json',
         ]);
