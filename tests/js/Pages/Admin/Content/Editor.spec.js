@@ -81,4 +81,14 @@ describe('Admin Content Editor', () => {
         const block1 = wrapper.find('[data-testid="editor-block-1"]');
         expect(block1.text()).toContain('2\u00d71');
     });
+
+    it('restores positions on drag cancel (Escape key)', async () => {
+        const wrapper = mount(Editor, { props: defaultProps });
+        const block1 = wrapper.find('[data-testid="editor-block-1"]');
+        const originalStyle = block1.attributes('style');
+        await block1.trigger('dragstart', { dataTransfer: { effectAllowed: '' } });
+        const grid = wrapper.find('[data-testid="editor-grid"]');
+        await grid.trigger('keydown', { key: 'Escape' });
+        expect(block1.attributes('style')).toBe(originalStyle);
+    });
 });

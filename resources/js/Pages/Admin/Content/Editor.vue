@@ -17,11 +17,13 @@ const selectedBlock = ref(null);
 const hasChanges = ref(false);
 const saving = ref(false);
 
-const { totalRows, canPlace, moveBlock } = useGridEditor(localBlocks);
+const { totalRows, canPlace, moveBlock, computeDisplacement } = useGridEditor(localBlocks);
 
 // Drag state
 const dragging = ref(null);
 const dragOver = ref(null);
+const positionSnapshot = ref(null);
+const previewDisplacement = ref({});
 
 function getBlock(id) {
     return localBlocks.value.find((b) => b.id === id);
@@ -30,34 +32,58 @@ function getBlock(id) {
 function onDragStart(block, event) {
     dragging.value = block.id;
     event.dataTransfer.effectAllowed = 'move';
+    positionSnapshot.value = localBlocks.value.map((b) => ({
+        id: b.id,
+        grid_col: b.grid_col,
+        grid_row: b.grid_row,
+    }));
 }
 
 function onDragOver(col, row, event) {
     event.preventDefault();
-    if (
-        dragging.value &&
-        canPlace(dragging.value, col, row, getBlock(dragging.value).col_span, getBlock(dragging.value).row_span)
-    ) {
-        dragOver.value = `${col},${row}`;
-        event.dataTransfer.dropEffect = 'move';
-    }
+    if (!dragging.value) return;
+    const block = getBlock(dragging.value);
+    dragOver.value = `${col},${row}`;
+    event.dataTransfer.dropEffect = 'move';
+    previewDisplacement.value = computeDisplacement(dragging.value, col, row, block.col_span, block.row_span);
 }
 
 function onDrop(col, row) {
-    if (dragging.value) {
-        const block = getBlock(dragging.value);
-        if (canPlace(dragging.value, col, row, block.col_span, block.row_span)) {
-            moveBlock(dragging.value, col, row);
-            hasChanges.value = true;
+    if (!dragging.value) return;
+    const block = getBlock(dragging.value);
+    const displacement = computeDisplacement(dragging.value, col, row, block.col_span, block.row_span);
+    moveBlock(dragging.value, col, row);
+    for (const [id, newRow] of Object.entries(displacement)) {
+        const displaced = getBlock(Number(id));
+        if (displaced) displaced.grid_row = newRow;
+    }
+    hasChanges.value = true;
+    dragging.value = null;
+    dragOver.value = null;
+    previewDisplacement.value = {};
+    positionSnapshot.value = null;
+}
+
+function cancelDrag() {
+    if (positionSnapshot.value) {
+        for (const snap of positionSnapshot.value) {
+            const block = getBlock(snap.id);
+            if (block) {
+                block.grid_col = snap.grid_col;
+                block.grid_row = snap.grid_row;
+            }
         }
     }
     dragging.value = null;
     dragOver.value = null;
+    previewDisplacement.value = {};
+    positionSnapshot.value = null;
 }
 
 function onDragEnd() {
-    dragging.value = null;
-    dragOver.value = null;
+    if (dragging.value) {
+        cancelDrag();
+    }
 }
 
 function selectBlock(block) {
@@ -122,9 +148,11 @@ async function saveLayout() {
 }
 
 function blockStyle(block) {
+    const row = previewDisplacement.value[block.id] ?? block.grid_row;
     return {
         gridColumn: `${block.grid_col} / span ${block.col_span}`,
-        gridRow: `${block.grid_row} / span ${block.row_span}`,
+        gridRow: `${row} / span ${block.row_span}`,
+        transition: dragging.value ? 'grid-row-start 200ms ease' : 'none',
     };
 }
 
@@ -171,10 +199,12 @@ const blockTypeColors = {
         <div
             data-testid="editor-grid"
             class="grid gap-3"
+            tabindex="0"
             :style="{
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gridTemplateRows: `repeat(${displayRows()}, minmax(80px, auto))`,
             }"
+            @keydown.escape="cancelDrag"
         >
             <!-- Rendered blocks -->
             <div
