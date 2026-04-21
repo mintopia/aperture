@@ -95,6 +95,17 @@ class PortalControllerTest extends TestCase
         $response->assertStatus(503);
     }
 
+    public function test_ipv6_requires_token_field(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['blocked' => false]);
+
+        $response = $this->actingAs($user)->postJson('/ipv6', []);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['token']);
+    }
+
     public function test_ipv6_does_not_allow_for_blocked_user(): void
     {
         Queue::fake();

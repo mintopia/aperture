@@ -107,7 +107,8 @@
                         method: "POST",
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 'token': token.trim() }),
-                    }).then(() => setTimeout(checkStatus, 2000));
+                    }).then(() => setTimeout(checkStatus, 2000))
+                      .catch(() => setTimeout(checkStatus, 2000));
                 } else {
                     setTimeout(checkStatus, 2000);
                 }
