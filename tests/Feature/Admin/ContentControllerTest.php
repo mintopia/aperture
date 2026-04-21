@@ -37,6 +37,8 @@ class ContentControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Content/Index')
             ->has('blocks', 3)
+            ->has('singletonTypes')
+            ->has('existingTypes')
         );
     }
 
@@ -49,7 +51,6 @@ class ContentControllerTest extends TestCase
             'type' => 'custom_markdown',
             'title' => 'New Block',
             'content' => 'Some content',
-            'sort_order' => 5,
             'is_active' => true,
         ]);
 
@@ -81,25 +82,6 @@ class ContentControllerTest extends TestCase
 
         $response->assertNoContent();
         $this->assertDatabaseMissing('content_blocks', ['id' => $block->id]);
-    }
-
-    public function test_admin_can_reorder_content_blocks(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $block1 = ContentBlock::factory()->create(['sort_order' => 10]);
-        $block2 = ContentBlock::factory()->create(['sort_order' => 20]);
-
-        $response = $this->actingAs($admin)->postJson('/admin/content/reorder', [
-            'blocks' => [
-                ['id' => $block1->id, 'sort_order' => 20],
-                ['id' => $block2->id, 'sort_order' => 10],
-            ],
-        ]);
-
-        $response->assertOk();
-        $this->assertDatabaseHas('content_blocks', ['id' => $block1->id, 'sort_order' => 20]);
-        $this->assertDatabaseHas('content_blocks', ['id' => $block2->id, 'sort_order' => 10]);
     }
 
     public function test_create_validates_required_fields(): void
