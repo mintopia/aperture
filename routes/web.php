@@ -104,7 +104,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/stats/top-talkers', [AdminStatsController::class, 'topTalkers'])->name('stats.top-talkers');
 
         // Content blocks
-        Route::get('/content/editor', [ContentController::class, 'editor'])->name('content.editor');
         Route::put('/content/layout', [ContentController::class, 'updateLayout'])->name('content.layout.update');
         Route::resource('content', ContentController::class)->except(['create', 'edit', 'show']);
 

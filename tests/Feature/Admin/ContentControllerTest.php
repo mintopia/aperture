@@ -35,11 +35,24 @@ class ContentControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->component('Admin/Content/Index')
+            ->component('Admin/Content/Editor')
             ->has('blocks', 3)
             ->has('singletonTypes')
             ->has('existingTypes')
         );
+    }
+
+    public function test_editor_route_no_longer_exists(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/content/editor');
+
+        // The dedicated /content/editor GET route has been removed.
+        // The URI now resolves to the resource {content} pattern with 'show' excluded,
+        // so Laravel returns 405 Method Not Allowed rather than 404.
+        $this->assertContains($response->getStatusCode(), [404, 405]);
     }
 
     public function test_admin_can_create_content_block(): void

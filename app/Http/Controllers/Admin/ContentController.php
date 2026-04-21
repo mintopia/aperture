@@ -19,29 +19,13 @@ class ContentController extends Controller
     {
         $blocks = ContentBlock::orderBy('grid_row')->orderBy('grid_col')->get();
 
-        return Inertia::render('Admin/Content/Index', [
-            'blocks' => $blocks,
-            'singletonTypes' => ContentBlock::SINGLETON_TYPES,
-            'existingTypes' => ContentBlock::pluck('type')->unique()->values(),
-            'breadcrumbs' => [
-                ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Content'],
-            ],
-        ]);
-    }
-
-    public function editor(): Response
-    {
-        $blocks = ContentBlock::orderBy('grid_row')->orderBy('grid_col')->get();
-
         return Inertia::render('Admin/Content/Editor', [
             'blocks' => $blocks,
             'singletonTypes' => ContentBlock::SINGLETON_TYPES,
             'existingTypes' => ContentBlock::pluck('type')->unique()->values(),
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Content', 'href' => route('admin.content.index')],
-                ['label' => 'Grid Editor'],
+                ['label' => 'Content'],
             ],
         ]);
     }
