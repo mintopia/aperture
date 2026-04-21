@@ -18,7 +18,7 @@ class ContentBlockFactory extends Factory
     public function definition(): array
     {
         return [
-            'type' => fake()->randomElement(['event_info', 'connection_status', 'bandwidth', 'network_stats', 'custom_markdown']),
+            'type' => fake()->randomElement(['bandwidth', 'custom_markdown']),
             'title' => fake()->sentence(3),
             'content' => fake()->optional()->paragraph(),
             'grid_col' => 1,
@@ -34,15 +34,6 @@ class ContentBlockFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_active' => false,
-        ]);
-    }
-
-    public function eventInfo(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'type' => 'event_info',
-            'title' => 'Event Information',
-            'content' => fake()->paragraph(),
         ]);
     }
 
@@ -77,14 +68,6 @@ class ContentBlockFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'type' => 'bandwidth',
             'title' => 'Bandwidth',
-        ]);
-    }
-
-    public function networkStats(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'type' => 'network_stats',
-            'title' => 'Network Stats',
         ]);
     }
 
