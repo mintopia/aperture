@@ -14,19 +14,21 @@ vi.mock('@inertiajs/vue3', () => ({
 }));
 
 globalThis.route = (name, params) => {
+    const base = 'https://aperture.local.js42.io';
+
     if (name === 'admin.settings.integrations.show') {
-        return `/admin/settings/integrations/${params}`;
+        return `${base}/admin/settings/integrations/${params}`;
     }
 
     if (name === 'admin.settings.integrations') {
-        return '/admin/settings/integrations';
+        return `${base}/admin/settings/integrations`;
     }
 
     if (name === 'admin.switches.index') {
-        return '/admin/switches';
+        return `${base}/admin/switches`;
     }
 
-    return `/admin/settings/${name.replace('admin.settings.', '')}`;
+    return `${base}/admin/settings/${name.replace('admin.settings.', '')}`;
 };
 
 describe('SettingsNav.vue', () => {
@@ -71,7 +73,7 @@ describe('SettingsNav.vue', () => {
             'DNS Detection Soon',
         ]);
         expect(wrapper.get('[data-testid="settings-nav-integrations"]').attributes('href')).toBe(
-            '/admin/settings/integrations',
+            'https://aperture.local.js42.io/admin/settings/integrations',
         );
     });
 
@@ -93,7 +95,9 @@ describe('SettingsNav.vue', () => {
 
     it('renders enabled nav items as clickable links', () => {
         const wrapper = mountComponent();
-        const enabledItems = wrapper.findAll('[data-testid^="settings-nav-"]').filter((item) => item.element.tagName === 'A');
+        const enabledItems = wrapper
+            .findAll('[data-testid^="settings-nav-"]')
+            .filter((item) => item.element.tagName === 'A');
 
         for (const item of enabledItems) {
             expect(item.attributes('href')).toBeTruthy();
@@ -108,7 +112,7 @@ describe('SettingsNav.vue', () => {
         const wrapper = mountComponent('/admin/settings/integrations');
         const activeItem = wrapper.get('[data-testid="settings-nav-integrations"]');
 
-        expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/[0.14]');
+        expect(activeItem.classes()).toContain('bg-[var(--color-accent-dim)]');
         expect(activeItem.classes()).toContain('font-semibold');
         expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
     });
@@ -117,7 +121,7 @@ describe('SettingsNav.vue', () => {
         const wrapper = mountComponent('/admin/settings/integrations/opnsense');
         const activeItem = wrapper.get('[data-testid="settings-nav-integrations"]');
 
-        expect(activeItem.classes()).toContain('bg-[var(--color-primary)]/[0.14]');
+        expect(activeItem.classes()).toContain('bg-[var(--color-accent-dim)]');
         expect(activeItem.classes()).toContain('font-semibold');
         expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
     });
@@ -127,13 +131,19 @@ describe('SettingsNav.vue', () => {
         const groups = wrapper.findAll('nav > div > div');
 
         expect(groups[1].findAll('[data-testid^="settings-nav-"]').map((item) => item.text())).toEqual(['Theme']);
-        expect(wrapper.get('[data-testid="settings-nav-theme"]').attributes('href')).toBe('/admin/settings/theme');
+        expect(wrapper.get('[data-testid="settings-nav-theme"]').attributes('href')).toBe(
+            'https://aperture.local.js42.io/admin/settings/theme',
+        );
         expect(groups[2].findAll('[data-testid^="settings-nav-"]').map((item) => item.text())).toEqual([
             'Event',
             'Portal',
         ]);
-        expect(wrapper.get('[data-testid="settings-nav-event"]').attributes('href')).toBe('/admin/settings/event');
-        expect(wrapper.get('[data-testid="settings-nav-portal"]').attributes('href')).toBe('/admin/settings/portal');
+        expect(wrapper.get('[data-testid="settings-nav-event"]').attributes('href')).toBe(
+            'https://aperture.local.js42.io/admin/settings/event',
+        );
+        expect(wrapper.get('[data-testid="settings-nav-portal"]').attributes('href')).toBe(
+            'https://aperture.local.js42.io/admin/settings/portal',
+        );
     });
 
     it('renders slot content', () => {

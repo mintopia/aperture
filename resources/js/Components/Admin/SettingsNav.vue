@@ -27,7 +27,11 @@ const navGroups = [
 ];
 
 function isActive(href) {
-    return currentUrl.value.startsWith(href);
+    try {
+        return currentUrl.value.startsWith(new URL(href).pathname);
+    } catch {
+        return currentUrl.value.startsWith(href);
+    }
 }
 
 function testId(label) {
@@ -40,13 +44,13 @@ function itemClass(item) {
     }
 
     return isActive(item.href)
-        ? 'bg-[var(--color-primary)]/[0.14] text-[var(--color-primary)] font-semibold'
+        ? 'bg-[var(--color-accent-dim)] text-[var(--color-primary)] font-semibold'
         : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]';
 }
 </script>
 
 <template>
-    <div data-testid="settings-nav" class="flex flex-col lg:flex-row lg:gap-0">
+    <div data-testid="settings-nav" class="flex flex-col lg:-mx-10 lg:-mt-8 lg:-mb-16 lg:flex-row">
         <nav
             class="shrink-0 border-b border-[var(--color-border)] p-2 lg:w-[180px] lg:border-r lg:border-b-0 lg:px-0 lg:py-6"
         >
@@ -58,7 +62,7 @@ function itemClass(item) {
                     class="flex min-w-[120px] flex-col gap-1"
                 >
                     <p
-                        class="font-body px-2 pb-1 text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
+                        class="font-body px-5 pb-1 text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
                     >
                         {{ group.label }}
                     </p>
@@ -68,7 +72,7 @@ function itemClass(item) {
                             v-if="item.disabled"
                             :data-testid="testId(item.label)"
                             :class="itemClass(item)"
-                            class="flex items-center gap-1.5 rounded-md px-5 py-1.5 text-[13px]"
+                            class="flex items-center gap-1.5 rounded-md px-5 py-2 text-[13px]"
                         >
                             {{ item.label }}
                             <span
@@ -82,7 +86,7 @@ function itemClass(item) {
                             :href="item.href"
                             :data-testid="testId(item.label)"
                             :class="itemClass(item)"
-                            class="rounded-md px-5 py-1.5 text-[13px] transition-all duration-100"
+                            class="rounded-md px-5 py-2 text-[13px] transition-all duration-100"
                         >
                             {{ item.label }}
                         </component>
@@ -90,7 +94,7 @@ function itemClass(item) {
                 </div>
             </div>
         </nav>
-        <div class="min-w-0 flex-1 p-4 lg:p-6">
+        <div class="min-w-0 flex-1 p-4 lg:px-10 lg:pt-8 lg:pb-16">
             <slot />
         </div>
     </div>
