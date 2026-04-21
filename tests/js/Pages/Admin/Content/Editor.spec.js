@@ -91,4 +91,19 @@ describe('Admin Content Editor', () => {
         await grid.trigger('keydown', { key: 'Escape' });
         expect(block1.attributes('style')).toBe(originalStyle);
     });
+
+    it('renders a resize handle on each block', () => {
+        const wrapper = mount(Editor, { props: defaultProps });
+        const handle1 = wrapper.find('[data-testid="resize-handle-1"]');
+        const handle2 = wrapper.find('[data-testid="resize-handle-2"]');
+        expect(handle1.exists()).toBe(true);
+        expect(handle2.exists()).toBe(true);
+    });
+
+    it('does not show col_span or row_span controls in side panel', async () => {
+        const wrapper = mount(Editor, { props: defaultProps });
+        await wrapper.find('[data-testid="editor-block-1"]').trigger('click');
+        expect(wrapper.find('[data-testid="panel-col-span"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="panel-row-span"]').exists()).toBe(false);
+    });
 });

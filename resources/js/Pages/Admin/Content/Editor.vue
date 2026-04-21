@@ -17,13 +17,17 @@ const selectedBlock = ref(null);
 const hasChanges = ref(false);
 const saving = ref(false);
 
-const { totalRows, canPlace, moveBlock, computeDisplacement } = useGridEditor(localBlocks);
+const { totalRows, moveBlock, computeDisplacement } = useGridEditor(localBlocks);
 
 // Drag state
 const dragging = ref(null);
 const dragOver = ref(null);
 const positionSnapshot = ref(null);
 const previewDisplacement = ref({});
+
+// Resize state
+const resizing = ref(null);
+const resizeStartPos = ref(null);
 
 function getBlock(id) {
     return localBlocks.value.find((b) => b.id === id);
@@ -84,6 +88,75 @@ function onDragEnd() {
     if (dragging.value) {
         cancelDrag();
     }
+}
+
+function onResizeStart(block, event) {
+    event.preventDefault();
+    resizing.value = block.id;
+    resizeStartPos.value = {
+        x: event.clientX,
+        y: event.clientY,
+        colSpan: block.col_span,
+        rowSpan: block.row_span,
+    };
+    positionSnapshot.value = localBlocks.value.map((b) => ({
+        id: b.id,
+        grid_col: b.grid_col,
+        grid_row: b.grid_row,
+        col_span: b.col_span,
+        row_span: b.row_span,
+    }));
+    document.addEventListener('mousemove', onResizeMove);
+    document.addEventListener('mouseup', onResizeEnd);
+}
+
+function onResizeMove(event) {
+    if (!resizing.value) return;
+    const block = getBlock(resizing.value);
+    if (!block) return;
+
+    const gridEl = document.querySelector('[data-testid="editor-grid"]');
+    const cellWidth = gridEl.clientWidth / 3;
+    const cellHeight = 80;
+
+    const dx = event.clientX - resizeStartPos.value.x;
+    const dy = event.clientY - resizeStartPos.value.y;
+
+    const newColSpan = Math.max(
+        1,
+        Math.min(3 - block.grid_col + 1, resizeStartPos.value.colSpan + Math.round(dx / cellWidth)),
+    );
+    const newRowSpan = Math.max(1, resizeStartPos.value.rowSpan + Math.round(dy / cellHeight));
+
+    if (newColSpan !== block.col_span || newRowSpan !== block.row_span) {
+        block.col_span = newColSpan;
+        block.row_span = newRowSpan;
+        previewDisplacement.value = computeDisplacement(
+            block.id,
+            block.grid_col,
+            block.grid_row,
+            newColSpan,
+            newRowSpan,
+        );
+    }
+}
+
+function onResizeEnd() {
+    if (!resizing.value) return;
+    const block = getBlock(resizing.value);
+    if (block) {
+        for (const [id, newRow] of Object.entries(previewDisplacement.value)) {
+            const displaced = getBlock(Number(id));
+            if (displaced) displaced.grid_row = newRow;
+        }
+        hasChanges.value = true;
+    }
+    resizing.value = null;
+    resizeStartPos.value = null;
+    previewDisplacement.value = {};
+    positionSnapshot.value = null;
+    document.removeEventListener('mousemove', onResizeMove);
+    document.removeEventListener('mouseup', onResizeEnd);
 }
 
 function selectBlock(block) {
@@ -152,7 +225,7 @@ function blockStyle(block) {
     return {
         gridColumn: `${block.grid_col} / span ${block.col_span}`,
         gridRow: `${row} / span ${block.row_span}`,
-        transition: dragging.value ? 'grid-row-start 200ms ease' : 'none',
+        transition: dragging.value || resizing.value ? 'grid-row-start 200ms ease' : 'none',
     };
 }
 
@@ -231,6 +304,15 @@ const blockTypeColors = {
                 <div class="mt-1 text-xs text-[var(--color-text-secondary)]">{{ block.title }}</div>
                 <div class="absolute top-2 right-2 text-[10px] text-[var(--color-text-muted)]">
                     {{ block.col_span }}&times;{{ block.row_span }}
+                </div>
+                <div
+                    :data-testid="'resize-handle-' + block.id"
+                    class="absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
+                    @mousedown.stop="onResizeStart(block, $event)"
+                >
+                    <svg class="h-4 w-4 text-[var(--color-text-muted)]/40" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M14 14H10V12H12V10H14V14ZM14 8H12V6H14V8Z" />
+                    </svg>
                 </div>
             </div>
 
