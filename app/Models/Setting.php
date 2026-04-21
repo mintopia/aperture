@@ -44,6 +44,12 @@ class Setting extends Model
 
     use ToString;
 
+    protected $fillable = [
+        'code',
+        'name',
+        'value',
+    ];
+
     protected $casts = [
         'value' => SettingValue::class,
     ];

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DhcpController;
+use App\Http\Controllers\Admin\DnsDetectionSettingsController;
 use App\Http\Controllers\Admin\EventSettingsController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\IntegrationController;
@@ -134,6 +135,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/settings/portal', [PortalSettingsController::class, 'update'])->name('settings.portal.update');
         Route::get('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'show'])->name('settings.ipv6-detection');
         Route::put('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'update'])->name('settings.ipv6-detection.update');
+        Route::get('/settings/dns-detection', [DnsDetectionSettingsController::class, 'show'])->name('settings.dns-detection');
+        Route::put('/settings/dns-detection', [DnsDetectionSettingsController::class, 'update'])->name('settings.dns-detection.update');
 
         Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
         Route::post('/settings/test/{service}', [TestConnectionController::class, 'test'])->name('settings.test');
