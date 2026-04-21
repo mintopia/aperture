@@ -7,33 +7,28 @@ use Illuminate\Database\Seeder;
 
 class ContentBlockSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $blocks = [
             [
+                'type' => 'connection_strip',
+                'title' => 'Connection Status',
+                'content' => null,
+                'grid_col' => 1,
+                'grid_row' => 1,
+                'col_span' => 3,
+                'row_span' => 1,
+                'is_active' => true,
+                'settings' => null,
+            ],
+            [
                 'type' => 'event_info',
                 'title' => 'Welcome to the LAN Party',
                 'content' => 'Check the schedule and make the most of your time here. Have fun and play fair!',
-                'sort_order' => 10,
-                'is_active' => true,
-                'settings' => null,
-            ],
-            [
-                'type' => 'connection_status',
-                'title' => 'Connection Status',
-                'content' => null,
-                'sort_order' => 20,
-                'is_active' => true,
-                'settings' => null,
-            ],
-            [
-                'type' => 'bandwidth',
-                'title' => 'Your Bandwidth',
-                'content' => null,
-                'sort_order' => 30,
+                'grid_col' => 1,
+                'grid_row' => 2,
+                'col_span' => 2,
+                'row_span' => 1,
                 'is_active' => true,
                 'settings' => null,
             ],
@@ -41,7 +36,21 @@ class ContentBlockSeeder extends Seeder
                 'type' => 'network_stats',
                 'title' => 'Network Stats',
                 'content' => null,
-                'sort_order' => 40,
+                'grid_col' => 3,
+                'grid_row' => 2,
+                'col_span' => 1,
+                'row_span' => 1,
+                'is_active' => true,
+                'settings' => null,
+            ],
+            [
+                'type' => 'bandwidth',
+                'title' => 'Your Bandwidth',
+                'content' => null,
+                'grid_col' => 1,
+                'grid_row' => 3,
+                'col_span' => 1,
+                'row_span' => 1,
                 'is_active' => true,
                 'settings' => null,
             ],
@@ -49,7 +58,10 @@ class ContentBlockSeeder extends Seeder
                 'type' => 'dns_filter',
                 'title' => 'DNS Ad Blocking',
                 'content' => 'Toggle DNS filtering for your connection.',
-                'sort_order' => 50,
+                'grid_col' => 2,
+                'grid_row' => 3,
+                'col_span' => 1,
+                'row_span' => 1,
                 'is_active' => true,
                 'settings' => null,
             ],
