@@ -522,4 +522,53 @@ class SshProxyTransportTest extends TestCase
 
         $this->assertTrue($transport->isConnected());
     }
+
+    public function test_is_connected_returns_false_when_proxy_status_throws(): void
+    {
+        $switchConfig = SwitchConfig::factory()->make();
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('status')
+            ->once()
+            ->andThrow(new RuntimeException('Proxy unreachable'));
+
+        $transport = new SshProxyTransport($proxyClient, $switchConfig);
+
+        $this->assertFalse($transport->isConnected());
+    }
+
+    public function test_disconnect_is_a_no_op(): void
+    {
+        $switchConfig = SwitchConfig::factory()->make();
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+
+        $transport = new SshProxyTransport($proxyClient, $switchConfig);
+
+        // Should not throw — disconnect is intentionally a no-op for proxy transport
+        $transport->disconnect();
+
+        $this->assertTrue(true);
+    }
+
+    public function test_execute_throws_when_output_key_missing_from_results(): void
+    {
+        // This test covers the guard in execute() at line 27.
+        // We use a subclass that overrides executeMultiple() to return a result
+        // without the expected command key.
+        $switchConfig = SwitchConfig::factory()->make();
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+
+        $transport = new class($proxyClient, $switchConfig) extends SshProxyTransport
+        {
+            public function executeMultiple(array $commands): array
+            {
+                // Return empty array — missing the expected command key
+                return [];
+            }
+        };
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Missing output for switch command [show version].');
+
+        $transport->execute('show version');
+    }
 }

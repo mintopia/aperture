@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,6 +45,51 @@ class SettingsControllerIntegrationExpansionTest extends TestCase
                     && in_array('ntopng', $ids)
                     && in_array('pihole', $ids)
                     && in_array('prometheus', $ids);
+            })
+        );
+    }
+
+    public function test_integrations_page_uses_explicit_enabled_flag_when_present(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        // Set an explicit enabled=1 flag in the integration config to hit line 77
+        // (bool) $config['enabled'] — the isset($config['enabled']) branch
+        IntegrationConfig::setValue('prometheus', 'enabled', '1');
+        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+
+        $response = $this->actingAs($admin)->get('/admin/settings/integrations');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Settings/Integrations')
+            ->where('services', function ($services): bool {
+                $prometheus = collect($services)->firstWhere('id', 'prometheus');
+
+                return $prometheus !== null && $prometheus['enabled'] === true;
+            })
+        );
+    }
+
+    public function test_integrations_page_uses_explicit_enabled_false_when_set_to_zero(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        // Set explicit enabled=0 to cover (bool) $config['enabled'] returning false
+        IntegrationConfig::setValue('prometheus', 'enabled', '0');
+        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+
+        $response = $this->actingAs($admin)->get('/admin/settings/integrations');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Settings/Integrations')
+            ->where('services', function ($services): bool {
+                $prometheus = collect($services)->firstWhere('id', 'prometheus');
+
+                return $prometheus !== null && $prometheus['enabled'] === false;
             })
         );
     }

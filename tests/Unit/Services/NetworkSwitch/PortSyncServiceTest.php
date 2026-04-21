@@ -1076,4 +1076,28 @@ class PortSyncServiceTest extends TestCase
         // The other switch's stale run should NOT be affected
         $this->assertSame('running', $otherStaleRun->status);
     }
+
+    public function test_sync_skips_forwarding_entry_when_port_not_in_switch_ports(): void
+    {
+        // Only Gi1/0/1 exists as a port; forwarding entry references Gi1/0/99 which doesn't exist
+        $ports = collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]);
+
+        $macs = collect([
+            new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
+            new ForwardingEntry(mac: 'aabb.ccdd.ee02', port: 'Gi1/0/99', vlan: 200), // port not in switch
+        ]);
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn($ports);
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->once()->andReturn($macs);
+
+        $syncRun = $this->service->syncSwitch($this->switchConfig);
+
+        // Only the valid MAC should be stored
+        $this->assertDatabaseCount('switch_port_macs', 1);
+        $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'aabb.ccdd.ee01']);
+        $this->assertDatabaseMissing('switch_port_macs', ['mac_address' => 'aabb.ccdd.ee02']);
+        $this->assertSame('completed', $syncRun->status);
+    }
 }

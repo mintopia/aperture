@@ -399,4 +399,61 @@ class IpAddressControllerTest extends TestCase
             ->where('shutdown', true)
         );
     }
+
+    public function test_admin_can_view_ip_show_with_fallback_switch_config_when_hostname_not_in_db(): void
+    {
+        // Covers IpAddressController::resolveSwitchConfig() lines 196-205:
+        // when no SwitchConfig record matches the hostname, a new SwitchConfig is built
+        // from the aperture.cisco.* config values and returned as fallback.
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        config([
+            'aperture.cisco.username' => 'fallback-user',
+            'aperture.cisco.password' => 'fallback-pass',
+            'aperture.cisco.enablePassword' => 'fallback-enable',
+            'aperture.cisco.timeout' => 10,
+        ]);
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')
+            ->andReturn(new ResolvedPort(ip: '10.0.0.99', mac: 'BB:CC:DD:EE:FF:00', port: '1', switch: ''));
+        $inventory->shouldReceive('getPortDetail')
+            ->andReturn(new PortDetail(
+                hostname: 'unknown-switch.local',  // No SwitchConfig for this hostname
+                interface: 'Gi0/1',
+                status: 'up',
+                adminStatus: 'up',
+                speed: 1000
+            ));
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.99';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        // No SwitchConfig created for 'unknown-switch.local'
+
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $factory->shouldReceive('make')
+            ->once()
+            ->with(Mockery::on(function (SwitchConfig $config): bool {
+                // The fallback SwitchConfig should use the config values
+                return $config->hostname === 'unknown-switch.local'
+                    && $config->username === 'fallback-user';
+            }))
+            ->andThrow(new RuntimeException('Switch offline'));
+        $this->app->instance(SwitchServiceFactory::class, $factory);
+
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Ips/Show')
+            ->has('ip')
+            ->has('port')
+            ->where('status', 'Unable to connect to switch')
+        );
+    }
 }

@@ -157,6 +157,28 @@ class IntegrationControllerTest extends TestCase
         $response->assertJsonPath('logs.0.response_status', 200);
     }
 
+    public function test_update_skips_keys_not_in_validation_rules(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        // Send a config key ('unknown_key') that does not exist in the opnsense
+        // validationRules, triggering the `continue` branch on line 136.
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/opnsense', [
+            'config' => [
+                'endpoint' => 'https://opnsense.example.com',
+                'unknown_key' => 'should-be-ignored',
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        // The valid key was stored, the unknown key was not
+        $this->assertEquals('https://opnsense.example.com', IntegrationConfig::getValue('opnsense', 'endpoint'));
+        $this->assertNull(IntegrationConfig::getValue('opnsense', 'unknown_key'));
+    }
+
     public function test_non_admin_cannot_access_integration(): void
     {
         Queue::fake();

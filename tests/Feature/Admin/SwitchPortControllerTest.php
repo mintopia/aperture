@@ -15,7 +15,9 @@ use App\Models\UserIpAddress;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
@@ -598,6 +600,88 @@ class SwitchPortControllerTest extends TestCase
         $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F2/shutdown');
 
         $response->assertRedirect();
+    }
+
+    // -------------------------------------------------------------------------
+    // IP resolution catch(Throwable) — line 130–134
+    // -------------------------------------------------------------------------
+
+    public function test_port_show_handles_ip_record_query_exception_gracefully(): void
+    {
+        // Covers lines 130–134: the catch(Throwable) inside the $resolvedIps array_map
+        // when IpAddress::where() itself throws an exception.
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+        ]);
+
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:01',
+            'vlan' => 100,
+        ]);
+
+        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $mockResolver->shouldReceive('resolveMacToIps')
+            ->with('AA:BB:CC:DD:EE:01')
+            ->andReturn([
+                ['ip' => '10.0.0.200', 'hostname' => 'host-200'],
+            ]);
+        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
+
+        // Use DB::listen to throw when the ip_addresses table is queried during IP resolution.
+        // This causes IpAddress::where('address', ...) to throw, exercising the catch(Throwable).
+        $throwOnIpQuery = true;
+        DB::listen(function (QueryExecuted $event) use (&$throwOnIpQuery): void {
+            if ($throwOnIpQuery && str_contains($event->sql, 'ip_addresses')) {
+                $throwOnIpQuery = false; // Only throw once to avoid infinite loop
+                throw new RuntimeException('Simulated DB error during IP address lookup');
+            }
+        });
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        // The controller catches Throwable and returns a fallback IP entry with null user
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->has('macs', 1)
+            ->where('macs.0.resolved_ips.0.ip', '10.0.0.200')
+            ->where('macs.0.resolved_ips.0.user', null)
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // toIso8601String — line 195
+    // -------------------------------------------------------------------------
+
+    public function test_port_show_has_null_last_synced_at_when_not_set(): void
+    {
+        // Covers the toIso8601String() method returning null when value is not DateTimeInterface
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        // Create a port without a last_synced_at value (null)
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+            'status' => 'up',
+            'speed' => '1000',
+            'last_synced_at' => null,
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Switches/Ports/Show')
+            ->where('port.last_synced_at', null)
+        );
     }
 
     // -------------------------------------------------------------------------

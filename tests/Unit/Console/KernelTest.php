@@ -1,15 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Console;
 
 use App\Console\Kernel;
+use App\Jobs\SyncSwitchPortsJob;
+use App\Models\SwitchConfig;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Queue;
 use ReflectionClass;
 use Tests\TestCase;
 
 class KernelTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_kernel_schedules_commands(): void
     {
         $kernel = $this->app->make(Kernel::class);
@@ -68,5 +76,35 @@ class KernelTest extends TestCase
 
         $this->assertNotNull($found, 'sync-switch-ports should be scheduled');
         $this->assertSame('*/10 * * * *', $found->expression);
+    }
+
+    public function test_sync_switch_ports_closure_dispatches_job_for_each_enabled_switch(): void
+    {
+        Queue::fake();
+
+        $enabledSwitch1 = SwitchConfig::factory()->create(['enabled' => true]);
+        $enabledSwitch2 = SwitchConfig::factory()->create(['enabled' => true]);
+        SwitchConfig::factory()->create(['enabled' => false]);
+
+        $kernel = $this->app->make(Kernel::class);
+        $schedule = new Schedule;
+
+        $reflection = new ReflectionClass($kernel);
+        $method = $reflection->getMethod('schedule');
+        $method->invoke($kernel, $schedule);
+
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => ($event->description ?? '') === 'sync-switch-ports');
+
+        $this->assertNotNull($found);
+
+        // Invoke the closure directly via reflection to cover lines 26-28
+        $callbackProperty = (new ReflectionClass($found))->getProperty('callback');
+        $callback = $callbackProperty->getValue($found);
+        $callback();
+
+        Queue::assertPushed(SyncSwitchPortsJob::class, 2);
+        Queue::assertPushed(SyncSwitchPortsJob::class, fn ($job) => $job->switchConfig->is($enabledSwitch1));
+        Queue::assertPushed(SyncSwitchPortsJob::class, fn ($job) => $job->switchConfig->is($enabledSwitch2));
     }
 }

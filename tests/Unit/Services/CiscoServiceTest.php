@@ -227,4 +227,26 @@ class CiscoServiceTest extends TestCase
         $result = $service->showMacAddressTable();
         $this->assertIsString($result);
     }
+
+    public function test_create_ssh_connection_returns_ssh2_instance(): void
+    {
+        // Test the real createSshConnection() method in CiscoService
+        // by calling it via a subclass that exposes the protected method
+        $service = new class extends CiscoService
+        {
+            public function __construct()
+            {
+                parent::__construct('192.0.2.1', 'user', 'pass');
+            }
+
+            public function exposeCreateSshConnection(): SSH2
+            {
+                return $this->createSshConnection();
+            }
+        };
+
+        $ssh = $service->exposeCreateSshConnection();
+
+        $this->assertInstanceOf(SSH2::class, $ssh);
+    }
 }

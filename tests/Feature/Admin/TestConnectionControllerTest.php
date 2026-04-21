@@ -9,6 +9,10 @@ use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\SshProxy\CommandResult;
 use App\Services\SshProxy\SshProxyClientInterface;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -665,5 +669,113 @@ class TestConnectionControllerTest extends TestCase
         $response->assertOk();
         $response->assertJson(['success' => true]);
         Http::assertSent(fn ($req): bool => str_contains($req->url(), 'db-opnsense.example.com'));
+    }
+
+    public function test_switch_test_returns_failure_response_when_proxy_returns_unsuccessful_result(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $mockProxy = Mockery::mock(SshProxyClientInterface::class);
+        $mockProxy->shouldReceive('execute')
+            ->once()
+            ->andReturn(new CommandResult(
+                success: false,
+                output: [],
+                error: 'SSH handshake failed',
+            ));
+
+        $this->app->instance(SshProxyClientInterface::class, $mockProxy);
+
+        $response = $this->actingAs($admin)->postJson(
+            '/admin/settings/test/switch/'.$switch->id
+        );
+
+        $response->assertOk();
+        $response->assertJson([
+            'success' => false,
+            'message' => 'SSH handshake failed',
+        ]);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'output', 'details']);
+
+        $this->assertDatabaseHas('connection_test_logs', [
+            'integration' => 'switch-'.$switch->hostname,
+            'success' => false,
+        ]);
+    }
+
+    public function test_switch_test_returns_failure_response_when_connect_exception_thrown(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $mockProxy = Mockery::mock(SshProxyClientInterface::class);
+        $mockProxy->shouldReceive('execute')
+            ->once()
+            ->andThrow(new ConnectException(
+                'Could not connect to proxy',
+                new Request('POST', 'http://proxy.local')
+            ));
+
+        $this->app->instance(SshProxyClientInterface::class, $mockProxy);
+
+        $response = $this->actingAs($admin)->postJson(
+            '/admin/settings/test/switch/'.$switch->id
+        );
+
+        $response->assertOk();
+        $response->assertJson(['success' => false]);
+        $this->assertStringContainsString('Could not reach SSH proxy', $response->json('message'));
+
+        $this->assertDatabaseHas('connection_test_logs', [
+            'integration' => 'switch-'.$switch->hostname,
+            'success' => false,
+        ]);
+    }
+
+    public function test_switch_test_returns_failure_response_when_request_exception_thrown(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $request = new Request('POST', 'http://proxy.local');
+        $guzzleResponse = new Response(503, [], 'Service Unavailable');
+        $mockProxy = Mockery::mock(SshProxyClientInterface::class);
+        $mockProxy->shouldReceive('execute')
+            ->once()
+            ->andThrow(new RequestException(
+                'Proxy returned 503',
+                $request,
+                $guzzleResponse
+            ));
+
+        $this->app->instance(SshProxyClientInterface::class, $mockProxy);
+
+        $response = $this->actingAs($admin)->postJson(
+            '/admin/settings/test/switch/'.$switch->id
+        );
+
+        $response->assertOk();
+        $response->assertJson(['success' => false]);
+        $this->assertStringContainsString('SSH proxy error', $response->json('message'));
+
+        $this->assertDatabaseHas('connection_test_logs', [
+            'integration' => 'switch-'.$switch->hostname,
+            'success' => false,
+        ]);
+    }
+
+    public function test_test_returns_404_for_unknown_service(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->postJson('/admin/settings/test/nonexistent-service');
+
+        $response->assertStatus(404);
+        $response->assertJson(['success' => false, 'message' => 'Unknown service: nonexistent-service']);
     }
 }

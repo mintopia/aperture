@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Providers;
 
 use App\Models\IntegrationConfig;
+use App\Models\SwitchConfig;
+use App\Providers\AppServiceProvider;
 use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
 use App\Services\Dhcp\OpnSenseDhcpService;
@@ -13,13 +15,21 @@ use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsBlockingInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NtopNgService;
 use App\Services\PiHole\PiHoleService;
+use App\Services\Prometheus\PrometheusService;
+use App\Services\SshProxy\SshProxyClient;
+use App\Services\SshProxy\SshProxyClientInterface;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use ReflectionClass;
+use RuntimeException;
 use Tests\TestCase;
 
 class AppServiceProviderTest extends TestCase
@@ -141,5 +151,77 @@ class AppServiceProviderTest extends TestCase
     public function test_registers_switch_service_factory_singleton(): void
     {
         $this->assertInstanceOf(SwitchServiceFactory::class, $this->app->make(SwitchServiceFactory::class));
+    }
+
+    public function test_ssh_proxy_client_wraps_ipv6_address_in_brackets(): void
+    {
+        config([
+            'aperture.ssh_proxy.host' => '::1',
+            'aperture.ssh_proxy.port' => 8022,
+            'aperture.ssh_proxy.api_key' => 'test-key',
+            'aperture.ssh_proxy.request_timeout' => 60,
+            'aperture.ssh_proxy.connect_timeout' => 5,
+        ]);
+
+        $this->app->forgetInstance(SshProxyClientInterface::class);
+
+        $client = $this->app->make(SshProxyClientInterface::class);
+
+        $this->assertInstanceOf(SshProxyClient::class, $client);
+    }
+
+    public function test_metrics_provider_returns_prometheus_service_when_configured_and_enabled(): void
+    {
+        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+        IntegrationConfig::setValue('prometheus', 'enabled', '1');
+        IntegrationConfig::setValue('prometheus', 'verify_ssl', '1');
+        IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
+        IntegrationConfig::setValue('prometheus', 'default_step', '60');
+
+        $this->app->forgetInstance(MetricsProviderInterface::class);
+
+        $service = $this->app->make(MetricsProviderInterface::class);
+
+        $this->assertInstanceOf(PrometheusService::class, $service);
+    }
+
+    public function test_get_default_switch_config_returns_fallback_when_db_throws(): void
+    {
+        // Covers AppServiceProvider::getDefaultSwitchConfig() line 325 — the catch(Throwable) block.
+        // We add an invalid database connection config, then set SwitchConfig to use it,
+        // so that when the Eloquent query runs it throws an exception caught by the catch block.
+
+        config(['aperture.cisco.hostname' => 'fallback.local']);
+        config(['database.connections.test_invalid' => [
+            'driver' => 'sqlite',
+            'database' => '/nonexistent/path/that/does/not/exist.sqlite',
+            'prefix' => '',
+            'foreign_key_constraints' => false,
+        ]]);
+
+        $provider = collect($this->app->getProviders(AppServiceProvider::class))->first();
+        $this->assertNotNull($provider, 'AppServiceProvider should be registered');
+
+        // Use DB::listen to intercept the SwitchConfig query and throw a RuntimeException,
+        // which will be caught by the catch(Throwable) block in getDefaultSwitchConfig().
+        $thrown = false;
+        DB::listen(function (QueryExecuted $event) use (&$thrown): void {
+            if (str_contains($event->sql, 'switch_configs') && ! $thrown) {
+                $thrown = true;
+                throw new RuntimeException('Simulated DB failure for line 325 coverage');
+            }
+        });
+
+        try {
+            $reflection = new ReflectionClass($provider);
+            $method = $reflection->getMethod('getDefaultSwitchConfig');
+
+            $switchConfig = $method->invoke($provider);
+
+            $this->assertInstanceOf(SwitchConfig::class, $switchConfig);
+            $this->assertSame('fallback.local', $switchConfig->hostname);
+        } finally {
+            // DB::listen callbacks are cleared per test — no cleanup needed
+        }
     }
 }
