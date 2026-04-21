@@ -3,7 +3,7 @@ import EventInfoBlock from './Blocks/EventInfoBlock.vue';
 import ConnectionStatusBlock from './Blocks/ConnectionStatusBlock.vue';
 import BandwidthBlock from './Blocks/BandwidthBlock.vue';
 import NetworkStatsBlock from './Blocks/NetworkStatsBlock.vue';
-import PiHoleToggleBlock from './Blocks/PiHoleToggleBlock.vue';
+import DnsFilterBlock from './Blocks/DnsFilterBlock.vue';
 import DnsWarningBlock from './Blocks/DnsWarningBlock.vue';
 import CustomMarkdownBlock from './Blocks/CustomMarkdownBlock.vue';
 
@@ -12,7 +12,7 @@ const blockComponents = {
     connection_status: ConnectionStatusBlock,
     bandwidth: BandwidthBlock,
     network_stats: NetworkStatsBlock,
-    pihole_toggle: PiHoleToggleBlock,
+    dns_filter: DnsFilterBlock,
     dns_warning: DnsWarningBlock,
     custom_markdown: CustomMarkdownBlock,
 };

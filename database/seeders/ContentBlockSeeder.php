@@ -46,9 +46,9 @@ class ContentBlockSeeder extends Seeder
                 'settings' => null,
             ],
             [
-                'type' => 'pihole_toggle',
-                'title' => 'Ad Blocking',
-                'content' => 'Toggle Pi-hole DNS filtering for your connection.',
+                'type' => 'dns_filter',
+                'title' => 'DNS Ad Blocking',
+                'content' => 'Toggle DNS filtering for your connection.',
                 'sort_order' => 50,
                 'is_active' => true,
                 'settings' => null,

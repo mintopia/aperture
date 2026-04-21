@@ -5,7 +5,7 @@ import PortalLayout from '@/Layouts/PortalLayout.vue';
 import BlockGrid from '@/Components/BlockGrid.vue';
 import DnsWarningBlock from '@/Components/Blocks/DnsWarningBlock.vue';
 import BandwidthBlock from '@/Components/Blocks/BandwidthBlock.vue';
-import PiHoleToggleBlock from '@/Components/Blocks/PiHoleToggleBlock.vue';
+import DnsFilterBlock from '@/Components/Blocks/DnsFilterBlock.vue';
 
 defineOptions({ layout: PortalLayout });
 
@@ -21,12 +21,12 @@ const props = defineProps({
 
 const user = usePage().props.auth?.user;
 
-/* Extract hero blocks (bandwidth + pihole, shown in hero cols) */
+/* Extract hero blocks (bandwidth + dns_filter, shown in hero cols) */
 const bandwidthBlock = computed(() => props.blocks.find((b) => b.type === 'bandwidth'));
-const piholeBlock = computed(() => props.blocks.find((b) => b.type === 'pihole_toggle'));
+const dnsFilterBlock = computed(() => props.blocks.find((b) => b.type === 'dns_filter'));
 
 /* Remaining blocks for the standard grid (exclude hero blocks) */
-const heroTypes = ['bandwidth', 'pihole_toggle'];
+const heroTypes = ['bandwidth', 'dns_filter'];
 const gridBlocks = computed(() => props.blocks.filter((b) => !heroTypes.includes(b.type)));
 </script>
 
@@ -99,10 +99,10 @@ const gridBlocks = computed(() => props.blocks.filter((b) => !heroTypes.includes
                 <BandwidthBlock :stats="bandwidthBlock.settings" />
             </div>
             <div
-                v-if="piholeBlock"
+                v-if="dnsFilterBlock"
                 class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
             >
-                <PiHoleToggleBlock :title="piholeBlock.title" :content="piholeBlock.content" />
+                <DnsFilterBlock :title="dnsFilterBlock.title" :content="dnsFilterBlock.content" />
             </div>
         </div>
 

@@ -8,7 +8,7 @@ use App\Services\Interfaces\DnsBlockingInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class PiHoleController extends Controller
+class DnsFilterController extends Controller
 {
     public function toggle(Request $request, DnsBlockingInterface $dnsBlocking): JsonResponse
     {

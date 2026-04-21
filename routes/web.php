@@ -23,7 +23,7 @@ use App\Http\Controllers\CaptivePortalController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PasskeyController;
 use App\Http\Controllers\Portal\DashboardController;
-use App\Http\Controllers\Portal\PiHoleController;
+use App\Http\Controllers\Portal\DnsFilterController;
 use App\Http\Controllers\Portal\StatsController;
 use App\Http\Controllers\PortalController;
 use App\Http\Middleware\EnsureAccountSecurityVerified;
@@ -73,7 +73,7 @@ Route::middleware(['auth'])->group(function () {
     // New portal routes
     Route::prefix('portal')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('portal.dashboard');
-        Route::post('/pihole/toggle', [PiHoleController::class, 'toggle'])->name('portal.pihole.toggle');
+        Route::post('/dns-filter/toggle', [DnsFilterController::class, 'toggle'])->name('portal.dns-filter.toggle');
         Route::get('/stats/bandwidth', [StatsController::class, 'bandwidth'])->name('portal.stats.bandwidth');
     });
 

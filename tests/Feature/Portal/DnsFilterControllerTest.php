@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
-class PiHoleControllerTest extends TestCase
+class DnsFilterControllerTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -31,7 +31,7 @@ class PiHoleControllerTest extends TestCase
         return $ipAddress;
     }
 
-    public function test_toggle_enables_pihole_for_users_ip(): void
+    public function test_toggle_enables_dns_filter_for_users_ip(): void
     {
         Queue::fake();
         $user = User::factory()->create();
@@ -41,13 +41,13 @@ class PiHoleControllerTest extends TestCase
         $mock->shouldReceive('isEnabledForIp')->with('127.0.0.1')->once()->andReturn(false);
         $mock->shouldReceive('enableForIp')->with('127.0.0.1')->once();
 
-        $response = $this->actingAs($user)->postJson('/portal/pihole/toggle');
+        $response = $this->actingAs($user)->postJson('/portal/dns-filter/toggle');
 
         $response->assertOk()
             ->assertJson(['enabled' => true]);
     }
 
-    public function test_toggle_disables_pihole_for_users_ip(): void
+    public function test_toggle_disables_dns_filter_for_users_ip(): void
     {
         Queue::fake();
         $user = User::factory()->create();
@@ -57,7 +57,7 @@ class PiHoleControllerTest extends TestCase
         $mock->shouldReceive('isEnabledForIp')->with('127.0.0.1')->once()->andReturn(true);
         $mock->shouldReceive('disableForIp')->with('127.0.0.1')->once();
 
-        $response = $this->actingAs($user)->postJson('/portal/pihole/toggle');
+        $response = $this->actingAs($user)->postJson('/portal/dns-filter/toggle');
 
         $response->assertOk()
             ->assertJson(['enabled' => false]);
@@ -72,14 +72,14 @@ class PiHoleControllerTest extends TestCase
         $mock = $this->mock(DnsBlockingInterface::class);
         $mock->shouldNotReceive('isEnabledForIp');
 
-        $response = $this->actingAs($user)->postJson('/portal/pihole/toggle');
+        $response = $this->actingAs($user)->postJson('/portal/dns-filter/toggle');
 
         $response->assertForbidden();
     }
 
     public function test_unauthenticated_user_rejected(): void
     {
-        $response = $this->postJson('/portal/pihole/toggle');
+        $response = $this->postJson('/portal/dns-filter/toggle');
 
         $response->assertUnauthorized();
     }

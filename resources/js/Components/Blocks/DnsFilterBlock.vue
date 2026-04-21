@@ -2,8 +2,10 @@
 import { ref } from 'vue';
 
 defineProps({
-    title: { type: String, default: '' },
-    content: { type: String, default: '' },
+    title: { type: String, default: 'DNS Ad Blocking' },
+    content: { type: String, default: 'Toggle DNS filtering for your connection.' },
+    settings: { type: Object, default: () => ({}) },
+    blockContext: { type: Object, default: () => ({}) },
 });
 
 const enabled = ref(false);
@@ -12,7 +14,7 @@ const loading = ref(false);
 async function toggle() {
     loading.value = true;
     try {
-        const response = await fetch(route('portal.pihole.toggle'), {
+        const response = await fetch(route('portal.dns-filter.toggle'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -32,18 +34,18 @@ async function toggle() {
 </script>
 
 <template>
-    <div data-testid="block-pihole-toggle">
+    <div data-testid="block-dns-filter">
         <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-            {{ title ?? 'Ad Blocking' }}
+            {{ title }}
         </h3>
         <div class="flex items-center justify-between">
             <div>
-                <div class="text-sm font-semibold text-[var(--color-text)]">Pi-hole</div>
-                <div class="mt-0.5 text-xs text-[var(--color-text-muted)]">DNS-level ad blocking</div>
+                <div class="text-sm font-semibold text-[var(--color-text)]">DNS Filtering</div>
+                <div class="mt-0.5 text-xs text-[var(--color-text-muted)]">{{ content }}</div>
             </div>
             <button
                 :disabled="loading"
-                data-testid="pihole-toggle"
+                data-testid="dns-filter-toggle"
                 class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none"
                 :class="enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface-alt)]'"
                 @click="toggle"
@@ -54,11 +56,5 @@ async function toggle() {
                 />
             </button>
         </div>
-        <p
-            v-if="content"
-            class="mt-3 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-text-secondary)]"
-        >
-            {{ content }}
-        </p>
     </div>
 </template>
