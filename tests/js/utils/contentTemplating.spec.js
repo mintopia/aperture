@@ -3,21 +3,30 @@ import { renderTemplate } from '@/utils/contentTemplating.js';
 
 describe('renderTemplate', () => {
     const context = {
-        currentIp: '192.168.1.42',
+        currentIpv4: '10.0.0.1',
+        currentIpv6: 'fe80::1',
         macAddress: 'AA:BB:CC:DD:EE:FF',
-        user: { seat: 'A42', team: 'Red' },
+        user: { name: 'Player', params: { seat: 'A42', team: 'Red' } },
     };
 
-    it('replaces {user.seat} with user parameter value', () => {
-        expect(renderTemplate('Your seat is {user.seat}', context)).toBe('Your seat is A42');
+    it('replaces {user.name} with user property', () => {
+        expect(renderTemplate('Hello {user.name}', context)).toBe('Hello Player');
     });
 
-    it('replaces {user.team} with user parameter value', () => {
-        expect(renderTemplate('Team: {user.team}', context)).toBe('Team: Red');
+    it('replaces {user.params.seat} with user parameter', () => {
+        expect(renderTemplate('Seat: {user.params.seat}', context)).toBe('Seat: A42');
     });
 
-    it('replaces {ip} with current IP', () => {
-        expect(renderTemplate('IP: {ip}', context)).toBe('IP: 192.168.1.42');
+    it('replaces {user.params.team} with user parameter', () => {
+        expect(renderTemplate('Team: {user.params.team}', context)).toBe('Team: Red');
+    });
+
+    it('replaces {ipv4} with IPv4 address', () => {
+        expect(renderTemplate('IP: {ipv4}', context)).toBe('IP: 10.0.0.1');
+    });
+
+    it('replaces {ipv6} with IPv6 address', () => {
+        expect(renderTemplate('IP: {ipv6}', context)).toBe('IP: fe80::1');
     });
 
     it('replaces {mac} with MAC address', () => {
@@ -25,11 +34,20 @@ describe('renderTemplate', () => {
     });
 
     it('replaces multiple placeholders in one string', () => {
-        expect(renderTemplate('Seat {user.seat} at {ip}', context)).toBe('Seat A42 at 192.168.1.42');
+        expect(renderTemplate('Seat {user.params.seat} at {ipv4}', context)).toBe('Seat A42 at 10.0.0.1');
     });
 
     it('renders empty string for missing user parameter', () => {
-        expect(renderTemplate('Value: {user.missing}', context)).toBe('Value: ');
+        expect(renderTemplate('{user.params.missing}', context)).toBe('');
+    });
+
+    it('handles user with no params object', () => {
+        const ctx = { ...context, user: { name: 'Test' } };
+        expect(renderTemplate('{user.params.seat}', ctx)).toBe('');
+    });
+
+    it('renders empty string for missing user property', () => {
+        expect(renderTemplate('{user.missing}', context)).toBe('');
     });
 
     it('renders empty string for null MAC', () => {
@@ -47,5 +65,10 @@ describe('renderTemplate', () => {
 
     it('handles empty string content', () => {
         expect(renderTemplate('', context)).toBe('');
+    });
+
+    it('user.params takes priority over user property for nested keys', () => {
+        // {user.params.seat} should resolve from params, not try user.params as a property
+        expect(renderTemplate('{user.params.seat}', context)).toBe('A42');
     });
 });
