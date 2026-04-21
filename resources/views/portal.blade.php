@@ -99,14 +99,14 @@
 
         @if($ipv6DetectionEnabled && $ipv6DetectionEndpoint)
         var ipv6Endpoint = '{{ $ipv6DetectionEndpoint }}'.replace('{random}', crypto.randomUUID());
-        fetch(ipv6Endpoint, { timeout: 2000 })
-            .then(response => response.ok ? response.json() : null)
-            .then(data => {
-                if (data) {
+        fetch(ipv6Endpoint)
+            .then(response => response.ok ? response.text() : null)
+            .then(token => {
+                if (token && token.trim().length > 0) {
                     fetch("/ipv6", {
                         method: "POST",
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 'ipv6': data.ip }),
+                        body: JSON.stringify({ 'token': token.trim() }),
                     }).then(() => setTimeout(checkStatus, 2000));
                 } else {
                     setTimeout(checkStatus, 2000);

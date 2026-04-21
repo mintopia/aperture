@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { detectIpv6 } from '@/utils/ipv6-detection';
 
-// Mock crypto.randomUUID
 vi.stubGlobal('crypto', { randomUUID: () => 'test-uuid' });
 
 describe('detectIpv6', () => {
@@ -13,10 +12,10 @@ describe('detectIpv6', () => {
         vi.restoreAllMocks();
     });
 
-    it('returns IPv6 address when endpoint responds', async () => {
+    it('returns JWT token when endpoint responds', async () => {
         fetch.mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({ ip: '2001:db8::1' }),
+            text: () => Promise.resolve('eyJhbGciOiJSUzI1NiJ9.payload.signature'),
         });
 
         const result = await detectIpv6('https://{random}.test.example.com');
@@ -25,7 +24,7 @@ describe('detectIpv6', () => {
             'https://test-uuid.test.example.com',
             expect.objectContaining({ signal: expect.any(AbortSignal) }),
         );
-        expect(result).toBe('2001:db8::1');
+        expect(result).toBe('eyJhbGciOiJSUzI1NiJ9.payload.signature');
     });
 
     it('returns null when response is not ok', async () => {
@@ -35,10 +34,10 @@ describe('detectIpv6', () => {
         expect(result).toBeNull();
     });
 
-    it('returns null when response has IPv4', async () => {
+    it('returns null when response is empty', async () => {
         fetch.mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({ ip: '192.168.1.1' }),
+            text: () => Promise.resolve(''),
         });
 
         const result = await detectIpv6('https://test.example.com');
@@ -63,13 +62,13 @@ describe('detectIpv6', () => {
         expect(result).toBeNull();
     });
 
-    it('trims whitespace from IPv6 address', async () => {
+    it('trims whitespace from token', async () => {
         fetch.mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({ ip: '  2001:db8::1  ' }),
+            text: () => Promise.resolve('  eyJ.token.here  '),
         });
 
         const result = await detectIpv6('https://test.example.com');
-        expect(result).toBe('2001:db8::1');
+        expect(result).toBe('eyJ.token.here');
     });
 });
