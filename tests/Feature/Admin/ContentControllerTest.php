@@ -104,4 +104,14 @@ class ContentControllerTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_singleton_types_excludes_removed_types(): void
+    {
+        $this->assertNotContains('event_info', ContentBlock::SINGLETON_TYPES);
+        $this->assertNotContains('network_stats', ContentBlock::SINGLETON_TYPES);
+        $this->assertNotContains('connection_status', ContentBlock::SINGLETON_TYPES);
+        $this->assertContains('connection_strip', ContentBlock::SINGLETON_TYPES);
+        $this->assertContains('bandwidth', ContentBlock::SINGLETON_TYPES);
+        $this->assertContains('dns_filter', ContentBlock::SINGLETON_TYPES);
+    }
 }

@@ -17,9 +17,7 @@ class ContentBlock extends Model
     public const SINGLETON_TYPES = [
         'connection_strip',
         'bandwidth',
-        'network_stats',
         'dns_filter',
-        'connection_status',
     ];
 
     protected $fillable = [
