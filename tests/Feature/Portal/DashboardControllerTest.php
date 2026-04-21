@@ -3,8 +3,11 @@
 namespace Tests\Feature\Portal;
 
 use App\Models\ContentBlock;
+use App\Models\IpAddress;
+use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\UserParameter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -36,18 +39,16 @@ class DashboardControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create();
 
-        ContentBlock::factory()->create([
+        ContentBlock::factory()->atPosition(1, 1)->create([
             'type' => 'event_info',
             'title' => 'Welcome',
             'is_active' => true,
-            'sort_order' => 10,
         ]);
 
-        ContentBlock::factory()->create([
+        ContentBlock::factory()->atPosition(2, 1)->create([
             'type' => 'connection_status',
             'title' => 'Status',
             'is_active' => true,
-            'sort_order' => 20,
         ]);
 
         $response = $this->actingAs($user)->get('/portal');
@@ -59,22 +60,20 @@ class DashboardControllerTest extends TestCase
         );
     }
 
-    public function test_content_blocks_ordered_by_sort_order(): void
+    public function test_content_blocks_ordered_by_grid_position(): void
     {
         Queue::fake();
         $user = User::factory()->create();
 
-        ContentBlock::factory()->create([
+        ContentBlock::factory()->atPosition(1, 2)->create([
             'type' => 'bandwidth',
             'title' => 'Second',
-            'sort_order' => 20,
             'is_active' => true,
         ]);
 
-        ContentBlock::factory()->create([
+        ContentBlock::factory()->atPosition(1, 1)->create([
             'type' => 'event_info',
             'title' => 'First',
-            'sort_order' => 10,
             'is_active' => true,
         ]);
 
@@ -158,6 +157,66 @@ class DashboardControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->where('dnsDetection.checkUrl', 'https://{uuid}.lancache.test.entropylan.party')
             ->where('dnsDetection.warningMessage', 'Your device is not using the event DNS servers. Please update your DNS settings.')
+        );
+    }
+
+    public function test_dashboard_passes_block_context_with_mac_and_user_params(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        // Pre-create an IP with a known address, allowed, and associate a MAC
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $ip = IpAddress::factory()->allowed()->create([
+            'address' => '10.0.0.1',
+            'mac_address_id' => $mac->id,
+        ]);
+
+        // Create a user parameter
+        UserParameter::factory()->create(['user_id' => $user->id, 'key' => 'seat', 'value' => 'A42']);
+
+        $response = $this->actingAs($user)
+            ->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
+            ->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.currentIp', '10.0.0.1')
+            ->where('blockContext.ipAllowed', true)
+            ->where('blockContext.macAddress', 'AA:BB:CC:DD:EE:FF')
+            ->has('blockContext.user')
+            ->where('blockContext.user.seat', 'A42')
+        );
+    }
+
+    public function test_dashboard_block_context_without_mac_address(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.macAddress', null)
+            ->has('blockContext.currentIp')
+            ->has('blockContext.ipAllowed')
+        );
+    }
+
+    public function test_dashboard_block_context_user_empty_when_no_parameters(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.user', [])
         );
     }
 }

@@ -29,8 +29,12 @@ class DashboardController extends Controller
 
         return Inertia::render('Portal/Dashboard', [
             'blocks' => $blocks,
-            'currentIp' => $ip->address,
-            'ipAllowed' => (bool) $ip->allowed,
+            'blockContext' => [
+                'currentIp' => $ip->address,
+                'ipAllowed' => (bool) $ip->allowed,
+                'macAddress' => $ip->mac,
+                'user' => $user->parameters()->pluck('value', 'key'),
+            ],
             'dnsDetection' => $checkUrl ? [
                 'checkUrl' => $checkUrl,
                 'warningMessage' => $warningMessage ?? 'Your device is not using the event DNS servers. Please update your DNS settings.',

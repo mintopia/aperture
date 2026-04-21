@@ -1,11 +1,8 @@
 <script setup>
-import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import BlockGrid from '@/Components/BlockGrid.vue';
 import DnsWarningBlock from '@/Components/Blocks/DnsWarningBlock.vue';
-import BandwidthBlock from '@/Components/Blocks/BandwidthBlock.vue';
-import DnsFilterBlock from '@/Components/Blocks/DnsFilterBlock.vue';
 
 defineOptions({ layout: PortalLayout });
 
@@ -14,20 +11,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
-    currentIp: { type: String, default: '' },
-    ipAllowed: Boolean,
+    blockContext: {
+        type: Object,
+        default: () => ({}),
+    },
     dnsDetection: { type: Object, default: null },
 });
 
 const user = usePage().props.auth?.user;
-
-/* Extract hero blocks (bandwidth + dns_filter, shown in hero cols) */
-const bandwidthBlock = computed(() => props.blocks.find((b) => b.type === 'bandwidth'));
-const dnsFilterBlock = computed(() => props.blocks.find((b) => b.type === 'dns_filter'));
-
-/* Remaining blocks for the standard grid (exclude hero blocks) */
-const heroTypes = ['bandwidth', 'dns_filter'];
-const gridBlocks = computed(() => props.blocks.filter((b) => !heroTypes.includes(b.type)));
 </script>
 
 <template>
@@ -42,71 +33,12 @@ const gridBlocks = computed(() => props.blocks.filter((b) => !heroTypes.includes
             </h1>
         </div>
 
-        <!-- DNS Warning (top of page) -->
+        <!-- DNS Warning (top of page, outside grid) -->
         <div v-if="dnsDetection" class="mb-4">
             <DnsWarningBlock :check-url="dnsDetection.checkUrl" :warning-message="dnsDetection.warningMessage" />
         </div>
 
-        <!-- Connection strip -->
-        <div
-            data-testid="connection-strip"
-            class="mb-5 flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5"
-        >
-            <div class="flex flex-1 flex-col gap-0.5 border-r border-[var(--color-border)] px-5">
-                <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
-                    >IPv4</span
-                >
-                <span class="font-mono text-[13px] font-medium text-[var(--color-text)]">{{ currentIp || '—' }}</span>
-            </div>
-            <div class="flex flex-1 flex-col gap-0.5 border-r border-[var(--color-border)] px-5">
-                <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
-                    >IPv6</span
-                >
-                <span class="font-mono text-[13px] font-medium text-[var(--color-text)]">—</span>
-            </div>
-            <div class="flex flex-1 flex-col gap-0.5 border-r border-[var(--color-border)] px-5">
-                <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
-                    >MAC Address</span
-                >
-                <span class="font-mono text-[13px] font-medium text-[var(--color-text)]">—</span>
-            </div>
-            <div class="flex flex-1 flex-col gap-0.5 px-5">
-                <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
-                    >Status</span
-                >
-                <span class="inline-flex items-center gap-1.5 font-mono text-[13px] font-semibold">
-                    <span
-                        class="h-[7px] w-[7px] rounded-full"
-                        :class="
-                            ipAllowed
-                                ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
-                                : 'bg-[var(--color-danger)]'
-                        "
-                    />
-                    <span :class="ipAllowed ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
-                        {{ ipAllowed ? 'Online' : 'Offline' }}
-                    </span>
-                </span>
-            </div>
-        </div>
-
-        <!-- Hero columns: Bandwidth (left) + Ad Blocking (right) -->
-        <div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
-            <div
-                v-if="bandwidthBlock"
-                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
-            >
-                <BandwidthBlock :stats="bandwidthBlock.settings" />
-            </div>
-            <div
-                v-if="dnsFilterBlock"
-                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
-            >
-                <DnsFilterBlock :title="dnsFilterBlock.title" :content="dnsFilterBlock.content" />
-            </div>
-        </div>
-
-        <!-- Block grid for remaining blocks -->
-        <BlockGrid :blocks="gridBlocks" :current-ip="currentIp" :ip-allowed="ipAllowed" />
+        <!-- Block grid -->
+        <BlockGrid :blocks="blocks" :block-context="blockContext" />
     </div>
 </template>

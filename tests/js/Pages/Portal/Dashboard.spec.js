@@ -1,0 +1,152 @@
+import { mount } from '@vue/test-utils';
+import { defineComponent } from 'vue';
+import { describe, expect, it, vi } from 'vitest';
+import Dashboard from '@/Pages/Portal/Dashboard.vue';
+
+vi.mock('@inertiajs/vue3', async () => {
+    return {
+        usePage: () => ({
+            props: {
+                auth: { user: { nickname: 'TestUser' } },
+            },
+        }),
+    };
+});
+
+vi.stubGlobal(
+    'route',
+    vi.fn(() => '/mock-route'),
+);
+
+const BlockGridStub = defineComponent({
+    name: 'BlockGrid',
+    props: ['blocks', 'blockContext'],
+    template: '<div data-testid="block-grid-stub"></div>',
+});
+
+const DnsWarningBlockStub = defineComponent({
+    name: 'DnsWarningBlock',
+    props: ['checkUrl', 'warningMessage'],
+    template: '<div data-testid="dns-warning-stub"></div>',
+});
+
+const defaultGlobal = {
+    stubs: {
+        PortalLayout: { template: '<div><slot /></div>' },
+        BlockGrid: BlockGridStub,
+        DnsWarningBlock: DnsWarningBlockStub,
+    },
+};
+
+describe('Portal Dashboard', () => {
+    const makeProps = (overrides = {}) => ({
+        blocks: [],
+        blockContext: {
+            currentIp: '10.0.0.1',
+            ipAllowed: true,
+            macAddress: 'AA:BB:CC:DD:EE:FF',
+            user: { seat: 'A42' },
+        },
+        dnsDetection: null,
+        ...overrides,
+    });
+
+    it('renders the welcome heading with user nickname', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+
+        expect(wrapper.find('[data-testid="page-title"]').text()).toBe('Welcome, TestUser');
+    });
+
+    it('renders the page title element', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+
+        expect(wrapper.find('[data-testid="page-title"]').exists()).toBe(true);
+    });
+
+    it('passes blocks and blockContext to BlockGrid', () => {
+        const blocks = [
+            {
+                id: 1,
+                type: 'event_info',
+                title: 'Info',
+                content: 'Hello',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: 1,
+                row_span: 1,
+                is_active: true,
+                settings: null,
+            },
+        ];
+        const blockContext = {
+            currentIp: '192.168.1.1',
+            ipAllowed: false,
+            macAddress: null,
+            user: {},
+        };
+
+        const wrapper = mount(Dashboard, {
+            props: makeProps({ blocks, blockContext }),
+            global: defaultGlobal,
+        });
+
+        const blockGrid = wrapper.findComponent(BlockGridStub);
+        expect(blockGrid.exists()).toBe(true);
+        expect(blockGrid.props('blocks')).toEqual(blocks);
+        expect(blockGrid.props('blockContext')).toEqual(blockContext);
+    });
+
+    it('renders DnsWarningBlock when dnsDetection is provided', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps({
+                dnsDetection: {
+                    checkUrl: 'https://test.example.com',
+                    warningMessage: 'Fix your DNS!',
+                },
+            }),
+            global: defaultGlobal,
+        });
+
+        const dnsWarning = wrapper.findComponent(DnsWarningBlockStub);
+        expect(dnsWarning.exists()).toBe(true);
+        expect(dnsWarning.props('checkUrl')).toBe('https://test.example.com');
+        expect(dnsWarning.props('warningMessage')).toBe('Fix your DNS!');
+    });
+
+    it('does not render DnsWarningBlock when dnsDetection is null', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps({ dnsDetection: null }),
+            global: defaultGlobal,
+        });
+
+        expect(wrapper.find('[data-testid="dns-warning-stub"]').exists()).toBe(false);
+    });
+
+    it('renders BlockGrid even with empty blocks', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps({ blocks: [] }),
+            global: defaultGlobal,
+        });
+
+        const blockGrid = wrapper.findComponent(BlockGridStub);
+        expect(blockGrid.exists()).toBe(true);
+        expect(blockGrid.props('blocks')).toEqual([]);
+    });
+
+    it('does not render hardcoded connection strip or hero blocks', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+
+        expect(wrapper.find('[data-testid="connection-strip"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('IPv4');
+        expect(wrapper.text()).not.toContain('IPv6');
+    });
+});
