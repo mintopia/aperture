@@ -199,12 +199,7 @@ class OpnSenseDhcpService implements DhcpInterface
             return null;
         }
 
-        $base = ip2long('255.255.255.255');
-        if ($base === false) {
-            return null;
-        }
-
-        return (int) (32 - log(($long ^ $base) + 1, 2));
+        return (int) (32 - log(($long ^ 0xFFFFFFFF) + 1, 2));
     }
 
     private function detectIpVersion(?string $subnet, ?string $rangeFrom, ?string $prefix): string
