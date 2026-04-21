@@ -136,7 +136,7 @@ describe('Dhcp/Leases', () => {
             const wrapper = mountLeases();
             const select = wrapper.find('[data-testid="filter-select-range"]');
 
-            await select.setValue('lan');
+            await select.setValue('10.0.0.0/24');
             await wrapper.vm.$nextTick();
 
             const rows = wrapper.findAll('[data-testid="data-table-row"]');
@@ -147,7 +147,7 @@ describe('Dhcp/Leases', () => {
             const wrapper = mountLeases();
             const select = wrapper.find('[data-testid="filter-select-range"]');
 
-            await select.setValue('guest');
+            await select.setValue('10.0.1.0/24');
             await wrapper.vm.$nextTick();
 
             expect(wrapper.find('[data-testid="filter-count"]').text()).toBe('2 of 4');
@@ -156,7 +156,7 @@ describe('Dhcp/Leases', () => {
         it('search + range filter work together', async () => {
             const wrapper = mountLeases();
 
-            await wrapper.find('[data-testid="filter-select-range"]').setValue('lan');
+            await wrapper.find('[data-testid="filter-select-range"]').setValue('10.0.0.0/24');
             await wrapper.vm.$nextTick();
 
             const input = wrapper.find('[data-testid="filter-search-input"]');

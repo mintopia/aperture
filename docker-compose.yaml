@@ -13,7 +13,7 @@ services:
       - XDEBUG_SESSION=start
       - CADDY_SERVER_FRANKENPHP_OPTIONS=
       - APP_INDEX_FILE=index.php
-      - APP_URL=https://${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.cloudagent.net}
+      - APP_URL=https://${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.ws.cloudagent.mintopia.net}
       - DB_HOST=db
       - REDIS_HOST=redis
       - QUEUE_CONNECTION=redis
@@ -104,7 +104,7 @@ services:
       - REDIS_HOST=redis
       - REVERB_SERVER_HOST=0.0.0.0
       - REVERB_SERVER_PORT=8080
-      - REVERB_HOST=${PUBLIC_REVERB_HOSTNAME:-reverb.hallowed-rincewind.cloudagent.net}
+      - REVERB_HOST=${PUBLIC_REVERB_HOSTNAME:-reverb.hallowed-rincewind.ws.cloudagent.mintopia.net}
       - REVERB_PORT=443
       - REVERB_SCHEME=https
     volumes:
@@ -120,8 +120,8 @@ services:
     working_dir: /app
     command: [ "npm", "run", "dev", "--", "--host=0.0.0.0", "--port=5173", "--strictPort" ]
     environment:
-      - APP_URL=https://${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.cloudagent.net}
-      - VITE_HMR_HOST=${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.cloudagent.net}
+      - APP_URL=https://${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.ws.cloudagent.mintopia.net}
+      - VITE_HMR_HOST=${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.ws.cloudagent.mintopia.net}
       - VITE_HMR_PORT=443
       - VITE_HMR_PROTOCOL=wss
       - CHOKIDAR_USEPOLLING=true

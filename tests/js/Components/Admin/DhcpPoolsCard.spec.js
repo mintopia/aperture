@@ -1,6 +1,11 @@
-import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { config, mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it } from 'vitest';
 import DhcpPoolsCard from '@/Components/Admin/DhcpPoolsCard.vue';
+
+beforeEach(() => {
+    config.global.mocks.route = (name, params) =>
+        `/mock/${name}/${Object.values(params ?? {}).join('/')}`;
+});
 
 const samplePools = [
     { name: 'Users', network: '10.0.1.0/24', used: 89, total: 200, utilisation: 0.445 },

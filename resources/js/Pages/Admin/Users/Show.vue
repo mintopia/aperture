@@ -6,6 +6,7 @@ import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
+import StatusPill from '@/Components/UI/StatusPill.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelative } from '@/utils/dates';
 
@@ -131,24 +132,10 @@ const ipColumns = [
                         {{ row.ip?.address }}
                     </td>
                     <td>
-                        <span class="inline-flex items-center gap-1.5">
-                            <span
-                                :class="[
-                                    'inline-block h-[7px] w-[7px] rounded-full',
-                                    row.ip?.allowed
-                                        ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
-                                        : 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]',
-                                ]"
-                            />
-                            <span
-                                :class="[
-                                    'text-xs font-semibold',
-                                    row.ip?.allowed ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]',
-                                ]"
-                            >
-                                {{ row.ip?.allowed ? 'Allowed' : 'Denied' }}
-                            </span>
-                        </span>
+                        <StatusPill
+                            :status="row.ip?.allowed ? 'success' : 'danger'"
+                            :label="row.ip?.allowed ? 'Allowed' : 'Denied'"
+                        />
                     </td>
                     <td class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ formatRelative(row.last_seen_at) }}

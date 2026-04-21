@@ -101,10 +101,10 @@ Use the root scripts to run the full stack (app, Vite HMR, Reverb, SSH proxy, Ho
 
 Expected HTTPS hostnames (defaults; override with `PUBLIC_APP_HOSTNAME`, `PUBLIC_REVERB_HOSTNAME`, `PUBLIC_VITE_HOSTNAME` in `.env`):
 
-- https://hallowed-rincewind.cloudagent.net
-- https://reverb.hallowed-rincewind.cloudagent.net
-- https://vite.hallowed-rincewind.cloudagent.net
-- https://ssh-proxy.hallowed-rincewind.cloudagent.net
+- https://hallowed-rincewind.ws.cloudagent.mintopia.net
+- https://reverb.hallowed-rincewind.ws.cloudagent.mintopia.net
+- https://vite.hallowed-rincewind.ws.cloudagent.mintopia.net
+- https://ssh-proxy.hallowed-rincewind.ws.cloudagent.mintopia.net
 
 `./dev-start.sh` now auto-detects Traefik:
 

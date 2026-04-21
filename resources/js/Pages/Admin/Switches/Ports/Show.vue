@@ -8,8 +8,9 @@ import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import ConnectedDevicesSummary from '@/Components/UI/ConnectedDevicesSummary.vue';
-import { formatBytesComponents } from '@/helpers.js';
+import { formatBytesComponents, normalizeMac } from '@/helpers.js';
 import { formatPortStatus, formatSpeed, formatDuplex, formatVlan } from '@/utils/switches';
+import { formatRelative } from '@/utils/dates';
 
 defineOptions({ layout: AdminLayout });
 
@@ -84,7 +85,7 @@ const bandwidthSeries = computed(() => {
         series.push({
             label: 'Outbound',
             data: props.bandwidth.out,
-            color: getThemeColor('--color-primary', '#6366f1'),
+            color: getThemeColor('--color-info', '#3b82f6'),
             fill: true,
         });
     }
@@ -129,6 +130,7 @@ const metadataItems = computed(() => [
     { label: 'Speed', value: formattedSpeedDuplex.value },
     { label: 'VLAN', value: formatVlan(props.port.vlan, props.port.switchport_mode), mono: true },
     { label: 'POE', value: props.port.poe || '—' },
+    { label: 'Last Sync', value: props.port.last_synced_at ? formatRelative(props.port.last_synced_at) : 'Never' },
 ]);
 
 function statusType(status) {
@@ -163,7 +165,24 @@ function resolveIpEntries(mac, version) {
     });
 }
 
-const visibleMacs = computed(() => props.macs);
+const visibleMacs = computed(() => {
+    const seen = new Map();
+    for (const mac of props.macs) {
+        const key = normalizeMac(mac.mac_address);
+        if (seen.has(key)) {
+            const existing = seen.get(key);
+            const existingIps = existing.resolved_ips ?? [];
+            const newIps = (mac.resolved_ips ?? []).filter((ip) => !existingIps.some((e) => e.ip === ip.ip));
+            existing.resolved_ips = [...existingIps, ...newIps];
+            if (mac.last_seen_at && (!existing.last_seen_at || mac.last_seen_at > existing.last_seen_at)) {
+                existing.last_seen_at = mac.last_seen_at;
+            }
+        } else {
+            seen.set(key, { ...mac, mac_address: key });
+        }
+    }
+    return [...seen.values()];
+});
 
 function refreshPort() {
     refreshing.value = true;
@@ -239,34 +258,6 @@ function confirmToggle() {
             >
                 {{ port.interface }}
             </h1>
-            <div v-if="prevPort || nextPort" data-testid="port-nav" class="mt-1 flex items-center gap-3">
-                <Link
-                    v-if="prevPort"
-                    data-testid="port-nav-prev"
-                    :href="
-                        route('admin.switches.ports.show', {
-                            switchConfig: switchConfig.id,
-                            portId: prevPort,
-                        })
-                    "
-                    class="font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)] focus-visible:underline focus-visible:outline-none"
-                >
-                    &larr; {{ prevPort }}
-                </Link>
-                <Link
-                    v-if="nextPort"
-                    data-testid="port-nav-next"
-                    :href="
-                        route('admin.switches.ports.show', {
-                            switchConfig: switchConfig.id,
-                            portId: nextPort,
-                        })
-                    "
-                    class="font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)] focus-visible:underline focus-visible:outline-none"
-                >
-                    {{ nextPort }} &rarr;
-                </Link>
-            </div>
             <div data-testid="header-actions" class="flex flex-wrap items-center gap-2">
                 <button
                     data-testid="action-refresh"
@@ -302,7 +293,39 @@ function confirmToggle() {
             <ConnectedDevicesSummary :macs="macs" />
         </ConfirmModal>
 
-        <span data-testid="last-updated" class="text-xs text-[var(--color-text-muted)]">{{ displayTime }}</span>
+        <!-- Port Navigation -->
+        <div v-if="prevPort || nextPort" data-testid="port-nav" class="flex items-center gap-3">
+            <Link
+                v-if="prevPort"
+                data-testid="port-nav-prev"
+                :href="
+                    route('admin.switches.ports.show', {
+                        switchConfig: switchConfig.id,
+                        portId: prevPort,
+                    })
+                "
+                class="font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)] focus-visible:underline focus-visible:outline-none"
+            >
+                &larr; {{ prevPort }}
+            </Link>
+            <Link
+                v-if="nextPort"
+                data-testid="port-nav-next"
+                :href="
+                    route('admin.switches.ports.show', {
+                        switchConfig: switchConfig.id,
+                        portId: nextPort,
+                    })
+                "
+                class="font-mono text-xs text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)] focus-visible:underline focus-visible:outline-none"
+            >
+                {{ nextPort }} &rarr;
+            </Link>
+            <span data-testid="last-updated" class="ml-auto text-xs text-[var(--color-text-muted)]">{{
+                displayTime
+            }}</span>
+        </div>
+        <span v-else data-testid="last-updated" class="text-xs text-[var(--color-text-muted)]">{{ displayTime }}</span>
 
         <!-- Status Strip -->
         <MetadataStrip :items="metadataItems">
@@ -355,7 +378,7 @@ function confirmToggle() {
                                         class="border-b border-[var(--color-border)] last:border-b-0"
                                     >
                                         <td class="py-2.5 font-mono text-[13px] text-[var(--color-text)]">
-                                            {{ mac.mac_address ?? '—' }}
+                                            {{ normalizeMac(mac.mac_address) }}
                                         </td>
                                         <td class="py-2.5 pl-6 break-all">
                                             <div

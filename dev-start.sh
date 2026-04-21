@@ -215,7 +215,7 @@ else
     start_local_service "reverb" "php artisan reverb:start --host=${LOCAL_REVERB_HOST} --port=${LOCAL_REVERB_PORT}" "${LOCAL_REVERB_HOST}" "${LOCAL_REVERB_PORT}" || failed_services+=("reverb")
     start_local_service "horizon" "php artisan horizon" || failed_services+=("horizon")
     start_local_service "scheduler" "php artisan schedule:work" || failed_services+=("scheduler")
-    start_local_service "vite" "env VITE_HMR_HOST='${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.cloudagent.net}' VITE_HMR_PORT='${DEV_VITE_HMR_PORT:-443}' VITE_HMR_PROTOCOL='${DEV_VITE_HMR_PROTOCOL:-wss}' npm run dev -- --host=${LOCAL_VITE_HOST} --port=${LOCAL_VITE_PORT} --strictPort" "${LOCAL_VITE_HOST}" "${LOCAL_VITE_PORT}" || failed_services+=("vite")
+    start_local_service "vite" "env VITE_HMR_HOST='${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.ws.cloudagent.mintopia.net}' VITE_HMR_PORT='${DEV_VITE_HMR_PORT:-443}' VITE_HMR_PROTOCOL='${DEV_VITE_HMR_PROTOCOL:-wss}' npm run dev -- --host=${LOCAL_VITE_HOST} --port=${LOCAL_VITE_PORT} --strictPort" "${LOCAL_VITE_HOST}" "${LOCAL_VITE_PORT}" || failed_services+=("vite")
     if [[ -z "${APERTURE_SSH_PROXY_API_KEY:-}" ]]; then
         echo "Warning: APERTURE_SSH_PROXY_API_KEY is empty. SSH proxy auth may return 401."
     fi

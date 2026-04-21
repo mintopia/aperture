@@ -17,18 +17,28 @@ describe('StatusPill', () => {
         expect(wrapper.find('[data-testid="status-pill"]').exists()).toBe(true);
     });
 
-    it('renders a status dot for each status', () => {
-        const statuses = ['success', 'danger', 'warning', 'info', 'neutral'];
-        statuses.forEach((status) => {
+    it('renders correct symbol for each status', () => {
+        const symbolMap = {
+            success: '\u2713',
+            danger: '\u2717',
+            warning: '\u25B2',
+            info: '\u2713',
+        };
+        Object.entries(symbolMap).forEach(([status, symbol]) => {
             const wrapper = mount(StatusPill, {
                 props: { status, label: 'Test' },
             });
-            const dot = wrapper.find('[aria-hidden="true"]');
-            expect(dot.exists()).toBe(true);
-            expect(dot.classes()).toContain('rounded-full');
-            expect(dot.classes()).toContain('h-[7px]');
-            expect(dot.classes()).toContain('w-[7px]');
+            const sym = wrapper.find('[data-testid="status-symbol"]');
+            expect(sym.exists()).toBe(true);
+            expect(sym.text()).toBe(symbol);
         });
+    });
+
+    it('does not render symbol for neutral status', () => {
+        const wrapper = mount(StatusPill, {
+            props: { status: 'neutral', label: 'Unknown' },
+        });
+        expect(wrapper.find('[data-testid="status-symbol"]').exists()).toBe(false);
     });
 
     it('renders label text for each status', () => {
@@ -55,7 +65,7 @@ describe('StatusPill', () => {
             });
             const pill = wrapper.find('[data-testid="status-pill"]');
             expect(pill.classes()).toContain('inline-flex');
-            expect(pill.classes()).toContain('rounded-full');
+            expect(pill.classes()).toContain('rounded');
             expect(pill.classes()).toContain('text-[11px]');
             expect(pill.classes()).toContain('font-semibold');
         });
@@ -81,45 +91,24 @@ describe('StatusPill', () => {
         });
     });
 
-    it('applies glow shadow to non-neutral status dots', () => {
-        const glowStatuses = ['success', 'danger', 'warning', 'info'];
-        glowStatuses.forEach((status) => {
-            const wrapper = mount(StatusPill, {
-                props: { status, label: 'Test' },
-            });
-            const dot = wrapper.find('[aria-hidden="true"]');
-            const classes = dot.classes().join(' ');
-            expect(classes).toContain('shadow-[0_0_6px');
-        });
-    });
-
-    it('does not apply glow shadow to neutral status dot', () => {
-        const wrapper = mount(StatusPill, {
-            props: { status: 'neutral', label: 'Unknown' },
-        });
-        const dot = wrapper.find('[aria-hidden="true"]');
-        const classes = dot.classes().join(' ');
-        expect(classes).not.toContain('shadow-[0_0_6px');
-    });
-
-    it('hides dot from assistive technology with aria-hidden', () => {
+    it('hides symbol from assistive technology with aria-hidden', () => {
         const wrapper = mount(StatusPill, {
             props: { status: 'success', label: 'Active' },
         });
-        const dot = wrapper.find('[aria-hidden="true"]');
-        expect(dot.exists()).toBe(true);
+        const sym = wrapper.find('[data-testid="status-symbol"]');
+        expect(sym.attributes('aria-hidden')).toBe('true');
     });
 
-    it('updates dot classes when status prop changes', async () => {
+    it('updates symbol when status prop changes', async () => {
         const wrapper = mount(StatusPill, {
             props: { status: 'success', label: 'Active' },
         });
 
-        let dot = wrapper.find('[aria-hidden="true"]');
-        expect(dot.classes().join(' ')).toContain('bg-[var(--color-success)]');
+        let sym = wrapper.find('[data-testid="status-symbol"]');
+        expect(sym.text()).toBe('\u2713');
 
         await wrapper.setProps({ status: 'danger' });
-        dot = wrapper.find('[aria-hidden="true"]');
-        expect(dot.classes().join(' ')).toContain('bg-[var(--color-danger)]');
+        sym = wrapper.find('[data-testid="status-symbol"]');
+        expect(sym.text()).toBe('\u2717');
     });
 });

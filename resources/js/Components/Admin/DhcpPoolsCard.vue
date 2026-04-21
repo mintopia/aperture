@@ -1,4 +1,5 @@
 <script setup>
+import { Link } from '@inertiajs/vue3';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 
 defineProps({
@@ -55,7 +56,15 @@ function pctClass(utilisation) {
                 <tbody>
                     <tr v-for="pool in pools" :key="pool.network || pool.name" data-testid="dhcp-pool-row">
                         <td class="text-[13px] font-semibold text-[var(--color-text)]">
-                            {{ pool.network || '—' }}
+                            <Link
+                                v-if="pool.network"
+                                :href="route('admin.dhcp.leases', { network: pool.network })"
+                                data-testid="dhcp-pool-network-link"
+                                class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
+                            >
+                                {{ pool.network }}
+                            </Link>
+                            <span v-else>&mdash;</span>
                         </td>
                         <td
                             data-testid="dhcp-pool-used"

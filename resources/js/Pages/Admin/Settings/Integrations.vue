@@ -12,27 +12,15 @@ const props = defineProps({
     capabilityDescriptions: { type: Object, default: () => ({}) },
 });
 
-function healthClass(health) {
-    if (health === true) {
-        return 'bg-[var(--color-success)]';
-    }
-
-    if (health === false) {
-        return 'bg-[var(--color-danger)]';
-    }
-
-    return 'bg-[var(--color-text-muted)]';
+function healthStatus(health) {
+    if (health === true) return 'success';
+    if (health === false) return 'danger';
+    return 'neutral';
 }
 
 function healthLabel(health) {
-    if (health === true) {
-        return 'Healthy';
-    }
-
-    if (health === false) {
-        return 'Unhealthy';
-    }
-
+    if (health === true) return 'Healthy';
+    if (health === false) return 'Unhealthy';
     return 'Unknown';
 }
 
@@ -100,7 +88,7 @@ function visitService(service) {
                                     <span class="font-medium text-[var(--color-text)]">{{ service.name }}</span>
                                     <span
                                         v-if="service.readonly"
-                                        class="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--color-text-muted)] uppercase"
+                                        class="rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--color-text-muted)] uppercase"
                                     >
                                         Read only
                                     </span>
@@ -112,18 +100,11 @@ function visitService(service) {
                                     :label="service.enabled ? 'Enabled' : 'Disabled'"
                                 />
                             </td>
-                            <td class="px-4 py-3">
-                                <div
-                                    class="inline-flex items-center gap-2 text-[var(--color-text-secondary)]"
-                                    :data-testid="`integration-health-${service.id}`"
-                                >
-                                    <span
-                                        class="h-2.5 w-2.5 rounded-full"
-                                        :class="healthClass(service.health)"
-                                        aria-hidden="true"
-                                    />
-                                    <span>{{ healthLabel(service.health) }}</span>
-                                </div>
+                            <td class="px-4 py-3" :data-testid="`integration-health-${service.id}`">
+                                <StatusPill
+                                    :status="healthStatus(service.health)"
+                                    :label="healthLabel(service.health)"
+                                />
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap gap-2">
@@ -136,7 +117,7 @@ function visitService(service) {
                                                 ? 'border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
                                                 : 'border-[var(--color-border)] bg-[var(--color-surface-hover)] text-[var(--color-text-muted)]'
                                         "
-                                        class="rounded-full border px-2.5 py-1 text-xs font-medium"
+                                        class="rounded border px-2.5 py-1 text-xs font-medium"
                                     >
                                         {{ capability.name }}
                                     </span>
@@ -157,7 +138,7 @@ function visitService(service) {
                         class="p-4"
                     >
                         <span
-                            class="inline-flex items-center rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--color-primary)]"
+                            class="inline-flex items-center rounded border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--color-primary)]"
                         >
                             {{ name }}
                         </span>

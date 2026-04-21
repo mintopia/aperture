@@ -47,6 +47,9 @@ export default defineConfig(({ mode }) => {
         },
         server: {
             host: '0.0.0.0',
+            allowedHosts: [
+                env.VITE_HMR_HOST
+            ],
             hmr: {
                 host: env.VITE_HMR_HOST || resolveHmrHost(env.APP_URL),
                 port: hmrServerPort,

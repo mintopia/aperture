@@ -4,6 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
+import StatusPill from '@/Components/UI/StatusPill.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -156,24 +157,10 @@ const userSummary = computed(() => ({
                         {{ row.ips?.length ?? 0 }}
                     </td>
                     <td>
-                        <span class="inline-flex items-center gap-1.5">
-                            <span
-                                :class="[
-                                    'inline-block h-[7px] w-[7px] rounded-full',
-                                    row.blocked
-                                        ? 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]'
-                                        : 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]',
-                                ]"
-                            />
-                            <span
-                                :class="[
-                                    'text-xs font-semibold',
-                                    row.blocked ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]',
-                                ]"
-                            >
-                                {{ row.blocked ? 'Blocked' : 'Active' }}
-                            </span>
-                        </span>
+                        <StatusPill
+                            :status="row.blocked ? 'danger' : 'success'"
+                            :label="row.blocked ? 'Blocked' : 'Active'"
+                        />
                     </td>
                 </template>
             </DataTable>

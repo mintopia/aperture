@@ -12,6 +12,14 @@ const sampleData = [
     { date: '2026-04-20', count: 42 },
 ];
 
+const mountWithStubs = (props) =>
+    mount(UniqueIpsChart, {
+        props,
+        global: {
+            stubs: { TimeSeriesChart: true },
+        },
+    });
+
 describe('UniqueIpsChart', () => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -23,82 +31,86 @@ describe('UniqueIpsChart', () => {
     });
 
     it('renders the section title', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
-        });
+        const wrapper = mountWithStubs({ data: sampleData });
 
         expect(wrapper.text()).toContain('Unique IPs');
         expect(wrapper.text()).toContain('Last 7 Days');
     });
 
-    it('renders a bar for each day', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
-        });
+    it('renders the line chart when data is present', () => {
+        const wrapper = mountWithStubs({ data: sampleData });
 
-        const bars = wrapper.findAll('[data-testid="unique-ips-bar"]');
+        expect(wrapper.find('[data-testid="unique-ips-line-chart"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="unique-ips-empty"]').exists()).toBe(false);
+    });
 
-        expect(bars).toHaveLength(7);
+    it('passes correct chartSeries to TimeSeriesChart with one series per dataset', () => {
+        const wrapper = mountWithStubs({ data: sampleData });
+
+        const chart = wrapper.findComponent({ name: 'TimeSeriesChart' });
+        const series = chart.props('series');
+
+        expect(series).toHaveLength(1);
+        expect(series[0].label).toBe('Unique IPs');
+        expect(series[0].data).toHaveLength(7);
+        expect(series[0].fill).toBe(true);
+    });
+
+    it('maps data entries to correct timestamp and value in chartSeries', () => {
+        const wrapper = mountWithStubs({ data: sampleData });
+
+        const chart = wrapper.findComponent({ name: 'TimeSeriesChart' });
+        const series = chart.props('series');
+        const points = series[0].data;
+
+        // 2026-04-14T12:00:00 UTC → Unix timestamp
+        const expectedTimestamp = new Date('2026-04-14T12:00:00').getTime() / 1000;
+        expect(points[0].timestamp).toBe(expectedTimestamp);
+        expect(points[0].value).toBe(45);
+
+        expect(points[3].value).toBe(61);
     });
 
     it('shows peak count below the chart', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
-        });
+        const wrapper = mountWithStubs({ data: sampleData });
 
         expect(wrapper.find('[data-testid="unique-ips-peak"]').text()).toContain('Peak: 61 unique IPs');
     });
 
-    it('renders day labels including Today for current day', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
+    it('computes max count correctly as the peak value', () => {
+        const wrapper = mountWithStubs({
+            data: [
+                { date: '2026-04-20', count: 50 },
+                { date: '2026-04-19', count: 100 },
+            ],
         });
 
-        expect(wrapper.text()).toContain('Today');
-    });
-
-    it('renders day labels including Yday for yesterday', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
-        });
-
-        expect(wrapper.text()).toContain('Yday');
-    });
-
-    it('tallest bar gets 100% height based on max count', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: sampleData },
-        });
-
-        const bars = wrapper.findAll('[data-testid="unique-ips-bar"]');
-        // The bar with count 61 (index 3) should be 100%
-        expect(bars[3].attributes('style')).toContain('height: 100%');
-    });
-
-    it('shorter bars get proportional heights', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: [{ date: '2026-04-20', count: 50 }, { date: '2026-04-19', count: 100 }] },
-        });
-
-        const bars = wrapper.findAll('[data-testid="unique-ips-bar"]');
-        expect(bars[0].attributes('style')).toContain('height: 50%');
-        expect(bars[1].attributes('style')).toContain('height: 100%');
+        expect(wrapper.find('[data-testid="unique-ips-peak"]').text()).toContain('Peak: 100 unique IPs');
     });
 
     it('shows empty state when no data', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: [] },
-        });
+        const wrapper = mountWithStubs({ data: [] });
 
         expect(wrapper.find('[data-testid="unique-ips-empty"]').exists()).toBe(true);
         expect(wrapper.text()).toContain('No IP activity data available');
     });
 
+    it('does not show line chart when no data', () => {
+        const wrapper = mountWithStubs({ data: [] });
+
+        expect(wrapper.find('[data-testid="unique-ips-line-chart"]').exists()).toBe(false);
+    });
+
     it('does not show peak count when no data', () => {
-        const wrapper = mount(UniqueIpsChart, {
-            props: { data: [] },
-        });
+        const wrapper = mountWithStubs({ data: [] });
 
         expect(wrapper.find('[data-testid="unique-ips-peak"]').exists()).toBe(false);
+    });
+
+    it('returns empty chartSeries when data is empty', () => {
+        const wrapper = mountWithStubs({ data: [] });
+
+        const chart = wrapper.findComponent({ name: 'TimeSeriesChart' });
+        expect(chart.exists()).toBe(false);
     });
 });

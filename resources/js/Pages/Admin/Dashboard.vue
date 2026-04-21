@@ -9,26 +9,11 @@ import EmptyState from '@/Components/UI/EmptyState.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import StatCard from '@/Components/UI/StatCard.vue';
+import StatusPill from '@/Components/UI/StatusPill.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelativeTime } from '@/utils/dates';
 
 defineOptions({ layout: AdminLayout });
-
-function statusDotClass(type) {
-    const map = {
-        success: 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]',
-        danger: 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]',
-    };
-    return map[type] || map.success;
-}
-
-function statusTextClass(type) {
-    const map = {
-        success: 'text-[var(--color-success)]',
-        danger: 'text-[var(--color-danger)]',
-    };
-    return map[type] || map.success;
-}
 
 const props = defineProps({
     totalUsers: { type: Number, default: 0 },
@@ -56,14 +41,6 @@ const recentUserColumns = [
 ];
 
 const recentUserRows = computed(() => props.recentUsers?.data ?? []);
-
-function userStatus(user) {
-    return user.blocked ? 'danger' : 'success';
-}
-
-function userStatusLabel(user) {
-    return user.blocked ? 'Blocked' : 'Active';
-}
 
 function userHref(id) {
     return route('admin.users.show', id);
@@ -178,17 +155,10 @@ function userHref(id) {
                                 {{ formatBytes(row.total_bandwidth ?? 0) }}
                             </td>
                             <td class="py-[10px]">
-                                <span class="inline-flex items-center gap-1.5 text-[12px]">
-                                    <span
-                                        :class="[
-                                            'inline-block h-[7px] w-[7px] rounded-full',
-                                            statusDotClass(userStatus(row)),
-                                        ]"
-                                    ></span>
-                                    <span :class="['font-semibold', statusTextClass(userStatus(row))]">{{
-                                        userStatusLabel(row)
-                                    }}</span>
-                                </span>
+                                <StatusPill
+                                    :status="row.blocked ? 'danger' : 'success'"
+                                    :label="row.blocked ? 'Blocked' : 'Active'"
+                                />
                             </td>
                             <td class="py-[10px] font-mono text-[12px] text-[var(--color-text-muted)]">
                                 {{ formatRelativeTime(row.last_seen) }}

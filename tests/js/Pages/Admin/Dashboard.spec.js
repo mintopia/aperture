@@ -35,6 +35,18 @@ vi.mock('@inertiajs/vue3', async () => {
 
 vi.stubGlobal('route', (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`));
 
+const routeMock = (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`);
+
+const defaultGlobal = {
+    stubs: {
+        AdminLayout: { template: '<div><slot /></div>' },
+        UniqueIpsChart: { template: '<div data-testid="unique-ips-chart"></div>' },
+    },
+    mocks: {
+        route: routeMock,
+    },
+};
+
 describe('Dashboard', () => {
     const makeProps = (overrides = {}) => ({
         totalUsers: 128,
@@ -100,11 +112,7 @@ describe('Dashboard', () => {
     it('renders Dashboard title', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
-            global: {
-                stubs: {
-                    AdminLayout: { template: '<div><slot /></div>' },
-                },
-            },
+            global: defaultGlobal,
         });
 
         expect(wrapper.find('[data-testid="page-title"]').text()).toBe('Dashboard');
@@ -113,11 +121,7 @@ describe('Dashboard', () => {
     it('renders the four stat cards with the correct labels and values', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
-            global: {
-                stubs: {
-                    AdminLayout: { template: '<div><slot /></div>' },
-                },
-            },
+            global: defaultGlobal,
         });
 
         const cards = wrapper.findAll('[data-testid="stat-card"]');
@@ -136,11 +140,7 @@ describe('Dashboard', () => {
     it('renders online now sub text in mockup format "of N · X%"', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
-            global: {
-                stubs: {
-                    AdminLayout: { template: '<div><slot /></div>' },
-                },
-            },
+            global: defaultGlobal,
         });
 
         expect(wrapper.find('[data-testid="stat-label-dot"]').exists()).toBe(true);
@@ -153,11 +153,7 @@ describe('Dashboard', () => {
 
         const wrapper = mount(Dashboard, {
             props: makeProps(),
-            global: {
-                stubs: {
-                    AdminLayout: { template: '<div><slot /></div>' },
-                },
-            },
+            global: defaultGlobal,
         });
 
         expect(wrapper.find('[data-testid="dhcp-pools-loading"]').exists()).toBe(true);
@@ -168,11 +164,7 @@ describe('Dashboard', () => {
     it('renders DHCP pools with network/CIDR and unique IPs chart', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
-            global: {
-                stubs: {
-                    AdminLayout: { template: '<div><slot /></div>' },
-                },
-            },
+            global: defaultGlobal,
         });
 
         expect(wrapper.find('[data-testid="dhcp-pools-card"]').exists()).toBe(true);
@@ -185,11 +177,7 @@ describe('Dashboard', () => {
     it('renders the recent users table with inline status dots instead of pills', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
-            global: {
-                stubs: {
-                    AdminLayout: { template: '<div><slot /></div>' },
-                },
-            },
+            global: defaultGlobal,
         });
 
         const recentUsersSection = wrapper.find('[data-testid="recent-users-section"]');
@@ -201,8 +189,8 @@ describe('Dashboard', () => {
         expect(wrapper.text()).toContain('1.5 KB');
         expect(wrapper.text()).toContain('5.0 GB');
 
-        // Status should be inline dots, not StatusPill
-        expect(wrapper.findAll('[data-testid="status-pill"]')).toHaveLength(0);
+        // Status uses StatusPill with symbol prefix
+        expect(wrapper.findAll('[data-testid="status-pill"]').length).toBeGreaterThan(0);
         expect(wrapper.text()).toContain('Active');
         expect(wrapper.text()).toContain('Blocked');
         expect(wrapper.text()).toContain('5m');
@@ -222,11 +210,7 @@ describe('Dashboard', () => {
                     data: [],
                 },
             }),
-            global: {
-                stubs: {
-                    AdminLayout: { template: '<div><slot /></div>' },
-                },
-            },
+            global: defaultGlobal,
         });
 
         expect(wrapper.find('[data-testid="empty-state"]').exists()).toBe(true);
@@ -236,11 +220,7 @@ describe('Dashboard', () => {
     it('renders pagination when multiple pages are available', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
-            global: {
-                stubs: {
-                    AdminLayout: { template: '<div><slot /></div>' },
-                },
-            },
+            global: defaultGlobal,
         });
 
         expect(wrapper.find('[data-testid="pagination"]').exists()).toBe(true);

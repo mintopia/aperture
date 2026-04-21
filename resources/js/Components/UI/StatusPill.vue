@@ -15,36 +15,31 @@ const config = {
         bg: 'bg-[var(--color-success)]/14',
         text: 'text-[var(--color-success)]',
         border: 'border-[var(--color-success)]/14',
-        dot: 'bg-[var(--color-success)]',
-        glow: 'shadow-[0_0_6px_var(--color-success)]',
+        symbol: '\u2713',
     },
     danger: {
         bg: 'bg-[var(--color-danger)]/14',
         text: 'text-[var(--color-danger)]',
         border: 'border-[var(--color-danger)]/14',
-        dot: 'bg-[var(--color-danger)]',
-        glow: 'shadow-[0_0_6px_var(--color-danger)]',
+        symbol: '\u2717',
     },
     warning: {
         bg: 'bg-[var(--color-warning)]/14',
         text: 'text-[var(--color-warning)]',
         border: 'border-[var(--color-warning)]/14',
-        dot: 'bg-[var(--color-warning)]',
-        glow: 'shadow-[0_0_6px_var(--color-warning)]',
+        symbol: '\u25B2',
     },
     info: {
         bg: 'bg-[var(--color-info)]/14',
         text: 'text-[var(--color-info)]',
         border: 'border-[var(--color-info)]/14',
-        dot: 'bg-[var(--color-info)]',
-        glow: 'shadow-[0_0_6px_var(--color-info)]',
+        symbol: '\u2713',
     },
     neutral: {
         bg: 'bg-[var(--color-text-muted)]/14',
         text: 'text-[var(--color-text-muted)]',
         border: 'border-[var(--color-text-muted)]/14',
-        dot: 'bg-[var(--color-text-muted)]',
-        glow: '',
+        symbol: '',
     },
 };
 
@@ -55,13 +50,9 @@ const c = computed(() => config[props.status]);
     <span
         :class="[c.bg, c.text, c.border]"
         data-testid="status-pill"
-        class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
+        class="inline-flex items-center gap-1 rounded border px-2.5 py-0.5 text-[11px] font-semibold"
     >
-        <span
-            :class="[c.dot, c.glow]"
-            class="inline-block h-[7px] w-[7px] shrink-0 rounded-full"
-            aria-hidden="true"
-        ></span>
+        <span v-if="c.symbol" aria-hidden="true" data-testid="status-symbol">{{ c.symbol }}</span>
         {{ label }}
     </span>
 </template>

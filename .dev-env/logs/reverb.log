@@ -158,3 +158,57 @@ Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
 
    INFO  Gracefully terminating connections.  
 
+
+   RuntimeException 
+
+  Failed to listen on "tcp://0.0.0.0:8080": Address already in use (EADDRINUSE)
+
+  at vendor/react/socket/src/TcpServer.php:188
+    184▕                 // @link https://3v4l.org/3qOBl
+    185▕                 $errno = SocketServer::errno($errstr);
+    186▕             }
+    187▕ 
+  ➜ 188▕             throw new \RuntimeException(
+    189▕                 'Failed to listen on "' . $uri . '": ' . $errstr . SocketServer::errconst($errno),
+    190▕                 $errno
+    191▕             );
+    192▕         }
+
+      [2m+15 vendor frames [22m
+
+  16  artisan:35
+      Illuminate\Foundation\Console\Kernel::handle()
+
+
+   INFO  Starting server on 0.0.0.0:8080 (reverb).  
+
+   INFO  Gracefully terminating connections.  
+
+
+   INFO  Starting server on 0.0.0.0:8080 (reverb).  
+
+   INFO  Gracefully terminating connections.  
+
+
+   INFO  Starting server on 0.0.0.0:8080 (reverb).  
+
+   INFO  Gracefully terminating connections.  
+
+
+   INFO  Starting server on 0.0.0.0:8080 (reverb).  
+
+   INFO  Gracefully terminating connections.  
+
+
+   INFO  Starting server on 0.0.0.0:8080 (reverb).  
+
+   INFO  Gracefully terminating connections.  
+
+
+   INFO  Starting server on 0.0.0.0:8080 (reverb).  
+
+   INFO  Gracefully terminating connections.  
+
+
+   INFO  Starting server on 0.0.0.0:8080 (reverb).  
+

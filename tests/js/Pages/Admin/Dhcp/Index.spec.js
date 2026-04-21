@@ -5,7 +5,7 @@ import Index from '@/Pages/Admin/Dhcp/Index.vue';
 vi.mock('@inertiajs/vue3', () => ({
     router: { visit: vi.fn() },
     Link: {
-        template: '<a><slot /></a>',
+        template: '<a :href="href"><slot /></a>',
         props: ['href'],
     },
     usePage: vi.fn(() => ({
@@ -15,7 +15,6 @@ vi.mock('@inertiajs/vue3', () => ({
 
 describe('Dhcp/Index', () => {
     const ipv4Range = {
-        name: 'lan',
         ip_version: 'IPv4',
         network: '10.0.0.0/24',
         start: '10.0.0.100',
@@ -26,7 +25,6 @@ describe('Dhcp/Index', () => {
     };
 
     const ipv6Range = {
-        name: 'lan',
         ip_version: 'IPv6',
         network: 'fd00::/64',
         start: null,
@@ -44,10 +42,11 @@ describe('Dhcp/Index', () => {
             },
             global: {
                 mocks: {
-                    route: (name) => `/mocked/${name}`,
+                    route: (name, params) => `/mocked/${name}${params ? '?' + new URLSearchParams(params).toString() : ''}`,
                 },
                 stubs: {
                     AdminLayout: { template: '<div><slot /></div>' },
+                    MetadataStrip: { template: '<div data-testid="metadata-strip"><slot /></div>', props: ['items'] },
                     teleport: true,
                 },
             },
@@ -79,7 +78,6 @@ describe('Dhcp/Index', () => {
         const rows = wrapper.findAll('[data-testid="data-table-row"]');
         expect(rows.length).toBe(1);
 
-        expect(wrapper.find('[data-testid="range-row-0-name"]').text()).toBe('lan');
         expect(wrapper.find('[data-testid="range-row-0-network"]').text()).toBe('10.0.0.0/24');
         expect(wrapper.find('[data-testid="range-row-0-start"]').text()).toBe('10.0.0.100');
         expect(wrapper.find('[data-testid="range-row-0-end"]').text()).toBe('10.0.0.200');
@@ -90,7 +88,6 @@ describe('Dhcp/Index', () => {
         const rows = wrapper.findAll('[data-testid="data-table-row"]');
         expect(rows.length).toBe(1);
 
-        expect(wrapper.find('[data-testid="range-row-0-name"]').text()).toBe('lan');
         expect(wrapper.find('[data-testid="range-row-0-network"]').text()).toBe('fd00::/64');
         expect(wrapper.find('[data-testid="range-row-0-start"]').text()).toBe('—');
         expect(wrapper.find('[data-testid="range-row-0-end"]').text()).toBe('—');
@@ -100,9 +97,6 @@ describe('Dhcp/Index', () => {
         const wrapper = mountComponent({ ranges: [ipv4Range, ipv6Range] });
         const rows = wrapper.findAll('[data-testid="data-table-row"]');
         expect(rows.length).toBe(2);
-
-        expect(wrapper.find('[data-testid="range-row-0-name"]').text()).toBe('lan');
-        expect(wrapper.find('[data-testid="range-row-1-name"]').text()).toBe('lan');
     });
 
     it('shows em dash for missing network', () => {
@@ -126,20 +120,32 @@ describe('Dhcp/Index', () => {
         const wrapper = mountComponent({ ranges: [ipv4Range] });
         const bar = wrapper.find('[data-testid="range-usage-bar-0"]');
         expect(bar.exists()).toBe(true);
-        expect(bar.classes()).toContain('bg-[var(--color-success)]');
+        expect(bar.attributes('style')).toContain('background-color: var(--color-success)');
     });
 
     it('renders danger color bar when percentage above 90%', () => {
         const highRange = { ...ipv4Range, percentage: 95 };
         const wrapper = mountComponent({ ranges: [highRange] });
         const bar = wrapper.find('[data-testid="range-usage-bar-0"]');
-        expect(bar.classes()).toContain('bg-[var(--color-danger)]');
+        expect(bar.attributes('style')).toContain('background-color: var(--color-danger)');
     });
 
     it('renders warning color bar when percentage above 70%', () => {
         const medRange = { ...ipv4Range, percentage: 75 };
         const wrapper = mountComponent({ ranges: [medRange] });
         const bar = wrapper.find('[data-testid="range-usage-bar-0"]');
-        expect(bar.classes()).toContain('bg-[var(--color-warning)]');
+        expect(bar.attributes('style')).toContain('background-color: var(--color-warning)');
+    });
+
+    it('renders network as a link to leases page', () => {
+        const wrapper = mountComponent({ ranges: [ipv4Range] });
+        const link = wrapper.find('[data-testid="range-row-0-network"] a');
+        expect(link.exists()).toBe(true);
+        expect(link.text()).toBe('10.0.0.0/24');
+    });
+
+    it('renders metadata strip with summary info', () => {
+        const wrapper = mountComponent({ ranges: [ipv4Range, ipv6Range] });
+        expect(wrapper.find('[data-testid="metadata-strip"]').exists()).toBe(true);
     });
 });

@@ -6,9 +6,9 @@ const DEFAULT_ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     'aperture.local.js42.io',
-    'hallowed-rincewind.cloudagent.net',
-    'reverb.hallowed-rincewind.cloudagent.net',
-    'vite.hallowed-rincewind.cloudagent.net',
+    'hallowed-rincewind.ws.cloudagent.mintopia.net',
+    'reverb.hallowed-rincewind.ws.cloudagent.mintopia.net',
+    'vite.hallowed-rincewind.ws.cloudagent.mintopia.net',
 ];
 
 export function readDotEnvValue(key) {

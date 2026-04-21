@@ -2,7 +2,7 @@ services:
   aperture:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.aperture-app.rule=Host(`${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.cloudagent.net}`)"
+      - "traefik.http.routers.aperture-app.rule=Host(`${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.ws.cloudagent.mintopia.net}`)"
       - "traefik.http.routers.aperture-app.entrypoints=websecure"
       - "traefik.http.routers.aperture-app.tls=true"
       - "traefik.http.services.aperture-app.loadbalancer.server.port=80"
@@ -13,7 +13,7 @@ services:
   reverb:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.aperture-reverb.rule=Host(`${PUBLIC_REVERB_HOSTNAME:-reverb.hallowed-rincewind.cloudagent.net}`)"
+      - "traefik.http.routers.aperture-reverb.rule=Host(`${PUBLIC_REVERB_HOSTNAME:-reverb.hallowed-rincewind.ws.cloudagent.mintopia.net}`)"
       - "traefik.http.routers.aperture-reverb.entrypoints=websecure"
       - "traefik.http.routers.aperture-reverb.tls=true"
       - "traefik.http.services.aperture-reverb.loadbalancer.server.port=8080"
@@ -24,7 +24,7 @@ services:
   vite:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.aperture-vite.rule=Host(`${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.cloudagent.net}`)"
+      - "traefik.http.routers.aperture-vite.rule=Host(`${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.ws.cloudagent.mintopia.net}`)"
       - "traefik.http.routers.aperture-vite.entrypoints=websecure"
       - "traefik.http.routers.aperture-vite.tls=true"
       - "traefik.http.services.aperture-vite.loadbalancer.server.port=5173"

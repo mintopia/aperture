@@ -121,14 +121,6 @@ async function toggleCapability(capability, currentActive) {
     }
 }
 
-function healthDot(health) {
-    if (health === null || health === undefined) {
-        return 'bg-[var(--color-text-muted)]';
-    }
-
-    return health ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]';
-}
-
 function healthLabel(health) {
     if (health === null || health === undefined) {
         return 'Unknown';
@@ -192,20 +184,13 @@ function formatLogOutput(data) {
                         >
                             {{ service.name }}
                         </h1>
-                        <div
-                            data-testid="health-status"
-                            class="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)]"
-                        >
-                            <span
-                                class="h-2.5 w-2.5 rounded-full"
-                                :class="healthDot(service.health)"
-                                aria-hidden="true"
-                            />
-                            <span>{{ healthLabel(service.health) }}</span>
-                        </div>
                     </div>
 
-                    <StatusPill :status="healthStatus(service.health)" :label="healthLabel(service.health)" />
+                    <StatusPill
+                        data-testid="health-status"
+                        :status="healthStatus(service.health)"
+                        :label="healthLabel(service.health)"
+                    />
                 </div>
 
                 <p class="max-w-3xl text-[13px] text-[var(--color-text-secondary)]">
@@ -403,7 +388,7 @@ function formatLogOutput(data) {
                         :key="capability.name"
                         :data-testid="`capability-${capability.name}`"
                         type="button"
-                        class="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-hover)] px-2 py-1 transition hover:bg-[var(--color-surface-hover)]"
+                        class="inline-flex items-center gap-2 rounded border border-[var(--color-border-hover)] px-2 py-1 transition hover:bg-[var(--color-surface-hover)]"
                         @click="toggleCapability(capability.name, capability.active)"
                     >
                         <CapabilityTag :name="capability.name" :active="capability.active" />

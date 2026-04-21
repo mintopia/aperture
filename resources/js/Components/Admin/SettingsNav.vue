@@ -67,7 +67,7 @@ function itemClass(item) {
                             v-if="item.disabled"
                             :data-testid="testId(item.label)"
                             :class="itemClass(item)"
-                            class="flex items-center gap-1.5 rounded-md px-5 py-1.5 text-[13px]"
+                            class="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px]"
                         >
                             {{ item.label }}
                             <span
@@ -81,7 +81,7 @@ function itemClass(item) {
                             :href="item.href"
                             :data-testid="testId(item.label)"
                             :class="itemClass(item)"
-                            class="rounded-md px-5 py-1.5 text-[13px] transition-all duration-100"
+                            class="rounded-md px-2 py-1.5 text-[13px] transition-all duration-100"
                         >
                             {{ item.label }}
                         </component>

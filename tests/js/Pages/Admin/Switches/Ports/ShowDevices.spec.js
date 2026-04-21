@@ -31,6 +31,12 @@ vi.mock('@/utils/switches', () => ({
 vi.mock('@/helpers.js', () => ({
     formatBytes: vi.fn((v) => `${v} B`),
     formatBytesComponents: vi.fn((v) => ({ value: `${v}`, unit: 'B' })),
+    normalizeMac: vi.fn((mac) => {
+        if (!mac) return '—';
+        const hex = mac.replace(/[:\-.]/g, '').toLowerCase();
+        if (hex.length !== 12 || !/^[0-9a-f]{12}$/.test(hex)) return mac;
+        return hex.match(/.{2}/g).join(':');
+    }),
 }));
 
 const defaultProps = {

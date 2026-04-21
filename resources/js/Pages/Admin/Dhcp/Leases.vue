@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
+import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
+import { normalizeMac } from '@/helpers.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -11,8 +13,11 @@ const props = defineProps({
     ranges: { type: Array, default: () => [] },
 });
 
+const initialNetwork =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('network') || '' : '';
+
 const search = ref('');
-const filterValues = ref({ range: '' });
+const filterValues = ref({ range: initialNetwork });
 const sortColumn = ref('ip');
 const sortDirection = ref('asc');
 const displayLimit = ref(50);
@@ -32,8 +37,8 @@ const rangeFilterDef = computed(() => {
             label: 'Range',
             allLabel: 'All Ranges',
             options: props.ranges.map((r) => ({
-                value: r.name,
-                label: r.network ? `${r.network}` : r.name,
+                value: r.network,
+                label: r.network,
             })),
         },
     ];
@@ -44,7 +49,7 @@ const totalFilteredCount = computed(() => {
 
     const selectedRange = filterValues.value.range;
     if (selectedRange) {
-        const range = props.ranges.find((r) => r.name === selectedRange);
+        const range = props.ranges.find((r) => r.network === selectedRange);
         if (range && range.start && range.end) {
             filtered = filtered.filter((lease) => isIpInRange(lease.ip, range.start, range.end));
         }
@@ -69,7 +74,7 @@ const filteredLeases = computed(() => {
     // Filter by range
     const selectedRange = filterValues.value.range;
     if (selectedRange) {
-        const range = props.ranges.find((r) => r.name === selectedRange);
+        const range = props.ranges.find((r) => r.network === selectedRange);
         if (range && range.start && range.end) {
             filtered = filtered.filter((lease) => isIpInRange(lease.ip, range.start, range.end));
         }
@@ -191,6 +196,17 @@ function formatExpiry(expires) {
             </Link>
         </div>
 
+        <MetadataStrip
+            :items="[
+                { label: 'Total Leases', value: leases.length },
+                { label: 'Ranges', value: ranges.length },
+                {
+                    label: 'Unique MACs',
+                    value: new Set(leases.map((l) => normalizeMac(l.mac))).size,
+                },
+            ]"
+        />
+
         <FilterBar
             :search="search"
             search-placeholder="Search leases…"
@@ -244,7 +260,7 @@ function formatExpiry(expires) {
                             :data-testid="`lease-row-${index}-mac`"
                             class="border-b border-[var(--color-border)] py-[10px] pl-6 align-top font-mono text-[13px] text-[var(--color-text-secondary)]"
                         >
-                            {{ row.mac }}
+                            {{ normalizeMac(row.mac) }}
                         </td>
                         <td
                             :data-testid="`lease-row-${index}-hostname`"

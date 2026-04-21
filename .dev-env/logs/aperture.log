@@ -1565,3 +1565,249 @@ Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
   2026-04-20 08:21:10 /build/assets/app-CrVsft3V.css ............... ~ 0.09ms
   2026-04-20 08:21:11 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
   2026-04-20 08:21:14 /favicon.ico ................................. ~ 0.08ms
+  Failed to listen on 0.0.0.0:8000 (reason: Address already in use)
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-20 22:46:07 /admin ..................................... ~ 500.33ms
+  2026-04-20 22:46:07 /favicon.ico ................................. ~ 0.07ms
+  2026-04-20 23:02:16 /admin ....................................... ~ 0.06ms
+  2026-04-20 23:02:16 /favicon.ico ................................. ~ 0.02ms
+  2026-04-20 23:06:44 /admin ....................................... ~ 0.07ms
+  2026-04-20 23:06:44 /favicon.ico ................................. ~ 0.07ms
+  2026-04-20 23:10:13 /admin ....................................... ~ 0.06ms
+  2026-04-20 23:10:13 /favicon.ico ................................. ~ 0.02ms
+  2026-04-20 23:11:29 /admin ....................................... ~ 0.10ms
+  2026-04-20 23:11:29 /favicon.ico ................................. ~ 0.03ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-20 23:12:45 /admin ..................................... ~ 500.28ms
+  2026-04-20 23:12:46 /build/assets/app-D5jdZDJ6.css ............... ~ 0.05ms
+  2026-04-20 23:12:46 /build/assets/PlusJakartaSans-Variable-eXO_dkmS.woff2  ~ 0.03ms
+  2026-04-20 23:12:46 /build/assets/app-BkeEUy6e.js .............. ~ 500.65ms
+  2026-04-20 23:12:46 /admin ..................................... ~ 500.32ms
+  2026-04-20 23:12:47 /build/assets/SpaceGrotesk-Variable-BhU9QXUp.woff2  ~ 0.03ms
+  2026-04-20 23:12:47 /favicon.ico ................................. ~ 0.07ms
+  2026-04-20 23:12:47 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.22ms
+  2026-04-20 23:12:55 /admin/users ............................... ~ 500.27ms
+  2026-04-20 23:12:57 /admin/dhcp .................................. ~ 0.05ms
+  2026-04-20 23:13:02 /admin/switches .............................. ~ 0.06ms
+  2026-04-20 23:13:04 /admin/switches/2 ............................ ~ 0.06ms
+  2026-04-20 23:16:24 /admin/switches/2 ............................ ~ 0.08ms
+  2026-04-20 23:16:24 /build/assets/app-D5jdZDJ6.css ............... ~ 0.06ms
+  2026-04-20 23:16:24 /build/assets/app-BkeEUy6e.js ................ ~ 0.15ms
+  2026-04-20 23:16:26 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-20 23:16:29 /admin/settings/theme ........................ ~ 0.06ms
+  2026-04-20 23:21:34 /admin/settings/theme ........................ ~ 0.07ms
+  2026-04-20 23:21:36 /favicon.ico ................................. ~ 0.09ms
+  2026-04-20 23:21:37 /admin/settings/theme ........................ ~ 0.06ms
+  2026-04-20 23:21:42 /admin ....................................... ~ 0.06ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-20 23:22:38 /admin ..................................... ~ 500.28ms
+  2026-04-20 23:22:39 /favicon.ico ................................. ~ 0.06ms
+  2026-04-20 23:22:40 /admin ....................................... ~ 0.07ms
+  2026-04-20 23:22:41 /favicon.ico ................................. ~ 0.03ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-20 23:24:02 /admin ....................................... ~ 0.07ms
+  2026-04-20 23:24:03 /build/assets/app-Br_7-OA8.css ............... ~ 0.07ms
+  2026-04-20 23:24:03 /build/assets/app-D3zQcdzn.css ............... ~ 0.17ms
+  2026-04-20 23:24:03 /build/assets/HankenGrotesk-Variable-CaVRRdDk.woff2  ~ 0.01ms
+  2026-04-20 23:24:03 /build/assets/app-CjZ5QRhP.js ................ ~ 0.30ms
+  2026-04-20 23:24:03 /admin ....................................... ~ 0.06ms
+  2026-04-20 23:24:03 /favicon.ico ................................. ~ 0.02ms
+  2026-04-20 23:24:03 /build/assets/BricolageGrotesque-Variable-Cre6nC2_.woff2  ~ 0.18ms
+  2026-04-20 23:24:03 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.21ms
+  2026-04-20 23:24:09 /admin/switches .............................. ~ 0.07ms
+  2026-04-20 23:24:12 /admin/switches/2 ............................ ~ 0.06ms
+  2026-04-20 23:24:15 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:24:25 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:24:28 /build/assets/app-Br_7-OA8.css ............... ~ 0.02ms
+  2026-04-20 23:24:28 /build/assets/app-D3zQcdzn.css ............... ~ 0.10ms
+  2026-04-20 23:24:28 /build/assets/HankenGrotesk-Variable-CaVRRdDk.woff2  ~ 0.07ms
+  2026-04-20 23:24:28 /build/assets/app-CjZ5QRhP.js .............. ~ 500.51ms
+  2026-04-20 23:24:28 /build/assets/BricolageGrotesque-Variable-Cre6nC2_.woff2  ~ 0.02ms
+  2026-04-20 23:24:28 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.05ms
+  2026-04-20 23:24:29 /favicon.ico ................................. ~ 0.07ms
+  2026-04-20 23:24:30 /admin/dhcp .................................. ~ 0.06ms
+  2026-04-20 23:24:32 /admin/dhcp ................................ ~ 500.25ms
+  2026-04-20 23:24:33 /build/assets/app-Br_7-OA8.css ............... ~ 0.02ms
+  2026-04-20 23:24:33 /build/assets/app-D3zQcdzn.css ............... ~ 0.12ms
+  2026-04-20 23:24:33 /build/assets/HankenGrotesk-Variable-CaVRRdDk.woff2  ~ 0.01ms
+  2026-04-20 23:24:33 /build/assets/app-CjZ5QRhP.js .............. ~ 500.43ms
+  2026-04-20 23:24:33 /build/assets/BricolageGrotesque-Variable-Cre6nC2_.woff2  ~ 0.02ms
+  2026-04-20 23:24:33 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.05ms
+  2026-04-20 23:24:33 /favicon.ico ................................. ~ 0.01ms
+  2026-04-20 23:24:36 /admin/ips ................................... ~ 0.06ms
+  2026-04-20 23:24:44 /admin/users ................................. ~ 0.06ms
+  2026-04-20 23:24:49 /admin/switches .............................. ~ 0.06ms
+  2026-04-20 23:24:52 /admin/users ................................. ~ 0.08ms
+  2026-04-20 23:24:53 /admin/switches ............................ ~ 500.27ms
+  2026-04-20 23:24:54 /admin/dhcp ................................ ~ 500.25ms
+  2026-04-20 23:24:56 /admin/switches .............................. ~ 0.06ms
+  2026-04-20 23:24:58 /admin/dhcp ................................ ~ 500.33ms
+  2026-04-20 23:25:00 /admin/settings/integrations ................. ~ 0.08ms
+  2026-04-20 23:25:00 /admin/settings/integrations ..................... ~ 1s
+  2026-04-20 23:25:01 /_boost/browser-logs ......................... ~ 0.02ms
+  2026-04-20 23:25:05 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-20 23:25:05 /build/assets/app-CbrtJxTb.css ............... ~ 0.02ms
+  2026-04-20 23:25:05 /build/assets/app-D3zQcdzn.css ............... ~ 0.10ms
+  2026-04-20 23:25:05 /build/assets/HankenGrotesk-Variable-CaVRRdDk.woff2  ~ 0.01ms
+  2026-04-20 23:25:05 /build/assets/app-CFvGHMYp.js ................ ~ 0.21ms
+  2026-04-20 23:25:05 /build/assets/BricolageGrotesque-Variable-Cre6nC2_.woff2  ~ 0.07ms
+  2026-04-20 23:25:05 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.11ms
+  2026-04-20 23:25:05 /favicon.ico ................................. ~ 0.01ms
+  2026-04-20 23:25:07 /admin/settings/theme ........................ ~ 0.07ms
+  2026-04-20 23:25:38 /admin/settings/theme ........................ ~ 0.06ms
+  2026-04-20 23:25:38 /admin/settings/theme ........................ ~ 0.01ms
+  2026-04-20 23:25:43 /admin/switches ............................ ~ 500.18ms
+  2026-04-20 23:25:45 /admin/switches/2 ............................ ~ 0.06ms
+  2026-04-20 23:33:18 /admin/switches/2 ............................ ~ 0.10ms
+  2026-04-20 23:33:18 /build/assets/app-CbrtJxTb.css ............... ~ 0.02ms
+  2026-04-20 23:33:18 /build/assets/app-D3zQcdzn.css ............... ~ 0.13ms
+  2026-04-20 23:33:18 /build/assets/app-CFvGHMYp.js ................ ~ 0.22ms
+  2026-04-20 23:33:21 /admin/switches/2/ports/Gi0/8 .................... ~ 5s
+  2026-04-20 23:33:57 /admin/switches/2/ports/Gi0/8 .................... ~ 5s
+  2026-04-20 23:34:27 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 23:34:58 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 23:35:29 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 23:36:00 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 23:36:30 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 23:36:57 /admin/dhcp ................................ ~ 500.25ms
+  2026-04-20 23:37:10 /admin ....................................... ~ 0.08ms
+  2026-04-20 23:37:10 /admin ..................................... ~ 500.26ms
+  2026-04-20 23:39:50 /admin/users ................................. ~ 0.06ms
+  2026-04-20 23:39:53 /admin/users/1 ............................... ~ 0.06ms
+  2026-04-20 23:39:56 /admin/ips ................................... ~ 0.08ms
+  2026-04-20 23:39:57 /admin/switches .............................. ~ 0.07ms
+  2026-04-20 23:39:59 /admin/dhcp ................................ ~ 500.28ms
+  2026-04-20 23:40:11 /admin/settings/integrations ................. ~ 0.08ms
+  2026-04-20 23:40:13 /admin/settings/integrations/opnsense ........ ~ 0.06ms
+  2026-04-20 23:40:13 /admin/settings/integrations/opnsense/zones  ~ 500.41ms
+  2026-04-20 23:40:13 /admin/settings/integrations/opnsense/zones  ~ 500.51ms
+  2026-04-20 23:40:13 /admin/settings/integrations/opnsense/shaper-rules  ~ 500.58ms
+  2026-04-20 23:40:13 /admin/settings/integrations/opnsense/shaper-rules  ~ 500.65ms
+  2026-04-20 23:42:08 /admin/settings/portal ....................... ~ 0.07ms
+  2026-04-20 23:42:09 /admin/settings/event ........................ ~ 0.06ms
+  2026-04-20 23:42:12 /admin/settings/theme ...................... ~ 500.26ms
+  2026-04-20 23:42:30 /admin/settings/theme ........................ ~ 0.07ms
+  2026-04-20 23:42:30 /admin/settings/theme ........................ ~ 0.01ms
+  2026-04-20 23:42:32 /admin/settings/integrations ............... ~ 500.23ms
+  2026-04-20 23:43:52 /admin/switches .............................. ~ 0.06ms
+  2026-04-20 23:43:53 /admin/switches/2 ............................ ~ 0.08ms
+  2026-04-20 23:43:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:44:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:45:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:45:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:46:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:46:30 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:47:00 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:47:30 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:48:00 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:48:31 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:49:01 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:49:31 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:50:02 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:50:32 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:51:02 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:51:32 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:52:02 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:52:33 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:53:03 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:53:06 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 23:53:09 /build/assets/app-CbrtJxTb.css ............... ~ 0.02ms
+  2026-04-20 23:53:09 /build/assets/app-D3zQcdzn.css ............... ~ 0.11ms
+  2026-04-20 23:53:09 /build/assets/app-CFvGHMYp.js ................ ~ 0.19ms
+  2026-04-20 23:53:40 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:54:11 /admin/switches/2/ports/Gi0/8 .................... ~ 4s
+  2026-04-20 23:54:41 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:55:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:55:42 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:56:12 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-20 23:56:42 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:57:13 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:57:43 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:58:13 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:58:43 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:59:13 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-20 23:59:43 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-21 00:00:13 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-21 00:00:43 /admin/switches/2/ports/Gi0/8 .................... ~ 6s
+  2026-04-21 00:01:15 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-21 00:01:45 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-21 00:01:57 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-21 00:02:00 /build/assets/app-CbrtJxTb.css ............... ~ 0.02ms
+  2026-04-21 00:02:00 /build/assets/app-D3zQcdzn.css ............... ~ 0.11ms
+  2026-04-21 00:02:00 /build/assets/app-CFvGHMYp.js .............. ~ 500.64ms
+  2026-04-21 00:02:31 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-21 00:03:02 /admin/switches/2/ports/Gi0/8 .................... ~ 2s
+  2026-04-21 00:03:24 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-21 00:03:35 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-21 00:03:38 /favicon.ico ................................. ~ 0.09ms
+  2026-04-21 00:05:51 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-21 00:05:54 /favicon.ico ................................. ~ 0.02ms
+  2026-04-21 00:06:26 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-21 00:06:30 /favicon.ico ................................. ~ 0.02ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-21 00:10:21 /admin/switches/2/ports/Gi0/8 .................... ~ 3s
+  2026-04-21 00:10:25 /build/assets/app-OhhJm1vG.css ............... ~ 0.03ms
+  2026-04-21 00:10:25 /build/assets/app-BLxBrPIh.css ............... ~ 0.11ms
+  2026-04-21 00:10:26 /build/assets/HankenGrotesk-Variable-CaVRRdDk.woff2  ~ 0.08ms
+  2026-04-21 00:10:25 /build/assets/app-BzsFVprE.js .............. ~ 500.62ms
+  2026-04-21 00:10:26 /build/assets/BricolageGrotesque-Variable-Cre6nC2_.woff2  ~ 0.04ms
+  2026-04-21 00:10:26 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.11ms
+  2026-04-21 00:10:26 /favicon.ico ................................. ~ 0.07ms
+  2026-04-21 00:10:37 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-21 00:12:40 /admin/ips ................................... ~ 0.10ms
+  2026-04-21 00:12:43 /admin/users ................................. ~ 0.09ms
+  2026-04-21 00:12:44 /admin/switches .............................. ~ 0.10ms
+  2026-04-21 00:12:46 /admin/dhcp ................................ ~ 500.24ms
+  2026-04-21 00:12:48 /admin/switches .............................. ~ 0.08ms
+  2026-04-21 00:13:34 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-21 00:13:34 /build/assets/app-OhhJm1vG.css ............... ~ 0.03ms
+  2026-04-21 00:13:34 /build/assets/app-BLxBrPIh.css ............... ~ 0.10ms
+  2026-04-21 00:13:34 /build/assets/app-BzsFVprE.js .............. ~ 500.40ms
+  2026-04-21 00:24:38 / ............................................ ~ 0.09ms
+  2026-04-21 00:24:40 /captive ..................................... ~ 0.05ms
+  2026-04-21 00:24:40 /favicon.ico ................................. ~ 0.06ms
+  2026-04-21 00:38:19 /admin/settings/integrations ................. ~ 0.09ms
+  2026-04-21 00:38:19 /build/assets/app-OhhJm1vG.css ............... ~ 0.05ms
+  2026-04-21 00:38:19 /build/assets/app-BLxBrPIh.css ............... ~ 0.20ms
+  2026-04-21 00:38:19 /build/assets/app-BzsFVprE.js .............. ~ 500.69ms
+  2026-04-21 00:38:25 /admin/settings/integrations ................. ~ 0.06ms
+  2026-04-21 00:38:25 /build/assets/app-BLxBrPIh.css ............... ~ 0.03ms
+  2026-04-21 00:38:25 /build/assets/app-OhhJm1vG.css ............... ~ 0.09ms
+  2026-04-21 00:38:25 /build/assets/HankenGrotesk-Variable-CaVRRdDk.woff2  ~ 0.01ms
+  2026-04-21 00:38:25 /build/assets/app-BzsFVprE.js .............. ~ 500.44ms
+  2026-04-21 00:38:25 /favicon.ico ................................. ~ 0.02ms
+  2026-04-21 00:38:25 /build/assets/BricolageGrotesque-Variable-Cre6nC2_.woff2  ~ 0.02ms
+  2026-04-21 00:38:25 /build/assets/JetBrainsMono-Regular-BQaDgvhP.woff2  ~ 0.05ms
+
+   INFO  Server running on [http://0.0.0.0:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-04-21 00:39:56 /admin/settings/integrations ............... ~ 500.24ms
+  2026-04-21 00:39:59 /favicon.ico ................................. ~ 0.07ms
+  2026-04-21 00:40:05 /admin/switches .............................. ~ 0.09ms
