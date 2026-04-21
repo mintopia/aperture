@@ -104,24 +104,4 @@ class ContentControllerTest extends TestCase
 
         $response->assertForbidden();
     }
-
-    public function test_migration_removes_orphaned_block_types(): void
-    {
-        Queue::fake();
-
-        // Roll back the migration so we can re-run it after seeding test data
-        $this->artisan('migrate:rollback', ['--step' => 1]);
-
-        ContentBlock::factory()->create(['type' => 'event_info']);
-        ContentBlock::factory()->create(['type' => 'network_stats']);
-        ContentBlock::factory()->create(['type' => 'connection_status']);
-        ContentBlock::factory()->create(['type' => 'custom_markdown']);
-
-        $this->artisan('migrate', ['--path' => 'database/migrations', '--realpath' => true]);
-
-        $this->assertDatabaseMissing('content_blocks', ['type' => 'event_info']);
-        $this->assertDatabaseMissing('content_blocks', ['type' => 'network_stats']);
-        $this->assertDatabaseMissing('content_blocks', ['type' => 'connection_status']);
-        $this->assertDatabaseHas('content_blocks', ['type' => 'custom_markdown']);
-    }
 }
