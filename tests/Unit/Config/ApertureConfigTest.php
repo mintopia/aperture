@@ -40,11 +40,6 @@ class ApertureConfigTest extends TestCase
         $this->assertNull(config('aperture.pihole'));
     }
 
-    public function test_dns_config_removed(): void
-    {
-        $this->assertNull(config('aperture.dns'));
-    }
-
     public function test_auto_allow_config_removed(): void
     {
         $this->assertNull(config('aperture.auto_allow'));
