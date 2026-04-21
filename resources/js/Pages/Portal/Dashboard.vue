@@ -16,19 +16,17 @@ const props = defineProps({
     },
     currentIp: { type: String, default: '' },
     ipAllowed: Boolean,
+    dnsDetection: { type: Object, default: null },
 });
 
 const user = usePage().props.auth?.user;
-
-/* Extract DNS warning block (shown at top, outside grid) */
-const dnsBlock = computed(() => props.blocks.find((b) => b.type === 'dns_warning'));
 
 /* Extract hero blocks (bandwidth + pihole, shown in hero cols) */
 const bandwidthBlock = computed(() => props.blocks.find((b) => b.type === 'bandwidth'));
 const piholeBlock = computed(() => props.blocks.find((b) => b.type === 'pihole_toggle'));
 
-/* Remaining blocks for the standard grid (exclude hero + dns) */
-const heroTypes = ['dns_warning', 'bandwidth', 'pihole_toggle'];
+/* Remaining blocks for the standard grid (exclude hero blocks) */
+const heroTypes = ['bandwidth', 'pihole_toggle'];
 const gridBlocks = computed(() => props.blocks.filter((b) => !heroTypes.includes(b.type)));
 </script>
 
@@ -45,12 +43,10 @@ const gridBlocks = computed(() => props.blocks.filter((b) => !heroTypes.includes
         </div>
 
         <!-- DNS Warning (top of page) -->
-        <div v-if="dnsBlock" class="mb-4">
+        <div v-if="dnsDetection" class="mb-4">
             <DnsWarningBlock
-                :has-dns-issue="true"
-                :expected-dns="dnsBlock.settings?.expectedDns ?? ''"
-                :actual-dns="dnsBlock.settings?.actualDns ?? ''"
-                :settings="dnsBlock.settings"
+                :check-url="dnsDetection.checkUrl"
+                :warning-message="dnsDetection.warningMessage"
             />
         </div>
 
