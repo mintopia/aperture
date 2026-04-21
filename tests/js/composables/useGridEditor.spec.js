@@ -103,4 +103,61 @@ describe('useGridEditor', () => {
         const pos = findFirstAvailable();
         expect(pos).toEqual({ col: 1, row: 2 });
     });
+
+    describe('computeDisplacement', () => {
+        it('returns empty map when target is unoccupied', () => {
+            const blocks = makeBlocks([
+                [1, 1],
+                [3, 1],
+            ]);
+            const { computeDisplacement } = useGridEditor(blocks);
+            const result = computeDisplacement(1, 2, 1, 1, 1);
+            expect(result).toEqual({});
+        });
+
+        it('pushes overlapped block down', () => {
+            const blocks = makeBlocks([
+                [1, 1],
+                [2, 1],
+            ]);
+            const { computeDisplacement } = useGridEditor(blocks);
+            // Move block 1 to col 2 row 1 — overlaps block 2
+            const result = computeDisplacement(1, 2, 1, 1, 1);
+            expect(result[2]).toBe(2); // block 2 pushed to row 2
+        });
+
+        it('cascades displacement when pushed block overlaps another', () => {
+            const blocks = makeBlocks([
+                [1, 1],
+                [2, 1],
+                [2, 2],
+            ]);
+            const { computeDisplacement } = useGridEditor(blocks);
+            // Move block 1 to col 2 row 1 — pushes block 2 to row 2, which pushes block 3 to row 3
+            const result = computeDisplacement(1, 2, 1, 1, 1);
+            expect(result[2]).toBe(2);
+            expect(result[3]).toBe(3);
+        });
+
+        it('handles multi-span block displacement', () => {
+            const blocks = makeBlocks([
+                [1, 1, 2, 1],
+                [1, 2],
+            ]);
+            const { computeDisplacement } = useGridEditor(blocks);
+            // Move block 1 (2x1) to row 2 — overlaps block 2 at (1,2)
+            const result = computeDisplacement(1, 1, 2, 2, 1);
+            expect(result[2]).toBe(3); // block 2 pushed to row 3
+        });
+
+        it('does not displace blocks that are not overlapped', () => {
+            const blocks = makeBlocks([
+                [1, 1],
+                [3, 3],
+            ]);
+            const { computeDisplacement } = useGridEditor(blocks);
+            const result = computeDisplacement(1, 1, 2, 1, 1);
+            expect(result).toEqual({}); // block 2 at (3,3) is not affected
+        });
+    });
 });

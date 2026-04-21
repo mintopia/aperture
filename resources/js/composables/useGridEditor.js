@@ -82,6 +82,60 @@ export function useGridEditor(blocks) {
         return id ? blocks.value.find((b) => b.id === id) : null;
     }
 
+    function computeDisplacement(draggedId, targetCol, targetRow, colSpan, rowSpan) {
+        const displacement = {};
+
+        // Build a working copy of positions
+        const positions = {};
+        for (const block of blocks.value) {
+            if (block.id === draggedId) {
+                positions[block.id] = { col: targetCol, row: targetRow, colSpan, rowSpan };
+            } else {
+                positions[block.id] = {
+                    col: block.grid_col,
+                    row: block.grid_row,
+                    colSpan: block.col_span,
+                    rowSpan: block.row_span,
+                };
+            }
+        }
+
+        // Iteratively resolve overlaps
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (const block of blocks.value) {
+                if (block.id === draggedId) {
+                    continue;
+                }
+                const pos = positions[block.id];
+                // Check if this block overlaps with any other block
+                for (const otherId of Object.keys(positions).map(Number)) {
+                    if (otherId === block.id) {
+                        continue;
+                    }
+                    const other = positions[otherId];
+                    if (
+                        pos.col < other.col + other.colSpan &&
+                        pos.col + pos.colSpan > other.col &&
+                        pos.row < other.row + other.rowSpan &&
+                        pos.row + pos.rowSpan > other.row
+                    ) {
+                        // Push this block below the overlapping block
+                        const newRow = other.row + other.rowSpan;
+                        if (newRow > pos.row) {
+                            positions[block.id] = { ...pos, row: newRow };
+                            displacement[block.id] = newRow;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return displacement;
+    }
+
     return {
         isOccupied,
         canPlace,
@@ -91,5 +145,6 @@ export function useGridEditor(blocks) {
         findFirstAvailable,
         getBlockAt,
         occupiedMap,
+        computeDisplacement,
     };
 }
