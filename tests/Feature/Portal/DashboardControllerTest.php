@@ -3,6 +3,7 @@
 namespace Tests\Feature\Portal;
 
 use App\Models\ContentBlock;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -111,27 +112,52 @@ class DashboardControllerTest extends TestCase
         );
     }
 
-    public function test_dns_warning_block_passes_settings_with_expected_dns(): void
+    public function test_dashboard_passes_dns_detection_when_configured(): void
     {
         Queue::fake();
         $user = User::factory()->create();
 
-        ContentBlock::factory()->create([
-            'type' => 'dns_warning',
-            'title' => 'DNS Check',
-            'is_active' => true,
-            'sort_order' => 1,
-            'settings' => ['expectedDns' => '10.0.0.1'],
-        ]);
+        Setting::create(['code' => 'dns.check_url', 'name' => 'DNS Check URL', 'value' => 'https://{uuid}.lancache.test.entropylan.party']);
+        Setting::create(['code' => 'dns.warning_message', 'name' => 'DNS Warning Message', 'value' => 'Fix your DNS!']);
 
         $response = $this->actingAs($user)->get('/portal');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Portal/Dashboard')
-            ->has('blocks', 1)
-            ->where('blocks.0.type', 'dns_warning')
-            ->where('blocks.0.settings.expectedDns', '10.0.0.1')
+            ->has('dnsDetection')
+            ->where('dnsDetection.checkUrl', 'https://{uuid}.lancache.test.entropylan.party')
+            ->where('dnsDetection.warningMessage', 'Fix your DNS!')
+        );
+    }
+
+    public function test_dashboard_passes_null_dns_detection_when_not_configured(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Portal/Dashboard')
+            ->where('dnsDetection', null)
+        );
+    }
+
+    public function test_dashboard_uses_default_warning_message_when_not_set(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        Setting::create(['code' => 'dns.check_url', 'name' => 'DNS Check URL', 'value' => 'https://{uuid}.lancache.test.entropylan.party']);
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('dnsDetection.checkUrl', 'https://{uuid}.lancache.test.entropylan.party')
+            ->where('dnsDetection.warningMessage', 'Your device is not using the event DNS servers. Please update your DNS settings.')
         );
     }
 }

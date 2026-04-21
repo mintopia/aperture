@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,10 +24,17 @@ class DashboardController extends Controller
 
         $blocks = ContentBlock::active()->get();
 
+        $checkUrl = Setting::get('dns.check_url');
+        $warningMessage = Setting::get('dns.warning_message');
+
         return Inertia::render('Portal/Dashboard', [
             'blocks' => $blocks,
             'currentIp' => $ip->address,
             'ipAllowed' => (bool) $ip->allowed,
+            'dnsDetection' => $checkUrl ? [
+                'checkUrl' => $checkUrl,
+                'warningMessage' => $warningMessage ?? 'Your device is not using the event DNS servers. Please update your DNS settings.',
+            ] : null,
         ]);
     }
 }
