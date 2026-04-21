@@ -4,52 +4,69 @@ import ConnectionStripBlock from '@/Components/Blocks/ConnectionStripBlock.vue';
 
 describe('ConnectionStripBlock', () => {
     const defaultContext = {
-        currentIp: '192.168.1.42',
-        ipAllowed: true,
+        currentIpv4: '10.0.0.1',
+        currentIpv6: 'fe80::1',
         macAddress: 'AA:BB:CC:DD:EE:FF',
-        user: {},
+        ipAllowed: true,
+        user: { name: 'Player', params: { seat: 'A42' } },
     };
 
-    it('renders IPv4 address from block context', () => {
+    it('renders default fields when settings.fields is empty', () => {
         const wrapper = mount(ConnectionStripBlock, {
-            props: { blockContext: defaultContext },
+            props: { settings: {}, blockContext: defaultContext },
         });
-        expect(wrapper.text()).toContain('192.168.1.42');
+        expect(wrapper.text()).toContain('IPv4');
+        expect(wrapper.text()).toContain('10.0.0.1');
+        expect(wrapper.text()).toContain('IPv6');
+        expect(wrapper.text()).toContain('MAC');
     });
 
-    it('renders MAC address from block context', () => {
+    it('renders custom fields from settings.fields', () => {
         const wrapper = mount(ConnectionStripBlock, {
-            props: { blockContext: defaultContext },
+            props: {
+                settings: {
+                    fields: [
+                        { label: 'Seat', value: '{user.params.seat}' },
+                        { label: 'IP', value: '{ipv4}' },
+                    ],
+                },
+                blockContext: defaultContext,
+            },
+        });
+        expect(wrapper.text()).toContain('Seat');
+        expect(wrapper.text()).toContain('A42');
+        expect(wrapper.text()).toContain('IP');
+        expect(wrapper.text()).toContain('10.0.0.1');
+    });
+
+    it('renders template variables in field values', () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: {
+                settings: {
+                    fields: [{ label: 'MAC', value: '{mac}' }],
+                },
+                blockContext: defaultContext,
+            },
         });
         expect(wrapper.text()).toContain('AA:BB:CC:DD:EE:FF');
     });
 
-    it('shows Online status when ipAllowed is true', () => {
+    it('renders em dash for empty template result', () => {
         const wrapper = mount(ConnectionStripBlock, {
-            props: { blockContext: defaultContext },
+            props: {
+                settings: {
+                    fields: [{ label: 'Missing', value: '{user.params.unknown}' }],
+                },
+                blockContext: defaultContext,
+            },
         });
-        expect(wrapper.text()).toContain('Online');
+        expect(wrapper.text()).toContain('\u2014');
     });
 
-    it('shows Offline status when ipAllowed is false', () => {
+    it('renders default fields when settings is null', () => {
         const wrapper = mount(ConnectionStripBlock, {
-            props: { blockContext: { ...defaultContext, ipAllowed: false } },
+            props: { settings: null, blockContext: defaultContext },
         });
-        expect(wrapper.text()).toContain('Offline');
-    });
-
-    it('shows dash when MAC address is null', () => {
-        const wrapper = mount(ConnectionStripBlock, {
-            props: { blockContext: { ...defaultContext, macAddress: null } },
-        });
-        const macSection = wrapper.find('[data-testid="connection-strip-mac"]');
-        expect(macSection.text()).toContain('—');
-    });
-
-    it('shows dash when IP is empty', () => {
-        const wrapper = mount(ConnectionStripBlock, {
-            props: { blockContext: { ...defaultContext, currentIp: '' } },
-        });
-        expect(wrapper.text()).toContain('—');
+        expect(wrapper.text()).toContain('IPv4');
     });
 });

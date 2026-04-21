@@ -10,10 +10,11 @@ vi.stubGlobal(
 
 describe('BlockGrid', () => {
     const defaultContext = {
-        currentIp: '192.168.1.42',
+        currentIpv4: '10.0.0.1',
+        currentIpv6: 'fe80::1',
         ipAllowed: true,
         macAddress: 'AA:BB:CC:DD:EE:FF',
-        user: {},
+        user: { name: 'Player', params: {} },
     };
 
     it('renders a CSS grid container', () => {
@@ -120,7 +121,7 @@ describe('BlockGrid', () => {
         const wrapper = mount(BlockGrid, {
             props: { blocks, blockContext: defaultContext },
         });
-        expect(wrapper.text()).toContain('192.168.1.42');
+        expect(wrapper.text()).toContain('10.0.0.1');
     });
 
     it('renders empty state when no blocks', () => {
