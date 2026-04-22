@@ -17,6 +17,7 @@ use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notifiable;
 use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable as WebAuthnAuthenticatableContract;
+use Laragear\WebAuthn\Models\WebAuthnCredential;
 use Laragear\WebAuthn\WebAuthnAuthentication;
 use Laragear\WebAuthn\WebAuthnData;
 use Laravel\Sanctum\HasApiTokens;
@@ -60,8 +61,26 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @method static Builder|User whereExternalId($value)
  * @method static Builder|User whereUpdatedAt($value)
  *
- * @mixin \Eloquent
  * @mixin IdeHelperUser
+ *
+ * @property string|null $password
+ * @property-read Collection<int, MacAddress> $macAddresses
+ * @property-read int|null $mac_addresses_count
+ * @property-read Collection<int, UserParameter> $parameters
+ * @property-read int|null $parameters_count
+ * @property-read Collection<int, WebAuthnCredential> $webAuthnCredentials
+ * @property-read int|null $web_authn_credentials_count
+ *
+ * @method static Builder<static>|User whereAccessToken($value)
+ * @method static Builder<static>|User whereAvatarUrl($value)
+ * @method static Builder<static>|User whereDnsFilteringEnabled($value)
+ * @method static Builder<static>|User whereInternetEnabled($value)
+ * @method static Builder<static>|User wherePassword($value)
+ * @method static Builder<static>|User whereRateLimitEnabled($value)
+ * @method static Builder<static>|User whereRefreshToken($value)
+ * @method static Builder<static>|User whereTokenExpiresAt($value)
+ *
+ * @mixin \Eloquent
  */
 class User extends Authenticatable implements WebAuthnAuthenticatableContract
 {

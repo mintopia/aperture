@@ -7,8 +7,28 @@ namespace App\Models;
 use Database\Factories\CapabilityAssignmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
+/**
+ * @property int $id
+ * @property string $capability
+ * @property string $integration
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ *
+ * @method static \Database\Factories\CapabilityAssignmentFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereCapability($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereIntegration($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
 class CapabilityAssignment extends Model
 {
     /** @use HasFactory<CapabilityAssignmentFactory> */

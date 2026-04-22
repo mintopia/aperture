@@ -6,9 +6,31 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @mixin IdeHelperUserIpAddress
+ *
+ * @property int $id
+ * @property int $user_id
+ * @property int $ip_address_id
+ * @property Carbon $last_seen_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read IpAddress $ip
+ * @property-read User $user
+ *
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereIpAddressId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereLastSeenAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereUserId($value)
+ *
+ * @mixin \Eloquent
  */
 class UserIpAddress extends Model
 {

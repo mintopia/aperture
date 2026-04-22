@@ -8,7 +8,42 @@ use Database\Factories\SwitchSyncRunFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $switch_config_id
+ * @property string $status
+ * @property Carbon|null $started_at
+ * @property Carbon|null $finished_at
+ * @property string|null $error
+ * @property int $ports_created
+ * @property int $ports_updated
+ * @property int $macs_created
+ * @property int $macs_updated
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read SwitchConfig $switchConfig
+ *
+ * @method static \Database\Factories\SwitchSyncRunFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereError($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereFinishedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereMacsCreated($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereMacsUpdated($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun wherePortsCreated($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun wherePortsUpdated($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereStartedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereSwitchConfigId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
 class SwitchSyncRun extends Model
 {
     /** @use HasFactory<SwitchSyncRunFactory> */

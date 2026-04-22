@@ -29,8 +29,8 @@ use Illuminate\Support\Carbon;
  * @method static Builder|Role whereName($value)
  * @method static Builder|Role whereUpdatedAt($value)
  *
- * @mixin \Eloquent
  * @mixin IdeHelperRole
+ * @mixin \Eloquent
  */
 class Role extends Model
 {

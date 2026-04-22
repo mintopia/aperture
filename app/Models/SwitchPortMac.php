@@ -8,7 +8,32 @@ use Database\Factories\SwitchPortMacFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $switch_port_id
+ * @property string $mac_address
+ * @property int|null $vlan
+ * @property Carbon|null $last_seen_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read SwitchPort $switchPort
+ *
+ * @method static \Database\Factories\SwitchPortMacFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac whereLastSeenAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac whereMacAddress($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac whereSwitchPortId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortMac whereVlan($value)
+ *
+ * @mixin \Eloquent
+ */
 class SwitchPortMac extends Model
 {
     /** @use HasFactory<SwitchPortMacFactory> */

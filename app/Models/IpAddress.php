@@ -9,6 +9,7 @@ use App\Services\IpAddressActionService;
 use App\Services\ValueObjects\PortDetail;
 use GuzzleHttp\Exception\ClientException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -40,8 +41,32 @@ use Throwable;
  * @method static Builder|IpAddress whereId($value)
  * @method static Builder|IpAddress whereUpdatedAt($value)
  *
- * @mixin \Eloquent
  * @mixin IdeHelperIpAddress
+ *
+ * @property int|null $mac_address_id
+ * @property int|null $user_id
+ * @property int $received
+ * @property int $sent
+ * @property string|null $comment
+ * @property Carbon $last_seen_at
+ * @property Carbon|null $expires_at
+ * @property-read MacAddress|null $macAddress
+ * @property-read Collection<int, UserIpAddress> $users
+ * @property-read int|null $users_count
+ *
+ * @method static \Database\Factories\IpAddressFactory factory($count = null, $state = [])
+ * @method static Builder<static>|IpAddress whereComment($value)
+ * @method static Builder<static>|IpAddress whereDnsFilteringEnabled($value)
+ * @method static Builder<static>|IpAddress whereExpiresAt($value)
+ * @method static Builder<static>|IpAddress whereInternetEnabled($value)
+ * @method static Builder<static>|IpAddress whereLastSeenAt($value)
+ * @method static Builder<static>|IpAddress whereMacAddressId($value)
+ * @method static Builder<static>|IpAddress whereRateLimitEnabled($value)
+ * @method static Builder<static>|IpAddress whereReceived($value)
+ * @method static Builder<static>|IpAddress whereSent($value)
+ * @method static Builder<static>|IpAddress whereUserId($value)
+ *
+ * @mixin \Eloquent
  */
 class IpAddress extends Model
 {

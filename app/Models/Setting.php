@@ -34,8 +34,13 @@ use Illuminate\Support\Carbon;
  * @method static Builder|Setting whereUpdatedAt($value)
  * @method static Builder|Setting whereValue($value)
  *
- * @mixin \Eloquent
  * @mixin IdeHelperSetting
+ *
+ * @property string $type
+ *
+ * @method static Builder<static>|Setting whereType($value)
+ *
+ * @mixin \Eloquent
  */
 class Setting extends Model
 {

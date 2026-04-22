@@ -7,8 +7,40 @@ namespace App\Models;
 use Database\Factories\ConnectionTestLogFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
+/**
+ * @property int $id
+ * @property string $integration
+ * @property bool $success
+ * @property string|null $message
+ * @property string|null $request_method
+ * @property string|null $request_url
+ * @property int|null $response_status
+ * @property string|null $response_data
+ * @property int|null $response_time_ms
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ *
+ * @method static \Database\Factories\ConnectionTestLogFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereIntegration($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereMessage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereRequestMethod($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereRequestUrl($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereResponseData($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereResponseStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereResponseTimeMs($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereSuccess($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
 class ConnectionTestLog extends Model
 {
     /** @use HasFactory<ConnectionTestLogFactory> */
