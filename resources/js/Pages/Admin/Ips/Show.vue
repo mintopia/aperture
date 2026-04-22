@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
@@ -7,7 +7,9 @@ import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
+import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatRelative } from '@/utils/dates';
+import { formatBytes } from '@/helpers.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -32,7 +34,7 @@ function confirmToggleInternet() {
     router.post(
         route('admin.ips.internet', props.ip.id),
         {
-            allow: props.ip.allowed ? 0 : 1,
+            allow: props.ip.internet_enabled ? 0 : 1,
         },
         {
             preserveScroll: true,
@@ -55,6 +57,53 @@ const userColumns = [
     { key: 'nickname', label: 'Nickname' },
     { key: 'last_seen', label: 'Last Seen' },
 ];
+
+const selectedRange = ref('24h');
+const bandwidthData = ref({ timestamps: [], download: [], upload: [], totalReceived: 0, totalSent: 0 });
+const bandwidthLoading = ref(true);
+const ranges = ['1h', '24h', '4d'];
+
+const chartSeries = computed(() => {
+    const { timestamps, download, upload } = bandwidthData.value;
+    if (!timestamps.length) return [];
+    return [
+        {
+            label: 'Download',
+            color: 'var(--color-success)',
+            fill: true,
+            data: timestamps.map((ts, i) => ({ timestamp: Number(ts), value: download[i] ?? 0 })),
+        },
+        {
+            label: 'Upload',
+            color: 'var(--color-info)',
+            fill: true,
+            data: timestamps.map((ts, i) => ({ timestamp: Number(ts), value: upload[i] ?? 0 })),
+        },
+    ];
+});
+
+async function fetchBandwidth() {
+    bandwidthLoading.value = true;
+    try {
+        const response = await fetch(route('admin.ips.bandwidth', props.ip.address) + '?range=' + selectedRange.value);
+        if (response.ok) {
+            bandwidthData.value = await response.json();
+        }
+    } catch (_e) {
+        // Will show empty state
+    } finally {
+        bandwidthLoading.value = false;
+    }
+}
+
+function selectRange(range) {
+    selectedRange.value = range;
+    fetchBandwidth();
+}
+
+onMounted(() => {
+    fetchBandwidth();
+});
 </script>
 
 <template>
@@ -68,29 +117,29 @@ const userColumns = [
                 {{ ip.address }}
             </h1>
             <button
-                :data-testid="ip.allowed ? 'action-revoke' : 'action-grant'"
+                :data-testid="ip.internet_enabled ? 'action-revoke' : 'action-grant'"
                 :class="
-                    ip.allowed
+                    ip.internet_enabled
                         ? 'border-[var(--color-danger)] bg-[var(--color-danger)]'
                         : 'border-[var(--color-success)] bg-[var(--color-success)]'
                 "
                 class="rounded-md border px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)]"
                 @click="toggleInternet"
             >
-                {{ ip.allowed ? 'Revoke Access' : 'Grant Access' }}
+                {{ ip.internet_enabled ? 'Revoke Access' : 'Grant Access' }}
             </button>
         </div>
 
         <ConfirmModal
             :show="showAccessModal"
-            :title="ip.allowed ? 'Revoke Access?' : 'Grant Access?'"
+            :title="ip.internet_enabled ? 'Revoke Access?' : 'Grant Access?'"
             :message="
-                ip.allowed
+                ip.internet_enabled
                     ? 'This will deny internet access for this IP address.'
                     : 'This will restore internet access for this IP address.'
             "
-            :confirm-label="ip.allowed ? 'Revoke Access' : 'Grant Access'"
-            :variant="ip.allowed ? 'danger' : 'primary'"
+            :confirm-label="ip.internet_enabled ? 'Revoke Access' : 'Grant Access'"
+            :variant="ip.internet_enabled ? 'danger' : 'primary'"
             :loading="togglingAccess"
             @confirm="confirmToggleInternet"
             @cancel="showAccessModal = false"
@@ -102,10 +151,60 @@ const userColumns = [
 
         <MetadataStrip
             :items="[
-                { label: 'Status', value: ip.allowed ? 'Allowed' : 'Denied' },
+                { label: 'Status', value: ip.internet_enabled ? 'Allowed' : 'Denied' },
                 { label: 'Comment', value: ip.comment || '—' },
             ]"
         />
+
+        <div class="mt-5">
+            <div class="flex items-center justify-between">
+                <SectionHeader title="Bandwidth" />
+                <div class="flex gap-1" data-testid="bandwidth-range-selector">
+                    <button
+                        v-for="range in ranges"
+                        :key="range"
+                        type="button"
+                        :data-testid="'range-' + range"
+                        :class="
+                            selectedRange === range
+                                ? 'bg-[var(--color-accent-dim)] font-semibold text-[var(--color-primary)]'
+                                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                        "
+                        class="rounded-md px-3 py-1 text-[12px] font-medium transition-all"
+                        @click="selectRange(range)"
+                    >
+                        {{ range }}
+                    </button>
+                </div>
+            </div>
+            <div class="mt-2 flex items-baseline gap-4">
+                <div data-testid="bandwidth-download">
+                    <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                        >Down</span
+                    >
+                    <span class="ml-1 font-mono text-sm font-bold text-[var(--color-success)]">
+                        {{ formatBytes(bandwidthData.totalReceived) }}
+                    </span>
+                </div>
+                <div data-testid="bandwidth-upload">
+                    <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                        >Up</span
+                    >
+                    <span class="ml-1 font-mono text-sm font-bold text-[var(--color-info)]">
+                        {{ formatBytes(bandwidthData.totalSent) }}
+                    </span>
+                </div>
+            </div>
+            <TimeSeriesChart
+                :series="chartSeries"
+                :loading="bandwidthLoading"
+                y-axis-label="bps"
+                height="200px"
+                empty-message="No bandwidth data available"
+                data-testid="admin-bandwidth-chart"
+                class="mt-2"
+            />
+        </div>
 
         <SectionHeader title="Associated Users" class="mt-5" />
 
