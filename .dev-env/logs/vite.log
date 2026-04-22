@@ -900,3 +900,9 @@ Error: Port 5173 is already in use
 6:22:53 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
 6:25:14 PM [vite] (client) hmr update /resources/css/app.css?direct, /resources/css/app.css, /resources/js/Pages/Admin/Settings/Theme.vue, /resources/js/Components/ThemeToggle.vue
 6:25:23 PM [vite] (client) hmr update /resources/css/app.css?direct, /resources/css/app.css, /resources/js/Pages/Admin/Settings/Theme.vue, /resources/js/Components/ThemeToggle.vue
+6:32:43 PM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Theme.vue, /resources/css/app.css?direct, /resources/css/app.css
+6:32:49 PM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Theme.vue, /resources/css/app.css?direct, /resources/css/app.css
+6:33:57 PM [vite] (client) hmr update /resources/css/app.css?direct, /resources/css/app.css
+6:48:50 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+6:48:56 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+6:49:03 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Show.vue, /resources/css/app.css?direct, /resources/css/app.css

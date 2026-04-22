@@ -174,9 +174,13 @@ class IpAddressController extends Controller
 
     public function bandwidth(Request $request, IpAddress $ip, TrafficMonitorInterface $trafficMonitor): JsonResponse
     {
-        $range = $request->query('range', '24h');
+        $validated = $request->validate([
+            'range' => 'nullable|string|in:1h,24h,4d',
+        ]);
 
-        $bandwidth = $trafficMonitor->getUserBandwidth($ip->address, is_string($range) ? $range : '24h');
+        $range = $validated['range'] ?? '24h';
+
+        $bandwidth = $trafficMonitor->getUserBandwidth($ip->address, $range);
 
         return response()->json([
             'timestamps' => $bandwidth->timestamps,

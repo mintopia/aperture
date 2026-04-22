@@ -66,7 +66,7 @@ class OpnSenseRecoveryCommand extends Command
     {
         foreach ($ip->users as $userIp) {
             /** @var UserIpAddress $userIp */
-            if ($userIp->user && $userIp->user->internet_blocked) {
+            if ($userIp->user->internet_blocked) {
                 $this->log($ip.' is blocked, skipping');
 
                 return;

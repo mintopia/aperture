@@ -61,6 +61,7 @@ const userColumns = [
 const selectedRange = ref('24h');
 const bandwidthData = ref({ timestamps: [], download: [], upload: [], totalReceived: 0, totalSent: 0 });
 const bandwidthLoading = ref(true);
+const bandwidthError = ref(false);
 const ranges = ['1h', '24h', '4d'];
 
 const chartSeries = computed(() => {
@@ -84,13 +85,16 @@ const chartSeries = computed(() => {
 
 async function fetchBandwidth() {
     bandwidthLoading.value = true;
+    bandwidthError.value = false;
     try {
         const response = await fetch(route('admin.ips.bandwidth', props.ip.address) + '?range=' + selectedRange.value);
         if (response.ok) {
             bandwidthData.value = await response.json();
+        } else {
+            bandwidthError.value = true;
         }
     } catch (_e) {
-        // Will show empty state
+        bandwidthError.value = true;
     } finally {
         bandwidthLoading.value = false;
     }
@@ -204,6 +208,9 @@ onMounted(() => {
                 data-testid="admin-bandwidth-chart"
                 class="mt-2"
             />
+            <p v-if="bandwidthError" class="mt-2 text-[12px] text-[var(--color-danger)]" data-testid="bandwidth-error">
+                Failed to load bandwidth data
+            </p>
         </div>
 
         <SectionHeader title="Associated Users" class="mt-5" />
