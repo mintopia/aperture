@@ -8,6 +8,8 @@ use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserParameter;
+use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\ValueObjects\ArpEntry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -15,6 +17,17 @@ use Tests\TestCase;
 class DashboardControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Default mock for NetworkInventoryInterface — returns no IPv6 neighbors.
+        // Individual tests can override by re-binding.
+        $mock = $this->createMock(NetworkInventoryInterface::class);
+        $mock->method('getIpv6Neighbors')->willReturn(collect());
+        $this->app->instance(NetworkInventoryInterface::class, $mock);
+    }
 
     public function test_authenticated_user_sees_dashboard(): void
     {
@@ -163,7 +176,7 @@ class DashboardControllerTest extends TestCase
     public function test_dashboard_passes_block_context_with_mac_and_user_params(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->create(['nickname' => 'Player1']);
 
         // Pre-create an IP with a known address, allowed, and associate a MAC
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
@@ -175,6 +188,13 @@ class DashboardControllerTest extends TestCase
         // Create a user parameter
         UserParameter::factory()->create(['user_id' => $user->id, 'key' => 'seat', 'value' => 'A42']);
 
+        // Mock NetworkInventoryInterface to return an IPv6 neighbor matching the MAC
+        $mockInventory = $this->createMock(NetworkInventoryInterface::class);
+        $mockInventory->method('getIpv6Neighbors')->willReturn(collect([
+            new ArpEntry(ip: 'fe80::1', mac: 'AA:BB:CC:DD:EE:FF'),
+        ]));
+        $this->app->instance(NetworkInventoryInterface::class, $mockInventory);
+
         $response = $this->actingAs($user)
             ->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
             ->get('/portal');
@@ -182,11 +202,13 @@ class DashboardControllerTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->has('blockContext')
-            ->where('blockContext.currentIp', '10.0.0.1')
+            ->where('blockContext.currentIpv4', '10.0.0.1')
+            ->where('blockContext.currentIpv6', 'fe80::1')
             ->where('blockContext.ipAllowed', true)
             ->where('blockContext.macAddress', 'AA:BB:CC:DD:EE:FF')
             ->has('blockContext.user')
-            ->where('blockContext.user.seat', 'A42')
+            ->where('blockContext.user.name', 'Player1')
+            ->where('blockContext.user.params.seat', 'A42')
         );
     }
 
@@ -201,7 +223,8 @@ class DashboardControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->has('blockContext')
             ->where('blockContext.macAddress', null)
-            ->has('blockContext.currentIp')
+            ->where('blockContext.currentIpv6', '')
+            ->has('blockContext.currentIpv4')
             ->has('blockContext.ipAllowed')
         );
     }
@@ -209,14 +232,15 @@ class DashboardControllerTest extends TestCase
     public function test_dashboard_block_context_user_empty_when_no_parameters(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->create(['nickname' => 'TestUser']);
 
         $response = $this->actingAs($user)->get('/portal');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->has('blockContext')
-            ->where('blockContext.user', [])
+            ->where('blockContext.user.name', 'TestUser')
+            ->where('blockContext.user.params', [])
         );
     }
 }

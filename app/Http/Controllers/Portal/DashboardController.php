@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Interfaces\NetworkInventoryInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly NetworkInventoryInterface $networkInventory,
+    ) {}
+
     public function index(Request $request): Response
     {
         /** @var User $user */
@@ -27,18 +32,43 @@ class DashboardController extends Controller
         $checkUrl = Setting::get('dns.check_url');
         $warningMessage = Setting::get('dns.warning_message');
 
+        $ipv6 = $this->resolveIpv6ForMac($ip->mac);
+
         return Inertia::render('Portal/Dashboard', [
             'blocks' => $blocks,
             'blockContext' => [
-                'currentIp' => $ip->address,
+                'currentIpv4' => $ip->address,
+                'currentIpv6' => $ipv6,
                 'ipAllowed' => (bool) $ip->allowed,
                 'macAddress' => $ip->mac,
-                'user' => $user->parameters()->pluck('value', 'key'),
+                'user' => [
+                    'name' => $user->nickname ?? '',
+                    'params' => $user->parameters()->pluck('value', 'key')->toArray(),
+                ],
             ],
             'dnsDetection' => $checkUrl ? [
                 'checkUrl' => $checkUrl,
                 'warningMessage' => $warningMessage ?? 'Your device is not using the event DNS servers. Please update your DNS settings.',
             ] : null,
         ]);
+    }
+
+    private function resolveIpv6ForMac(?string $mac): string
+    {
+        if ($mac === null || $mac === '') {
+            return '';
+        }
+
+        try {
+            $neighbors = $this->networkInventory->getIpv6Neighbors();
+
+            $match = $neighbors->first(
+                fn ($entry) => strcasecmp($entry->mac, $mac) === 0
+            );
+
+            return $match?->ip ?? '';
+        } catch (\Throwable) {
+            return '';
+        }
     }
 }

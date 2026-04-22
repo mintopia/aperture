@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import EditorSidePanel from '@/Components/Admin/Content/EditorSidePanel.vue';
 
@@ -67,7 +67,13 @@ describe('EditorSidePanel', () => {
 
     it('shows connection strip field editor for connection_strip blocks', () => {
         const wrapper = mount(EditorSidePanel, {
-            props: { block: { ...block, type: 'connection_strip', settings: { fields: [{ label: 'IPv4', value: '{ipv4}' }] } } },
+            props: {
+                block: {
+                    ...block,
+                    type: 'connection_strip',
+                    settings: { fields: [{ label: 'IPv4', value: '{ipv4}' }] },
+                },
+            },
         });
         expect(wrapper.find('[data-testid="panel-fields-editor"]').exists()).toBe(true);
     });
@@ -141,5 +147,142 @@ describe('EditorSidePanel', () => {
         const emitted = wrapper.emitted('save')[0][0];
         expect(emitted).toHaveProperty('settings');
         expect(emitted.settings.title).toBe('Custom');
+    });
+
+    describe('template variable chip click-to-insert', () => {
+        beforeEach(() => {
+            Object.assign(navigator, {
+                clipboard: {
+                    writeText: vi.fn().mockResolvedValue(undefined),
+                },
+            });
+        });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it('inserts variable key at cursor position of last focused content textarea', async () => {
+            const wrapper = mount(EditorSidePanel, {
+                props: { block: { ...block, type: 'custom_markdown', settings: {} } },
+                attachTo: document.body,
+            });
+
+            // Expand the variables section
+            await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
+
+            // Focus the content textarea and set cursor position
+            const textarea = wrapper.find('[data-testid="panel-content-input"]');
+            await textarea.trigger('focus');
+            textarea.element.setSelectionRange(5, 5);
+
+            // Click a variable chip
+            const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
+            await chip.trigger('click');
+
+            // Content should have the variable key inserted at position 5
+            expect(textarea.element.value).toBe('Hello{ipv4} world');
+
+            wrapper.unmount();
+        });
+
+        it('inserts variable key at cursor position of last focused field value input', async () => {
+            const stripBlock = {
+                ...block,
+                type: 'connection_strip',
+                settings: { fields: [{ label: 'Address', value: 'IP: ' }] },
+            };
+            const wrapper = mount(EditorSidePanel, {
+                props: { block: stripBlock },
+                attachTo: document.body,
+            });
+
+            // Expand the variables section
+            await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
+
+            // Focus the field value input and set cursor at end
+            const fieldInput = wrapper.find('[data-testid="panel-field-value-0"]');
+            await fieldInput.trigger('focus');
+            fieldInput.element.setSelectionRange(4, 4);
+
+            // Click a variable chip
+            const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
+            await chip.trigger('click');
+
+            // Value should have the variable key inserted at position 4
+            expect(fieldInput.element.value).toBe('IP: {ipv4}');
+
+            wrapper.unmount();
+        });
+
+        it('copies variable key to clipboard when no input is focused', async () => {
+            const wrapper = mount(EditorSidePanel, {
+                props: { block: { ...block, type: 'custom_markdown', settings: {} } },
+                attachTo: document.body,
+            });
+
+            // Expand the variables section
+            await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
+
+            // Click a variable chip without focusing any input first
+            const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
+            await chip.trigger('click');
+
+            expect(navigator.clipboard.writeText).toHaveBeenCalledWith('{ipv4}');
+
+            wrapper.unmount();
+        });
+
+        it('shows Copied! tooltip after clipboard copy and clears it', async () => {
+            vi.useFakeTimers();
+            const wrapper = mount(EditorSidePanel, {
+                props: { block: { ...block, type: 'custom_markdown', settings: {} } },
+                attachTo: document.body,
+            });
+
+            // Expand the variables section
+            await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
+
+            // Click a variable chip without focusing any input
+            const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
+            await chip.trigger('click');
+            await wrapper.vm.$nextTick();
+
+            // Tooltip should be visible
+            expect(wrapper.find('[data-testid="panel-variable-copied-{ipv4}"]').exists()).toBe(true);
+
+            // Advance timer to clear the tooltip
+            vi.advanceTimersByTime(1500);
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.find('[data-testid="panel-variable-copied-{ipv4}"]').exists()).toBe(false);
+
+            vi.useRealTimers();
+            wrapper.unmount();
+        });
+
+        it('replaces selected text when inserting variable into input', async () => {
+            const wrapper = mount(EditorSidePanel, {
+                props: { block: { ...block, type: 'custom_markdown', content: 'Hello world', settings: {} } },
+                attachTo: document.body,
+            });
+
+            // Expand the variables section
+            await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
+
+            // Focus the content textarea and select "world"
+            const textarea = wrapper.find('[data-testid="panel-content-input"]');
+            await textarea.trigger('focus');
+            textarea.element.setSelectionRange(6, 11);
+
+            // Click a variable chip
+            const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
+            await chip.trigger('click');
+
+            // "world" should be replaced with the variable key
+            expect(textarea.element.value).toBe('Hello {ipv4}');
+
+            wrapper.unmount();
+        });
     });
 });

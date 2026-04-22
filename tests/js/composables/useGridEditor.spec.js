@@ -7,7 +7,7 @@ describe('useGridEditor', () => {
         return ref(
             positions.map((p, i) => ({
                 id: i + 1,
-                type: 'event_info',
+                type: 'custom_markdown',
                 title: `Block ${i + 1}`,
                 grid_col: p[0],
                 grid_row: p[1],

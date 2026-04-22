@@ -42,10 +42,11 @@ describe('Portal Dashboard', () => {
     const makeProps = (overrides = {}) => ({
         blocks: [],
         blockContext: {
-            currentIp: '10.0.0.1',
+            currentIpv4: '10.0.0.1',
+            currentIpv6: 'fe80::1',
             ipAllowed: true,
             macAddress: 'AA:BB:CC:DD:EE:FF',
-            user: { seat: 'A42' },
+            user: { name: 'Player', params: { seat: 'A42' } },
         },
         dnsDetection: null,
         ...overrides,
@@ -73,7 +74,7 @@ describe('Portal Dashboard', () => {
         const blocks = [
             {
                 id: 1,
-                type: 'event_info',
+                type: 'custom_markdown',
                 title: 'Info',
                 content: 'Hello',
                 grid_col: 1,
@@ -85,10 +86,11 @@ describe('Portal Dashboard', () => {
             },
         ];
         const blockContext = {
-            currentIp: '192.168.1.1',
+            currentIpv4: '192.168.1.1',
+            currentIpv6: '',
             ipAllowed: false,
             macAddress: null,
-            user: {},
+            user: { name: '', params: {} },
         };
 
         const wrapper = mount(Dashboard, {

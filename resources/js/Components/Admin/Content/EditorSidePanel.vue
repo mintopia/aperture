@@ -26,6 +26,35 @@ const settingsDescription = ref(props.block.settings?.description ?? '');
 
 // Template variables
 const variablesExpanded = ref(false);
+const lastFocusedInput = ref(null);
+const copiedKey = ref(null);
+
+function onInputFocus(event) {
+    lastFocusedInput.value = event.target;
+}
+
+function insertVariable(key) {
+    const el = lastFocusedInput.value;
+    if (el && document.contains(el)) {
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const current = el.value;
+        const newValue = current.substring(0, start) + key + current.substring(end);
+
+        el.value = newValue;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+
+        const newPos = start + key.length;
+        el.setSelectionRange(newPos, newPos);
+        el.focus();
+    } else {
+        navigator.clipboard.writeText(key);
+        copiedKey.value = key;
+        setTimeout(() => {
+            copiedKey.value = null;
+        }, 1500);
+    }
+}
 
 const showTemplateVariables = computed(() => templateSupportedTypes.includes(props.block.type));
 
@@ -113,6 +142,7 @@ function save() {
                 data-testid="panel-content-input"
                 rows="4"
                 class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-text)]"
+                @focus="onInputFocus"
             />
         </div>
 
@@ -132,6 +162,7 @@ function save() {
                     placeholder="{ipv4}"
                     :data-testid="'panel-field-value-' + index"
                     class="flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1.5 font-mono text-sm text-[var(--color-text)]"
+                    @focus="onInputFocus"
                 />
                 <button
                     :data-testid="'panel-field-remove-' + index"
@@ -190,10 +221,17 @@ function save() {
                         :key="v.key"
                         class="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs hover:bg-[var(--color-surface-alt)]"
                         :data-testid="'panel-variable-' + v.key"
-                        @click="() => {}"
+                        @click="insertVariable(v.key)"
                     >
                         <code class="font-mono text-[var(--color-accent)]">{{ v.key }}</code>
                         <span class="text-[var(--color-text-muted)]">{{ v.label }}</span>
+                        <span
+                            v-if="copiedKey === v.key"
+                            :data-testid="'panel-variable-copied-' + v.key"
+                            class="text-[10px] text-[var(--color-success)]"
+                        >
+                            Copied!
+                        </span>
                     </button>
                 </template>
             </div>
