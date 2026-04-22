@@ -18,7 +18,7 @@ class PortalControllerTest extends TestCase
     public function test_index_creates_ip_and_renders_view(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
@@ -27,7 +27,7 @@ class PortalControllerTest extends TestCase
     public function test_index_does_not_allow_when_user_blocked(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => true]);
+        $user = User::factory()->internetBlocked()->create();
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
@@ -35,17 +35,18 @@ class PortalControllerTest extends TestCase
 
     public function test_status_returns_json_with_ip_info(): void
     {
+        Queue::fake();
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get('/status');
         $response->assertStatus(200);
-        $response->assertJsonStructure(['ip', 'allowed']);
+        $response->assertJsonStructure(['ip', 'internetEnabled']);
     }
 
     public function test_ipv6_verifies_jwt_and_registers_address(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $jwtService = Mockery::mock(Ipv6JwtService::class);
         $jwtService->shouldReceive('verifyAndExtract')
@@ -60,14 +61,14 @@ class PortalControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $response->assertJsonStructure(['ip', 'allowed']);
+        $response->assertJsonStructure(['ip', 'internetEnabled']);
         $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::1']);
     }
 
     public function test_ipv6_rejects_invalid_jwt(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $jwtService = Mockery::mock(Ipv6JwtService::class);
         $jwtService->shouldReceive('verifyAndExtract')
@@ -86,7 +87,7 @@ class PortalControllerTest extends TestCase
     public function test_ipv6_returns_503_when_jwks_not_configured(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->postJson('/ipv6', [
             'token' => 'any.jwt.token',
@@ -98,7 +99,7 @@ class PortalControllerTest extends TestCase
     public function test_ipv6_requires_token_field(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->postJson('/ipv6', []);
 
@@ -109,7 +110,7 @@ class PortalControllerTest extends TestCase
     public function test_ipv6_does_not_allow_for_blocked_user(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => true]);
+        $user = User::factory()->internetBlocked()->create();
 
         $jwtService = Mockery::mock(Ipv6JwtService::class);
         $jwtService->shouldReceive('verifyAndExtract')
@@ -123,7 +124,7 @@ class PortalControllerTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::2', 'allowed' => false]);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::2', 'internet_enabled' => false]);
     }
 
     public function test_unauthenticated_user_redirects_to_captive(): void
@@ -136,7 +137,7 @@ class PortalControllerTest extends TestCase
     {
         Queue::fake();
         IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
@@ -146,7 +147,7 @@ class PortalControllerTest extends TestCase
     public function test_index_passes_empty_ipv6_endpoint_when_not_configured(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
@@ -156,7 +157,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_uses_captive_layout(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 
@@ -167,7 +168,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_has_data_testid(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 
@@ -178,7 +179,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_shows_blocked_message_with_data_testid(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => true]);
+        $user = User::factory()->internetBlocked()->create();
 
         $response = $this->actingAs($user)->get('/');
 
@@ -189,7 +190,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_shows_waiting_status_with_data_testid(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 
@@ -200,7 +201,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_shows_ok_status_with_data_testid_when_allowed(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 
@@ -211,7 +212,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_shows_ip_address_with_data_testid(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 
@@ -222,7 +223,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_has_dashboard_link_with_data_testid_when_allowed(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 
@@ -233,7 +234,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_js_uses_hidden_class_not_d_none(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 
@@ -245,7 +246,7 @@ class PortalControllerTest extends TestCase
     public function test_portal_dns_warning_uses_hidden_class(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 

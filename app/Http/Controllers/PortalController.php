@@ -18,9 +18,6 @@ class PortalController extends Controller
         /** @var User $user */
         $user = $request->user();
         $ip = $user->addIp($clientIp);
-        if (! $user->blocked) {
-            $ip->allow(true);
-        }
 
         $dbConfig = IntegrationConfig::getAll('ipv6');
         $ipv6DetectionEndpoint = $dbConfig['detection_endpoint'] ?? '';
@@ -40,7 +37,7 @@ class PortalController extends Controller
 
         return response()->json((object) [
             'ip' => $ip->address,
-            'allowed' => (bool) $ip->allowed,
+            'internetEnabled' => (bool) $ip->internet_enabled,
         ]);
     }
 
@@ -64,13 +61,10 @@ class PortalController extends Controller
         /** @var User $user */
         $user = $request->user();
         $ip = $user->addIp($ipv6);
-        if (! $user->blocked) {
-            $ip->allow(true);
-        }
 
         return response()->json((object) [
             'ip' => $ip->address,
-            'allowed' => (bool) $ip->allowed,
+            'internetEnabled' => (bool) $ip->internet_enabled,
         ]);
     }
 }
