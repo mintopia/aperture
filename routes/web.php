@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptivePortalController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\PageViewController;
 use App\Http\Controllers\PasskeyController;
 use App\Http\Controllers\Portal\DashboardController;
 use App\Http\Controllers\Portal\DnsFilterController;
@@ -35,6 +36,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/captive', [CaptivePortalController::class, 'index'])->name('captive.index');
 Route::get('/captive/poll/{deviceCode}', [CaptivePortalController::class, 'poll'])->name('captive.poll');
 Route::get('/captive/interstitial', [CaptivePortalController::class, 'interstitial'])->name('captive.interstitial');
+
+// Public content pages
+Route::get('/content/{slug}', [PageViewController::class, 'show'])->name('content.show');
 
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
