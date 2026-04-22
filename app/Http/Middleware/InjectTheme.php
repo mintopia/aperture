@@ -18,12 +18,16 @@ class InjectTheme
         $themeMode = Setting::get('theme.mode', 'dark');
         $siteTitle = Setting::get('theme.site_title', 'Aperture');
         $accentHue = (int) Setting::get('theme.accent_hue', 55);
+        $accentChroma = (float) Setting::get('theme.accent_chroma', '0.19');
+        $accentLightness = (int) Setting::get('theme.accent_lightness', 72);
         $customCss = Setting::get('theme.custom_css');
 
         View::share('themeName', 'dispatch');
         View::share('themeMode', $themeMode);
         View::share('siteTitle', $siteTitle);
         View::share('accentHue', $accentHue);
+        View::share('accentChroma', $accentChroma);
+        View::share('accentLightness', $accentLightness);
         View::share('customCss', $customCss);
 
         return $next($request);

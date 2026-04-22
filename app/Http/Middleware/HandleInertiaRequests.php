@@ -36,6 +36,8 @@ class HandleInertiaRequests extends Middleware
             'theme' => [
                 'mode' => fn (): mixed => Setting::get('theme.mode', 'dark'),
                 'accent_hue' => fn (): int => (int) Setting::get('theme.accent_hue', 55),
+                'accent_chroma' => fn (): float => (float) Setting::get('theme.accent_chroma', '0.19'),
+                'accent_lightness' => fn (): int => (int) Setting::get('theme.accent_lightness', 72),
             ],
         ]);
     }

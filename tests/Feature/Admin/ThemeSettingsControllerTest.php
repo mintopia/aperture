@@ -144,4 +144,68 @@ class ThemeSettingsControllerTest extends TestCase
 
         $response->assertSessionHasErrors('theme_mode');
     }
+
+    public function test_admin_can_update_accent_chroma_and_lightness(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
+            'accent_hue' => 230,
+            'accent_chroma' => 0.25,
+            'accent_lightness' => 68,
+            'theme_mode' => 'dark',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('0.25', Setting::get('theme.accent_chroma'));
+        $this->assertEquals('68', Setting::get('theme.accent_lightness'));
+    }
+
+    public function test_accent_chroma_validates_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
+            'accent_hue' => 55,
+            'accent_chroma' => 0.5,
+            'accent_lightness' => 72,
+            'theme_mode' => 'dark',
+        ]);
+
+        $response->assertSessionHasErrors('accent_chroma');
+    }
+
+    public function test_accent_lightness_validates_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
+            'accent_hue' => 55,
+            'accent_chroma' => 0.19,
+            'accent_lightness' => 100,
+            'theme_mode' => 'dark',
+        ]);
+
+        $response->assertSessionHasErrors('accent_lightness');
+    }
+
+    public function test_theme_show_returns_chroma_and_lightness(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $this->saveSetting('theme.accent_chroma', 'Accent Chroma', '0.25');
+        $this->saveSetting('theme.accent_lightness', 'Accent Lightness', '68');
+
+        $response = $this->actingAs($admin)->get('/admin/settings/theme');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('settings.accent_chroma', 0.25)
+            ->where('settings.accent_lightness', 68)
+        );
+    }
 }
