@@ -143,12 +143,6 @@ class SettingsControllerTest extends TestCase
         $setting->value = 'light';
         $setting->save();
 
-        $setting = Setting::whereCode('theme.site_title')->first() ?? new Setting;
-        $setting->code = 'theme.site_title';
-        $setting->name = 'Site Title';
-        $setting->value = 'My Custom Site';
-        $setting->save();
-
         $setting = Setting::whereCode('theme.custom_css')->first() ?? new Setting;
         $setting->code = 'theme.custom_css';
         $setting->name = 'Custom CSS';
@@ -163,36 +157,8 @@ class SettingsControllerTest extends TestCase
             ->has('settings')
             ->where('settings.accent_hue', 230)
             ->where('settings.theme_mode', 'light')
-            ->where('settings.site_title', 'My Custom Site')
             ->where('settings.custom_css', 'body { font-size: 16px; }')
         );
-    }
-
-    public function test_admin_can_save_site_title(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'accent_hue' => 55,
-            'theme_mode' => 'dark',
-            'site_title' => 'My Awesome Site',
-        ]);
-
-        $response->assertRedirect();
-        $this->assertEquals('My Awesome Site', Setting::get('theme.site_title'));
-    }
-
-    public function test_site_title_validates_max_length(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/settings/theme', [
-            'accent_hue' => 55,
-            'theme_mode' => 'dark',
-            'site_title' => str_repeat('a', 256), // 256 characters, max is 255
-        ]);
-
-        $response->assertSessionHasErrors('site_title');
     }
 
     public function test_admin_can_save_custom_css(): void
@@ -244,14 +210,12 @@ class SettingsControllerTest extends TestCase
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
             'accent_hue' => 230,
             'theme_mode' => 'light',
-            'site_title' => 'Full Featured Site',
             'custom_css' => 'body { font-size: 18px; }',
         ]);
 
         $response->assertRedirect();
         $this->assertEquals('230', Setting::get('theme.accent_hue'));
         $this->assertEquals('light', Setting::get('theme.mode'));
-        $this->assertEquals('Full Featured Site', Setting::get('theme.site_title'));
         $this->assertEquals('body { font-size: 18px; }', Setting::get('theme.custom_css'));
     }
 
@@ -260,12 +224,6 @@ class SettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         // First set some values
-        $setting = Setting::whereCode('theme.site_title')->first() ?? new Setting;
-        $setting->code = 'theme.site_title';
-        $setting->name = 'Site Title';
-        $setting->value = 'Old Title';
-        $setting->save();
-
         $setting = Setting::whereCode('theme.custom_css')->first() ?? new Setting;
         $setting->code = 'theme.custom_css';
         $setting->name = 'Custom CSS';
@@ -276,12 +234,10 @@ class SettingsControllerTest extends TestCase
         $response = $this->actingAs($admin)->put('/admin/settings/theme', [
             'accent_hue' => 55,
             'theme_mode' => 'dark',
-            'site_title' => null,
             'custom_css' => null,
         ]);
 
         $response->assertRedirect();
-        $this->assertNull(Setting::get('theme.site_title'));
         $this->assertNull(Setting::get('theme.custom_css'));
     }
 }

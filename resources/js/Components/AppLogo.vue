@@ -7,10 +7,7 @@ const appName = computed(() => page.props.appName || 'Aperture');
 </script>
 
 <template>
-    <span
-        class="font-heading text-lg font-bold text-[var(--color-text)]"
-        data-testid="app-logo"
-    >
+    <span class="font-heading text-lg font-bold text-[var(--color-text)]" data-testid="app-logo">
         {{ appName }}
     </span>
 </template>
