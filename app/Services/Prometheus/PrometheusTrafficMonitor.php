@@ -99,7 +99,10 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         $sentBandwidthData = $this->prometheus->query(
             sprintf('sum(rate(%s[2m]))', $this->sentMetric),
         );
-        $totalBandwidth = ($this->extractScalarValue($rcvdBandwidthData) + $this->extractScalarValue($sentBandwidthData)) * 8;
+        $totalBandwidth = (int) round(
+            ((float) ($rcvdBandwidthData['result'][0]['value'][1] ?? 0)
+                + (float) ($sentBandwidthData['result'][0]['value'][1] ?? 0)) * 8
+        );
 
         return new AggregateStats(
             totalUsers: $totalUsers,

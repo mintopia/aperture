@@ -38,7 +38,8 @@ class PrometheusTrafficMonitorTest extends TestCase
         $this->prometheus->shouldReceive('queryRange')
             ->withArgs(function (string $query, float $start, float $end, int $step): bool {
                 return str_contains($query, 'ntopng_host_bytes_rcvd')
-                    && str_contains($query, 'ip="10.0.0.1"');
+                    && str_contains($query, 'ip="10.0.0.1"')
+                    && str_contains($query, '[2m]');
             })
             ->once()
             ->andReturn([
@@ -57,7 +58,8 @@ class PrometheusTrafficMonitorTest extends TestCase
         $this->prometheus->shouldReceive('queryRange')
             ->withArgs(function (string $query, float $start, float $end, int $step): bool {
                 return str_contains($query, 'ntopng_host_bytes_sent')
-                    && str_contains($query, 'ip="10.0.0.1"');
+                    && str_contains($query, 'ip="10.0.0.1"')
+                    && str_contains($query, '[2m]');
             })
             ->once()
             ->andReturn([
@@ -197,7 +199,7 @@ class PrometheusTrafficMonitorTest extends TestCase
             ]);
 
         $this->prometheus->shouldReceive('query')
-            ->withArgs(fn (string $q): bool => str_contains($q, 'sum(rate(ntopng_host_bytes_rcvd'))
+            ->withArgs(fn (string $q): bool => str_contains($q, 'sum(rate(ntopng_host_bytes_rcvd') && str_contains($q, '[2m]'))
             ->once()
             ->andReturn([
                 'resultType' => 'vector',
@@ -205,7 +207,7 @@ class PrometheusTrafficMonitorTest extends TestCase
             ]);
 
         $this->prometheus->shouldReceive('query')
-            ->withArgs(fn (string $q): bool => str_contains($q, 'sum(rate(ntopng_host_bytes_sent'))
+            ->withArgs(fn (string $q): bool => str_contains($q, 'sum(rate(ntopng_host_bytes_sent') && str_contains($q, '[2m]'))
             ->once()
             ->andReturn([
                 'resultType' => 'vector',
@@ -237,7 +239,7 @@ class PrometheusTrafficMonitorTest extends TestCase
     public function test_get_top_talkers_returns_collection_of_top_talkers(): void
     {
         $this->prometheus->shouldReceive('query')
-            ->withArgs(fn (string $q): bool => str_contains($q, 'topk(10,') && str_contains($q, 'sum by (ip)'))
+            ->withArgs(fn (string $q): bool => str_contains($q, 'topk(10,') && str_contains($q, 'sum by (ip)') && str_contains($q, '[2m]'))
             ->once()
             ->andReturn([
                 'resultType' => 'vector',
@@ -421,7 +423,8 @@ class PrometheusTrafficMonitorTest extends TestCase
         $this->prometheus->shouldReceive('queryRange')
             ->withArgs(function (string $query): bool {
                 return str_starts_with($query, 'sum(rate(ntopng_host_bytes_rcvd{ip="44.30.69.131"}')
-                    && str_ends_with($query, '))');
+                    && str_ends_with($query, '))')
+                    && str_contains($query, '[2m]');
             })
             ->once()
             ->andReturn(['result' => []]);
@@ -429,7 +432,8 @@ class PrometheusTrafficMonitorTest extends TestCase
         $this->prometheus->shouldReceive('queryRange')
             ->withArgs(function (string $query): bool {
                 return str_starts_with($query, 'sum(rate(ntopng_host_bytes_sent{ip="44.30.69.131"}')
-                    && str_ends_with($query, '))');
+                    && str_ends_with($query, '))')
+                    && str_contains($query, '[2m]');
             })
             ->once()
             ->andReturn(['result' => []]);
