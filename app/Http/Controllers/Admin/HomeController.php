@@ -21,9 +21,9 @@ class HomeController extends Controller
     {
         return Inertia::render('Admin/Dashboard', [
             'totalUsers' => User::count(),
-            'onlineUsers' => User::whereHas('ips', fn ($q) => $q->whereHas('ip', fn ($q2) => $q2->where('allowed', true)))->count(), // @phpstan-ignore argument.templateType
-            'activeIps' => IpAddress::where('allowed', true)->count(),
-            'blockedUsers' => User::where('blocked', true)->count(),
+            'onlineUsers' => User::whereHas('ips', fn ($q) => $q->whereHas('ip', fn ($q2) => $q2->where('internet_enabled', true)))->count(), // @phpstan-ignore argument.templateType
+            'activeIps' => IpAddress::where('internet_enabled', true)->count(),
+            'blockedUsers' => User::where('internet_blocked', true)->count(),
             'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools($dhcp)),
             'uniqueIps' => Inertia::defer(fn (): array => $this->getUniqueIpsOverTime()),
             'recentUsers' => Inertia::defer(fn (): LengthAwarePaginator => $this->getRecentUsers()),

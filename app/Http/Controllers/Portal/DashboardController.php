@@ -23,10 +23,6 @@ class DashboardController extends Controller
         $user = $request->user();
         $ip = $user->addIp((string) $request->getClientIp());
 
-        if (! $user->blocked) {
-            $ip->allow(true);
-        }
-
         $blocks = ContentBlock::active()->get();
 
         $checkUrl = Setting::get('dns.check_url');
@@ -39,8 +35,11 @@ class DashboardController extends Controller
             'blockContext' => [
                 'currentIpv4' => $ip->address,
                 'currentIpv6' => $ipv6,
-                'ipAllowed' => (bool) $ip->allowed,
+                'internetEnabled' => (bool) $ip->internet_enabled,
+                'internetBlocked' => (bool) $user->internet_blocked,
+                'blockedMessage' => Setting::get('portal.blocked_message', ''),
                 'macAddress' => $ip->mac,
+                'dnsFilteringEnabled' => (bool) $user->dns_filtering_enabled,
                 'user' => [
                     'name' => $user->nickname ?? '',
                     'params' => $user->parameters()->pluck('value', 'key')->toArray(),
@@ -66,7 +65,7 @@ class DashboardController extends Controller
                 fn ($entry) => strcasecmp($entry->mac, $mac) === 0
             );
 
-            return $match?->ip ?? '';
+            return $match->ip ?? '';
         } catch (\Throwable) {
             return '';
         }

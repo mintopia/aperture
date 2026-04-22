@@ -176,11 +176,11 @@ class DashboardControllerTest extends TestCase
     public function test_dashboard_passes_block_context_with_mac_and_user_params(): void
     {
         Queue::fake();
-        $user = User::factory()->create(['nickname' => 'Player1']);
+        $user = User::factory()->create(['nickname' => 'Player1', 'internet_enabled' => true]);
 
-        // Pre-create an IP with a known address, allowed, and associate a MAC
+        // Pre-create an IP with a known address, and associate a MAC
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
-        IpAddress::factory()->allowed()->create([
+        IpAddress::factory()->create([
             'address' => '10.0.0.1',
             'mac_address_id' => $mac->id,
         ]);
@@ -204,7 +204,9 @@ class DashboardControllerTest extends TestCase
             ->has('blockContext')
             ->where('blockContext.currentIpv4', '10.0.0.1')
             ->where('blockContext.currentIpv6', 'fe80::1')
-            ->where('blockContext.ipAllowed', true)
+            ->where('blockContext.internetEnabled', true)
+            ->where('blockContext.internetBlocked', false)
+            ->where('blockContext.blockedMessage', '')
             ->where('blockContext.macAddress', 'AA:BB:CC:DD:EE:FF')
             ->has('blockContext.user')
             ->where('blockContext.user.name', 'Player1')
@@ -225,7 +227,9 @@ class DashboardControllerTest extends TestCase
             ->where('blockContext.macAddress', null)
             ->where('blockContext.currentIpv6', '')
             ->has('blockContext.currentIpv4')
-            ->has('blockContext.ipAllowed')
+            ->has('blockContext.internetEnabled')
+            ->has('blockContext.internetBlocked')
+            ->has('blockContext.blockedMessage')
         );
     }
 
@@ -241,6 +245,93 @@ class DashboardControllerTest extends TestCase
             ->has('blockContext')
             ->where('blockContext.user.name', 'TestUser')
             ->where('blockContext.user.params', [])
+        );
+    }
+
+    public function test_dashboard_block_context_includes_dns_filtering_enabled(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['dns_filtering_enabled' => true]);
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.dnsFilteringEnabled', true)
+        );
+    }
+
+    public function test_dashboard_block_context_dns_filtering_disabled(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['dns_filtering_enabled' => false]);
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.dnsFilteringEnabled', false)
+        );
+    }
+
+    public function test_dashboard_block_context_internet_blocked_when_user_internet_blocked(): void
+    {
+        Queue::fake();
+        $user = User::factory()->internetBlocked()->create();
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.internetBlocked', true)
+            ->where('blockContext.internetEnabled', false)
+        );
+    }
+
+    public function test_dashboard_block_context_not_internet_blocked_for_normal_user(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_blocked' => false, 'internet_enabled' => true]);
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.internetBlocked', false)
+        );
+    }
+
+    public function test_dashboard_block_context_includes_blocked_message_from_setting(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        Setting::create(['code' => 'portal.blocked_message', 'name' => 'Blocked Message', 'value' => 'You are blocked.']);
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.blockedMessage', 'You are blocked.')
+        );
+    }
+
+    public function test_dashboard_block_context_blocked_message_defaults_to_empty_string(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('blockContext')
+            ->where('blockContext.blockedMessage', '')
         );
     }
 }

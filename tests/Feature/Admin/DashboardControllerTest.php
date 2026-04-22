@@ -78,11 +78,11 @@ class DashboardControllerTest extends TestCase
         $user = $this->createAdminUser();
 
         User::factory()->count(3)->create();
-        User::factory()->blocked()->create();
+        User::factory()->internetBlocked()->create();
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
-        $ip->allowed = true;
+        $ip->internet_enabled = true;
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
