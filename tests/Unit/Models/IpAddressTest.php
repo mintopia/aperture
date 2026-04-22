@@ -3,6 +3,8 @@
 namespace Tests\Unit\Models;
 
 use App\Jobs\IpAddressAction;
+use App\Jobs\SyncInternetAccessJob;
+use App\Jobs\SyncRateLimitJob;
 use App\Models\IpAddress;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\NtopNgService;
@@ -122,7 +124,7 @@ class IpAddressTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function test_limit_with_queue_dispatches_job(): void
+    public function test_enabling_rate_limit_dispatches_sync_rate_limit_job(): void
     {
         Queue::fake();
         $ip = new IpAddress;
@@ -130,23 +132,26 @@ class IpAddressTest extends TestCase
         $ip->last_seen_at = now();
         $ip->save();
 
-        $ip->limit(true);
-        Queue::assertPushed(IpAddressAction::class);
+        $ip->rate_limit_enabled = true;
+        $ip->save();
+        Queue::assertPushed(SyncRateLimitJob::class);
     }
 
-    public function test_unlimit_with_queue_dispatches_job(): void
+    public function test_disabling_rate_limit_dispatches_sync_rate_limit_job(): void
     {
         Queue::fake();
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
         $ip->last_seen_at = now();
+        $ip->rate_limit_enabled = true;
         $ip->save();
 
-        $ip->unlimit(true);
-        Queue::assertPushed(IpAddressAction::class);
+        $ip->rate_limit_enabled = false;
+        $ip->save();
+        Queue::assertPushed(SyncRateLimitJob::class);
     }
 
-    public function test_allow_with_queue_dispatches_job(): void
+    public function test_enabling_internet_dispatches_sync_internet_access_job(): void
     {
         Queue::fake();
         $ip = new IpAddress;
@@ -154,20 +159,23 @@ class IpAddressTest extends TestCase
         $ip->last_seen_at = now();
         $ip->save();
 
-        $ip->allow(true);
-        Queue::assertPushed(IpAddressAction::class);
+        $ip->internet_enabled = true;
+        $ip->save();
+        Queue::assertPushed(SyncInternetAccessJob::class);
     }
 
-    public function test_deny_with_queue_dispatches_job(): void
+    public function test_disabling_internet_dispatches_sync_internet_access_job(): void
     {
         Queue::fake();
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
         $ip->last_seen_at = now();
+        $ip->internet_enabled = true;
         $ip->save();
 
-        $ip->deny(true);
-        Queue::assertPushed(IpAddressAction::class);
+        $ip->internet_enabled = false;
+        $ip->save();
+        Queue::assertPushed(SyncInternetAccessJob::class);
     }
 
     public function test_get_stats_resolves_ntop_ng_service(): void

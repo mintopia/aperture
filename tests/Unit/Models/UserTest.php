@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class UserTest extends TestCase
@@ -64,6 +65,7 @@ class UserTest extends TestCase
 
     public function test_add_ip_creates_new_ip_and_user_ip_address(): void
     {
+        Queue::fake();
         $user = User::factory()->create();
         $ip = $user->addIp('192.168.1.100');
 
@@ -78,6 +80,7 @@ class UserTest extends TestCase
 
     public function test_add_ip_reuses_existing_ip_address(): void
     {
+        Queue::fake();
         $user = User::factory()->create();
         $ip1 = $user->addIp('192.168.1.100');
         $ip2 = $user->addIp('192.168.1.100');

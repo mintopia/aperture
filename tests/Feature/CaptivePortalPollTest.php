@@ -8,9 +8,11 @@ use App\Models\User;
 use App\Services\Auth\AuthResult;
 use App\Services\Auth\UserInfo;
 use App\Services\Interfaces\AuthProviderInterface;
+use App\Services\IpAddressActionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class CaptivePortalPollTest extends TestCase
@@ -60,6 +62,10 @@ class CaptivePortalPollTest extends TestCase
     public function test_poll_creates_user_and_returns_complete_on_success(): void
     {
         Queue::fake();
+        $this->mock(IpAddressActionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('enableInternet')->once();
+        });
+
         Cache::put('device_flow:test-code', [
             'status' => 'pending',
             'ip' => '192.168.1.100',
@@ -98,6 +104,10 @@ class CaptivePortalPollTest extends TestCase
     public function test_poll_logs_in_user_on_success(): void
     {
         Queue::fake();
+        $this->mock(IpAddressActionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('enableInternet')->once();
+        });
+
         Cache::put('device_flow:test-code', [
             'status' => 'pending',
             'ip' => '192.168.1.100',
@@ -126,6 +136,10 @@ class CaptivePortalPollTest extends TestCase
     public function test_poll_allows_ip_for_non_blocked_user(): void
     {
         Queue::fake();
+        $this->mock(IpAddressActionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('enableInternet')->once();
+        });
+
         Cache::put('device_flow:test-code', [
             'status' => 'pending',
             'ip' => '192.168.1.100',
@@ -156,7 +170,11 @@ class CaptivePortalPollTest extends TestCase
     public function test_poll_does_not_allow_ip_for_blocked_user(): void
     {
         Queue::fake();
-        $user = User::factory()->blocked()->create([
+        $this->mock(IpAddressActionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('enableInternet')->never();
+        });
+
+        $user = User::factory()->internetBlocked()->create([
             'external_id' => 'ext-blocked',
         ]);
 
@@ -183,6 +201,6 @@ class CaptivePortalPollTest extends TestCase
         $this->getJson('/captive/poll/test-code');
 
         $user->refresh();
-        $this->assertTrue((bool) $user->blocked);
+        $this->assertTrue((bool) $user->internet_blocked);
     }
 }

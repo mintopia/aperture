@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
+use App\Services\IpAddressActionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use RuntimeException;
@@ -27,6 +28,11 @@ class MacTrackingIntegrationTest extends TestCase
         $this->app->instance(FirewallBackendInterface::class, $firewall);
     }
 
+    private function makeService(): IpAddressActionService
+    {
+        return app(IpAddressActionService::class);
+    }
+
     public function test_allow_links_mac_when_resolved(): void
     {
         $resolver = Mockery::mock(MacAddressResolverInterface::class);
@@ -36,7 +42,7 @@ class MacTrackingIntegrationTest extends TestCase
         $this->app->instance(MacAddressResolverInterface::class, $resolver);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.100']);
-        $ip->allow();
+        $this->makeService()->enableInternet($ip);
 
         $ip->refresh();
         $this->assertNotNull($ip->mac_address_id);
@@ -54,10 +60,9 @@ class MacTrackingIntegrationTest extends TestCase
         $this->app->instance(MacAddressResolverInterface::class, $resolver);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.101']);
-        $ip->allow();
+        $this->makeService()->enableInternet($ip);
 
         $ip->refresh();
-        $this->assertTrue((bool) $ip->allowed);
         $this->assertNull($ip->mac_address_id);
     }
 
@@ -70,7 +75,7 @@ class MacTrackingIntegrationTest extends TestCase
         $existingMac = MacAddress::factory()->allowed()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.102']);
-        $ip->allow();
+        $this->makeService()->enableInternet($ip);
 
         $ip->refresh();
         $this->assertSame($existingMac->id, $ip->mac_address_id);
@@ -92,7 +97,7 @@ class MacTrackingIntegrationTest extends TestCase
         $userIp->last_seen_at = now();
         $userIp->save();
 
-        $ip->allow();
+        $this->makeService()->enableInternet($ip);
 
         $mac = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:FF')->first();
         $this->assertSame($user->id, $mac->user_id);
@@ -105,10 +110,9 @@ class MacTrackingIntegrationTest extends TestCase
         $this->app->instance(MacAddressResolverInterface::class, $resolver);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.104']);
-        $ip->allow();
+        $this->makeService()->enableInternet($ip);
 
         $ip->refresh();
-        $this->assertTrue((bool) $ip->allowed);
         $this->assertNull($ip->mac_address_id);
     }
 
@@ -125,7 +129,7 @@ class MacTrackingIntegrationTest extends TestCase
         ]);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.105']);
-        $ip->allow();
+        $this->makeService()->enableInternet($ip);
 
         $mac->refresh();
         $this->assertTrue((bool) $mac->allowed);

@@ -11,11 +11,11 @@ class IpPolicyService
 {
     public function applyUserPolicy(User $user, IpAddress $ip): void
     {
-        $internetEnabled = $user->internet_blocked ? false : $user->internet_enabled;
+        $internetEnabled = $user->internet_blocked ? false : (bool) $user->internet_enabled;
 
         $ip->internet_enabled = $internetEnabled;
-        $ip->rate_limit_enabled = $user->rate_limit_enabled;
-        $ip->dns_filtering_enabled = $user->dns_filtering_enabled;
+        $ip->rate_limit_enabled = (bool) $user->rate_limit_enabled;
+        $ip->dns_filtering_enabled = (bool) $user->dns_filtering_enabled;
 
         if ($ip->isDirty()) {
             $ip->save();

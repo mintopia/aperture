@@ -25,7 +25,7 @@ class SearchController extends Controller
 
         $ips = IpAddress::where('address', 'like', sprintf('%%%s%%', $query))
             ->limit(5)
-            ->get(['id', 'address', 'allowed']);
+            ->get(['id', 'address', 'internet_enabled']);
 
         return response()->json([
             'users' => $users,
