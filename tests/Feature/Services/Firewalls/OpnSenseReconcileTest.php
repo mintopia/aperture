@@ -13,6 +13,7 @@ use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use ReflectionClass;
+use stdClass;
 use Tests\TestCase;
 
 class OpnSenseReconcileTest extends TestCase
@@ -268,8 +269,8 @@ class OpnSenseReconcileTest extends TestCase
      */
     private function makeRuleResponse(array $ips = []): string
     {
-        $destination = new \stdClass;
-        $source = new \stdClass;
+        $destination = new stdClass;
+        $source = new stdClass;
         foreach ($ips as $ip) {
             $destination->{$ip} = (object) ['value' => $ip, 'selected' => true];
             $source->{$ip} = (object) ['value' => $ip, 'selected' => true];

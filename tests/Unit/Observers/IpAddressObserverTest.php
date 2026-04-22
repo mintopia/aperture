@@ -26,7 +26,7 @@ class IpAddressObserverTest extends TestCase
         $ip->save();
 
         Queue::assertPushed(SyncInternetAccessJob::class, function (SyncInternetAccessJob $job) use ($ip): bool {
-            return $job->ip->is($ip) && $job->enabled === true;
+            return $job->ip->is($ip) && $job->enabled;
         });
     }
 
@@ -40,7 +40,7 @@ class IpAddressObserverTest extends TestCase
         $ip->save();
 
         Queue::assertPushed(SyncRateLimitJob::class, function (SyncRateLimitJob $job) use ($ip): bool {
-            return $job->ip->is($ip) && $job->enabled === true;
+            return $job->ip->is($ip) && $job->enabled;
         });
     }
 
@@ -54,7 +54,7 @@ class IpAddressObserverTest extends TestCase
         $ip->save();
 
         Queue::assertPushed(SyncDnsFilteringJob::class, function (SyncDnsFilteringJob $job) use ($ip): bool {
-            return $job->ipAddress === $ip->address && $job->enabled === true;
+            return $job->ipAddress === $ip->address && $job->enabled;
         });
     }
 

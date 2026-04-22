@@ -12,6 +12,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
 use Psr\Http\Message\ResponseInterface;
 use stdClass;
+use Throwable;
 
 class OpnSense implements FirewallBackendInterface
 {
@@ -366,7 +367,7 @@ class OpnSense implements FirewallBackendInterface
             if (! $dryRun) {
                 try {
                     $this->updateIp($ip, 'Reconciled');
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $errors[] = $ip.': '.$e->getMessage();
                 }
             }
@@ -383,7 +384,7 @@ class OpnSense implements FirewallBackendInterface
             if (! $dryRun) {
                 try {
                     $this->removeIp($ip);
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $errors[] = $ip.': '.$e->getMessage();
                 }
             }
@@ -428,7 +429,7 @@ class OpnSense implements FirewallBackendInterface
             if (! $dryRun) {
                 try {
                     $this->limitIp($ip);
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $errors[] = $ip.': '.$e->getMessage();
                 }
             }
@@ -445,7 +446,7 @@ class OpnSense implements FirewallBackendInterface
             if (! $dryRun) {
                 try {
                     $this->unlimitIp($ip);
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $errors[] = $ip.': '.$e->getMessage();
                 }
             }

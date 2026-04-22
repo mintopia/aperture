@@ -21,7 +21,7 @@ class UserObserver
     {
         $changed = array_intersect($this->policyFields, array_keys($user->getChanges()));
 
-        if (empty($changed)) {
+        if ($changed === []) {
             return;
         }
 

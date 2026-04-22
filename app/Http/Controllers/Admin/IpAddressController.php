@@ -131,6 +131,7 @@ class IpAddressController extends Controller
     {
         $ip->rate_limit_enabled = (bool) $request->input('limit');
         $ip->save();
+
         $message = $ip->rate_limit_enabled ? 'The IP will be rate limited' : 'The rate limit will be removed for this IP';
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
@@ -140,6 +141,7 @@ class IpAddressController extends Controller
     {
         $ip->internet_enabled = (bool) $request->input('allow');
         $ip->save();
+
         $message = $ip->internet_enabled ? 'Internet will be enabled for this IP' : 'Internet will be disabled for this IP';
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);

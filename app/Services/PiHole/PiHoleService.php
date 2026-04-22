@@ -9,6 +9,7 @@ use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\ValueObjects\ReconcileResult;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 class PiHoleService implements DnsFilteringInterface
 {
@@ -106,7 +107,7 @@ class PiHoleService implements DnsFilteringInterface
             if (! $dryRun) {
                 try {
                     $this->enableForIp($ip);
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $errors[] = $ip.': '.$e->getMessage();
                 }
             }
@@ -125,7 +126,7 @@ class PiHoleService implements DnsFilteringInterface
             if (! $dryRun) {
                 try {
                     $this->disableForIp($ip);
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $errors[] = $ip.': '.$e->getMessage();
                 }
             }
