@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\IpAddress;
-use App\Models\UserIpAddress;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -17,14 +16,12 @@ class ReapplyAccessRules implements ShouldQueue
 
     public function handle(): void
     {
-        $allowedIps = IpAddress::whereAllowed(true)->get();
+        $allowedIps = IpAddress::where('internet_enabled', true)->get();
 
         foreach ($allowedIps as $ip) {
             try {
-                /** @var UserIpAddress|null $userIp */
-                $userIp = $ip->users()->first();
-                $description = $userIp?->user->nickname ?? $ip->address;
-                $ip->allow();
+                $ip->internet_enabled = true;
+                $ip->save();
             } catch (Throwable $e) {
                 Log::warning('Failed to reapply access rule', [
                     'ip' => $ip->address,

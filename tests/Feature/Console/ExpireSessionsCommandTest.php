@@ -30,7 +30,7 @@ class ExpireSessionsCommandTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
         $ip->last_seen_at = now();
-        $ip->allowed = true;
+        $ip->internet_enabled = true;
         $ip->expires_at = now()->subHour();
         $ip->save();
 
@@ -45,7 +45,7 @@ class ExpireSessionsCommandTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.2';
         $ip->last_seen_at = now();
-        $ip->allowed = true;
+        $ip->internet_enabled = true;
         $ip->expires_at = now()->addDay();
         $ip->save();
 
@@ -60,7 +60,7 @@ class ExpireSessionsCommandTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.3';
         $ip->last_seen_at = now();
-        $ip->allowed = true;
+        $ip->internet_enabled = true;
         $ip->expires_at = null;
         $ip->save();
 
@@ -75,8 +75,8 @@ class ExpireSessionsCommandTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.4';
         $ip->last_seen_at = now();
-        $ip->allowed = true;
-        $ip->limited = true;
+        $ip->internet_enabled = true;
+        $ip->rate_limit_enabled = true;
         $ip->expires_at = now()->subHour();
         $ip->save();
 
@@ -91,7 +91,7 @@ class ExpireSessionsCommandTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.5';
         $ip->last_seen_at = now();
-        $ip->allowed = false;
+        $ip->internet_enabled = false;
         $ip->expires_at = now()->subHour();
         $ip->save();
 

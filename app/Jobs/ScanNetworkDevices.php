@@ -121,8 +121,9 @@ class ScanNetworkDevices implements ShouldQueue
         $ip->mac_address_id = (int) $macAddress->id; // @phpstan-ignore assign.propertyType
         $ip->save();
 
-        if (! $ip->allowed) {
-            $ip->allow();
+        if (! $ip->internet_enabled) {
+            $ip->internet_enabled = true;
+            $ip->save();
         }
     }
 

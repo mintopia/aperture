@@ -17,7 +17,7 @@ class GrantNetworkAccessHandleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_handle_calls_allow_and_dispatches_event(): void
+    public function test_handle_sets_internet_enabled_and_dispatches_event(): void
     {
         Event::fake();
         Log::spy();
@@ -25,12 +25,13 @@ class GrantNetworkAccessHandleTest extends TestCase
         $user = User::factory()->create();
 
         $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('allow')->once();
+        $mockIp->shouldReceive('save')->once();
         $mockIp->address = '10.0.0.1';
 
         $job = new GrantNetworkAccess($user, $mockIp);
         $job->handle();
 
+        $this->assertTrue($mockIp->internet_enabled);
         Event::assertDispatched(IpAllowed::class);
     }
 

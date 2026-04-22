@@ -27,7 +27,8 @@ class RevokeNetworkAccess implements ShouldQueue
 
     public function handle(): void
     {
-        $this->ipAddress->deny();
+        $this->ipAddress->internet_enabled = false;
+        $this->ipAddress->save();
 
         Log::info('Network access revoked', [
             'user_id' => $this->user->id,

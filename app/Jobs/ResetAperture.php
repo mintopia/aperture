@@ -20,11 +20,13 @@ class ResetAperture implements ShouldQueue
         IpAddress::query()->chunk(100, function (Collection $ips): void {
             foreach ($ips as $ip) {
                 /** @var IpAddress $ip */
-                if ($ip->limited) {
-                    $ip->unlimit();
+                if ($ip->rate_limit_enabled) {
+                    $ip->rate_limit_enabled = false;
+                    $ip->saveQuietly();
                 }
 
-                $ip->deny();
+                $ip->internet_enabled = false;
+                $ip->saveQuietly();
                 $ip->delete();
             }
         });

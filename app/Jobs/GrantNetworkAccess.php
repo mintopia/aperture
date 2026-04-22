@@ -28,7 +28,8 @@ class GrantNetworkAccess implements ShouldQueue
 
     public function handle(): void
     {
-        $this->ipAddress->allow();
+        $this->ipAddress->internet_enabled = true;
+        $this->ipAddress->save();
 
         IpAllowed::dispatch();
 

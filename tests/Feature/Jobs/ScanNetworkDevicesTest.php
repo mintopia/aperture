@@ -8,6 +8,7 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
@@ -32,7 +33,16 @@ class ScanNetworkDevicesTest extends TestCase
         // Mock firewall
         $firewall = Mockery::mock(FirewallBackendInterface::class);
         $firewall->shouldReceive('updateIp')->andReturn($firewall);
+        $firewall->shouldReceive('removeIp')->andReturn($firewall);
+        $firewall->shouldReceive('limitIp')->andReturn($firewall);
+        $firewall->shouldReceive('unlimitIp')->andReturn($firewall);
         $this->app->instance(FirewallBackendInterface::class, $firewall);
+
+        // Mock DNS filtering
+        $dns = Mockery::mock(DnsFilteringInterface::class);
+        $dns->shouldReceive('enableForIp')->andReturnNull();
+        $dns->shouldReceive('disableForIp')->andReturnNull();
+        $this->app->instance(DnsFilteringInterface::class, $dns);
     }
 
     public function test_resolves_mac_for_unlinked_ips(): void
@@ -82,7 +92,7 @@ class ScanNetworkDevicesTest extends TestCase
 
         $this->assertDatabaseHas('ip_addresses', [
             'address' => '10.0.0.50',
-            'allowed' => true,
+            'internet_enabled' => true,
             'mac_address_id' => $mac->id,
         ]);
     }
@@ -114,7 +124,7 @@ class ScanNetworkDevicesTest extends TestCase
         ]);
         $this->assertDatabaseHas('ip_addresses', [
             'address' => '10.0.0.60',
-            'allowed' => true,
+            'internet_enabled' => true,
         ]);
     }
 
@@ -198,7 +208,7 @@ class ScanNetworkDevicesTest extends TestCase
 
         $this->assertDatabaseHas('ip_addresses', [
             'address' => '10.0.0.80',
-            'allowed' => true,
+            'internet_enabled' => true,
             'mac_address_id' => $mac->id,
         ]);
     }
@@ -229,7 +239,7 @@ class ScanNetworkDevicesTest extends TestCase
 
         $this->assertDatabaseHas('ip_addresses', [
             'address' => '10.0.0.55',
-            'allowed' => true,
+            'internet_enabled' => true,
             'mac_address_id' => $mac->id,
         ]);
         $ip = IpAddress::where('address', '10.0.0.55')->first();
@@ -242,7 +252,7 @@ class ScanNetworkDevicesTest extends TestCase
 
     public function test_auto_allow_links_mac_to_already_allowed_ip(): void
     {
-        $ip = IpAddress::factory()->allowed()->create(['address' => '10.0.0.90']);
+        $ip = IpAddress::factory()->internetEnabled()->create(['address' => '10.0.0.90']);
         $mac = MacAddress::factory()->allowed()->create(['mac_address' => 'CC:DD:EE:FF:00:11']);
 
         $resolver = Mockery::mock(MacAddressResolverInterface::class);
@@ -262,7 +272,7 @@ class ScanNetworkDevicesTest extends TestCase
         (new ScanNetworkDevices)->handle();
 
         $ip->refresh();
-        $this->assertTrue((bool) $ip->allowed);
+        $this->assertTrue((bool) $ip->internet_enabled);
         $this->assertSame($mac->id, $ip->mac_address_id);
     }
 }

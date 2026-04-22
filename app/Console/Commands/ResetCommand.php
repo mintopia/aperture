@@ -41,12 +41,14 @@ class ResetCommand extends Command
         IpAddress::query()->chunk(100, function (Collection $ips): void {
             foreach ($ips as $ip) {
                 /** @var IpAddress $ip */
-                if ($ip->limited) {
+                if ($ip->rate_limit_enabled) {
                     $this->output->writeln($ip.' Unlimiting');
-                    $ip->unlimit();
+                    $ip->rate_limit_enabled = false;
+                    $ip->saveQuietly();
                 }
 
-                $ip->deny();
+                $ip->internet_enabled = false;
+                $ip->saveQuietly();
                 $ip->delete();
                 $this->output->writeln($ip.' Deleted');
             }

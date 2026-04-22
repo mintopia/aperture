@@ -48,7 +48,7 @@ class ResetCommandTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
         $ip->last_seen_at = now();
-        $ip->limited = false;
+        $ip->rate_limit_enabled = false;
         $ip->save();
 
         $this->artisan('aperture:reset')
@@ -73,7 +73,7 @@ class ResetCommandTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.2';
         $ip->last_seen_at = now();
-        $ip->limited = true;
+        $ip->rate_limit_enabled = true;
         $ip->save();
 
         $this->artisan('aperture:reset')

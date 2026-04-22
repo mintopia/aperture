@@ -25,6 +25,7 @@ class ResetApertureJobTest extends TestCase
         $mock = Mockery::mock(OpnSense::class);
         $mock->shouldReceive('unlimitIp')->andReturnSelf();
         $mock->shouldReceive('removeIp')->andReturnSelf();
+        $mock->shouldReceive('updateIp')->andReturnSelf();
         $this->app->instance(FirewallBackendInterface::class, $mock);
     }
 
@@ -33,7 +34,7 @@ class ResetApertureJobTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
         $ip->last_seen_at = now();
-        $ip->allowed = true;
+        $ip->internet_enabled = true;
         $ip->save();
 
         $job = new ResetAperture;
@@ -47,7 +48,7 @@ class ResetApertureJobTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.2';
         $ip->last_seen_at = now();
-        $ip->limited = true;
+        $ip->rate_limit_enabled = true;
         $ip->save();
 
         $job = new ResetAperture;

@@ -63,7 +63,7 @@ class OpnSenseRecoveryCommandTest extends TestCase
 
         Cache::put('opnsense.uptime', 3500);
 
-        $user = User::factory()->create(['blocked' => true]);
+        $user = User::factory()->create(['internet_blocked' => true]);
         $ip = new IpAddress;
         $ip->address = '10.0.0.2';
         $ip->last_seen_at = now();
@@ -90,7 +90,7 @@ class OpnSenseRecoveryCommandTest extends TestCase
 
         Cache::put('opnsense.uptime', 3500);
 
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
         $ip = new IpAddress;
         $ip->address = '10.0.0.10';
         $ip->last_seen_at = now();
@@ -106,6 +106,6 @@ class OpnSenseRecoveryCommandTest extends TestCase
             ->assertSuccessful();
 
         $ip->refresh();
-        $this->assertTrue((bool) $ip->allowed);
+        $this->assertTrue((bool) $ip->internet_enabled);
     }
 }

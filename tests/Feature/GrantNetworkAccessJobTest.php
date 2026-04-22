@@ -21,7 +21,7 @@ class GrantNetworkAccessJobTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
         $ip->last_seen_at = now();
-        $ip->allowed = false;
+        $ip->internet_enabled = false;
         $ip->save();
 
         GrantNetworkAccess::dispatch($user, $ip);
