@@ -93,6 +93,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('ips/{ip}/port', [IpAddressController::class, 'port'])->name('ips.port');
         Route::post('ips/{ip}/internet', [IpAddressController::class, 'internet'])->name('ips.internet');
         Route::post('ips/{ip}/limit', [IpAddressController::class, 'limit'])->name('ips.limit');
+        Route::get('ips/{ip}/bandwidth', [IpAddressController::class, 'bandwidth'])->name('ips.bandwidth');
 
         // DHCP
         Route::get('/dhcp', [DhcpController::class, 'index'])->name('dhcp.index');

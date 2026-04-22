@@ -8,9 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\IpAddressStoreRequest;
 use App\Models\IpAddress;
 use App\Models\SwitchConfig;
+use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -169,6 +171,21 @@ class IpAddressController extends Controller
         $ip->save();
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', 'The IP address has been added');
+    }
+
+    public function bandwidth(Request $request, IpAddress $ip, TrafficMonitorInterface $trafficMonitor): JsonResponse
+    {
+        $range = $request->query('range', '24h');
+
+        $bandwidth = $trafficMonitor->getUserBandwidth($ip->address, is_string($range) ? $range : '24h');
+
+        return response()->json([
+            'timestamps' => $bandwidth->timestamps,
+            'download' => $bandwidth->download,
+            'upload' => $bandwidth->upload,
+            'totalReceived' => $bandwidth->received,
+            'totalSent' => $bandwidth->sent,
+        ]);
     }
 
     protected function resolveSwitchConfig(PortDetail $port): SwitchConfig

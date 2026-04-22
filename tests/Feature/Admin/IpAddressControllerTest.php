@@ -8,14 +8,17 @@ use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\PortStatus;
 use App\Services\ValueObjects\ResolvedPort;
+use App\Services\ValueObjects\UserBandwidth;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
+use Mockery\MockInterface;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -455,5 +458,64 @@ class IpAddressControllerTest extends TestCase
             ->has('port')
             ->where('status', 'Unable to connect to switch')
         );
+    }
+
+    public function test_admin_can_fetch_ip_bandwidth(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
+
+        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getUserBandwidth')
+                ->with('10.0.0.1', '24h')
+                ->once()
+                ->andReturn(new UserBandwidth(
+                    received: 1024000,
+                    sent: 512000,
+                    timestamps: ['1700000000'],
+                    download: [8192.0],
+                    upload: [4096.0],
+                ));
+        });
+
+        $response = $this->actingAs($admin)->getJson('/admin/ips/'.$ip->address.'/bandwidth');
+
+        $response->assertOk()
+            ->assertJsonStructure(['timestamps', 'download', 'upload', 'totalReceived', 'totalSent']);
+    }
+
+    public function test_admin_bandwidth_accepts_range_parameter(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
+
+        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getUserBandwidth')
+                ->withArgs(fn (string $ipAddr, string $range): bool => $range === '4d')
+                ->once()
+                ->andReturn(new UserBandwidth(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($admin)->getJson('/admin/ips/'.$ip->address.'/bandwidth?range=4d');
+
+        $response->assertOk();
+    }
+
+    public function test_non_admin_cannot_fetch_ip_bandwidth(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+        $ip = IpAddress::factory()->create();
+
+        $this->actingAs($user)->getJson('/admin/ips/'.$ip->address.'/bandwidth')
+            ->assertForbidden();
     }
 }
