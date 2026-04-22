@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Interfaces;
 
 use App\Services\Firewalls\Exceptions\BackendException;
+use App\Services\ValueObjects\ReconcileResult;
 
 interface FirewallBackendInterface
 {
@@ -43,4 +44,14 @@ interface FirewallBackendInterface
      * @throws BackendException
      */
     public function unlimitIp(string $ip): self;
+
+    /**
+     * Reconcile internet access: sync captive portal sessions with desired IpAddress state.
+     */
+    public function reconcileInternet(bool $dryRun = false): ReconcileResult;
+
+    /**
+     * Reconcile rate limits: sync traffic shaper rules with desired IpAddress state.
+     */
+    public function reconcileRateLimits(bool $dryRun = false): ReconcileResult;
 }

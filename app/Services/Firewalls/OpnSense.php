@@ -2,8 +2,10 @@
 
 namespace App\Services\Firewalls;
 
+use App\Models\IpAddress;
 use App\Services\Firewalls\Exceptions\BackendException;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\ValueObjects\ReconcileResult;
 use Carbon\CarbonImmutable;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -331,5 +333,164 @@ class OpnSense implements FirewallBackendInterface
     protected function applyShaperRules(): void
     {
         $this->post('/api/trafficshaper/service/reconfigure');
+    }
+
+    public function reconcileInternet(bool $dryRun = false): ReconcileResult
+    {
+        $connectedIps = $this->fetchConnectedIps();
+
+        $desiredEnabled = IpAddress::where('internet_enabled', true)
+            ->pluck('address')
+            ->all();
+        $desiredDisabled = IpAddress::where('internet_enabled', false)
+            ->pluck('address')
+            ->all();
+
+        /** @var array<int, string> $added */
+        $added = [];
+        /** @var array<int, string> $removed */
+        $removed = [];
+        /** @var array<int, string> $unchanged */
+        $unchanged = [];
+        /** @var array<int, string> $errors */
+        $errors = [];
+
+        foreach ($desiredEnabled as $ip) {
+            if (in_array($ip, $connectedIps, true)) {
+                $unchanged[] = $ip;
+
+                continue;
+            }
+
+            $added[] = $ip;
+            if (! $dryRun) {
+                try {
+                    $this->updateIp($ip, 'Reconciled');
+                } catch (\Throwable $e) {
+                    $errors[] = $ip.': '.$e->getMessage();
+                }
+            }
+        }
+
+        foreach ($desiredDisabled as $ip) {
+            if (! in_array($ip, $connectedIps, true)) {
+                $unchanged[] = $ip;
+
+                continue;
+            }
+
+            $removed[] = $ip;
+            if (! $dryRun) {
+                try {
+                    $this->removeIp($ip);
+                } catch (\Throwable $e) {
+                    $errors[] = $ip.': '.$e->getMessage();
+                }
+            }
+        }
+
+        return new ReconcileResult(
+            added: $added,
+            removed: $removed,
+            unchanged: $unchanged,
+            errors: $errors,
+        );
+    }
+
+    public function reconcileRateLimits(bool $dryRun = false): ReconcileResult
+    {
+        $rateLimitedIps = $this->fetchRateLimitedIps();
+
+        $desiredEnabled = IpAddress::where('rate_limit_enabled', true)
+            ->pluck('address')
+            ->all();
+        $desiredDisabled = IpAddress::where('rate_limit_enabled', false)
+            ->pluck('address')
+            ->all();
+
+        /** @var array<int, string> $added */
+        $added = [];
+        /** @var array<int, string> $removed */
+        $removed = [];
+        /** @var array<int, string> $unchanged */
+        $unchanged = [];
+        /** @var array<int, string> $errors */
+        $errors = [];
+
+        foreach ($desiredEnabled as $ip) {
+            if (in_array($ip, $rateLimitedIps, true)) {
+                $unchanged[] = $ip;
+
+                continue;
+            }
+
+            $added[] = $ip;
+            if (! $dryRun) {
+                try {
+                    $this->limitIp($ip);
+                } catch (\Throwable $e) {
+                    $errors[] = $ip.': '.$e->getMessage();
+                }
+            }
+        }
+
+        foreach ($desiredDisabled as $ip) {
+            if (! in_array($ip, $rateLimitedIps, true)) {
+                $unchanged[] = $ip;
+
+                continue;
+            }
+
+            $removed[] = $ip;
+            if (! $dryRun) {
+                try {
+                    $this->unlimitIp($ip);
+                } catch (\Throwable $e) {
+                    $errors[] = $ip.': '.$e->getMessage();
+                }
+            }
+        }
+
+        return new ReconcileResult(
+            added: $added,
+            removed: $removed,
+            unchanged: $unchanged,
+            errors: $errors,
+        );
+    }
+
+    /**
+     * Fetch IPs currently connected via the captive portal.
+     *
+     * @return array<int, string>
+     */
+    protected function fetchConnectedIps(): array
+    {
+        $query = ['zoneid' => $this->zoneId];
+        $response = $this->get('/api/captiveportal/session/list', $query);
+        $sessions = (array) $response;
+
+        $ips = [];
+        foreach ($sessions as $session) {
+            if (! is_object($session) || ! property_exists($session, 'ipAddress')) {
+                continue;
+            }
+
+            $ips[] = $session->ipAddress;
+        }
+
+        return array_unique($ips);
+    }
+
+    /**
+     * Fetch IPs currently rate-limited via the traffic shaper download rule.
+     *
+     * @return array<int, string>
+     */
+    protected function fetchRateLimitedIps(): array
+    {
+        $rule = $this->getShaperRule($this->downloadRuleUuid);
+
+        return $this->filter($rule->rule->destination);
     }
 }
