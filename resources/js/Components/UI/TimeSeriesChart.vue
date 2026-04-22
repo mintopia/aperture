@@ -42,6 +42,14 @@ function getComputedColor(varName, fallback = '') {
     return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || fallback;
 }
 
+function resolveColor(color) {
+    const match = color && color.match(/^var\(--([^)]+)\)$/);
+    if (match) {
+        return getComputedColor(`--${match[1]}`, color);
+    }
+    return color;
+}
+
 function withAlpha(color, alpha) {
     if (!color) {
         return `rgba(99, 102, 241, ${alpha})`;
@@ -113,17 +121,20 @@ function buildChart() {
 
     const datasets = props.series
         .filter((series) => Array.isArray(series.data) && series.data.length > 0)
-        .map((series) => ({
-            label: series.label,
-            data: series.data.map((point) => ({ x: point.timestamp * 1000, y: point.value })),
-            borderColor: series.color,
-            backgroundColor: series.fill ? withAlpha(series.color, 0.12) : 'transparent',
-            fill: Boolean(series.fill),
-            tension: 0.3,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            borderWidth: 2,
-        }));
+        .map((series) => {
+            const color = resolveColor(series.color);
+            return {
+                label: series.label,
+                data: series.data.map((point) => ({ x: point.timestamp * 1000, y: point.value })),
+                borderColor: color,
+                backgroundColor: series.fill ? withAlpha(color, 0.12) : 'transparent',
+                fill: Boolean(series.fill),
+                tension: 0.3,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                borderWidth: 2,
+            };
+        });
 
     chart = new Chart(canvas.value, {
         type: 'line',

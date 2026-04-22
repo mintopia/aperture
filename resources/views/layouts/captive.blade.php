@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Aperture') }} - @yield('title', 'Connect')</title>
+    <title>{{ $siteTitle }} - @yield('title', 'Connect')</title>
     @vite(['resources/css/app.css'])
     @php
         $hue = $accentHue ?? 55;

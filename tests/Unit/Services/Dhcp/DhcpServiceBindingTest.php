@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Models\IntegrationConfig;
-use App\Services\Dhcp\NullDhcpService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\Null\NullDhcpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use ReflectionProperty;
 use Tests\TestCase;

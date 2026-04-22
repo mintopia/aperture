@@ -29,13 +29,13 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         $escapedIp = $this->prometheus->escapePromQLLabelValue($ipAddress);
 
         $inQuery = sprintf(
-            'sum(rate(%s{%s="%s"}[2m]))',
+            'sum(rate(%s{%s="%s"}[30s]))',
             $this->rcvdMetric,
             $this->ipLabel,
             $escapedIp,
         );
         $outQuery = sprintf(
-            'sum(rate(%s{%s="%s"}[2m]))',
+            'sum(rate(%s{%s="%s"}[30s]))',
             $this->sentMetric,
             $this->ipLabel,
             $escapedIp,
@@ -94,10 +94,10 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         $totalDevices = $this->extractScalarValue($devicesData);
 
         $rcvdBandwidthData = $this->prometheus->query(
-            sprintf('sum(rate(%s[2m]))', $this->rcvdMetric),
+            sprintf('sum(rate(%s[30s]))', $this->rcvdMetric),
         );
         $sentBandwidthData = $this->prometheus->query(
-            sprintf('sum(rate(%s[2m]))', $this->sentMetric),
+            sprintf('sum(rate(%s[30s]))', $this->sentMetric),
         );
         $totalBandwidth = (int) round(
             ((float) ($rcvdBandwidthData['result'][0]['value'][1] ?? 0)
@@ -115,7 +115,7 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
     public function getTopTalkers(int $limit = 10): Collection
     {
         $query = sprintf(
-            'topk(%d, sum by (%s) (rate(%s[2m])))',
+            'topk(%d, sum by (%s) (rate(%s[30s])))',
             $limit,
             $this->ipLabel,
             $this->rcvdMetric,

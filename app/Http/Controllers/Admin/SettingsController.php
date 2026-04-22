@@ -40,7 +40,7 @@ class SettingsController extends Controller
             'services' => $services,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Settings'],
+                ['label' => 'Services'],
                 ['label' => 'Integrations'],
             ],
             'capabilityDescriptions' => [

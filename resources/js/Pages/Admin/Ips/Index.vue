@@ -59,10 +59,22 @@ function onFilterUpdate(values) {
     search();
 }
 
+function statusLabel(allowed) {
+    if (allowed === true) return 'Allowed';
+    if (allowed === false) return 'Denied';
+    return '\u2014';
+}
+
 function statusDotClass(allowed) {
-    return allowed
-        ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
-        : 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]';
+    if (allowed === true) return 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]';
+    if (allowed === false) return 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]';
+    return 'bg-[var(--color-text-muted)]';
+}
+
+function statusTextClass(allowed) {
+    if (allowed === true) return 'text-[var(--color-success)]';
+    if (allowed === false) return 'text-[var(--color-danger)]';
+    return 'text-[var(--color-text-muted)]';
 }
 </script>
 
@@ -131,11 +143,8 @@ function statusDotClass(allowed) {
                 <td data-testid="ip-status">
                     <span class="inline-flex items-center gap-1.5">
                         <span class="h-[7px] w-[7px] rounded-full" :class="statusDotClass(row.allowed)" />
-                        <span
-                            class="text-[12px] font-semibold"
-                            :class="row.allowed ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'"
-                        >
-                            {{ row.allowed ? 'Allowed' : 'Denied' }}
+                        <span class="text-[12px] font-semibold" :class="statusTextClass(row.allowed)">
+                            {{ statusLabel(row.allowed) }}
                         </span>
                     </span>
                 </td>

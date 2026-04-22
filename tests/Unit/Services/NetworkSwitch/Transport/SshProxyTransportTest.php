@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\NetworkSwitch\Transport;
 
 use App\Models\SwitchConfig;
+use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\Transport\SshProxyTransport;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
 use App\Services\SshProxy\ProxyStatus;
-use App\Services\SshProxy\SshProxyClientInterface;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;

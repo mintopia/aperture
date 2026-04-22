@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
+use App\Models\Setting;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Models\UserIpAddress;
@@ -14,7 +15,6 @@ use App\Observers\UserObserver;
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
-use App\Services\Dhcp\NullDhcpService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
 use App\Services\Integration\BorealisTester;
@@ -32,20 +32,22 @@ use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\LibreNmsService;
 use App\Services\MacAddressResolver;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NtopNgService;
+use App\Services\Null\NullDhcpService;
+use App\Services\Null\NullMetricsProvider;
+use App\Services\Null\NullTrafficMonitor;
 use App\Services\PiHole\PiHoleService;
-use App\Services\Prometheus\NullMetricsProvider;
-use App\Services\Prometheus\NullTrafficMonitor;
 use App\Services\Prometheus\PrometheusService;
 use App\Services\Prometheus\PrometheusTrafficMonitor;
 use App\Services\SshProxy\SshProxyClient;
-use App\Services\SshProxy\SshProxyClientInterface;
 use GuzzleHttp\Client;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 use Throwable;
@@ -183,6 +185,13 @@ class AppServiceProvider extends ServiceProvider
         User::observe(UserObserver::class);
         IpAddress::observe(IpAddressObserver::class);
         UserIpAddress::observe(UserIpAddressObserver::class);
+
+        try {
+            $siteTitle = (string) Setting::get('site_title', config('app.name', 'Aperture'));
+        } catch (Throwable) {
+            $siteTitle = (string) config('app.name', 'Aperture');
+        }
+        View::share('siteTitle', $siteTitle);
 
         $this->app->singleton(function (Application $application): NtopNgService {
             $dbConfig = $this->getIntegrationDbConfig('ntopng');

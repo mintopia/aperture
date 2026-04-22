@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Prometheus;
+namespace App\Services\Null;
 
 use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\ValueObjects\AggregateStats;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
-use App\Services\Dhcp\NullDhcpService;
+use App\Services\Null\NullDhcpService;
 use Tests\TestCase;
 
 class NullDhcpServiceTest extends TestCase

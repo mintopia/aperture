@@ -19,7 +19,7 @@ class PageController extends Controller
             'pages' => $pages,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Content'],
+                ['label' => 'Content', 'href' => route('admin.content.index')],
                 ['label' => 'Pages'],
             ],
         ]);
@@ -30,7 +30,7 @@ class PageController extends Controller
         return Inertia::render('Admin/Content/Pages/Create', [
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Content'],
+                ['label' => 'Content', 'href' => route('admin.content.index')],
                 ['label' => 'Pages', 'href' => route('admin.content.pages.index')],
                 ['label' => 'Create'],
             ],
@@ -56,7 +56,7 @@ class PageController extends Controller
             'page' => $page,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Content'],
+                ['label' => 'Content', 'href' => route('admin.content.index')],
                 ['label' => 'Pages', 'href' => route('admin.content.pages.index')],
                 ['label' => $page->title],
             ],

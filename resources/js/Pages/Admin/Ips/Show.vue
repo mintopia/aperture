@@ -155,7 +155,11 @@ onMounted(() => {
 
         <MetadataStrip
             :items="[
-                { label: 'Status', value: ip.internet_enabled ? 'Allowed' : 'Denied' },
+                {
+                    label: 'Status',
+                    value:
+                        ip.internet_enabled === true ? 'Allowed' : ip.internet_enabled === false ? 'Denied' : '\u2014',
+                },
                 { label: 'Comment', value: ip.comment || '—' },
             ]"
         />

@@ -23,7 +23,7 @@ class DnsDetectionSettingsController extends Controller
             ],
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Settings'],
+                ['label' => 'Services'],
                 ['label' => 'DNS Detection'],
             ],
         ]);

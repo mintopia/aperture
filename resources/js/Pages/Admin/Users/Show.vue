@@ -133,8 +133,12 @@ const ipColumns = [
                     </td>
                     <td>
                         <StatusPill
-                            :status="row.ip?.allowed ? 'success' : 'danger'"
-                            :label="row.ip?.allowed ? 'Allowed' : 'Denied'"
+                            :status="
+                                row.ip?.allowed === true ? 'success' : row.ip?.allowed === false ? 'danger' : 'muted'
+                            "
+                            :label="
+                                row.ip?.allowed === true ? 'Allowed' : row.ip?.allowed === false ? 'Denied' : '\u2014'
+                            "
                         />
                     </td>
                     <td class="text-[13px] text-[var(--color-text-secondary)]">

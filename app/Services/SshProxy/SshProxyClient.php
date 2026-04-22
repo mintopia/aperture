@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\SshProxy;
 
+use App\Services\Interfaces\SshProxyClientInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use RuntimeException;

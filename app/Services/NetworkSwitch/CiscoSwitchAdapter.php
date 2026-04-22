@@ -6,7 +6,7 @@ namespace App\Services\NetworkSwitch;
 
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SupportsInterfaceOutputCapture;
-use App\Services\NetworkSwitch\Transport\SwitchCommandTransportInterface;
+use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\PortStatistics;
 use App\Services\ValueObjects\PortStatus;

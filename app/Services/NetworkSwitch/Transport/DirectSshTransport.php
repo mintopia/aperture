@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\NetworkSwitch\Transport;
 
+use App\Services\Interfaces\SwitchCommandTransportInterface;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use phpseclib3\Net\SSH2;

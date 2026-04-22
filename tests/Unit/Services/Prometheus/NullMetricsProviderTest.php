@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Prometheus;
 
-use App\Services\Prometheus\NullMetricsProvider;
+use App\Services\Null\NullMetricsProvider;
 use Tests\TestCase;
 
 class NullMetricsProviderTest extends TestCase

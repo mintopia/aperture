@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Services\SshProxy;
+namespace App\Services\Interfaces;
+
+use App\Services\SshProxy\CommandResult;
+use App\Services\SshProxy\ProxyStatus;
 
 interface SshProxyClientInterface
 {

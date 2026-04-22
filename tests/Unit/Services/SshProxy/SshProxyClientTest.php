@@ -2,12 +2,12 @@
 
 namespace Tests\Unit\Services\SshProxy;
 
+use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
 use App\Services\SshProxy\ConnectionStatus;
 use App\Services\SshProxy\ProxyStatus;
 use App\Services\SshProxy\SshProxyClient;
-use App\Services\SshProxy\SshProxyClientInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ServerException;

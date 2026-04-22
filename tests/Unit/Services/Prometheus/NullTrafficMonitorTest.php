@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Prometheus;
 
-use App\Services\Prometheus\NullTrafficMonitor;
+use App\Services\Null\NullTrafficMonitor;
 use App\Services\ValueObjects\AggregateStats;
 use App\Services\ValueObjects\UserBandwidth;
 use Tests\TestCase;

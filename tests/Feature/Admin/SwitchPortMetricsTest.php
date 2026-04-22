@@ -9,7 +9,7 @@ use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Models\User;
 use App\Services\Interfaces\MetricsProviderInterface;
-use App\Services\Prometheus\NullMetricsProvider;
+use App\Services\Null\NullMetricsProvider;
 use App\Services\Prometheus\PrometheusService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;

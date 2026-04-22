@@ -54,7 +54,7 @@ function htmlToMarkdown(html) {
 const editor = useEditor({
     content: markdownToHtml(props.modelValue),
     extensions: [
-        StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+        StarterKit.configure({ heading: { levels: [1, 2, 3] }, dropcursor: false }),
         Link.configure({ openOnClick: false }),
         Underline,
         Placeholder.configure({ placeholder: props.placeholder }),
@@ -69,6 +69,7 @@ const editor = useEditor({
     editorProps: {
         attributes: {
             class: 'prose prose-sm max-w-none focus:outline-none',
+            draggable: 'false',
         },
     },
 });

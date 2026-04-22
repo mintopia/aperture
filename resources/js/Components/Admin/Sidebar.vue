@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
-const currentUrl = computed(() => usePage().url);
+const page = usePage();
+const currentUrl = computed(() => page.url);
 const isDesktop = ref(true);
 
 // SVG path data only — the <svg> wrapper is in the template via v-html shim component
@@ -47,7 +48,7 @@ const navGroups = [
 ];
 
 function isActive(href) {
-    if (href === '/admin') return currentUrl.value === '/admin';
+    if (href === '/admin' || href === '/admin/content') return currentUrl.value === href;
     return currentUrl.value.startsWith(href);
 }
 

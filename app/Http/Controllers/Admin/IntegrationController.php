@@ -112,7 +112,7 @@ class IntegrationController extends Controller
             ],
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Settings'],
+                ['label' => 'Services'],
                 ['label' => 'Integrations', 'href' => route('admin.settings.integrations')],
                 ['label' => $meta['name']],
             ],

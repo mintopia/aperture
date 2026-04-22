@@ -28,7 +28,7 @@ class GeneralSettingsController extends Controller
             'pages' => Page::orderBy('title')->get(),
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Content'],
+                ['label' => 'Content', 'href' => route('admin.content.index')],
                 ['label' => 'Settings'],
             ],
         ]);

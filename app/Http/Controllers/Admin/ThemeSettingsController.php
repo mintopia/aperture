@@ -27,7 +27,7 @@ class ThemeSettingsController extends Controller
             ],
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Settings'],
+                ['label' => 'Content', 'href' => route('admin.content.index')],
                 ['label' => 'Theme'],
             ],
         ]);

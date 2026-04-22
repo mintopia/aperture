@@ -6,10 +6,10 @@ namespace App\Services\NetworkSwitch;
 
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\SshProxyClientInterface;
+use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\Transport\DirectSshTransport;
 use App\Services\NetworkSwitch\Transport\SshProxyTransport;
-use App\Services\NetworkSwitch\Transport\SwitchCommandTransportInterface;
-use App\Services\SshProxy\SshProxyClientInterface;
 use InvalidArgumentException;
 use RuntimeException;
 

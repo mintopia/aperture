@@ -29,23 +29,51 @@ describe('DnsFilterBlock', () => {
         vi.unstubAllGlobals();
     });
 
-    it('renders the title from props', () => {
+    it('renders the title as an h3 heading', () => {
         const wrapper = mount(DnsFilterBlock, {
             props: { title: 'My DNS Filter' },
         });
-        expect(wrapper.text()).toContain('My DNS Filter');
+        const heading = wrapper.find('[data-testid="dns-filter-title"]');
+        expect(heading.exists()).toBe(true);
+        expect(heading.element.tagName).toBe('H3');
+        expect(heading.text()).toBe('My DNS Filter');
     });
 
     it('renders default title when not provided', () => {
         const wrapper = mount(DnsFilterBlock, { props: {} });
-        expect(wrapper.text()).toContain('DNS Ad Blocking');
+        const heading = wrapper.find('[data-testid="dns-filter-title"]');
+        expect(heading.text()).toBe('DNS Ad Blocking');
     });
 
-    it('renders the content/description from props', () => {
+    it('renders content between title and toggle', () => {
         const wrapper = mount(DnsFilterBlock, {
-            props: { content: 'Custom description here' },
+            props: { title: 'Title', content: 'Custom description here' },
         });
-        expect(wrapper.text()).toContain('Custom description here');
+        const contentEl = wrapper.find('[data-testid="dns-filter-content"]');
+        expect(contentEl.exists()).toBe(true);
+        expect(contentEl.text()).toBe('Custom description here');
+    });
+
+    it('does not render content section when content is empty', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: { title: 'Title', content: '' },
+        });
+        expect(wrapper.find('[data-testid="dns-filter-content"]').exists()).toBe(false);
+    });
+
+    it('renders toggle label from settings.label', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: { settings: { label: 'Block Ads' } },
+        });
+        const label = wrapper.find('[data-testid="dns-filter-label"]');
+        expect(label.exists()).toBe(true);
+        expect(label.text()).toBe('Block Ads');
+    });
+
+    it('renders default toggle label when settings.label is not provided', () => {
+        const wrapper = mount(DnsFilterBlock, { props: {} });
+        const label = wrapper.find('[data-testid="dns-filter-label"]');
+        expect(label.text()).toBe('Enable DNS Filtering');
     });
 
     it('has a toggle button', () => {
@@ -220,59 +248,14 @@ describe('DnsFilterBlock', () => {
         expect(wrapper.find('[data-testid="block-dns-filter"]').exists()).toBe(true);
     });
 
-    it('uses settings.title when available', () => {
+    it('renders title in h3 with correct styling classes', () => {
         const wrapper = mount(DnsFilterBlock, {
-            props: {
-                title: 'Prop Title',
-                content: 'Prop Content',
-                settings: { title: 'Settings Title', description: 'Settings Desc' },
-            },
+            props: { title: 'Test Title' },
         });
-        expect(wrapper.text()).toContain('Settings Title');
-    });
-
-    it('uses content prop for description when available', () => {
-        const wrapper = mount(DnsFilterBlock, {
-            props: {
-                title: 'Prop Title',
-                content: 'Prop Content',
-                settings: { title: 'T', description: 'Settings Desc' },
-            },
-        });
-        expect(wrapper.text()).toContain('Prop Content');
-    });
-
-    it('falls back to settings.description when content is empty', () => {
-        const wrapper = mount(DnsFilterBlock, {
-            props: {
-                title: 'Prop Title',
-                content: '',
-                settings: { title: 'T', description: 'Legacy description' },
-            },
-        });
-        expect(wrapper.text()).toContain('Legacy description');
-    });
-
-    it('falls back to title prop when settings.title is empty', () => {
-        const wrapper = mount(DnsFilterBlock, {
-            props: {
-                title: 'Fallback Title',
-                content: 'Fallback Content',
-                settings: {},
-            },
-        });
-        expect(wrapper.text()).toContain('Fallback Title');
-    });
-
-    it('falls back to content prop when settings.description is empty', () => {
-        const wrapper = mount(DnsFilterBlock, {
-            props: {
-                title: 'T',
-                content: 'Fallback description',
-                settings: {},
-            },
-        });
-        expect(wrapper.text()).toContain('Fallback description');
+        const heading = wrapper.find('[data-testid="dns-filter-title"]');
+        expect(heading.classes()).toContain('uppercase');
+        expect(heading.classes()).toContain('font-heading');
+        expect(heading.classes()).toContain('font-bold');
     });
 
     it('initializes enabled from blockContext.dnsFilteringEnabled true', () => {

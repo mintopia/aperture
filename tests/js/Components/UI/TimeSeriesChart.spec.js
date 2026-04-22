@@ -508,6 +508,152 @@ describe('TimeSeriesChart', () => {
         expect(config.options.plugins.legend.display).toBe(true);
     });
 
+    describe('resolveColor', () => {
+        it('passes through hex colors unchanged', async () => {
+            const { Chart } = await import('chart.js/auto');
+            Chart.mockClear();
+
+            mount(TimeSeriesChart, {
+                props: {
+                    series: [
+                        {
+                            label: 'Hex',
+                            data: [{ timestamp: 1000, value: 100 }],
+                            color: '#22c55e',
+                            fill: false,
+                        },
+                    ],
+                },
+            });
+
+            await nextTick();
+            await nextTick();
+
+            expect(Chart).toHaveBeenCalled();
+            const [, config] = Chart.mock.calls[Chart.mock.calls.length - 1];
+            expect(config.data.datasets[0].borderColor).toBe('#22c55e');
+        });
+
+        it('passes through rgb() colors unchanged', async () => {
+            const { Chart } = await import('chart.js/auto');
+            Chart.mockClear();
+
+            mount(TimeSeriesChart, {
+                props: {
+                    series: [
+                        {
+                            label: 'RGB',
+                            data: [{ timestamp: 1000, value: 100 }],
+                            color: 'rgb(34, 197, 94)',
+                            fill: false,
+                        },
+                    ],
+                },
+            });
+
+            await nextTick();
+            await nextTick();
+
+            expect(Chart).toHaveBeenCalled();
+            const [, config] = Chart.mock.calls[Chart.mock.calls.length - 1];
+            expect(config.data.datasets[0].borderColor).toBe('rgb(34, 197, 94)');
+        });
+
+        it('passes through null/undefined unchanged', async () => {
+            const { Chart } = await import('chart.js/auto');
+            Chart.mockClear();
+
+            mount(TimeSeriesChart, {
+                props: {
+                    series: [
+                        {
+                            label: 'Null Color',
+                            data: [{ timestamp: 1000, value: 100 }],
+                            color: null,
+                            fill: false,
+                        },
+                    ],
+                },
+            });
+
+            await nextTick();
+            await nextTick();
+
+            expect(Chart).toHaveBeenCalled();
+            const [, config] = Chart.mock.calls[Chart.mock.calls.length - 1];
+            expect(config.data.datasets[0].borderColor).toBeNull();
+        });
+
+        it('resolves var(--color-success) via getComputedStyle', async () => {
+            vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+                getPropertyValue: (prop) => {
+                    if (prop === '--color-success') return '#22c55e';
+                    return '#888';
+                },
+            });
+
+            const { Chart } = await import('chart.js/auto');
+            Chart.mockClear();
+
+            mount(TimeSeriesChart, {
+                props: {
+                    series: [
+                        {
+                            label: 'CSS Var',
+                            data: [{ timestamp: 1000, value: 100 }],
+                            color: 'var(--color-success)',
+                            fill: false,
+                        },
+                    ],
+                },
+            });
+
+            await nextTick();
+            await nextTick();
+
+            expect(Chart).toHaveBeenCalled();
+            const [, config] = Chart.mock.calls[Chart.mock.calls.length - 1];
+            expect(config.data.datasets[0].borderColor).toBe('#22c55e');
+        });
+
+        it('uses resolved color for fill backgroundColor when series color is a CSS variable', async () => {
+            vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+                getPropertyValue: (prop) => {
+                    if (prop === '--color-success') return '#22c55e';
+                    return '#888';
+                },
+            });
+
+            const { Chart } = await import('chart.js/auto');
+            Chart.mockClear();
+
+            mount(TimeSeriesChart, {
+                props: {
+                    series: [
+                        {
+                            label: 'CSS Var Fill',
+                            data: [{ timestamp: 1000, value: 100 }],
+                            color: 'var(--color-success)',
+                            fill: true,
+                        },
+                    ],
+                },
+            });
+
+            await nextTick();
+            await nextTick();
+
+            expect(Chart).toHaveBeenCalled();
+            const [, config] = Chart.mock.calls[Chart.mock.calls.length - 1];
+            const dataset = config.data.datasets[0];
+            // borderColor should be the resolved hex, not the raw var() string
+            expect(dataset.borderColor).toBe('#22c55e');
+            // backgroundColor should be an rgba derived from the resolved hex
+            expect(dataset.backgroundColor).toContain('rgba(34, 197, 94,');
+            expect(dataset.backgroundColor).not.toContain('var(');
+        });
+    });
+
     it('withAlpha uses default indigo rgba when color is null/falsy (fill with null color)', async () => {
         const { Chart } = await import('chart.js/auto');
         Chart.mockClear();

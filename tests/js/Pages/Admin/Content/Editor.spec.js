@@ -106,4 +106,44 @@ describe('Admin Content Editor', () => {
         expect(wrapper.find('[data-testid="panel-col-span"]').exists()).toBe(false);
         expect(wrapper.find('[data-testid="panel-row-span"]').exists()).toBe(false);
     });
+
+    it('allows dropping a block on top of another block', async () => {
+        const wrapper = mount(Editor, { props: defaultProps });
+        const block1 = wrapper.find('[data-testid="editor-block-1"]');
+        const block2 = wrapper.find('[data-testid="editor-block-2"]');
+
+        // Start dragging block 1
+        await block1.trigger('dragstart', { dataTransfer: { effectAllowed: '' } });
+
+        // Dragover block 2's position should prevent default (making it a valid drop target)
+        const dragOverEvent = new Event('dragover', { bubbles: true, cancelable: true });
+        Object.defineProperty(dragOverEvent, 'dataTransfer', { value: { dropEffect: '' } });
+        Object.defineProperty(dragOverEvent, 'preventDefault', { value: vi.fn() });
+        block2.element.dispatchEvent(dragOverEvent);
+        expect(dragOverEvent.preventDefault).toHaveBeenCalled();
+
+        // Drop on block 2's position should move block 1 there
+        await block2.trigger('drop');
+
+        // Block 1 should now be at block 2's original position (col 3, row 1)
+        expect(block1.attributes('style')).toContain('grid-column: 3 / span 2');
+    });
+
+    it('handles dragover on blocks during an active drag', async () => {
+        const wrapper = mount(Editor, { props: defaultProps });
+        const block1 = wrapper.find('[data-testid="editor-block-1"]');
+        const block2 = wrapper.find('[data-testid="editor-block-2"]');
+
+        // Start dragging block 1
+        await block1.trigger('dragstart', { dataTransfer: { effectAllowed: '' } });
+
+        // Dragover block 2 should set up displacement preview
+        await block2.trigger('dragover', {
+            dataTransfer: { dropEffect: '' },
+            preventDefault: vi.fn(),
+        });
+
+        // The component should have processed the dragover (no error thrown)
+        expect(block1.exists()).toBe(true);
+    });
 });

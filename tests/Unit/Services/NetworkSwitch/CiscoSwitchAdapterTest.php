@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\NetworkSwitch;
 
+use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
-use App\Services\NetworkSwitch\Transport\SwitchCommandTransportInterface;
 use Mockery;
 use Tests\TestCase;
 

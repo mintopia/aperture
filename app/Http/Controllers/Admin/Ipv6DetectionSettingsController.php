@@ -24,7 +24,7 @@ class Ipv6DetectionSettingsController extends Controller
             ],
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Settings'],
+                ['label' => 'Services'],
                 ['label' => 'IPv6 Detection'],
             ],
         ]);

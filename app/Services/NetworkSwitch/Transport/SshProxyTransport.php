@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Services\NetworkSwitch\Transport;
 
 use App\Models\SwitchConfig;
+use App\Services\Interfaces\SshProxyClientInterface;
+use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
-use App\Services\SshProxy\SshProxyClientInterface;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;

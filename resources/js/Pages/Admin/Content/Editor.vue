@@ -315,6 +315,8 @@ onBeforeUnmount(() => {
                 draggable="true"
                 @dragstart="onDragStart(block, $event)"
                 @dragend="onDragEnd"
+                @dragover="onDragOver(block.grid_col, block.grid_row, $event)"
+                @drop="onDrop(block.grid_col, block.grid_row)"
                 @click="selectBlock(block)"
             >
                 <!-- Drag handle bar -->
