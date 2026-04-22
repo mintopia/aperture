@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DhcpController;
 use App\Http\Controllers\Admin\DnsDetectionSettingsController;
+use App\Http\Controllers\Admin\GeneralSettingsController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\IpAddressController;
@@ -99,6 +100,11 @@ Route::middleware(['auth'])->group(function () {
 
         // Content blocks
         Route::put('/content/layout', [ContentController::class, 'updateLayout'])->name('content.layout.update');
+
+        // Content settings (must be before content resource to avoid {content} wildcard conflict)
+        Route::get('/content/settings', [GeneralSettingsController::class, 'show'])->name('content.settings');
+        Route::put('/content/settings', [GeneralSettingsController::class, 'update'])->name('content.settings.update');
+
         Route::resource('content', ContentController::class)->except(['create', 'edit', 'show']);
 
         // Content pages
