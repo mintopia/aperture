@@ -14,7 +14,9 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
 {
     public function __construct(
         protected PrometheusService $prometheus,
-        protected string $flowMetricPrefix = 'flow_traffic_bytes_total',
+        protected string $rcvdMetric = 'ntopng_host_bytes_rcvd',
+        protected string $sentMetric = 'ntopng_host_bytes_sent',
+        protected string $ipLabel = 'ip',
     ) {}
 
     public function getUserBandwidth(string $ipAddress, string $range = '24h'): UserBandwidth
@@ -27,13 +29,15 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         $escapedIp = $this->prometheus->escapePromQLLabelValue($ipAddress);
 
         $inQuery = sprintf(
-            'rate(%s{src_addr="%s",direction="ingress"}[5m])',
-            $this->flowMetricPrefix,
+            'sum(rate(%s{%s="%s"}[5m]))',
+            $this->rcvdMetric,
+            $this->ipLabel,
             $escapedIp,
         );
         $outQuery = sprintf(
-            'rate(%s{src_addr="%s",direction="egress"}[5m])',
-            $this->flowMetricPrefix,
+            'sum(rate(%s{%s="%s"}[5m]))',
+            $this->sentMetric,
+            $this->ipLabel,
             $escapedIp,
         );
 
@@ -73,19 +77,22 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
     public function getAggregateStats(): AggregateStats
     {
         $usersData = $this->prometheus->query(
-            sprintf('count(count by (src_addr) (%s))', $this->flowMetricPrefix),
+            sprintf('count(count by (%s) (%s))', $this->ipLabel, $this->rcvdMetric),
         );
         $totalUsers = $this->extractScalarValue($usersData);
 
         $devicesData = $this->prometheus->query(
-            sprintf('count(count by (instance) (%s))', $this->flowMetricPrefix),
+            sprintf('count(count by (instance) (%s))', $this->rcvdMetric),
         );
         $totalDevices = $this->extractScalarValue($devicesData);
 
-        $bandwidthData = $this->prometheus->query(
-            sprintf('sum(rate(%s[5m]))', $this->flowMetricPrefix),
+        $rcvdBandwidthData = $this->prometheus->query(
+            sprintf('sum(rate(%s[5m]))', $this->rcvdMetric),
         );
-        $totalBandwidth = $this->extractScalarValue($bandwidthData);
+        $sentBandwidthData = $this->prometheus->query(
+            sprintf('sum(rate(%s[5m]))', $this->sentMetric),
+        );
+        $totalBandwidth = $this->extractScalarValue($rcvdBandwidthData) + $this->extractScalarValue($sentBandwidthData);
 
         return new AggregateStats(
             totalUsers: $totalUsers,
@@ -98,17 +105,20 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
     public function getTopTalkers(int $limit = 10): Collection
     {
         $query = sprintf(
-            'topk(%d, sum by (src_addr) (rate(%s[5m])))',
+            'topk(%d, sum by (%s) (rate(%s[5m])))',
             $limit,
-            $this->flowMetricPrefix,
+            $this->ipLabel,
+            $this->rcvdMetric,
         );
 
         $data = $this->prometheus->query($query);
         /** @var array<int, array{metric: array<string, string>, value: array{0: float, 1: string}}> $results */
         $results = $data['result'] ?? [];
 
-        return collect($results)->map(function (array $item): TopTalker {
-            $ip = $item['metric']['src_addr'] ?? 'unknown';
+        $ipLabel = $this->ipLabel;
+
+        return collect($results)->map(function (array $item) use ($ipLabel): TopTalker {
+            $ip = $item['metric'][$ipLabel] ?? 'unknown';
             $totalRate = (int) round((float) $item['value'][1]);
 
             return new TopTalker(
@@ -144,7 +154,8 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
     }
 
     /**
-     * Extract data points from a Prometheus range query result.
+     * Extract data points from a Prometheus range query result,
+     * merging multiple series by summing values at each timestamp.
      *
      * @param  array<string, mixed>  $data
      * @return array<int, array{0: float, 1: string}>
@@ -156,7 +167,27 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
             return [];
         }
 
-        return $result[0]['values'] ?? [];
+        if (count($result) === 1) {
+            return $result[0]['values'] ?? [];
+        }
+
+        /** @var array<string, float> $merged */
+        $merged = [];
+        foreach ($result as $series) {
+            foreach ($series['values'] ?? [] as $point) {
+                $ts = (string) $point[0];
+                $merged[$ts] = ($merged[$ts] ?? 0.0) + (float) $point[1];
+            }
+        }
+
+        ksort($merged);
+
+        $points = [];
+        foreach ($merged as $ts => $value) {
+            $points[] = [(float) $ts, (string) $value];
+        }
+
+        return $points;
     }
 
     /**

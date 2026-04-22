@@ -1,54 +1,125 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Portal;
 
-use App\Models\IpAddress;
 use App\Models\User;
-use App\Models\UserIpAddress;
-use App\Services\NtopNgService;
-use Carbon\Carbon;
+use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\ValueObjects\UserBandwidth;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class StatsControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function createUserWithIp(User $user, string $ip, int $received = 0, int $sent = 0): IpAddress
-    {
-        $ipAddress = new IpAddress;
-        $ipAddress->address = $ip;
-        $ipAddress->received = $received;
-        $ipAddress->sent = $sent;
-        $ipAddress->last_seen_at = Carbon::now();
-        $ipAddress->save();
-
-        $userIp = new UserIpAddress;
-        $userIp->user()->associate($user);
-        $userIp->ip()->associate($ipAddress);
-        $userIp->last_seen_at = Carbon::now();
-        $userIp->save();
-
-        return $ipAddress;
-    }
-
-    public function test_returns_bandwidth_data_for_users_ips(): void
+    public function test_returns_bandwidth_from_traffic_monitor(): void
     {
         Queue::fake();
         $user = User::factory()->create();
-        $this->createUserWithIp($user, '192.168.1.10', 1024000, 512000);
-        $this->createUserWithIp($user, '192.168.1.11', 2048000, 1024000);
 
-        $this->mock(NtopNgService::class);
+        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getUserBandwidth')
+                ->once()
+                ->andReturn(new UserBandwidth(
+                    received: 3072000,
+                    sent: 1536000,
+                    timestamps: ['1700000000', '1700000300'],
+                    download: [1024000, 2048000],
+                    upload: [512000, 1024000],
+                ));
+        });
 
         $response = $this->actingAs($user)->getJson('/portal/stats/bandwidth');
 
         $response->assertOk()
-            ->assertJsonStructure(['stats', 'totalReceived', 'totalSent'])
+            ->assertJsonStructure(['timestamps', 'download', 'upload', 'totalReceived', 'totalSent'])
             ->assertJson([
                 'totalReceived' => 3072000,
                 'totalSent' => 1536000,
+                'timestamps' => ['1700000000', '1700000300'],
+                'download' => [1024000, 2048000],
+                'upload' => [512000, 1024000],
+            ]);
+    }
+
+    public function test_passes_client_ip_to_traffic_monitor(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getUserBandwidth')
+                ->with('44.30.69.131', '24h')
+                ->once()
+                ->andReturn(new UserBandwidth(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($user)
+            ->withServerVariables(['REMOTE_ADDR' => '44.30.69.131'])
+            ->getJson('/portal/stats/bandwidth');
+
+        $response->assertOk();
+    }
+
+    public function test_accepts_range_query_parameter(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getUserBandwidth')
+                ->withArgs(fn (string $ip, string $range): bool => $range === '1h')
+                ->once()
+                ->andReturn(new UserBandwidth(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($user)->getJson('/portal/stats/bandwidth?range=1h');
+
+        $response->assertOk();
+    }
+
+    public function test_returns_empty_data_when_no_prometheus_data(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getUserBandwidth')
+                ->once()
+                ->andReturn(new UserBandwidth(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($user)->getJson('/portal/stats/bandwidth');
+
+        $response->assertOk()
+            ->assertJson([
+                'totalReceived' => 0,
+                'totalSent' => 0,
+                'timestamps' => [],
+                'download' => [],
+                'upload' => [],
             ]);
     }
 
@@ -57,22 +128,5 @@ class StatsControllerTest extends TestCase
         $response = $this->getJson('/portal/stats/bandwidth');
 
         $response->assertUnauthorized();
-    }
-
-    public function test_returns_empty_stats_for_user_with_no_ips(): void
-    {
-        Queue::fake();
-        $user = User::factory()->create();
-
-        $this->mock(NtopNgService::class);
-
-        $response = $this->actingAs($user)->getJson('/portal/stats/bandwidth');
-
-        $response->assertOk()
-            ->assertJson([
-                'stats' => [],
-                'totalReceived' => 0,
-                'totalSent' => 0,
-            ]);
     }
 }

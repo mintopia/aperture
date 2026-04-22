@@ -1,35 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
-use App\Models\IpAddress;
-use App\Models\User;
-use App\Services\NtopNgService;
+use App\Services\Interfaces\TrafficMonitorInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StatsController extends Controller
 {
-    public function bandwidth(Request $request, NtopNgService $ntopNg): JsonResponse
+    public function bandwidth(Request $request, TrafficMonitorInterface $trafficMonitor): JsonResponse
     {
-        /** @var User $user */
-        $user = $request->user();
+        $ip = $request->ip() ?? '127.0.0.1';
+        $range = $request->query('range', '24h');
 
-        $ipAddresses = $user->ips()->with('ip')->get()->pluck('ip');
-
-        $stats = $ipAddresses->map(function (IpAddress $ip): array {
-            return [
-                'address' => $ip->address,
-                'received' => $ip->received,
-                'sent' => $ip->sent,
-            ];
-        });
+        $bandwidth = $trafficMonitor->getUserBandwidth($ip, is_string($range) ? $range : '24h');
 
         return response()->json([
-            'stats' => $stats,
-            'totalReceived' => $ipAddresses->sum('received'),
-            'totalSent' => $ipAddresses->sum('sent'),
+            'timestamps' => $bandwidth->timestamps,
+            'download' => $bandwidth->download,
+            'upload' => $bandwidth->upload,
+            'totalReceived' => $bandwidth->received,
+            'totalSent' => $bandwidth->sent,
         ]);
     }
 }

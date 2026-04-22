@@ -1,15 +1,51 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { formatBytes } from '@/helpers.js';
+import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 
-const props = defineProps({
-    stats: {
-        type: Object,
-        default: () => ({ stats: [], totalReceived: 0, totalSent: 0 }),
-    },
+defineProps({
+    title: { type: String, default: 'Bandwidth' },
+    content: { type: String, default: '' },
+    settings: { type: Object, default: () => ({}) },
+    blockContext: { type: Object, default: () => ({}) },
 });
 
-const bandwidthData = ref(props.stats);
+const bandwidthData = ref({
+    timestamps: [],
+    download: [],
+    upload: [],
+    totalReceived: 0,
+    totalSent: 0,
+});
+
+const loading = ref(true);
+
+const chartSeries = computed(() => {
+    const { timestamps, download, upload } = bandwidthData.value;
+    if (!timestamps.length) return [];
+
+    return [
+        {
+            label: 'Download',
+            color: 'var(--color-success)',
+            fill: true,
+            data: timestamps.map((ts, i) => ({
+                timestamp: Number(ts),
+                value: download[i] ?? 0,
+            })),
+        },
+        {
+            label: 'Upload',
+            color: 'var(--color-info)',
+            fill: true,
+            data: timestamps.map((ts, i) => ({
+                timestamp: Number(ts),
+                value: upload[i] ?? 0,
+            })),
+        },
+    ];
+});
+
 let pollInterval = null;
 
 async function fetchBandwidth() {
@@ -20,6 +56,8 @@ async function fetchBandwidth() {
         }
     } catch (_e) {
         // Silently fail — data will refresh next interval
+    } finally {
+        loading.value = false;
     }
 }
 
@@ -35,24 +73,33 @@ onUnmounted(() => {
 
 <template>
     <div data-testid="block-bandwidth">
-        <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-            Bandwidth
-        </h3>
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <p class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
-                    Download
-                </p>
-                <p class="font-heading text-2xl font-bold tracking-tight text-[var(--color-success)]">
-                    {{ formatBytes(bandwidthData.totalReceived) }}
-                </p>
-            </div>
-            <div>
-                <p class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">Upload</p>
-                <p class="font-heading text-2xl font-bold tracking-tight text-[var(--color-info)]">
-                    {{ formatBytes(bandwidthData.totalSent) }}
-                </p>
+        <div class="mb-3 flex items-baseline justify-between">
+            <div class="flex items-baseline gap-4">
+                <div data-testid="bandwidth-download">
+                    <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
+                        Down
+                    </span>
+                    <span class="ml-1 font-mono text-sm font-bold text-[var(--color-success)]">
+                        {{ formatBytes(bandwidthData.totalReceived) }}
+                    </span>
+                </div>
+                <div data-testid="bandwidth-upload">
+                    <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
+                        Up
+                    </span>
+                    <span class="ml-1 font-mono text-sm font-bold text-[var(--color-info)]">
+                        {{ formatBytes(bandwidthData.totalSent) }}
+                    </span>
+                </div>
             </div>
         </div>
+        <TimeSeriesChart
+            :series="chartSeries"
+            :loading="loading"
+            y-axis-label="bps"
+            height="180px"
+            empty-message="No bandwidth data available"
+            data-testid="bandwidth-chart"
+        />
     </div>
 </template>
