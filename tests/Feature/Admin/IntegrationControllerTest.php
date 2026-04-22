@@ -188,7 +188,7 @@ class IntegrationControllerTest extends TestCase
             'config' => [
                 'endpoint' => 'https://pihole.test',
                 'password' => 'secret',
-                'noblock_group_id' => '3',
+                'filtered_group_id' => '3',
                 'enabled' => '1',
                 'verify_ssl' => '1',
             ],
@@ -197,7 +197,7 @@ class IntegrationControllerTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        $stored = IntegrationConfig::getValue('pihole', 'noblock_group_id');
+        $stored = IntegrationConfig::getValue('pihole', 'filtered_group_id');
         $this->assertSame(3, $stored);
         $this->assertIsInt($stored);
     }
@@ -211,7 +211,7 @@ class IntegrationControllerTest extends TestCase
             'config' => [
                 'endpoint' => 'https://pihole.test',
                 'password' => 'secret',
-                'noblock_group_id' => null,
+                'filtered_group_id' => null,
                 'enabled' => '1',
                 'verify_ssl' => '1',
             ],
@@ -220,7 +220,7 @@ class IntegrationControllerTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        $stored = IntegrationConfig::getValue('pihole', 'noblock_group_id');
+        $stored = IntegrationConfig::getValue('pihole', 'filtered_group_id');
         $this->assertNull($stored);
     }
 
@@ -495,11 +495,11 @@ class IntegrationControllerTest extends TestCase
         );
 
         $serviceData = $response->original->getData()['page']['props']['service'];
-        $noblockField = collect($serviceData['fields'])->firstWhere('key', 'noblock_group_id');
-        $this->assertNotNull($noblockField);
-        $this->assertEquals('select-remote', $noblockField['type']);
-        $this->assertEquals('/admin/settings/integrations/pihole/groups', $noblockField['remote_url']);
-        $this->assertEquals('name', $noblockField['remote_label']);
-        $this->assertEquals('id', $noblockField['remote_value']);
+        $filteredGroupField = collect($serviceData['fields'])->firstWhere('key', 'filtered_group_id');
+        $this->assertNotNull($filteredGroupField);
+        $this->assertEquals('select-remote', $filteredGroupField['type']);
+        $this->assertEquals('/admin/settings/integrations/pihole/groups', $filteredGroupField['remote_url']);
+        $this->assertEquals('name', $filteredGroupField['remote_label']);
+        $this->assertEquals('id', $filteredGroupField['remote_value']);
     }
 }

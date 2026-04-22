@@ -177,9 +177,9 @@ return [
                 'label' => 'API Password',
                 'help' => 'Pi-hole admin password or app password.',
             ],
-            'noblock_group_id' => [
+            'filtered_group_id' => [
                 'type' => 'select-remote',
-                'label' => 'Blocking Group',
+                'label' => 'Filtered Group',
                 'placeholder' => 'Select a group…',
                 'help' => 'Pi-hole group ID for clients that should have ad blocking enabled.',
                 'remote_url' => '/admin/settings/integrations/pihole/groups',
@@ -200,7 +200,7 @@ return [
         'validation' => [
             'endpoint' => 'nullable|url|max:500',
             'password' => 'nullable|string|max:500',
-            'noblock_group_id' => 'nullable|integer|min:0',
+            'filtered_group_id' => 'nullable|integer|min:0',
             'enabled' => 'nullable|string|in:0,1',
             'verify_ssl' => 'nullable|string|in:0,1',
         ],
@@ -274,6 +274,24 @@ return [
                 'label' => 'Enabled',
                 'help' => 'Enable or disable this integration.',
             ],
+            'bandwidth_rcvd_metric' => [
+                'type' => 'text',
+                'label' => 'Receive Metric',
+                'placeholder' => 'ntopng_host_bytes_rcvd',
+                'help' => 'Prometheus metric name for received/download bytes per IP.',
+            ],
+            'bandwidth_sent_metric' => [
+                'type' => 'text',
+                'label' => 'Send Metric',
+                'placeholder' => 'ntopng_host_bytes_sent',
+                'help' => 'Prometheus metric name for sent/upload bytes per IP.',
+            ],
+            'bandwidth_ip_label' => [
+                'type' => 'text',
+                'label' => 'IP Label',
+                'placeholder' => 'ip',
+                'help' => 'Prometheus label name that contains the IP address.',
+            ],
         ],
         'validation' => [
             'endpoint' => 'nullable|url|max:500',
@@ -281,6 +299,9 @@ return [
             'verify_ssl' => 'nullable|string|in:0,1',
             'default_step' => 'nullable|numeric|min:1|max:3600',
             'enabled' => 'nullable|string|in:0,1',
+            'bandwidth_rcvd_metric' => 'nullable|string|max:255',
+            'bandwidth_sent_metric' => 'nullable|string|max:255',
+            'bandwidth_ip_label' => 'nullable|string|max:100',
         ],
     ],
 ];
