@@ -97,25 +97,6 @@ test.describe('DHCP Pages', () => {
     });
 });
 
-test.describe('Stats Pages', () => {
-    test('stats index renders', async ({ page }) => {
-        await page.goto('/admin/stats');
-        await expect(page.getByTestId('page-title')).toContainText('Network Stats');
-    });
-
-    test('stats index has stat cards', async ({ page }) => {
-        await page.goto('/admin/stats');
-        const statCards = page.locator('[data-testid="stat-card"]');
-        await expect(statCards.first()).toBeVisible();
-    });
-
-    test('bandwidth page renders', async ({ page }) => {
-        await page.goto('/admin/stats/bandwidth');
-        await expect(page.getByTestId('page-title')).toContainText('Bandwidth');
-        await expect(page.getByTestId('data-table')).toBeVisible();
-    });
-});
-
 test.describe('Content Page', () => {
     test('content page renders', async ({ page }) => {
         await page.goto('/admin/content');

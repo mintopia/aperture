@@ -18,7 +18,6 @@ const navExpectations = [
     ['ip-addresses', '/admin/ips'],
     ['switches', '/admin/switches'],
     ['dhcp', '/admin/dhcp'],
-    ['stats', '/admin/stats'],
     ['content', '/admin/content'],
     ['settings', '/admin/settings/integrations'],
 ];
@@ -64,12 +63,11 @@ describe('Sidebar.vue', () => {
         ]);
     });
 
-    it('renders Stats, Content, and Settings under TOOLS', async () => {
+    it('renders Content and Settings under TOOLS', async () => {
         const wrapper = await mountSidebar();
         const groups = wrapper.findAll('aside nav section');
 
         expect(groups[2].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual([
-            'Stats',
             'Content',
             'Settings',
         ]);
@@ -118,7 +116,6 @@ describe('Sidebar.vue', () => {
             'IP Addresses',
             'Switches',
             'DHCP',
-            'Stats',
             'Content',
             'Settings',
         ]);
