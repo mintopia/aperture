@@ -1,7 +1,6 @@
 <script setup>
 import { useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import SettingsNav from '@/Components/Admin/SettingsNav.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { ref, onMounted } from 'vue';
 import { formatRelative } from '@/utils/dates';
@@ -171,8 +170,7 @@ function formatTestOutput(output) {
 </script>
 
 <template>
-    <SettingsNav>
-        <div class="space-y-6">
+    <div class="space-y-6">
             <!-- Page Header with actions -->
             <div>
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -539,6 +537,5 @@ function formatTestOutput(output) {
                     </table>
                 </div>
             </div>
-        </div>
-    </SettingsNav>
+    </div>
 </template>

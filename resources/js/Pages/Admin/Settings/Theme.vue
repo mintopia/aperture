@@ -4,7 +4,6 @@ import { useForm } from '@inertiajs/vue3';
 import { useTheme } from '@/composables/useTheme.js';
 import { ACCENT_PRESETS, applyAccentColor } from '@/composables/useAccentColor.js';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import SettingsNav from '@/Components/Admin/SettingsNav.vue';
 import FormField from '@/Components/UI/FormField.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -18,7 +17,6 @@ const form = useForm({
     accent_hue: props.settings?.accent_hue ?? 55,
     accent_chroma: props.settings?.accent_chroma ?? 0.19,
     accent_lightness: props.settings?.accent_lightness ?? 72,
-    site_title: props.settings?.site_title ?? 'Aperture',
     custom_css: props.settings?.custom_css ?? '',
 });
 
@@ -87,7 +85,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <SettingsNav>
+    <div>
         <h1
             data-testid="page-title"
             class="font-heading mb-2 text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
@@ -232,16 +230,6 @@ onBeforeUnmount(() => {
                 </div>
             </FormField>
 
-            <FormField label="Site Title" name="site_title" :error="form.errors.site_title">
-                <input
-                    id="site_title"
-                    v-model="form.site_title"
-                    type="text"
-                    data-testid="input-site_title"
-                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
-                />
-            </FormField>
-
             <FormField label="Custom CSS" name="custom_css" :error="form.errors.custom_css">
                 <textarea
                     id="custom_css"
@@ -261,5 +249,5 @@ onBeforeUnmount(() => {
                 Save Settings
             </button>
         </form>
-    </SettingsNav>
+    </div>
 </template>

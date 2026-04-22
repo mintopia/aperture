@@ -70,11 +70,6 @@ describe('Ipv6Detection.vue', () => {
         expect(jwksInput.element.value).toBe('https://ipv6.test.com/.well-known/jwks.json');
     });
 
-    it('renders inside SettingsNav', () => {
-        const wrapper = mountComponent();
-        expect(wrapper.find('[data-testid="settings-nav"]').exists()).toBe(true);
-    });
-
     it('submits form via PUT', async () => {
         const wrapper = mountComponent();
 

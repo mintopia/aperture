@@ -99,7 +99,6 @@ describe('IntegrationShow.vue', () => {
                 },
                 stubs: {
                     AdminLayout: { template: '<div><slot /></div>' },
-                    SettingsNav: { template: '<div><slot /></div>' },
                     FormField: {
                         template: '<div><label>{{ label }}</label><slot /></div>',
                         props: ['label', 'name', 'error'],

@@ -1,7 +1,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import SettingsNav from '@/Components/Admin/SettingsNav.vue';
 import FormField from '@/Components/UI/FormField.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -21,7 +20,7 @@ function submit() {
 </script>
 
 <template>
-    <SettingsNav>
+    <div>
         <h1
             data-testid="page-title"
             class="font-heading mb-2 text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
@@ -64,5 +63,5 @@ function submit() {
                 </button>
             </div>
         </form>
-    </SettingsNav>
+    </div>
 </template>

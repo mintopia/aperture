@@ -1,7 +1,6 @@
 <script setup>
 import { router } from '@inertiajs/vue3';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
-import SettingsNav from '@/Components/Admin/SettingsNav.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -37,8 +36,7 @@ function visitService(service) {
 </script>
 
 <template>
-    <SettingsNav>
-        <div class="space-y-5">
+    <div class="space-y-5">
             <div>
                 <h1
                     data-testid="page-title"
@@ -168,6 +166,5 @@ function visitService(service) {
                     </div>
                 </div>
             </template>
-        </div>
-    </SettingsNav>
+    </div>
 </template>
