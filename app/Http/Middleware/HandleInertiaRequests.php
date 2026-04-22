@@ -33,6 +33,7 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
             ],
+            'appName' => fn (): string => (string) Setting::get('site_title', 'Aperture'),
             'theme' => [
                 'mode' => fn (): mixed => Setting::get('theme.mode', 'dark'),
                 'accent_hue' => fn (): int => (int) Setting::get('theme.accent_hue', 55),
