@@ -15,36 +15,36 @@ class IpAddressActionTest extends TestCase
     public function test_handle_calls_specified_method(): void
     {
         $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('allow')->once();
+        $mockIp->shouldReceive('enableInternet')->once();
 
-        $job = new IpAddressAction($mockIp, 'allow');
+        $job = new IpAddressAction($mockIp, 'enableInternet');
         $job->handle();
     }
 
-    public function test_handle_calls_deny(): void
+    public function test_handle_calls_disable_internet(): void
     {
         $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('deny')->once();
+        $mockIp->shouldReceive('disableInternet')->once();
 
-        $job = new IpAddressAction($mockIp, 'deny');
+        $job = new IpAddressAction($mockIp, 'disableInternet');
         $job->handle();
     }
 
-    public function test_handle_calls_limit(): void
+    public function test_handle_calls_enable_rate_limit(): void
     {
         $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('limit')->once();
+        $mockIp->shouldReceive('enableRateLimit')->once();
 
-        $job = new IpAddressAction($mockIp, 'limit');
+        $job = new IpAddressAction($mockIp, 'enableRateLimit');
         $job->handle();
     }
 
-    public function test_handle_calls_unlimit(): void
+    public function test_handle_calls_disable_rate_limit(): void
     {
         $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('unlimit')->once();
+        $mockIp->shouldReceive('disableRateLimit')->once();
 
-        $job = new IpAddressAction($mockIp, 'unlimit');
+        $job = new IpAddressAction($mockIp, 'disableRateLimit');
         $job->handle();
     }
 

@@ -25,7 +25,7 @@ class IpAddressActionService
         protected NtopNgService $ntopng,
     ) {}
 
-    public function allow(IpAddress $ip): void
+    public function enableInternet(IpAddress $ip): void
     {
         $description = $ip->comment;
         /** @var UserIpAddress|null $userIp */
@@ -36,12 +36,6 @@ class IpAddressActionService
 
         $this->firewall->updateIp($ip->address, (string) $description);
 
-        $ip->allowed = true;
-        $ttl = config('aperture.session.ttl');
-        if ($ttl) {
-            $ip->expires_at = now()->addMinutes((int) $ttl); // @phpstan-ignore assign.propertyType
-        }
-
         try {
             $mac = $this->macResolver->resolveIpToMac($ip->address);
             if ($mac !== null) {
@@ -50,6 +44,8 @@ class IpAddressActionService
                     ['source' => 'auth', 'allowed' => true, 'allowed_at' => now()],
                 );
                 $ip->mac_address_id = (int) $macAddress->id; // @phpstan-ignore assign.propertyType
+                $ip->saveQuietly();
+
                 if (! $macAddress->allowed) {
                     $macAddress->allowed = true;
                     $macAddress->allowed_at = now(); // @phpstan-ignore assign.propertyType
@@ -62,34 +58,23 @@ class IpAddressActionService
                 }
             }
         } catch (Throwable) {
-            // MAC resolution is best-effort — never block the allow flow
+            // MAC resolution is best-effort
         }
-
-        $ip->save();
     }
 
-    public function deny(IpAddress $ip): void
+    public function disableInternet(IpAddress $ip): void
     {
         $this->firewall->removeIp($ip->address);
-
-        $ip->allowed = false;
-        $ip->save();
     }
 
-    public function limit(IpAddress $ip): void
+    public function enableRateLimit(IpAddress $ip): void
     {
         $this->firewall->limitIp($ip->address);
-
-        $ip->limited = true;
-        $ip->save();
     }
 
-    public function unlimit(IpAddress $ip): void
+    public function disableRateLimit(IpAddress $ip): void
     {
         $this->firewall->unlimitIp($ip->address);
-
-        $ip->limited = false;
-        $ip->save();
     }
 
     public function shutPort(IpAddress $ip): void

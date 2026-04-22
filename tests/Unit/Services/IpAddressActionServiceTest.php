@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Models\IpAddress;
+use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
@@ -24,6 +25,190 @@ class IpAddressActionServiceTest extends TestCase
     public function test_class_exists(): void
     {
         $this->assertTrue(class_exists(IpAddressActionService::class));
+    }
+
+    public function test_enable_internet_calls_firewall_update_ip(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('updateIp')->once()->with('10.0.0.1', Mockery::any());
+        $macResolver->shouldReceive('resolveIpToMac')->once()->with('10.0.0.1')->andReturn(null);
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1', 'comment' => 'test']);
+        $service->enableInternet($ip);
+    }
+
+    public function test_enable_internet_links_mac_address_when_resolved(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('updateIp')->once();
+        $macResolver->shouldReceive('resolveIpToMac')->once()->andReturn('aa:bb:cc:dd:ee:ff');
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.2']);
+        $service->enableInternet($ip);
+
+        $ip->refresh();
+        $this->assertNotNull($ip->mac_address_id);
+
+        // NormalizeMacAddress cast converts to uppercase colon-separated format
+        $mac = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:FF')->first();
+        $this->assertNotNull($mac);
+        $this->assertTrue($mac->allowed);
+    }
+
+    public function test_enable_internet_does_not_save_ip_fields(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('updateIp')->once();
+        $macResolver->shouldReceive('resolveIpToMac')->once()->andReturn(null);
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create([
+            'address' => '10.0.0.3',
+            'internet_enabled' => false,
+        ]);
+        $originalUpdatedAt = $ip->updated_at;
+
+        $service->enableInternet($ip);
+
+        $ip->refresh();
+        // internet_enabled should NOT be changed by the service — the observer handles it
+        $this->assertFalse($ip->internet_enabled);
+        $this->assertEquals($originalUpdatedAt, $ip->updated_at);
+    }
+
+    public function test_disable_internet_calls_firewall_remove_ip(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('removeIp')->once()->with('10.0.0.4');
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.4']);
+        $service->disableInternet($ip);
+    }
+
+    public function test_disable_internet_does_not_save_ip_fields(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('removeIp')->once();
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create([
+            'address' => '10.0.0.5',
+            'internet_enabled' => true,
+        ]);
+        $originalUpdatedAt = $ip->updated_at;
+
+        $service->disableInternet($ip);
+
+        $ip->refresh();
+        // internet_enabled should NOT be changed by the service
+        $this->assertTrue($ip->internet_enabled);
+        $this->assertEquals($originalUpdatedAt, $ip->updated_at);
+    }
+
+    public function test_enable_rate_limit_calls_firewall_limit_ip(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('limitIp')->once()->with('10.0.0.6');
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.6']);
+        $service->enableRateLimit($ip);
+    }
+
+    public function test_enable_rate_limit_does_not_save_ip_fields(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('limitIp')->once();
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create([
+            'address' => '10.0.0.7',
+            'rate_limit_enabled' => false,
+        ]);
+        $originalUpdatedAt = $ip->updated_at;
+
+        $service->enableRateLimit($ip);
+
+        $ip->refresh();
+        $this->assertFalse($ip->rate_limit_enabled);
+        $this->assertEquals($originalUpdatedAt, $ip->updated_at);
+    }
+
+    public function test_disable_rate_limit_calls_firewall_unlimit_ip(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('unlimitIp')->once()->with('10.0.0.8');
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.8']);
+        $service->disableRateLimit($ip);
+    }
+
+    public function test_disable_rate_limit_does_not_save_ip_fields(): void
+    {
+        $firewall = Mockery::mock(FirewallBackendInterface::class);
+        $factory = Mockery::mock(SwitchServiceFactory::class);
+        $macResolver = Mockery::mock(MacAddressResolverInterface::class);
+        $ntopng = Mockery::mock(NtopNgService::class);
+
+        $firewall->shouldReceive('unlimitIp')->once();
+
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+
+        $ip = IpAddress::factory()->create([
+            'address' => '10.0.0.9',
+            'rate_limit_enabled' => true,
+        ]);
+        $originalUpdatedAt = $ip->updated_at;
+
+        $service->disableRateLimit($ip);
+
+        $ip->refresh();
+        $this->assertTrue($ip->rate_limit_enabled);
+        $this->assertEquals($originalUpdatedAt, $ip->updated_at);
     }
 
     public function test_shut_port_returns_early_when_no_switch_config_found_for_hostname(): void

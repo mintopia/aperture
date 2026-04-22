@@ -56,6 +56,20 @@ class IpAddress extends Model
 
     protected string $stringDescriptionProperty = 'address';
 
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'internet_enabled' => 'boolean',
+            'rate_limit_enabled' => 'boolean',
+            'dns_filtering_enabled' => 'boolean',
+            'expires_at' => 'datetime',
+            'last_seen_at' => 'datetime',
+        ];
+    }
+
     public function getRouteKeyName(): string
     {
         return 'address';
