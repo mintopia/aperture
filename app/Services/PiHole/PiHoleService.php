@@ -35,17 +35,16 @@ class PiHoleService implements DnsFilteringInterface
         $client = $this->findClient($ipAddress);
 
         if ($client === null) {
-            $this->createClient($ipAddress, [0, $this->filteredGroupId]);
+            $this->createClient($ipAddress, [$this->filteredGroupId]);
 
             return;
         }
 
-        if (in_array($this->filteredGroupId, $client['groups'], true)) {
+        if ($client['groups'] === [$this->filteredGroupId]) {
             return;
         }
 
-        $groups = array_merge($client['groups'], [$this->filteredGroupId]);
-        $this->updateClientGroups($client['client'], $groups, $client['comment']);
+        $this->updateClientGroups($client['client'], [$this->filteredGroupId], $client['comment']);
     }
 
     public function disableForIp(string $ipAddress): void
@@ -56,16 +55,7 @@ class PiHoleService implements DnsFilteringInterface
             return;
         }
 
-        $groups = array_values(array_filter(
-            $client['groups'],
-            fn (int $g): bool => $g !== $this->filteredGroupId,
-        ));
-
-        if ($groups === $client['groups']) {
-            return;
-        }
-
-        $this->updateClientGroups($client['client'], $groups, $client['comment']);
+        $this->deleteClient($client['client']);
     }
 
     public function reconcile(bool $dryRun = false): ReconcileResult
@@ -113,10 +103,10 @@ class PiHoleService implements DnsFilteringInterface
             }
         }
 
-        // Check disabled IPs — should NOT have filteredGroupId
+        // Check disabled IPs — should have no client in PiHole
         foreach ($desiredDisabled as $ip) {
             $existing = $clientMap[$ip] ?? null;
-            if ($existing === null || ! in_array($this->filteredGroupId, $existing['groups'], true)) {
+            if ($existing === null) {
                 $unchanged[] = $ip;
 
                 continue;
@@ -212,6 +202,15 @@ class PiHoleService implements DnsFilteringInterface
                 'comment' => $comment,
                 'groups' => $groups,
             ],
+        ]);
+    }
+
+    protected function deleteClient(string $clientIdentifier): void
+    {
+        $sid = $this->getSessionId();
+
+        $this->client->delete('/api/clients/'.urlencode($clientIdentifier), [
+            'headers' => ['X-FTL-SID' => $sid],
         ]);
     }
 

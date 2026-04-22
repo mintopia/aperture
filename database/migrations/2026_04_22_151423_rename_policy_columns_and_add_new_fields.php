@@ -20,7 +20,7 @@ return new class extends Migration
         });
 
         Schema::table('users', function (Blueprint $table): void {
-            $table->boolean('dns_filtering_enabled')->default(false)->change();
+            $table->boolean('dns_filtering_enabled')->default(false)->after('rate_limit_enabled');
         });
 
         Schema::table('ip_addresses', function (Blueprint $table): void {
@@ -45,11 +45,7 @@ return new class extends Migration
         });
 
         Schema::table('users', function (Blueprint $table): void {
-            $table->boolean('dns_filtering_enabled')->default(true)->change();
-        });
-
-        Schema::table('users', function (Blueprint $table): void {
-            $table->dropColumn(['internet_enabled', 'rate_limit_enabled']);
+            $table->dropColumn(['internet_enabled', 'rate_limit_enabled', 'dns_filtering_enabled']);
         });
 
         Schema::table('users', function (Blueprint $table): void {
