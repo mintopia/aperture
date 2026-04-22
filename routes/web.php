@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\IpAddressController;
 use App\Http\Controllers\Admin\Ipv6DetectionSettingsController;
+use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SwitchManagementController;
@@ -99,6 +100,11 @@ Route::middleware(['auth'])->group(function () {
         // Content blocks
         Route::put('/content/layout', [ContentController::class, 'updateLayout'])->name('content.layout.update');
         Route::resource('content', ContentController::class)->except(['create', 'edit', 'show']);
+
+        // Content pages
+        Route::resource('content/pages', PageController::class)
+            ->except(['show'])
+            ->names('content.pages');
 
         // Switch Management (new top-level section)
         Route::get('/switches', [SwitchManagementController::class, 'index'])->name('switches.index');
