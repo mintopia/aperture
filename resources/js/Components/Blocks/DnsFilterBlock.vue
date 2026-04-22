@@ -41,12 +41,9 @@ async function toggle() {
 
 <template>
     <div data-testid="block-dns-filter">
-        <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-            {{ displayTitle }}
-        </h3>
         <div class="flex items-center justify-between">
             <div>
-                <div class="text-sm font-semibold text-[var(--color-text)]">DNS Filtering</div>
+                <div class="text-sm font-semibold text-[var(--color-text)]">{{ displayTitle }}</div>
                 <div class="mt-0.5 text-xs text-[var(--color-text-muted)]">{{ displayDescription }}</div>
             </div>
             <button
