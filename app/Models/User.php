@@ -27,7 +27,10 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @property int $id
  * @property string $nickname
  * @property string $email
- * @property int $blocked
+ * @property bool $internet_blocked
+ * @property bool $internet_enabled
+ * @property bool $rate_limit_enabled
+ * @property bool $dns_filtering_enabled
  * @property string|null $external_id
  * @property string|null $access_token
  * @property string|null $refresh_token
@@ -48,7 +51,7 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @method static Builder|User newModelQuery()
  * @method static Builder|User newQuery()
  * @method static Builder|User query()
- * @method static Builder|User whereBlocked($value)
+ * @method static Builder|User whereInternetBlocked($value)
  * @method static Builder|User whereCreatedAt($value)
  * @method static Builder|User whereEmail($value)
  * @method static Builder|User whereId($value)
@@ -91,6 +94,10 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
             'access_token' => 'encrypted',
             'refresh_token' => 'encrypted',
             'token_expires_at' => 'datetime',
+            'internet_blocked' => 'boolean',
+            'internet_enabled' => 'boolean',
+            'rate_limit_enabled' => 'boolean',
+            'dns_filtering_enabled' => 'boolean',
         ];
     }
 
