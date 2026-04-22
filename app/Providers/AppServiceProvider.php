@@ -4,7 +4,13 @@ namespace App\Providers;
 
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
+use App\Models\IpAddress;
 use App\Models\SwitchConfig;
+use App\Models\User;
+use App\Models\UserIpAddress;
+use App\Observers\IpAddressObserver;
+use App\Observers\UserIpAddressObserver;
+use App\Observers\UserObserver;
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
@@ -160,7 +166,12 @@ class AppServiceProvider extends ServiceProvider
                 defaultStep: (int) ($config['default_step'] ?? 60),
             );
 
-            return new PrometheusTrafficMonitor($prometheus);
+            return new PrometheusTrafficMonitor(
+                prometheus: $prometheus,
+                rcvdMetric: $config['bandwidth_rcvd_metric'] ?? 'ntopng_host_bytes_rcvd',
+                sentMetric: $config['bandwidth_sent_metric'] ?? 'ntopng_host_bytes_sent',
+                ipLabel: $config['bandwidth_ip_label'] ?? 'ip',
+            );
         });
     }
 
@@ -169,6 +180,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        User::observe(UserObserver::class);
+        IpAddress::observe(IpAddressObserver::class);
+        UserIpAddress::observe(UserIpAddressObserver::class);
+
         $this->app->singleton(function (Application $application): NtopNgService {
             $dbConfig = $this->getIntegrationDbConfig('ntopng');
 
