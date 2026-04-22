@@ -20,7 +20,10 @@ class UserFactory extends Factory
         return [
             'nickname' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'blocked' => false,
+            'internet_blocked' => false,
+            'internet_enabled' => false,
+            'rate_limit_enabled' => false,
+            'dns_filtering_enabled' => false,
             'external_id' => null,
             'access_token' => null,
             'refresh_token' => null,
@@ -30,12 +33,12 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the user is blocked.
+     * Indicate that the user is internet blocked.
      */
-    public function blocked(): static
+    public function internetBlocked(): static
     {
         return $this->state(fn (array $attributes) => [
-            'blocked' => true,
+            'internet_blocked' => true,
         ]);
     }
 

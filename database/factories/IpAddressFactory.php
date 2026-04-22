@@ -21,20 +21,21 @@ class IpAddressFactory extends Factory
         return [
             'address' => fake()->ipv4(),
             'last_seen_at' => now(),
-            'allowed' => false,
-            'limited' => false,
+            'internet_enabled' => false,
+            'rate_limit_enabled' => false,
+            'dns_filtering_enabled' => false,
             'received' => 0,
             'sent' => 0,
         ];
     }
 
     /**
-     * Indicate that the IP is allowed.
+     * Indicate that the IP is internet enabled.
      */
-    public function allowed(): static
+    public function internetEnabled(): static
     {
         return $this->state(fn (array $attributes) => [
-            'allowed' => true,
+            'internet_enabled' => true,
         ]);
     }
 
@@ -44,7 +45,7 @@ class IpAddressFactory extends Factory
     public function expired(): static
     {
         return $this->state(fn (array $attributes) => [
-            'allowed' => true,
+            'internet_enabled' => true,
             'expires_at' => now()->subHour(),
         ]);
     }
