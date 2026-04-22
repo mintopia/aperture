@@ -1,12 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Portal;
 
-use App\Models\IpAddress;
 use App\Models\User;
-use App\Models\UserIpAddress;
-use App\Services\Interfaces\DnsBlockingInterface;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -15,66 +13,36 @@ class DnsFilterControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function createUserWithIp(User $user, string $ip): IpAddress
-    {
-        $ipAddress = new IpAddress;
-        $ipAddress->address = $ip;
-        $ipAddress->last_seen_at = Carbon::now();
-        $ipAddress->save();
-
-        $userIp = new UserIpAddress;
-        $userIp->user()->associate($user);
-        $userIp->ip()->associate($ipAddress);
-        $userIp->last_seen_at = Carbon::now();
-        $userIp->save();
-
-        return $ipAddress;
-    }
-
-    public function test_toggle_enables_dns_filter_for_users_ip(): void
+    public function test_toggle_disables_dns_filtering_when_currently_enabled(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
-        $this->createUserWithIp($user, '127.0.0.1');
-
-        $mock = $this->mock(DnsBlockingInterface::class);
-        $mock->shouldReceive('isEnabledForIp')->with('127.0.0.1')->once()->andReturn(false);
-        $mock->shouldReceive('enableForIp')->with('127.0.0.1')->once();
-
-        $response = $this->actingAs($user)->postJson('/portal/dns-filter/toggle');
-
-        $response->assertOk()
-            ->assertJson(['enabled' => true]);
-    }
-
-    public function test_toggle_disables_dns_filter_for_users_ip(): void
-    {
-        Queue::fake();
-        $user = User::factory()->create();
-        $this->createUserWithIp($user, '127.0.0.1');
-
-        $mock = $this->mock(DnsBlockingInterface::class);
-        $mock->shouldReceive('isEnabledForIp')->with('127.0.0.1')->once()->andReturn(true);
-        $mock->shouldReceive('disableForIp')->with('127.0.0.1')->once();
+        $user = User::factory()->create(['dns_filtering_enabled' => true]);
 
         $response = $this->actingAs($user)->postJson('/portal/dns-filter/toggle');
 
         $response->assertOk()
             ->assertJson(['enabled' => false]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'dns_filtering_enabled' => false,
+        ]);
     }
 
-    public function test_rejects_toggle_for_ip_not_owned_by_user(): void
+    public function test_toggle_enables_dns_filtering_when_currently_disabled(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
-        // User has no IPs associated
-
-        $mock = $this->mock(DnsBlockingInterface::class);
-        $mock->shouldNotReceive('isEnabledForIp');
+        $user = User::factory()->create(['dns_filtering_enabled' => false]);
 
         $response = $this->actingAs($user)->postJson('/portal/dns-filter/toggle');
 
-        $response->assertForbidden();
+        $response->assertOk()
+            ->assertJson(['enabled' => true]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'dns_filtering_enabled' => true,
+        ]);
     }
 
     public function test_unauthenticated_user_rejected(): void
