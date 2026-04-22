@@ -18,8 +18,13 @@ const navExpectations = [
     ['ip-addresses', '/admin/ips'],
     ['switches', '/admin/switches'],
     ['dhcp', '/admin/dhcp'],
-    ['content', '/admin/content'],
-    ['settings', '/admin/settings/integrations'],
+    ['integrations', '/admin/settings/integrations'],
+    ['ipv6-detection', '/admin/settings/ipv6-detection'],
+    ['dns-detection', '/admin/settings/dns-detection'],
+    ['dashboard', '/admin/content'],
+    ['pages', '/admin/content/pages'],
+    ['theme', '/admin/settings/theme'],
+    ['settings', '/admin/content/settings'],
 ];
 
 function setViewport(width) {
@@ -41,21 +46,23 @@ describe('Sidebar.vue', () => {
         const headers = wrapper.findAll('aside nav section > p').map((header) => header.text());
 
         expect(wrapper.get('[data-testid="admin-sidebar"]').exists()).toBe(true);
-        expect(headers).toEqual(['OVERVIEW', 'MANAGEMENT', 'TOOLS']);
+        expect(headers).toEqual(['MANAGEMENT', 'SERVICES', 'CONTENT']);
     });
 
-    it('renders Dashboard under OVERVIEW', async () => {
+    it('does not render OVERVIEW or TOOLS groups', async () => {
+        const wrapper = await mountSidebar();
+        const headers = wrapper.findAll('aside nav section > p').map((header) => header.text());
+
+        expect(headers).not.toContain('OVERVIEW');
+        expect(headers).not.toContain('TOOLS');
+    });
+
+    it('renders Dashboard, Users, IP Addresses, Switches, and DHCP under MANAGEMENT', async () => {
         const wrapper = await mountSidebar();
         const groups = wrapper.findAll('aside nav section');
 
-        expect(groups[0].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual(['Dashboard']);
-    });
-
-    it('renders Users, IP Addresses, Switches, and DHCP under MANAGEMENT', async () => {
-        const wrapper = await mountSidebar();
-        const groups = wrapper.findAll('aside nav section');
-
-        expect(groups[1].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual([
+        expect(groups[0].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual([
+            'Dashboard',
             'Users',
             'IP Addresses',
             'Switches',
@@ -63,23 +70,46 @@ describe('Sidebar.vue', () => {
         ]);
     });
 
-    it('renders Content and Settings under TOOLS', async () => {
+    it('renders Integrations, IPv6 Detection, and DNS Detection under SERVICES', async () => {
+        const wrapper = await mountSidebar();
+        const groups = wrapper.findAll('aside nav section');
+
+        expect(groups[1].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual([
+            'Integrations',
+            'IPv6 Detection',
+            'DNS Detection',
+        ]);
+    });
+
+    it('renders Dashboard, Pages, Theme, and Settings under CONTENT', async () => {
         const wrapper = await mountSidebar();
         const groups = wrapper.findAll('aside nav section');
 
         expect(groups[2].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual([
-            'Content',
+            'Dashboard',
+            'Pages',
+            'Theme',
             'Settings',
         ]);
     });
 
     it('renders all nav items with correct hrefs and preserved test ids', async () => {
         const wrapper = await mountSidebar();
+        const allLinks = wrapper.findAll('[data-testid^="nav-"]');
 
-        for (const [testIdSuffix, href] of navExpectations) {
-            const item = wrapper.get(`[data-testid="nav-${testIdSuffix}"]`);
-            expect(item.attributes('href')).toBe(href);
-        }
+        const hrefsByTestId = allLinks.map((link) => [link.attributes('data-testid'), link.attributes('href')]);
+
+        expect(hrefsByTestId).toContainEqual(['nav-dashboard', '/admin']);
+        expect(hrefsByTestId).toContainEqual(['nav-users', '/admin/users']);
+        expect(hrefsByTestId).toContainEqual(['nav-ip-addresses', '/admin/ips']);
+        expect(hrefsByTestId).toContainEqual(['nav-switches', '/admin/switches']);
+        expect(hrefsByTestId).toContainEqual(['nav-dhcp', '/admin/dhcp']);
+        expect(hrefsByTestId).toContainEqual(['nav-integrations', '/admin/settings/integrations']);
+        expect(hrefsByTestId).toContainEqual(['nav-ipv6-detection', '/admin/settings/ipv6-detection']);
+        expect(hrefsByTestId).toContainEqual(['nav-dns-detection', '/admin/settings/dns-detection']);
+        expect(hrefsByTestId).toContainEqual(['nav-pages', '/admin/content/pages']);
+        expect(hrefsByTestId).toContainEqual(['nav-theme', '/admin/settings/theme']);
+        expect(hrefsByTestId).toContainEqual(['nav-settings', '/admin/content/settings']);
     });
 
     it('applies active styling with accent background and primary text', async () => {
@@ -93,7 +123,8 @@ describe('Sidebar.vue', () => {
 
     it('applies secondary text color to non-active items', async () => {
         const wrapper = await mountSidebar();
-        const inactiveItem = wrapper.get('[data-testid="nav-dashboard"]');
+        // Find the first Dashboard link (nav-dashboard in MANAGEMENT group)
+        const inactiveItem = wrapper.findAll('[data-testid="nav-dashboard"]')[0];
 
         expect(inactiveItem.classes()).toContain('text-[var(--color-text-secondary)]');
     });
@@ -116,7 +147,12 @@ describe('Sidebar.vue', () => {
             'IP Addresses',
             'Switches',
             'DHCP',
-            'Content',
+            'Integrations',
+            'IPv6 Detection',
+            'DNS Detection',
+            'Dashboard',
+            'Pages',
+            'Theme',
             'Settings',
         ]);
     });

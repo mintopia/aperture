@@ -18,12 +18,9 @@ const icons = {
 
 const navGroups = [
     {
-        label: 'OVERVIEW',
-        items: [{ label: 'Dashboard', href: '/admin', icon: icons.dashboard }],
-    },
-    {
         label: 'MANAGEMENT',
         items: [
+            { label: 'Dashboard', href: '/admin', icon: icons.dashboard },
             { label: 'Users', href: '/admin/users', icon: icons.users },
             { label: 'IP Addresses', href: '/admin/ips', icon: icons.ips },
             { label: 'Switches', href: '/admin/switches', icon: icons.switches },
@@ -31,10 +28,20 @@ const navGroups = [
         ],
     },
     {
-        label: 'TOOLS',
+        label: 'SERVICES',
         items: [
-            { label: 'Content', href: '/admin/content', icon: icons.content },
-            { label: 'Settings', href: '/admin/settings/integrations', icon: icons.settings },
+            { label: 'Integrations', href: '/admin/settings/integrations', icon: icons.settings },
+            { label: 'IPv6 Detection', href: '/admin/settings/ipv6-detection', icon: icons.settings },
+            { label: 'DNS Detection', href: '/admin/settings/dns-detection', icon: icons.settings },
+        ],
+    },
+    {
+        label: 'CONTENT',
+        items: [
+            { label: 'Dashboard', href: '/admin/content', icon: icons.content },
+            { label: 'Pages', href: '/admin/content/pages', icon: icons.content },
+            { label: 'Theme', href: '/admin/settings/theme', icon: icons.settings },
+            { label: 'Settings', href: '/admin/content/settings', icon: icons.settings },
         ],
     },
 ];
