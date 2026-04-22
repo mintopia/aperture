@@ -12,7 +12,6 @@ use App\Http\Controllers\Admin\Ipv6DetectionSettingsController;
 use App\Http\Controllers\Admin\PortalSettingsController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\StatsController as AdminStatsController;
 use App\Http\Controllers\Admin\SwitchManagementController;
 use App\Http\Controllers\Admin\SwitchPortController;
 use App\Http\Controllers\Admin\TestConnectionController;
@@ -98,11 +97,6 @@ Route::middleware(['auth'])->group(function () {
         // DHCP
         Route::get('/dhcp', [DhcpController::class, 'index'])->name('dhcp.index');
         Route::get('/dhcp/leases', [DhcpController::class, 'leases'])->name('dhcp.leases');
-
-        // Stats
-        Route::get('/stats', [AdminStatsController::class, 'index'])->name('stats.index');
-        Route::get('/stats/bandwidth', [AdminStatsController::class, 'bandwidth'])->name('stats.bandwidth');
-        Route::get('/stats/top-talkers', [AdminStatsController::class, 'topTalkers'])->name('stats.top-talkers');
 
         // Content blocks
         Route::put('/content/layout', [ContentController::class, 'updateLayout'])->name('content.layout.update');
