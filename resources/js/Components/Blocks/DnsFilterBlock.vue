@@ -9,9 +9,9 @@ const props = defineProps({
 });
 
 const displayTitle = computed(() => props.settings?.title || props.title);
-const displayDescription = computed(() => props.settings?.description || props.content);
+const displayDescription = computed(() => props.content || props.settings?.description || '');
 
-const enabled = ref(false);
+const enabled = ref(props.blockContext?.dnsFilteringEnabled ?? false);
 const loading = ref(false);
 
 async function toggle() {

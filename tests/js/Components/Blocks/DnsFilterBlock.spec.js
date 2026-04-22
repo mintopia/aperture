@@ -231,15 +231,26 @@ describe('DnsFilterBlock', () => {
         expect(wrapper.text()).toContain('Settings Title');
     });
 
-    it('uses settings.description when available', () => {
+    it('uses content prop for description when available', () => {
         const wrapper = mount(DnsFilterBlock, {
             props: {
                 title: 'Prop Title',
                 content: 'Prop Content',
-                settings: { title: 'T', description: 'Custom description text' },
+                settings: { title: 'T', description: 'Settings Desc' },
             },
         });
-        expect(wrapper.text()).toContain('Custom description text');
+        expect(wrapper.text()).toContain('Prop Content');
+    });
+
+    it('falls back to settings.description when content is empty', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: {
+                title: 'Prop Title',
+                content: '',
+                settings: { title: 'T', description: 'Legacy description' },
+            },
+        });
+        expect(wrapper.text()).toContain('Legacy description');
     });
 
     it('falls back to title prop when settings.title is empty', () => {
@@ -262,5 +273,33 @@ describe('DnsFilterBlock', () => {
             },
         });
         expect(wrapper.text()).toContain('Fallback description');
+    });
+
+    it('initializes enabled from blockContext.dnsFilteringEnabled true', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: {
+                blockContext: { dnsFilteringEnabled: true },
+            },
+        });
+        const button = wrapper.find('[data-testid="dns-filter-toggle"]');
+        expect(button.classes()).toContain('bg-[var(--color-accent)]');
+    });
+
+    it('initializes enabled from blockContext.dnsFilteringEnabled false', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: {
+                blockContext: { dnsFilteringEnabled: false },
+            },
+        });
+        const button = wrapper.find('[data-testid="dns-filter-toggle"]');
+        expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
+    });
+
+    it('defaults enabled to false when blockContext is empty', () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: { blockContext: {} },
+        });
+        const button = wrapper.find('[data-testid="dns-filter-toggle"]');
+        expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
     });
 });

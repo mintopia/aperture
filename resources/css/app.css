@@ -3,6 +3,7 @@
 @import '../fonts/hanken-grotesk/hanken-grotesk.css';
 @import '../fonts/jetbrains-mono/jetbrains-mono.css';
 @import './themes/dispatch.css';
+@plugin '@tailwindcss/typography';
 
 @theme {
     --font-heading: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
@@ -29,5 +30,11 @@
     kbd,
     samp {
         font-family: var(--font-mono);
+    }
+    .prose a {
+        color: var(--color-accent);
+    }
+    .prose a:hover {
+        opacity: 0.8;
     }
 }

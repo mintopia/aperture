@@ -10,6 +10,7 @@ use App\Services\Interfaces\NetworkInventoryInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class DashboardController extends Controller
 {
@@ -62,11 +63,11 @@ class DashboardController extends Controller
             $neighbors = $this->networkInventory->getIpv6Neighbors();
 
             $match = $neighbors->first(
-                fn ($entry) => strcasecmp($entry->mac, $mac) === 0
+                fn ($entry): bool => strcasecmp($entry->mac, $mac) === 0
             );
 
             return $match->ip ?? '';
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return '';
         }
     }

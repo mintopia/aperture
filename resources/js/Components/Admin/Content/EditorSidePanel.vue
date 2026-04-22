@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onBeforeUnmount } from 'vue';
 import { TEMPLATE_VARIABLES, TEMPLATE_VARIABLE_GROUPS } from '@/utils/templateVariables.js';
 
 const props = defineProps({
@@ -8,7 +8,7 @@ const props = defineProps({
 
 const emit = defineEmits(['save', 'delete', 'close']);
 
-const textTypes = ['custom_markdown'];
+const textTypes = ['custom_markdown', 'dns_filter'];
 const templateSupportedTypes = ['custom_markdown', 'connection_strip'];
 
 const title = ref(props.block.title);
@@ -58,6 +58,35 @@ function insertVariable(key) {
 
 const showTemplateVariables = computed(() => templateSupportedTypes.includes(props.block.type));
 
+// Resize logic
+const MIN_WIDTH = 280;
+const panelWidth = ref(320);
+const isResizing = ref(false);
+
+function onResizeStart(e) {
+    isResizing.value = true;
+    e.preventDefault();
+
+    function onMouseMove(ev) {
+        const maxWidth = Math.floor(window.innerWidth / 2);
+        const newWidth = Math.max(MIN_WIDTH, Math.min(window.innerWidth - ev.clientX, maxWidth));
+        panelWidth.value = newWidth;
+    }
+
+    function onMouseUp() {
+        isResizing.value = false;
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+}
+
+onBeforeUnmount(() => {
+    isResizing.value = false;
+});
+
 watch(
     () => props.block,
     (b) => {
@@ -83,7 +112,7 @@ function buildSettings() {
         return { fields: fields.value };
     }
     if (props.block.type === 'dns_filter') {
-        return { title: settingsTitle.value, description: settingsDescription.value };
+        return { title: settingsTitle.value };
     }
     return props.block.settings;
 }
@@ -102,8 +131,15 @@ function save() {
 <template>
     <div
         data-testid="editor-side-panel"
-        class="fixed inset-y-0 right-0 z-50 w-80 overflow-y-auto border-l border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-lg"
+        class="fixed inset-y-0 right-0 z-50 overflow-y-auto border-l border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-lg"
+        :style="{ width: panelWidth + 'px' }"
     >
+        <div
+            data-testid="panel-resize-handle"
+            class="absolute inset-y-0 left-0 w-1 cursor-col-resize hover:bg-[var(--color-accent)]/40"
+            :class="isResizing ? 'bg-[var(--color-accent)]/40' : ''"
+            @mousedown="onResizeStart"
+        />
         <div class="mb-4 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-[var(--color-text)]">Edit Block</h3>
             <button
@@ -183,19 +219,12 @@ function save() {
 
         <div v-if="block.type === 'dns_filter'" class="mb-4">
             <label class="mb-1 block text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
-                Display Title
+                Label
             </label>
             <input
                 v-model="settingsTitle"
                 data-testid="panel-settings-title"
-                class="mb-3 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-text)]"
-            />
-            <label class="mb-1 block text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
-                Display Description
-            </label>
-            <input
-                v-model="settingsDescription"
-                data-testid="panel-settings-description"
+                placeholder="Text shown next to the toggle"
                 class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-text)]"
             />
         </div>

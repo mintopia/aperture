@@ -28,6 +28,7 @@ const previewDisplacement = ref({});
 // Resize state
 const resizing = ref(null);
 const resizeStartPos = ref(null);
+const justResized = ref(false);
 
 // Template ref for grid element
 const gridRef = ref(null);
@@ -165,11 +166,16 @@ function onResizeEnd() {
     resizeStartPos.value = null;
     previewDisplacement.value = {};
     positionSnapshot.value = null;
+    justResized.value = true;
+    requestAnimationFrame(() => {
+        justResized.value = false;
+    });
     document.removeEventListener('mousemove', onResizeMove);
     document.removeEventListener('mouseup', onResizeEnd);
 }
 
 function selectBlock(block) {
+    if (justResized.value) return;
     selectedBlock.value = block;
 }
 

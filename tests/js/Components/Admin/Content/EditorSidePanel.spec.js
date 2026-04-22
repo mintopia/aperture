@@ -92,12 +92,18 @@ describe('EditorSidePanel', () => {
         expect(wrapper.find('[data-testid="panel-fields-editor"]').exists()).toBe(false);
     });
 
-    it('shows dns filter settings for dns_filter blocks', () => {
+    it('shows dns filter label input for dns_filter blocks', () => {
         const wrapper = mount(EditorSidePanel, {
-            props: { block: { ...block, type: 'dns_filter', settings: { title: 'Custom', description: 'Desc' } } },
+            props: { block: { ...block, type: 'dns_filter', settings: { title: 'Custom' } } },
         });
         expect(wrapper.find('[data-testid="panel-settings-title"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="panel-settings-description"]').exists()).toBe(true);
+    });
+
+    it('shows content textarea for dns_filter blocks', () => {
+        const wrapper = mount(EditorSidePanel, {
+            props: { block: { ...block, type: 'dns_filter', content: 'Some desc', settings: {} } },
+        });
+        expect(wrapper.find('[data-testid="panel-content-input"]').exists()).toBe(true);
     });
 
     it('shows template variable reference for connection_strip blocks', () => {
@@ -147,6 +153,78 @@ describe('EditorSidePanel', () => {
         const emitted = wrapper.emitted('save')[0][0];
         expect(emitted).toHaveProperty('settings');
         expect(emitted.settings.title).toBe('Custom');
+    });
+
+    it('has a resize handle on the left edge', () => {
+        const wrapper = mount(EditorSidePanel, { props: { block } });
+        expect(wrapper.find('[data-testid="panel-resize-handle"]').exists()).toBe(true);
+    });
+
+    it('resizes panel width on drag', async () => {
+        const wrapper = mount(EditorSidePanel, {
+            props: { block },
+            attachTo: document.body,
+        });
+
+        const handle = wrapper.find('[data-testid="panel-resize-handle"]');
+        const panel = wrapper.find('[data-testid="editor-side-panel"]');
+
+        // Start drag at x=window.innerWidth - 320 (default width boundary)
+        await handle.trigger('mousedown', { clientX: window.innerWidth - 320 });
+
+        // Drag left to widen the panel to 500px
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: window.innerWidth - 500 }));
+        await wrapper.vm.$nextTick();
+
+        expect(panel.element.style.width).toBe('500px');
+
+        window.dispatchEvent(new MouseEvent('mouseup'));
+        await wrapper.vm.$nextTick();
+
+        wrapper.unmount();
+    });
+
+    it('enforces minimum panel width of 280px', async () => {
+        const wrapper = mount(EditorSidePanel, {
+            props: { block },
+            attachTo: document.body,
+        });
+
+        const handle = wrapper.find('[data-testid="panel-resize-handle"]');
+        const panel = wrapper.find('[data-testid="editor-side-panel"]');
+
+        await handle.trigger('mousedown', { clientX: window.innerWidth - 320 });
+
+        // Try to shrink below 280px
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: window.innerWidth - 100 }));
+        await wrapper.vm.$nextTick();
+
+        expect(panel.element.style.width).toBe('280px');
+
+        window.dispatchEvent(new MouseEvent('mouseup'));
+        wrapper.unmount();
+    });
+
+    it('enforces maximum panel width of 50% viewport', async () => {
+        const wrapper = mount(EditorSidePanel, {
+            props: { block },
+            attachTo: document.body,
+        });
+
+        const handle = wrapper.find('[data-testid="panel-resize-handle"]');
+        const panel = wrapper.find('[data-testid="editor-side-panel"]');
+
+        await handle.trigger('mousedown', { clientX: window.innerWidth - 320 });
+
+        // Try to widen beyond 50% of viewport
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 0 }));
+        await wrapper.vm.$nextTick();
+
+        const maxWidth = Math.floor(window.innerWidth / 2);
+        expect(parseInt(panel.element.style.width)).toBeLessThanOrEqual(maxWidth);
+
+        window.dispatchEvent(new MouseEvent('mouseup'));
+        wrapper.unmount();
     });
 
     describe('template variable chip click-to-insert', () => {
