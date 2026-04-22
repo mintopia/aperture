@@ -47,8 +47,8 @@ class IpAddressController extends Controller
             'received',
             'sent',
             'last_seen_at',
-            'allowed',
-            'limited',
+            'internet_enabled',
+            'rate_limit_enabled',
         ];
         $order = 'address';
         if (in_array($request->input('order'), $orderBy)) {
@@ -129,26 +129,18 @@ class IpAddressController extends Controller
 
     public function limit(Request $request, IpAddress $ip): RedirectResponse
     {
-        if ($request->input('limit') == 1) {
-            $ip->limit(true);
-            $message = 'The IP will be rate limited';
-        } else {
-            $ip->unlimit(true);
-            $message = 'The rate limit will be removed for this IP';
-        }
+        $ip->rate_limit_enabled = (bool) $request->input('limit');
+        $ip->save();
+        $message = $ip->rate_limit_enabled ? 'The IP will be rate limited' : 'The rate limit will be removed for this IP';
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
 
     public function internet(Request $request, IpAddress $ip): RedirectResponse
     {
-        if ($request->input('allow') == 1) {
-            $ip->allow(true);
-            $message = 'Internet will be enabled for this IP';
-        } else {
-            $ip->deny(true);
-            $message = 'Internet will be disabled for this IP';
-        }
+        $ip->internet_enabled = (bool) $request->input('allow');
+        $ip->save();
+        $message = $ip->internet_enabled ? 'Internet will be enabled for this IP' : 'Internet will be disabled for this IP';
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
@@ -170,14 +162,9 @@ class IpAddressController extends Controller
         $ip->address = $request->input('address');
         $ip->comment = $request->input('comment');
         $ip->last_seen_at = Carbon::now()->toDateTimeString();
+        $ip->internet_enabled = (bool) $request->input('allow');
+        $ip->rate_limit_enabled = (bool) $request->input('limit');
         $ip->save();
-        if ($request->input('allow')) {
-            $ip->allow(true);
-        }
-
-        if ($request->input('limit')) {
-            $ip->limit(true);
-        }
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', 'The IP address has been added');
     }

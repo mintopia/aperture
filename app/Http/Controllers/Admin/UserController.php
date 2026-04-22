@@ -75,7 +75,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'nickname' => $user->nickname,
                 'email' => $user->email,
-                'blocked' => $user->blocked,
+                'internet_blocked' => $user->internet_blocked,
                 'has_password' => $user->password !== null,
                 'roles' => $user->roles->pluck('code'),
                 'avatar_url' => $user->avatar_url,
@@ -121,9 +121,9 @@ class UserController extends Controller
     public function block(Request $request, User $user): RedirectResponse
     {
         $request->validate(['block' => 'required|boolean']);
-        $user->blocked = (int) $request->boolean('block');
+        $user->internet_blocked = $request->boolean('block');
         $user->save();
-        if ($user->blocked !== 0) {
+        if ($user->internet_blocked) {
             $message = 'The user will be blocked from accessing the Internet from new IPs';
         } else {
             $message = 'The user will be unblocked from accessing the Internet from new IPs';

@@ -61,28 +61,28 @@ class UserControllerTest extends TestCase
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        $user = User::factory()->create(['blocked' => false]);
+        $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($admin)->post(sprintf('/admin/users/%d/block', $user->id), [
             'block' => true,
         ]);
 
         $response->assertRedirect();
-        $this->assertTrue((bool) $user->fresh()->blocked);
+        $this->assertTrue((bool) $user->fresh()->internet_blocked);
     }
 
     public function test_admin_can_unblock_user(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        $user = User::factory()->create(['blocked' => true]);
+        $user = User::factory()->internetBlocked()->create();
 
         $response = $this->actingAs($admin)->post(sprintf('/admin/users/%d/block', $user->id), [
             'block' => false,
         ]);
 
         $response->assertRedirect();
-        $this->assertFalse((bool) $user->fresh()->blocked);
+        $this->assertFalse((bool) $user->fresh()->internet_blocked);
     }
 
     public function test_non_admin_cannot_view_users(): void
