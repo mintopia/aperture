@@ -24,9 +24,13 @@ const fields = computed(() => {
     return DEFAULT_FIELDS;
 });
 
+function isStatusField(template) {
+    return template === '{status}';
+}
+
 function resolveValue(template) {
-    if (template === '{status}') {
-        return props.blockContext.ipAllowed ? 'Online' : 'Offline';
+    if (isStatusField(template)) {
+        return props.blockContext.internetEnabled ? 'Online' : 'Offline';
     }
     const result = renderTemplate(template, props.blockContext);
     return result || '\u2014';
@@ -47,7 +51,17 @@ function resolveValue(template) {
                 <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
                     {{ field.label }}
                 </span>
-                <span class="font-mono text-[13px] font-medium text-[var(--color-text)]">
+                <span class="flex items-center gap-1.5 font-mono text-[13px] font-medium text-[var(--color-text)]">
+                    <span
+                        v-if="isStatusField(field.value)"
+                        data-testid="status-dot"
+                        class="inline-block size-2 shrink-0 rounded-full"
+                        :class="
+                            props.blockContext.internetEnabled
+                                ? 'bg-[var(--color-success)]'
+                                : 'bg-[var(--color-danger)]'
+                        "
+                    />
                     {{ resolveValue(field.value) }}
                 </span>
             </div>

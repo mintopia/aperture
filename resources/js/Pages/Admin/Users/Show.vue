@@ -33,7 +33,7 @@ function confirmBlock() {
     router.post(
         route('admin.users.block', props.user.id),
         {
-            block: props.user.blocked ? 0 : 1,
+            block: props.user.internet_blocked ? 0 : 1,
         },
         {
             preserveScroll: true,
@@ -75,29 +75,29 @@ const ipColumns = [
                     Edit
                 </a>
                 <button
-                    :data-testid="user.blocked ? 'action-unblock' : 'action-block'"
+                    :data-testid="user.internet_blocked ? 'action-unblock' : 'action-block'"
                     :class="
-                        user.blocked
+                        user.internet_blocked
                             ? 'rounded-md border border-[var(--color-success)] bg-[var(--color-success)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition-colors hover:opacity-90'
                             : 'rounded-md border border-[var(--color-danger)] bg-[var(--color-danger)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition-colors hover:opacity-90'
                     "
                     @click="toggleBlock"
                 >
-                    {{ user.blocked ? 'Unblock' : 'Block' }}
+                    {{ user.internet_blocked ? 'Unblock' : 'Block' }}
                 </button>
             </div>
         </header>
 
         <ConfirmModal
             :show="showBlockModal"
-            :title="user.blocked ? 'Unblock User?' : 'Block User?'"
+            :title="user.internet_blocked ? 'Unblock User?' : 'Block User?'"
             :message="
-                user.blocked
+                user.internet_blocked
                     ? 'This will restore internet access for this user and their associated IPs.'
                     : 'This will deny internet access for this user and their associated IPs.'
             "
-            :confirm-label="user.blocked ? 'Unblock' : 'Block'"
-            :variant="user.blocked ? 'primary' : 'danger'"
+            :confirm-label="user.internet_blocked ? 'Unblock' : 'Block'"
+            :variant="user.internet_blocked ? 'primary' : 'danger'"
             :loading="blocking"
             @confirm="confirmBlock"
             @cancel="showBlockModal = false"

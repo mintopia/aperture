@@ -12,7 +12,7 @@ describe('BlockGrid', () => {
     const defaultContext = {
         currentIpv4: '10.0.0.1',
         currentIpv6: 'fe80::1',
-        ipAllowed: true,
+        internetEnabled: true,
         macAddress: 'AA:BB:CC:DD:EE:FF',
         user: { name: 'Player', params: {} },
     };

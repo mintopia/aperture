@@ -156,8 +156,8 @@ function userHref(id) {
                             </td>
                             <td class="py-[10px]">
                                 <StatusPill
-                                    :status="row.blocked ? 'danger' : 'success'"
-                                    :label="row.blocked ? 'Blocked' : 'Active'"
+                                    :status="row.internet_blocked ? 'danger' : 'success'"
+                                    :label="row.internet_blocked ? 'Blocked' : 'Active'"
                                 />
                             </td>
                             <td class="py-[10px] font-mono text-[12px] text-[var(--color-text-muted)]">

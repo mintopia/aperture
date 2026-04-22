@@ -7,7 +7,7 @@ describe('ConnectionStripBlock', () => {
         currentIpv4: '10.0.0.1',
         currentIpv6: 'fe80::1',
         macAddress: 'AA:BB:CC:DD:EE:FF',
-        ipAllowed: true,
+        internetEnabled: true,
         user: { name: 'Player', params: { seat: 'A42' } },
     };
 
@@ -65,29 +65,29 @@ describe('ConnectionStripBlock', () => {
         expect(wrapper.text()).toContain('\u2014');
     });
 
-    it('renders status as Online when ipAllowed is true', () => {
+    it('renders status as Online when internetEnabled is true', () => {
         const wrapper = mount(ConnectionStripBlock, {
             props: {
                 settings: {},
-                blockContext: { ...defaultContext, ipAllowed: true },
+                blockContext: { ...defaultContext, internetEnabled: true },
             },
         });
         expect(wrapper.text()).toContain('Status');
         expect(wrapper.text()).toContain('Online');
     });
 
-    it('renders status as Offline when ipAllowed is false', () => {
+    it('renders status as Offline when internetEnabled is false', () => {
         const wrapper = mount(ConnectionStripBlock, {
             props: {
                 settings: {},
-                blockContext: { ...defaultContext, ipAllowed: false },
+                blockContext: { ...defaultContext, internetEnabled: false },
             },
         });
         expect(wrapper.text()).toContain('Status');
         expect(wrapper.text()).toContain('Offline');
     });
 
-    it('renders status as Offline when ipAllowed is undefined', () => {
+    it('renders status as Offline when internetEnabled is undefined', () => {
         const wrapper = mount(ConnectionStripBlock, {
             props: {
                 settings: {},
@@ -103,5 +103,39 @@ describe('ConnectionStripBlock', () => {
             props: { settings: null, blockContext: defaultContext },
         });
         expect(wrapper.text()).toContain('IPv4');
+    });
+
+    it('shows a green status dot when online', () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: {
+                settings: {},
+                blockContext: { ...defaultContext, internetEnabled: true },
+            },
+        });
+        const dot = wrapper.find('[data-testid="status-dot"]');
+        expect(dot.exists()).toBe(true);
+        expect(dot.classes()).toContain('bg-[var(--color-success)]');
+    });
+
+    it('shows a red status dot when offline', () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: {
+                settings: {},
+                blockContext: { ...defaultContext, internetEnabled: false },
+            },
+        });
+        const dot = wrapper.find('[data-testid="status-dot"]');
+        expect(dot.exists()).toBe(true);
+        expect(dot.classes()).toContain('bg-[var(--color-danger)]');
+    });
+
+    it('does not show status dot on non-status fields', () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: {
+                settings: { fields: [{ label: 'IP', value: '{ipv4}' }] },
+                blockContext: defaultContext,
+            },
+        });
+        expect(wrapper.find('[data-testid="status-dot"]').exists()).toBe(false);
     });
 });

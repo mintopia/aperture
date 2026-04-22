@@ -44,7 +44,7 @@ describe('Portal Dashboard', () => {
         blockContext: {
             currentIpv4: '10.0.0.1',
             currentIpv6: 'fe80::1',
-            ipAllowed: true,
+            internetEnabled: true,
             macAddress: 'AA:BB:CC:DD:EE:FF',
             user: { name: 'Player', params: { seat: 'A42' } },
         },
@@ -88,7 +88,7 @@ describe('Portal Dashboard', () => {
         const blockContext = {
             currentIpv4: '192.168.1.1',
             currentIpv6: '',
-            ipAllowed: false,
+            internetEnabled: false,
             macAddress: null,
             user: { name: '', params: {} },
         };

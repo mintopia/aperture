@@ -47,9 +47,9 @@ const filteredUsers = computed(() => {
     }
 
     if (filterValues.value.status === 'active') {
-        result = result.filter((u) => !u.blocked);
+        result = result.filter((u) => !u.internet_blocked);
     } else if (filterValues.value.status === 'blocked') {
-        result = result.filter((u) => u.blocked);
+        result = result.filter((u) => u.internet_blocked);
     }
 
     return result;
@@ -57,8 +57,8 @@ const filteredUsers = computed(() => {
 
 const userSummary = computed(() => ({
     total: allUsers.value.length,
-    active: allUsers.value.filter((u) => !u.blocked).length,
-    blocked: allUsers.value.filter((u) => u.blocked).length,
+    active: allUsers.value.filter((u) => !u.internet_blocked).length,
+    blocked: allUsers.value.filter((u) => u.internet_blocked).length,
 }));
 </script>
 
@@ -158,8 +158,8 @@ const userSummary = computed(() => ({
                     </td>
                     <td>
                         <StatusPill
-                            :status="row.blocked ? 'danger' : 'success'"
-                            :label="row.blocked ? 'Blocked' : 'Active'"
+                            :status="row.internet_blocked ? 'danger' : 'success'"
+                            :label="row.internet_blocked ? 'Blocked' : 'Active'"
                         />
                     </td>
                 </template>

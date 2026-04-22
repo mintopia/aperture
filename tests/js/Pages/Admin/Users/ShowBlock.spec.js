@@ -20,7 +20,7 @@ vi.stubGlobal('route', (name) => `/mocked/${name}`);
 
 describe('Admin User Show block confirmation modal integration', () => {
     const defaultProps = {
-        user: { id: 1, nickname: 'TestUser', email: 'test@example.com', blocked: false },
+        user: { id: 1, nickname: 'TestUser', email: 'test@example.com', internet_blocked: false },
         roles: [{ name: 'user' }],
         ips: [
             { ip: { address: '192.168.1.10', allowed: true }, last_seen_at: '2024-01-01T00:00:00Z' },
@@ -71,7 +71,7 @@ describe('Admin User Show block confirmation modal integration', () => {
 
     it('shows unblock confirmation modal when clicking unblock on a blocked user', async () => {
         const wrapper = mountPage({
-            user: { blocked: true },
+            user: { internet_blocked: true },
         });
 
         await wrapper.find('[data-testid="action-unblock"]').trigger('click');
@@ -95,7 +95,7 @@ describe('Admin User Show block confirmation modal integration', () => {
 
     it('canceling unblock confirmation closes modal without posting', async () => {
         const wrapper = mountPage({
-            user: { blocked: true },
+            user: { internet_blocked: true },
         });
 
         await wrapper.find('[data-testid="action-unblock"]').trigger('click');
@@ -122,7 +122,7 @@ describe('Admin User Show block confirmation modal integration', () => {
 
     it('confirming unblock action triggers router.post with correct arguments', async () => {
         const wrapper = mountPage({
-            user: { blocked: true },
+            user: { internet_blocked: true },
         });
 
         await wrapper.find('[data-testid="action-unblock"]').trigger('click');
@@ -155,7 +155,7 @@ describe('Admin User Show block confirmation modal integration', () => {
 
     it('unblock modal message describes consequences', async () => {
         const wrapper = mountPage({
-            user: { blocked: true },
+            user: { internet_blocked: true },
         });
 
         await wrapper.find('[data-testid="action-unblock"]').trigger('click');
