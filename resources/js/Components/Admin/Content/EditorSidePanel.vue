@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed, onBeforeUnmount } from 'vue';
 import { TEMPLATE_VARIABLES, TEMPLATE_VARIABLE_GROUPS } from '@/utils/templateVariables.js';
+import MarkdownEditor from '@/Components/UI/MarkdownEditor.vue';
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -21,7 +22,7 @@ const fields = ref(
 );
 
 // DNS filter settings
-const settingsTitle = ref(props.block.settings?.title ?? '');
+const settingsLabel = ref(props.block.settings?.label ?? '');
 const settingsDescription = ref(props.block.settings?.description ?? '');
 
 // Template variables
@@ -94,7 +95,7 @@ watch(
         content.value = b.content ?? '';
         isActive.value = b.is_active;
         fields.value = b.type === 'connection_strip' ? JSON.parse(JSON.stringify(b.settings?.fields ?? [])) : [];
-        settingsTitle.value = b.settings?.title ?? '';
+        settingsLabel.value = b.settings?.label ?? '';
         settingsDescription.value = b.settings?.description ?? '';
     },
 );
@@ -112,7 +113,7 @@ function buildSettings() {
         return { fields: fields.value };
     }
     if (props.block.type === 'dns_filter') {
-        return { title: settingsTitle.value };
+        return { label: settingsLabel.value };
     }
     return props.block.settings;
 }
@@ -169,17 +170,12 @@ function save() {
             />
         </div>
 
-        <div v-if="textTypes.includes(block.type)" class="mb-4">
-            <label class="mb-1 block text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
-                Content
-            </label>
-            <textarea
-                v-model="content"
-                data-testid="panel-content-input"
-                rows="4"
-                class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-text)]"
-                @focus="onInputFocus"
-            />
+        <div v-if="textTypes.includes(block.type)" class="mb-4" data-testid="panel-content-input">
+            <MarkdownEditor v-model="content" height="200px">
+                <template #label>
+                    <label class="text-[12px] font-semibold text-[var(--color-text-secondary)]">Content</label>
+                </template>
+            </MarkdownEditor>
         </div>
 
         <div v-if="block.type === 'connection_strip'" class="mb-4" data-testid="panel-fields-editor">
@@ -222,8 +218,8 @@ function save() {
                 Label
             </label>
             <input
-                v-model="settingsTitle"
-                data-testid="panel-settings-title"
+                v-model="settingsLabel"
+                data-testid="panel-settings-label"
                 placeholder="Text shown next to the toggle"
                 class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-text)]"
             />

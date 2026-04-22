@@ -2,6 +2,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import EditorSidePanel from '@/Components/Admin/Content/EditorSidePanel.vue';
 
+const MarkdownEditorStub = {
+    template:
+        '<div data-testid="markdown-editor"><textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" data-testid="editor-source"></textarea></div>',
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+};
+
+function mountPanel(options = {}) {
+    const { attachTo, ...rest } = options;
+    return mount(EditorSidePanel, {
+        ...rest,
+        attachTo,
+        global: {
+            stubs: { MarkdownEditor: MarkdownEditorStub },
+        },
+    });
+}
+
 describe('EditorSidePanel', () => {
     const block = {
         id: 1,
@@ -15,30 +33,32 @@ describe('EditorSidePanel', () => {
     };
 
     it('renders block type as read-only', () => {
-        const wrapper = mount(EditorSidePanel, { props: { block } });
+        const wrapper = mountPanel({ props: { block } });
         expect(wrapper.text()).toContain('custom_markdown');
     });
 
     it('renders title input with block title', () => {
-        const wrapper = mount(EditorSidePanel, { props: { block } });
+        const wrapper = mountPanel({ props: { block } });
         const input = wrapper.find('[data-testid="panel-title-input"]');
         expect(input.element.value).toBe('Welcome');
     });
 
-    it('renders content textarea for text blocks', () => {
-        const wrapper = mount(EditorSidePanel, { props: { block } });
+    it('renders content editor for text blocks', () => {
+        const wrapper = mountPanel({ props: { block } });
         expect(wrapper.find('[data-testid="panel-content-input"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="markdown-editor"]').exists()).toBe(true);
     });
 
-    it('hides content textarea for non-text blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
+    it('hides content editor for non-text blocks', () => {
+        const wrapper = mountPanel({
             props: { block: { ...block, type: 'bandwidth', settings: {} } },
         });
         expect(wrapper.find('[data-testid="panel-content-input"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="markdown-editor"]').exists()).toBe(false);
     });
 
     it('does not show col_span or row_span controls', () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block: { ...block, settings: {} } },
         });
         expect(wrapper.find('[data-testid="panel-col-span"]').exists()).toBe(false);
@@ -46,7 +66,7 @@ describe('EditorSidePanel', () => {
     });
 
     it('emits save event with updated data', async () => {
-        const wrapper = mount(EditorSidePanel, { props: { block } });
+        const wrapper = mountPanel({ props: { block } });
         await wrapper.find('[data-testid="panel-title-input"]').setValue('Updated');
         await wrapper.find('[data-testid="panel-save"]').trigger('click');
         expect(wrapper.emitted('save')).toBeTruthy();
@@ -54,19 +74,19 @@ describe('EditorSidePanel', () => {
     });
 
     it('emits delete event', async () => {
-        const wrapper = mount(EditorSidePanel, { props: { block } });
+        const wrapper = mountPanel({ props: { block } });
         await wrapper.find('[data-testid="panel-delete"]').trigger('click');
         expect(wrapper.emitted('delete')).toBeTruthy();
     });
 
     it('emits close event', async () => {
-        const wrapper = mount(EditorSidePanel, { props: { block } });
+        const wrapper = mountPanel({ props: { block } });
         await wrapper.find('[data-testid="panel-close"]').trigger('click');
         expect(wrapper.emitted('close')).toBeTruthy();
     });
 
     it('shows connection strip field editor for connection_strip blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: {
                 block: {
                     ...block,
@@ -79,49 +99,50 @@ describe('EditorSidePanel', () => {
     });
 
     it('shows add field button for connection_strip blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block: { ...block, type: 'connection_strip', settings: { fields: [] } } },
         });
         expect(wrapper.find('[data-testid="panel-add-field"]').exists()).toBe(true);
     });
 
     it('does not show field editor for non-connection_strip blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block: { ...block, type: 'custom_markdown', settings: {} } },
         });
         expect(wrapper.find('[data-testid="panel-fields-editor"]').exists()).toBe(false);
     });
 
     it('shows dns filter label input for dns_filter blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
-            props: { block: { ...block, type: 'dns_filter', settings: { title: 'Custom' } } },
+        const wrapper = mountPanel({
+            props: { block: { ...block, type: 'dns_filter', settings: { label: 'Custom' } } },
         });
-        expect(wrapper.find('[data-testid="panel-settings-title"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="panel-settings-label"]').exists()).toBe(true);
     });
 
-    it('shows content textarea for dns_filter blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
+    it('shows content editor for dns_filter blocks', () => {
+        const wrapper = mountPanel({
             props: { block: { ...block, type: 'dns_filter', content: 'Some desc', settings: {} } },
         });
         expect(wrapper.find('[data-testid="panel-content-input"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="markdown-editor"]').exists()).toBe(true);
     });
 
     it('shows template variable reference for connection_strip blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block: { ...block, type: 'connection_strip', settings: { fields: [] } } },
         });
         expect(wrapper.find('[data-testid="panel-template-variables"]').exists()).toBe(true);
     });
 
     it('shows template variable reference for custom_markdown blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block: { ...block, type: 'custom_markdown', settings: {} } },
         });
         expect(wrapper.find('[data-testid="panel-template-variables"]').exists()).toBe(true);
     });
 
     it('does not show template variable reference for bandwidth blocks', () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block: { ...block, type: 'bandwidth', settings: {} } },
         });
         expect(wrapper.find('[data-testid="panel-template-variables"]').exists()).toBe(false);
@@ -133,7 +154,7 @@ describe('EditorSidePanel', () => {
             type: 'connection_strip',
             settings: { fields: [{ label: 'IP', value: '{ipv4}' }] },
         };
-        const wrapper = mount(EditorSidePanel, { props: { block: stripBlock } });
+        const wrapper = mountPanel({ props: { block: stripBlock } });
         await wrapper.find('[data-testid="panel-save"]').trigger('click');
         const emitted = wrapper.emitted('save')[0][0];
         expect(emitted).toHaveProperty('settings');
@@ -146,22 +167,22 @@ describe('EditorSidePanel', () => {
         const dnsBlock = {
             ...block,
             type: 'dns_filter',
-            settings: { title: 'Custom', description: 'Desc' },
+            settings: { label: 'Custom', description: 'Desc' },
         };
-        const wrapper = mount(EditorSidePanel, { props: { block: dnsBlock } });
+        const wrapper = mountPanel({ props: { block: dnsBlock } });
         await wrapper.find('[data-testid="panel-save"]').trigger('click');
         const emitted = wrapper.emitted('save')[0][0];
         expect(emitted).toHaveProperty('settings');
-        expect(emitted.settings.title).toBe('Custom');
+        expect(emitted.settings.label).toBe('Custom');
     });
 
     it('has a resize handle on the left edge', () => {
-        const wrapper = mount(EditorSidePanel, { props: { block } });
+        const wrapper = mountPanel({ props: { block } });
         expect(wrapper.find('[data-testid="panel-resize-handle"]').exists()).toBe(true);
     });
 
     it('resizes panel width on drag', async () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block },
             attachTo: document.body,
         });
@@ -185,7 +206,7 @@ describe('EditorSidePanel', () => {
     });
 
     it('enforces minimum panel width of 280px', async () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block },
             attachTo: document.body,
         });
@@ -206,7 +227,7 @@ describe('EditorSidePanel', () => {
     });
 
     it('enforces maximum panel width of 50% viewport', async () => {
-        const wrapper = mount(EditorSidePanel, {
+        const wrapper = mountPanel({
             props: { block },
             attachTo: document.body,
         });
@@ -240,37 +261,13 @@ describe('EditorSidePanel', () => {
             vi.restoreAllMocks();
         });
 
-        it('inserts variable key at cursor position of last focused content textarea', async () => {
-            const wrapper = mount(EditorSidePanel, {
-                props: { block: { ...block, type: 'custom_markdown', settings: {} } },
-                attachTo: document.body,
-            });
-
-            // Expand the variables section
-            await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
-
-            // Focus the content textarea and set cursor position
-            const textarea = wrapper.find('[data-testid="panel-content-input"]');
-            await textarea.trigger('focus');
-            textarea.element.setSelectionRange(5, 5);
-
-            // Click a variable chip
-            const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
-            await chip.trigger('click');
-
-            // Content should have the variable key inserted at position 5
-            expect(textarea.element.value).toBe('Hello{ipv4} world');
-
-            wrapper.unmount();
-        });
-
         it('inserts variable key at cursor position of last focused field value input', async () => {
             const stripBlock = {
                 ...block,
                 type: 'connection_strip',
                 settings: { fields: [{ label: 'Address', value: 'IP: ' }] },
             };
-            const wrapper = mount(EditorSidePanel, {
+            const wrapper = mountPanel({
                 props: { block: stripBlock },
                 attachTo: document.body,
             });
@@ -294,7 +291,7 @@ describe('EditorSidePanel', () => {
         });
 
         it('copies variable key to clipboard when no input is focused', async () => {
-            const wrapper = mount(EditorSidePanel, {
+            const wrapper = mountPanel({
                 props: { block: { ...block, type: 'custom_markdown', settings: {} } },
                 attachTo: document.body,
             });
@@ -313,7 +310,7 @@ describe('EditorSidePanel', () => {
 
         it('shows Copied! tooltip after clipboard copy and clears it', async () => {
             vi.useFakeTimers();
-            const wrapper = mount(EditorSidePanel, {
+            const wrapper = mountPanel({
                 props: { block: { ...block, type: 'custom_markdown', settings: {} } },
                 attachTo: document.body,
             });
@@ -339,26 +336,31 @@ describe('EditorSidePanel', () => {
             wrapper.unmount();
         });
 
-        it('replaces selected text when inserting variable into input', async () => {
-            const wrapper = mount(EditorSidePanel, {
-                props: { block: { ...block, type: 'custom_markdown', content: 'Hello world', settings: {} } },
+        it('inserts variable key at cursor position of last focused field value input (replacing selection)', async () => {
+            const stripBlock = {
+                ...block,
+                type: 'connection_strip',
+                settings: { fields: [{ label: 'Address', value: 'Hello world' }] },
+            };
+            const wrapper = mountPanel({
+                props: { block: stripBlock },
                 attachTo: document.body,
             });
 
             // Expand the variables section
             await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
 
-            // Focus the content textarea and select "world"
-            const textarea = wrapper.find('[data-testid="panel-content-input"]');
-            await textarea.trigger('focus');
-            textarea.element.setSelectionRange(6, 11);
+            // Focus the field value input and select "world"
+            const fieldInput = wrapper.find('[data-testid="panel-field-value-0"]');
+            await fieldInput.trigger('focus');
+            fieldInput.element.setSelectionRange(6, 11);
 
             // Click a variable chip
             const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
             await chip.trigger('click');
 
             // "world" should be replaced with the variable key
-            expect(textarea.element.value).toBe('Hello {ipv4}');
+            expect(fieldInput.element.value).toBe('Hello {ipv4}');
 
             wrapper.unmount();
         });
