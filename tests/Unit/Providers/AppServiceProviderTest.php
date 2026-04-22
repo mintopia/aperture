@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Providers;
 
+use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
 use App\Providers\AppServiceProvider;
@@ -18,11 +19,14 @@ use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NtopNgService;
 use App\Services\PiHole\PiHoleService;
+use App\Services\Prometheus\NullTrafficMonitor;
 use App\Services\Prometheus\PrometheusService;
+use App\Services\Prometheus\PrometheusTrafficMonitor;
 use App\Services\SshProxy\SshProxyClient;
 use App\Services\SshProxy\SshProxyClientInterface;
 use Illuminate\Database\Events\QueryExecuted;
@@ -223,5 +227,59 @@ class AppServiceProviderTest extends TestCase
         } finally {
             // DB::listen callbacks are cleared per test — no cleanup needed
         }
+    }
+
+    public function test_traffic_monitor_returns_null_monitor_when_prometheus_not_assigned(): void
+    {
+        $this->app->forgetInstance(TrafficMonitorInterface::class);
+
+        $service = $this->app->make(TrafficMonitorInterface::class);
+
+        $this->assertInstanceOf(NullTrafficMonitor::class, $service);
+    }
+
+    public function test_traffic_monitor_returns_prometheus_monitor_when_capability_assigned(): void
+    {
+        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+        IntegrationConfig::setValue('prometheus', 'enabled', '1');
+        IntegrationConfig::setValue('prometheus', 'verify_ssl', '1');
+        IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
+        IntegrationConfig::setValue('prometheus', 'default_step', '60');
+
+        CapabilityAssignment::assign('user-bandwidth', 'prometheus');
+
+        $this->app->forgetInstance(TrafficMonitorInterface::class);
+
+        $service = $this->app->make(TrafficMonitorInterface::class);
+
+        $this->assertInstanceOf(PrometheusTrafficMonitor::class, $service);
+    }
+
+    public function test_traffic_monitor_returns_null_monitor_when_prometheus_not_enabled(): void
+    {
+        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+        IntegrationConfig::setValue('prometheus', 'enabled', '0');
+
+        CapabilityAssignment::assign('user-bandwidth', 'prometheus');
+
+        $this->app->forgetInstance(TrafficMonitorInterface::class);
+
+        $service = $this->app->make(TrafficMonitorInterface::class);
+
+        $this->assertInstanceOf(NullTrafficMonitor::class, $service);
+    }
+
+    public function test_traffic_monitor_returns_null_monitor_when_prometheus_has_no_endpoint(): void
+    {
+        IntegrationConfig::setValue('prometheus', 'endpoint', '');
+        IntegrationConfig::setValue('prometheus', 'enabled', '1');
+
+        CapabilityAssignment::assign('user-bandwidth', 'prometheus');
+
+        $this->app->forgetInstance(TrafficMonitorInterface::class);
+
+        $service = $this->app->make(TrafficMonitorInterface::class);
+
+        $this->assertInstanceOf(NullTrafficMonitor::class, $service);
     }
 }

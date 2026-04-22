@@ -134,7 +134,7 @@ class PrometheusService implements MetricsProviderInterface
         );
     }
 
-    protected function escapePromQLLabelValue(string $value): string
+    public function escapePromQLLabelValue(string $value): string
     {
         return str_replace(['\\', '"', "\n"], ['\\\\', '\\"', '\\n'], $value);
     }

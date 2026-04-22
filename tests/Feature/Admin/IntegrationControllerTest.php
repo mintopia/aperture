@@ -179,6 +179,74 @@ class IntegrationControllerTest extends TestCase
         $this->assertNull(IntegrationConfig::getValue('opnsense', 'unknown_key'));
     }
 
+    public function test_integer_config_values_are_stored_as_integers(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/pihole', [
+            'config' => [
+                'endpoint' => 'https://pihole.test',
+                'password' => 'secret',
+                'noblock_group_id' => '3',
+                'enabled' => '1',
+                'verify_ssl' => '1',
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $stored = IntegrationConfig::getValue('pihole', 'noblock_group_id');
+        $this->assertSame(3, $stored);
+        $this->assertIsInt($stored);
+    }
+
+    public function test_null_integer_config_values_remain_null(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/pihole', [
+            'config' => [
+                'endpoint' => 'https://pihole.test',
+                'password' => 'secret',
+                'noblock_group_id' => null,
+                'enabled' => '1',
+                'verify_ssl' => '1',
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $stored = IntegrationConfig::getValue('pihole', 'noblock_group_id');
+        $this->assertNull($stored);
+    }
+
+    public function test_numeric_config_values_are_stored_with_correct_type(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/prometheus', [
+            'config' => [
+                'endpoint' => 'https://prometheus.test',
+                'bearer_token' => 'tok',
+                'verify_ssl' => '1',
+                'default_step' => '60',
+                'enabled' => '1',
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $stored = IntegrationConfig::getValue('prometheus', 'default_step');
+        $this->assertSame(60, $stored);
+        $this->assertIsInt($stored);
+    }
+
     public function test_non_admin_cannot_access_integration(): void
     {
         Queue::fake();

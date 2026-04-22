@@ -136,11 +136,38 @@ class IntegrationController extends Controller
                 continue;
             }
 
+            $value = $this->castConfigValue($value, $validationRules[$key]);
+
             $encrypted = in_array($key, IntegrationConfig::ENCRYPTED_KEYS, true);
             IntegrationConfig::setValue($service, $key, $value, $encrypted);
         }
 
         return back()->with('success', 'Integration settings updated.');
+    }
+
+    /**
+     * Cast a config value to the appropriate PHP type based on its validation rule.
+     *
+     * HTML form inputs always submit strings; this ensures values like "integer"
+     * fields are stored with their correct PHP type.
+     */
+    private function castConfigValue(mixed $value, string $rule): mixed
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        $parts = explode('|', $rule);
+
+        if (in_array('integer', $parts, true)) {
+            return (int) $value;
+        }
+
+        if (in_array('numeric', $parts, true)) {
+            return is_numeric($value) ? $value + 0 : $value;
+        }
+
+        return $value;
     }
 
     public function toggleCapability(Request $request): JsonResponse

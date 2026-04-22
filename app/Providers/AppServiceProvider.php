@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
 use App\Services\Auth\BorealisDeviceFlowService;
@@ -25,13 +26,16 @@ use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\LibreNmsService;
 use App\Services\MacAddressResolver;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NtopNgService;
 use App\Services\PiHole\PiHoleService;
 use App\Services\Prometheus\NullMetricsProvider;
+use App\Services\Prometheus\NullTrafficMonitor;
 use App\Services\Prometheus\PrometheusService;
+use App\Services\Prometheus\PrometheusTrafficMonitor;
 use App\Services\SshProxy\SshProxyClient;
 use App\Services\SshProxy\SshProxyClientInterface;
 use GuzzleHttp\Client;
@@ -130,6 +134,33 @@ class AppServiceProvider extends ServiceProvider
                 verifySsl: (bool) ($config['verify_ssl'] ?? true),
                 defaultStep: (int) ($config['default_step'] ?? 60),
             );
+        });
+
+        $this->app->singleton(function (): TrafficMonitorInterface {
+            try {
+                $isPrometheus = CapabilityAssignment::isActiveProvider('prometheus', 'user-bandwidth');
+            } catch (Throwable) {
+                $isPrometheus = false;
+            }
+
+            if (! $isPrometheus) {
+                return new NullTrafficMonitor;
+            }
+
+            $config = $this->getIntegrationDbConfig('prometheus');
+            $endpoint = $config['endpoint'] ?? '';
+            if ($endpoint === '' || ! ($config['enabled'] ?? false)) {
+                return new NullTrafficMonitor;
+            }
+
+            $prometheus = new PrometheusService(
+                endpoint: $endpoint,
+                bearerToken: $config['bearer_token'] ?? '',
+                verifySsl: (bool) ($config['verify_ssl'] ?? true),
+                defaultStep: (int) ($config['default_step'] ?? 60),
+            );
+
+            return new PrometheusTrafficMonitor($prometheus);
         });
     }
 

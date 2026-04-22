@@ -245,7 +245,7 @@ return [
     'prometheus' => [
         'name' => 'Prometheus',
         'description' => 'Time-series metrics database for network bandwidth and device monitoring.',
-        'capabilities' => ['port-bandwidth', 'port-errors', 'device-metrics', 'aggregate-stats'],
+        'capabilities' => ['port-bandwidth', 'port-errors', 'device-metrics', 'aggregate-stats', 'user-bandwidth'],
         'fields' => [
             'endpoint' => [
                 'type' => 'url',
