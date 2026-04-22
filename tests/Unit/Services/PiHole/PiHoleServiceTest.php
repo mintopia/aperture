@@ -4,26 +4,56 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\PiHole;
 
+use App\Models\IpAddress;
 use App\Services\PiHole\PiHoleService;
+use App\Services\ValueObjects\ReconcileResult;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Tests\TestCase;
 
 class PiHoleServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
+    /** @var array<int, array{request: Request}> */
+    private array $history = [];
+
     /**
      * @param  array<int, Response>  $responses
      */
     private function createServiceWithMock(array $responses): PiHoleService
     {
+        $this->history = [];
         $mock = new MockHandler($responses);
         $handler = HandlerStack::create($mock);
+        $handler->push($this->captureHistory());
+
         $client = new Client(['handler' => $handler]);
 
         return new PiHoleService($client, 'test-password', 1);
+    }
+
+    private function captureHistory(): callable
+    {
+        return function (callable $handler): callable {
+            return function (RequestInterface $request, array $options) use ($handler) {
+                return $handler($request, $options)->then(
+                    function (ResponseInterface $response) use ($request): ResponseInterface {
+                        /** @var Request $request */
+                        $this->history[] = ['request' => $request];
+
+                        return $response;
+                    }
+                );
+            };
+        };
     }
 
     private function authResponse(): Response
@@ -36,23 +66,7 @@ class PiHoleServiceTest extends TestCase
         ]));
     }
 
-    public function test_is_enabled_returns_true_when_client_not_in_noblock_group(): void
-    {
-        Cache::flush();
-
-        $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            new Response(200, [], (string) json_encode([
-                'clients' => [
-                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0], 'comment' => ''],
-                ],
-            ])),
-        ]);
-
-        $this->assertTrue($service->isEnabledForIp('10.0.0.10'));
-    }
-
-    public function test_is_enabled_returns_false_when_client_in_noblock_group(): void
+    public function test_is_enabled_returns_true_when_filtered_group_in_client_groups(): void
     {
         Cache::flush();
 
@@ -65,24 +79,10 @@ class PiHoleServiceTest extends TestCase
             ])),
         ]);
 
-        $this->assertFalse($service->isEnabledForIp('10.0.0.10'));
+        $this->assertTrue($service->isEnabledForIp('10.0.0.10'));
     }
 
-    public function test_is_enabled_returns_true_when_client_not_found(): void
-    {
-        Cache::flush();
-
-        $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            new Response(200, [], (string) json_encode([
-                'clients' => [],
-            ])),
-        ]);
-
-        $this->assertTrue($service->isEnabledForIp('10.0.0.99'));
-    }
-
-    public function test_disable_adds_client_to_noblock_group_when_client_exists(): void
+    public function test_is_enabled_returns_false_when_filtered_group_not_in_client_groups(): void
     {
         Cache::flush();
 
@@ -93,14 +93,51 @@ class PiHoleServiceTest extends TestCase
                     ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0], 'comment' => ''],
                 ],
             ])),
+        ]);
+
+        $this->assertFalse($service->isEnabledForIp('10.0.0.10'));
+    }
+
+    public function test_is_enabled_returns_false_when_client_not_found(): void
+    {
+        Cache::flush();
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            new Response(200, [], (string) json_encode([
+                'clients' => [],
+            ])),
+        ]);
+
+        $this->assertFalse($service->isEnabledForIp('10.0.0.99'));
+    }
+
+    public function test_enable_adds_filtered_group_to_client_groups(): void
+    {
+        Cache::flush();
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0], 'comment' => 'Test comment'],
+                ],
+            ])),
             new Response(200, [], (string) json_encode(['client' => ['id' => 5]])),
         ]);
 
-        $service->disableForIp('10.0.0.10');
-        $this->assertTrue(true);
+        $service->enableForIp('10.0.0.10');
+
+        $putRequest = $this->history[2]['request'];
+        $this->assertSame('PUT', $putRequest->getMethod());
+        $this->assertSame('/api/clients/10.0.0.10', $putRequest->getUri()->getPath());
+
+        $body = json_decode($putRequest->getBody()->getContents(), true);
+        $this->assertSame([0, 1], $body['groups']);
+        $this->assertSame('Test comment', $body['comment']);
     }
 
-    public function test_disable_creates_client_when_not_found(): void
+    public function test_enable_creates_client_when_not_found(): void
     {
         Cache::flush();
 
@@ -112,11 +149,18 @@ class PiHoleServiceTest extends TestCase
             new Response(201, [], (string) json_encode(['client' => ['id' => 10]])),
         ]);
 
-        $service->disableForIp('10.0.0.20');
-        $this->assertTrue(true);
+        $service->enableForIp('10.0.0.20');
+
+        $postRequest = $this->history[2]['request'];
+        $this->assertSame('POST', $postRequest->getMethod());
+        $this->assertSame('/api/clients', $postRequest->getUri()->getPath());
+
+        $body = json_decode($postRequest->getBody()->getContents(), true);
+        $this->assertSame('10.0.0.20', $body['client']);
+        $this->assertSame([0, 1], $body['groups']);
     }
 
-    public function test_disable_is_noop_when_client_already_in_noblock_group(): void
+    public function test_enable_is_idempotent_when_filtered_group_already_present(): void
     {
         Cache::flush();
 
@@ -129,11 +173,13 @@ class PiHoleServiceTest extends TestCase
             ])),
         ]);
 
-        $service->disableForIp('10.0.0.10');
-        $this->assertTrue(true);
+        $service->enableForIp('10.0.0.10');
+
+        // Only auth + GET, no PUT
+        $this->assertCount(2, $this->history);
     }
 
-    public function test_enable_removes_noblock_group_from_client(): void
+    public function test_disable_removes_filtered_group_from_client_groups(): void
     {
         Cache::flush();
 
@@ -141,17 +187,24 @@ class PiHoleServiceTest extends TestCase
             $this->authResponse(),
             new Response(200, [], (string) json_encode([
                 'clients' => [
-                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0, 1], 'comment' => ''],
+                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0, 1], 'comment' => 'Managed by Aperture'],
                 ],
             ])),
             new Response(200, [], (string) json_encode(['client' => ['id' => 5]])),
         ]);
 
-        $service->enableForIp('10.0.0.10');
-        $this->assertTrue(true);
+        $service->disableForIp('10.0.0.10');
+
+        $putRequest = $this->history[2]['request'];
+        $this->assertSame('PUT', $putRequest->getMethod());
+        $this->assertSame('/api/clients/10.0.0.10', $putRequest->getUri()->getPath());
+
+        $body = json_decode($putRequest->getBody()->getContents(), true);
+        $this->assertSame([0], $body['groups']);
+        $this->assertSame('Managed by Aperture', $body['comment']);
     }
 
-    public function test_enable_is_noop_when_client_not_in_noblock_group(): void
+    public function test_disable_is_idempotent_when_filtered_group_not_present(): void
     {
         Cache::flush();
 
@@ -164,11 +217,13 @@ class PiHoleServiceTest extends TestCase
             ])),
         ]);
 
-        $service->enableForIp('10.0.0.10');
-        $this->assertTrue(true);
+        $service->disableForIp('10.0.0.10');
+
+        // Only auth + GET, no PUT
+        $this->assertCount(2, $this->history);
     }
 
-    public function test_enable_is_noop_when_client_not_found(): void
+    public function test_disable_is_noop_when_client_not_found(): void
     {
         Cache::flush();
 
@@ -179,8 +234,10 @@ class PiHoleServiceTest extends TestCase
             ])),
         ]);
 
-        $service->enableForIp('10.0.0.99');
-        $this->assertTrue(true);
+        $service->disableForIp('10.0.0.99');
+
+        // Only auth + GET, no PUT or POST
+        $this->assertCount(2, $this->history);
     }
 
     public function test_session_id_is_cached(): void
@@ -196,6 +253,154 @@ class PiHoleServiceTest extends TestCase
         $service->isEnabledForIp('10.0.0.10');
         $service->isEnabledForIp('10.0.0.11');
 
-        $this->assertTrue(true);
+        // Auth called once (cached), then 2 GET requests = 3 total
+        $this->assertCount(3, $this->history);
+        $this->assertSame('POST', $this->history[0]['request']->getMethod()); // auth
+        $this->assertSame('GET', $this->history[1]['request']->getMethod());
+        $this->assertSame('GET', $this->history[2]['request']->getMethod());
+    }
+
+    public function test_reconcile_adds_filtered_group_to_enabled_ips_missing_it(): void
+    {
+        Cache::flush();
+
+        // Create IPs in database
+        IpAddress::factory()->create(['address' => '10.0.0.1', 'dns_filtering_enabled' => true]);
+        IpAddress::factory()->create(['address' => '10.0.0.2', 'dns_filtering_enabled' => false]);
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            // fetchAllClients response
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
+                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0], 'comment' => 'Managed by Aperture'],
+                ],
+            ])),
+            // PUT response for adding filteredGroupId to 10.0.0.1
+            new Response(200, [], (string) json_encode(['client' => ['id' => 1]])),
+        ]);
+
+        $result = $service->reconcile();
+
+        $this->assertInstanceOf(ReconcileResult::class, $result);
+        $this->assertSame(['10.0.0.1'], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertSame(['10.0.0.2'], $result->unchanged);
+        $this->assertSame([], $result->errors);
+    }
+
+    public function test_reconcile_removes_filtered_group_from_disabled_ips_having_it(): void
+    {
+        Cache::flush();
+
+        IpAddress::factory()->create(['address' => '10.0.0.1', 'dns_filtering_enabled' => true]);
+        IpAddress::factory()->create(['address' => '10.0.0.2', 'dns_filtering_enabled' => false]);
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            // fetchAllClients response
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0, 1], 'comment' => 'Managed by Aperture'],
+                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0, 1], 'comment' => 'Managed by Aperture'],
+                ],
+            ])),
+            // PUT response for removing filteredGroupId from 10.0.0.2
+            new Response(200, [], (string) json_encode(['client' => ['id' => 2]])),
+        ]);
+
+        $result = $service->reconcile();
+
+        $this->assertInstanceOf(ReconcileResult::class, $result);
+        $this->assertSame([], $result->added);
+        $this->assertSame(['10.0.0.2'], $result->removed);
+        $this->assertSame(['10.0.0.1'], $result->unchanged);
+        $this->assertSame([], $result->errors);
+    }
+
+    public function test_reconcile_dry_run_does_not_apply_changes(): void
+    {
+        Cache::flush();
+
+        IpAddress::factory()->create(['address' => '10.0.0.1', 'dns_filtering_enabled' => true]);
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            // fetchAllClients response
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
+                ],
+            ])),
+        ]);
+
+        $result = $service->reconcile(dryRun: true);
+
+        $this->assertInstanceOf(ReconcileResult::class, $result);
+        $this->assertSame(['10.0.0.1'], $result->added);
+        $this->assertSame([], $result->removed);
+
+        // Only auth + GET for fetchAllClients, no PUT
+        $this->assertCount(2, $this->history);
+    }
+
+    public function test_reconcile_handles_mixed_changes(): void
+    {
+        Cache::flush();
+
+        IpAddress::factory()->create(['address' => '10.0.0.1', 'dns_filtering_enabled' => true]);
+        IpAddress::factory()->create(['address' => '10.0.0.2', 'dns_filtering_enabled' => false]);
+        IpAddress::factory()->create(['address' => '10.0.0.3', 'dns_filtering_enabled' => true]);
+        IpAddress::factory()->create(['address' => '10.0.0.4', 'dns_filtering_enabled' => false]);
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            // fetchAllClients response
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => ''],      // needs add
+                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0, 1], 'comment' => ''],    // needs remove
+                    ['id' => 3, 'client' => '10.0.0.3', 'groups' => [0, 1], 'comment' => ''],    // unchanged (correct)
+                    ['id' => 4, 'client' => '10.0.0.4', 'groups' => [0], 'comment' => ''],        // unchanged (correct)
+                ],
+            ])),
+            // PUT for 10.0.0.1 (add filteredGroupId)
+            new Response(200, [], (string) json_encode(['client' => ['id' => 1]])),
+            // PUT for 10.0.0.2 (remove filteredGroupId)
+            new Response(200, [], (string) json_encode(['client' => ['id' => 2]])),
+        ]);
+
+        $result = $service->reconcile();
+
+        $this->assertInstanceOf(ReconcileResult::class, $result);
+        $this->assertSame(['10.0.0.1'], $result->added);
+        $this->assertSame(['10.0.0.2'], $result->removed);
+        $this->assertEqualsCanonicalizing(['10.0.0.3', '10.0.0.4'], $result->unchanged);
+        $this->assertSame([], $result->errors);
+    }
+
+    public function test_reconcile_with_no_clients_in_pihole(): void
+    {
+        Cache::flush();
+
+        IpAddress::factory()->create(['address' => '10.0.0.1', 'dns_filtering_enabled' => true]);
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            // fetchAllClients response - empty
+            new Response(200, [], (string) json_encode([
+                'clients' => [],
+            ])),
+        ]);
+
+        $result = $service->reconcile();
+
+        $this->assertInstanceOf(ReconcileResult::class, $result);
+        // No clients in PiHole means no changes possible
+        $this->assertSame([], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertSame([], $result->unchanged);
+        $this->assertSame([], $result->errors);
     }
 }
