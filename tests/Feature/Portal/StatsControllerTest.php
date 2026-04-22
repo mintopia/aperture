@@ -28,8 +28,8 @@ class StatsControllerTest extends TestCase
                     received: 3072000,
                     sent: 1536000,
                     timestamps: ['1700000000', '1700000300'],
-                    download: [1024000, 2048000],
-                    upload: [512000, 1024000],
+                    download: [8192000.0, 16384000.0],
+                    upload: [4096000.0, 8192000.0],
                 ));
         });
 
@@ -41,8 +41,8 @@ class StatsControllerTest extends TestCase
                 'totalReceived' => 3072000,
                 'totalSent' => 1536000,
                 'timestamps' => ['1700000000', '1700000300'],
-                'download' => [1024000, 2048000],
-                'upload' => [512000, 1024000],
+                'download' => [8192000.0, 16384000.0],
+                'upload' => [4096000.0, 8192000.0],
             ]);
     }
 
