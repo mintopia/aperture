@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\IpAddressActionService;
@@ -23,6 +22,9 @@ use Throwable;
  *
  * @property int $id
  * @property string $address
+ * @property bool $internet_enabled
+ * @property bool $rate_limit_enabled
+ * @property bool $dns_filtering_enabled
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read string|null $mac
@@ -133,50 +135,6 @@ class IpAddress extends Model
         }
 
         app(IpAddressActionService::class)->unshutPort($this);
-    }
-
-    public function limit(bool $queue = false): void
-    {
-        if ($queue) {
-            IpAddressAction::dispatch($this, 'limit');
-
-            return;
-        }
-
-        app(IpAddressActionService::class)->limit($this);
-    }
-
-    public function unlimit(bool $queue = false): void
-    {
-        if ($queue) {
-            IpAddressAction::dispatch($this, 'unlimit');
-
-            return;
-        }
-
-        app(IpAddressActionService::class)->unlimit($this);
-    }
-
-    public function allow(bool $queue = false): void
-    {
-        if ($queue) {
-            IpAddressAction::dispatch($this, 'allow');
-
-            return;
-        }
-
-        app(IpAddressActionService::class)->allow($this);
-    }
-
-    public function deny(bool $queue = false): void
-    {
-        if ($queue) {
-            IpAddressAction::dispatch($this, 'deny');
-
-            return;
-        }
-
-        app(IpAddressActionService::class)->deny($this);
     }
 
     public function updateUsage(): void
