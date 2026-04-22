@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\IpAddressActionService;
