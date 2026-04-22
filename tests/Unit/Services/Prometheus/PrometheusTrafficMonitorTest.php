@@ -76,14 +76,14 @@ class PrometheusTrafficMonitorTest extends TestCase
         $result = $this->monitor->getUserBandwidth('10.0.0.1', '24h');
 
         $this->assertInstanceOf(UserBandwidth::class, $result);
-        $this->assertSame(3072, $result->received);  // 1024 + 2048
-        $this->assertSame(1280, $result->sent);       // 512 + 768
+        $this->assertSame(921600, $result->received);  // (1024 + 2048) bytes/s * step(300s)
+        $this->assertSame(384000, $result->sent);       // (512 + 768) bytes/s * step(300s)
         $this->assertCount(2, $result->timestamps);
         $this->assertCount(2, $result->download);
         $this->assertCount(2, $result->upload);
         $this->assertSame('1700000000', $result->timestamps[0]);
-        $this->assertSame(1024, $result->download[0]);
-        $this->assertSame(512, $result->upload[0]);
+        $this->assertSame(8192.0, $result->download[0]);   // 1024 bytes/s * 8 = bits/s
+        $this->assertSame(4096.0, $result->upload[0]);     // 512 bytes/s * 8 = bits/s
     }
 
     public function test_get_user_bandwidth_returns_empty_when_no_data(): void
@@ -217,7 +217,7 @@ class PrometheusTrafficMonitorTest extends TestCase
         $this->assertInstanceOf(AggregateStats::class, $result);
         $this->assertSame(42, $result->totalUsers);
         $this->assertSame(5, $result->totalDevices);
-        $this->assertSame(1073741824, $result->totalBandwidth); // 500000000 + 573741824
+        $this->assertSame(8589934592, $result->totalBandwidth); // (500000000 + 573741824) * 8 bits/s
     }
 
     public function test_get_aggregate_stats_returns_zeros_when_no_data(): void
@@ -258,11 +258,11 @@ class PrometheusTrafficMonitorTest extends TestCase
         $this->assertCount(2, $result);
         $this->assertInstanceOf(TopTalker::class, $result->first());
         $this->assertSame('192.168.1.10', $result->first()->ip);
-        $this->assertSame(5000000, $result->first()->received);
+        $this->assertSame(40000000, $result->first()->received);  // 5000000 bytes/s * 8 = bits/s
         $this->assertSame(0, $result->first()->sent);
         $this->assertNull($result->first()->nickname);
         $this->assertSame('192.168.1.20', $result->get(1)->ip);
-        $this->assertSame(3000000, $result->get(1)->received);
+        $this->assertSame(24000000, $result->get(1)->received);   // 3000000 bytes/s * 8 = bits/s
     }
 
     public function test_get_top_talkers_returns_empty_collection_when_no_data(): void
@@ -392,6 +392,7 @@ class PrometheusTrafficMonitorTest extends TestCase
 
         $this->assertCount(1, $result);
         $this->assertSame('10.1.1.1', $result->first()->ip);
+        $this->assertSame(7992, $result->first()->received);  // 999 bytes/s * 8 = bits/s
     }
 
     public function test_get_user_bandwidth_uses_minutes_range(): void
@@ -491,15 +492,15 @@ class PrometheusTrafficMonitorTest extends TestCase
 
         $result = $this->monitor->getUserBandwidth('44.30.69.131', '24h');
 
-        // Should sum across series: 100+50=150, 200+75=275 for download
-        $this->assertSame(150, $result->download[0]);
-        $this->assertSame(275, $result->download[1]);
-        $this->assertSame(425, $result->received);  // 150 + 275
+        // Should sum across series: 100+50=150, 200+75=275 for download, then * 8 for bits/s
+        $this->assertSame(1200.0, $result->download[0]);  // 150 bytes/s * 8
+        $this->assertSame(2200.0, $result->download[1]);  // 275 bytes/s * 8
+        $this->assertSame(127500, $result->received);     // (150 + 275) bytes/s * step(300s)
 
-        // Upload: 10+5=15, 20+8=28
-        $this->assertSame(15, $result->upload[0]);
-        $this->assertSame(28, $result->upload[1]);
-        $this->assertSame(43, $result->sent);  // 15 + 28
+        // Upload: 10+5=15, 20+8=28, then * 8 for bits/s
+        $this->assertSame(120.0, $result->upload[0]);     // 15 bytes/s * 8
+        $this->assertSame(224.0, $result->upload[1]);     // 28 bytes/s * 8
+        $this->assertSame(12900, $result->sent);          // (15 + 28) bytes/s * step(300s)
 
         $this->assertCount(2, $result->timestamps);
         $this->assertSame('1700000000', $result->timestamps[0]);

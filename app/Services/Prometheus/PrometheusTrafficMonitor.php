@@ -29,13 +29,13 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         $escapedIp = $this->prometheus->escapePromQLLabelValue($ipAddress);
 
         $inQuery = sprintf(
-            'sum(rate(%s{%s="%s"}[5m]))',
+            'sum(rate(%s{%s="%s"}[2m]))',
             $this->rcvdMetric,
             $this->ipLabel,
             $escapedIp,
         );
         $outQuery = sprintf(
-            'sum(rate(%s{%s="%s"}[5m]))',
+            'sum(rate(%s{%s="%s"}[2m]))',
             $this->sentMetric,
             $this->ipLabel,
             $escapedIp,
@@ -53,17 +53,24 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         );
 
         $downloadValues = array_map(
-            fn (array $point): int => (int) round((float) $point[1]),
+            fn (array $point): float => (float) $point[1] * 8,
             $inPoints,
         );
 
         $uploadValues = array_map(
-            fn (array $point): int => (int) round((float) $point[1]),
+            fn (array $point): float => (float) $point[1] * 8,
             $outPoints,
         );
 
-        $totalReceived = array_sum($downloadValues);
-        $totalSent = array_sum($uploadValues);
+        $totalReceived = (int) round(array_sum(array_map(
+            fn (array $point): float => (float) $point[1],
+            $inPoints,
+        )) * $step);
+
+        $totalSent = (int) round(array_sum(array_map(
+            fn (array $point): float => (float) $point[1],
+            $outPoints,
+        )) * $step);
 
         return new UserBandwidth(
             received: $totalReceived,
@@ -87,12 +94,12 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         $totalDevices = $this->extractScalarValue($devicesData);
 
         $rcvdBandwidthData = $this->prometheus->query(
-            sprintf('sum(rate(%s[5m]))', $this->rcvdMetric),
+            sprintf('sum(rate(%s[2m]))', $this->rcvdMetric),
         );
         $sentBandwidthData = $this->prometheus->query(
-            sprintf('sum(rate(%s[5m]))', $this->sentMetric),
+            sprintf('sum(rate(%s[2m]))', $this->sentMetric),
         );
-        $totalBandwidth = $this->extractScalarValue($rcvdBandwidthData) + $this->extractScalarValue($sentBandwidthData);
+        $totalBandwidth = ($this->extractScalarValue($rcvdBandwidthData) + $this->extractScalarValue($sentBandwidthData)) * 8;
 
         return new AggregateStats(
             totalUsers: $totalUsers,
@@ -105,7 +112,7 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
     public function getTopTalkers(int $limit = 10): Collection
     {
         $query = sprintf(
-            'topk(%d, sum by (%s) (rate(%s[5m])))',
+            'topk(%d, sum by (%s) (rate(%s[2m])))',
             $limit,
             $this->ipLabel,
             $this->rcvdMetric,
@@ -119,7 +126,7 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
 
         return collect($results)->map(function (array $item) use ($ipLabel): TopTalker {
             $ip = $item['metric'][$ipLabel] ?? 'unknown';
-            $totalRate = (int) round((float) $item['value'][1]);
+            $totalRate = (int) round((float) $item['value'][1] * 8);
 
             return new TopTalker(
                 ip: $ip,
