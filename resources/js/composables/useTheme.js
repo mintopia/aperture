@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import { applyAccentHue } from './useAccentHue';
+import { applyAccentColor } from './useAccentColor';
 
 const VALID_MODES = ['light', 'dark'];
 
@@ -11,12 +11,14 @@ export function useTheme() {
     const mode = ref(sharedTheme.mode || localStorage.getItem('themeMode') || 'dark');
     const savedMode = ref(mode.value);
     const accentHue = ref(sharedTheme.accent_hue ?? 55);
+    const accentChroma = ref(sharedTheme.accent_chroma ?? 0.19);
+    const accentLightness = ref(sharedTheme.accent_lightness ?? 72);
 
     function applyTheme() {
         const el = document.documentElement;
         el.setAttribute('data-theme', 'dispatch');
         el.setAttribute('data-mode', mode.value);
-        applyAccentHue(accentHue.value, mode.value);
+        applyAccentColor(accentHue.value, accentChroma.value, accentLightness.value, mode.value);
     }
 
     function toggleMode() {
