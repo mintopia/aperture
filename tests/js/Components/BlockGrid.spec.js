@@ -131,4 +131,69 @@ describe('BlockGrid', () => {
         const grid = wrapper.find('[data-testid="block-grid"]');
         expect(grid.exists()).toBe(true);
     });
+
+    it('sets gridTemplateRows based on maximum row extent', () => {
+        const blocks = [
+            {
+                id: 1,
+                type: 'connection_strip',
+                title: 'Strip',
+                content: '',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: 3,
+                row_span: 1,
+                is_active: true,
+                settings: null,
+            },
+            {
+                id: 2,
+                type: 'custom_markdown',
+                title: 'Deep',
+                content: 'Hello',
+                grid_col: 1,
+                grid_row: 2,
+                col_span: 2,
+                row_span: 5,
+                is_active: true,
+                settings: null,
+            },
+        ];
+        const wrapper = mount(BlockGrid, {
+            props: { blocks, blockContext: defaultContext },
+        });
+        const grid = wrapper.find('[data-testid="block-grid"]');
+        // max row = 2 + 5 - 1 = 6
+        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(6, minmax(0, auto))');
+    });
+
+    it('does not set gridTemplateRows when blocks array is empty', () => {
+        const wrapper = mount(BlockGrid, {
+            props: { blocks: [], blockContext: defaultContext },
+        });
+        const grid = wrapper.find('[data-testid="block-grid"]');
+        expect(grid.attributes('style')).toBeUndefined();
+    });
+
+    it('computes gridTemplateRows for single-row blocks', () => {
+        const blocks = [
+            {
+                id: 1,
+                type: 'custom_markdown',
+                title: 'A',
+                content: 'Hello',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: 1,
+                row_span: 1,
+                is_active: true,
+                settings: null,
+            },
+        ];
+        const wrapper = mount(BlockGrid, {
+            props: { blocks, blockContext: defaultContext },
+        });
+        const grid = wrapper.find('[data-testid="block-grid"]');
+        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(1, minmax(0, auto))');
+    });
 });

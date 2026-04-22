@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import ConnectionStripBlock from './Blocks/ConnectionStripBlock.vue';
 import BandwidthBlock from './Blocks/BandwidthBlock.vue';
 import DnsFilterBlock from './Blocks/DnsFilterBlock.vue';
@@ -23,6 +24,22 @@ const props = defineProps({
     },
 });
 
+const maxRow = computed(() => {
+    if (!props.blocks.length) {
+        return 0;
+    }
+    return Math.max(...props.blocks.map((b) => b.grid_row + b.row_span - 1));
+});
+
+const gridStyle = computed(() => {
+    if (maxRow.value === 0) {
+        return {};
+    }
+    return {
+        gridTemplateRows: `repeat(${maxRow.value}, minmax(0, auto))`,
+    };
+});
+
 function blockStyle(block) {
     return {
         gridColumn: `${block.grid_col} / span ${block.col_span}`,
@@ -39,7 +56,7 @@ function templateContent(block) {
 </script>
 
 <template>
-    <div data-testid="block-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div data-testid="block-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" :style="gridStyle">
         <template v-for="block in blocks" :key="block.id">
             <div
                 v-if="blockComponents[block.type]"

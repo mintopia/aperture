@@ -19,6 +19,8 @@ describe('ConnectionStripBlock', () => {
         expect(wrapper.text()).toContain('10.0.0.1');
         expect(wrapper.text()).toContain('IPv6');
         expect(wrapper.text()).toContain('MAC');
+        expect(wrapper.text()).toContain('Status');
+        expect(wrapper.text()).toContain('Online');
     });
 
     it('renders custom fields from settings.fields', () => {
@@ -61,6 +63,39 @@ describe('ConnectionStripBlock', () => {
             },
         });
         expect(wrapper.text()).toContain('\u2014');
+    });
+
+    it('renders status as Online when ipAllowed is true', () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: {
+                settings: {},
+                blockContext: { ...defaultContext, ipAllowed: true },
+            },
+        });
+        expect(wrapper.text()).toContain('Status');
+        expect(wrapper.text()).toContain('Online');
+    });
+
+    it('renders status as Offline when ipAllowed is false', () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: {
+                settings: {},
+                blockContext: { ...defaultContext, ipAllowed: false },
+            },
+        });
+        expect(wrapper.text()).toContain('Status');
+        expect(wrapper.text()).toContain('Offline');
+    });
+
+    it('renders status as Offline when ipAllowed is undefined', () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: {
+                settings: {},
+                blockContext: { currentIpv4: '10.0.0.1' },
+            },
+        });
+        expect(wrapper.text()).toContain('Status');
+        expect(wrapper.text()).toContain('Offline');
     });
 
     it('renders default fields when settings is null', () => {

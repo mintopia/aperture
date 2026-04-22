@@ -54,10 +54,7 @@ describe('DnsFilterBlock', () => {
     });
 
     it('calls toggle endpoint on click', async () => {
-        fetchMock.mockResolvedValueOnce({
-            ok: true,
-            json: () => Promise.resolve({ enabled: true }),
-        });
+        fetchMock.mockResolvedValueOnce({ ok: true });
 
         const wrapper = mount(DnsFilterBlock, { props: {} });
         await wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
@@ -69,11 +66,33 @@ describe('DnsFilterBlock', () => {
         );
     });
 
-    it('updates enabled state after successful toggle', async () => {
-        fetchMock.mockResolvedValueOnce({
-            ok: true,
-            json: () => Promise.resolve({ enabled: true }),
-        });
+    it('flips enabled state immediately on click (optimistic update)', async () => {
+        let resolvePromise;
+        fetchMock.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolvePromise = resolve;
+            }),
+        );
+
+        const wrapper = mount(DnsFilterBlock, { props: {} });
+        const button = wrapper.find('[data-testid="dns-filter-toggle"]');
+
+        // Initially off
+        expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
+
+        // Trigger click without awaiting — observe optimistic flip
+        button.trigger('click');
+        await wrapper.vm.$nextTick();
+
+        // Should flip to enabled immediately, before the request resolves
+        expect(button.classes()).toContain('bg-[var(--color-accent)]');
+
+        resolvePromise({ ok: true });
+        await flushPromises();
+    });
+
+    it('keeps enabled state when toggle succeeds', async () => {
+        fetchMock.mockResolvedValueOnce({ ok: true });
 
         const wrapper = mount(DnsFilterBlock, { props: {} });
         await wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
@@ -84,18 +103,65 @@ describe('DnsFilterBlock', () => {
         expect(button.classes()).toContain('bg-[var(--color-accent)]');
     });
 
-    it('does not update state when toggle fails', async () => {
-        fetchMock.mockResolvedValueOnce({ ok: false });
+    it('reverts enabled state when toggle response is not ok', async () => {
+        let resolvePromise;
+        fetchMock.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolvePromise = resolve;
+            }),
+        );
 
         const wrapper = mount(DnsFilterBlock, { props: {} });
-        await wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
-        await flushPromises();
-
         const button = wrapper.find('[data-testid="dns-filter-toggle"]');
+
+        // Initially off
+        expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
+
+        button.trigger('click');
+        await new Promise((r) => setTimeout(r, 0));
+        await wrapper.vm.$nextTick();
+
+        // Optimistic: should be on now
+        expect(button.classes()).toContain('bg-[var(--color-accent)]');
+
+        resolvePromise({ ok: false });
+        await flushPromises();
+        await wrapper.vm.$nextTick();
+
+        // Reverted after failure
         expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
     });
 
-    it('disables button while loading', async () => {
+    it('reverts enabled state on network error', async () => {
+        let rejectPromise;
+        fetchMock.mockReturnValueOnce(
+            new Promise((_resolve, reject) => {
+                rejectPromise = reject;
+            }),
+        );
+
+        const wrapper = mount(DnsFilterBlock, { props: {} });
+        const button = wrapper.find('[data-testid="dns-filter-toggle"]');
+
+        // Initially off
+        expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
+
+        button.trigger('click');
+        await new Promise((r) => setTimeout(r, 0));
+        await wrapper.vm.$nextTick();
+
+        // Optimistic: should be on
+        expect(button.classes()).toContain('bg-[var(--color-accent)]');
+
+        rejectPromise(new Error('Network error'));
+        await flushPromises();
+        await wrapper.vm.$nextTick();
+
+        // Reverted after error
+        expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
+    });
+
+    it('shows reduced opacity while loading', async () => {
         let resolvePromise;
         fetchMock.mockReturnValueOnce(
             new Promise((resolve) => {
@@ -105,31 +171,48 @@ describe('DnsFilterBlock', () => {
 
         const wrapper = mount(DnsFilterBlock, { props: {} });
 
-        // Trigger click without awaiting so we can observe the loading state
         wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
-        // Allow microtask for the sync part of toggle() to set loading=true
         await new Promise((r) => setTimeout(r, 0));
         await wrapper.vm.$nextTick();
 
         const button = wrapper.find('[data-testid="dns-filter-toggle"]');
-        expect(button.element.disabled).toBe(true);
+        expect(button.classes()).toContain('opacity-60');
 
-        resolvePromise({ ok: true, json: () => Promise.resolve({ enabled: true }) });
+        resolvePromise({ ok: true });
         await flushPromises();
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.find('[data-testid="dns-filter-toggle"]').element.disabled).toBe(false);
+        expect(button.classes()).not.toContain('opacity-60');
     });
 
-    it('handles network errors gracefully', async () => {
-        fetchMock.mockRejectedValueOnce(new Error('Network error'));
+    it('prevents double-click while loading', async () => {
+        let resolvePromise;
+        fetchMock.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolvePromise = resolve;
+            }),
+        );
 
         const wrapper = mount(DnsFilterBlock, { props: {} });
-        await wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
-        await flushPromises();
 
-        // Should not throw, button should be re-enabled
-        expect(wrapper.find('[data-testid="dns-filter-toggle"]').element.disabled).toBe(false);
+        wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
+        await new Promise((r) => setTimeout(r, 0));
+        await wrapper.vm.$nextTick();
+
+        // Second click while loading — should be ignored
+        await wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        resolvePromise({ ok: true });
+        await flushPromises();
+    });
+
+    it('does not have a disabled attribute on the button', () => {
+        const wrapper = mount(DnsFilterBlock, { props: {} });
+        const button = wrapper.find('[data-testid="dns-filter-toggle"]');
+        expect(button.element.disabled).toBe(false);
     });
 
     it('renders with data-testid block-dns-filter', () => {
