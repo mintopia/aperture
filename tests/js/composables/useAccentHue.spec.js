@@ -107,8 +107,8 @@ describe('useAccentHue', () => {
     });
 
     it('setAccentHue updates the ref and applies CSS', () => {
-        const { accentHue, setAccentHue } = useAccentHue();
-        setAccentHue(295, 'dark');
+        const { accentHue, setAccentColor } = useAccentHue();
+        setAccentColor(295, 0.18, 70, 'dark');
         expect(accentHue.value).toBe(295);
         expect(document.documentElement.style.getPropertyValue('--color-primary')).toContain('295');
     });

@@ -17,8 +17,6 @@ class UserIpAddressObserver
     {
         $ip = $userIp->ip;
 
-        if ($ip) {
-            $this->policyService->applyDefaults($ip);
-        }
+        $this->policyService->applyDefaults($ip);
     }
 }

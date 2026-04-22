@@ -5,7 +5,6 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Traits\ToString;
 use App\Services\IpPolicyService;
-use Carbon\Carbon;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -166,7 +165,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
         if (! $ip) {
             $ip = new IpAddress;
             $ip->address = $clientIp;
-            $ip->last_seen_at = Carbon::now();
+            $ip->last_seen_at = now();
             $ip->save();
         }
 
@@ -177,7 +176,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
             $userIp->ip()->associate($ip);
         }
 
-        $userIp->last_seen_at = Carbon::now();
+        $userIp->last_seen_at = now();
         $userIp->save();
 
         app(IpPolicyService::class)->applyUserPolicy($this, $ip);

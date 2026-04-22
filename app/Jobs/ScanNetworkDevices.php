@@ -40,7 +40,7 @@ class ScanNetworkDevices implements ShouldQueue
                     ['mac_address' => $mac],
                     ['source' => 'auth'],
                 );
-                $ip->mac_address_id = (int) $macAddress->id; // @phpstan-ignore assign.propertyType
+                $ip->mac_address_id = (int) $macAddress->id;
                 $ip->save();
             }
         }
@@ -113,12 +113,12 @@ class ScanNetworkDevices implements ShouldQueue
             if ($ip === null) {
                 $ip = new IpAddress;
                 $ip->address = $ipAddress;
-                $ip->last_seen_at = now()->toDateTimeString();
+                $ip->last_seen_at = now();
                 $ip->save();
             }
         }
 
-        $ip->mac_address_id = (int) $macAddress->id; // @phpstan-ignore assign.propertyType
+        $ip->mac_address_id = (int) $macAddress->id;
         $ip->save();
 
         if (! $ip->internet_enabled) {

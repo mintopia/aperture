@@ -28,9 +28,7 @@ class UserObserver
         $userIps = $user->ips()->with('ip')->get();
 
         foreach ($userIps as $userIp) {
-            if ($userIp->ip) {
-                SyncUserPolicyJob::dispatch($user, $userIp->ip);
-            }
+            SyncUserPolicyJob::dispatch($user, $userIp->ip);
         }
     }
 }

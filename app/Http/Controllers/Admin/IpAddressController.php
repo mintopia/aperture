@@ -11,7 +11,6 @@ use App\Models\SwitchConfig;
 use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -165,7 +164,7 @@ class IpAddressController extends Controller
         $ip = new IpAddress;
         $ip->address = $request->input('address');
         $ip->comment = $request->input('comment');
-        $ip->last_seen_at = Carbon::now()->toDateTimeString();
+        $ip->last_seen_at = now();
         $ip->internet_enabled = (bool) $request->input('allow');
         $ip->rate_limit_enabled = (bool) $request->input('limit');
         $ip->save();

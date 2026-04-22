@@ -30,7 +30,7 @@ class IpAddressActionService
         $description = $ip->comment;
         /** @var UserIpAddress|null $userIp */
         $userIp = $ip->users()->first();
-        if ($userIp && $userIp->user) {
+        if ($userIp) {
             $description = $userIp->user->nickname;
         }
 
@@ -43,17 +43,17 @@ class IpAddressActionService
                     ['mac_address' => $mac],
                     ['source' => 'auth', 'allowed' => true, 'allowed_at' => now()],
                 );
-                $ip->mac_address_id = (int) $macAddress->id; // @phpstan-ignore assign.propertyType
+                $ip->mac_address_id = (int) $macAddress->id;
                 $ip->saveQuietly();
 
                 if (! $macAddress->allowed) {
                     $macAddress->allowed = true;
-                    $macAddress->allowed_at = now(); // @phpstan-ignore assign.propertyType
+                    $macAddress->allowed_at = now();
                     $macAddress->save();
                 }
 
                 if ($macAddress->user_id === null && $userIp?->user) {
-                    $macAddress->user_id = (int) $userIp->user->id; // @phpstan-ignore assign.propertyType
+                    $macAddress->user_id = (int) $userIp->user->id;
                     $macAddress->save();
                 }
             }
