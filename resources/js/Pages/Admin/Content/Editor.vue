@@ -311,6 +311,17 @@ onBeforeUnmount(() => {
                 @dragend="onDragEnd"
                 @click="selectBlock(block)"
             >
+                <!-- Drag handle bar -->
+                <div
+                    :data-testid="'drag-handle-' + block.id"
+                    class="absolute inset-x-0 top-0 flex h-6 cursor-grab items-center justify-center rounded-t-md opacity-30 transition-opacity hover:opacity-60"
+                >
+                    <svg class="h-3 w-5 text-[var(--color-text-muted)]" viewBox="0 0 20 12" fill="currentColor">
+                        <rect y="0" width="20" height="2" rx="1" />
+                        <rect y="5" width="20" height="2" rx="1" />
+                        <rect y="10" width="20" height="2" rx="1" />
+                    </svg>
+                </div>
                 <span
                     class="text-[10px] font-bold tracking-wider uppercase"
                     :style="{ color: blockTypeColors[block.type] ?? '#888' }"
@@ -321,12 +332,17 @@ onBeforeUnmount(() => {
                 <div class="absolute top-2 right-2 text-[10px] text-[var(--color-text-muted)]">
                     {{ block.col_span }}&times;{{ block.row_span }}
                 </div>
+                <!-- Resize handle — large hit area, small visual grip -->
                 <div
                     :data-testid="'resize-handle-' + block.id"
-                    class="absolute right-0 bottom-0 h-4 w-4 cursor-se-resize"
+                    class="absolute right-0 bottom-0 h-8 w-8 cursor-se-resize"
                     @mousedown.stop="onResizeStart(block, $event)"
                 >
-                    <svg class="h-4 w-4 text-[var(--color-text-muted)]/40" viewBox="0 0 16 16" fill="currentColor">
+                    <svg
+                        class="absolute right-1 bottom-1 h-3 w-3 text-[var(--color-text-muted)] opacity-30 transition-opacity hover:opacity-60"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                    >
                         <path d="M14 14H10V12H12V10H14V14ZM14 8H12V6H14V8Z" />
                     </svg>
                 </div>
