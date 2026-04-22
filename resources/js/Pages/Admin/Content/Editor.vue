@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onBeforeUnmount } from 'vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import EditorSidePanel from '@/Components/Admin/Content/EditorSidePanel.vue';
 import { useGridEditor } from '@/composables/useGridEditor.js';
@@ -28,6 +28,9 @@ const previewDisplacement = ref({});
 // Resize state
 const resizing = ref(null);
 const resizeStartPos = ref(null);
+
+// Template ref for grid element
+const gridRef = ref(null);
 
 function getBlock(id) {
     return localBlocks.value.find((b) => b.id === id);
@@ -75,13 +78,19 @@ function cancelDrag() {
             if (block) {
                 block.grid_col = snap.grid_col;
                 block.grid_row = snap.grid_row;
+                if ('col_span' in snap) block.col_span = snap.col_span;
+                if ('row_span' in snap) block.row_span = snap.row_span;
             }
         }
     }
     dragging.value = null;
     dragOver.value = null;
+    resizing.value = null;
+    resizeStartPos.value = null;
     previewDisplacement.value = {};
     positionSnapshot.value = null;
+    document.removeEventListener('mousemove', onResizeMove);
+    document.removeEventListener('mouseup', onResizeEnd);
 }
 
 function onDragEnd() {
@@ -115,7 +124,8 @@ function onResizeMove(event) {
     const block = getBlock(resizing.value);
     if (!block) return;
 
-    const gridEl = document.querySelector('[data-testid="editor-grid"]');
+    const gridEl = gridRef.value;
+    if (!gridEl) return;
     const cellWidth = gridEl.clientWidth / 3;
     const cellHeight = 80;
 
@@ -237,6 +247,11 @@ const blockTypeColors = {
     bandwidth: 'rgba(59,130,246,0.3)',
     dns_filter: 'rgba(236,72,153,0.3)',
 };
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousemove', onResizeMove);
+    document.removeEventListener('mouseup', onResizeEnd);
+});
 </script>
 
 <template>
@@ -270,6 +285,7 @@ const blockTypeColors = {
         </div>
 
         <div
+            ref="gridRef"
             data-testid="editor-grid"
             class="grid gap-3"
             tabindex="0"
