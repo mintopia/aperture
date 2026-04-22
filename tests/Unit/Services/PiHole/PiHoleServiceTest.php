@@ -277,7 +277,13 @@ class PiHoleServiceTest extends TestCase
                     ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0], 'comment' => 'Managed by Aperture'],
                 ],
             ])),
-            // PUT response for adding filteredGroupId to 10.0.0.1
+            // enableForIp('10.0.0.1') → findClient GET
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
+                ],
+            ])),
+            // enableForIp('10.0.0.1') → updateClientGroups PUT
             new Response(200, [], (string) json_encode(['client' => ['id' => 1]])),
         ]);
 
@@ -306,7 +312,13 @@ class PiHoleServiceTest extends TestCase
                     ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0, 1], 'comment' => 'Managed by Aperture'],
                 ],
             ])),
-            // PUT response for removing filteredGroupId from 10.0.0.2
+            // disableForIp('10.0.0.2') → findClient GET
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0, 1], 'comment' => 'Managed by Aperture'],
+                ],
+            ])),
+            // disableForIp('10.0.0.2') → updateClientGroups PUT
             new Response(200, [], (string) json_encode(['client' => ['id' => 2]])),
         ]);
 
@@ -317,6 +329,43 @@ class PiHoleServiceTest extends TestCase
         $this->assertSame(['10.0.0.2'], $result->removed);
         $this->assertSame(['10.0.0.1'], $result->unchanged);
         $this->assertSame([], $result->errors);
+    }
+
+    public function test_reconcile_creates_client_for_enabled_ip_not_in_pihole(): void
+    {
+        Cache::flush();
+
+        IpAddress::factory()->create(['address' => '10.0.0.5', 'dns_filtering_enabled' => true]);
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            // fetchAllClients response — 10.0.0.5 not present
+            new Response(200, [], (string) json_encode([
+                'clients' => [],
+            ])),
+            // enableForIp('10.0.0.5') → findClient GET returns empty
+            new Response(200, [], (string) json_encode([
+                'clients' => [],
+            ])),
+            // enableForIp('10.0.0.5') → createClient POST
+            new Response(201, [], (string) json_encode(['client' => ['id' => 10]])),
+        ]);
+
+        $result = $service->reconcile();
+
+        $this->assertInstanceOf(ReconcileResult::class, $result);
+        $this->assertSame(['10.0.0.5'], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertSame([], $result->unchanged);
+        $this->assertSame([], $result->errors);
+
+        $postRequest = $this->history[3]['request'];
+        $this->assertSame('POST', $postRequest->getMethod());
+        $this->assertSame('/api/clients', $postRequest->getUri()->getPath());
+
+        $body = json_decode($postRequest->getBody()->getContents(), true);
+        $this->assertSame('10.0.0.5', $body['client']);
+        $this->assertSame([0, 1], $body['groups']);
     }
 
     public function test_reconcile_dry_run_does_not_apply_changes(): void
@@ -341,7 +390,7 @@ class PiHoleServiceTest extends TestCase
         $this->assertSame(['10.0.0.1'], $result->added);
         $this->assertSame([], $result->removed);
 
-        // Only auth + GET for fetchAllClients, no PUT
+        // Only auth + GET for fetchAllClients, no further API calls
         $this->assertCount(2, $this->history);
     }
 
@@ -365,9 +414,21 @@ class PiHoleServiceTest extends TestCase
                     ['id' => 4, 'client' => '10.0.0.4', 'groups' => [0], 'comment' => ''],        // unchanged (correct)
                 ],
             ])),
-            // PUT for 10.0.0.1 (add filteredGroupId)
+            // enableForIp('10.0.0.1') → findClient GET
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => ''],
+                ],
+            ])),
+            // enableForIp('10.0.0.1') → updateClientGroups PUT
             new Response(200, [], (string) json_encode(['client' => ['id' => 1]])),
-            // PUT for 10.0.0.2 (remove filteredGroupId)
+            // disableForIp('10.0.0.2') → findClient GET
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0, 1], 'comment' => ''],
+                ],
+            ])),
+            // disableForIp('10.0.0.2') → updateClientGroups PUT
             new Response(200, [], (string) json_encode(['client' => ['id' => 2]])),
         ]);
 
@@ -380,7 +441,7 @@ class PiHoleServiceTest extends TestCase
         $this->assertSame([], $result->errors);
     }
 
-    public function test_reconcile_with_no_clients_in_pihole(): void
+    public function test_reconcile_with_no_clients_in_pihole_creates_enabled_ips(): void
     {
         Cache::flush();
 
@@ -392,15 +453,59 @@ class PiHoleServiceTest extends TestCase
             new Response(200, [], (string) json_encode([
                 'clients' => [],
             ])),
+            // enableForIp('10.0.0.1') → findClient GET returns empty
+            new Response(200, [], (string) json_encode([
+                'clients' => [],
+            ])),
+            // enableForIp('10.0.0.1') → createClient POST
+            new Response(201, [], (string) json_encode(['client' => ['id' => 1]])),
         ]);
 
         $result = $service->reconcile();
 
         $this->assertInstanceOf(ReconcileResult::class, $result);
-        // No clients in PiHole means no changes possible
-        $this->assertSame([], $result->added);
+        // 10.0.0.1 is enabled in DB but absent from PiHole — must be created
+        $this->assertSame(['10.0.0.1'], $result->added);
         $this->assertSame([], $result->removed);
         $this->assertSame([], $result->unchanged);
         $this->assertSame([], $result->errors);
+    }
+
+    public function test_reconcile_captures_errors_without_aborting(): void
+    {
+        Cache::flush();
+
+        IpAddress::factory()->create(['address' => '10.0.0.1', 'dns_filtering_enabled' => true]);
+        IpAddress::factory()->create(['address' => '10.0.0.2', 'dns_filtering_enabled' => true]);
+
+        $service = $this->createServiceWithMock([
+            $this->authResponse(),
+            // fetchAllClients — both IPs missing filteredGroupId
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => ''],
+                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0], 'comment' => ''],
+                ],
+            ])),
+            // enableForIp('10.0.0.1') → findClient GET — returns a server error
+            new Response(500, [], (string) json_encode(['error' => 'server error'])),
+            // enableForIp('10.0.0.2') → findClient GET — succeeds
+            new Response(200, [], (string) json_encode([
+                'clients' => [
+                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [0], 'comment' => ''],
+                ],
+            ])),
+            // enableForIp('10.0.0.2') → updateClientGroups PUT
+            new Response(200, [], (string) json_encode(['client' => ['id' => 2]])),
+        ]);
+
+        $result = $service->reconcile();
+
+        $this->assertInstanceOf(ReconcileResult::class, $result);
+        $this->assertSame(['10.0.0.1', '10.0.0.2'], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertSame([], $result->unchanged);
+        $this->assertCount(1, $result->errors);
+        $this->assertStringStartsWith('10.0.0.1:', $result->errors[0]);
     }
 }

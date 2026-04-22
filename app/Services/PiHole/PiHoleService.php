@@ -71,8 +71,12 @@ class PiHoleService implements DnsFilteringInterface
     {
         $allClients = $this->fetchAllClients();
 
-        $enabledIps = IpAddress::where('dns_filtering_enabled', true)->pluck('address')->all();
-        $disabledIps = IpAddress::where('dns_filtering_enabled', false)->pluck('address')->all();
+        $desiredEnabled = IpAddress::where('dns_filtering_enabled', true)
+            ->pluck('address')
+            ->all();
+        $desiredDisabled = IpAddress::where('dns_filtering_enabled', false)
+            ->pluck('address')
+            ->all();
 
         /** @var array<int, string> $added */
         $added = [];
@@ -83,35 +87,56 @@ class PiHoleService implements DnsFilteringInterface
         /** @var array<int, string> $errors */
         $errors = [];
 
-        foreach ($allClients as $client) {
-            $ip = $client['client'];
-            $hasFilteredGroup = in_array($this->filteredGroupId, $client['groups'], true);
+        // Build a map of PiHole clients by IP for fast lookup
+        $clientMap = [];
+        foreach ($allClients as $c) {
+            $clientMap[$c['client']] = $c;
+        }
 
-            if (in_array($ip, $enabledIps, true) && ! $hasFilteredGroup) {
-                // Should be enabled but missing filteredGroupId
-                if (! $dryRun) {
-                    $groups = array_merge($client['groups'], [$this->filteredGroupId]);
-                    $this->updateClientGroups($client['client'], $groups, $client['comment']);
-                }
-
-                $added[] = $ip;
-            } elseif (in_array($ip, $disabledIps, true) && $hasFilteredGroup) {
-                // Should be disabled but has filteredGroupId
-                if (! $dryRun) {
-                    $groups = array_values(array_filter(
-                        $client['groups'],
-                        fn (int $g): bool => $g !== $this->filteredGroupId,
-                    ));
-                    $this->updateClientGroups($client['client'], $groups, $client['comment']);
-                }
-
-                $removed[] = $ip;
-            } else {
+        // Check enabled IPs — should have filteredGroupId
+        foreach ($desiredEnabled as $ip) {
+            $existing = $clientMap[$ip] ?? null;
+            if ($existing !== null && in_array($this->filteredGroupId, $existing['groups'], true)) {
                 $unchanged[] = $ip;
+
+                continue;
+            }
+
+            $added[] = $ip;
+            if (! $dryRun) {
+                try {
+                    $this->enableForIp($ip);
+                } catch (\Throwable $e) {
+                    $errors[] = $ip.': '.$e->getMessage();
+                }
             }
         }
 
-        return new ReconcileResult($added, $removed, $unchanged, $errors);
+        // Check disabled IPs — should NOT have filteredGroupId
+        foreach ($desiredDisabled as $ip) {
+            $existing = $clientMap[$ip] ?? null;
+            if ($existing === null || ! in_array($this->filteredGroupId, $existing['groups'], true)) {
+                $unchanged[] = $ip;
+
+                continue;
+            }
+
+            $removed[] = $ip;
+            if (! $dryRun) {
+                try {
+                    $this->disableForIp($ip);
+                } catch (\Throwable $e) {
+                    $errors[] = $ip.': '.$e->getMessage();
+                }
+            }
+        }
+
+        return new ReconcileResult(
+            added: $added,
+            removed: $removed,
+            unchanged: $unchanged,
+            errors: $errors,
+        );
     }
 
     /**
