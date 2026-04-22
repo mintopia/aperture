@@ -8,8 +8,8 @@ readonly class UserBandwidth
 {
     /**
      * @param  array<int, string>  $timestamps
-     * @param  array<int, int>  $download
-     * @param  array<int, int>  $upload
+     * @param  array<int, float>  $download
+     * @param  array<int, float>  $upload
      */
     public function __construct(
         public int $received,
