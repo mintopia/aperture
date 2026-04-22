@@ -20,7 +20,7 @@ vi.stubGlobal('route', (name) => `/mocked/${name}`);
 
 describe('Admin IP Show access confirmation modal integration', () => {
     const defaultProps = {
-        ip: { id: 1, address: '192.168.1.10', allowed: true, comment: 'Test IP' },
+        ip: { id: 1, address: '192.168.1.10', internet_enabled: true, comment: 'Test IP' },
         port: { interface: 'Gi1/0/1' },
         status: '',
         config: '',
@@ -72,7 +72,7 @@ describe('Admin IP Show access confirmation modal integration', () => {
 
     it('shows grant confirmation modal when clicking grant on a denied IP', async () => {
         const wrapper = mountPage({
-            ip: { allowed: false },
+            ip: { internet_enabled: false },
         });
 
         await wrapper.find('[data-testid="action-grant"]').trigger('click');
@@ -96,7 +96,7 @@ describe('Admin IP Show access confirmation modal integration', () => {
 
     it('canceling grant confirmation closes modal without posting', async () => {
         const wrapper = mountPage({
-            ip: { allowed: false },
+            ip: { internet_enabled: false },
         });
 
         await wrapper.find('[data-testid="action-grant"]').trigger('click');
@@ -123,7 +123,7 @@ describe('Admin IP Show access confirmation modal integration', () => {
 
     it('confirming grant action triggers router.post with correct arguments', async () => {
         const wrapper = mountPage({
-            ip: { allowed: false },
+            ip: { internet_enabled: false },
         });
 
         await wrapper.find('[data-testid="action-grant"]').trigger('click');
@@ -156,7 +156,7 @@ describe('Admin IP Show access confirmation modal integration', () => {
 
     it('grant modal message describes consequences', async () => {
         const wrapper = mountPage({
-            ip: { allowed: false },
+            ip: { internet_enabled: false },
         });
 
         await wrapper.find('[data-testid="action-grant"]').trigger('click');
