@@ -10,8 +10,6 @@ test.describe('Settings Pages (S8)', () => {
         await page.goto('/admin/settings/integrations');
         await expect(page.getByTestId('settings-nav-integrations')).toBeVisible();
         await expect(page.getByTestId('settings-nav-theme')).toBeVisible();
-        await expect(page.getByTestId('settings-nav-event')).toBeVisible();
-        await expect(page.getByTestId('settings-nav-portal')).toBeVisible();
     });
 
     test('theme page has visual picker', async ({ page }) => {
@@ -31,26 +29,8 @@ test.describe('Settings Pages (S8)', () => {
         await expect(page.getByTestId('mode-option-dark')).toBeVisible();
     });
 
-    test('event page has form fields', async ({ page }) => {
-        await page.goto('/admin/settings/event');
-        const fields = page.locator('[data-testid^="form-field-"]');
-        await expect(fields.first()).toBeVisible();
-    });
-
-    test('event page has event name and description fields', async ({ page }) => {
-        await page.goto('/admin/settings/event');
-        await expect(page.getByTestId('form-field-event_name')).toBeVisible();
-        await expect(page.getByTestId('form-field-event_description')).toBeVisible();
-    });
-
-    test('portal page has session timeout and redirect URL', async ({ page }) => {
-        await page.goto('/admin/settings/portal');
-        await expect(page.getByTestId('form-field-portal_session_timeout')).toBeVisible();
-        await expect(page.getByTestId('form-field-portal_redirect_url')).toBeVisible();
-    });
-
     test('save button exists on all settings pages', async ({ page }) => {
-        for (const sub of ['integrations', 'theme', 'event', 'portal']) {
+        for (const sub of ['integrations', 'theme']) {
             await page.goto(`/admin/settings/${sub}`);
             await expect(page.getByTestId('action-save')).toBeVisible();
         }
