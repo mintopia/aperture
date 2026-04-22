@@ -14,7 +14,7 @@ use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\DnsBlockingInterface;
+use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
@@ -125,16 +125,16 @@ class AppServiceProviderTest extends TestCase
         $this->assertInstanceOf(OpnSenseDhcpService::class, $instance);
     }
 
-    public function test_registers_dns_blocking_interface_binding(): void
+    public function test_registers_dns_filtering_interface_binding(): void
     {
         config([
             'aperture.pihole.endpoint' => 'http://127.0.0.1:8080',
             'aperture.pihole.password' => 'test-password',
-            'aperture.pihole.noblock_group_id' => 1,
+            'aperture.pihole.filtered_group_id' => 1,
             'aperture.pihole.verify' => false,
         ]);
 
-        $instance = $this->app->make(DnsBlockingInterface::class);
+        $instance = $this->app->make(DnsFilteringInterface::class);
         $this->assertInstanceOf(PiHoleService::class, $instance);
     }
 
@@ -281,5 +281,25 @@ class AppServiceProviderTest extends TestCase
         $service = $this->app->make(TrafficMonitorInterface::class);
 
         $this->assertInstanceOf(NullTrafficMonitor::class, $service);
+    }
+
+    public function test_traffic_monitor_passes_custom_metric_config(): void
+    {
+        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+        IntegrationConfig::setValue('prometheus', 'enabled', '1');
+        IntegrationConfig::setValue('prometheus', 'verify_ssl', '1');
+        IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
+        IntegrationConfig::setValue('prometheus', 'default_step', '60');
+        IntegrationConfig::setValue('prometheus', 'bandwidth_rcvd_metric', 'custom_rcvd');
+        IntegrationConfig::setValue('prometheus', 'bandwidth_sent_metric', 'custom_sent');
+        IntegrationConfig::setValue('prometheus', 'bandwidth_ip_label', 'src_addr');
+
+        CapabilityAssignment::assign('user-bandwidth', 'prometheus');
+
+        $this->app->forgetInstance(TrafficMonitorInterface::class);
+
+        $service = $this->app->make(TrafficMonitorInterface::class);
+
+        $this->assertInstanceOf(PrometheusTrafficMonitor::class, $service);
     }
 }

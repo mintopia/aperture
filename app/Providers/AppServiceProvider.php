@@ -26,7 +26,7 @@ use App\Services\Integration\PiHoleTester;
 use App\Services\Integration\PrometheusTester;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\DnsBlockingInterface;
+use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\MetricsProviderInterface;
@@ -321,7 +321,7 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(function (Application $application): DnsBlockingInterface {
+        $this->app->singleton(function (Application $application): DnsFilteringInterface {
             $dbConfig = $this->getIntegrationDbConfig('pihole');
             $client = new Client([
                 'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
@@ -331,7 +331,7 @@ class AppServiceProvider extends ServiceProvider
             return new PiHoleService(
                 $client,
                 (string) ($dbConfig['password'] ?? ''),
-                (int) ($dbConfig['noblock_group_id'] ?? 1),
+                (int) ($dbConfig['filtered_group_id'] ?? 1),
             );
         });
 
