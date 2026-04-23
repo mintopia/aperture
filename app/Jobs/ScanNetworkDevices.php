@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Models\IntegrationConfig;
+use App\Models\AuditLog;
+use App\Models\DhcpLease;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Models\Setting;
+use App\Models\SwitchPortMac;
 use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\NetworkRangeService;
+use App\Services\ValueObjects\ArpEntry;
+use App\Services\ValueObjects\ForwardingEntry;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Collection;
 
 class ScanNetworkDevices implements ShouldQueue
 {
@@ -21,123 +27,284 @@ class ScanNetworkDevices implements ShouldQueue
 
     public function handle(): void
     {
-        $dbConfig = IntegrationConfig::getAll('auto_allow');
-        $enabled = (bool) ($dbConfig['enabled'] ?? false);
-        if (! $enabled) {
-            return;
-        }
-
-        $resolver = app(MacAddressResolverInterface::class);
         $dhcp = app(DhcpInterface::class);
         $inventory = app(NetworkInventoryInterface::class);
+        $rangeService = app(NetworkRangeService::class);
 
-        // Step 1: Resolve MACs for unlinked IPs
-        $unlinkedIps = IpAddress::whereNull('mac_address_id')->get();
-        foreach ($unlinkedIps as $ip) {
-            $mac = $resolver->resolveIpToMac($ip->address);
-            if ($mac !== null) {
-                $macAddress = MacAddress::firstOrCreate(
-                    ['mac_address' => $mac],
-                    ['source' => 'auth'],
+        $leases = $dhcp->getLeases();
+        $arpEntries = $inventory->getArpTable();
+        $forwardingEntries = $inventory->getForwardingDatabase();
+
+        // Phase 1: Discovery
+        $this->persistMacs($leases, $arpEntries, $forwardingEntries);
+        $this->persistIps($leases, $arpEntries, $rangeService);
+        $this->linkIpMac($leases, $arpEntries, $rangeService);
+        $this->persistDhcpLeases($leases, $rangeService);
+        $this->linkSwitchPortMacs($forwardingEntries);
+
+        // Phase 2: OUI Policy
+        $this->applyOuiPolicy();
+    }
+
+    /**
+     * @param  Collection<int, \App\Services\ValueObjects\DhcpLease>  $leases
+     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, ForwardingEntry>  $forwardingEntries
+     */
+    private function persistMacs(Collection $leases, Collection $arpEntries, Collection $forwardingEntries): void
+    {
+        /** @var Collection<string, string> $allMacs */
+        $allMacs = collect();
+
+        foreach ($leases as $lease) {
+            $allMacs->put($this->normalizeMac($lease->mac), 'dhcp');
+        }
+
+        foreach ($arpEntries as $arp) {
+            if (! $allMacs->has($this->normalizeMac($arp->mac))) {
+                $allMacs->put($this->normalizeMac($arp->mac), 'arp');
+            }
+        }
+
+        foreach ($forwardingEntries as $fwd) {
+            if (! $allMacs->has($this->normalizeMac($fwd->mac))) {
+                $allMacs->put($this->normalizeMac($fwd->mac), 'switch');
+            }
+        }
+
+        $existingMacs = MacAddress::whereIn('mac_address', $allMacs->keys())->pluck('id', 'mac_address');
+
+        foreach ($allMacs as $mac => $source) {
+            if (! $existingMacs->has($mac)) {
+                $record = MacAddress::create([
+                    'mac_address' => $mac,
+                    'source' => $source,
+                ]);
+                $existingMacs->put($mac, $record->id);
+
+                AuditLog::record(
+                    action: 'mac.created',
+                    subject: $record,
+                    process: 'scan_network',
+                    metadata: ['source' => $source],
                 );
-                $ip->mac_address_id = (int) $macAddress->id;
-                $ip->save();
-            }
-        }
-
-        // Collect all network entries (DHCP leases + ARP)
-        $entries = collect();
-        foreach ($dhcp->getLeases() as $lease) {
-            $entries->push(['ip' => $lease->ip, 'mac' => $lease->mac]);
-        }
-
-        foreach ($inventory->getArpTable() as $arp) {
-            $entries->push(['ip' => $arp->ip, 'mac' => $arp->mac]);
-        }
-
-        // Deduplicate by IP
-        $entries = $entries->unique('ip');
-
-        /** @var array<int, string> $ouiPrefixes */
-        $ouiPrefixes = [];
-        $ouiPrefixesRaw = $dbConfig['oui_prefixes'] ?? null;
-        if (is_string($ouiPrefixesRaw) && $ouiPrefixesRaw !== '') {
-            $ouiPrefixes = array_filter(array_map('trim', explode(',', $ouiPrefixesRaw)));
-        }
-
-        // Batch-load all MacAddress records to avoid N+1 queries in the loop below
-        $normalizedMacs = $entries->map(fn (array $entry): string => $this->normalizeMac($entry['mac']))->values()->all();
-        $existingMacs = MacAddress::whereIn('mac_address', $normalizedMacs)->get()->keyBy('mac_address');
-
-        foreach ($entries as $entry) {
-            $normalizedMac = $this->normalizeMac($entry['mac']);
-
-            // Step 2: Auto-allow IPs for known allowed MACs
-            $existingMac = $existingMacs->get($normalizedMac);
-            if ($existingMac && $existingMac->allowed) {
-                $this->autoAllowIp($entry['ip'], $existingMac);
-
-                continue;
-            }
-
-            // Step 3: Xbox/console OUI detection
-            if ($existingMac === null) {
-                $prefix = strtoupper(substr($normalizedMac, 0, 8));
-                $matchedOui = false;
-                foreach ($ouiPrefixes as $ouiPrefix) {
-                    if (strtoupper($ouiPrefix) === $prefix) {
-                        $matchedOui = true;
-
-                        break;
-                    }
-                }
-
-                if ($matchedOui) {
-                    $macAddress = MacAddress::firstOrCreate(
-                        ['mac_address' => $normalizedMac],
-                        [
-                            'source' => 'xbox',
-                            'allowed' => true,
-                            'allowed_at' => now(),
-                            'description' => 'Xbox Console',
-                        ],
-                    );
-                    $existingMacs->put($normalizedMac, $macAddress);
-                    $this->autoAllowIp($entry['ip'], $macAddress);
-                }
             }
         }
     }
 
-    private function autoAllowIp(string $ipAddress, MacAddress $macAddress): void
+    /**
+     * @param  Collection<int, \App\Services\ValueObjects\DhcpLease>  $leases
+     * @param  Collection<int, ArpEntry>  $arpEntries
+     */
+    private function persistIps(Collection $leases, Collection $arpEntries, NetworkRangeService $rangeService): void
     {
-        if ($macAddress->user_id !== null && $macAddress->user) {
-            $ip = $macAddress->user->addIp($ipAddress);
-            if ($ip === null) {
-                return;
+        /** @var Collection<string, string> $allIps */
+        $allIps = collect();
+
+        foreach ($leases as $lease) {
+            if (! $allIps->has($lease->ip)) {
+                $allIps->put($lease->ip, 'dhcp');
             }
-        } else {
-            $ip = IpAddress::where('address', $ipAddress)->first();
-            if ($ip === null) {
+        }
+
+        foreach ($arpEntries as $arp) {
+            if (! $allIps->has($arp->ip)) {
+                $allIps->put($arp->ip, 'arp');
+            }
+        }
+
+        $existingIps = IpAddress::whereIn('address', $allIps->keys())->get()->keyBy('address');
+
+        foreach ($allIps as $ipAddress => $source) {
+            if (! $rangeService->isManaged($ipAddress)) {
+                continue;
+            }
+
+            $existing = $existingIps->get($ipAddress);
+
+            if ($existing !== null) {
+                $existing->last_seen_at = now();
+                $existing->save();
+            } else {
                 $ip = new IpAddress;
                 $ip->address = $ipAddress;
                 $ip->last_seen_at = now();
                 $ip->save();
+
+                AuditLog::record(
+                    action: 'ip.created',
+                    subject: $ip,
+                    process: 'scan_network',
+                    metadata: ['source' => $source],
+                );
             }
         }
+    }
 
-        $ip->mac_address_id = (int) $macAddress->id;
-        $ip->save();
+    /**
+     * @param  Collection<int, \App\Services\ValueObjects\DhcpLease>  $leases
+     * @param  Collection<int, ArpEntry>  $arpEntries
+     */
+    private function linkIpMac(Collection $leases, Collection $arpEntries, NetworkRangeService $rangeService): void
+    {
+        /** @var list<array{ip: string, mac: string, source: string}> $pairs */
+        $pairs = [];
 
-        if (! $ip->internet_enabled) {
-            $ip->internet_enabled = true;
-            $ip->save();
+        foreach ($leases as $lease) {
+            $pairs[] = ['ip' => $lease->ip, 'mac' => $this->normalizeMac($lease->mac), 'source' => 'dhcp'];
+        }
+
+        foreach ($arpEntries as $arp) {
+            $pairs[] = ['ip' => $arp->ip, 'mac' => $this->normalizeMac($arp->mac), 'source' => 'arp'];
+        }
+
+        $pairsCollection = collect($pairs);
+        $ips = IpAddress::whereIn('address', $pairsCollection->pluck('ip')->unique())->get()->keyBy('address');
+        $macs = MacAddress::whereIn('mac_address', $pairsCollection->pluck('mac')->unique())->get()->keyBy('mac_address');
+
+        foreach ($pairs as $pair) {
+            if (! $rangeService->isManaged($pair['ip'])) {
+                continue;
+            }
+
+            $ip = $ips->get($pair['ip']);
+            $mac = $macs->get($pair['mac']);
+
+            if ($ip === null || $mac === null) {
+                continue;
+            }
+
+            $existing = $ip->macAddresses()->where('mac_addresses.id', $mac->id)->first();
+
+            if ($existing !== null) {
+                $ip->macAddresses()->updateExistingPivot($mac->id, [
+                    'last_seen_at' => now(),
+                ]);
+            } else {
+                $ip->macAddresses()->attach($mac, [
+                    'source' => $pair['source'],
+                    'last_seen_at' => now(),
+                ]);
+
+                AuditLog::record(
+                    action: 'ip_mac.linked',
+                    subject: $ip,
+                    related: $mac,
+                    process: 'scan_network',
+                    metadata: ['source' => $pair['source']],
+                );
+            }
+        }
+    }
+
+    /**
+     * @param  Collection<int, \App\Services\ValueObjects\DhcpLease>  $leases
+     */
+    private function persistDhcpLeases(Collection $leases, NetworkRangeService $rangeService): void
+    {
+        $ips = IpAddress::whereIn('address', $leases->map(fn ($l): string => $l->ip))->get()->keyBy('address');
+        $macs = MacAddress::whereIn('mac_address', $leases->map(fn ($l): string => $this->normalizeMac($l->mac)))->get()->keyBy('mac_address');
+
+        foreach ($leases as $lease) {
+            if (! $rangeService->isManaged($lease->ip)) {
+                continue;
+            }
+
+            $ip = $ips->get($lease->ip);
+            $mac = $macs->get($this->normalizeMac($lease->mac));
+
+            if ($ip === null || $mac === null) {
+                continue;
+            }
+
+            DhcpLease::updateOrCreate(
+                ['ip_address_id' => $ip->id, 'mac_address_id' => $mac->id],
+                [
+                    'hostname' => $lease->hostname !== '' ? $lease->hostname : null,
+                    'expires_at' => $lease->expires !== '' ? $lease->expires : null,
+                ],
+            );
+        }
+    }
+
+    /**
+     * @param  Collection<int, ForwardingEntry>  $forwardingEntries
+     */
+    private function linkSwitchPortMacs(Collection $forwardingEntries): void
+    {
+        /** @var Collection<string, ForwardingEntry> $normalizedFwdMacs */
+        $normalizedFwdMacs = $forwardingEntries->mapWithKeys(fn ($fwd): array => [$this->normalizeMac($fwd->mac) => $fwd]);
+        $macRecords = MacAddress::whereIn('mac_address', $normalizedFwdMacs->keys())->get()->keyBy('mac_address');
+
+        SwitchPortMac::whereIn('mac_address', $normalizedFwdMacs->keys())
+            ->whereNull('mac_address_id')
+            ->each(function (SwitchPortMac $spm) use ($macRecords): void {
+                $macRecord = $macRecords->get($spm->mac_address);
+
+                if ($macRecord !== null) {
+                    $spm->mac_address_id = $macRecord->id;
+                    $spm->save();
+                }
+            });
+    }
+
+    private function applyOuiPolicy(): void
+    {
+        $raw = Setting::get('network.oui_auto_allow');
+
+        if ($raw === null) {
+            return;
+        }
+
+        $prefixes = is_string($raw) ? json_decode($raw, true) : $raw;
+
+        if (! is_array($prefixes) || $prefixes === []) {
+            return;
+        }
+
+        /** @var list<string> $prefixes */
+        $prefixes = array_map('strtoupper', $prefixes);
+
+        $allMacs = MacAddress::all();
+
+        foreach ($allMacs as $mac) {
+            $normalized = strtoupper($mac->mac_address);
+            $matched = false;
+
+            foreach ($prefixes as $prefix) {
+                if (str_starts_with($normalized, strtoupper($prefix))) {
+                    $matched = true;
+
+                    break;
+                }
+            }
+
+            if (! $matched) {
+                continue;
+            }
+
+            $ips = $mac->ipAddresses()->get();
+
+            foreach ($ips as $ip) {
+                if (! $ip->internet_enabled) {
+                    $ip->internet_enabled = true;
+                    $ip->save();
+
+                    AuditLog::record(
+                        action: 'oui.auto_allowed',
+                        subject: $ip,
+                        related: $mac,
+                        process: 'oui_policy',
+                        metadata: ['mac' => $mac->mac_address],
+                    );
+                }
+            }
         }
     }
 
     private function normalizeMac(string $mac): string
     {
-        $hex = strtoupper(preg_replace('/[^0-9A-Fa-f]/', '', $mac) ?? '');
+        $hex = strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $mac));
 
         return implode(':', str_split($hex, 2));
     }

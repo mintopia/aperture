@@ -1,13 +1,2 @@
 parameters:
-	ignoreErrors:
-		-
-			message: '#^Access to an undefined property App\\Models\\IpAddress\:\:\$mac_address_id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Jobs/ScanNetworkDevices.php
-
-		-
-			message: '#^Access to an undefined property App\\Models\\MacAddress\:\:\$allowed\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Jobs/ScanNetworkDevices.php
+    ignoreErrors: []
