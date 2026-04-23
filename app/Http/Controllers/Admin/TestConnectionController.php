@@ -115,21 +115,14 @@ class TestConnectionController extends Controller
                 'error' => $connectException->getMessage(),
             ]);
 
-            ConnectionTestLog::record(
-                'switch-'.$switchConfig->hostname, false, 'Could not reach SSH proxy: '.$connectException->getMessage(),
-                null, null, $requestMethod, $requestUrl
+            return $this->recordAndReturnError(
+                'switch',
+                $switchConfig->hostname,
+                'Could not reach SSH proxy: '.$connectException->getMessage(),
+                null,
+                $requestMethod,
+                $requestUrl,
             );
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Could not reach SSH proxy: '.$connectException->getMessage(),
-                'request_method' => $requestMethod,
-                'request_url' => $requestUrl,
-                'details' => [
-                    'hostname' => $switchConfig->hostname,
-                    'error' => $connectException->getMessage(),
-                ],
-            ]);
         } catch (RequestException $requestException) {
             $response = $requestException->getResponse();
             $statusCode = $response?->getStatusCode();
@@ -141,22 +134,14 @@ class TestConnectionController extends Controller
                 'status' => $statusCode,
             ]);
 
-            ConnectionTestLog::record(
-                'switch-'.$switchConfig->hostname, false, 'SSH proxy error: '.$requestException->getMessage(),
-                null, null, $requestMethod, $requestUrl
+            return $this->recordAndReturnError(
+                'switch',
+                $switchConfig->hostname,
+                'SSH proxy error: '.$requestException->getMessage(),
+                $statusCode,
+                $requestMethod,
+                $requestUrl,
             );
-
-            return response()->json([
-                'success' => false,
-                'message' => 'SSH proxy error: '.$requestException->getMessage(),
-                'request_method' => $requestMethod,
-                'request_url' => $requestUrl,
-                'details' => [
-                    'hostname' => $switchConfig->hostname,
-                    'error' => $requestException->getMessage(),
-                    'status_code' => $statusCode,
-                ],
-            ]);
         } catch (Throwable $throwable) {
             Log::error('Switch connection test exception', [
                 'switch_id' => $switchConfig->id,
@@ -165,22 +150,37 @@ class TestConnectionController extends Controller
                 'trace' => $throwable->getTraceAsString(),
             ]);
 
-            ConnectionTestLog::record(
-                'switch-'.$switchConfig->hostname, false, 'Connection failed: '.$throwable->getMessage(),
-                null, null, $requestMethod, $requestUrl
+            return $this->recordAndReturnError(
+                'switch',
+                $switchConfig->hostname,
+                'Connection failed: '.$throwable->getMessage(),
+                null,
+                $requestMethod,
+                $requestUrl,
             );
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Connection failed: '.$throwable->getMessage(),
-                'request_method' => $requestMethod,
-                'request_url' => $requestUrl,
-                'details' => [
-                    'hostname' => $switchConfig->hostname,
-                    'error' => $throwable->getMessage(),
-                ],
-            ]);
         }
+    }
+
+    /**
+     * Record a failed connection test log entry and return a JSON error response.
+     */
+    private function recordAndReturnError(
+        string $service,
+        string $hostname,
+        string $message,
+        ?int $statusCode = null,
+        ?string $requestMethod = null,
+        ?string $requestUrl = null,
+    ): JsonResponse {
+        ConnectionTestLog::record($service.'-'.$hostname, false, $message, null, null, $requestMethod, $requestUrl);
+
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'status_code' => $statusCode,
+            'request_method' => $requestMethod,
+            'request_url' => $requestUrl,
+        ]);
     }
 
     /**
