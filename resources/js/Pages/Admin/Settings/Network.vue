@@ -13,6 +13,7 @@ const form = useForm({
     managed_ranges_v4: props.settings?.managed_ranges_v4 ?? '',
     managed_ranges_v6: props.settings?.managed_ranges_v6 ?? '',
     dns_filter_default: props.settings?.dns_filter_default ?? false,
+    oui_auto_allow: props.settings?.oui_auto_allow ?? '',
 });
 
 function submit() {
@@ -86,6 +87,30 @@ function submit() {
                         Enable DNS filtering for new connections
                     </label>
                 </div>
+            </FormField>
+
+            <!-- OUI Auto-Allow -->
+            <h2
+                data-testid="section-heading-oui"
+                class="font-heading mt-8 mb-4 text-[10px] font-bold tracking-[1.5px] text-[var(--color-text-muted)] uppercase"
+            >
+                OUI Auto-Allow
+            </h2>
+
+            <p class="text-[13px] text-[var(--color-text-secondary)]">
+                MAC addresses matching these OUI prefixes will automatically receive internet access when discovered on
+                a managed IP. One prefix per line.
+            </p>
+
+            <FormField label="OUI Prefixes" name="oui_auto_allow" :error="form.errors.oui_auto_allow">
+                <textarea
+                    id="oui_auto_allow"
+                    v-model="form.oui_auto_allow"
+                    rows="4"
+                    data-testid="input-oui-auto-allow"
+                    placeholder="e.g. 00:50:F2"
+                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                />
             </FormField>
 
             <button

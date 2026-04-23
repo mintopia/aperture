@@ -26,11 +26,16 @@ class NetworkSettingsController extends Controller
         $v4Ranges = is_array($v4Decoded) ? $v4Decoded : ['0.0.0.0/0'];
         $v6Ranges = is_array($v6Decoded) ? $v6Decoded : ['::/0'];
 
+        $ouiRaw = Setting::get('network.oui_auto_allow');
+        $ouiDecoded = $ouiRaw !== null ? json_decode((string) $ouiRaw, true) : null;
+        $ouiPrefixes = is_array($ouiDecoded) ? $ouiDecoded : [];
+
         return Inertia::render('Admin/Settings/Network', [
             'settings' => [
                 'managed_ranges_v4' => implode("\n", $v4Ranges),
                 'managed_ranges_v6' => implode("\n", $v6Ranges),
                 'dns_filter_default' => (bool) Setting::get('network.dns_filter_default', false),
+                'oui_auto_allow' => implode("\n", $ouiPrefixes),
             ],
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
@@ -46,6 +51,7 @@ class NetworkSettingsController extends Controller
             'managed_ranges_v4' => ['nullable', 'string', $this->cidrValidationRule(4)],
             'managed_ranges_v6' => ['nullable', 'string', $this->cidrValidationRule(6)],
             'dns_filter_default' => 'boolean',
+            'oui_auto_allow' => ['nullable', 'string', $this->ouiValidationRule()],
         ]);
 
         $v4Lines = $this->parseLines($validated['managed_ranges_v4'] ?? '');
@@ -54,6 +60,10 @@ class NetworkSettingsController extends Controller
         Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode($v4Lines));
         Setting::set('network.managed_ranges_v6', 'Managed IPv6 Ranges', json_encode($v6Lines));
         Setting::set('network.dns_filter_default', 'DNS Filter Default', ($validated['dns_filter_default'] ?? false) ? '1' : '0');
+
+        $ouiLines = $this->parseLines($validated['oui_auto_allow'] ?? '');
+        $ouiNormalized = array_map('strtoupper', $ouiLines);
+        Setting::set('network.oui_auto_allow', 'OUI Auto-Allow Prefixes', json_encode($ouiNormalized));
 
         return back()->with('success', 'Network settings updated.');
     }
@@ -80,7 +90,7 @@ class NetworkSettingsController extends Controller
             foreach ($lines as $line) {
                 if (! $this->isValidCidr($line, $family)) {
                     $label = $family === 4 ? 'IPv4' : 'IPv6';
-                    $fail("Invalid {$label} CIDR notation: {$line}");
+                    $fail(sprintf('Invalid %s CIDR notation: %s', $label, $line));
 
                     return;
                 }
@@ -94,5 +104,23 @@ class NetworkSettingsController extends Controller
     private function isValidCidr(string $cidr, int $family): bool
     {
         return NetworkRangeService::isValidCidr($cidr, $family);
+    }
+
+    private function ouiValidationRule(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            $lines = $this->parseLines((string) $value);
+            foreach ($lines as $line) {
+                if (! preg_match('/^([0-9A-Fa-f]{2}:){0,5}[0-9A-Fa-f]{2}$/', $line)) {
+                    $fail('Invalid OUI prefix: '.$line);
+
+                    return;
+                }
+            }
+        };
     }
 }

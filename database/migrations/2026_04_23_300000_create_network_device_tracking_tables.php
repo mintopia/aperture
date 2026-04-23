@@ -105,6 +105,9 @@ return new class extends Migration
         Schema::table('mac_addresses', function (Blueprint $table): void {
             $table->dropColumn(['allowed', 'allowed_at']);
         });
+
+        // 9. Remove old IntegrationConfig auto_allow keys
+        DB::table('integration_configs')->where('integration', 'auto_allow')->delete();
     }
 
     public function down(): void
