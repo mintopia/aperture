@@ -163,7 +163,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
         return $this->roles()->whereCode($code)->count() > 0;
     }
 
-    public function addIp(string $clientIp): ?IpAddress
+    public function addIp(string $clientIp, bool $cascade = true): ?IpAddress
     {
         if (! app(NetworkRangeService::class)->isManaged($clientIp)) {
             return null;
@@ -189,6 +189,66 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
 
         app(IpPolicyService::class)->applyUserPolicy($this, $ip);
 
+        if ($cascade) {
+            $this->cascadeMacOwnership($ip);
+        }
+
         return $ip;
+    }
+
+    /**
+     * Assign MAC ownership and cascade IP associations via shared MACs.
+     * Depth-limited to one hop (IP -> MAC -> sibling IPs).
+     */
+    private function cascadeMacOwnership(IpAddress $ip): void
+    {
+        $macs = $ip->macAddresses()->get();
+
+        foreach ($macs as $mac) {
+            // Assign MAC ownership if unowned
+            if ($mac->user_id === null) {
+                $mac->user_id = $this->id;
+                $mac->save();
+
+                AuditLog::record(
+                    action: 'mac.user_assigned',
+                    subject: $mac,
+                    related: $ip,
+                    actor: $this,
+                    process: 'portal_login',
+                    metadata: ['user_id' => $this->id],
+                );
+            }
+
+            // Only cascade sibling IPs for MACs we own
+            if ((int) $mac->user_id !== (int) $this->id) {
+                continue;
+            }
+
+            // Find sibling IPs on this MAC (one hop)
+            $siblingIps = $mac->ipAddresses()->where('ip_addresses.id', '!=', $ip->id)->get();
+
+            foreach ($siblingIps as $siblingIp) {
+                // Skip if another user already owns this IP
+                $existingOwner = UserIpAddress::where('ip_address_id', $siblingIp->id)->first();
+                if ($existingOwner !== null && (int) $existingOwner->user_id !== (int) $this->id) {
+                    continue;
+                }
+
+                // Use addIp with cascade=false to prevent recursion
+                $cascaded = $this->addIp($siblingIp->address, cascade: false);
+
+                if ($cascaded instanceof IpAddress) {
+                    AuditLog::record(
+                        action: 'ip.user_cascaded',
+                        subject: $siblingIp,
+                        related: $mac,
+                        actor: $this,
+                        process: 'portal_login',
+                        metadata: ['source_ip' => $ip->address],
+                    );
+                }
+            }
+        }
     }
 }
