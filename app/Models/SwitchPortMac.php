@@ -31,6 +31,7 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|SwitchPortMac whereId($value)
  * @method static Builder<static>|SwitchPortMac whereLastSeenAt($value)
  * @method static Builder<static>|SwitchPortMac whereMacAddress($value)
+ * @method static Builder<static>|SwitchPortMac whereMacAddressId($value)
  * @method static Builder<static>|SwitchPortMac whereSwitchPortId($value)
  * @method static Builder<static>|SwitchPortMac whereUpdatedAt($value)
  * @method static Builder<static>|SwitchPortMac whereVlan($value)

@@ -35,7 +35,7 @@ class IpAddressFactory extends Factory
      */
     public function internetEnabled(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'internet_enabled' => true,
         ]);
     }
@@ -45,7 +45,7 @@ class IpAddressFactory extends Factory
      */
     public function expired(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'internet_enabled' => true,
             'expires_at' => now()->subHour(),
         ]);
