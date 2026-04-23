@@ -61,12 +61,15 @@ class IntegrationServiceProvider extends ServiceProvider
         $this->app->singleton(function (Application $app): FirewallBackendInterface {
             $dbConfig = $this->getIntegrationDbConfig('opnsense');
 
+            $client = new Client([
+                'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
+                'base_uri' => $dbConfig['endpoint'] ?? '',
+                'auth' => [$dbConfig['key'] ?? '', $dbConfig['secret'] ?? ''],
+            ]);
+
             return new OpnSense(
-                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
-                key: (string) ($dbConfig['key'] ?? ''),
-                secret: (string) ($dbConfig['secret'] ?? ''),
+                client: $client,
                 zoneId: (int) ($dbConfig['zone_id'] ?? 0),
-                verify: (bool) ($dbConfig['verify_ssl'] ?? true),
                 uploadRuleUuid: (string) ($dbConfig['ratelimit_up_uuid'] ?? ''),
                 downloadRuleUuid: (string) ($dbConfig['ratelimit_down_uuid'] ?? ''),
             );

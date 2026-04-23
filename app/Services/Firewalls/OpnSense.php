@@ -93,30 +93,16 @@ class OpnSense implements FirewallBackendInterface
         return $options;
     }
 
-    /**
-     * @throws BackendException
-     */
     public function __construct(
-        string $endpoint = '',
-        string $key = '',
-        string $secret = '',
+        Client $client,
         int $zoneId = 0,
-        bool $verify = true,
         string $uploadRuleUuid = '',
         string $downloadRuleUuid = '',
     ) {
+        $this->client = $client;
         $this->zoneId = $zoneId;
         $this->uploadRuleUuid = $uploadRuleUuid;
         $this->downloadRuleUuid = $downloadRuleUuid;
-
-        $this->client = new Client([
-            'verify' => $verify,
-            'base_uri' => $endpoint,
-            'auth' => [
-                $key,
-                $secret,
-            ],
-        ]);
     }
 
     /**

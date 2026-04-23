@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Firewalls;
 
 use App\Services\Firewalls\OpnSense;
+use GuzzleHttp\Client;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -12,17 +13,23 @@ class OpnSenseConstructorTest extends TestCase
 {
     public function test_constructor_accepts_all_parameters(): void
     {
+        $client = new Client([
+            'verify' => false,
+            'base_uri' => 'https://opnsense.example.com',
+            'auth' => ['mykey', 'mysecret'],
+        ]);
+
         $opnsense = new OpnSense(
-            endpoint: 'https://opnsense.example.com',
-            key: 'mykey',
-            secret: 'mysecret',
+            client: $client,
             zoneId: 42,
-            verify: false,
             uploadRuleUuid: 'uuid-up',
             downloadRuleUuid: 'uuid-down',
         );
 
         $reflection = new ReflectionClass($opnsense);
+
+        $clientProp = $reflection->getProperty('client');
+        $this->assertSame($client, $clientProp->getValue($opnsense));
 
         $zoneIdProp = $reflection->getProperty('zoneId');
         $this->assertEquals(42, $zoneIdProp->getValue($opnsense));

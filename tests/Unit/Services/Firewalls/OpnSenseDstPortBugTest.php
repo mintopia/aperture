@@ -49,20 +49,14 @@ class OpnSenseDstPortBugTest extends TestCase
         $client = new Client(['handler' => $handlerStack]);
 
         $service = new OpnSense(
-            endpoint: 'http://localhost',
-            key: 'key',
-            secret: 'secret',
+            client: $client,
             zoneId: 1,
-            verify: false,
             uploadRuleUuid: 'up-uuid',
             downloadRuleUuid: 'down-uuid',
         );
 
-        $reflection = new ReflectionClass($service);
-        $prop = $reflection->getProperty('client');
-        $prop->setValue($service, $client);
-
         // Call addHostToRule which triggers getShaperRule + updateShaperRule
+        $reflection = new ReflectionClass($service);
         $method = $reflection->getMethod('addHostToRule');
         $method->invoke($service, 'down-uuid', '10.0.0.1', 'destination');
 

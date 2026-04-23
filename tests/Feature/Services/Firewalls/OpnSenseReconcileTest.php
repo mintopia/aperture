@@ -12,7 +12,6 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use ReflectionClass;
 use stdClass;
 use Tests\TestCase;
 
@@ -22,25 +21,16 @@ class OpnSenseReconcileTest extends TestCase
 
     protected function createServiceWithMockClient(array $responses): OpnSense
     {
-        $service = new OpnSense(
-            endpoint: 'http://localhost',
-            key: 'key',
-            secret: 'secret',
-            zoneId: 1,
-            verify: false,
-            uploadRuleUuid: 'up-uuid',
-            downloadRuleUuid: 'down-uuid',
-        );
-
         $mock = new MockHandler($responses);
         $handlerStack = HandlerStack::create($mock);
         $client = new Client(['handler' => $handlerStack]);
 
-        $reflection = new ReflectionClass($service);
-        $prop = $reflection->getProperty('client');
-        $prop->setValue($service, $client);
-
-        return $service;
+        return new OpnSense(
+            client: $client,
+            zoneId: 1,
+            uploadRuleUuid: 'up-uuid',
+            downloadRuleUuid: 'down-uuid',
+        );
     }
 
     // --- reconcileInternet tests ---
