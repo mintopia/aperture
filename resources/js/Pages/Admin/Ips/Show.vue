@@ -246,7 +246,7 @@ onBeforeUnmount(() => {
         <!-- Metadata Strip -->
         <MetadataStrip
             :items="[
-                { label: 'MAC Address', value: ip.mac || '\u2014', mono: true },
+                { label: 'MAC Address', value: ip.current_mac?.mac_address || '\u2014', mono: true },
                 {
                     label: 'Switch',
                     value: switchInfo ? switchInfo.switchName : '\u2014',

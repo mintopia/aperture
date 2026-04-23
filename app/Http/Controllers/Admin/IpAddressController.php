@@ -126,9 +126,16 @@ class IpAddressController extends Controller
         }
 
         $users = $ip->users()->with('user')->get();
+        $ip->loadMissing('macAddresses');
+        $currentMac = $ip->currentMac();
 
         return Inertia::render('Admin/Ips/Show', [
-            'ip' => $ip,
+            'ip' => array_merge($ip->toArray(), [
+                'current_mac' => $currentMac !== null ? [
+                    'id' => $currentMac->id,
+                    'mac_address' => $currentMac->mac_address,
+                ] : null,
+            ]),
             'port' => $port,
             'switchInfo' => $switchInfo,
             'portBandwidth' => $switchInfo !== null ? $portBandwidth : null,
