@@ -89,26 +89,22 @@ return new class extends Migration
         });
 
         // 7. Drop old columns from ip_addresses
-        // SQLite 3.35+ does not allow dropping a column that has a FK constraint
-        // defined on it, so we use a driver-aware approach.
-        if (DB::getDriverName() === 'sqlite') {
-            $this->dropIpAddressColumnsForSqlite();
-        } else {
-            Schema::table('ip_addresses', function (Blueprint $table): void {
-                $table->dropForeign(['mac_address_id']);
-                $table->dropForeign(['user_id']);
-                $table->dropColumn(['mac_address_id', 'user_id']);
-            });
-        }
+        // Drop each FK-constrained column in a separate Schema::table call so that
+        // Laravel's SQLite grammar can rebuild the table once per call safely.
+        Schema::table('ip_addresses', function (Blueprint $table): void {
+            $table->dropForeign(['mac_address_id']);
+            $table->dropColumn('mac_address_id');
+        });
+
+        Schema::table('ip_addresses', function (Blueprint $table): void {
+            $table->dropForeign(['user_id']);
+            $table->dropColumn('user_id');
+        });
 
         // 8. Drop old columns from mac_addresses
-        if (DB::getDriverName() === 'sqlite') {
-            $this->dropMacAddressColumnsForSqlite();
-        } else {
-            Schema::table('mac_addresses', function (Blueprint $table): void {
-                $table->dropColumn(['allowed', 'allowed_at']);
-            });
-        }
+        Schema::table('mac_addresses', function (Blueprint $table): void {
+            $table->dropColumn(['allowed', 'allowed_at']);
+        });
     }
 
     public function down(): void
@@ -137,35 +133,5 @@ return new class extends Migration
         Schema::dropIfExists('audit_logs');
         Schema::dropIfExists('dhcp_leases');
         Schema::dropIfExists('ip_address_mac_address');
-    }
-
-    /**
-     * Drop mac_address_id and user_id from ip_addresses using SQLite-compatible
-     * table rebuild, since SQLite 3.35+ forbids dropping FK-constrained columns.
-     */
-    private function dropIpAddressColumnsForSqlite(): void
-    {
-        DB::statement('PRAGMA foreign_keys = OFF');
-
-        DB::statement('CREATE TABLE ip_addresses_new AS SELECT id, address, internet_enabled, rate_limit_enabled, dns_filtering_enabled, comment, last_seen_at, expires_at, created_at, updated_at FROM ip_addresses');
-        DB::statement('DROP TABLE ip_addresses');
-        DB::statement('ALTER TABLE ip_addresses_new RENAME TO ip_addresses');
-
-        DB::statement('PRAGMA foreign_keys = ON');
-    }
-
-    /**
-     * Drop allowed and allowed_at from mac_addresses using SQLite-compatible
-     * table rebuild, since SQLite may have constraints preventing direct column drops.
-     */
-    private function dropMacAddressColumnsForSqlite(): void
-    {
-        DB::statement('PRAGMA foreign_keys = OFF');
-
-        DB::statement('CREATE TABLE mac_addresses_new AS SELECT id, mac_address, user_id, source, description, created_at, updated_at FROM mac_addresses');
-        DB::statement('DROP TABLE mac_addresses');
-        DB::statement('ALTER TABLE mac_addresses_new RENAME TO mac_addresses');
-
-        DB::statement('PRAGMA foreign_keys = ON');
     }
 };
