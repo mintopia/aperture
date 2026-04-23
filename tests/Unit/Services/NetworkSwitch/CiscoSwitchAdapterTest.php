@@ -21,6 +21,9 @@ class CiscoSwitchAdapterTest extends TestCase
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
         $transport->shouldReceive('execute')
+            ->with('show interface')
+            ->andReturn('');
+        $transport->shouldReceive('execute')
             ->with('show interface Gi1/0/1')
             ->once()
             ->andReturn(implode("\r\n", [
@@ -48,6 +51,9 @@ class CiscoSwitchAdapterTest extends TestCase
         ]);
 
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show interface')
+            ->andReturn('');
         $transport->shouldReceive('execute')
             ->with('show interface Gi1/0/7')
             ->once()
@@ -122,6 +128,9 @@ class CiscoSwitchAdapterTest extends TestCase
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
         $transport->shouldReceive('execute')
+            ->with('show interface')
+            ->andReturn('');
+        $transport->shouldReceive('execute')
             ->with('show interface Gi1/0/1')
             ->once()
             ->andReturn(implode("\r\n", [
@@ -145,6 +154,9 @@ class CiscoSwitchAdapterTest extends TestCase
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
         $transport->shouldReceive('execute')
+            ->with('show running-config | section ^interface')
+            ->andReturn('');
+        $transport->shouldReceive('execute')
             ->with('show run interface Gi1/0/1')
             ->once()
             ->andReturn("interface Gi1/0/1\n description Test");
@@ -157,6 +169,9 @@ class CiscoSwitchAdapterTest extends TestCase
     public function test_get_port_running_config_returns_output(): void
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show running-config | section ^interface')
+            ->andReturn('');
         $transport->shouldReceive('execute')
             ->with('show run interface Gi1/0/1')
             ->once()
@@ -171,6 +186,9 @@ class CiscoSwitchAdapterTest extends TestCase
     public function test_get_port_running_config_does_not_fall_back_to_switchport_output_when_running_config_command_is_invalid(): void
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show running-config | section ^interface')
+            ->andReturn('');
         $transport->shouldReceive('execute')
             ->with('show run interface Gi1/0/1')
             ->once()

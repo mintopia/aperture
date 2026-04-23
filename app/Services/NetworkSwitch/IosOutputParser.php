@@ -136,4 +136,74 @@ class IosOutputParser
 
         return $entries;
     }
+
+    /**
+     * Split bulk `show interface` output into per-interface blocks.
+     *
+     * @return array<string, string> interface name => output block
+     */
+    public function splitBulkShowInterface(string $output): array
+    {
+        if (trim($output) === '') {
+            return [];
+        }
+
+        $pattern = '/^((?:GigabitEthernet|FastEthernet|TenGigabitEthernet|TwentyFiveGigE|FortyGigabitEthernet|HundredGigE|Vlan|Loopback|Port-channel)\S+)\s+is\s+/m';
+
+        $parts = preg_split($pattern, $output, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+        if ($parts === false) {
+            return [];
+        }
+
+        $result = [];
+        for ($i = 0; $i < count($parts) - 1; $i += 2) {
+            $interfaceName = $parts[$i];
+            $block = $interfaceName.' is '.$parts[$i + 1];
+            $result[$interfaceName] = trim($block);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Split bulk `show running-config | section ^interface` output into per-interface blocks.
+     *
+     * @return array<string, string> interface name => config block
+     */
+    public function splitBulkRunningConfig(string $output): array
+    {
+        if (trim($output) === '') {
+            return [];
+        }
+
+        $lines = preg_split('/\r?\n/', $output) ?: [];
+        $result = [];
+        $currentInterface = null;
+        $currentBlock = '';
+
+        foreach ($lines as $line) {
+            if (preg_match('/^interface\s+(\S+)/', $line, $matches)) {
+                if ($currentInterface !== null) {
+                    $result[$currentInterface] = trim($currentBlock);
+                }
+
+                $currentInterface = $matches[1];
+                $currentBlock = $line;
+            } elseif ($currentInterface !== null) {
+                if ($line === '!') {
+                    $result[$currentInterface] = trim($currentBlock);
+                    $currentInterface = null;
+                    $currentBlock = '';
+                } else {
+                    $currentBlock .= "\n".$line;
+                }
+            }
+        }
+
+        if ($currentInterface !== null) {
+            $result[$currentInterface] = trim($currentBlock);
+        }
+
+        return $result;
+    }
 }

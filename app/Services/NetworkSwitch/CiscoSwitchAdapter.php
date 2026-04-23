@@ -14,6 +14,12 @@ use Illuminate\Support\Collection;
 
 class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOutputCapture
 {
+    /** @var array<string, string>|null */
+    private ?array $bulkInterfaceCache = null;
+
+    /** @var array<string, string>|null */
+    private ?array $bulkConfigCache = null;
+
     public function __construct(
         protected SwitchCommandTransportInterface $transport,
         protected IosOutputParser $parser,
@@ -21,7 +27,7 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function getPortStatus(string $portId): PortStatus
     {
-        $output = $this->getPortInterfaceOutput($portId);
+        $output = $this->getBulkInterfaceOutputs()[$portId] ?? $this->getPortInterfaceOutput($portId);
         $parsed = $this->parser->parseShowInterface($output);
 
         return new PortStatus(
@@ -37,7 +43,34 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function getPortInterfaceOutput(string $portId): string
     {
-        return $this->transport->execute('show interface '.$portId);
+        return $this->getBulkInterfaceOutputs()[$portId]
+            ?? $this->transport->execute('show interface '.$portId);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getBulkInterfaceOutputs(): array
+    {
+        if ($this->bulkInterfaceCache === null) {
+            $output = $this->transport->execute('show interface');
+            $this->bulkInterfaceCache = $this->parser->splitBulkShowInterface($output);
+        }
+
+        return $this->bulkInterfaceCache;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getBulkRunningConfigs(): array
+    {
+        if ($this->bulkConfigCache === null) {
+            $output = $this->transport->execute('show running-config | section ^interface');
+            $this->bulkConfigCache = $this->parser->splitBulkRunningConfig($output);
+        }
+
+        return $this->bulkConfigCache;
     }
 
     /** @return Collection<int, PortStatus> */
@@ -76,7 +109,8 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function getPortStatistics(string $portId): PortStatistics
     {
-        $output = $this->transport->execute('show interface '.$portId);
+        $output = $this->getBulkInterfaceOutputs()[$portId]
+            ?? $this->transport->execute('show interface '.$portId);
 
         return $this->parser->parseInterfaceCounters($output);
     }
@@ -88,7 +122,8 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function getPortRunningConfig(string $portId): string
     {
-        return $this->transport->execute('show run interface '.$portId);
+        return $this->getBulkRunningConfigs()[$portId]
+            ?? $this->transport->execute('show run interface '.$portId);
     }
 
     /** @return Collection<int, ForwardingEntry> */
