@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Models\IpAddress;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -47,16 +48,6 @@ class IpAddressFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'internet_enabled' => true,
             'expires_at' => now()->subHour(),
-        ]);
-    }
-
-    /**
-     * Associate a user with the IP address.
-     */
-    public function withUser(User $user): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'user_id' => $user->id,
         ]);
     }
 }
