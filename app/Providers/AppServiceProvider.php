@@ -13,6 +13,7 @@ use App\Observers\UserIpAddressObserver;
 use App\Observers\UserObserver;
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\Interfaces\AuthProviderInterface;
+use App\Services\NetworkRangeService;
 use App\Services\ThemeService;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(AuthProviderInterface::class, BorealisDeviceFlowService::class);
         $this->app->scoped(ThemeService::class);
+        $this->app->scoped(NetworkRangeService::class);
     }
 
     /**
