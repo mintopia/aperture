@@ -7,6 +7,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Traits\ToString;
 use App\Services\IpPolicyService;
+use App\Services\NetworkRangeService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -162,8 +163,12 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
         return $this->roles()->whereCode($code)->count() > 0;
     }
 
-    public function addIp(string $clientIp): IpAddress
+    public function addIp(string $clientIp): ?IpAddress
     {
+        if (! app(NetworkRangeService::class)->isManaged($clientIp)) {
+            return null;
+        }
+
         $ip = IpAddress::whereAddress($clientIp)->first();
         if (! $ip) {
             $ip = new IpAddress;
