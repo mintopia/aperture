@@ -79,6 +79,12 @@ describe('Network settings page', () => {
         expect(checkbox.element.type).toBe('checkbox');
     });
 
+    it('DNS filter checkbox reflects dns_filter_default prop value', () => {
+        const wrapper = mountPage({ dns_filter_default: true });
+        const checkbox = wrapper.find('[data-testid="toggle-dns-filter-default"]');
+        expect(checkbox.element.checked).toBe(true);
+    });
+
     it('renders Network Defaults section heading', () => {
         const wrapper = mountPage();
         const heading = wrapper.find('[data-testid="section-heading-defaults"]');

@@ -113,3 +113,6 @@ Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
 
    INFO  Horizon started successfully.  
 
+
+   INFO  Horizon started successfully.  
+

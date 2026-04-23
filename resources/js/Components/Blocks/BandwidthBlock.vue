@@ -50,7 +50,7 @@ let pollInterval = null;
 
 async function fetchBandwidth() {
     try {
-        const response = await fetch(route('portal.stats.bandwidth'));
+        const response = await fetch(route('portal.stats.bandwidth') + '?range=6h');
         if (response.ok) {
             bandwidthData.value = await response.json();
         }

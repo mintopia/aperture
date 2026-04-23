@@ -9160,3 +9160,544 @@ Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
   2026-04-22 18:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.23ms DONE
   2026-04-22 18:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
 
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 18:55:00 Running ['artisan' aperture:expire-sessions]  145.62ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 18:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.66ms DONE
+  2026-04-22 18:55:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:00:00 Running ['artisan' aperture:expire-sessions]  165.90ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:00:00 Running [App\Jobs\ReapplyAccessRules] ..... 15.21ms DONE
+  2026-04-22 19:00:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.25ms DONE
+  2026-04-22 19:00:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:05:00 Running ['artisan' aperture:expire-sessions]  137.18ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.92ms DONE
+  2026-04-22 19:05:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:10:00 Running ['artisan' aperture:expire-sessions]  148.48ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.75ms DONE
+  2026-04-22 19:10:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:15:00 Running ['artisan' aperture:expire-sessions]  140.11ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:15:00 Running [App\Jobs\ReapplyAccessRules] ..... 14.90ms DONE
+  2026-04-22 19:15:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.34ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:20:00 Running ['artisan' aperture:expire-sessions]  143.81ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.94ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:25:00 Running ['artisan' aperture:expire-sessions]  138.63ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 16.02ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:30:00 Running ['artisan' aperture:expire-sessions]  147.09ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:30:00 Running [App\Jobs\ReapplyAccessRules] ..... 14.25ms DONE
+  2026-04-22 19:30:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.22ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:35:00 Running ['artisan' aperture:expire-sessions]  138.70ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.43ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:40:00 Running ['artisan' aperture:expire-sessions]  138.89ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.58ms DONE
+  2026-04-22 19:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:45:00 Running ['artisan' aperture:expire-sessions]  137.58ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:45:00 Running [App\Jobs\ReapplyAccessRules] ..... 15.27ms DONE
+  2026-04-22 19:45:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.34ms DONE
+  2026-04-22 19:45:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:50:00 Running ['artisan' aperture:expire-sessions]  140.40ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 14.83ms DONE
+  2026-04-22 19:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 19:55:00 Running ['artisan' aperture:expire-sessions]  141.31ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 19:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.50ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:00:00 Running ['artisan' aperture:expire-sessions]  143.77ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:00:00 Running [App\Jobs\ReapplyAccessRules] ..... 14.80ms DONE
+  2026-04-22 20:00:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.26ms DONE
+  2026-04-22 20:00:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:05:00 Running ['artisan' aperture:expire-sessions]  138.21ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.97ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+
+   INFO  Running scheduled tasks.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:10:00 Running ['artisan' aperture:expire-sessions]  141.12ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.58ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:15:00 Running ['artisan' aperture:expire-sessions]  137.43ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:15:00 Running [App\Jobs\ReapplyAccessRules] ..... 12.94ms DONE
+  2026-04-22 20:15:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.13ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:20:00 Running ['artisan' aperture:expire-sessions]  157.61ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.25ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:25:00 Running ['artisan' aperture:expire-sessions]  148.14ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.18ms DONE
+  2026-04-22 20:25:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:30:00 Running ['artisan' aperture:expire-sessions]  240.17ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:30:00 Running [App\Jobs\ReapplyAccessRules] ..... 52.65ms DONE
+  2026-04-22 20:30:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.27ms DONE
+  2026-04-22 20:30:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:35:00 Running ['artisan' aperture:expire-sessions]  142.94ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.86ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:40:00 Running ['artisan' aperture:expire-sessions]  159.62ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.03ms DONE
+  2026-04-22 20:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:45:00 Running ['artisan' aperture:expire-sessions]  140.71ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:45:00 Running [App\Jobs\ReapplyAccessRules] ..... 14.54ms DONE
+  2026-04-22 20:45:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.31ms DONE
+  2026-04-22 20:45:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:50:00 Running ['artisan' aperture:expire-sessions]  205.71ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.06ms DONE
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 20:55:00 Running ['artisan' aperture:expire-sessions]  208.73ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 20:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.58ms DONE
+  2026-04-22 20:55:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:00:00 Running ['artisan' aperture:expire-sessions]  144.15ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:00:00 Running [App\Jobs\ReapplyAccessRules] ..... 15.70ms DONE
+  2026-04-22 21:00:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.84ms DONE
+  2026-04-22 21:00:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:05:00 Running ['artisan' aperture:expire-sessions]  138.68ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:05:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.15ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:10:00 Running ['artisan' aperture:expire-sessions]  139.80ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:10:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.74ms DONE
+  2026-04-22 21:10:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:15:00 Running ['artisan' aperture:expire-sessions]  147.68ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:15:00 Running [App\Jobs\ReapplyAccessRules] ..... 15.03ms DONE
+  2026-04-22 21:15:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.58ms DONE
+  2026-04-22 21:15:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:20:00 Running ['artisan' aperture:expire-sessions]  150.55ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:20:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.73ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:25:00 Running ['artisan' aperture:expire-sessions]  146.46ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:25:00 Running [App\Jobs\ScanNetworkDevices] ..... 14.33ms DONE
+  2026-04-22 21:25:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:30:00 Running ['artisan' aperture:expire-sessions]  153.39ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:30:00 Running [App\Jobs\ReapplyAccessRules] ..... 14.79ms DONE
+  2026-04-22 21:30:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.52ms DONE
+  2026-04-22 21:30:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:35:00 Running ['artisan' aperture:expire-sessions]  143.05ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:35:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.10ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:40:00 Running ['artisan' aperture:expire-sessions]  143.23ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:40:00 Running [App\Jobs\ScanNetworkDevices] ..... 13.47ms DONE
+  2026-04-22 21:40:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:45:00 Running ['artisan' aperture:expire-sessions]  140.23ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:45:00 Running [App\Jobs\ReapplyAccessRules] ..... 15.29ms DONE
+  2026-04-22 21:45:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.07ms DONE
+  2026-04-22 21:45:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:50:00 Running ['artisan' aperture:expire-sessions]  141.52ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:50:00 Running [App\Jobs\ScanNetworkDevices] ..... 12.97ms DONE
+  2026-04-22 21:50:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+
+................ 1m 31s DONE
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 21:55:00 Running ['artisan' aperture:expire-sessions]  145.82ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 21:55:00 Running [App\Jobs\ScanNetworkDevices] ..... 14.52ms DONE
+
+   INFO  Skipping [sync-switch-ports] because the command already ran on another server.  
+
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+
+  2026-04-22 22:00:00 Running ['artisan' aperture:expire-sessions]  146.13ms DONE
+  ⇂ '/usr/bin/php8.4' 'artisan' aperture:expire-sessions > '/dev/null' 2>&1  
+  2026-04-22 22:00:00 Running [App\Jobs\ReapplyAccessRules] ..... 17.73ms DONE
+  2026-04-22 22:00:00 Running [App\Jobs\ScanNetworkDevices] ...... 1.25ms DONE
+  2026-04-22 22:00:00 Running [sync-switch-ports]    INFO  No scheduled commands are ready to run.  
+

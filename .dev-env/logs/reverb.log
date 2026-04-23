@@ -245,3 +245,8 @@ Failed to parse dotenv file. Encountered an invalid name at [\APP_NAME].
 
    INFO  Starting server on 0.0.0.0:8080 (reverb).  
 
+   INFO  Gracefully terminating connections.  
+
+
+   INFO  Starting server on 0.0.0.0:8080 (reverb).  
+

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
@@ -8,7 +8,7 @@ import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatRelative } from '@/utils/dates';
-import { formatBytes } from '@/helpers.js';
+import { formatBytes, formatBytesComponents } from '@/helpers.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -16,6 +16,9 @@ const props = defineProps({
     ip: { type: Object, default: () => ({}) },
     port: { type: Object, default: () => ({}) }, // kept for metadata — passed from controller
     switchInfo: { type: Object, default: null },
+    portBandwidth: { type: Object, default: null },
+    portErrors: { type: Object, default: null },
+    metricsAvailable: { type: Boolean, default: false },
     users: { type: Array, default: () => [] },
 });
 
@@ -89,6 +92,50 @@ const chartSeries = computed(() => {
     ];
 });
 
+function getThemeColor(variableName, fallback) {
+    return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback;
+}
+
+const portBandwidthSeries = computed(() => {
+    const series = [];
+    if (props.portBandwidth?.in?.length) {
+        series.push({
+            label: 'Inbound',
+            data: props.portBandwidth.in,
+            color: getThemeColor('--color-success', '#22c55e'),
+            fill: true,
+        });
+    }
+    if (props.portBandwidth?.out?.length) {
+        series.push({
+            label: 'Outbound',
+            data: props.portBandwidth.out,
+            color: getThemeColor('--color-info', '#3b82f6'),
+            fill: true,
+        });
+    }
+    return series;
+});
+
+const portErrorSeries = computed(() => {
+    const series = [];
+    if (props.portErrors?.in_series?.length) {
+        series.push({
+            label: 'Input Errors',
+            data: props.portErrors.in_series,
+            color: getThemeColor('--color-danger', '#ef4444'),
+        });
+    }
+    if (props.portErrors?.out_series?.length) {
+        series.push({
+            label: 'Output Errors',
+            data: props.portErrors.out_series,
+            color: getThemeColor('--color-warning', '#f59e0b'),
+        });
+    }
+    return series;
+});
+
 async function fetchBandwidth() {
     bandwidthLoading.value = true;
     bandwidthError.value = false;
@@ -111,14 +158,27 @@ function selectRange(range) {
     fetchBandwidth();
 }
 
-const statusValue = computed(() => {
-    if (props.ip.internet_enabled) return 'Allowed';
-    if (props.users?.some((u) => u.user?.internet_enabled === false)) return 'Denied';
-    return '\u2014';
-});
+let bandwidthPoll = null;
+let portMetricsPoll = null;
+
+function refreshPortMetrics() {
+    router.reload({
+        only: ['portBandwidth', 'portErrors'],
+        preserveScroll: true,
+    });
+}
 
 onMounted(() => {
     fetchBandwidth();
+    bandwidthPoll = setInterval(fetchBandwidth, 30000);
+    if (props.switchInfo) {
+        portMetricsPoll = setInterval(refreshPortMetrics, 30000);
+    }
+});
+
+onBeforeUnmount(() => {
+    if (bandwidthPoll) clearInterval(bandwidthPoll);
+    if (portMetricsPoll) clearInterval(portMetricsPoll);
 });
 </script>
 
@@ -186,10 +246,7 @@ onMounted(() => {
         <!-- Metadata Strip -->
         <MetadataStrip
             :items="[
-                { label: 'Status', value: statusValue },
                 { label: 'MAC Address', value: ip.mac || '\u2014', mono: true },
-                { label: 'Rate Limiting', value: ip.rate_limit_enabled ? 'Enabled' : '\u2014' },
-                { label: 'DNS Filtering', value: ip.dns_filtering_enabled ? 'Enabled' : '\u2014' },
                 {
                     label: 'Switch',
                     value: switchInfo ? switchInfo.switchName : '\u2014',
@@ -229,62 +286,125 @@ onMounted(() => {
                 </DataTable>
             </div>
 
-            <!-- Right: Bandwidth -->
-            <div>
-                <div class="flex items-center justify-between">
-                    <SectionHeader title="Bandwidth" />
-                    <div class="flex gap-1" data-testid="bandwidth-range-selector">
-                        <button
-                            v-for="range in ranges"
-                            :key="range"
-                            type="button"
-                            :data-testid="'range-' + range"
-                            :class="
-                                selectedRange === range
-                                    ? 'bg-[var(--color-accent-dim)] font-semibold text-[var(--color-primary)]'
-                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-                            "
-                            class="rounded-md px-3 py-1 text-[12px] font-medium transition-all"
-                            @click="selectRange(range)"
-                        >
-                            {{ range }}
-                        </button>
+            <!-- Right: Internet + Port Metrics -->
+            <div class="space-y-6">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <SectionHeader title="Internet" />
+                        <div class="flex gap-1" data-testid="bandwidth-range-selector">
+                            <button
+                                v-for="range in ranges"
+                                :key="range"
+                                type="button"
+                                :data-testid="'range-' + range"
+                                :class="
+                                    selectedRange === range
+                                        ? 'bg-[var(--color-accent-dim)] font-semibold text-[var(--color-primary)]'
+                                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                                "
+                                class="rounded-md px-3 py-1 text-[12px] font-medium transition-all"
+                                @click="selectRange(range)"
+                            >
+                                {{ range }}
+                            </button>
+                        </div>
                     </div>
+                    <div class="mt-2 flex items-baseline gap-4">
+                        <div data-testid="bandwidth-download">
+                            <span
+                                class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                >Down</span
+                            >
+                            <span class="ml-1 font-mono text-sm font-bold text-[var(--color-success)]">
+                                {{ formatBytes(bandwidthData.totalReceived) }}
+                            </span>
+                        </div>
+                        <div data-testid="bandwidth-upload">
+                            <span
+                                class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                >Up</span
+                            >
+                            <span class="ml-1 font-mono text-sm font-bold text-[var(--color-info)]">
+                                {{ formatBytes(bandwidthData.totalSent) }}
+                            </span>
+                        </div>
+                    </div>
+                    <TimeSeriesChart
+                        :series="chartSeries"
+                        :loading="bandwidthLoading"
+                        y-axis-label="bps"
+                        height="200px"
+                        empty-message="No bandwidth data available"
+                        data-testid="admin-bandwidth-chart"
+                        class="mt-2"
+                    />
+                    <p
+                        v-if="bandwidthError"
+                        class="mt-2 text-[12px] text-[var(--color-danger)]"
+                        data-testid="bandwidth-error"
+                    >
+                        Failed to load bandwidth data
+                    </p>
                 </div>
-                <div class="mt-2 flex items-baseline gap-4">
-                    <div data-testid="bandwidth-download">
-                        <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
-                            >Down</span
-                        >
-                        <span class="ml-1 font-mono text-sm font-bold text-[var(--color-success)]">
-                            {{ formatBytes(bandwidthData.totalReceived) }}
-                        </span>
+
+                <!-- Port Bandwidth -->
+                <div v-if="switchInfo" data-testid="section-port-bandwidth">
+                    <SectionHeader title="Port Bandwidth — Last 24h" />
+                    <div class="mb-3 flex items-baseline gap-6">
+                        <div class="flex items-baseline gap-1.5">
+                            <span
+                                class="text-[10px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
+                                >In</span
+                            >
+                            <span
+                                class="font-heading text-[22px] font-bold tracking-[-0.02em] text-[var(--color-success)]"
+                                :style="{ fontVariationSettings: '\'opsz\' 32' }"
+                                >{{ formatBytesComponents(portBandwidth?.in_bytes ?? 0).value }}</span
+                            >
+                            <span class="text-[11px] font-semibold text-[var(--color-text-muted)]">{{
+                                formatBytesComponents(portBandwidth?.in_bytes ?? 0).unit
+                            }}</span>
+                        </div>
+                        <div class="flex items-baseline gap-1.5">
+                            <span
+                                class="text-[10px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
+                                >Out</span
+                            >
+                            <span
+                                class="font-heading text-[22px] font-bold tracking-[-0.02em] text-[var(--color-info)]"
+                                :style="{ fontVariationSettings: '\'opsz\' 32' }"
+                                >{{ formatBytesComponents(portBandwidth?.out_bytes ?? 0).value }}</span
+                            >
+                            <span class="text-[11px] font-semibold text-[var(--color-text-muted)]">{{
+                                formatBytesComponents(portBandwidth?.out_bytes ?? 0).unit
+                            }}</span>
+                        </div>
                     </div>
-                    <div data-testid="bandwidth-upload">
-                        <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
-                            >Up</span
-                        >
-                        <span class="ml-1 font-mono text-sm font-bold text-[var(--color-info)]">
-                            {{ formatBytes(bandwidthData.totalSent) }}
-                        </span>
-                    </div>
+                    <TimeSeriesChart
+                        data-testid="port-bandwidth-chart"
+                        :series="portBandwidthSeries"
+                        y-axis-label="bps"
+                        height="200px"
+                        :empty-message="
+                            metricsAvailable ? 'No port bandwidth data available' : 'Prometheus not configured'
+                        "
+                    />
                 </div>
-                <TimeSeriesChart
-                    :series="chartSeries"
-                    :loading="bandwidthLoading"
-                    y-axis-label="bps"
-                    height="200px"
-                    empty-message="No bandwidth data available"
-                    data-testid="admin-bandwidth-chart"
-                    class="mt-2"
-                />
-                <p
-                    v-if="bandwidthError"
-                    class="mt-2 text-[12px] text-[var(--color-danger)]"
-                    data-testid="bandwidth-error"
-                >
-                    Failed to load bandwidth data
-                </p>
+
+                <!-- Port Errors -->
+                <div v-if="switchInfo" data-testid="section-port-errors">
+                    <SectionHeader title="Port Errors — Last 24h" />
+                    <div v-if="metricsAvailable">
+                        <TimeSeriesChart
+                            data-testid="port-errors-chart"
+                            :series="portErrorSeries"
+                            y-axis-label="errors/s"
+                            height="160px"
+                            empty-message="No error data for this port"
+                        />
+                    </div>
+                    <p v-else class="text-[13px] text-[var(--color-text-muted)]">Prometheus not configured</p>
+                </div>
             </div>
         </div>
     </div>

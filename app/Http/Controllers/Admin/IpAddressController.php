@@ -9,19 +9,23 @@ use App\Http\Requests\IpAddressStoreRequest;
 use App\Jobs\IpAddressAction;
 use App\Models\IpAddress;
 use App\Models\SwitchConfig;
+use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\IpAddressActionService;
 use App\Services\ValueObjects\PortDetail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class IpAddressController extends Controller
 {
     public function __construct(
         protected IpAddressActionService $ipAddressActionService,
+        protected MetricsProviderInterface $metrics,
     ) {}
 
     public function index(Request $request): Response
@@ -83,6 +87,10 @@ class IpAddressController extends Controller
     public function show(IpAddress $ip): Response
     {
         $switchInfo = null;
+        $portBandwidth = ['in' => [], 'out' => [], 'in_bytes' => 0, 'out_bytes' => 0];
+        $portErrors = ['in_series' => [], 'out_series' => []];
+        $metricsAvailable = $this->metrics->isAvailable();
+
         $port = $this->ipAddressActionService->getPortInfo($ip);
         if ($port !== null) {
             $switchConfig = $this->resolveSwitchConfig($port);
@@ -91,6 +99,30 @@ class IpAddressController extends Controller
                 'switchName' => $switchConfig->hostname,
                 'portId' => $port->interface,
             ];
+
+            if ($metricsAvailable) {
+                $end = (float) now()->timestamp;
+                $start = (float) now()->subHours(24)->timestamp;
+
+                try {
+                    $bw = $this->metrics->getPortBandwidth($switchConfig->hostname, $port->interface, $start, $end);
+                    $portBandwidth['in'] = $bw['in'];
+                    $portBandwidth['out'] = $bw['out'];
+                    $portBandwidth['in_bytes'] = $this->sumSeries($bw['in']);
+                    $portBandwidth['out_bytes'] = $this->sumSeries($bw['out']);
+
+                    $err = $this->metrics->getPortErrors($switchConfig->hostname, $port->interface, $start, $end);
+                    $portErrors['in_series'] = $err['in'];
+                    $portErrors['out_series'] = $err['out'];
+                } catch (Throwable $e) {
+                    Log::warning('Failed to fetch port metrics for IP show', [
+                        'ip' => $ip->address,
+                        'switch' => $switchConfig->hostname,
+                        'port' => $port->interface,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
 
         $users = $ip->users()->with('user')->get();
@@ -99,6 +131,9 @@ class IpAddressController extends Controller
             'ip' => $ip,
             'port' => $port,
             'switchInfo' => $switchInfo,
+            'portBandwidth' => $switchInfo !== null ? $portBandwidth : null,
+            'portErrors' => $switchInfo !== null ? $portErrors : null,
+            'metricsAvailable' => $metricsAvailable,
             'users' => $users,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
@@ -200,6 +235,23 @@ class IpAddressController extends Controller
             'totalReceived' => $bandwidth->received,
             'totalSent' => $bandwidth->sent,
         ]);
+    }
+
+    /**
+     * Sum rate values to approximate total bytes transferred.
+     *
+     * @param  array<int, array{timestamp: float, value: float}>  $series
+     */
+    private function sumSeries(array $series): int
+    {
+        $total = 0;
+        for ($i = 1; $i < count($series); $i++) {
+            $dt = $series[$i]['timestamp'] - $series[$i - 1]['timestamp'];
+            $avgRate = ($series[$i]['value'] + $series[$i - 1]['value']) / 2;
+            $total += $avgRate * $dt / 8;
+        }
+
+        return (int) $total;
     }
 
     protected function resolveSwitchConfig(PortDetail $port): SwitchConfig
