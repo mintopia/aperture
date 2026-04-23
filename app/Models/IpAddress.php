@@ -39,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @property-read int|null $audit_logs_count
  * @property-read Collection<int, UserIpAddress> $users
  * @property-read int|null $users_count
+ * @property-read IpAddressMacAddress $pivot
  *
  * @method static IpAddressFactory factory($count = null, $state = [])
  * @method static Builder|IpAddress newModelQuery()

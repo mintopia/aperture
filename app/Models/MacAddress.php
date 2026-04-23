@@ -61,6 +61,11 @@ class MacAddress extends Model
         'description',
     ];
 
+    public function getRouteKeyName(): string
+    {
+        return 'mac_address';
+    }
+
     /**
      * @return array<string, mixed>
      */
