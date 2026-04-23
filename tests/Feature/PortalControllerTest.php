@@ -274,6 +274,21 @@ class PortalControllerTest extends TestCase
         ]);
     }
 
+    public function test_index_renders_with_null_ip_when_outside_managed_range(): void
+    {
+        Queue::fake();
+        Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['172.16.0.0/12']));
+
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $response = $this->actingAs($user)
+            ->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
+            ->get('/');
+
+        $response->assertOk();
+        $response->assertViewHas('ip', null);
+    }
+
     public function test_ipv6_returns_null_ip_when_outside_managed_range(): void
     {
         Queue::fake();

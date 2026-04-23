@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Auth\AuthResult;
 use App\Services\Auth\UserInfo;
@@ -202,5 +203,46 @@ class CaptivePortalPollTest extends TestCase
 
         $user->refresh();
         $this->assertTrue((bool) $user->internet_blocked);
+    }
+
+    public function test_poll_skips_enable_internet_when_ip_outside_managed_range(): void
+    {
+        Queue::fake();
+        Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['172.16.0.0/12']));
+
+        $this->mock(IpAddressActionService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('enableInternet')->never();
+        });
+
+        Cache::put('device_flow:test-code', [
+            'status' => 'pending',
+            'ip' => '10.0.0.1',
+        ], now()->addMinutes(10));
+
+        $mock = $this->mock(AuthProviderInterface::class);
+        $mock->shouldReceive('pollDeviceFlow')
+            ->with('test-code')
+            ->andReturn(new AuthResult(
+                accessToken: 'access-unmanaged',
+                tokenType: 'Bearer',
+                expiresIn: 3600,
+            ));
+        $mock->shouldReceive('getUserInfo')
+            ->with('access-unmanaged')
+            ->andReturn(new UserInfo(
+                id: 'ext-unmanaged',
+                nickname: 'UnmanagedUser',
+            ));
+
+        $response = $this->getJson('/captive/poll/test-code');
+
+        $response->assertOk();
+        $response->assertJson(['status' => 'complete']);
+
+        $this->assertAuthenticated();
+
+        $cached = Cache::get('device_flow:test-code');
+        $this->assertSame('complete', $cached['status']);
+        $this->assertArrayHasKey('user_id', $cached);
     }
 }
