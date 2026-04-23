@@ -11,6 +11,7 @@ const routeMap = {
     'admin.settings.integrations': '/admin/settings/integrations',
     'admin.settings.ipv6-detection': '/admin/settings/ipv6-detection',
     'admin.settings.dns-detection': '/admin/settings/dns-detection',
+    'admin.settings.network': '/admin/settings/network',
     'admin.content.index': '/admin/content',
     'admin.content.pages.index': '/admin/content/pages',
     'admin.settings.theme': '/admin/settings/theme',
@@ -108,6 +109,7 @@ describe('Sidebar.vue', () => {
             'Integrations',
             'IPv6 Detection',
             'DNS Detection',
+            'Network',
         ]);
     });
 
@@ -137,6 +139,7 @@ describe('Sidebar.vue', () => {
         expect(hrefsByTestId).toContainEqual(['nav-integrations', '/admin/settings/integrations']);
         expect(hrefsByTestId).toContainEqual(['nav-ipv6-detection', '/admin/settings/ipv6-detection']);
         expect(hrefsByTestId).toContainEqual(['nav-dns-detection', '/admin/settings/dns-detection']);
+        expect(hrefsByTestId).toContainEqual(['nav-network', '/admin/settings/network']);
         expect(hrefsByTestId).toContainEqual(['nav-pages', '/admin/content/pages']);
         expect(hrefsByTestId).toContainEqual(['nav-theme', '/admin/settings/theme']);
         expect(hrefsByTestId).toContainEqual(['nav-settings', '/admin/content/settings']);
@@ -153,6 +156,7 @@ describe('Sidebar.vue', () => {
         expect(window.route).toHaveBeenCalledWith('admin.settings.integrations');
         expect(window.route).toHaveBeenCalledWith('admin.settings.ipv6-detection');
         expect(window.route).toHaveBeenCalledWith('admin.settings.dns-detection');
+        expect(window.route).toHaveBeenCalledWith('admin.settings.network');
         expect(window.route).toHaveBeenCalledWith('admin.content.index');
         expect(window.route).toHaveBeenCalledWith('admin.content.pages.index');
         expect(window.route).toHaveBeenCalledWith('admin.settings.theme');
@@ -163,7 +167,7 @@ describe('Sidebar.vue', () => {
         const wrapper = await mountSidebar();
         const svgs = wrapper.findAll('[data-testid^="nav-"] svg');
 
-        expect(svgs.length).toBe(12);
+        expect(svgs.length).toBe(13);
         svgs.forEach((svg) => {
             expect(svg.attributes('aria-hidden')).toBe('true');
             expect(svg.attributes('stroke')).toBe('currentColor');
@@ -214,6 +218,7 @@ describe('Sidebar.vue', () => {
             'Integrations',
             'IPv6 Detection',
             'DNS Detection',
+            'Network',
             'Dashboard',
             'Pages',
             'Theme',
