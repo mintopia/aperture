@@ -334,4 +334,26 @@ class DashboardControllerTest extends TestCase
             ->where('blockContext.blockedMessage', '')
         );
     }
+
+    public function test_dashboard_renders_with_null_ip_when_outside_managed_range(): void
+    {
+        Queue::fake();
+        Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['172.16.0.0/12']));
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->withServerVariables(['REMOTE_ADDR' => '203.0.113.50'])
+            ->get('/portal');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Portal/Dashboard')
+            ->has('blockContext')
+            ->where('blockContext.currentIpv4', null)
+            ->where('blockContext.currentIpv6', null)
+            ->where('blockContext.internetEnabled', false)
+            ->where('blockContext.macAddress', null)
+        );
+    }
 }

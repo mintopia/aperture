@@ -113,6 +113,9 @@ class ScanNetworkDevices implements ShouldQueue
     {
         if ($macAddress->user_id !== null && $macAddress->user) {
             $ip = $macAddress->user->addIp($ipAddress);
+            if ($ip === null) {
+                return;
+            }
         } else {
             $ip = IpAddress::where('address', $ipAddress)->first();
             if ($ip === null) {

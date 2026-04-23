@@ -6,6 +6,7 @@ use App\Jobs\ScanNetworkDevices;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsFilteringInterface;
@@ -274,5 +275,35 @@ class ScanNetworkDevicesTest extends TestCase
         $ip->refresh();
         $this->assertTrue((bool) $ip->internet_enabled);
         $this->assertSame($mac->id, $ip->mac_address_id);
+    }
+
+    public function test_auto_allow_skips_ip_linking_when_outside_managed_range(): void
+    {
+        Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['172.16.0.0/12']));
+
+        $user = User::factory()->create();
+        $mac = MacAddress::factory()->allowed()->create([
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'user_id' => $user->id,
+        ]);
+
+        $resolver = Mockery::mock(MacAddressResolverInterface::class);
+        $resolver->shouldReceive('resolveIpToMac')->andReturnNull();
+        $this->app->instance(MacAddressResolverInterface::class, $resolver);
+
+        $dhcp = Mockery::mock(DhcpInterface::class);
+        $dhcp->shouldReceive('getLeases')->andReturn(collect([
+            new DhcpLease(ip: '203.0.113.50', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'phone', expires: ''),
+        ]));
+        $this->app->instance(DhcpInterface::class, $dhcp);
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('getArpTable')->andReturn(collect([]));
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+
+        (new ScanNetworkDevices)->handle();
+
+        $this->assertDatabaseMissing('ip_addresses', ['address' => '203.0.113.50']);
+        $this->assertDatabaseMissing('user_ip_addresses', ['user_id' => $user->id]);
     }
 }

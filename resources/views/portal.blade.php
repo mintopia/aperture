@@ -27,7 +27,7 @@
                     <p class="mt-1 text-xs">Please speak to an event organizer for assistance.</p>
                 </div>
             @else
-                <div id="status-waiting" class="{{ $ip->internet_enabled ? 'hidden' : '' }} mt-4" data-testid="portal-status-waiting">
+                <div id="status-waiting" class="{{ $ip?->internet_enabled ? 'hidden' : '' }} mt-4" data-testid="portal-status-waiting">
                     <p class="text-sm text-[var(--color-text-secondary)]">Setting up your internet access…</p>
                     <div class="mt-2 flex justify-center">
                         <svg class="h-5 w-5 animate-spin text-[var(--color-primary)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -37,7 +37,7 @@
                     </div>
                 </div>
 
-                <div id="status-ok" class="{{ $ip->internet_enabled ? '' : 'hidden' }} mt-4" data-testid="portal-status-ok">
+                <div id="status-ok" class="{{ $ip?->internet_enabled ? '' : 'hidden' }} mt-4" data-testid="portal-status-ok">
                     <div class="rounded-lg bg-[var(--color-success)]/10 px-4 py-3 text-sm font-semibold text-[var(--color-success)]">
                         ✓ You're connected! Enjoy the event.
                     </div>
@@ -47,7 +47,7 @@
                 </div>
             @endif
 
-            <p class="mt-6 text-xs text-[var(--color-text-muted)]" data-testid="portal-ip">Your IP: {{ $ip->address }}</p>
+            <p class="mt-6 text-xs text-[var(--color-text-muted)]" data-testid="portal-ip">Your IP: {{ $ip?->address }}</p>
         </div>
     </div>
 @endsection

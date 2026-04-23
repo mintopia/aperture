@@ -31,17 +31,17 @@ class DashboardController extends Controller
         $checkUrl = Setting::get('dns.check_url');
         $warningMessage = Setting::get('dns.warning_message');
 
-        $ipv6 = $this->resolveIpv6ForMac($ip->mac);
+        $ipv6 = $ip !== null ? $this->resolveIpv6ForMac($ip->mac) : null;
 
         return Inertia::render('Portal/Dashboard', [
             'blocks' => $blocks,
             'blockContext' => [
-                'currentIpv4' => $ip->address,
+                'currentIpv4' => $ip?->address,
                 'currentIpv6' => $ipv6,
-                'internetEnabled' => (bool) $ip->internet_enabled,
+                'internetEnabled' => (bool) ($ip?->internet_enabled ?? false),
                 'internetBlocked' => (bool) $user->internet_blocked,
                 'blockedMessage' => Setting::get('portal.blocked_message', ''),
-                'macAddress' => $ip->mac,
+                'macAddress' => $ip?->mac,
                 'dnsFilteringEnabled' => (bool) $user->dns_filtering_enabled,
                 'user' => [
                     'name' => $user->nickname ?? '',

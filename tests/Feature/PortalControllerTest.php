@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\IntegrationConfig;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Ipv6JwtService;
 use Firebase\JWT\SignatureInvalidException;
@@ -253,5 +254,49 @@ class PortalControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('dns-warning');
         $response->assertDontSee('d-none');
+    }
+
+    public function test_status_returns_null_ip_when_outside_managed_range(): void
+    {
+        Queue::fake();
+        Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['172.16.0.0/12']));
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->withServerVariables(['REMOTE_ADDR' => '203.0.113.50'])
+            ->get('/status');
+
+        $response->assertOk();
+        $response->assertJson([
+            'ip' => null,
+            'internetEnabled' => false,
+        ]);
+    }
+
+    public function test_ipv6_returns_null_ip_when_outside_managed_range(): void
+    {
+        Queue::fake();
+        Setting::set('network.managed_ranges_v6', 'Managed IPv6 Ranges', json_encode(['fd00::/8']));
+
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json')
+            ->andReturn('2001:db8::1');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $response = $this->actingAs($user)->postJson('/ipv6', [
+            'token' => 'valid.jwt.token',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson([
+            'ip' => null,
+            'internetEnabled' => false,
+        ]);
     }
 }
