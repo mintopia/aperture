@@ -3,11 +3,13 @@
 namespace App\Jobs;
 
 use App\Models\IpAddress;
+use App\Services\IpAddressActionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class IpAddressAction implements ShouldQueue
 {
@@ -15,6 +17,17 @@ class IpAddressAction implements ShouldQueue
     use InteractsWithQueue;
     use Queueable;
     use SerializesModels;
+
+    /** @var array<int, string> */
+    private const array ALLOWED_METHODS = [
+        'shutPort',
+        'unshutPort',
+        'enableInternet',
+        'disableInternet',
+        'enableRateLimit',
+        'disableRateLimit',
+        'updateUsage',
+    ];
 
     /**
      * Create a new job instance.
@@ -27,8 +40,14 @@ class IpAddressAction implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(IpAddressActionService $service): void
     {
-        $this->ip->{$this->method}();
+        if (! in_array($this->method, self::ALLOWED_METHODS, true)) {
+            Log::error('Invalid IpAddressAction method', ['method' => $this->method]);
+
+            return;
+        }
+
+        $service->{$this->method}($this->ip);
     }
 }

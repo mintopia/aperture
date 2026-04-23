@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
+use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\IpAddressActionService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NtopNgService;
@@ -35,8 +36,9 @@ class IpAddressDirectTest extends TestCase
 
         $factory = Mockery::mock(SwitchServiceFactory::class);
         $ntopng = Mockery::mock(NtopNgService::class);
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
 
-        $this->service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+        $this->service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng, $inventory);
     }
 
     public function test_enable_rate_limit_updates_firewall(): void
@@ -90,8 +92,9 @@ class IpAddressDirectTest extends TestCase
 
         $factory = Mockery::mock(SwitchServiceFactory::class);
         $ntopng = Mockery::mock(NtopNgService::class);
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
 
-        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng);
+        $service = new IpAddressActionService($firewall, $factory, $macResolver, $ntopng, $inventory);
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.53';

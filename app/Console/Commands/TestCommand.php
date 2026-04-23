@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\IpAddress;
+use App\Services\IpAddressActionService;
 use Illuminate\Console\Command;
 
 class TestCommand extends Command
@@ -24,11 +25,11 @@ class TestCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(): void
+    public function handle(IpAddressActionService $service): void
     {
         $ip = new IpAddress;
         $ip->address = '10.30.0.197';
 
-        $ip->updateUsage();
+        $service->updateUsage($ip);
     }
 }

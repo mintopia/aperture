@@ -2,13 +2,9 @@
 
 namespace App\Models;
 
-use App\Jobs\IpAddressAction;
 use App\Models\Traits\ToString;
-use App\Services\Interfaces\NetworkInventoryInterface;
-use App\Services\IpAddressActionService;
-use App\Services\ValueObjects\PortDetail;
-use GuzzleHttp\Exception\ClientException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,8 +12,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
-use stdClass;
-use Throwable;
 
 /**
  * App\Models\IpAddress
@@ -30,8 +24,6 @@ use Throwable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read string|null $mac
- * @property-read PortDetail|null $port
- * @property-read null $portUpdatedAt
  *
  * @method static Builder|IpAddress newModelQuery()
  * @method static Builder|IpAddress newQuery()
@@ -75,10 +67,6 @@ class IpAddress extends Model
 
     use ToString;
 
-    protected ?PortDetail $portInfoCache = null;
-
-    protected bool $portInfoResolved = false;
-
     protected string $stringDescriptionProperty = 'address';
 
     /**
@@ -100,18 +88,14 @@ class IpAddress extends Model
         return 'address';
     }
 
-    public function __get($name)
+    /**
+     * @return Attribute<string|null, never>
+     */
+    protected function mac(): Attribute
     {
-        switch ($name) {
-            case 'mac':
-                return $this->macAddress?->mac_address;
-            case 'port':
-                return $this->getPortInfo();
-            case 'portUpdatedAt':
-                return null;
-            default:
-                return parent::__get($name);
-        }
+        return Attribute::make(
+            get: fn (): ?string => $this->macAddress?->mac_address,
+        );
     }
 
     /** @return HasMany<UserIpAddress, $this> */
@@ -124,70 +108,5 @@ class IpAddress extends Model
     public function macAddress(): BelongsTo
     {
         return $this->belongsTo(MacAddress::class);
-    }
-
-    public function getPortInfo(): ?PortDetail
-    {
-        if ($this->portInfoResolved) {
-            return $this->portInfoCache;
-        }
-
-        $this->portInfoResolved = true;
-
-        try {
-            /** @var NetworkInventoryInterface $inventory */
-            $inventory = app(NetworkInventoryInterface::class);
-            $resolved = $inventory->resolveIpToPort($this->address);
-            if ($resolved === null) {
-                return null;
-            }
-
-            $detail = $inventory->getPortDetail($resolved->port);
-            if ($detail === null) {
-                return null;
-            }
-
-            $this->portInfoCache = $detail;
-
-            return $this->portInfoCache;
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    public function shutPort(bool $queue = false): void
-    {
-        if ($queue) {
-            IpAddressAction::dispatch($this, 'shutPort');
-
-            return;
-        }
-
-        app(IpAddressActionService::class)->shutPort($this);
-    }
-
-    public function unshutPort(bool $queue = false): void
-    {
-        if ($queue) {
-            IpAddressAction::dispatch($this, 'unshutPort');
-
-            return;
-        }
-
-        app(IpAddressActionService::class)->unshutPort($this);
-    }
-
-    public function updateUsage(): void
-    {
-        try {
-            app(IpAddressActionService::class)->updateUsage($this);
-        } catch (ClientException $clientException) {
-            // Do Nothing
-        }
-    }
-
-    public function getStats(): stdClass
-    {
-        return app(IpAddressActionService::class)->getStats($this);
     }
 }

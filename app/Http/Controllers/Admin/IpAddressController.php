@@ -6,9 +6,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IpAddressStoreRequest;
+use App\Jobs\IpAddressAction;
 use App\Models\IpAddress;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\IpAddressActionService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +24,7 @@ class IpAddressController extends Controller
 {
     public function __construct(
         protected SwitchServiceFactory $switchServiceFactory,
+        protected IpAddressActionService $ipAddressActionService,
     ) {}
 
     public function index(Request $request): Response
@@ -85,7 +88,7 @@ class IpAddressController extends Controller
         $status = null;
         $config = null;
         $shutdown = false;
-        $port = $ip->port;
+        $port = $this->ipAddressActionService->getPortInfo($ip);
         if ($port !== null) {
             $shutdown = $port->adminStatus === 'down';
 
@@ -118,10 +121,10 @@ class IpAddressController extends Controller
     public function port(Request $request, IpAddress $ip): RedirectResponse
     {
         if ($request->input('shutdown') == 1) {
-            $ip->shutPort(true);
+            IpAddressAction::dispatch($ip, 'shutPort');
             $message = 'The network port will be disabled';
         } else {
-            $ip->unshutPort(true);
+            IpAddressAction::dispatch($ip, 'unshutPort');
             $message = 'The network port will be enabled';
         }
 

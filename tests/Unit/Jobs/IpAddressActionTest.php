@@ -4,65 +4,106 @@ namespace Tests\Unit\Jobs;
 
 use App\Jobs\IpAddressAction;
 use App\Models\IpAddress;
+use App\Services\IpAddressActionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Mockery;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class IpAddressActionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_handle_calls_specified_method(): void
+    public function test_handle_calls_specified_method_on_service(): void
     {
-        $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('enableInternet')->once();
+        $ip = IpAddress::factory()->create();
+        /** @var IpAddressActionService&MockInterface $service */
+        $service = Mockery::mock(IpAddressActionService::class);
+        $service->shouldReceive('enableInternet')->once()->with($ip);
 
-        $job = new IpAddressAction($mockIp, 'enableInternet');
-        $job->handle();
+        $job = new IpAddressAction($ip, 'enableInternet');
+        $job->handle($service);
     }
 
-    public function test_handle_calls_disable_internet(): void
+    public function test_handle_calls_disable_internet_on_service(): void
     {
-        $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('disableInternet')->once();
+        $ip = IpAddress::factory()->create();
+        /** @var IpAddressActionService&MockInterface $service */
+        $service = Mockery::mock(IpAddressActionService::class);
+        $service->shouldReceive('disableInternet')->once()->with($ip);
 
-        $job = new IpAddressAction($mockIp, 'disableInternet');
-        $job->handle();
+        $job = new IpAddressAction($ip, 'disableInternet');
+        $job->handle($service);
     }
 
-    public function test_handle_calls_enable_rate_limit(): void
+    public function test_handle_calls_enable_rate_limit_on_service(): void
     {
-        $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('enableRateLimit')->once();
+        $ip = IpAddress::factory()->create();
+        /** @var IpAddressActionService&MockInterface $service */
+        $service = Mockery::mock(IpAddressActionService::class);
+        $service->shouldReceive('enableRateLimit')->once()->with($ip);
 
-        $job = new IpAddressAction($mockIp, 'enableRateLimit');
-        $job->handle();
+        $job = new IpAddressAction($ip, 'enableRateLimit');
+        $job->handle($service);
     }
 
-    public function test_handle_calls_disable_rate_limit(): void
+    public function test_handle_calls_disable_rate_limit_on_service(): void
     {
-        $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('disableRateLimit')->once();
+        $ip = IpAddress::factory()->create();
+        /** @var IpAddressActionService&MockInterface $service */
+        $service = Mockery::mock(IpAddressActionService::class);
+        $service->shouldReceive('disableRateLimit')->once()->with($ip);
 
-        $job = new IpAddressAction($mockIp, 'disableRateLimit');
-        $job->handle();
+        $job = new IpAddressAction($ip, 'disableRateLimit');
+        $job->handle($service);
     }
 
-    public function test_handle_calls_shut_port(): void
+    public function test_handle_calls_shut_port_on_service(): void
     {
-        $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('shutPort')->once();
+        $ip = IpAddress::factory()->create();
+        /** @var IpAddressActionService&MockInterface $service */
+        $service = Mockery::mock(IpAddressActionService::class);
+        $service->shouldReceive('shutPort')->once()->with($ip);
 
-        $job = new IpAddressAction($mockIp, 'shutPort');
-        $job->handle();
+        $job = new IpAddressAction($ip, 'shutPort');
+        $job->handle($service);
     }
 
-    public function test_handle_calls_unshut_port(): void
+    public function test_handle_calls_unshut_port_on_service(): void
     {
-        $mockIp = Mockery::mock(IpAddress::class)->makePartial();
-        $mockIp->shouldReceive('unshutPort')->once();
+        $ip = IpAddress::factory()->create();
+        /** @var IpAddressActionService&MockInterface $service */
+        $service = Mockery::mock(IpAddressActionService::class);
+        $service->shouldReceive('unshutPort')->once()->with($ip);
 
-        $job = new IpAddressAction($mockIp, 'unshutPort');
-        $job->handle();
+        $job = new IpAddressAction($ip, 'unshutPort');
+        $job->handle($service);
+    }
+
+    public function test_handle_calls_update_usage_on_service(): void
+    {
+        $ip = IpAddress::factory()->create();
+        /** @var IpAddressActionService&MockInterface $service */
+        $service = Mockery::mock(IpAddressActionService::class);
+        $service->shouldReceive('updateUsage')->once()->with($ip);
+
+        $job = new IpAddressAction($ip, 'updateUsage');
+        $job->handle($service);
+    }
+
+    public function test_handle_rejects_invalid_method_and_logs_error(): void
+    {
+        $ip = IpAddress::factory()->create();
+        /** @var IpAddressActionService&MockInterface $service */
+        $service = Mockery::mock(IpAddressActionService::class);
+        $service->shouldReceive()->never();
+
+        Log::shouldReceive('error')
+            ->once()
+            ->with('Invalid IpAddressAction method', ['method' => 'deleteAll']);
+
+        $job = new IpAddressAction($ip, 'deleteAll');
+        $job->handle($service);
     }
 }

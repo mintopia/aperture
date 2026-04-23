@@ -10,9 +10,11 @@ use App\Models\SwitchConfig;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\FirewallBackendInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
+use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
+use Illuminate\Support\Facades\Log;
 use stdClass;
 use Throwable;
 
@@ -23,6 +25,7 @@ class IpAddressActionService
         protected SwitchServiceFactory $switchFactory,
         protected MacAddressResolverInterface $macResolver,
         protected NtopNgService $ntopng,
+        protected NetworkInventoryInterface $networkInventory,
     ) {}
 
     public function enableInternet(IpAddress $ip): void
@@ -77,6 +80,20 @@ class IpAddressActionService
         $this->firewall->unlimitIp($ip->address);
     }
 
+    public function getPortInfo(IpAddress $ip): ?PortDetail
+    {
+        try {
+            $resolved = $this->networkInventory->resolveIpToPort($ip->address);
+            if ($resolved === null) {
+                return null;
+            }
+
+            return $this->networkInventory->getPortDetail($resolved->port);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     public function shutPort(IpAddress $ip): void
     {
         $result = $this->resolveAdapterAndPort($ip);
@@ -104,7 +121,7 @@ class IpAddressActionService
      */
     private function resolveAdapterAndPort(IpAddress $ip): ?array
     {
-        $portInfo = $ip->getPortInfo();
+        $portInfo = $this->getPortInfo($ip);
         if (! $portInfo instanceof PortDetail) {
             return null;
         }
@@ -124,12 +141,19 @@ class IpAddressActionService
 
     public function updateUsage(IpAddress $ip): void
     {
-        $stats = $this->ntopng->getStats($ip->address);
-        $attr = 'bytes.rcvd';
-        $ip->received = $stats->rsp->$attr;
-        $attr = 'bytes.sent';
-        $ip->sent = $stats->rsp->$attr;
-        $ip->save();
+        try {
+            $stats = $this->ntopng->getStats($ip->address);
+            $attr = 'bytes.rcvd';
+            $ip->received = $stats->rsp->$attr;
+            $attr = 'bytes.sent';
+            $ip->sent = $stats->rsp->$attr;
+            $ip->save();
+        } catch (Throwable $e) {
+            Log::warning('Failed to update usage for IP address', [
+                'ip' => $ip->address,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function getStats(IpAddress $ip): stdClass
