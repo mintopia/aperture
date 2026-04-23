@@ -11,19 +11,16 @@ use App\Models\IpAddress;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\IpAddressActionService;
-use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 class IpAddressController extends Controller
 {
     public function __construct(
-        protected SwitchServiceFactory $switchServiceFactory,
         protected IpAddressActionService $ipAddressActionService,
     ) {}
 
@@ -85,19 +82,15 @@ class IpAddressController extends Controller
 
     public function show(IpAddress $ip): Response
     {
-        $status = null;
-        $shutdown = false;
+        $switchInfo = null;
         $port = $this->ipAddressActionService->getPortInfo($ip);
         if ($port !== null) {
-            $shutdown = $port->adminStatus === 'down';
-
-            try {
-                $switch = $this->switchServiceFactory->make($this->resolveSwitchConfig($port));
-                $portStatus = $switch->getPortStatus($port->interface);
-                $status = sprintf('%s is %s', $portStatus->interface, $portStatus->status);
-            } catch (Throwable) {
-                $status = 'Unable to connect to switch';
-            }
+            $switchConfig = $this->resolveSwitchConfig($port);
+            $switchInfo = [
+                'switchId' => $switchConfig->id,
+                'switchName' => $switchConfig->hostname,
+                'portId' => $port->interface,
+            ];
         }
 
         $users = $ip->users()->with('user')->get();
@@ -105,8 +98,7 @@ class IpAddressController extends Controller
         return Inertia::render('Admin/Ips/Show', [
             'ip' => $ip,
             'port' => $port,
-            'status' => $status,
-            'shutdown' => $shutdown,
+            'switchInfo' => $switchInfo,
             'users' => $users,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],

@@ -7,11 +7,8 @@ use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Interfaces\NetworkInventoryInterface;
-use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\TrafficMonitorInterface;
-use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
-use App\Services\ValueObjects\PortStatus;
 use App\Services\ValueObjects\ResolvedPort;
 use App\Services\ValueObjects\UserBandwidth;
 use Carbon\Carbon;
@@ -19,7 +16,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Mockery\MockInterface;
-use RuntimeException;
 use Tests\TestCase;
 
 class IpAddressControllerTest extends TestCase
@@ -187,7 +183,7 @@ class IpAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Ips/Show')
             ->where('port', null)
-            ->where('status', null)
+            ->where('switchInfo', null)
         );
     }
 
@@ -425,12 +421,6 @@ class IpAddressControllerTest extends TestCase
         $ip->save();
 
         $switchConfig = SwitchConfig::factory()->create(['hostname' => 'switch01']);
-        $factory = Mockery::mock(SwitchServiceFactory::class);
-        $factory->shouldReceive('make')
-            ->once()
-            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($switchConfig)))
-            ->andThrow(new RuntimeException('Switch offline'));
-        $this->app->instance(SwitchServiceFactory::class, $factory);
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 
@@ -439,8 +429,9 @@ class IpAddressControllerTest extends TestCase
             ->component('Admin/Ips/Show')
             ->has('ip')
             ->has('port')
-            ->where('status', 'Unable to connect to switch')
-            ->where('shutdown', true)
+            ->has('switchInfo')
+            ->where('switchInfo.switchName', 'switch01')
+            ->where('switchInfo.portId', 'Gi0/1')
         );
     }
 
@@ -461,24 +452,7 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $switch = Mockery::mock(NetworkSwitchInterface::class);
-        $switch->shouldReceive('getPortStatus')
-            ->once()
-            ->with('Gi0/1')
-            ->andReturn(new PortStatus(
-                interface: 'Gi0/1',
-                status: 'up',
-                speed: '1000Mb/s',
-                duplex: 'full',
-            ));
-
         $switchConfig = SwitchConfig::factory()->create(['hostname' => 'switch01']);
-        $factory = Mockery::mock(SwitchServiceFactory::class);
-        $factory->shouldReceive('make')
-            ->once()
-            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($switchConfig)))
-            ->andReturn($switch);
-        $this->app->instance(SwitchServiceFactory::class, $factory);
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 
@@ -487,8 +461,9 @@ class IpAddressControllerTest extends TestCase
             ->component('Admin/Ips/Show')
             ->has('ip')
             ->has('port')
-            ->where('status', 'Gi0/1 is up')
-            ->where('shutdown', true)
+            ->has('switchInfo')
+            ->where('switchInfo.switchName', 'switch01')
+            ->where('switchInfo.portId', 'Gi0/1')
         );
     }
 
@@ -526,18 +501,7 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        // No SwitchConfig created for 'unknown-switch.local'
-
-        $factory = Mockery::mock(SwitchServiceFactory::class);
-        $factory->shouldReceive('make')
-            ->once()
-            ->with(Mockery::on(function (SwitchConfig $config): bool {
-                // The fallback SwitchConfig uses aperture.cisco.* config values via defaultFallback()
-                return $config->hostname === 'fallback-switch.local'
-                    && $config->username === 'fallback-user';
-            }))
-            ->andThrow(new RuntimeException('Switch offline'));
-        $this->app->instance(SwitchServiceFactory::class, $factory);
+        // No SwitchConfig created for 'unknown-switch.local' — fallback will be used
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 
@@ -546,7 +510,9 @@ class IpAddressControllerTest extends TestCase
             ->component('Admin/Ips/Show')
             ->has('ip')
             ->has('port')
-            ->where('status', 'Unable to connect to switch')
+            ->has('switchInfo')
+            ->where('switchInfo.switchName', 'fallback-switch.local')
+            ->where('switchInfo.portId', 'Gi0/1')
         );
     }
 
@@ -669,5 +635,56 @@ class IpAddressControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/admin/ips/'.$ip->address.'/dns-filter', ['filter' => 1])
             ->assertForbidden();
+    }
+
+    public function test_ip_show_passes_switch_info_when_port_resolved(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')
+            ->andReturn(new ResolvedPort(ip: '10.0.0.1', mac: 'AA:BB:CC:DD:EE:FF', port: '1', switch: ''));
+        $inventory->shouldReceive('getPortDetail')
+            ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000));
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+
+        $ip = IpAddress::factory()->create();
+        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'switch01']);
+
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Ips/Show')
+            ->has('switchInfo')
+            ->where('switchInfo.switchId', $switchConfig->id)
+            ->where('switchInfo.switchName', 'switch01')
+            ->where('switchInfo.portId', 'Gi0/1')
+            ->missing('status')
+            ->missing('shutdown')
+        );
+    }
+
+    public function test_ip_show_passes_null_switch_info_when_no_port(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory->shouldReceive('resolveIpToPort')->andReturn(null);
+        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+
+        $ip = IpAddress::factory()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Ips/Show')
+            ->where('switchInfo', null)
+            ->missing('status')
+            ->missing('shutdown')
+        );
     }
 }
