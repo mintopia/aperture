@@ -155,6 +155,18 @@ class IpAddressController extends Controller
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
 
+    public function dnsFilter(Request $request, IpAddress $ip): RedirectResponse
+    {
+        $request->validate(['filter' => 'required|boolean']);
+
+        $ip->dns_filtering_enabled = $request->boolean('filter');
+        $ip->save();
+
+        $message = $ip->dns_filtering_enabled ? 'DNS filtering will be enabled for this IP' : 'DNS filtering will be disabled for this IP';
+
+        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
+    }
+
     public function create(): Response
     {
         return Inertia::render('Admin/Ips/Create', [

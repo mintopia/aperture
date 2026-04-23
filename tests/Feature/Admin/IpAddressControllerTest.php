@@ -608,4 +608,56 @@ class IpAddressControllerTest extends TestCase
         $this->actingAs($user)->getJson('/admin/ips/'.$ip->address.'/bandwidth')
             ->assertForbidden();
     }
+
+    public function test_admin_can_enable_dns_filter(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = IpAddress::factory()->create();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', [
+            'filter' => 1,
+        ]);
+        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
+        $this->assertTrue($ip->fresh()->dns_filtering_enabled);
+    }
+
+    public function test_admin_can_disable_dns_filter(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = IpAddress::factory()->create(['dns_filtering_enabled' => true]);
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', [
+            'filter' => 0,
+        ]);
+        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
+        $this->assertFalse($ip->fresh()->dns_filtering_enabled);
+    }
+
+    public function test_dns_filter_requires_filter_field(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = IpAddress::factory()->create();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', []);
+        $response->assertSessionHasErrors(['filter']);
+    }
+
+    public function test_dns_filter_rejects_non_boolean_filter(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = IpAddress::factory()->create();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', [
+            'filter' => 'notabool',
+        ]);
+        $response->assertSessionHasErrors(['filter']);
+    }
 }
