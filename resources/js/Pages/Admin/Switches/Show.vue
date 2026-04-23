@@ -4,6 +4,7 @@ import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
+import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import { formatRelative, formatDate } from '@/utils/dates';
 import { typeLabel, statusLabel, formatSpeed, formatVlan } from '@/utils/switches';
 
@@ -27,12 +28,34 @@ function statusTextClass(type) {
     return map[type] || map.neutral;
 }
 
+function syncStatusType(status) {
+    if (status === 'completed') return 'success';
+    if (status === 'failed') return 'danger';
+    if (status === 'running') return 'warning';
+    return 'neutral';
+}
+
+function syncStatusLabel(status) {
+    const labels = {
+        completed: 'Completed',
+        failed: 'Failed',
+        running: 'Running',
+        pending: 'Pending',
+    };
+    return labels[status] ?? status;
+}
+
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     switchConfig: { type: Object, default: () => ({}) },
     ports: { type: Array, default: () => [] },
+    canDownloadConfig: { type: Boolean, default: false },
+    latestSync: { type: Object, default: null },
+    runningConfig: { type: String, default: null },
 });
+
+const showConfig = ref(false);
 
 const syncing = ref(false);
 const testing = ref(false);
