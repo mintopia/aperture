@@ -1,9 +1,11 @@
 <script setup>
+import { Link } from '@inertiajs/vue3';
+
 defineProps({
     items: {
         type: Array,
         required: true,
-        /* Array<{ label: string, value: string|number, mono?: boolean, large?: boolean }> */
+        /* Array<{ label: string, value: string|number, mono?: boolean, large?: boolean, href?: string }> */
     },
 });
 </script>
@@ -35,7 +37,12 @@ defineProps({
                 ]"
                 class="font-medium text-[var(--color-text)]"
             >
-                <slot :name="item.label" :item="item">{{ item.value }}</slot>
+                <slot :name="item.label" :item="item">
+                    <Link v-if="item.href" :href="item.href" class="text-[var(--color-primary)] hover:underline">
+                        {{ item.value }}
+                    </Link>
+                    <template v-else>{{ item.value }}</template>
+                </slot>
             </span>
         </div>
     </div>

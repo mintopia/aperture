@@ -5,7 +5,6 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
-import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatRelative } from '@/utils/dates';
@@ -16,8 +15,7 @@ defineOptions({ layout: AdminLayout });
 const props = defineProps({
     ip: { type: Object, default: () => ({}) },
     port: { type: Object, default: () => ({}) },
-    status: { type: String, default: '' },
-    shutdown: Boolean,
+    switchInfo: { type: Object, default: null },
     users: { type: Array, default: () => [] },
 });
 
@@ -45,10 +43,20 @@ function confirmToggleInternet() {
     );
 }
 
-function togglePort() {
-    router.post(route('admin.ips.port', props.ip.id), {
-        shutdown: props.shutdown ? 0 : 1,
-    });
+function toggleRateLimit() {
+    router.post(
+        route('admin.ips.limit', props.ip.id),
+        { limit: props.ip.rate_limit_enabled ? 0 : 1 },
+        { preserveScroll: true },
+    );
+}
+
+function toggleDnsFilter() {
+    router.post(
+        route('admin.ips.dns-filter', props.ip.id),
+        { filter: props.ip.dns_filtering_enabled ? 0 : 1 },
+        { preserveScroll: true },
+    );
 }
 
 const userColumns = [
@@ -103,6 +111,12 @@ function selectRange(range) {
     fetchBandwidth();
 }
 
+const statusValue = computed(() => {
+    if (props.ip.internet_enabled) return 'Allowed';
+    if (props.users?.some((u) => u.user?.internet_enabled === false)) return 'Denied';
+    return '\u2014';
+});
+
 onMounted(() => {
     fetchBandwidth();
 });
@@ -110,6 +124,7 @@ onMounted(() => {
 
 <template>
     <div>
+        <!-- Header -->
         <div class="mb-2 flex items-start justify-between gap-6">
             <h1
                 data-testid="page-title"
@@ -118,20 +133,37 @@ onMounted(() => {
             >
                 {{ ip.address }}
             </h1>
-            <button
-                :data-testid="ip.internet_enabled ? 'action-revoke' : 'action-grant'"
-                :class="
-                    ip.internet_enabled
-                        ? 'border-[var(--color-danger)] bg-[var(--color-danger)]'
-                        : 'border-[var(--color-success)] bg-[var(--color-success)]'
-                "
-                class="rounded-md border px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)]"
-                @click="toggleInternet"
-            >
-                {{ ip.internet_enabled ? 'Revoke Access' : 'Grant Access' }}
-            </button>
+            <div class="flex items-center gap-2">
+                <button
+                    :data-testid="ip.internet_enabled ? 'action-revoke' : 'action-grant'"
+                    :class="
+                        ip.internet_enabled
+                            ? 'border-[var(--color-danger)] bg-[var(--color-danger)]'
+                            : 'border-[var(--color-success)] bg-[var(--color-success)]'
+                    "
+                    class="rounded-md border px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)]"
+                    @click="toggleInternet"
+                >
+                    {{ ip.internet_enabled ? 'Revoke Access' : 'Grant Access' }}
+                </button>
+                <button
+                    :data-testid="ip.rate_limit_enabled ? 'action-disable-rate-limit' : 'action-enable-rate-limit'"
+                    class="rounded-md border border-[var(--color-border)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)] hover:text-[var(--color-text)]"
+                    @click="toggleRateLimit"
+                >
+                    {{ ip.rate_limit_enabled ? 'Disable Rate Limit' : 'Enable Rate Limit' }}
+                </button>
+                <button
+                    :data-testid="ip.dns_filtering_enabled ? 'action-disable-dns-filter' : 'action-enable-dns-filter'"
+                    class="rounded-md border border-[var(--color-border)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)] hover:text-[var(--color-text)]"
+                    @click="toggleDnsFilter"
+                >
+                    {{ ip.dns_filtering_enabled ? 'Disable DNS Filter' : 'Enable DNS Filter' }}
+                </button>
+            </div>
         </div>
 
+        <!-- Confirm Modal -->
         <ConfirmModal
             :show="showAccessModal"
             :title="ip.internet_enabled ? 'Revoke Access?' : 'Grant Access?'"
@@ -151,106 +183,109 @@ onMounted(() => {
             </p>
         </ConfirmModal>
 
+        <!-- Metadata Strip -->
         <MetadataStrip
             :items="[
+                { label: 'Status', value: statusValue },
+                { label: 'MAC Address', value: ip.mac || '\u2014' },
+                { label: 'Rate Limiting', value: ip.rate_limit_enabled ? 'Enabled' : '\u2014' },
+                { label: 'DNS Filtering', value: ip.dns_filtering_enabled ? 'Enabled' : '\u2014' },
                 {
-                    label: 'Status',
-                    value:
-                        ip.internet_enabled === true ? 'Allowed' : ip.internet_enabled === false ? 'Denied' : '\u2014',
+                    label: 'Switch',
+                    value: switchInfo ? switchInfo.switchName : '\u2014',
+                    href: switchInfo?.switchId ? route('admin.switches.show', switchInfo.switchId) : null,
                 },
-                { label: 'Comment', value: ip.comment || '—' },
+                {
+                    label: 'Port',
+                    value: switchInfo ? switchInfo.portId : '\u2014',
+                    href: switchInfo?.switchId
+                        ? route('admin.switches.ports.show', [switchInfo.switchId, switchInfo.portId])
+                        : null,
+                },
+                { label: 'Comment', value: ip.comment || '\u2014' },
             ]"
         />
 
-        <div class="mt-5">
-            <div class="flex items-center justify-between">
-                <SectionHeader title="Bandwidth" />
-                <div class="flex gap-1" data-testid="bandwidth-range-selector">
-                    <button
-                        v-for="range in ranges"
-                        :key="range"
-                        type="button"
-                        :data-testid="'range-' + range"
-                        :class="
-                            selectedRange === range
-                                ? 'bg-[var(--color-accent-dim)] font-semibold text-[var(--color-primary)]'
-                                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-                        "
-                        class="rounded-md px-3 py-1 text-[12px] font-medium transition-all"
-                        @click="selectRange(range)"
-                    >
-                        {{ range }}
-                    </button>
-                </div>
-            </div>
-            <div class="mt-2 flex items-baseline gap-4">
-                <div data-testid="bandwidth-download">
-                    <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
-                        >Down</span
-                    >
-                    <span class="ml-1 font-mono text-sm font-bold text-[var(--color-success)]">
-                        {{ formatBytes(bandwidthData.totalReceived) }}
-                    </span>
-                </div>
-                <div data-testid="bandwidth-upload">
-                    <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
-                        >Up</span
-                    >
-                    <span class="ml-1 font-mono text-sm font-bold text-[var(--color-info)]">
-                        {{ formatBytes(bandwidthData.totalSent) }}
-                    </span>
-                </div>
-            </div>
-            <TimeSeriesChart
-                :series="chartSeries"
-                :loading="bandwidthLoading"
-                y-axis-label="bps"
-                height="200px"
-                empty-message="No bandwidth data available"
-                data-testid="admin-bandwidth-chart"
-                class="mt-2"
-            />
-            <p v-if="bandwidthError" class="mt-2 text-[12px] text-[var(--color-danger)]" data-testid="bandwidth-error">
-                Failed to load bandwidth data
-            </p>
-        </div>
-
-        <SectionHeader title="Associated Users" class="mt-5" />
-
-        <DataTable
-            :columns="userColumns"
-            :rows="users ?? []"
-            clickable
-            :row-href="(row) => route('admin.users.show', row.user?.id)"
-            empty-message="No associated users"
-        >
-            <template #row="{ row }">
-                <td class="font-mono text-[13px] text-[var(--color-primary)]">
-                    {{ row.user?.nickname }}
-                </td>
-                <td class="text-[13px] text-[var(--color-text-secondary)]">
-                    {{ formatRelative(row.last_seen_at) }}
-                </td>
-            </template>
-        </DataTable>
-
-        <template v-if="port">
-            <div class="mt-5 flex items-center justify-between">
-                <SectionHeader title="Switch Port" />
-                <button
-                    data-testid="action-toggle-port"
-                    :class="
-                        shutdown
-                            ? 'border-[var(--color-success)] bg-[var(--color-success)]'
-                            : 'border-[var(--color-danger)] bg-[var(--color-danger)]'
-                    "
-                    class="rounded-md border px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)]"
-                    @click="togglePort"
+        <!-- Two-column grid -->
+        <div class="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <!-- Left: Users -->
+            <div>
+                <SectionHeader title="Associated Users" />
+                <DataTable
+                    :columns="userColumns"
+                    :rows="users ?? []"
+                    clickable
+                    :row-href="(row) => route('admin.users.show', row.user?.id)"
+                    empty-message="No associated users"
                 >
-                    {{ shutdown ? 'Enable Port' : 'Disable Port' }}
-                </button>
+                    <template #row="{ row }">
+                        <td class="font-mono text-[13px] text-[var(--color-primary)]">
+                            {{ row.user?.nickname }}
+                        </td>
+                        <td class="text-[13px] text-[var(--color-text-secondary)]">
+                            {{ formatRelative(row.last_seen_at) }}
+                        </td>
+                    </template>
+                </DataTable>
             </div>
-            <ConfigBlock v-if="status" :code="status" />
-        </template>
+
+            <!-- Right: Bandwidth -->
+            <div>
+                <div class="flex items-center justify-between">
+                    <SectionHeader title="Bandwidth" />
+                    <div class="flex gap-1" data-testid="bandwidth-range-selector">
+                        <button
+                            v-for="range in ranges"
+                            :key="range"
+                            type="button"
+                            :data-testid="'range-' + range"
+                            :class="
+                                selectedRange === range
+                                    ? 'bg-[var(--color-accent-dim)] font-semibold text-[var(--color-primary)]'
+                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                            "
+                            class="rounded-md px-3 py-1 text-[12px] font-medium transition-all"
+                            @click="selectRange(range)"
+                        >
+                            {{ range }}
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-baseline gap-4">
+                    <div data-testid="bandwidth-download">
+                        <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                            >Down</span
+                        >
+                        <span class="ml-1 font-mono text-sm font-bold text-[var(--color-success)]">
+                            {{ formatBytes(bandwidthData.totalReceived) }}
+                        </span>
+                    </div>
+                    <div data-testid="bandwidth-upload">
+                        <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                            >Up</span
+                        >
+                        <span class="ml-1 font-mono text-sm font-bold text-[var(--color-info)]">
+                            {{ formatBytes(bandwidthData.totalSent) }}
+                        </span>
+                    </div>
+                </div>
+                <TimeSeriesChart
+                    :series="chartSeries"
+                    :loading="bandwidthLoading"
+                    y-axis-label="bps"
+                    height="200px"
+                    empty-message="No bandwidth data available"
+                    data-testid="admin-bandwidth-chart"
+                    class="mt-2"
+                />
+                <p
+                    v-if="bandwidthError"
+                    class="mt-2 text-[12px] text-[var(--color-danger)]"
+                    data-testid="bandwidth-error"
+                >
+                    Failed to load bandwidth data
+                </p>
+            </div>
+        </div>
     </div>
 </template>
