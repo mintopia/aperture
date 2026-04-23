@@ -376,7 +376,14 @@ function confirmToggle() {
                                         class="border-b border-[var(--color-border)] last:border-b-0"
                                     >
                                         <td class="py-2.5 font-mono text-[13px] text-[var(--color-text)]">
-                                            {{ normalizeMac(mac.mac_address) }}
+                                            <Link
+                                                v-if="mac.mac_id"
+                                                :href="route('admin.macs.show', mac.mac_address)"
+                                                class="font-mono hover:underline"
+                                            >
+                                                {{ normalizeMac(mac.mac_address) }}
+                                            </Link>
+                                            <span v-else class="font-mono">{{ normalizeMac(mac.mac_address) }}</span>
                                         </td>
                                         <td class="py-2.5 pl-6 break-all">
                                             <div

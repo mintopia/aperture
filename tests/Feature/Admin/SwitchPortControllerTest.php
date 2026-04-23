@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Models\IpAddress;
+use App\Models\MacAddress;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
@@ -12,12 +13,9 @@ use App\Models\SwitchPortConfig;
 use App\Models\SwitchPortMac;
 use App\Models\User;
 use App\Models\UserIpAddress;
-use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
-use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
@@ -224,19 +222,16 @@ class SwitchPortControllerTest extends TestCase
             'speed' => '1000',
         ]);
 
+        $macRecord = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $ipRecord = IpAddress::factory()->create(['address' => '10.0.0.10']);
+        $macRecord->ipAddresses()->attach($ipRecord->id, ['source' => 'dhcp', 'last_seen_at' => now()]);
+
         SwitchPortMac::factory()->create([
             'switch_port_id' => $port->id,
             'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'mac_address_id' => $macRecord->id,
             'vlan' => 100,
         ]);
-
-        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
-        $mockResolver->shouldReceive('resolveMacToIps')
-            ->with('AA:BB:CC:DD:EE:FF')
-            ->andReturn([
-                ['ip' => '10.0.0.10', 'hostname' => 'test-host'],
-            ]);
-        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
 
         $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
 
@@ -245,13 +240,13 @@ class SwitchPortControllerTest extends TestCase
             ->component('Admin/Switches/Ports/Show')
             ->has('macs', 1)
             ->where('macs.0.mac_address', 'AA:BB:CC:DD:EE:FF')
+            ->where('macs.0.mac_id', $macRecord->id)
             ->where('macs.0.resolved_ips.0.ip', '10.0.0.10')
-            ->where('macs.0.resolved_ips.0.hostname', 'test-host')
             ->where('macs.0.resolved_ips.0.user', null)
         );
     }
 
-    public function test_port_show_returns_empty_resolved_ips_when_dhcp_fails(): void
+    public function test_port_show_returns_empty_resolved_ips_when_no_mac_record(): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
@@ -263,16 +258,13 @@ class SwitchPortControllerTest extends TestCase
             'speed' => '1000',
         ]);
 
+        // No mac_address_id — old record not yet linked to a MacAddress DB record
         SwitchPortMac::factory()->create([
             'switch_port_id' => $port->id,
             'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'mac_address_id' => null,
             'vlan' => 100,
         ]);
-
-        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
-        $mockResolver->shouldReceive('resolveMacToIps')
-            ->andThrow(new RuntimeException('DHCP unavailable'));
-        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
 
         $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
 
@@ -280,6 +272,7 @@ class SwitchPortControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Switches/Ports/Show')
             ->has('macs', 1)
+            ->where('macs.0.mac_id', null)
             ->where('macs.0.resolved_ips', [])
         );
     }
@@ -606,10 +599,10 @@ class SwitchPortControllerTest extends TestCase
     // IP resolution catch(Throwable) — line 130–134
     // -------------------------------------------------------------------------
 
-    public function test_port_show_handles_ip_record_query_exception_gracefully(): void
+    public function test_port_show_handles_mac_with_no_linked_record_gracefully(): void
     {
-        // Covers lines 130–134: the catch(Throwable) inside the $resolvedIps array_map
-        // when IpAddress::where() itself throws an exception.
+        // When mac_address_id is null (old record not yet linked), resolved_ips is empty
+        // and mac_id is null — the controller handles this gracefully without errors.
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
@@ -623,36 +616,18 @@ class SwitchPortControllerTest extends TestCase
         SwitchPortMac::factory()->create([
             'switch_port_id' => $port->id,
             'mac_address' => 'AA:BB:CC:DD:EE:01',
+            'mac_address_id' => null,
             'vlan' => 100,
         ]);
 
-        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
-        $mockResolver->shouldReceive('resolveMacToIps')
-            ->with('AA:BB:CC:DD:EE:01')
-            ->andReturn([
-                ['ip' => '10.0.0.200', 'hostname' => 'host-200'],
-            ]);
-        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
-
-        // Use DB::listen to throw when the ip_addresses table is queried during IP resolution.
-        // This causes IpAddress::where('address', ...) to throw, exercising the catch(Throwable).
-        $throwOnIpQuery = true;
-        DB::listen(function (QueryExecuted $event) use (&$throwOnIpQuery): void {
-            if ($throwOnIpQuery && str_contains($event->sql, 'ip_addresses')) {
-                $throwOnIpQuery = false; // Only throw once to avoid infinite loop
-                throw new RuntimeException('Simulated DB error during IP address lookup');
-            }
-        });
-
         $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
 
-        // The controller catches Throwable and returns a fallback IP entry with null user
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Switches/Ports/Show')
             ->has('macs', 1)
-            ->where('macs.0.resolved_ips.0.ip', '10.0.0.200')
-            ->where('macs.0.resolved_ips.0.user', null)
+            ->where('macs.0.mac_id', null)
+            ->where('macs.0.resolved_ips', [])
         );
     }
 
@@ -704,14 +679,10 @@ class SwitchPortControllerTest extends TestCase
             'speed' => '1000',
         ]);
 
-        SwitchPortMac::factory()->create([
-            'switch_port_id' => $port->id,
-            'mac_address' => 'AA:BB:CC:DD:EE:FF',
-            'vlan' => 100,
-        ]);
-
         $connectedUser = User::factory()->create(['nickname' => 'NeonGamer42']);
         $ipRecord = IpAddress::factory()->create(['address' => '10.0.0.42']);
+        $macRecord = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $macRecord->ipAddresses()->attach($ipRecord->id, ['source' => 'dhcp', 'last_seen_at' => now()]);
 
         $userIp = new UserIpAddress;
         $userIp->user()->associate($connectedUser);
@@ -719,13 +690,12 @@ class SwitchPortControllerTest extends TestCase
         $userIp->last_seen_at = now();
         $userIp->save();
 
-        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
-        $mockResolver->shouldReceive('resolveMacToIps')
-            ->with('AA:BB:CC:DD:EE:FF')
-            ->andReturn([
-                ['ip' => '10.0.0.42', 'hostname' => 'neon-pc'],
-            ]);
-        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'mac_address_id' => $macRecord->id,
+            'vlan' => 100,
+        ]);
 
         $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
 
@@ -733,8 +703,8 @@ class SwitchPortControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Switches/Ports/Show')
             ->has('macs', 1)
+            ->where('macs.0.mac_id', $macRecord->id)
             ->where('macs.0.resolved_ips.0.ip', '10.0.0.42')
-            ->where('macs.0.resolved_ips.0.hostname', 'neon-pc')
             ->where('macs.0.resolved_ips.0.user.id', $connectedUser->id)
             ->where('macs.0.resolved_ips.0.user.nickname', 'NeonGamer42')
         );
@@ -752,22 +722,17 @@ class SwitchPortControllerTest extends TestCase
             'speed' => '1000',
         ]);
 
+        // Create IP record but no UserIpAddress association
+        $ipRecord = IpAddress::factory()->create(['address' => '10.0.0.55']);
+        $macRecord = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $macRecord->ipAddresses()->attach($ipRecord->id, ['source' => 'dhcp', 'last_seen_at' => now()]);
+
         SwitchPortMac::factory()->create([
             'switch_port_id' => $port->id,
             'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'mac_address_id' => $macRecord->id,
             'vlan' => 200,
         ]);
-
-        // Create IP record but no UserIpAddress association
-        IpAddress::factory()->create(['address' => '10.0.0.55']);
-
-        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
-        $mockResolver->shouldReceive('resolveMacToIps')
-            ->with('AA:BB:CC:DD:EE:FF')
-            ->andReturn([
-                ['ip' => '10.0.0.55', 'hostname' => null],
-            ]);
-        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
 
         $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
 
@@ -775,12 +740,13 @@ class SwitchPortControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Switches/Ports/Show')
             ->has('macs', 1)
+            ->where('macs.0.mac_id', $macRecord->id)
             ->where('macs.0.resolved_ips.0.ip', '10.0.0.55')
             ->where('macs.0.resolved_ips.0.user', null)
         );
     }
 
-    public function test_port_show_returns_null_user_when_no_ip_record_exists(): void
+    public function test_port_show_returns_empty_resolved_ips_when_no_ip_linked_to_mac(): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
@@ -792,20 +758,15 @@ class SwitchPortControllerTest extends TestCase
             'speed' => '1000',
         ]);
 
+        // MacAddress record exists but has no IP addresses linked
+        $macRecord = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+
         SwitchPortMac::factory()->create([
             'switch_port_id' => $port->id,
             'mac_address' => 'AA:BB:CC:DD:EE:FF',
+            'mac_address_id' => $macRecord->id,
             'vlan' => 100,
         ]);
-
-        // No IpAddress record created — IP resolved via DHCP but not in our DB
-        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
-        $mockResolver->shouldReceive('resolveMacToIps')
-            ->with('AA:BB:CC:DD:EE:FF')
-            ->andReturn([
-                ['ip' => '10.0.0.99', 'hostname' => 'unknown-host'],
-            ]);
-        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
 
         $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
 
@@ -813,12 +774,12 @@ class SwitchPortControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Switches/Ports/Show')
             ->has('macs', 1)
-            ->where('macs.0.resolved_ips.0.ip', '10.0.0.99')
-            ->where('macs.0.resolved_ips.0.user', null)
+            ->where('macs.0.mac_id', $macRecord->id)
+            ->where('macs.0.resolved_ips', [])
         );
     }
 
-    public function test_port_show_macs_work_when_no_ip_resolved(): void
+    public function test_port_show_macs_work_when_no_ip_linked(): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
@@ -830,17 +791,14 @@ class SwitchPortControllerTest extends TestCase
             'speed' => '1000',
         ]);
 
+        $macRecord = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:FF:FE:01']);
+
         SwitchPortMac::factory()->create([
             'switch_port_id' => $port->id,
             'mac_address' => 'AA:BB:CC:FF:FE:01',
+            'mac_address_id' => $macRecord->id,
             'vlan' => 1,
         ]);
-
-        $mockResolver = Mockery::mock(MacAddressResolverInterface::class);
-        $mockResolver->shouldReceive('resolveMacToIps')
-            ->with('AA:BB:CC:FF:FE:01')
-            ->andReturn([]);
-        $this->app->instance(MacAddressResolverInterface::class, $mockResolver);
 
         $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
 
@@ -849,6 +807,7 @@ class SwitchPortControllerTest extends TestCase
             ->component('Admin/Switches/Ports/Show')
             ->has('macs', 1)
             ->where('macs.0.mac_address', 'AA:BB:CC:FF:FE:01')
+            ->where('macs.0.mac_id', $macRecord->id)
             ->where('macs.0.resolved_ips', [])
         );
     }
