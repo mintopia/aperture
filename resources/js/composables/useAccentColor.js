@@ -43,6 +43,13 @@ export function applyAccentColor(hue, chroma, lightness, mode = 'dark') {
     }
 }
 
+export function applyAccentHue(hue, mode = 'dark') {
+    const preset = ACCENT_PRESETS.find((p) => p.hue === hue);
+    const l = preset ? preset.l : DEFAULT_LIGHTNESS;
+    const c = preset ? preset.c : DEFAULT_CHROMA;
+    applyAccentColor(hue, c, l, mode);
+}
+
 export function useAccentColor() {
     const page = usePage();
     const sharedTheme = page.props.theme || {};

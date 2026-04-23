@@ -103,6 +103,7 @@ onBeforeUnmount(() => {
                         type="button"
                         :data-testid="'accent-preset-' + preset.hue"
                         :title="preset.name"
+                        :aria-label="`Select ${preset.name} accent color`"
                         :style="{ backgroundColor: `oklch(${preset.l}% ${preset.c} ${preset.hue})` }"
                         :class="[
                             'h-8 w-8 rounded-full transition-all',
@@ -128,6 +129,7 @@ onBeforeUnmount(() => {
                             min="0"
                             max="360"
                             :value="form.accent_hue"
+                            aria-label="Accent hue"
                             data-testid="accent-hue-slider"
                             class="h-2 w-full cursor-pointer appearance-none rounded-full"
                             style="
@@ -162,6 +164,7 @@ onBeforeUnmount(() => {
                             max="0.37"
                             step="0.01"
                             :value="form.accent_chroma"
+                            aria-label="Accent saturation"
                             data-testid="accent-chroma-slider"
                             class="h-2 w-full cursor-pointer appearance-none rounded-full"
                             :style="{
@@ -186,6 +189,7 @@ onBeforeUnmount(() => {
                             min="40"
                             max="95"
                             :value="form.accent_lightness"
+                            aria-label="Accent lightness"
                             data-testid="accent-lightness-slider"
                             class="h-2 w-full cursor-pointer appearance-none rounded-full"
                             :style="{
@@ -244,7 +248,7 @@ onBeforeUnmount(() => {
                 type="submit"
                 data-testid="action-save"
                 :disabled="form.processing"
-                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-white"
+                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-accent-text)]"
             >
                 Save Settings
             </button>

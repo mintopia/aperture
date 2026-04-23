@@ -3,7 +3,7 @@
    Dark mode is primary. Light mode is the override. */
 
 [data-theme='dispatch'] {
-    /* Accent defaults (tangerine hue=55) — overridden at runtime by useAccentHue composable */
+    /* Accent defaults (tangerine hue=55) — overridden at runtime by useAccentColor composable */
     --color-primary: oklch(76% 0.16 55);
     --color-primary-hover: oklch(69% 0.19 55);
     --color-accent: oklch(76% 0.16 55);

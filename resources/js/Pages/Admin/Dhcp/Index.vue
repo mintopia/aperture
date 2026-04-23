@@ -4,6 +4,7 @@ import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -85,12 +86,7 @@ function barColor(pct) {
             ]"
         />
 
-        <h2
-            class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
-            style="font-variation-settings: 'opsz' 16"
-        >
-            Configured Ranges
-        </h2>
+        <SectionHeader title="Configured Ranges" />
 
         <DataTable
             :columns="rangeColumns"

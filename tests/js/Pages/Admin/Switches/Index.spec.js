@@ -159,10 +159,10 @@ describe('Index — DataTable', () => {
         expect(rows).toHaveLength(2);
     });
 
-    it('rows are clickable with role=link', () => {
+    it('rows are clickable with role=row', () => {
         const wrapper = mountIndex();
         const row = wrapper.find('[data-testid="data-table-row"]');
-        expect(row.attributes('role')).toBe('link');
+        expect(row.attributes('role')).toBe('row');
     });
 
     it('rows have correct aria-label', () => {

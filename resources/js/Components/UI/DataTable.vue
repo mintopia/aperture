@@ -89,7 +89,7 @@ function getRowAriaLabel(row, index) {
                     :key="row.id ?? i"
                     data-testid="data-table-row"
                     :tabindex="props.clickable && props.rowHref ? 0 : undefined"
-                    :role="props.clickable && props.rowHref ? 'link' : undefined"
+                    :role="props.clickable && props.rowHref ? 'row' : undefined"
                     :aria-label="getRowAriaLabel(row, i)"
                     :class="[
                         'transition-colors',

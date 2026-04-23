@@ -263,7 +263,7 @@ describe('GlobalSearch.vue', () => {
             expect(empty.classes()).toContain('text-[var(--color-text-muted)]');
         });
 
-        it('handles fetch errors silently', async () => {
+        it('shows error message when search fails', async () => {
             vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
 
             const wrapper = mountGlobalSearch();
@@ -273,8 +273,60 @@ describe('GlobalSearch.vue', () => {
             await flushPromises();
             await nextTick();
 
+            const error = wrapper.get('[data-testid="search-error"]');
+            expect(error.text()).toBe('Search is temporarily unavailable.');
+            expect(error.classes()).toContain('text-[var(--color-danger)]');
             expect(wrapper.find('[data-testid="global-search-section-users"]').exists()).toBe(false);
             expect(wrapper.find('[data-testid="global-search-section-ips"]').exists()).toBe(false);
+        });
+
+        it('clears error message when a new search starts', async () => {
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
+
+            const wrapper = mountGlobalSearch();
+            await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');
+            await wrapper.get('[data-testid="global-search-input"]').setValue('err');
+            vi.advanceTimersByTime(300);
+            await flushPromises();
+            await nextTick();
+
+            expect(wrapper.find('[data-testid="search-error"]').exists()).toBe(true);
+
+            mockFetchSuccess({ users: [], ips: [] });
+            await wrapper.get('[data-testid="global-search-input"]').setValue('ok');
+            vi.advanceTimersByTime(300);
+            await flushPromises();
+            await nextTick();
+
+            expect(wrapper.find('[data-testid="search-error"]').exists()).toBe(false);
+        });
+
+        it('shows loading indicator while fetching', async () => {
+            let resolveResponse;
+            vi.stubGlobal(
+                'fetch',
+                vi.fn(
+                    () =>
+                        new Promise((resolve) => {
+                            resolveResponse = resolve;
+                        }),
+                ),
+            );
+
+            const wrapper = mountGlobalSearch();
+            await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');
+            await wrapper.get('[data-testid="global-search-input"]').setValue('al');
+            vi.advanceTimersByTime(300);
+            await flushPromises();
+            await nextTick();
+
+            expect(wrapper.find('[data-testid="search-loading"]').exists()).toBe(true);
+
+            resolveResponse({ ok: true, json: () => Promise.resolve({ users: [], ips: [] }) });
+            await flushPromises();
+            await nextTick();
+
+            expect(wrapper.find('[data-testid="search-loading"]').exists()).toBe(false);
         });
     });
 
@@ -316,6 +368,114 @@ describe('GlobalSearch.vue', () => {
             await nextTick();
 
             expect(mockVisit).toHaveBeenCalledWith('/admin/ips/192.168.1.1');
+            expect(wrapper.find('[data-testid="global-search-overlay"]').exists()).toBe(false);
+        });
+    });
+
+    describe('accessibility', () => {
+        it('has role="dialog", aria-modal="true", and aria-label on the dialog', async () => {
+            const wrapper = mountGlobalSearch();
+            await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');
+
+            const dialog = wrapper.get('[data-testid="global-search-dialog"]');
+            expect(dialog.attributes('role')).toBe('dialog');
+            expect(dialog.attributes('aria-modal')).toBe('true');
+            expect(dialog.attributes('aria-label')).toBe('Search');
+        });
+
+        it('has aria-label on the search input', async () => {
+            const wrapper = mountGlobalSearch();
+            await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');
+
+            const input = wrapper.get('[data-testid="global-search-input"]');
+            expect(input.attributes('aria-label')).toBe('Search users and IP addresses');
+        });
+
+        it('focuses the input when the dialog opens', async () => {
+            const wrapper = mountGlobalSearch();
+            await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');
+            await nextTick();
+
+            const input = wrapper.get('[data-testid="global-search-input"]');
+            expect(document.activeElement).toBe(input.element);
+        });
+
+        it('wraps focus from last focusable element to first on Tab', async () => {
+            const wrapper = mountGlobalSearch();
+            await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');
+            await nextTick();
+
+            const overlay = wrapper.get('[data-testid="global-search-overlay"]');
+            const input = wrapper.get('[data-testid="global-search-input"]');
+            const focusSpy = vi.spyOn(input.element, 'focus');
+
+            // Mock activeElement to be the input (only focusable element when no results)
+            const activeElementDescriptor = Object.getOwnPropertyDescriptor(document, 'activeElement');
+            Object.defineProperty(document, 'activeElement', {
+                get: () => input.element,
+                configurable: true,
+            });
+
+            await overlay.trigger('keydown', { key: 'Tab', shiftKey: false });
+
+            if (activeElementDescriptor) {
+                Object.defineProperty(document, 'activeElement', activeElementDescriptor);
+            } else {
+                delete document.activeElement;
+            }
+
+            expect(focusSpy).toHaveBeenCalled();
+        });
+
+        it('wraps focus from first focusable element to last on Shift+Tab', async () => {
+            mockFetchSuccess({
+                users: [{ id: 1, nickname: 'alice', email: 'alice@test.com' }],
+                ips: [],
+            });
+
+            const wrapper = mountGlobalSearch();
+            await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');
+            await wrapper.get('[data-testid="global-search-input"]').setValue('al');
+            vi.advanceTimersByTime(300);
+            await flushPromises();
+            await nextTick();
+
+            const overlay = wrapper.get('[data-testid="global-search-overlay"]');
+            const input = wrapper.get('[data-testid="global-search-input"]');
+            const resultBtn = wrapper.get('[data-testid="global-search-result-user-1"]');
+            const focusSpy = vi.spyOn(resultBtn.element, 'focus');
+
+            const activeElementDescriptor = Object.getOwnPropertyDescriptor(document, 'activeElement');
+            Object.defineProperty(document, 'activeElement', {
+                get: () => input.element,
+                configurable: true,
+            });
+
+            await overlay.trigger('keydown', { key: 'Tab', shiftKey: true });
+
+            if (activeElementDescriptor) {
+                Object.defineProperty(document, 'activeElement', activeElementDescriptor);
+            } else {
+                delete document.activeElement;
+            }
+
+            expect(focusSpy).toHaveBeenCalled();
+        });
+
+        it('closes on Escape and restores focus to the trigger', async () => {
+            const wrapper = mountGlobalSearch();
+            const trigger = wrapper.get('[data-testid="global-search-trigger"]');
+            trigger.element.focus();
+
+            await trigger.trigger('click');
+            await nextTick();
+
+            expect(wrapper.find('[data-testid="global-search-overlay"]').exists()).toBe(true);
+
+            const overlay = wrapper.get('[data-testid="global-search-overlay"]');
+            await overlay.trigger('keydown', { key: 'Escape' });
+            await nextTick();
+
             expect(wrapper.find('[data-testid="global-search-overlay"]').exists()).toBe(false);
         });
     });

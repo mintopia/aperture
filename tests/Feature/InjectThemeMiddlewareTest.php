@@ -15,6 +15,11 @@ class InjectThemeMiddlewareTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function makeMiddleware(): InjectTheme
+    {
+        return app(InjectTheme::class);
+    }
+
     public function test_theme_data_shared_with_blade_views(): void
     {
         $setting = Setting::whereCode('theme.mode')->first() ?? new Setting;
@@ -23,7 +28,7 @@ class InjectThemeMiddlewareTest extends TestCase
         $setting->value = 'light';
         $setting->save();
 
-        $middleware = new InjectTheme;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
@@ -37,7 +42,7 @@ class InjectThemeMiddlewareTest extends TestCase
 
     public function test_falls_back_to_default_theme_when_setting_missing(): void
     {
-        $middleware = new InjectTheme;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
@@ -52,13 +57,13 @@ class InjectThemeMiddlewareTest extends TestCase
 
     public function test_injects_site_title_from_settings(): void
     {
-        $setting = Setting::whereCode('theme.site_title')->first() ?? new Setting;
-        $setting->code = 'theme.site_title';
+        $setting = Setting::whereCode('site_title')->first() ?? new Setting;
+        $setting->code = 'site_title';
         $setting->name = 'Site Title';
         $setting->value = 'My Custom Aperture';
         $setting->save();
 
-        $middleware = new InjectTheme;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
@@ -71,7 +76,7 @@ class InjectThemeMiddlewareTest extends TestCase
 
     public function test_injects_default_site_title_when_not_set(): void
     {
-        $middleware = new InjectTheme;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
@@ -90,7 +95,7 @@ class InjectThemeMiddlewareTest extends TestCase
         $setting->value = '230';
         $setting->save();
 
-        $middleware = new InjectTheme;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
@@ -109,7 +114,7 @@ class InjectThemeMiddlewareTest extends TestCase
         $setting->value = 'body { background: #000; }';
         $setting->save();
 
-        $middleware = new InjectTheme;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {
@@ -122,7 +127,7 @@ class InjectThemeMiddlewareTest extends TestCase
 
     public function test_injects_null_custom_fields_when_not_set(): void
     {
-        $middleware = new InjectTheme;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
 
         $middleware->handle($request, function ($req): ResponseFactory|Response {

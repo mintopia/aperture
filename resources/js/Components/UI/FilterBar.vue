@@ -8,9 +8,24 @@ const props = defineProps({
     filterValues: { type: Object, default: () => ({}) },
     totalCount: { type: Number, default: 0 },
     filteredCount: { type: Number, default: 0 },
+    debounce: { type: Number, default: 300 },
 });
 
 const emit = defineEmits(['update:search', 'update:filterValues']);
+
+let debounceTimer = null;
+
+function handleSearchInput(event) {
+    const value = event.target.value;
+    if (props.debounce === 0) {
+        emit('update:search', value);
+        return;
+    }
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        emit('update:search', value);
+    }, props.debounce);
+}
 
 const activeFilters = computed(() =>
     props.filters.filter((f) => {
@@ -57,9 +72,10 @@ function filterDisplayLabel(filter) {
                 type="text"
                 :value="search"
                 :placeholder="searchPlaceholder"
+                aria-label="Search"
                 data-testid="filter-search-input"
                 class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] py-[7px] pr-3 pl-8 text-[13px] text-[var(--color-text)] transition-[border-color] duration-150 outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)]"
-                @input="emit('update:search', $event.target.value)"
+                @input="handleSearchInput"
             />
         </div>
 
@@ -67,6 +83,7 @@ function filterDisplayLabel(filter) {
             v-for="filter in filters"
             :key="filter.key"
             :data-testid="`filter-select-${filter.key}`"
+            :aria-label="filter.label"
             :value="filterValues[filter.key] || ''"
             class="cursor-pointer appearance-none rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%226%22%20viewBox%3D%220%200%2010%206%22%3E%3Cpath%20fill%3D%22%236b6b6b%22%20d%3D%22M0%200l5%206%205-6z%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_10px_center] bg-no-repeat py-[7px] pr-7 pl-2.5 text-xs font-semibold text-[var(--color-text-secondary)] transition-[border-color] duration-150 outline-none focus:border-[var(--color-primary)]"
             @change="updateFilter(filter.key, $event.target.value)"

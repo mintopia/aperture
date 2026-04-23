@@ -19,4 +19,10 @@ return [
         'request_timeout' => (int) env('APERTURE_SSH_PROXY_REQUEST_TIMEOUT', 60),
     ],
     'switch_sync_interval' => (int) env('APERTURE_SWITCH_SYNC_INTERVAL', 5),
+    'theme' => [
+        'mode' => 'dark',
+        'accent_hue' => 55,
+        'accent_chroma' => 0.19,
+        'accent_lightness' => 72,
+    ],
 ];

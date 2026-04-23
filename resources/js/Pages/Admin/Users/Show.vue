@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
@@ -67,13 +67,13 @@ const ipColumns = [
                 <p class="mt-1 text-[13px] text-[var(--color-text-secondary)]">User account details and IP history.</p>
             </div>
             <div class="flex items-center gap-2">
-                <a
+                <Link
                     :href="route('admin.users.edit', user.id)"
                     data-testid="action-edit"
                     class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
                 >
                     Edit
-                </a>
+                </Link>
                 <button
                     :data-testid="user.internet_blocked ? 'action-unblock' : 'action-block'"
                     :class="

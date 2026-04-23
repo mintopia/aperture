@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { formatBytes } from '@/helpers.js';
 
 defineOptions({ layout: AdminLayout });
@@ -52,6 +53,7 @@ function search() {
 
 function onSearchUpdate(value) {
     searchQuery.value = value;
+    search();
 }
 
 function onFilterUpdate(values) {
@@ -88,14 +90,16 @@ function statusTextClass(allowed) {
             >
                 IP Addresses
             </h1>
+            <Link
+                :href="route('admin.ips.create')"
+                data-testid="action-create-ip"
+                class="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-bold text-[var(--color-accent-text)] transition-all hover:bg-[var(--color-primary-hover)]"
+            >
+                Add IP Address
+            </Link>
         </div>
 
-        <h2
-            class="font-heading mt-6 mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
-            style="font-variation-settings: 'opsz' 16"
-        >
-            Address List
-        </h2>
+        <SectionHeader title="Address List" class="mt-6" />
 
         <FilterBar
             :search="searchQuery"
@@ -107,7 +111,6 @@ function statusTextClass(allowed) {
             data-testid="ip-filter-bar"
             @update:search="onSearchUpdate"
             @update:filter-values="onFilterUpdate"
-            @keyup.enter="search"
         />
 
         <DataTable

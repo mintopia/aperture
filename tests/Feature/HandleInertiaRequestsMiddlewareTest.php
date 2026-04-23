@@ -13,11 +13,16 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function makeMiddleware(): HandleInertiaRequests
+    {
+        return app(HandleInertiaRequests::class);
+    }
+
     public function test_shares_auth_user_data(): void
     {
         $user = User::factory()->create();
 
-        $middleware = new HandleInertiaRequests;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
         $request->setUserResolver(fn () => $user);
         $request->setLaravelSession(session()->driver());
@@ -38,7 +43,7 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $middleware = new HandleInertiaRequests;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
         $request->setUserResolver(fn () => $user);
 
@@ -69,7 +74,7 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
 
         $user = User::factory()->create();
 
-        $middleware = new HandleInertiaRequests;
+        $middleware = $this->makeMiddleware();
         $request = Request::create('/');
         $request->setUserResolver(fn () => $user);
         $request->setLaravelSession(session()->driver());
@@ -77,7 +82,10 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
         $shared = $middleware->share($request);
 
         $this->assertArrayHasKey('theme', $shared);
-        $this->assertArrayHasKey('accent_hue', $shared['theme']);
-        $this->assertArrayHasKey('mode', $shared['theme']);
+
+        // theme is now a closure, resolve it
+        $theme = $shared['theme'] instanceof \Closure ? ($shared['theme'])() : $shared['theme'];
+        $this->assertArrayHasKey('accent_hue', $theme);
+        $this->assertArrayHasKey('mode', $theme);
     }
 }

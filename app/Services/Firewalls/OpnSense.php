@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Firewalls;
 
 use App\Models\IpAddress;
@@ -66,7 +68,7 @@ class OpnSense implements FirewallBackendInterface
      */
     protected function decodeResponse(ResponseInterface $response): stdClass
     {
-        $json = json_decode($response->getBody());
+        $json = json_decode((string) $response->getBody());
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new BackendException('Unable to decode response');
         }

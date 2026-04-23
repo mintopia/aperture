@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
+import { reactive } from 'vue';
 import { mount } from '@vue/test-utils';
 import Create from '@/Pages/Admin/Switches/Create.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
-    useForm: vi.fn((initial) => ({
+    useForm: vi.fn((initial) => reactive({
         ...initial,
         errors: {},
         processing: false,

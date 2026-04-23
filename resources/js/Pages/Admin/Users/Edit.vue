@@ -1,5 +1,5 @@
 <script setup>
-import { useForm, Head } from '@inertiajs/vue3';
+import { useForm, Head, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 
@@ -150,13 +150,13 @@ function submit() {
                 >
                     {{ form.processing ? 'Saving…' : 'Save Changes' }}
                 </button>
-                <a
+                <Link
                     :href="route('admin.users.show', user.id)"
                     data-testid="edit-user-cancel"
                     class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-hover)]"
                 >
                     Cancel
-                </a>
+                </Link>
             </div>
         </form>
     </div>

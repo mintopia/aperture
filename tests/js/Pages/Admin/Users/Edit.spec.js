@@ -11,6 +11,10 @@ vi.mock('@inertiajs/vue3', () => ({
         reset: vi.fn(),
     })),
     Head: { template: '<div />' },
+    Link: {
+        template: '<a :href="href"><slot /></a>',
+        props: ['href'],
+    },
 }));
 
 describe('Edit User', () => {

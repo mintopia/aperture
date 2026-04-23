@@ -149,7 +149,7 @@ async function loginWithPasskey() {
                     <button
                         type="submit"
                         data-testid="login-submit"
-                        class="w-full rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                        class="w-full rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-text)] transition hover:opacity-90 disabled:opacity-50"
                         :disabled="form.processing"
                     >
                         {{ form.processing ? 'Signing in…' : 'Sign In' }}
@@ -181,7 +181,11 @@ async function loginWithPasskey() {
                         </svg>
                         <span>{{ passkeyLoading ? 'Authenticating…' : 'Sign in with Passkey' }}</span>
                     </button>
-                    <p v-if="passkeyError" data-testid="passkey-error" class="mt-1 text-center text-xs text-red-500">
+                    <p
+                        v-if="passkeyError"
+                        data-testid="passkey-error"
+                        class="mt-1 text-center text-xs text-[var(--color-danger)]"
+                    >
                         {{ passkeyError }}
                     </p>
                     <p v-else class="mt-1 text-center text-xs text-[var(--color-text-muted)]">

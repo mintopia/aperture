@@ -294,6 +294,7 @@ function confirmToggle() {
             <Link
                 v-if="prevPort"
                 data-testid="port-nav-prev"
+                :aria-label="`Previous port: ${prevPort}`"
                 :href="
                     route('admin.switches.ports.show', {
                         switchConfig: switchConfig.id,
@@ -307,6 +308,7 @@ function confirmToggle() {
             <Link
                 v-if="nextPort"
                 data-testid="port-nav-next"
+                :aria-label="`Next port: ${nextPort}`"
                 :href="
                     route('admin.switches.ports.show', {
                         switchConfig: switchConfig.id,

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useTheme } from '@/composables/useTheme';
 
@@ -6,8 +7,15 @@ vi.mock('@inertiajs/vue3', () => ({
     usePage: vi.fn(() => ({ props: { theme: null } })),
 }));
 
-vi.mock('@/composables/useAccentHue', () => ({
-    applyAccentHue: vi.fn(),
+vi.mock('@/composables/useAccentColor', () => ({
+    applyAccentColor: vi.fn(),
+    useAccentColor: vi.fn(() => ({
+        accentHue: ref(55),
+        accentChroma: ref(0.19),
+        accentLightness: ref(72),
+        setAccentColor: vi.fn(),
+        presets: [],
+    })),
 }));
 
 const localStorageMock = (() => {
@@ -85,12 +93,16 @@ describe('useTheme', () => {
 
     it('always sets data-theme to dispatch', () => {
         useTheme();
-        expect(document.documentElement.getAttribute('data-theme')).toBe('dispatch');
+        expect(document.documentElement.getAttribute('data-theme')).toBe(
+            'dispatch',
+        );
     });
 
     it('sets data-mode on document.documentElement', () => {
         useTheme();
-        expect(document.documentElement.getAttribute('data-mode')).toBe('dark');
+        expect(document.documentElement.getAttribute('data-mode')).toBe(
+            'dark',
+        );
     });
 
     it('toggleMode saves to localStorage', () => {
@@ -103,8 +115,13 @@ describe('useTheme', () => {
         const { previewMode } = useTheme();
         localStorageMock.setItem.mockClear();
         previewMode('light');
-        expect(document.documentElement.getAttribute('data-mode')).toBe('light');
-        expect(localStorageMock.setItem).not.toHaveBeenCalledWith('themeMode', 'light');
+        expect(document.documentElement.getAttribute('data-mode')).toBe(
+            'light',
+        );
+        expect(localStorageMock.setItem).not.toHaveBeenCalledWith(
+            'themeMode',
+            'light',
+        );
     });
 
     it('cancelPreview restores original mode', () => {
@@ -112,6 +129,8 @@ describe('useTheme', () => {
         const original = mode.value;
         previewMode('light');
         cancelPreview();
-        expect(document.documentElement.getAttribute('data-mode')).toBe(original);
+        expect(document.documentElement.getAttribute('data-mode')).toBe(
+            original,
+        );
     });
 });

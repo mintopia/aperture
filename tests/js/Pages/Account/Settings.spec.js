@@ -46,8 +46,24 @@ vi.mock('@/Layouts/AdminLayout.vue', () => ({
     },
 }));
 
+vi.mock('@/Components/UI/ConfirmModal.vue', () => ({
+    default: {
+        name: 'ConfirmModal',
+        props: ['show', 'title', 'message', 'confirmLabel', 'cancelLabel', 'variant', 'loading'],
+        emits: ['confirm', 'cancel'],
+        template: `
+            <div v-if="show" data-testid="confirm-modal">
+                <span data-testid="confirm-modal-title">{{ title }}</span>
+                <span data-testid="confirm-modal-message">{{ message }}</span>
+                <button data-testid="confirm-modal-cancel" type="button" @click="$emit('cancel')">{{ cancelLabel ?? 'Cancel' }}</button>
+                <button data-testid="confirm-modal-confirm" type="button" @click="$emit('confirm')">{{ confirmLabel ?? 'Confirm' }}</button>
+            </div>
+        `,
+    },
+}));
+
 const mockRoute = (name) => `/${name.replace(/\./g, '/')}`;
-globalThis.confirm = vi.fn(() => true);
+globalThis.route = mockRoute;
 
 // Mock fetch globally — passkey operations use fetch directly
 globalThis.fetch = vi.fn(() =>
@@ -315,5 +331,89 @@ describe('Account/Settings', () => {
         const wrapper = mountComponent(userWithNeither, false);
         expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(true);
+    });
+
+    // ── Clear password confirm modal ────────────────────────────────────────
+
+    it('does not show clear-password confirm modal by default', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+    });
+
+    it('shows clear-password confirm modal when Remove Password is clicked', async () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        await wrapper.find('[data-testid="password-clear"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="confirm-modal-title"]').text()).toBe('Remove Password?');
+    });
+
+    it('closes clear-password modal when cancel is clicked without deleting password', async () => {
+        const { router } = await import('@inertiajs/vue3');
+        router.delete.mockClear();
+
+        const wrapper = mountComponent(userWithPassword, true);
+        await wrapper.find('[data-testid="password-clear"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+        expect(router.delete).not.toHaveBeenCalled();
+    });
+
+    it('calls router.delete when clear-password modal is confirmed', async () => {
+        const { router } = await import('@inertiajs/vue3');
+        router.delete.mockClear();
+
+        const wrapper = mountComponent(userWithPassword, true);
+        await wrapper.find('[data-testid="password-clear"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(router.delete).toHaveBeenCalledWith('/account/password/clear');
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+    });
+
+    // ── Delete passkey confirm modal ────────────────────────────────────────
+
+    it('shows delete-passkey confirm modal when Remove is clicked', async () => {
+        const wrapper = mountComponent(userWithPasskeys, true);
+        await wrapper.find('[data-testid="passkey-delete-pk-1"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="confirm-modal-title"]').text()).toBe('Remove Passkey?');
+    });
+
+    it('closes delete-passkey modal when cancel is clicked without deleting', async () => {
+        const wrapper = mountComponent(userWithPasskeys, true);
+        await wrapper.find('[data-testid="passkey-delete-pk-1"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+    });
+
+    it('calls fetch DELETE when delete-passkey modal is confirmed', async () => {
+        globalThis.fetch = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve({ success: true }),
+            }),
+        );
+
+        const wrapper = mountComponent(userWithPasskeys, true);
+        await wrapper.find('[data-testid="passkey-delete-pk-1"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/passkeys/'),
+            expect.objectContaining({ method: 'DELETE' }),
+        );
     });
 });

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -15,6 +17,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable as WebAuthnAuthenticatableContract;
 use Laragear\WebAuthn\Models\WebAuthnCredential;
 use Laragear\WebAuthn\WebAuthnAuthentication;
@@ -35,10 +38,10 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @property string|null $external_id
  * @property string|null $access_token
  * @property string|null $refresh_token
- * @property \Illuminate\Support\Carbon|null $token_expires_at
+ * @property Carbon|null $token_expires_at
  * @property string|null $avatar_url
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property-read Collection<int, IpAddress> $ips
  * @property-read int|null $ips_count
  * @property-read DatabaseNotificationCollection<int, DatabaseNotification> $notifications

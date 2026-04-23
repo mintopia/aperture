@@ -1,14 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Models\Setting;
+use App\Services\ThemeService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
+
+    public function __construct(
+        private readonly ThemeService $themeService,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -33,18 +40,18 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('warning'),
                 'info' => fn () => $request->session()->get('info'),
             ],
-            'appName' => fn (): string => (string) Setting::get('site_title', 'Aperture'),
+            'appName' => fn (): string => $this->themeService->getTheme()['site_title'],
             'footer' => fn (): array => [
                 'terms_type' => Setting::get('general.terms_type'),
                 'terms_value' => Setting::get('general.terms_value'),
                 'privacy_type' => Setting::get('general.privacy_type'),
                 'privacy_value' => Setting::get('general.privacy_value'),
             ],
-            'theme' => [
-                'mode' => fn (): mixed => Setting::get('theme.mode', 'dark'),
-                'accent_hue' => fn (): int => (int) Setting::get('theme.accent_hue', 55),
-                'accent_chroma' => fn (): float => (float) Setting::get('theme.accent_chroma', '0.19'),
-                'accent_lightness' => fn (): int => (int) Setting::get('theme.accent_lightness', 72),
+            'theme' => fn (): array => [
+                'mode' => $this->themeService->getTheme()['mode'],
+                'accent_hue' => $this->themeService->getTheme()['accent_hue'],
+                'accent_chroma' => $this->themeService->getTheme()['accent_chroma'],
+                'accent_lightness' => $this->themeService->getTheme()['accent_lightness'],
             ],
         ]);
     }

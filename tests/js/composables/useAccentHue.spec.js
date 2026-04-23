@@ -3,7 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { defineComponent } from 'vue';
 import { mount } from '@vue/test-utils';
 import { usePage } from '@inertiajs/vue3';
-import { ACCENT_PRESETS, applyAccentHue, useAccentHue } from '@/composables/useAccentHue';
+import {
+    ACCENT_PRESETS,
+    applyAccentHue,
+    useAccentColor,
+} from '@/composables/useAccentColor';
 
 vi.mock('@inertiajs/vue3', () => ({
     usePage: vi.fn(() => ({ props: { theme: null } })),
@@ -86,7 +90,7 @@ describe('applyAccentHue', () => {
     });
 });
 
-describe('useAccentHue', () => {
+describe('useAccentColor', () => {
     beforeEach(() => {
         document.documentElement.style.cssText = '';
         document.documentElement.removeAttribute('data-mode');
@@ -94,7 +98,7 @@ describe('useAccentHue', () => {
     });
 
     it('defaults to hue 55', () => {
-        const { accentHue } = useAccentHue();
+        const { accentHue } = useAccentColor();
         expect(accentHue.value).toBe(55);
     });
 
@@ -102,31 +106,33 @@ describe('useAccentHue', () => {
         usePage.mockReturnValue({
             props: { theme: { accent_hue: 230 } },
         });
-        const { accentHue } = useAccentHue();
+        const { accentHue } = useAccentColor();
         expect(accentHue.value).toBe(230);
     });
 
-    it('setAccentHue updates the ref and applies CSS', () => {
-        const { accentHue, setAccentColor } = useAccentHue();
+    it('setAccentColor updates the ref and applies CSS', () => {
+        const { accentHue, setAccentColor } = useAccentColor();
         setAccentColor(295, 0.18, 70, 'dark');
         expect(accentHue.value).toBe(295);
-        expect(document.documentElement.style.getPropertyValue('--color-primary')).toContain('295');
+        expect(
+            document.documentElement.style.getPropertyValue('--color-primary'),
+        ).toContain('295');
     });
 
     it('exposes presets array', () => {
-        const { presets } = useAccentHue();
+        const { presets } = useAccentColor();
         expect(presets).toBe(ACCENT_PRESETS);
         expect(presets).toHaveLength(8);
     });
 
-    it('applies accent hue on mount (via component context)', async () => {
+    it('applies accent color on mount (via component context)', async () => {
         usePage.mockReturnValue({ props: { theme: { accent_hue: 230 } } });
         document.documentElement.removeAttribute('data-mode');
         document.documentElement.style.cssText = '';
 
         const TestComponent = defineComponent({
             setup() {
-                return useAccentHue();
+                return useAccentColor();
             },
             template: '<div></div>',
         });
@@ -134,8 +140,9 @@ describe('useAccentHue', () => {
         const wrapper = mount(TestComponent);
         await wrapper.vm.$nextTick();
 
-        // onMounted fires applyAccentHue(230, 'dark') since no data-mode attribute
-        expect(document.documentElement.style.getPropertyValue('--color-primary')).toContain('230');
+        expect(
+            document.documentElement.style.getPropertyValue('--color-primary'),
+        ).toContain('230');
     });
 
     it('uses data-mode attribute from documentElement in onMounted', async () => {
@@ -145,7 +152,7 @@ describe('useAccentHue', () => {
 
         const TestComponent = defineComponent({
             setup() {
-                return useAccentHue();
+                return useAccentColor();
             },
             template: '<div></div>',
         });
@@ -154,7 +161,11 @@ describe('useAccentHue', () => {
         await wrapper.vm.$nextTick();
 
         // light mode: lightL = max(80 - 21, 40) = 59
-        expect(document.documentElement.style.getPropertyValue('--color-accent-dim')).toContain('0.1');
+        expect(
+            document.documentElement.style.getPropertyValue(
+                '--color-accent-dim',
+            ),
+        ).toContain('0.1');
 
         document.documentElement.removeAttribute('data-mode');
     });

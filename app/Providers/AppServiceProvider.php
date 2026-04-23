@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Models\IpAddress;
@@ -11,6 +13,7 @@ use App\Observers\UserIpAddressObserver;
 use App\Observers\UserObserver;
 use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\Interfaces\AuthProviderInterface;
+use App\Services\ThemeService;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -23,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AuthProviderInterface::class, BorealisDeviceFlowService::class);
+        $this->app->scoped(ThemeService::class);
     }
 
     /**

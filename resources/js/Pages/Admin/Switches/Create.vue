@@ -1,8 +1,9 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
+import SectionHeader from '@/Components/UI/SectionHeader.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -10,20 +11,18 @@ defineProps({
     switchTypes: { type: Array, default: () => [] },
 });
 
-const form = reactive(
-    useForm({
-        name: '',
-        hostname: '',
-        type: '',
-        username: '',
-        password: '',
-        enable_password: '',
-        community: '',
-        port: 22,
-        timeout: 5,
-        enabled: true,
-    }),
-);
+const form = useForm({
+    name: '',
+    hostname: '',
+    type: '',
+    username: '',
+    password: '',
+    enable_password: '',
+    community: '',
+    port: 22,
+    timeout: 5,
+    enabled: true,
+});
 
 const showEnablePassword = computed(() => {
     return ['cisco', 'cisco_ios', 'cisco_nxos'].includes(form.type);
@@ -74,12 +73,7 @@ function submit() {
         <form data-testid="switch-form" class="mt-6 space-y-8" @submit.prevent="submit">
             <!-- Basic Info -->
             <div class="space-y-4">
-                <h2
-                    class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
-                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
-                >
-                    Basic Information
-                </h2>
+                <SectionHeader title="Basic Information" class="mb-1" />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField label="Name" name="name" :required="true" :error="form.errors.name">
                         <input
@@ -140,12 +134,7 @@ function submit() {
 
             <!-- Connection -->
             <div class="space-y-4">
-                <h2
-                    class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
-                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
-                >
-                    Connection
-                </h2>
+                <SectionHeader title="Connection" class="mb-1" />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField label="Port" name="port" :error="form.errors.port">
                         <input
@@ -175,12 +164,7 @@ function submit() {
 
             <!-- Credentials -->
             <div v-if="showCredentials" class="space-y-4">
-                <h2
-                    class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
-                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
-                >
-                    Credentials
-                </h2>
+                <SectionHeader title="Credentials" class="mb-1" />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField label="Username" name="username" :error="form.errors.username">
                         <input
@@ -224,12 +208,7 @@ function submit() {
 
             <!-- SNMP Community -->
             <div v-if="showCommunity" class="space-y-4">
-                <h2
-                    class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
-                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
-                >
-                    SNMP Settings
-                </h2>
+                <SectionHeader title="SNMP Settings" class="mb-1" />
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField label="Community String" name="community" :error="form.errors.community">
                         <input

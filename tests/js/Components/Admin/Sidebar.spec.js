@@ -1,7 +1,40 @@
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
-import { describe, it, expect, vi } from 'vitest';
-import Sidebar from '@/Components/Admin/Sidebar.vue';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const routeMap = {
+    'admin.home': '/admin',
+    'admin.users.index': '/admin/users',
+    'admin.ips.index': '/admin/ips',
+    'admin.switches.index': '/admin/switches',
+    'admin.dhcp.index': '/admin/dhcp',
+    'admin.settings.integrations': '/admin/settings/integrations',
+    'admin.settings.ipv6-detection': '/admin/settings/ipv6-detection',
+    'admin.settings.dns-detection': '/admin/settings/dns-detection',
+    'admin.content.index': '/admin/content',
+    'admin.content.pages.index': '/admin/content/pages',
+    'admin.settings.theme': '/admin/settings/theme',
+    'admin.content.settings': '/admin/content/settings',
+};
+
+window.route = vi.fn((name) => routeMap[name] || `/${name}`);
+
+let mqlListeners = [];
+let mqlMatches = true;
+
+const mockMql = {
+    get matches() {
+        return mqlMatches;
+    },
+    addEventListener: vi.fn((_event, cb) => {
+        mqlListeners.push(cb);
+    }),
+    removeEventListener: vi.fn((_event, cb) => {
+        mqlListeners = mqlListeners.filter((listener) => listener !== cb);
+    }),
+};
+
+window.matchMedia = vi.fn(() => mockMql);
 
 vi.mock('@inertiajs/vue3', () => ({
     Link: {
@@ -12,28 +45,25 @@ vi.mock('@inertiajs/vue3', () => ({
     usePage: () => ({ url: '/admin/users' }),
 }));
 
-const navExpectations = [
-    ['dashboard', '/admin'],
-    ['users', '/admin/users'],
-    ['ip-addresses', '/admin/ips'],
-    ['switches', '/admin/switches'],
-    ['dhcp', '/admin/dhcp'],
-    ['integrations', '/admin/settings/integrations'],
-    ['ipv6-detection', '/admin/settings/ipv6-detection'],
-    ['dns-detection', '/admin/settings/dns-detection'],
-    ['dashboard', '/admin/content'],
-    ['pages', '/admin/content/pages'],
-    ['theme', '/admin/settings/theme'],
-    ['settings', '/admin/content/settings'],
-];
+// Import Sidebar after mocks are set up (vi.mock is hoisted, but window mocks are not)
+const { default: Sidebar } = await import('@/Components/Admin/Sidebar.vue');
 
-function setViewport(width) {
-    window.innerWidth = width;
-    window.dispatchEvent(new Event('resize'));
+function triggerBreakpointChange(matches) {
+    mqlMatches = matches;
+    mqlListeners.forEach((cb) => cb({ matches }));
 }
 
-async function mountSidebar(width = 1280) {
-    setViewport(width);
+beforeEach(() => {
+    mqlListeners = [];
+    mqlMatches = true;
+    mockMql.addEventListener.mockClear();
+    mockMql.removeEventListener.mockClear();
+    window.matchMedia.mockClear();
+    window.route.mockClear();
+});
+
+async function mountSidebar(desktop = true) {
+    mqlMatches = desktop;
     const wrapper = mount(Sidebar);
     await nextTick();
 
@@ -93,7 +123,7 @@ describe('Sidebar.vue', () => {
         ]);
     });
 
-    it('renders all nav items with correct hrefs and preserved test ids', async () => {
+    it('renders all nav items with correct hrefs from named routes', async () => {
         const wrapper = await mountSidebar();
         const allLinks = wrapper.findAll('[data-testid^="nav-"]');
 
@@ -110,6 +140,40 @@ describe('Sidebar.vue', () => {
         expect(hrefsByTestId).toContainEqual(['nav-pages', '/admin/content/pages']);
         expect(hrefsByTestId).toContainEqual(['nav-theme', '/admin/settings/theme']);
         expect(hrefsByTestId).toContainEqual(['nav-settings', '/admin/content/settings']);
+    });
+
+    it('calls route() with correct named route identifiers', async () => {
+        await mountSidebar();
+
+        expect(window.route).toHaveBeenCalledWith('admin.home');
+        expect(window.route).toHaveBeenCalledWith('admin.users.index');
+        expect(window.route).toHaveBeenCalledWith('admin.ips.index');
+        expect(window.route).toHaveBeenCalledWith('admin.switches.index');
+        expect(window.route).toHaveBeenCalledWith('admin.dhcp.index');
+        expect(window.route).toHaveBeenCalledWith('admin.settings.integrations');
+        expect(window.route).toHaveBeenCalledWith('admin.settings.ipv6-detection');
+        expect(window.route).toHaveBeenCalledWith('admin.settings.dns-detection');
+        expect(window.route).toHaveBeenCalledWith('admin.content.index');
+        expect(window.route).toHaveBeenCalledWith('admin.content.pages.index');
+        expect(window.route).toHaveBeenCalledWith('admin.settings.theme');
+        expect(window.route).toHaveBeenCalledWith('admin.content.settings');
+    });
+
+    it('renders SVG icon components with aria-hidden instead of v-html', async () => {
+        const wrapper = await mountSidebar();
+        const svgs = wrapper.findAll('[data-testid^="nav-"] svg');
+
+        expect(svgs.length).toBe(12);
+        svgs.forEach((svg) => {
+            expect(svg.attributes('aria-hidden')).toBe('true');
+            expect(svg.attributes('stroke')).toBe('currentColor');
+        });
+    });
+
+    it('does not use v-html for icon rendering', async () => {
+        const wrapper = await mountSidebar();
+
+        expect(wrapper.html()).not.toContain('v-html');
     });
 
     it('applies active styling with accent background and primary text', async () => {
@@ -136,7 +200,7 @@ describe('Sidebar.vue', () => {
     });
 
     it('renders grouped horizontal navigation on mobile and includes all items', async () => {
-        const wrapper = await mountSidebar(768);
+        const wrapper = await mountSidebar(false);
         const mobileNav = wrapper.get('[data-testid="admin-nav-horizontal"]');
         const items = mobileNav.findAll('[data-testid^="nav-"]').map((item) => item.text());
 
@@ -155,5 +219,34 @@ describe('Sidebar.vue', () => {
             'Theme',
             'Settings',
         ]);
+    });
+
+    it('uses matchMedia instead of resize listener for breakpoint detection', async () => {
+        await mountSidebar();
+
+        expect(window.matchMedia).toHaveBeenCalledWith('(min-width: 1025px)');
+    });
+
+    it('responds to matchMedia change events', async () => {
+        const wrapper = await mountSidebar(true);
+
+        expect(wrapper.find('[data-testid="admin-sidebar"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="admin-nav-horizontal"]').exists()).toBe(false);
+
+        triggerBreakpointChange(false);
+        await nextTick();
+
+        expect(wrapper.find('[data-testid="admin-sidebar"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="admin-nav-horizontal"]').exists()).toBe(true);
+    });
+
+    it('cleans up matchMedia listener on unmount', async () => {
+        const wrapper = await mountSidebar();
+
+        expect(mockMql.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+
+        wrapper.unmount();
+
+        expect(mockMql.removeEventListener).toHaveBeenCalledWith('change', expect.any(Function));
     });
 });

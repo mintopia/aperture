@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Leases from '@/Pages/Admin/Dhcp/Leases.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
@@ -61,6 +61,14 @@ describe('Dhcp/Leases', () => {
     });
 
     describe('FilterBar integration', () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
         it('renders the FilterBar component', () => {
             const wrapper = mountLeases();
             expect(wrapper.find('[data-testid="filter-bar"]').exists()).toBe(true);
@@ -101,7 +109,7 @@ describe('Dhcp/Leases', () => {
             const input = wrapper.find('[data-testid="filter-search-input"]');
 
             await input.setValue('10.0.0.10');
-            await input.trigger('input');
+            vi.advanceTimersByTime(300);
             await wrapper.vm.$nextTick();
 
             const rows = wrapper.findAll('[data-testid="data-table-row"]');
@@ -113,7 +121,7 @@ describe('Dhcp/Leases', () => {
             const input = wrapper.find('[data-testid="filter-search-input"]');
 
             await input.setValue('web-server');
-            await input.trigger('input');
+            vi.advanceTimersByTime(300);
             await wrapper.vm.$nextTick();
 
             const rows = wrapper.findAll('[data-testid="data-table-row"]');
@@ -125,7 +133,7 @@ describe('Dhcp/Leases', () => {
             const input = wrapper.find('[data-testid="filter-search-input"]');
 
             await input.setValue('EE:03');
-            await input.trigger('input');
+            vi.advanceTimersByTime(300);
             await wrapper.vm.$nextTick();
 
             const rows = wrapper.findAll('[data-testid="data-table-row"]');
@@ -161,7 +169,7 @@ describe('Dhcp/Leases', () => {
 
             const input = wrapper.find('[data-testid="filter-search-input"]');
             await input.setValue('web');
-            await input.trigger('input');
+            vi.advanceTimersByTime(300);
             await wrapper.vm.$nextTick();
 
             const rows = wrapper.findAll('[data-testid="data-table-row"]');

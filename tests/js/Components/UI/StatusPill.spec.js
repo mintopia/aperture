@@ -41,6 +41,13 @@ describe('StatusPill', () => {
         expect(wrapper.find('[data-testid="status-symbol"]').exists()).toBe(false);
     });
 
+    it('does not render symbol for muted status', () => {
+        const wrapper = mount(StatusPill, {
+            props: { status: 'muted', label: 'Muted' },
+        });
+        expect(wrapper.find('[data-testid="status-symbol"]').exists()).toBe(false);
+    });
+
     it('renders label text for each status', () => {
         const cases = [
             { status: 'success', label: 'Active' },
@@ -48,6 +55,7 @@ describe('StatusPill', () => {
             { status: 'warning', label: 'Pending' },
             { status: 'info', label: 'Info' },
             { status: 'neutral', label: 'Unknown' },
+            { status: 'muted', label: 'Muted' },
         ];
         cases.forEach(({ status, label }) => {
             const wrapper = mount(StatusPill, {
@@ -58,7 +66,7 @@ describe('StatusPill', () => {
     });
 
     it('applies correct CSS classes for each status', () => {
-        const statuses = ['success', 'danger', 'warning', 'info', 'neutral'];
+        const statuses = ['success', 'danger', 'warning', 'info', 'neutral', 'muted'];
         statuses.forEach((status) => {
             const wrapper = mount(StatusPill, {
                 props: { status, label: 'Test' },
@@ -73,21 +81,22 @@ describe('StatusPill', () => {
 
     it('uses semantic CSS variables for status colors', () => {
         const colorMap = {
-            success: '--color-success',
-            danger: '--color-danger',
-            warning: '--color-warning',
-            info: '--color-info',
-            neutral: '--color-text-muted',
+            success: { cssVar: '--color-success', opacity: '14' },
+            danger: { cssVar: '--color-danger', opacity: '14' },
+            warning: { cssVar: '--color-warning', opacity: '14' },
+            info: { cssVar: '--color-info', opacity: '14' },
+            neutral: { cssVar: '--color-text-muted', opacity: '14' },
+            muted: { cssVar: '--color-text-muted', opacity: '10' },
         };
-        Object.entries(colorMap).forEach(([status, cssVar]) => {
+        Object.entries(colorMap).forEach(([status, { cssVar, opacity }]) => {
             const wrapper = mount(StatusPill, {
                 props: { status, label: 'Test' },
             });
             const pill = wrapper.find('[data-testid="status-pill"]');
             const classes = pill.classes().join(' ');
-            expect(classes).toContain(`bg-[var(${cssVar})]/14`);
+            expect(classes).toContain(`bg-[var(${cssVar})]/${opacity}`);
             expect(classes).toContain(`text-[var(${cssVar})]`);
-            expect(classes).toContain(`border-[var(${cssVar})]/14`);
+            expect(classes).toContain(`border-[var(${cssVar})]/${opacity}`);
         });
     });
 

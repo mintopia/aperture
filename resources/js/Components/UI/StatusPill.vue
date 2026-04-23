@@ -5,7 +5,7 @@ const props = defineProps({
     status: {
         type: String,
         required: true,
-        validator: (v) => ['success', 'danger', 'warning', 'info', 'neutral'].includes(v),
+        validator: (v) => ['success', 'danger', 'warning', 'info', 'neutral', 'muted'].includes(v),
     },
     label: { type: String, required: true },
 });
@@ -39,6 +39,12 @@ const config = {
         bg: 'bg-[var(--color-text-muted)]/14',
         text: 'text-[var(--color-text-muted)]',
         border: 'border-[var(--color-text-muted)]/14',
+        symbol: '',
+    },
+    muted: {
+        bg: 'bg-[var(--color-text-muted)]/10',
+        text: 'text-[var(--color-text-muted)]',
+        border: 'border-[var(--color-text-muted)]/10',
         symbol: '',
     },
 };

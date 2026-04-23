@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import FilterBar from '@/Components/UI/FilterBar.vue';
 
 const defaultFilters = [
@@ -36,6 +36,14 @@ function mountFilterBar(propsOverride = {}) {
 }
 
 describe('FilterBar', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it('renders the filter bar container', () => {
         const wrapper = mountFilterBar();
         expect(wrapper.find('[data-testid="filter-bar"]').exists()).toBe(true);
@@ -48,10 +56,11 @@ describe('FilterBar', () => {
         expect(input.attributes('placeholder')).toBe('Search items…');
     });
 
-    it('emits update:search when typing in search input', async () => {
+    it('emits update:search after debounce when typing in search input', async () => {
         const wrapper = mountFilterBar();
         const input = wrapper.find('[data-testid="filter-search-input"]');
         await input.setValue('test query');
+        vi.advanceTimersByTime(300);
         expect(wrapper.emitted('update:search')).toBeTruthy();
         expect(wrapper.emitted('update:search')[0]).toEqual(['test query']);
     });
@@ -145,6 +154,62 @@ describe('FilterBar', () => {
         const wrapper = mountFilterBar();
         const searchContainer = wrapper.find('[data-testid="filter-search"]');
         expect(searchContainer.find('svg').exists()).toBe(true);
+    });
+
+    it('search input has aria-label="Search"', () => {
+        const wrapper = mountFilterBar();
+        const input = wrapper.find('[data-testid="filter-search-input"]');
+        expect(input.attributes('aria-label')).toBe('Search');
+    });
+
+    it('each filter select has an aria-label matching the filter label', () => {
+        const wrapper = mountFilterBar();
+        const typeSelect = wrapper.find('[data-testid="filter-select-type"]');
+        const statusSelect = wrapper.find('[data-testid="filter-select-status"]');
+        expect(typeSelect.attributes('aria-label')).toBe('Type');
+        expect(statusSelect.attributes('aria-label')).toBe('Status');
+    });
+
+    it('debounces update:search emission by default 300ms', async () => {
+        const wrapper = mountFilterBar();
+        const input = wrapper.find('[data-testid="filter-search-input"]');
+        await input.setValue('foo');
+        expect(wrapper.emitted('update:search')).toBeFalsy();
+        vi.advanceTimersByTime(300);
+        expect(wrapper.emitted('update:search')).toBeTruthy();
+        expect(wrapper.emitted('update:search')[0]).toEqual(['foo']);
+    });
+
+    it('debounces with custom debounce prop value', async () => {
+        const wrapper = mountFilterBar({ debounce: 500 });
+        const input = wrapper.find('[data-testid="filter-search-input"]');
+        await input.setValue('bar');
+        vi.advanceTimersByTime(300);
+        expect(wrapper.emitted('update:search')).toBeFalsy();
+        vi.advanceTimersByTime(200);
+        expect(wrapper.emitted('update:search')).toBeTruthy();
+        expect(wrapper.emitted('update:search')[0]).toEqual(['bar']);
+    });
+
+    it('disables debounce when debounce prop is 0', async () => {
+        const wrapper = mountFilterBar({ debounce: 0 });
+        const input = wrapper.find('[data-testid="filter-search-input"]');
+        await input.setValue('instant');
+        expect(wrapper.emitted('update:search')).toBeTruthy();
+        expect(wrapper.emitted('update:search')[0]).toEqual(['instant']);
+    });
+
+    it('cancels previous debounce timer on rapid input', async () => {
+        const wrapper = mountFilterBar();
+        const input = wrapper.find('[data-testid="filter-search-input"]');
+        await input.setValue('a');
+        vi.advanceTimersByTime(100);
+        await input.setValue('ab');
+        vi.advanceTimersByTime(300);
+        const emitted = wrapper.emitted('update:search');
+        expect(emitted).toBeTruthy();
+        expect(emitted.length).toBe(1);
+        expect(emitted[0]).toEqual(['ab']);
     });
 
     it('renders multiple active filter pills', () => {

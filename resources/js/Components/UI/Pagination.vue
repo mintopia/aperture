@@ -25,6 +25,13 @@ defineProps({
                     v-if="link.url"
                     :href="link.url"
                     data-testid="pagination-link"
+                    :aria-label="
+                        link.label.includes('Previous')
+                            ? 'Previous page'
+                            : link.label.includes('Next')
+                              ? 'Next page'
+                              : `Page ${link.label}`
+                    "
                     :class="
                         link.active
                             ? 'bg-[var(--color-primary)]/[0.14] font-semibold text-[var(--color-primary)]'

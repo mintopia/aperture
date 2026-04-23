@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useForm, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
+import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { formatDate } from '@/utils/dates';
 import { base64UrlToBuffer, bufferToBase64, getCsrfToken } from '@/utils/webauthn';
@@ -22,6 +23,10 @@ const passwordForm = useForm({ password: '', password_confirmation: '' });
 
 const passkeyLoading = ref(false);
 const passkeyError = ref('');
+
+const showClearPasswordModal = ref(false);
+const showDeletePasskeyModal = ref(false);
+const pendingPasskeyId = ref(null);
 
 async function parseJsonResponse(response) {
     try {
@@ -45,9 +50,12 @@ function updatePassword() {
 }
 
 function clearPassword() {
-    if (confirm('Remove your password? You will need passkeys or Borealis to sign in.')) {
-        router.delete(route('account.password.clear'));
-    }
+    showClearPasswordModal.value = true;
+}
+
+function doClearPassword() {
+    showClearPasswordModal.value = false;
+    router.delete(route('account.password.clear'));
 }
 
 // ─── Passkey management ──────────────────────────────────────────────────────
@@ -133,10 +141,15 @@ async function registerPasskey() {
     }
 }
 
-async function deletePasskey(id) {
-    if (!confirm('Remove this passkey? This cannot be undone.')) {
-        return;
-    }
+function deletePasskey(id) {
+    pendingPasskeyId.value = id;
+    showDeletePasskeyModal.value = true;
+}
+
+async function doDeletePasskey() {
+    showDeletePasskeyModal.value = false;
+    const id = pendingPasskeyId.value;
+    pendingPasskeyId.value = null;
 
     passkeyError.value = '';
 
@@ -167,18 +180,26 @@ async function deletePasskey(id) {
     <component :is="layoutComponent">
         <div data-testid="settings-page" class="mx-auto max-w-2xl space-y-8">
             <div>
-                <h1 class="font-heading text-2xl font-bold text-[var(--color-text)]">Account Settings</h1>
-                <p class="mt-1 text-sm text-[var(--color-text-secondary)]">Manage your password and passkeys.</p>
+                <h1
+                    class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                >
+                    Account Settings
+                </h1>
+                <p class="mt-1 text-[13px] text-[var(--color-text-secondary)]">Manage your password and passkeys.</p>
             </div>
 
             <!-- ── Re-verification gate (password section only) ─────────────────── -->
             <div
                 v-if="needsVerification"
                 data-testid="verify-form"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
+                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
             >
-                <h2 class="font-heading mb-1 text-lg font-semibold text-[var(--color-text)]">Verify your identity</h2>
-                <p class="mb-4 text-sm text-[var(--color-text-secondary)]">
+                <h2
+                    class="font-heading mb-1 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                >
+                    Verify your identity
+                </h2>
+                <p class="mb-4 text-[13px] text-[var(--color-text-secondary)]">
                     Please confirm your password before making changes to your account security settings.
                 </p>
 
@@ -195,7 +216,7 @@ async function deletePasskey(id) {
                             v-model="verifyForm.password"
                             type="password"
                             data-testid="verify-password"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                            class="w-full rounded-md border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                             placeholder="Enter your password"
                             autocomplete="current-password"
                         />
@@ -204,7 +225,7 @@ async function deletePasskey(id) {
                     <button
                         type="submit"
                         data-testid="verify-submit"
-                        class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                        class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:opacity-90 disabled:opacity-50"
                         :disabled="verifyForm.processing"
                     >
                         {{ verifyForm.processing ? 'Verifying…' : 'Verify Identity' }}
@@ -216,10 +237,14 @@ async function deletePasskey(id) {
             <section
                 v-else
                 data-testid="password-section"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
+                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
             >
-                <h2 class="font-heading mb-1 text-lg font-semibold text-[var(--color-text)]">Password</h2>
-                <p class="mb-4 text-sm text-[var(--color-text-secondary)]">
+                <h2
+                    class="font-heading mb-1 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                >
+                    Password
+                </h2>
+                <p class="mb-4 text-[13px] text-[var(--color-text-secondary)]">
                     {{
                         user.has_password
                             ? 'Update or remove your password.'
@@ -239,7 +264,7 @@ async function deletePasskey(id) {
                             v-model="passwordForm.password"
                             type="password"
                             data-testid="password-new"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                            class="w-full rounded-md border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                             placeholder="Minimum 8 characters"
                             autocomplete="new-password"
                         />
@@ -256,7 +281,7 @@ async function deletePasskey(id) {
                             v-model="passwordForm.password_confirmation"
                             type="password"
                             data-testid="password-confirm"
-                            class="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                            class="w-full rounded-md border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                             placeholder="Repeat your password"
                             autocomplete="new-password"
                         />
@@ -266,7 +291,7 @@ async function deletePasskey(id) {
                         <button
                             type="submit"
                             data-testid="password-save"
-                            class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                            class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:opacity-90 disabled:opacity-50"
                             :disabled="passwordForm.processing"
                         >
                             {{
@@ -282,7 +307,7 @@ async function deletePasskey(id) {
                             v-if="user.has_password"
                             type="button"
                             data-testid="password-clear"
-                            class="rounded-lg border border-[var(--color-danger)] px-4 py-2 text-sm font-semibold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
+                            class="rounded-md border border-[var(--color-danger)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
                             @click="clearPassword"
                         >
                             Remove Password
@@ -295,19 +320,23 @@ async function deletePasskey(id) {
             <section
                 v-if="!needsVerification"
                 data-testid="passkey-section"
-                class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
+                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
             >
                 <div class="mb-4 flex items-center justify-between">
                     <div>
-                        <h2 class="font-heading text-lg font-semibold text-[var(--color-text)]">Passkeys</h2>
-                        <p class="mt-0.5 text-sm text-[var(--color-text-secondary)]">
+                        <h2
+                            class="font-heading text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                        >
+                            Passkeys
+                        </h2>
+                        <p class="mt-0.5 text-[13px] text-[var(--color-text-secondary)]">
                             Passkeys let you sign in securely without a password.
                         </p>
                     </div>
                     <button
                         type="button"
                         data-testid="passkey-register"
-                        class="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                        class="flex items-center gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:opacity-90 disabled:opacity-50"
                         :disabled="passkeyLoading"
                         @click="registerPasskey"
                     >
@@ -318,7 +347,7 @@ async function deletePasskey(id) {
                 <p
                     v-if="passkeyError"
                     data-testid="passkey-error"
-                    class="mb-3 rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-4 py-2 text-sm text-[var(--color-danger)]"
+                    class="mb-3 rounded-md border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-4 py-2 text-[13px] text-[var(--color-danger)]"
                 >
                     {{ passkeyError }}
                 </p>
@@ -328,18 +357,18 @@ async function deletePasskey(id) {
                         v-for="passkey in user.passkeys"
                         :key="passkey.id"
                         :data-testid="'passkey-item-' + passkey.id"
-                        class="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3"
+                        class="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3"
                     >
                         <div>
-                            <p class="text-sm font-medium text-[var(--color-text)]">{{ passkey.name }}</p>
-                            <p class="text-xs text-[var(--color-text-muted)]">
+                            <p class="text-[13px] font-medium text-[var(--color-text)]">{{ passkey.name }}</p>
+                            <p class="text-[11px] text-[var(--color-text-muted)]">
                                 Added {{ formatDate(passkey.created_at) }}
                             </p>
                         </div>
                         <button
                             type="button"
                             :data-testid="'passkey-delete-' + passkey.id"
-                            class="ml-4 rounded-lg border border-[var(--color-danger)]/40 px-3 py-1.5 text-xs font-semibold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
+                            class="ml-4 rounded-md border border-[var(--color-danger)]/40 px-3 py-[5px] text-[11px] font-semibold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
                             @click="deletePasskey(passkey.id)"
                         >
                             Remove
@@ -347,10 +376,30 @@ async function deletePasskey(id) {
                     </div>
                 </div>
 
-                <p v-else class="text-sm text-[var(--color-text-muted)]">
+                <p v-else class="text-[13px] text-[var(--color-text-muted)]">
                     No passkeys registered yet. Click <strong>+ Add Passkey</strong> to register one.
                 </p>
             </section>
         </div>
+
+        <ConfirmModal
+            :show="showClearPasswordModal"
+            title="Remove Password?"
+            message="You will need passkeys or Borealis to sign in."
+            confirm-label="Remove Password"
+            variant="danger"
+            @cancel="showClearPasswordModal = false"
+            @confirm="doClearPassword"
+        />
+
+        <ConfirmModal
+            :show="showDeletePasskeyModal"
+            title="Remove Passkey?"
+            message="Remove this passkey? This cannot be undone."
+            confirm-label="Remove Passkey"
+            variant="danger"
+            @cancel="showDeletePasskeyModal = false"
+            @confirm="doDeletePasskey"
+        />
     </component>
 </template>
