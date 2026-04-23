@@ -84,6 +84,8 @@ class AuditLogTest extends TestCase
         $log = AuditLog::record(action: 'ip.created', subject: $ip, process: 'test');
 
         $fresh = AuditLog::find($log->id);
+        $this->assertNotNull($fresh);
+        $this->assertNotNull($fresh->subject);
         $this->assertTrue($fresh->subject->is($ip));
     }
 
@@ -95,6 +97,8 @@ class AuditLogTest extends TestCase
         $log = AuditLog::record(action: 'ip_mac.linked', subject: $ip, related: $mac, process: 'test');
 
         $fresh = AuditLog::find($log->id);
+        $this->assertNotNull($fresh);
+        $this->assertNotNull($fresh->related);
         $this->assertTrue($fresh->related->is($mac));
     }
 
@@ -106,6 +110,8 @@ class AuditLogTest extends TestCase
         $log = AuditLog::record(action: 'ip.created', subject: $ip, actor: $user, process: 'test');
 
         $fresh = AuditLog::find($log->id);
+        $this->assertNotNull($fresh);
+        $this->assertNotNull($fresh->actor);
         $this->assertTrue($fresh->actor->is($user));
     }
 
@@ -114,6 +120,6 @@ class AuditLogTest extends TestCase
         $ip = IpAddress::factory()->create();
         $log = AuditLog::record(action: 'ip.created', subject: $ip, process: 'test');
 
-        $this->assertNull($log->updated_at);
+        $this->assertArrayNotHasKey('updated_at', $log->getAttributes());
     }
 }

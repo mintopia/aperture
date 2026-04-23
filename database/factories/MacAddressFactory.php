@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Models\MacAddress;
@@ -28,7 +30,7 @@ class MacAddressFactory extends Factory
      */
     public function xbox(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'source' => 'xbox',
             'description' => 'Xbox Console',
         ]);
