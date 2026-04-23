@@ -7,6 +7,7 @@ import FilterBar from '@/Components/UI/FilterBar.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { formatBytes } from '@/helpers.js';
+import { ipStatusLabel, ipStatusDotClass, ipStatusTextClass } from '@/utils/ipStatus';
 
 defineOptions({ layout: AdminLayout });
 
@@ -59,24 +60,6 @@ function onSearchUpdate(value) {
 function onFilterUpdate(values) {
     filterValues.value = values;
     search();
-}
-
-function statusLabel(allowed) {
-    if (allowed === true) return 'Allowed';
-    if (allowed === false) return 'Denied';
-    return '\u2014';
-}
-
-function statusDotClass(allowed) {
-    if (allowed === true) return 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]';
-    if (allowed === false) return 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]';
-    return 'bg-[var(--color-text-muted)]';
-}
-
-function statusTextClass(allowed) {
-    if (allowed === true) return 'text-[var(--color-success)]';
-    if (allowed === false) return 'text-[var(--color-danger)]';
-    return 'text-[var(--color-text-muted)]';
 }
 </script>
 
@@ -145,9 +128,9 @@ function statusTextClass(allowed) {
                 </td>
                 <td data-testid="ip-status">
                     <span class="inline-flex items-center gap-1.5">
-                        <span class="h-[7px] w-[7px] rounded-full" :class="statusDotClass(row.allowed)" />
-                        <span class="text-[12px] font-semibold" :class="statusTextClass(row.allowed)">
-                            {{ statusLabel(row.allowed) }}
+                        <span class="h-[7px] w-[7px] rounded-full" :class="ipStatusDotClass(row.allowed)" />
+                        <span class="text-[12px] font-semibold" :class="ipStatusTextClass(row.allowed)">
+                            {{ ipStatusLabel(row.allowed) }}
                         </span>
                     </span>
                 </td>

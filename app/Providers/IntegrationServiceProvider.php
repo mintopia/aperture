@@ -28,6 +28,7 @@ use App\Services\LibreNmsService;
 use App\Services\NtopNgService;
 use App\Services\Null\NullDhcpService;
 use App\Services\Null\NullMetricsProvider;
+use App\Services\Null\NullNetworkInventoryService;
 use App\Services\Null\NullTrafficMonitor;
 use App\Services\PiHole\PiHoleService;
 use App\Services\Prometheus\PrometheusService;
@@ -148,8 +149,14 @@ class IntegrationServiceProvider extends ServiceProvider
 
         $this->app->singleton(function (Application $app): NetworkInventoryInterface {
             $dbConfig = $this->getIntegrationDbConfig('librenms');
+
+            $endpoint = (string) ($dbConfig['endpoint'] ?? '');
+            if ($endpoint === '' || ! ($dbConfig['enabled'] ?? false)) {
+                return new NullNetworkInventoryService;
+            }
+
             $inner = new LibreNmsService(
-                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
+                endpoint: $endpoint,
                 apiToken: (string) ($dbConfig['api_key'] ?? ''),
             );
 

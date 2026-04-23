@@ -89,10 +89,11 @@ class AppServiceProviderTest extends TestCase
 
     public function test_boot_registers_network_inventory_interface_singleton(): void
     {
-        config([
-            'aperture.librenms.endpoint' => 'http://localhost',
-            'aperture.librenms.api_token' => 'token',
-        ]);
+        IntegrationConfig::setValue('librenms', 'endpoint', 'http://localhost');
+        IntegrationConfig::setValue('librenms', 'api_key', 'token');
+        IntegrationConfig::setValue('librenms', 'enabled', true);
+
+        $this->app->forgetInstance(NetworkInventoryInterface::class);
 
         $service = $this->app->make(NetworkInventoryInterface::class);
         $this->assertInstanceOf(CachedNetworkInventoryService::class, $service);

@@ -9,7 +9,6 @@ import EmptyState from '@/Components/UI/EmptyState.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import StatCard from '@/Components/UI/StatCard.vue';
-import StatusPill from '@/Components/UI/StatusPill.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelativeTime } from '@/utils/dates';
 
@@ -164,10 +163,26 @@ function userHref(id) {
                                 {{ formatBytes(row.total_bandwidth ?? 0) }}
                             </td>
                             <td class="py-[10px]">
-                                <StatusPill
-                                    :status="row.internet_blocked ? 'danger' : 'success'"
-                                    :label="row.internet_blocked ? 'Blocked' : 'Active'"
-                                />
+                                <span class="inline-flex items-center gap-1.5">
+                                    <span
+                                        class="h-[7px] w-[7px] rounded-full"
+                                        :class="
+                                            row.internet_blocked
+                                                ? 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]'
+                                                : 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
+                                        "
+                                    />
+                                    <span
+                                        class="text-[12px] font-semibold"
+                                        :class="
+                                            row.internet_blocked
+                                                ? 'text-[var(--color-danger)]'
+                                                : 'text-[var(--color-success)]'
+                                        "
+                                    >
+                                        {{ row.internet_blocked ? 'Denied' : 'Allowed' }}
+                                    </span>
+                                </span>
                             </td>
                             <td class="py-[10px] font-mono text-[12px] text-[var(--color-text-muted)]">
                                 {{ formatRelativeTime(row.last_seen) }}

@@ -28,6 +28,7 @@ const props = defineProps({
 const refreshing = ref(false);
 const toggling = ref(false);
 const showToggleModal = ref(false);
+const optimisticAdminStatus = ref(null);
 
 const lastUpdated = ref(new Date());
 const displayTime = ref('just now');
@@ -47,6 +48,7 @@ function refreshData() {
         preserveScroll: true,
         onSuccess: () => {
             lastUpdated.value = new Date();
+            optimisticAdminStatus.value = null;
         },
     });
 }
@@ -182,16 +184,14 @@ const visibleMacs = computed(() => {
 
 function refreshPort() {
     refreshing.value = true;
-    router.visit(
-        route('admin.switches.ports.show', {
+    router.post(
+        route('admin.switches.ports.refresh', {
             switchConfig: props.switchConfig.id,
             portId: props.port.interface,
         }),
+        {},
         {
             preserveScroll: true,
-            onSuccess: () => {
-                lastUpdated.value = new Date();
-            },
             onFinish: () => {
                 refreshing.value = false;
             },
@@ -199,7 +199,8 @@ function refreshPort() {
     );
 }
 
-const isAdminUp = computed(() => props.port.admin_status === 'up');
+const effectiveAdminStatus = computed(() => optimisticAdminStatus.value ?? props.port.admin_status);
+const isAdminUp = computed(() => effectiveAdminStatus.value === 'up');
 const toggleLabel = computed(() => (isAdminUp.value ? 'Shut' : 'Unshut'));
 const toggleTitle = computed(() =>
     isAdminUp.value ? 'Administratively disable this port' : 'Administratively enable this port',
@@ -234,6 +235,9 @@ function confirmToggle() {
         {},
         {
             preserveScroll: true,
+            onSuccess: () => {
+                optimisticAdminStatus.value = action === 'shutdown' ? 'down' : 'up';
+            },
             onFinish: () => {
                 toggling.value = false;
                 showToggleModal.value = false;

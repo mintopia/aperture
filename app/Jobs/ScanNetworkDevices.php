@@ -60,18 +60,23 @@ class ScanNetworkDevices implements ShouldQueue
         $allMacs = collect();
 
         foreach ($leases as $lease) {
-            $allMacs->put(MacAddress::normalize($lease->mac), 'dhcp');
+            $normalized = MacAddress::normalize($lease->mac);
+            if ($normalized !== '') {
+                $allMacs->put($normalized, 'dhcp');
+            }
         }
 
         foreach ($arpEntries as $arp) {
-            if (! $allMacs->has(MacAddress::normalize($arp->mac))) {
-                $allMacs->put(MacAddress::normalize($arp->mac), 'arp');
+            $normalized = MacAddress::normalize($arp->mac);
+            if ($normalized !== '' && ! $allMacs->has($normalized)) {
+                $allMacs->put($normalized, 'arp');
             }
         }
 
         foreach ($forwardingEntries as $fwd) {
-            if (! $allMacs->has(MacAddress::normalize($fwd->mac))) {
-                $allMacs->put(MacAddress::normalize($fwd->mac), 'switch');
+            $normalized = MacAddress::normalize($fwd->mac);
+            if ($normalized !== '' && ! $allMacs->has($normalized)) {
+                $allMacs->put($normalized, 'switch');
             }
         }
 
@@ -105,13 +110,13 @@ class ScanNetworkDevices implements ShouldQueue
         $allIps = collect();
 
         foreach ($leases as $lease) {
-            if (! $allIps->has($lease->ip)) {
+            if ($lease->ip !== '' && ! $allIps->has($lease->ip)) {
                 $allIps->put($lease->ip, 'dhcp');
             }
         }
 
         foreach ($arpEntries as $arp) {
-            if (! $allIps->has($arp->ip)) {
+            if ($arp->ip !== '' && ! $allIps->has($arp->ip)) {
                 $allIps->put($arp->ip, 'arp');
             }
         }
@@ -154,11 +159,17 @@ class ScanNetworkDevices implements ShouldQueue
         $pairs = [];
 
         foreach ($leases as $lease) {
-            $pairs[] = ['ip' => $lease->ip, 'mac' => MacAddress::normalize($lease->mac), 'source' => 'dhcp'];
+            $normalized = MacAddress::normalize($lease->mac);
+            if ($lease->ip !== '' && $normalized !== '') {
+                $pairs[] = ['ip' => $lease->ip, 'mac' => $normalized, 'source' => 'dhcp'];
+            }
         }
 
         foreach ($arpEntries as $arp) {
-            $pairs[] = ['ip' => $arp->ip, 'mac' => MacAddress::normalize($arp->mac), 'source' => 'arp'];
+            $normalized = MacAddress::normalize($arp->mac);
+            if ($arp->ip !== '' && $normalized !== '') {
+                $pairs[] = ['ip' => $arp->ip, 'mac' => $normalized, 'source' => 'arp'];
+            }
         }
 
         $pairsCollection = collect($pairs);

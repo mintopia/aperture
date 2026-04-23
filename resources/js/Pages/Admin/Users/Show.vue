@@ -6,9 +6,9 @@ import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
-import StatusPill from '@/Components/UI/StatusPill.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelative } from '@/utils/dates';
+import { ipStatusLabel, ipStatusDotClass, ipStatusTextClass } from '@/utils/ipStatus';
 
 defineOptions({ layout: AdminLayout });
 
@@ -147,14 +147,12 @@ const auditColumns = [
                         {{ row.ip?.address }}
                     </td>
                     <td>
-                        <StatusPill
-                            :status="
-                                row.ip?.allowed === true ? 'success' : row.ip?.allowed === false ? 'danger' : 'muted'
-                            "
-                            :label="
-                                row.ip?.allowed === true ? 'Allowed' : row.ip?.allowed === false ? 'Denied' : '\u2014'
-                            "
-                        />
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="h-[7px] w-[7px] rounded-full" :class="ipStatusDotClass(row.ip?.allowed)" />
+                            <span class="text-[12px] font-semibold" :class="ipStatusTextClass(row.ip?.allowed)">
+                                {{ ipStatusLabel(row.ip?.allowed) }}
+                            </span>
+                        </span>
                     </td>
                     <td class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ formatRelative(row.last_seen_at) }}

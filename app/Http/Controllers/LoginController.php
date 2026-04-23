@@ -55,7 +55,7 @@ class LoginController extends Controller
             Auth::login($user);
             $request->session()->regenerate();
 
-            return redirect()->intended('/');
+            return redirect()->intended(route('admin.home'));
         }
 
         $key = 'login-attempt:'.Str::lower($credentials['email']).'|'.$request->ip();
@@ -68,7 +68,11 @@ class LoginController extends Controller
             RateLimiter::clear($key);
             $request->session()->regenerate();
 
-            return redirect()->intended('/');
+            /** @var User $user */
+            $user = Auth::user();
+            $defaultUrl = $user->hasRole('admin') ? route('admin.home') : '/';
+
+            return redirect()->intended($defaultUrl);
         }
 
         RateLimiter::hit($key, 60);

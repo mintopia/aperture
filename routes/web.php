@@ -141,10 +141,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Switch Port Management
         Route::get('/switches/{switchConfig}/ports/{portId}', [SwitchPortController::class, 'show'])->name('switches.ports.show')->where('portId', '.+');
+        Route::post('/switches/{switchConfig}/ports/{portId}/refresh', [SwitchPortController::class, 'refresh'])->name('switches.ports.refresh')->where('portId', '.+');
         Route::post('/switches/{switchConfig}/ports/{portId}/shutdown', [SwitchPortController::class, 'shutdown'])->name('switches.ports.shutdown')->where('portId', '.+');
         Route::post('/switches/{switchConfig}/ports/{portId}/enable', [SwitchPortController::class, 'enable'])->name('switches.ports.enable')->where('portId', '.+');
-        Route::post('/switches/{switchConfig}/ports/{portId}/bounce', [SwitchPortController::class, 'bounce'])->name('switches.ports.bounce')->where('portId', '.+');
-
         // Settings
         Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
         Route::get('/settings/theme', [ThemeSettingsController::class, 'show'])->name('settings.theme');

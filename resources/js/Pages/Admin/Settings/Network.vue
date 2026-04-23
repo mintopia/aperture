@@ -75,18 +75,23 @@ function submit() {
             </h2>
 
             <FormField label="DNS Filtering Default" name="dns_filter_default">
-                <div class="flex items-center gap-3">
+                <label class="flex items-center gap-2 pt-1 text-sm text-[var(--color-text)]">
                     <input
-                        id="dns_filter_default"
                         v-model="form.dns_filter_default"
                         type="checkbox"
                         data-testid="toggle-dns-filter-default"
-                        class="h-4 w-4 cursor-pointer rounded accent-[var(--color-primary)]"
+                        class="peer sr-only"
                     />
-                    <label for="dns_filter_default" class="cursor-pointer text-[13px] text-[var(--color-text)]">
-                        Enable DNS filtering for new connections
-                    </label>
-                </div>
+                    <span
+                        aria-hidden="true"
+                        class="relative inline-flex h-[18px] w-8 flex-shrink-0 rounded-full bg-[var(--color-surface-hover)] transition-colors peer-checked:bg-[var(--color-success)]"
+                    >
+                        <span
+                            class="absolute top-0.5 left-0.5 h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-[14px]"
+                        />
+                    </span>
+                    Enable DNS filtering for new connections
+                </label>
             </FormField>
 
             <!-- OUI Auto-Allow -->

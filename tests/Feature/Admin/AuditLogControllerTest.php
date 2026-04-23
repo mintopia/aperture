@@ -104,4 +104,90 @@ class AuditLogControllerTest extends TestCase
 
         $this->actingAs($user)->get('/admin/audit-log')->assertForbidden();
     }
+
+    public function test_subject_url_resolved_for_user(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $target = User::factory()->create();
+        AuditLog::record(action: 'user.updated', subject: $target, actor: $admin, process: 'admin');
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/AuditLog/Index')
+            ->where('logs.data.0.subject_type', 'User')
+            ->where('logs.data.0.subject_url', route('admin.users.show', $target))
+        );
+    }
+
+    public function test_subject_url_resolved_for_ip_address(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create();
+        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/AuditLog/Index')
+            ->where('logs.data.0.subject_type', 'IpAddress')
+            ->where('logs.data.0.subject_url', route('admin.ips.show', $ip))
+        );
+    }
+
+    public function test_related_url_resolved_when_present(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create();
+        $target = User::factory()->create();
+        AuditLog::record(action: 'ip.assigned', subject: $ip, related: $target, process: 'admin');
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/AuditLog/Index')
+            ->where('logs.data.0.related_type', 'User')
+            ->where('logs.data.0.related_url', route('admin.users.show', $target))
+        );
+    }
+
+    public function test_actor_url_resolved_for_admin_user(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create();
+        AuditLog::record(action: 'ip.created', subject: $ip, actor: $admin, process: 'admin');
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/AuditLog/Index')
+            ->where('logs.data.0.actor_type', 'User')
+            ->where('logs.data.0.actor_url', route('admin.users.show', $admin))
+        );
+    }
+
+    public function test_urls_are_null_when_no_related_or_actor(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create();
+        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/AuditLog/Index')
+            ->where('logs.data.0.related_url', null)
+            ->where('logs.data.0.actor_url', null)
+        );
+    }
 }

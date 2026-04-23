@@ -5,22 +5,20 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SwitchPortActionJob;
+use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPortMac;
 use App\Services\Interfaces\MetricsProviderInterface;
-use App\Services\NetworkSwitch\SwitchServiceFactory;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 class SwitchPortController extends Controller
 {
     public function __construct(
-        protected SwitchServiceFactory $factory,
         protected MetricsProviderInterface $metrics,
     ) {}
 
@@ -209,46 +207,24 @@ class SwitchPortController extends Controller
         return $value->format(DateTimeInterface::ATOM);
     }
 
+    public function refresh(SwitchConfig $switchConfig, string $portId): RedirectResponse
+    {
+        SyncSwitchPortsJob::dispatch($switchConfig);
+
+        return back()->with('success', 'Port refresh has been queued.');
+    }
+
     public function shutdown(SwitchConfig $switchConfig, string $portId): RedirectResponse
     {
-        try {
-            $adapter = $this->factory->make($switchConfig);
-            $adapter->shutdownPort($portId);
+        SwitchPortActionJob::dispatch($switchConfig, $portId, 'shutdown');
 
-            return back()->with('success', 'Port has been shut down.');
-        } catch (Throwable $throwable) {
-            Log::warning('Port shutdown failed', ['switch' => $switchConfig->id, 'port' => $portId, 'error' => $throwable->getMessage()]);
-
-            return back()->with('error', 'Failed to shut down port. Please try again.');
-        }
+        return back()->with('success', 'Port shutdown has been queued.');
     }
 
     public function enable(SwitchConfig $switchConfig, string $portId): RedirectResponse
     {
-        try {
-            $adapter = $this->factory->make($switchConfig);
-            $adapter->enablePort($portId);
+        SwitchPortActionJob::dispatch($switchConfig, $portId, 'enable');
 
-            return back()->with('success', 'Port has been enabled.');
-        } catch (Throwable $throwable) {
-            Log::warning('Port enable failed', ['switch' => $switchConfig->id, 'port' => $portId, 'error' => $throwable->getMessage()]);
-
-            return back()->with('error', 'Failed to enable port. Please try again.');
-        }
-    }
-
-    public function bounce(SwitchConfig $switchConfig, string $portId): RedirectResponse
-    {
-        try {
-            $adapter = $this->factory->make($switchConfig);
-            $adapter->shutdownPort($portId);
-            $adapter->enablePort($portId);
-
-            return back()->with('success', 'Port has been bounced.');
-        } catch (Throwable $throwable) {
-            Log::warning('Port bounce failed', ['switch' => $switchConfig->id, 'port' => $portId, 'error' => $throwable->getMessage()]);
-
-            return back()->with('error', 'Failed to bounce port. Please try again.');
-        }
+        return back()->with('success', 'Port enable has been queued.');
     }
 }

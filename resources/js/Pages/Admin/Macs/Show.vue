@@ -4,9 +4,9 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
-import StatusPill from '@/Components/UI/StatusPill.vue';
 import { formatRelative } from '@/utils/dates';
 import { formatBytes } from '@/helpers.js';
+import { ipStatusLabel, ipStatusDotClass, ipStatusTextClass } from '@/utils/ipStatus';
 
 defineOptions({ layout: AdminLayout });
 
@@ -47,12 +47,6 @@ const auditColumns = [
     { key: 'process', label: 'Process' },
     { key: 'details', label: 'Details' },
 ];
-
-function ipStatus(internetEnabled) {
-    if (internetEnabled === true) return { status: 'success', label: 'Allowed' };
-    if (internetEnabled === false) return { status: 'danger', label: 'Denied' };
-    return { status: 'neutral', label: 'Unknown' };
-}
 
 function formatMetadata(metadata) {
     if (!metadata) return '—';
@@ -111,10 +105,15 @@ function formatMetadata(metadata) {
                         {{ row.address }}
                     </td>
                     <td data-testid="ip-status">
-                        <StatusPill
-                            :status="ipStatus(row.internet_enabled).status"
-                            :label="ipStatus(row.internet_enabled).label"
-                        />
+                        <span class="inline-flex items-center gap-1.5">
+                            <span
+                                class="h-[7px] w-[7px] rounded-full"
+                                :class="ipStatusDotClass(row.internet_enabled)"
+                            />
+                            <span class="text-[12px] font-semibold" :class="ipStatusTextClass(row.internet_enabled)">
+                                {{ ipStatusLabel(row.internet_enabled) }}
+                            </span>
+                        </span>
                     </td>
                     <td data-testid="ip-source" class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ row.source ?? '—' }}

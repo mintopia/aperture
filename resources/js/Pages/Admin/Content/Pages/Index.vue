@@ -11,7 +11,7 @@ defineProps({
 });
 
 const columns = [
-    { key: 'title', label: 'Title' },
+    { key: 'title', label: 'Title', class: 'w-64' },
     { key: 'slug', label: 'Slug' },
     { key: 'updated', label: 'Updated', class: 'text-right w-32' },
 ];
@@ -74,11 +74,11 @@ const columns = [
                 <template #row="{ row }">
                     <td
                         :data-testid="`page-row-${row.slug}`"
-                        class="text-[13px] font-semibold text-[var(--color-text)]"
+                        class="w-64 text-[13px] font-semibold text-[var(--color-text)]"
                     >
                         <span data-testid="page-title">{{ row.title }}</span>
                     </td>
-                    <td class="w-56">
+                    <td>
                         <span class="font-mono text-[12px] text-[var(--color-primary)]">/content/{{ row.slug }}</span>
                     </td>
                     <td class="w-32 text-right text-[13px] text-[var(--color-text-secondary)]">

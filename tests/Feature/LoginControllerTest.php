@@ -66,7 +66,7 @@ class LoginControllerTest extends TestCase
             'password' => 'secret123',
         ]);
 
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('admin.home'));
 
         $createdUser = User::query()->where('email', 'first-admin@test.com')->first();
 
@@ -74,6 +74,27 @@ class LoginControllerTest extends TestCase
         $this->assertTrue($createdUser->hasRole('admin'));
         $this->assertTrue($createdUser->hasRole('user'));
         $this->assertAuthenticatedAs($createdUser);
+    }
+
+    public function test_admin_user_is_redirected_to_admin_dashboard_after_login(): void
+    {
+        $adminRole = new Role;
+        $adminRole->code = 'admin';
+        $adminRole->name = 'Admin';
+        $adminRole->save();
+
+        $user = User::factory()->withPassword('secret123')->create([
+            'email' => 'admin@test.com',
+        ]);
+        $user->roles()->attach($adminRole);
+
+        $response = $this->post('/login', [
+            'email' => 'admin@test.com',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertRedirect(route('admin.home'));
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_login_fails_with_wrong_password(): void

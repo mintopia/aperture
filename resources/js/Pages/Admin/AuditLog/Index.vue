@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
@@ -145,21 +145,45 @@ function formatTimestamp(iso) {
                         {{ row.action }}
                     </td>
                     <td data-testid="audit-log-subject" class="text-[13px] text-[var(--color-text-secondary)]">
-                        <span v-if="row.subject_type">
+                        <Link
+                            v-if="row.subject_type && row.subject_url"
+                            :href="row.subject_url"
+                            class="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-primary)]"
+                        >
+                            <span class="font-semibold text-[var(--color-primary)]">{{ row.subject_type }}</span>
+                            <span class="font-mono text-[var(--color-text-muted)]">#{{ row.subject_id }}</span>
+                        </Link>
+                        <span v-else-if="row.subject_type">
                             <span class="font-semibold text-[var(--color-text)]">{{ row.subject_type }}</span>
                             <span class="font-mono text-[var(--color-text-muted)]"> #{{ row.subject_id }}</span>
                         </span>
                         <span v-else class="text-[var(--color-text-muted)]">—</span>
                     </td>
                     <td data-testid="audit-log-related" class="text-[13px] text-[var(--color-text-secondary)]">
-                        <span v-if="row.related_type">
+                        <Link
+                            v-if="row.related_type && row.related_url"
+                            :href="row.related_url"
+                            class="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-primary)]"
+                        >
+                            <span class="font-semibold text-[var(--color-primary)]">{{ row.related_type }}</span>
+                            <span class="font-mono text-[var(--color-text-muted)]">#{{ row.related_id }}</span>
+                        </Link>
+                        <span v-else-if="row.related_type">
                             <span class="font-semibold text-[var(--color-text)]">{{ row.related_type }}</span>
                             <span class="font-mono text-[var(--color-text-muted)]"> #{{ row.related_id }}</span>
                         </span>
                         <span v-else class="text-[var(--color-text-muted)]">—</span>
                     </td>
                     <td data-testid="audit-log-actor" class="text-[13px] text-[var(--color-text-secondary)]">
-                        <span v-if="row.actor_type">
+                        <Link
+                            v-if="row.actor_type && row.actor_url"
+                            :href="row.actor_url"
+                            class="inline-flex items-center gap-1 transition-colors hover:text-[var(--color-primary)]"
+                        >
+                            <span class="font-semibold text-[var(--color-primary)]">{{ row.actor_type }}</span>
+                            <span class="font-mono text-[var(--color-text-muted)]">#{{ row.actor_id }}</span>
+                        </Link>
+                        <span v-else-if="row.actor_type">
                             <span class="font-semibold text-[var(--color-text)]">{{ row.actor_type }}</span>
                             <span class="font-mono text-[var(--color-text-muted)]"> #{{ row.actor_id }}</span>
                         </span>

@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
+use App\Models\IntegrationConfig;
 use App\Services\CachedNetworkInventoryService;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
 
 class CachedNetworkInventoryServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     private Repository $cache;
 
     private $inner;
@@ -96,10 +100,11 @@ class CachedNetworkInventoryServiceTest extends TestCase
 
     public function test_container_resolves_network_inventory_interface(): void
     {
-        config([
-            'aperture.librenms.endpoint' => 'http://localhost',
-            'aperture.librenms.api_token' => 'test-token',
-        ]);
+        IntegrationConfig::setValue('librenms', 'endpoint', 'http://localhost');
+        IntegrationConfig::setValue('librenms', 'api_key', 'test-token');
+        IntegrationConfig::setValue('librenms', 'enabled', true);
+
+        $this->app->forgetInstance(NetworkInventoryInterface::class);
 
         $resolved = $this->app->make(NetworkInventoryInterface::class);
         $this->assertInstanceOf(CachedNetworkInventoryService::class, $resolved);

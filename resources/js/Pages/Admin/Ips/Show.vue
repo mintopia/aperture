@@ -35,7 +35,7 @@ function toggleInternet() {
 function confirmToggleInternet() {
     togglingAccess.value = true;
     router.post(
-        route('admin.ips.internet', props.ip.id),
+        route('admin.ips.internet', props.ip.address),
         {
             allow: props.ip.internet_enabled ? 0 : 1,
         },
@@ -51,7 +51,7 @@ function confirmToggleInternet() {
 
 function toggleRateLimit() {
     router.post(
-        route('admin.ips.limit', props.ip.id),
+        route('admin.ips.limit', props.ip.address),
         { limit: props.ip.rate_limit_enabled ? 0 : 1 },
         { preserveScroll: true },
     );
@@ -59,7 +59,7 @@ function toggleRateLimit() {
 
 function toggleDnsFilter() {
     router.post(
-        route('admin.ips.dns-filter', props.ip.id),
+        route('admin.ips.dns-filter', props.ip.address),
         { filter: props.ip.dns_filtering_enabled ? 0 : 1 },
         { preserveScroll: true },
     );
@@ -253,7 +253,7 @@ onBeforeUnmount(() => {
             :message="
                 ip.internet_enabled
                     ? 'This will deny internet access for this IP address.'
-                    : 'This will restore internet access for this IP address.'
+                    : 'This will grant internet access for this IP address.'
             "
             :confirm-label="ip.internet_enabled ? 'Revoke Access' : 'Grant Access'"
             :variant="ip.internet_enabled ? 'danger' : 'primary'"

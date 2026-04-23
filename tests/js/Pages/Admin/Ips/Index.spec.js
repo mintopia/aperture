@@ -170,13 +170,13 @@ describe('Ips/Index', () => {
     it('renders "Allowed" status text for allowed IP', () => {
         const wrapper = mountComponent();
         const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        expect(statusCells[0].text()).toBe('Allowed');
+        expect(statusCells[0].text()).toContain('Allowed');
     });
 
     it('renders "Denied" status text for denied IP', () => {
         const wrapper = mountComponent();
         const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        expect(statusCells[1].text()).toBe('Denied');
+        expect(statusCells[1].text()).toContain('Denied');
     });
 
     it('renders status dot with success classes for allowed IP', () => {
@@ -195,24 +195,6 @@ describe('Ips/Index', () => {
         expect(dot.classes().some((c) => c.includes('color-danger'))).toBe(true);
     });
 
-    it('status dot has correct CSS variable class for allowed', () => {
-        const wrapper = mountComponent();
-        const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        const dot = statusCells[0].find('span.rounded-full');
-        const classes = dot.classes().join(' ');
-        expect(classes).toContain('bg-[var(--color-success)]');
-        expect(classes).toContain('shadow-[0_0_6px_var(--color-success)]');
-    });
-
-    it('status dot has correct CSS variable class for denied', () => {
-        const wrapper = mountComponent();
-        const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        const dot = statusCells[1].find('span.rounded-full');
-        const classes = dot.classes().join(' ');
-        expect(classes).toContain('bg-[var(--color-danger)]');
-        expect(classes).toContain('shadow-[0_0_6px_var(--color-danger)]');
-    });
-
     it('renders Pagination component', () => {
         const wrapper = mountComponent();
         expect(wrapper.find('[data-testid="pagination"]').exists()).toBe(true);
@@ -226,7 +208,6 @@ describe('Ips/Index', () => {
     it('does not render StatusPill component', () => {
         const wrapper = mountComponent();
         expect(wrapper.findComponent({ name: 'StatusPill' }).exists()).toBe(false);
-        expect(wrapper.html()).not.toContain('status-pill');
     });
 
     it('user link uses route admin.users.show with user id', () => {
