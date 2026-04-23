@@ -51,6 +51,41 @@ class NetworkRangeService
         return $this->cache[$key];
     }
 
+    /**
+     * Validate whether a string is valid CIDR notation for the given address family.
+     *
+     * @param  4|6  $family
+     */
+    public static function isValidCidr(string $cidr, int $family): bool
+    {
+        $parts = explode('/', $cidr, 2);
+        if (count($parts) !== 2) {
+            return false;
+        }
+
+        [$ip, $prefixStr] = $parts;
+
+        if (! ctype_digit($prefixStr)) {
+            return false;
+        }
+
+        $prefix = (int) $prefixStr;
+        $maxPrefix = $family === 4 ? 32 : 128;
+
+        if ($prefix < 0 || $prefix > $maxPrefix) {
+            return false;
+        }
+
+        $binary = @inet_pton($ip);
+        if ($binary === false) {
+            return false;
+        }
+
+        $expectedLength = $family === 4 ? 4 : 16;
+
+        return strlen($binary) === $expectedLength;
+    }
+
     private function ipInCidr(string $ipBinary, string $cidr, bool $isV6): bool
     {
         $parts = explode('/', $cidr, 2);

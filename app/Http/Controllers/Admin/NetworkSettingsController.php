@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\NetworkRangeService;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -92,31 +93,6 @@ class NetworkSettingsController extends Controller
      */
     private function isValidCidr(string $cidr, int $family): bool
     {
-        $parts = explode('/', $cidr, 2);
-        if (count($parts) !== 2) {
-            return false;
-        }
-
-        [$ip, $prefixStr] = $parts;
-
-        if (! ctype_digit($prefixStr)) {
-            return false;
-        }
-
-        $prefix = (int) $prefixStr;
-        $maxPrefix = $family === 4 ? 32 : 128;
-
-        if ($prefix < 0 || $prefix > $maxPrefix) {
-            return false;
-        }
-
-        $binary = @inet_pton($ip);
-        if ($binary === false) {
-            return false;
-        }
-
-        $expectedLength = $family === 4 ? 4 : 16;
-
-        return strlen($binary) === $expectedLength;
+        return NetworkRangeService::isValidCidr($cidr, $family);
     }
 }

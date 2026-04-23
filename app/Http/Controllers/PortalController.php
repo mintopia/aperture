@@ -65,7 +65,7 @@ class PortalController extends Controller
         $ip = $user->addIp($ipv6);
 
         return response()->json((object) [
-            'ip' => $ip?->address,
+            'ip' => $ipv6,
             'internetEnabled' => $ip !== null && (bool) $ip->internet_enabled,
         ]);
     }
