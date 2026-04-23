@@ -65,11 +65,15 @@ class ScanNetworkDevices implements ShouldQueue
             $ouiPrefixes = array_filter(array_map('trim', explode(',', $ouiPrefixesRaw)));
         }
 
+        // Batch-load all MacAddress records to avoid N+1 queries in the loop below
+        $normalizedMacs = $entries->map(fn (array $entry): string => $this->normalizeMac($entry['mac']))->values()->all();
+        $existingMacs = MacAddress::whereIn('mac_address', $normalizedMacs)->get()->keyBy('mac_address');
+
         foreach ($entries as $entry) {
             $normalizedMac = $this->normalizeMac($entry['mac']);
 
             // Step 2: Auto-allow IPs for known allowed MACs
-            $existingMac = MacAddress::where('mac_address', $normalizedMac)->first();
+            $existingMac = $existingMacs->get($normalizedMac);
             if ($existingMac && $existingMac->allowed) {
                 $this->autoAllowIp($entry['ip'], $existingMac);
 
@@ -98,6 +102,7 @@ class ScanNetworkDevices implements ShouldQueue
                             'description' => 'Xbox Console',
                         ],
                     );
+                    $existingMacs->put($normalizedMac, $macAddress);
                     $this->autoAllowIp($entry['ip'], $macAddress);
                 }
             }
