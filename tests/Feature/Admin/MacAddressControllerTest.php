@@ -172,7 +172,7 @@ class MacAddressControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
 
         $response = $this->actingAs($admin)->get('/admin/macs/AA:BB:CC:DD:EE:FF');
 

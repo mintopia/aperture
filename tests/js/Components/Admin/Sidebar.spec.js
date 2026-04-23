@@ -8,6 +8,7 @@ const routeMap = {
     'admin.ips.index': '/admin/ips',
     'admin.switches.index': '/admin/switches',
     'admin.dhcp.index': '/admin/dhcp',
+    'admin.macs.index': '/admin/macs',
     'admin.settings.integrations': '/admin/settings/integrations',
     'admin.settings.ipv6-detection': '/admin/settings/ipv6-detection',
     'admin.settings.dns-detection': '/admin/settings/dns-detection',
@@ -16,6 +17,7 @@ const routeMap = {
     'admin.content.pages.index': '/admin/content/pages',
     'admin.settings.theme': '/admin/settings/theme',
     'admin.content.settings': '/admin/content/settings',
+    'admin.audit-log.index': '/admin/audit-log',
 };
 
 window.route = vi.fn((name) => routeMap[name] || `/${name}`);
@@ -77,7 +79,7 @@ describe('Sidebar.vue', () => {
         const headers = wrapper.findAll('aside nav section > p').map((header) => header.text());
 
         expect(wrapper.get('[data-testid="admin-sidebar"]').exists()).toBe(true);
-        expect(headers).toEqual(['MANAGEMENT', 'SERVICES', 'CONTENT']);
+        expect(headers).toEqual(['MANAGEMENT', 'SERVICES', 'CONTENT', 'SYSTEM']);
     });
 
     it('does not render OVERVIEW or TOOLS groups', async () => {
@@ -98,6 +100,7 @@ describe('Sidebar.vue', () => {
             'IP Addresses',
             'Switches',
             'DHCP',
+            'MAC Addresses',
         ]);
     });
 
@@ -125,6 +128,13 @@ describe('Sidebar.vue', () => {
         ]);
     });
 
+    it('renders Audit Log under SYSTEM', async () => {
+        const wrapper = await mountSidebar();
+        const groups = wrapper.findAll('aside nav section');
+
+        expect(groups[3].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual(['Audit Log']);
+    });
+
     it('renders all nav items with correct hrefs from named routes', async () => {
         const wrapper = await mountSidebar();
         const allLinks = wrapper.findAll('[data-testid^="nav-"]');
@@ -136,6 +146,7 @@ describe('Sidebar.vue', () => {
         expect(hrefsByTestId).toContainEqual(['nav-ip-addresses', '/admin/ips']);
         expect(hrefsByTestId).toContainEqual(['nav-switches', '/admin/switches']);
         expect(hrefsByTestId).toContainEqual(['nav-dhcp', '/admin/dhcp']);
+        expect(hrefsByTestId).toContainEqual(['nav-mac-addresses', '/admin/macs']);
         expect(hrefsByTestId).toContainEqual(['nav-integrations', '/admin/settings/integrations']);
         expect(hrefsByTestId).toContainEqual(['nav-ipv6-detection', '/admin/settings/ipv6-detection']);
         expect(hrefsByTestId).toContainEqual(['nav-dns-detection', '/admin/settings/dns-detection']);
@@ -143,6 +154,7 @@ describe('Sidebar.vue', () => {
         expect(hrefsByTestId).toContainEqual(['nav-pages', '/admin/content/pages']);
         expect(hrefsByTestId).toContainEqual(['nav-theme', '/admin/settings/theme']);
         expect(hrefsByTestId).toContainEqual(['nav-settings', '/admin/content/settings']);
+        expect(hrefsByTestId).toContainEqual(['nav-audit-log', '/admin/audit-log']);
     });
 
     it('calls route() with correct named route identifiers', async () => {
@@ -153,6 +165,7 @@ describe('Sidebar.vue', () => {
         expect(window.route).toHaveBeenCalledWith('admin.ips.index');
         expect(window.route).toHaveBeenCalledWith('admin.switches.index');
         expect(window.route).toHaveBeenCalledWith('admin.dhcp.index');
+        expect(window.route).toHaveBeenCalledWith('admin.macs.index');
         expect(window.route).toHaveBeenCalledWith('admin.settings.integrations');
         expect(window.route).toHaveBeenCalledWith('admin.settings.ipv6-detection');
         expect(window.route).toHaveBeenCalledWith('admin.settings.dns-detection');
@@ -161,13 +174,14 @@ describe('Sidebar.vue', () => {
         expect(window.route).toHaveBeenCalledWith('admin.content.pages.index');
         expect(window.route).toHaveBeenCalledWith('admin.settings.theme');
         expect(window.route).toHaveBeenCalledWith('admin.content.settings');
+        expect(window.route).toHaveBeenCalledWith('admin.audit-log.index');
     });
 
     it('renders SVG icon components with aria-hidden instead of v-html', async () => {
         const wrapper = await mountSidebar();
         const svgs = wrapper.findAll('[data-testid^="nav-"] svg');
 
-        expect(svgs.length).toBe(13);
+        expect(svgs.length).toBe(15);
         svgs.forEach((svg) => {
             expect(svg.attributes('aria-hidden')).toBe('true');
             expect(svg.attributes('stroke')).toBe('currentColor');
@@ -215,6 +229,7 @@ describe('Sidebar.vue', () => {
             'IP Addresses',
             'Switches',
             'DHCP',
+            'MAC Addresses',
             'Integrations',
             'IPv6 Detection',
             'DNS Detection',
@@ -223,6 +238,7 @@ describe('Sidebar.vue', () => {
             'Pages',
             'Theme',
             'Settings',
+            'Audit Log',
         ]);
     });
 

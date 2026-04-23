@@ -136,7 +136,7 @@ class IpAddressController extends Controller
         $macAddresses = $ip->macAddresses()
             ->orderByPivot('last_seen_at', 'desc')
             ->get()
-            ->map(function ($mac) {
+            ->map(function ($mac): array {
                 return [
                     'id' => $mac->id,
                     'mac_address' => $mac->mac_address,
@@ -150,7 +150,7 @@ class IpAddressController extends Controller
             ->with('macAddress')
             ->latest()
             ->get()
-            ->map(fn (DhcpLease $lease) => [
+            ->map(fn (DhcpLease $lease): array => [
                 'id' => $lease->id,
                 'mac_address' => $lease->macAddress instanceof MacAddress ? ['id' => $lease->macAddress->id, 'mac_address' => $lease->macAddress->mac_address] : null,
                 'hostname' => $lease->hostname,
@@ -163,7 +163,7 @@ class IpAddressController extends Controller
             ->orderByDesc('created_at')
             ->limit(20)
             ->get()
-            ->map(fn (AuditLog $log) => [
+            ->map(fn (AuditLog $log): array => [
                 'id' => $log->id,
                 'action' => $log->action,
                 'process' => $log->process,

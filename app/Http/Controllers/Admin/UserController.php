@@ -60,7 +60,7 @@ class UserController extends Controller
 
         $macAddresses = $user->macAddresses()
             ->get()
-            ->map(function (MacAddress $mac) {
+            ->map(function (MacAddress $mac): array {
                 return [
                     'id' => $mac->id,
                     'mac_address' => $mac->mac_address,
@@ -69,7 +69,7 @@ class UserController extends Controller
                         ->orderByPivot('last_seen_at', 'desc')
                         ->take(3)
                         ->get()
-                        ->map(fn ($ip) => ['id' => $ip->id, 'address' => $ip->address]),
+                        ->map(fn ($ip): array => ['id' => $ip->id, 'address' => $ip->address]),
                     'source' => $mac->source,
                 ];
             });
@@ -79,12 +79,12 @@ class UserController extends Controller
             ->orderByDesc('created_at')
             ->limit(20)
             ->get()
-            ->map(fn ($log) => [
+            ->map(fn ($log): array => [
                 'id' => $log->id,
                 'action' => $log->action,
                 'process' => $log->process,
                 'metadata' => $log->metadata,
-                'created_at' => $log->created_at?->toIso8601String(),
+                'created_at' => $log->created_at->toIso8601String(),
             ]);
 
         return Inertia::render('Admin/Users/Show', [

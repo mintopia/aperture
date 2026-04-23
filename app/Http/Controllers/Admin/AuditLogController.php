@@ -47,7 +47,7 @@ class AuditLogController extends Controller
 
         $logs = $query->paginate($filters->perPage)->appends((array) $filters);
 
-        $logs->getCollection()->transform(fn (AuditLog $log) => [
+        $logs->getCollection()->transform(fn (AuditLog $log): array => [
             'id' => $log->id,
             'action' => $log->action,
             'subject_type' => class_basename($log->subject_type),
@@ -65,7 +65,7 @@ class AuditLogController extends Controller
         $actions = AuditLog::distinct()->pluck('action')->sort()->values();
         $processes = AuditLog::distinct()->pluck('process')->sort()->values();
         $subjectTypes = AuditLog::distinct()->pluck('subject_type')
-            ->map(fn ($t) => ['value' => $t, 'label' => class_basename($t)])
+            ->map(fn ($t): array => ['value' => $t, 'label' => class_basename($t)])
             ->sortBy('label')
             ->values();
 
