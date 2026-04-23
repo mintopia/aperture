@@ -255,21 +255,7 @@ class OpnSenseDhcpService implements DhcpInterface
             return $leaseIp !== false && $leaseIp >= $fromLong && $leaseIp <= $toLong;
         })->count();
 
-        $utilisation = $totalAddresses > 0 ? round($usedAddresses / $totalAddresses, 4) : 0.0;
-
-        return new DhcpRange(
-            interface: $range->interface,
-            type: $range->type,
-            subnet: $range->subnet,
-            rangeFrom: $range->rangeFrom,
-            rangeTo: $range->rangeTo,
-            prefix: $range->prefix,
-            gateway: $range->gateway,
-            description: $range->description,
-            totalAddresses: $totalAddresses,
-            usedAddresses: $usedAddresses,
-            utilisation: $utilisation,
-        );
+        return $this->buildEnrichedRange($range, $totalAddresses, $usedAddresses);
     }
 
     /**
@@ -292,6 +278,11 @@ class OpnSenseDhcpService implements DhcpInterface
             return $leaseBin !== false && $leaseBin >= $fromBin && $leaseBin <= $toBin;
         })->count();
 
+        return $this->buildEnrichedRange($range, $totalAddresses, $usedAddresses);
+    }
+
+    private function buildEnrichedRange(DhcpRange $range, int $totalAddresses, int $usedAddresses): DhcpRange
+    {
         $utilisation = $totalAddresses > 0 ? round($usedAddresses / $totalAddresses, 4) : 0.0;
 
         return new DhcpRange(
