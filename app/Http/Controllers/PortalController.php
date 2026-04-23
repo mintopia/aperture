@@ -39,7 +39,7 @@ class PortalController extends Controller
 
         return response()->json((object) [
             'ip' => $clientIp,
-            'internetEnabled' => (bool) ($ip?->internet_enabled ?? false),
+            'internetEnabled' => $ip !== null && (bool) $ip->internet_enabled,
         ]);
     }
 
@@ -66,7 +66,7 @@ class PortalController extends Controller
 
         return response()->json((object) [
             'ip' => $ip?->address,
-            'internetEnabled' => (bool) ($ip?->internet_enabled ?? false),
+            'internetEnabled' => $ip !== null && (bool) $ip->internet_enabled,
         ]);
     }
 }
