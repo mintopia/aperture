@@ -50,22 +50,9 @@ class DnsDetectionSettingsController extends Controller
             'dns_warning_message' => 'nullable|string|max:500',
         ]);
 
-        $this->saveSetting('dns.check_url', 'DNS Check URL', $validated['dns_check_url']);
-        $this->saveSetting('dns.warning_message', 'DNS Warning Message', $validated['dns_warning_message']);
+        Setting::set('dns.check_url', 'DNS Check URL', $validated['dns_check_url']);
+        Setting::set('dns.warning_message', 'DNS Warning Message', $validated['dns_warning_message']);
 
         return back()->with('success', 'DNS detection settings updated.');
-    }
-
-    protected function saveSetting(string $code, string $name, mixed $value): void
-    {
-        $setting = Setting::whereCode($code)->first();
-        if (! $setting) {
-            $setting = new Setting;
-            $setting->code = $code;
-            $setting->name = $name;
-        }
-
-        $setting->value = $value;
-        $setting->save();
     }
 }

@@ -45,26 +45,13 @@ class GeneralSettingsController extends Controller
             'privacy_value' => 'nullable|string|max:500',
         ]);
 
-        $this->saveSetting('general.site_title', 'Site Title', $validated['site_title']);
-        $this->saveSetting('general.dns_filtering_default', 'DNS Filtering Default', $validated['dns_filtering_default'] ? '1' : '0');
-        $this->saveSetting('general.terms_type', 'Terms Type', $validated['terms_type']);
-        $this->saveSetting('general.terms_value', 'Terms Value', $validated['terms_value'] ?? null);
-        $this->saveSetting('general.privacy_type', 'Privacy Type', $validated['privacy_type']);
-        $this->saveSetting('general.privacy_value', 'Privacy Value', $validated['privacy_value'] ?? null);
+        Setting::set('general.site_title', 'Site Title', $validated['site_title']);
+        Setting::set('general.dns_filtering_default', 'DNS Filtering Default', $validated['dns_filtering_default'] ? '1' : '0');
+        Setting::set('general.terms_type', 'Terms Type', $validated['terms_type']);
+        Setting::set('general.terms_value', 'Terms Value', $validated['terms_value'] ?? null);
+        Setting::set('general.privacy_type', 'Privacy Type', $validated['privacy_type']);
+        Setting::set('general.privacy_value', 'Privacy Value', $validated['privacy_value'] ?? null);
 
         return back()->with('success', 'General settings updated.');
-    }
-
-    protected function saveSetting(string $code, string $name, mixed $value): void
-    {
-        $setting = Setting::whereCode($code)->first();
-        if (! $setting) {
-            $setting = new Setting;
-            $setting->code = $code;
-            $setting->name = $name;
-        }
-
-        $setting->value = $value;
-        $setting->save();
     }
 }

@@ -49,25 +49,12 @@ class ThemeSettingsController extends Controller
 
         $validated = $validator->validate();
 
-        $this->saveSetting('theme.mode', 'Theme Mode', $validated['theme_mode']);
-        $this->saveSetting('theme.accent_hue', 'Accent Hue', (string) $validated['accent_hue']);
-        $this->saveSetting('theme.accent_chroma', 'Accent Chroma', (string) ($validated['accent_chroma'] ?? 0.19));
-        $this->saveSetting('theme.accent_lightness', 'Accent Lightness', (string) ($validated['accent_lightness'] ?? 72));
-        $this->saveSetting('theme.custom_css', 'Custom CSS', $validated['custom_css'] ?? null);
+        Setting::set('theme.mode', 'Theme Mode', $validated['theme_mode']);
+        Setting::set('theme.accent_hue', 'Accent Hue', (string) $validated['accent_hue']);
+        Setting::set('theme.accent_chroma', 'Accent Chroma', (string) ($validated['accent_chroma'] ?? 0.19));
+        Setting::set('theme.accent_lightness', 'Accent Lightness', (string) ($validated['accent_lightness'] ?? 72));
+        Setting::set('theme.custom_css', 'Custom CSS', $validated['custom_css'] ?? null);
 
         return back()->with('success', 'Theme settings updated.');
-    }
-
-    protected function saveSetting(string $code, string $name, mixed $value): void
-    {
-        $setting = Setting::whereCode($code)->first();
-        if (! $setting) {
-            $setting = new Setting;
-            $setting->code = $code;
-            $setting->name = $name;
-        }
-
-        $setting->value = $value;
-        $setting->save();
     }
 }

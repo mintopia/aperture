@@ -68,4 +68,25 @@ class Setting extends Model
 
         return $default;
     }
+
+    /**
+     * Set the value of a setting by code, creating it if it does not exist.
+     *
+     * @param  string  $code  The unique identifier for the setting.
+     * @param  string  $name  The human-readable name; only used when creating a new setting
+     *                        (ignored when updating an existing one).
+     * @param  mixed  $value  The value to store; may be null.
+     */
+    public static function set(string $code, string $name, mixed $value): void
+    {
+        $setting = Setting::whereCode($code)->first();
+        if (! $setting) {
+            $setting = new Setting;
+            $setting->code = $code;
+            $setting->name = $name;
+        }
+
+        $setting->value = $value;
+        $setting->save();
+    }
 }
