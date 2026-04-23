@@ -20,19 +20,7 @@ class MacAddressFactory extends Factory
         return [
             'mac_address' => fake()->macAddress(),
             'source' => 'auth',
-            'allowed' => false,
         ];
-    }
-
-    /**
-     * Indicate that the MAC address is allowed.
-     */
-    public function allowed(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'allowed' => true,
-            'allowed_at' => now(),
-        ]);
     }
 
     /**
@@ -42,8 +30,6 @@ class MacAddressFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'source' => 'xbox',
-            'allowed' => true,
-            'allowed_at' => now(),
             'description' => 'Xbox Console',
         ]);
     }
