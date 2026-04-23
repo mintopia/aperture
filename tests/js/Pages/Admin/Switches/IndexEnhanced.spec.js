@@ -179,10 +179,11 @@ describe('Index — Sorting', () => {
         await portsSortButton.trigger('click');
         await wrapper.vm.$nextTick();
 
-        const rows = wrapper.findAll('[data-testid^="switch-row-"]');
-        expect(rows[0].attributes('data-testid')).toBe('switch-row-3');
-        expect(rows[1].attributes('data-testid')).toBe('switch-row-1');
-        expect(rows[2].attributes('data-testid')).toBe('switch-row-2');
+        // Verify sort order via port-breakdown cell testids (which use row.id)
+        const portBreakdownCells = wrapper.findAll('[data-testid^="port-breakdown-"]');
+        expect(portBreakdownCells[0].attributes('data-testid')).toBe('port-breakdown-3');
+        expect(portBreakdownCells[1].attributes('data-testid')).toBe('port-breakdown-1');
+        expect(portBreakdownCells[2].attributes('data-testid')).toBe('port-breakdown-2');
     });
 
     it('adds aria-sort for sortable header state', async () => {
@@ -200,7 +201,8 @@ describe('Index — Sorting', () => {
 
     it('adds accessible labels to interactive switch rows', () => {
         const wrapper = mountIndex();
-        const row = wrapper.find('[data-testid="switch-row-1"]');
+        // DataTable renders rows with data-testid="data-table-row" and passes role/aria-label from rowAriaLabel prop
+        const row = wrapper.find('[data-testid="data-table-row"]');
         expect(row.attributes('role')).toBe('link');
         expect(row.attributes('aria-label')).toBe('Open switch Core Switch');
     });

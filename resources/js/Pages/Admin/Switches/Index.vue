@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import DataTable from '@/Components/UI/DataTable.vue';
 import EmptyState from '@/Components/UI/EmptyState.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
 import { formatRelative } from '@/utils/dates';
@@ -32,13 +33,6 @@ const availableTypes = computed(() => {
     return types.map((t) => ({ value: t, label: typeLabel(t) }));
 });
 
-const syncStatusOptions = [
-    { value: 'completed', label: 'Completed' },
-    { value: 'running', label: 'Running' },
-    { value: 'failed', label: 'Failed' },
-    { value: 'never', label: 'Never Synced' },
-];
-
 const filterDefinitions = computed(() => [
     { key: 'type', label: 'Type', options: availableTypes.value },
     {
@@ -49,7 +43,16 @@ const filterDefinitions = computed(() => [
             { value: 'disabled', label: 'Disabled' },
         ],
     },
-    { key: 'sync', label: 'Sync', options: syncStatusOptions },
+    {
+        key: 'sync',
+        label: 'Sync',
+        options: [
+            { value: 'completed', label: 'Completed' },
+            { value: 'running', label: 'Running' },
+            { value: 'failed', label: 'Failed' },
+            { value: 'never', label: 'Never Synced' },
+        ],
+    },
 ]);
 
 const filteredSwitches = computed(() => {
@@ -109,13 +112,12 @@ const switchSummary = computed(() => ({
     neverSynced: props.switches.filter((sw) => !sw.last_synced_at).length,
 }));
 
-function toggleSort(columnKey) {
-    if (sortColumn.value === columnKey) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortColumn.value = columnKey;
-        sortDirection.value = 'asc';
-    }
+function onSortColumnUpdate(col) {
+    sortColumn.value = col;
+}
+
+function onSortDirectionUpdate(dir) {
+    sortDirection.value = dir;
 }
 
 function syncStatusDotClass(status) {
@@ -273,152 +275,109 @@ function syncStatusLabel(status) {
                 @update:filter-values="filterValues = $event"
             />
 
-            <div data-testid="switches-table" class="overflow-x-auto">
-                <table class="w-full border-collapse text-[13px]">
-                    <caption class="sr-only">
-                        Configured switches list with status, port health, and latest sync information.
-                    </caption>
-                    <thead>
-                        <tr>
-                            <th
-                                v-for="(col, idx) in columns"
-                                :key="col.key"
-                                :aria-sort="
-                                    col.sortable && sortColumn === col.key
-                                        ? sortDirection === 'asc'
-                                            ? 'ascending'
-                                            : 'descending'
-                                        : 'none'
-                                "
+            <DataTable
+                :columns="columns"
+                :rows="sortedSwitches"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
+                clickable
+                :row-href="(row) => route('admin.switches.show', row.id)"
+                :row-aria-label="(row) => `Open switch ${row.name}`"
+                @update:sort-column="onSortColumnUpdate"
+                @update:sort-direction="onSortDirectionUpdate"
+            >
+                <template #row="{ row }">
+                    <!-- Name -->
+                    <td
+                        :data-testid="'switch-name-' + row.id"
+                        class="text-[13px] font-semibold text-[var(--color-text)]"
+                    >
+                        {{ row.name }}
+                    </td>
+                    <!-- Hostname -->
+                    <td
+                        :data-testid="'switch-hostname-' + row.id"
+                        class="font-mono text-[13px] text-[var(--color-text)]"
+                    >
+                        {{ row.hostname }}
+                    </td>
+                    <!-- Type -->
+                    <td :data-testid="'switch-type-' + row.id">
+                        <span
+                            class="inline-flex rounded bg-[var(--color-primary)]/[0.14] px-2 py-[2px] text-xs font-semibold text-[var(--color-primary)]"
+                        >
+                            {{ typeLabel(row.type) }}
+                        </span>
+                    </td>
+                    <!-- Status -->
+                    <td :data-testid="'switch-status-' + row.id">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span
                                 :class="[
-                                    'py-2 text-left text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase',
-                                    'border-b border-[var(--color-border-hover)]',
-                                    idx > 0 ? 'pl-6' : '',
+                                    'inline-block h-[7px] w-[7px] rounded-full',
+                                    row.enabled
+                                        ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
+                                        : 'bg-[var(--color-text-muted)] shadow-none',
+                                ]"
+                            />
+                            <span
+                                :class="[
+                                    'text-xs font-semibold',
+                                    row.enabled ? 'text-[var(--color-success)]' : 'text-[var(--color-text-muted)]',
                                 ]"
                             >
-                                <button
-                                    v-if="col.sortable"
-                                    type="button"
-                                    :data-testid="`sort-${col.key}`"
-                                    class="flex w-full cursor-pointer items-center gap-1 text-left hover:text-[var(--color-text)] focus-visible:outline-none"
-                                    @click="toggleSort(col.key)"
+                                {{ row.enabled ? 'Enabled' : 'Disabled' }}
+                            </span>
+                        </span>
+                    </td>
+                    <!-- Ports -->
+                    <td :data-testid="'port-breakdown-' + row.id">
+                        <template v-if="row.port_count > 0">
+                            <span class="inline-flex items-center gap-2 text-[13px]">
+                                <span class="text-[var(--color-success)]">{{ row.ports_up }}↑</span>
+                                <span v-if="row.ports_down > 0" class="text-[var(--color-text-muted)]"
+                                    >{{ row.ports_down }}↓</span
                                 >
-                                    {{ col.label }}
-                                    <span v-if="sortColumn === col.key" class="ml-0.5 text-[var(--color-primary)]">
-                                        {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                                    </span>
-                                </button>
-                                <div v-else class="flex items-center gap-1">
-                                    {{ col.label }}
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="sw in sortedSwitches"
-                            :key="sw.id"
-                            :data-testid="'switch-row-' + sw.id"
-                            tabindex="0"
-                            role="link"
-                            :aria-label="`Open switch ${sw.name}`"
-                            class="cursor-pointer border-b border-[var(--color-border)] align-top transition-colors last:border-b-0 hover:bg-[var(--color-surface-hover)] focus-visible:bg-[var(--color-surface-hover)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-primary)] focus-visible:outline-none"
-                            @click="$inertia.visit(route('admin.switches.show', sw.id))"
-                            @keydown.enter.prevent="$inertia.visit(route('admin.switches.show', sw.id))"
-                            @keydown.space.prevent="$inertia.visit(route('admin.switches.show', sw.id))"
-                        >
-                            <!-- Name -->
-                            <td class="py-2.5 text-[13px] font-semibold text-[var(--color-text)]">
-                                {{ sw.name }}
-                            </td>
-                            <!-- Hostname -->
-                            <td class="py-2.5 pl-6 font-mono text-[13px] text-[var(--color-text)]">
-                                {{ sw.hostname }}
-                            </td>
-                            <!-- Type -->
-                            <td class="py-2.5 pl-6">
-                                <span
-                                    class="inline-flex rounded bg-[var(--color-primary)]/[0.14] px-2 py-[2px] text-xs font-semibold text-[var(--color-primary)]"
+                                <span v-if="row.ports_error > 0" class="text-[var(--color-danger)]"
+                                    >{{ row.ports_error }}⚠</span
                                 >
-                                    {{ typeLabel(sw.type) }}
-                                </span>
-                            </td>
-                            <!-- Status -->
-                            <td class="py-2.5 pl-6">
+                            </span>
+                        </template>
+                        <template v-else>
+                            <span class="text-[var(--color-text-muted)]">—</span>
+                        </template>
+                    </td>
+                    <!-- Sync -->
+                    <td :data-testid="'sync-status-' + row.id">
+                        <template v-if="row.latest_sync_status">
+                            <div class="flex flex-col gap-px">
                                 <span class="inline-flex items-center gap-1.5">
                                     <span
                                         :class="[
                                             'inline-block h-[7px] w-[7px] rounded-full',
-                                            sw.enabled
-                                                ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
-                                                : 'bg-[var(--color-text-muted)] shadow-none',
+                                            syncStatusDotClass(row.latest_sync_status),
                                         ]"
                                     />
                                     <span
-                                        :class="[
-                                            'text-xs font-semibold',
-                                            sw.enabled
-                                                ? 'text-[var(--color-success)]'
-                                                : 'text-[var(--color-text-muted)]',
-                                        ]"
+                                        :class="['text-xs font-semibold', syncStatusTextClass(row.latest_sync_status)]"
                                     >
-                                        {{ sw.enabled ? 'Enabled' : 'Disabled' }}
+                                        {{ syncStatusLabel(row.latest_sync_status) }}
                                     </span>
                                 </span>
-                            </td>
-                            <!-- Ports -->
-                            <td :data-testid="'port-breakdown-' + sw.id" class="py-2.5 pl-6">
-                                <template v-if="sw.port_count > 0">
-                                    <span class="inline-flex items-center gap-2 text-[13px]">
-                                        <span class="text-[var(--color-success)]">{{ sw.ports_up }}↑</span>
-                                        <span v-if="sw.ports_down > 0" class="text-[var(--color-text-muted)]"
-                                            >{{ sw.ports_down }}↓</span
-                                        >
-                                        <span v-if="sw.ports_error > 0" class="text-[var(--color-danger)]"
-                                            >{{ sw.ports_error }}⚠</span
-                                        >
-                                    </span>
-                                </template>
-                                <template v-else>
-                                    <span class="text-[var(--color-text-muted)]">—</span>
-                                </template>
-                            </td>
-                            <!-- Sync -->
-                            <td :data-testid="'sync-status-' + sw.id" class="py-2.5 pl-6">
-                                <template v-if="sw.latest_sync_status">
-                                    <div class="flex flex-col gap-px">
-                                        <span class="inline-flex items-center gap-1.5">
-                                            <span
-                                                :class="[
-                                                    'inline-block h-[7px] w-[7px] rounded-full',
-                                                    syncStatusDotClass(sw.latest_sync_status),
-                                                ]"
-                                            />
-                                            <span
-                                                :class="[
-                                                    'text-xs font-semibold',
-                                                    syncStatusTextClass(sw.latest_sync_status),
-                                                ]"
-                                            >
-                                                {{ syncStatusLabel(sw.latest_sync_status) }}
-                                            </span>
-                                        </span>
-                                        <span
-                                            v-if="sw.last_synced_at"
-                                            class="font-mono text-[11px] text-[var(--color-text-muted)]"
-                                        >
-                                            {{ formatRelative(sw.last_synced_at) }}
-                                        </span>
-                                    </div>
-                                </template>
-                                <template v-else>
-                                    <span class="text-xs text-[var(--color-text-muted)]">Never synced</span>
-                                </template>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                                <span
+                                    v-if="row.last_synced_at"
+                                    class="font-mono text-[11px] text-[var(--color-text-muted)]"
+                                >
+                                    {{ formatRelative(row.last_synced_at) }}
+                                </span>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <span class="text-xs text-[var(--color-text-muted)]">Never synced</span>
+                        </template>
+                    </td>
+                </template>
+            </DataTable>
         </section>
     </div>
 </template>
