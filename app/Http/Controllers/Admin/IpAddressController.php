@@ -126,7 +126,6 @@ class IpAddressController extends Controller
         }
 
         $users = $ip->users()->with('user')->get();
-        $ip->loadMissing('macAddresses');
         $currentMac = $ip->currentMac();
 
         return Inertia::render('Admin/Ips/Show', [

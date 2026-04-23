@@ -73,7 +73,8 @@ class ConsumerUpdateTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->has('ip.current_mac')
+            ->where('ip.current_mac.id', $mac->id)
+            ->where('ip.current_mac.mac_address', $mac->mac_address)
         );
     }
 }
