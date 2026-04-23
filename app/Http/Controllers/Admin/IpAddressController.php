@@ -7,9 +7,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IpAddressStoreRequest;
 use App\Jobs\IpAddressAction;
+use App\Models\AuditLog;
+use App\Models\DhcpLease;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\SwitchConfig;
+use App\Models\User;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\IpAddressActionService;
@@ -17,6 +20,7 @@ use App\Services\ValueObjects\PortDetail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -129,6 +133,44 @@ class IpAddressController extends Controller
         $users = $ip->users()->with('user')->get();
         $currentMac = $ip->currentMac();
 
+        $macAddresses = $ip->macAddresses()
+            ->orderByPivot('last_seen_at', 'desc')
+            ->get()
+            ->map(function ($mac) {
+                return [
+                    'id' => $mac->id,
+                    'mac_address' => $mac->mac_address,
+                    'source' => $mac->pivot->source,
+                    'last_seen_at' => Carbon::parse($mac->pivot->last_seen_at)->toIso8601String(),
+                    'user' => $mac->user instanceof User ? ['id' => $mac->user->id, 'nickname' => $mac->user->nickname] : null,
+                ];
+            });
+
+        $dhcpLeases = $ip->dhcpLeases()
+            ->with('macAddress')
+            ->latest()
+            ->get()
+            ->map(fn (DhcpLease $lease) => [
+                'id' => $lease->id,
+                'mac_address' => $lease->macAddress instanceof MacAddress ? ['id' => $lease->macAddress->id, 'mac_address' => $lease->macAddress->mac_address] : null,
+                'hostname' => $lease->hostname,
+                'expires_at' => $lease->expires_at?->toIso8601String(),
+                'updated_at' => $lease->updated_at?->toIso8601String(),
+            ]);
+
+        $auditLogs = AuditLog::where('subject_type', $ip->getMorphClass())
+            ->where('subject_id', $ip->id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get()
+            ->map(fn (AuditLog $log) => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'process' => $log->process,
+                'metadata' => $log->metadata,
+                'created_at' => $log->created_at->toIso8601String(),
+            ]);
+
         return Inertia::render('Admin/Ips/Show', [
             'ip' => array_merge($ip->toArray(), [
                 'current_mac' => $currentMac instanceof MacAddress ? [
@@ -142,6 +184,9 @@ class IpAddressController extends Controller
             'portErrors' => $switchInfo !== null ? $portErrors : null,
             'metricsAvailable' => $metricsAvailable,
             'users' => $users,
+            'macAddresses' => $macAddresses,
+            'dhcpLeases' => $dhcpLeases,
+            'auditLogs' => $auditLogs,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
                 ['label' => 'IP Addresses', 'href' => route('admin.ips.index')],

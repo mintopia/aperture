@@ -20,6 +20,9 @@ const props = defineProps({
     portErrors: { type: Object, default: null },
     metricsAvailable: { type: Boolean, default: false },
     users: { type: Array, default: () => [] },
+    macAddresses: { type: Array, default: () => [] },
+    dhcpLeases: { type: Array, default: () => [] },
+    auditLogs: { type: Array, default: () => [] },
 });
 
 const showAccessModal = ref(false);
@@ -65,6 +68,26 @@ function toggleDnsFilter() {
 const userColumns = [
     { key: 'nickname', label: 'Nickname' },
     { key: 'last_seen', label: 'Last Seen' },
+];
+
+const macColumns = [
+    { key: 'mac_address', label: 'MAC Address' },
+    { key: 'source', label: 'Source' },
+    { key: 'last_seen_at', label: 'Last Seen' },
+    { key: 'user', label: 'User' },
+];
+
+const dhcpColumns = [
+    { key: 'mac_address', label: 'MAC Address' },
+    { key: 'hostname', label: 'Hostname' },
+    { key: 'expires_at', label: 'Expires' },
+    { key: 'updated_at', label: 'Last Updated' },
+];
+
+const auditColumns = [
+    { key: 'action', label: 'Action' },
+    { key: 'process', label: 'Process' },
+    { key: 'created_at', label: 'Timestamp' },
 ];
 
 const selectedRange = ref('24h');
@@ -406,6 +429,72 @@ onBeforeUnmount(() => {
                     <p v-else class="text-[13px] text-[var(--color-text-muted)]">Prometheus not configured</p>
                 </div>
             </div>
+        </div>
+
+        <!-- MAC Addresses -->
+        <div class="mt-6" data-testid="ip-macs-section">
+            <SectionHeader title="MAC Address History" />
+            <DataTable
+                :columns="macColumns"
+                :rows="macAddresses ?? []"
+                clickable
+                :row-href="(row) => route('admin.macs.show', row.mac_address)"
+                empty-message="No MAC address associations"
+            >
+                <template #row="{ row }">
+                    <td class="font-mono text-[13px] text-[var(--color-primary)]">
+                        {{ row.mac_address }}
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.source }}
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.last_seen_at ? formatRelative(row.last_seen_at) : '—' }}
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.user?.nickname ?? '—' }}
+                    </td>
+                </template>
+            </DataTable>
+        </div>
+
+        <!-- DHCP Leases -->
+        <div class="mt-6" data-testid="ip-dhcp-section">
+            <SectionHeader title="DHCP Leases" />
+            <DataTable :columns="dhcpColumns" :rows="dhcpLeases ?? []" empty-message="No DHCP leases">
+                <template #row="{ row }">
+                    <td class="font-mono text-[13px] text-[var(--color-primary)]">
+                        {{ row.mac_address?.mac_address ?? '—' }}
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.hostname ?? '—' }}
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.expires_at ? formatRelative(row.expires_at) : '—' }}
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.updated_at ? formatRelative(row.updated_at) : '—' }}
+                    </td>
+                </template>
+            </DataTable>
+        </div>
+
+        <!-- Audit Log -->
+        <div class="mt-6" data-testid="ip-audit-section">
+            <SectionHeader title="Audit Log" />
+            <DataTable :columns="auditColumns" :rows="auditLogs ?? []" empty-message="No audit log entries">
+                <template #row="{ row }">
+                    <td class="font-mono text-[13px] text-[var(--color-text)]">
+                        {{ row.action }}
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.process }}
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.created_at ? formatRelative(row.created_at) : '—' }}
+                    </td>
+                </template>
+            </DataTable>
         </div>
     </div>
 </template>

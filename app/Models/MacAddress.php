@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $description
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property IpAddressMacAddress $pivot
  * @property-read Collection<int, IpAddress> $ipAddresses
  * @property-read int|null $ip_addresses_count
  * @property-read Collection<int, DhcpLease> $dhcpLeases
