@@ -22,6 +22,14 @@ const privacyUrl = computed(() => {
 
 <template>
     <div data-testid="portal-layout" class="min-h-screen bg-[var(--color-bg)]">
+        <a
+            href="#main-content"
+            class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded focus:bg-[var(--color-surface)] focus:px-4 focus:py-2 focus:text-[var(--color-text)] focus:shadow-lg"
+            data-testid="skip-nav"
+        >
+            Skip to content
+        </a>
+
         <!-- Header -->
         <header
             data-testid="portal-header"
@@ -41,7 +49,7 @@ const privacyUrl = computed(() => {
         </header>
 
         <!-- Main Content -->
-        <main class="mx-auto max-w-[1100px] px-6 pt-8 pb-16">
+        <main id="main-content" class="mx-auto max-w-[1100px] px-6 pt-8 pb-16">
             <slot />
         </main>
 
