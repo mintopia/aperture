@@ -350,7 +350,7 @@ class DashboardControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Portal/Dashboard')
             ->has('blockContext')
-            ->where('blockContext.currentIpv4', null)
+            ->where('blockContext.currentIpv4', '203.0.113.50')
             ->where('blockContext.currentIpv6', null)
             ->where('blockContext.internetEnabled', false)
             ->where('blockContext.macAddress', null)

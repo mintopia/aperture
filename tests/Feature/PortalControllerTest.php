@@ -269,7 +269,7 @@ class PortalControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJson([
-            'ip' => null,
+            'ip' => '203.0.113.50',
             'internetEnabled' => false,
         ]);
     }

@@ -38,7 +38,7 @@ class PortalController extends Controller
         $ip = $user->addIp($clientIp);
 
         return response()->json((object) [
-            'ip' => $ip?->address,
+            'ip' => $clientIp,
             'internetEnabled' => (bool) ($ip?->internet_enabled ?? false),
         ]);
     }

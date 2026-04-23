@@ -24,7 +24,8 @@ class DashboardController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $ip = $user->addIp((string) $request->getClientIp());
+        $clientIp = (string) $request->getClientIp();
+        $ip = $user->addIp($clientIp);
 
         $blocks = ContentBlock::active()->get();
 
@@ -36,7 +37,7 @@ class DashboardController extends Controller
         return Inertia::render('Portal/Dashboard', [
             'blocks' => $blocks,
             'blockContext' => [
-                'currentIpv4' => $ip?->address,
+                'currentIpv4' => $clientIp,
                 'currentIpv6' => $ipv6,
                 'internetEnabled' => (bool) ($ip?->internet_enabled ?? false),
                 'internetBlocked' => (bool) $user->internet_blocked,
