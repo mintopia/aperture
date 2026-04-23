@@ -7,6 +7,7 @@ vi.mock('@inertiajs/vue3', () => ({
         template: '<a :href="href"><slot /></a>',
         props: ['href'],
     },
+    router: { visit: vi.fn() },
 }));
 
 const defaultPages = [
@@ -65,9 +66,11 @@ describe('Pages/Index', () => {
         const wrapper = mountIndex();
         const rows = wrapper.findAll('[data-testid^="page-row-"]');
         expect(rows).toHaveLength(2);
-        const firstRow = wrapper.find('[data-testid="page-row-about-us"]');
-        expect(firstRow.exists()).toBe(true);
-        expect(firstRow.text()).toContain('/content/about-us');
+        const firstRowCell = wrapper.find('[data-testid="page-row-about-us"]');
+        expect(firstRowCell.exists()).toBe(true);
+        // The slug is rendered in a sibling <td> within the same <tr>
+        const tableRow = firstRowCell.element.closest('tr');
+        expect(tableRow.textContent).toContain('/content/about-us');
     });
 
     it('shows empty state when no pages', () => {
@@ -95,9 +98,29 @@ describe('Pages/Index', () => {
         expect(btn.attributes('href')).toBe('/admin/content/pages/create');
     });
 
-    it('each row links to edit page', () => {
+    it('renders a semantic table element', () => {
         const wrapper = mountIndex();
-        const row = wrapper.find('[data-testid="page-row-about-us"]');
-        expect(row.attributes('href')).toBe('/admin/content/pages/1/edit');
+        expect(wrapper.find('table').exists()).toBe(true);
+        expect(wrapper.find('thead').exists()).toBe(true);
+        expect(wrapper.find('tbody').exists()).toBe(true);
+    });
+
+    it('renders correct column headers', () => {
+        const wrapper = mountIndex();
+        const headers = wrapper.findAll('th');
+        const headerTexts = headers.map((h) => h.text().trim());
+        expect(headerTexts).toContain('Title');
+        expect(headerTexts).toContain('Slug');
+        expect(headerTexts).toContain('Updated');
+    });
+
+    it('each row navigates to edit page via DataTable clickable row', () => {
+        const wrapper = mountIndex();
+        // DataTable clickable rows use router.visit(); confirm row href prop resolves correctly
+        const dataTable = wrapper.findComponent({ name: 'DataTable' });
+        expect(dataTable.exists()).toBe(true);
+        const rowHref = dataTable.props('rowHref');
+        expect(rowHref(defaultPages[0])).toBe('/admin/content/pages/1/edit');
+        expect(rowHref(defaultPages[1])).toBe('/admin/content/pages/2/edit');
     });
 });

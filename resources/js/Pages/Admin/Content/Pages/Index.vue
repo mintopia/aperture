@@ -1,6 +1,7 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import DataTable from '@/Components/UI/DataTable.vue';
+import { Link } from '@inertiajs/vue3';
 import { formatRelative, formatDate } from '@/utils/dates';
 
 defineOptions({ layout: AdminLayout });
@@ -8,6 +9,12 @@ defineOptions({ layout: AdminLayout });
 defineProps({
     pages: { type: Array, default: () => [] },
 });
+
+const columns = [
+    { key: 'title', label: 'Title' },
+    { key: 'slug', label: 'Slug' },
+    { key: 'updated', label: 'Updated', class: 'text-right w-32' },
+];
 </script>
 
 <template>
@@ -55,46 +62,30 @@ defineProps({
         </div>
 
         <!-- Table -->
-        <section v-else>
-            <!-- Table header -->
-            <div data-testid="pages-table" class="overflow-x-auto">
-                <div class="flex border-b border-[var(--color-border-hover)] pb-2">
-                    <div
-                        class="flex-1 text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
+        <section v-else data-testid="pages-table">
+            <DataTable
+                :columns="columns"
+                :rows="pages"
+                clickable
+                :row-href="(row) => route('admin.content.pages.edit', row.id)"
+                :row-aria-label="(row) => `Open page ${row.title}`"
+                empty-message="No pages found."
+            >
+                <template #row="{ row }">
+                    <td
+                        :data-testid="`page-row-${row.slug}`"
+                        class="text-[13px] font-semibold text-[var(--color-text)]"
                     >
-                        Title
-                    </div>
-                    <div
-                        class="w-56 text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
-                    >
-                        Slug
-                    </div>
-                    <div
-                        class="w-32 text-right text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
-                    >
-                        Updated
-                    </div>
-                </div>
-
-                <!-- Rows -->
-                <Link
-                    v-for="page in pages"
-                    :key="page.id"
-                    :href="route('admin.content.pages.edit', page.id)"
-                    :data-testid="`page-row-${page.slug}`"
-                    class="flex items-center border-b border-[var(--color-border)]/40 py-2.5 transition-colors last:border-b-0 hover:bg-[var(--color-surface-hover)]"
-                >
-                    <div class="flex-1 text-[13px] font-semibold text-[var(--color-text)]">
-                        <span data-testid="page-title">{{ page.title }}</span>
-                    </div>
-                    <div class="w-56">
-                        <span class="font-mono text-[12px] text-[var(--color-primary)]">/content/{{ page.slug }}</span>
-                    </div>
-                    <div class="w-32 text-right text-[13px] text-[var(--color-text-secondary)]">
-                        <span :title="formatDate(page.updated_at)">{{ formatRelative(page.updated_at) }}</span>
-                    </div>
-                </Link>
-            </div>
+                        <span data-testid="page-title">{{ row.title }}</span>
+                    </td>
+                    <td class="w-56">
+                        <span class="font-mono text-[12px] text-[var(--color-primary)]">/content/{{ row.slug }}</span>
+                    </td>
+                    <td class="w-32 text-right text-[13px] text-[var(--color-text-secondary)]">
+                        <span :title="formatDate(row.updated_at)">{{ formatRelative(row.updated_at) }}</span>
+                    </td>
+                </template>
+            </DataTable>
         </section>
     </div>
 </template>
