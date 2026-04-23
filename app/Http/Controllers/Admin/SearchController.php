@@ -12,18 +12,19 @@ class SearchController extends Controller
 {
     public function search(Request $request): JsonResponse
     {
-        $query = $request->input('q', '');
+        $request->validate([
+            'q' => 'required|string|min:2|max:100',
+        ]);
 
-        if (strlen($query) < 2) {
-            return response()->json(['error' => 'Query must be at least 2 characters.'], 422);
-        }
+        $escaped = str_replace(['%', '_'], ['\%', '\_'], $request->input('q'));
+        $pattern = sprintf('%%%s%%', $escaped);
 
-        $users = User::where('nickname', 'like', sprintf('%%%s%%', $query))
-            ->orWhere('email', 'like', sprintf('%%%s%%', $query))
+        $users = User::where('nickname', 'like', $pattern)
+            ->orWhere('email', 'like', $pattern)
             ->limit(5)
             ->get(['id', 'nickname', 'email']);
 
-        $ips = IpAddress::where('address', 'like', sprintf('%%%s%%', $query))
+        $ips = IpAddress::where('address', 'like', $pattern)
             ->limit(5)
             ->get(['id', 'address', 'internet_enabled']);
 

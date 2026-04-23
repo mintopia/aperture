@@ -85,7 +85,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reset', [HomeController::class, 'reset'])->name('reset');
 
         // Search
-        Route::get('/search', [SearchController::class, 'search'])->name('search');
+        Route::get('/search', [SearchController::class, 'search'])->name('search')->middleware('throttle:60,1');
 
         // Users
         Route::resource('users', UserController::class)->only(['index', 'show', 'edit', 'update']);

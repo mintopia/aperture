@@ -96,4 +96,52 @@ class SearchControllerTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_search_rejects_missing_query(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->getJson('/admin/search');
+
+        $response->assertStatus(422);
+    }
+
+    public function test_search_rejects_query_exceeding_max_length(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->getJson('/admin/search?q='.str_repeat('a', 101));
+
+        $response->assertStatus(422);
+    }
+
+    public function test_search_escapes_percent_metacharacter(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        User::factory()->create(['nickname' => 'normal_user']);
+
+        // A query of '%' would match everything without escaping; with escaping it matches nothing
+        $response = $this->actingAs($admin)->getJson('/admin/search?q=%_');
+
+        $response->assertOk();
+        $response->assertJsonCount(0, 'users');
+    }
+
+    public function test_search_escapes_underscore_metacharacter(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        // Create a user whose nickname does NOT contain a literal underscore
+        User::factory()->create(['nickname' => 'abcde']);
+
+        // '_' without escaping would act as a wildcard and match 'abcde'
+        // With escaping it only matches a literal '_', so zero results expected
+        $response = $this->actingAs($admin)->getJson('/admin/search?q=___');
+
+        $response->assertOk();
+        $response->assertJsonCount(0, 'users');
+    }
 }
