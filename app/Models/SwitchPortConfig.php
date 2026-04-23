@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\SwitchPortConfigFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,18 +22,18 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read SwitchPort $switchPort
  *
- * @method static \Database\Factories\SwitchPortConfigFactory factory($count = null, $state = [])
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig whereConfigHash($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig whereConfigText($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig whereInterfaceOutput($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig whereLastFetchedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig whereSwitchPortId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPortConfig whereUpdatedAt($value)
+ * @method static SwitchPortConfigFactory factory($count = null, $state = [])
+ * @method static Builder<static>|SwitchPortConfig newModelQuery()
+ * @method static Builder<static>|SwitchPortConfig newQuery()
+ * @method static Builder<static>|SwitchPortConfig query()
+ * @method static Builder<static>|SwitchPortConfig whereConfigHash($value)
+ * @method static Builder<static>|SwitchPortConfig whereConfigText($value)
+ * @method static Builder<static>|SwitchPortConfig whereCreatedAt($value)
+ * @method static Builder<static>|SwitchPortConfig whereId($value)
+ * @method static Builder<static>|SwitchPortConfig whereInterfaceOutput($value)
+ * @method static Builder<static>|SwitchPortConfig whereLastFetchedAt($value)
+ * @method static Builder<static>|SwitchPortConfig whereSwitchPortId($value)
+ * @method static Builder<static>|SwitchPortConfig whereUpdatedAt($value)
  *
  * @mixin \Eloquent
  */

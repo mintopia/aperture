@@ -420,7 +420,7 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'switch01']);
+        SwitchConfig::factory()->create(['hostname' => 'switch01']);
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 
@@ -452,7 +452,7 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'switch01']);
+        SwitchConfig::factory()->create(['hostname' => 'switch01']);
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 

@@ -26,7 +26,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  *
  * @method static Builder<static>|ContentBlock active()
- * @method static \Database\Factories\ContentBlockFactory factory($count = null, $state = [])
+ * @method static ContentBlockFactory factory($count = null, $state = [])
  * @method static Builder<static>|ContentBlock newModelQuery()
  * @method static Builder<static>|ContentBlock newQuery()
  * @method static Builder<static>|ContentBlock query()

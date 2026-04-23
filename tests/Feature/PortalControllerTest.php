@@ -286,7 +286,7 @@ class PortalControllerTest extends TestCase
             ->get('/');
 
         $response->assertOk();
-        $response->assertViewHas('ip', null);
+        $response->assertViewHas('ip');
     }
 
     public function test_ipv6_returns_null_ip_when_outside_managed_range(): void

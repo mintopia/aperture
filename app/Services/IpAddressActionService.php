@@ -14,6 +14,7 @@ use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
+use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Support\Facades\Log;
 use stdClass;
 use Throwable;
@@ -80,7 +81,7 @@ class IpAddressActionService
     {
         try {
             $resolved = $this->networkInventory->resolveIpToPort($ip->address);
-            if ($resolved === null) {
+            if (! $resolved instanceof ResolvedPort) {
                 return null;
             }
 
@@ -144,10 +145,10 @@ class IpAddressActionService
             $attr = 'bytes.sent';
             $ip->sent = $stats->rsp->$attr;
             $ip->save();
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             Log::warning('Failed to update usage for IP address', [
                 'ip' => $ip->address,
-                'error' => $e->getMessage(),
+                'error' => $throwable->getMessage(),
             ]);
         }
     }

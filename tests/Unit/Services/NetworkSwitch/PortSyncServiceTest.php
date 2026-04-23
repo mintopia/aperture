@@ -449,11 +449,23 @@ class PortSyncServiceTest extends TestCase
                 'Port      Name               Status       Vlan       Duplex  Speed Type',
                 sprintf('Gi1/0/7   %s  connected    100        a-full  a-1000 10/100/1000BaseTX', $statusDescription),
             ]));
+        // CiscoSwitchAdapter fetches bulk running configs first; return empty so it falls back to per-port call
+        $transport->shouldReceive('execute')
+            ->with('show running-config | section ^interface')
+            ->once()
+            ->ordered()
+            ->andReturn('');
         $transport->shouldReceive('execute')
             ->with('show run interface Gi1/0/7')
             ->once()
             ->ordered()
             ->andReturn($runningConfig);
+        // CiscoSwitchAdapter fetches bulk interface output first; return empty so it falls back to per-port call
+        $transport->shouldReceive('execute')
+            ->with('show interface')
+            ->once()
+            ->ordered()
+            ->andReturn('');
         $transport->shouldReceive('execute')
             ->with('show interface Gi1/0/7')
             ->once()

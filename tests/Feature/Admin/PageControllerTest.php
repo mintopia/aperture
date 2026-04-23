@@ -77,7 +77,7 @@ class PageControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $page = Page::factory()->create();
 
-        $response = $this->actingAs($admin)->get("/admin/content/pages/{$page->id}/edit");
+        $response = $this->actingAs($admin)->get(sprintf('/admin/content/pages/%s/edit', $page->id));
 
         $response->assertOk();
         $response->assertInertia(fn ($p) => $p
@@ -92,7 +92,7 @@ class PageControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $page = Page::factory()->create(['title' => 'Old Title', 'slug' => 'old-title']);
 
-        $response = $this->actingAs($admin)->put("/admin/content/pages/{$page->id}", [
+        $response = $this->actingAs($admin)->put('/admin/content/pages/'.$page->id, [
             'title' => 'New Title',
             'slug' => 'new-title',
             'content' => 'Updated content.',
@@ -112,7 +112,7 @@ class PageControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $page = Page::factory()->create();
 
-        $response = $this->actingAs($admin)->delete("/admin/content/pages/{$page->id}");
+        $response = $this->actingAs($admin)->delete('/admin/content/pages/'.$page->id);
 
         $response->assertRedirect();
         $this->assertDatabaseMissing('pages', ['id' => $page->id]);
@@ -137,10 +137,10 @@ class PageControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
         $page = Page::factory()->create(['slug' => 'my-slug']);
-        $other = Page::factory()->create(['slug' => 'other-slug']);
+        Page::factory()->create(['slug' => 'other-slug']);
 
         // Updating with same slug as another page should fail
-        $response = $this->actingAs($admin)->put("/admin/content/pages/{$page->id}", [
+        $response = $this->actingAs($admin)->put('/admin/content/pages/'.$page->id, [
             'title' => $page->title,
             'slug' => 'other-slug',
         ]);
@@ -154,7 +154,7 @@ class PageControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $page = Page::factory()->create(['title' => 'My Page', 'slug' => 'my-page']);
 
-        $response = $this->actingAs($admin)->put("/admin/content/pages/{$page->id}", [
+        $response = $this->actingAs($admin)->put('/admin/content/pages/'.$page->id, [
             'title' => 'My Page Updated',
             'slug' => 'my-page',
         ]);

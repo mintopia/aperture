@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\IntegrationConfig;
+use App\Models\IpAddress;
 use App\Services\Auth\AuthResult;
 use App\Services\Auth\DeviceFlowUserService;
 use App\Services\Interfaces\AuthProviderInterface;
@@ -90,7 +91,7 @@ class CaptivePortalController extends Controller
         $user = $userService->findOrCreateFromDeviceFlow($userInfo, $result);
 
         $ip = $user->addIp($flowData['ip'] ?? $request->getClientIp() ?? '0.0.0.0');
-        if ($ip !== null && ! $user->internet_blocked) {
+        if ($ip instanceof IpAddress && ! $user->internet_blocked) {
             $actionService->enableInternet($ip);
         }
 

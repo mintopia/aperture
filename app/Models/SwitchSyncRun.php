@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\SwitchSyncRunFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,22 +26,22 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read SwitchConfig $switchConfig
  *
- * @method static \Database\Factories\SwitchSyncRunFactory factory($count = null, $state = [])
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereError($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereFinishedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereMacsCreated($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereMacsUpdated($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun wherePortsCreated($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun wherePortsUpdated($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereStartedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereStatus($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereSwitchConfigId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchSyncRun whereUpdatedAt($value)
+ * @method static SwitchSyncRunFactory factory($count = null, $state = [])
+ * @method static Builder<static>|SwitchSyncRun newModelQuery()
+ * @method static Builder<static>|SwitchSyncRun newQuery()
+ * @method static Builder<static>|SwitchSyncRun query()
+ * @method static Builder<static>|SwitchSyncRun whereCreatedAt($value)
+ * @method static Builder<static>|SwitchSyncRun whereError($value)
+ * @method static Builder<static>|SwitchSyncRun whereFinishedAt($value)
+ * @method static Builder<static>|SwitchSyncRun whereId($value)
+ * @method static Builder<static>|SwitchSyncRun whereMacsCreated($value)
+ * @method static Builder<static>|SwitchSyncRun whereMacsUpdated($value)
+ * @method static Builder<static>|SwitchSyncRun wherePortsCreated($value)
+ * @method static Builder<static>|SwitchSyncRun wherePortsUpdated($value)
+ * @method static Builder<static>|SwitchSyncRun whereStartedAt($value)
+ * @method static Builder<static>|SwitchSyncRun whereStatus($value)
+ * @method static Builder<static>|SwitchSyncRun whereSwitchConfigId($value)
+ * @method static Builder<static>|SwitchSyncRun whereUpdatedAt($value)
  *
  * @mixin \Eloquent
  */

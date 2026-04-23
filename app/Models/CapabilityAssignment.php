@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\CapabilityAssignmentFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -17,15 +18,15 @@ use Illuminate\Support\Collection;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  *
- * @method static \Database\Factories\CapabilityAssignmentFactory factory($count = null, $state = [])
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereCapability($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereIntegration($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|CapabilityAssignment whereUpdatedAt($value)
+ * @method static CapabilityAssignmentFactory factory($count = null, $state = [])
+ * @method static Builder<static>|CapabilityAssignment newModelQuery()
+ * @method static Builder<static>|CapabilityAssignment newQuery()
+ * @method static Builder<static>|CapabilityAssignment query()
+ * @method static Builder<static>|CapabilityAssignment whereCapability($value)
+ * @method static Builder<static>|CapabilityAssignment whereCreatedAt($value)
+ * @method static Builder<static>|CapabilityAssignment whereId($value)
+ * @method static Builder<static>|CapabilityAssignment whereIntegration($value)
+ * @method static Builder<static>|CapabilityAssignment whereUpdatedAt($value)
  *
  * @mixin \Eloquent
  */

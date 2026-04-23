@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\SwitchConfigFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,22 +35,22 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, SwitchSyncRun> $switchSyncRuns
  * @property-read int|null $switch_sync_runs_count
  *
- * @method static \Database\Factories\SwitchConfigFactory factory($count = null, $state = [])
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereEnablePassword($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereEnabled($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereHostname($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereName($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig wherePassword($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig wherePort($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereTimeout($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereType($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchConfig whereUsername($value)
+ * @method static SwitchConfigFactory factory($count = null, $state = [])
+ * @method static Builder<static>|SwitchConfig newModelQuery()
+ * @method static Builder<static>|SwitchConfig newQuery()
+ * @method static Builder<static>|SwitchConfig query()
+ * @method static Builder<static>|SwitchConfig whereCreatedAt($value)
+ * @method static Builder<static>|SwitchConfig whereEnablePassword($value)
+ * @method static Builder<static>|SwitchConfig whereEnabled($value)
+ * @method static Builder<static>|SwitchConfig whereHostname($value)
+ * @method static Builder<static>|SwitchConfig whereId($value)
+ * @method static Builder<static>|SwitchConfig whereName($value)
+ * @method static Builder<static>|SwitchConfig wherePassword($value)
+ * @method static Builder<static>|SwitchConfig wherePort($value)
+ * @method static Builder<static>|SwitchConfig whereTimeout($value)
+ * @method static Builder<static>|SwitchConfig whereType($value)
+ * @method static Builder<static>|SwitchConfig whereUpdatedAt($value)
+ * @method static Builder<static>|SwitchConfig whereUsername($value)
  *
  * @mixin \Eloquent
  */

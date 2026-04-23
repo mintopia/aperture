@@ -58,6 +58,7 @@ class OuiConfigurationTest extends TestCase
         ]);
 
         $response->assertRedirect();
+
         $raw = Setting::get('network.oui_auto_allow');
         $this->assertEquals(['AA:BB:CC', '00:50:F2'], json_decode((string) $raw, true));
     }
@@ -86,6 +87,7 @@ class OuiConfigurationTest extends TestCase
         ]);
 
         $response->assertRedirect();
+
         $raw = Setting::get('network.oui_auto_allow');
         $this->assertEquals([], json_decode((string) $raw, true));
     }

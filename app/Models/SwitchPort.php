@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\SwitchPortFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -36,26 +37,26 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, SwitchPortMac> $switchPortMacs
  * @property-read int|null $switch_port_macs_count
  *
- * @method static \Database\Factories\SwitchPortFactory factory($count = null, $state = [])
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereAccessVlan($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereAdminNotes($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereAdminStatus($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereDuplex($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereLastSyncedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort wherePoeStatus($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort wherePortName($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort wherePortNumber($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereSpeed($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereStatus($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereSwitchConfigId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereSwitchDescription($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereSwitchportMode($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|SwitchPort whereUpdatedAt($value)
+ * @method static SwitchPortFactory factory($count = null, $state = [])
+ * @method static Builder<static>|SwitchPort newModelQuery()
+ * @method static Builder<static>|SwitchPort newQuery()
+ * @method static Builder<static>|SwitchPort query()
+ * @method static Builder<static>|SwitchPort whereAccessVlan($value)
+ * @method static Builder<static>|SwitchPort whereAdminNotes($value)
+ * @method static Builder<static>|SwitchPort whereAdminStatus($value)
+ * @method static Builder<static>|SwitchPort whereCreatedAt($value)
+ * @method static Builder<static>|SwitchPort whereDuplex($value)
+ * @method static Builder<static>|SwitchPort whereId($value)
+ * @method static Builder<static>|SwitchPort whereLastSyncedAt($value)
+ * @method static Builder<static>|SwitchPort wherePoeStatus($value)
+ * @method static Builder<static>|SwitchPort wherePortName($value)
+ * @method static Builder<static>|SwitchPort wherePortNumber($value)
+ * @method static Builder<static>|SwitchPort whereSpeed($value)
+ * @method static Builder<static>|SwitchPort whereStatus($value)
+ * @method static Builder<static>|SwitchPort whereSwitchConfigId($value)
+ * @method static Builder<static>|SwitchPort whereSwitchDescription($value)
+ * @method static Builder<static>|SwitchPort whereSwitchportMode($value)
+ * @method static Builder<static>|SwitchPort whereUpdatedAt($value)
  *
  * @mixin \Eloquent
  */

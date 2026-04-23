@@ -12,6 +12,7 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use ReflectionClass;
+use RuntimeException;
 use Tests\TestCase;
 
 class OpnSenseTest extends TestCase
@@ -473,7 +474,7 @@ class OpnSenseTest extends TestCase
             [],
             ['10.0.0.1', '10.0.0.2'],
             function (string $ip): void {
-                throw new \RuntimeException('enable failed');
+                throw new RuntimeException('enable failed');
             },
             function (string $ip): void {},
             false,
@@ -500,7 +501,7 @@ class OpnSenseTest extends TestCase
             [],
             function (string $ip): void {},
             function (string $ip): void {
-                throw new \RuntimeException('disable failed');
+                throw new RuntimeException('disable failed');
             },
             false,
         );

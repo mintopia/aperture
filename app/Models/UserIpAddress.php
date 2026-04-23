@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,15 +23,15 @@ use Illuminate\Support\Carbon;
  * @property-read IpAddress $ip
  * @property-read User $user
  *
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereIpAddressId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereLastSeenAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|UserIpAddress whereUserId($value)
+ * @method static Builder<static>|UserIpAddress newModelQuery()
+ * @method static Builder<static>|UserIpAddress newQuery()
+ * @method static Builder<static>|UserIpAddress query()
+ * @method static Builder<static>|UserIpAddress whereCreatedAt($value)
+ * @method static Builder<static>|UserIpAddress whereId($value)
+ * @method static Builder<static>|UserIpAddress whereIpAddressId($value)
+ * @method static Builder<static>|UserIpAddress whereLastSeenAt($value)
+ * @method static Builder<static>|UserIpAddress whereUpdatedAt($value)
+ * @method static Builder<static>|UserIpAddress whereUserId($value)
  *
  * @mixin \Eloquent
  */

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
+use stdClass;
 use Tests\TestCase;
 
 class TestCommandTest extends TestCase
@@ -16,8 +17,8 @@ class TestCommandTest extends TestCase
 
     public function test_command_calls_update_usage_on_ip_address(): void
     {
-        $mockStats = new \stdClass;
-        $mockStats->rsp = new \stdClass;
+        $mockStats = new stdClass;
+        $mockStats->rsp = new stdClass;
         $mockStats->rsp->{'bytes.rcvd'} = 500;
         $mockStats->rsp->{'bytes.sent'} = 1000;
 

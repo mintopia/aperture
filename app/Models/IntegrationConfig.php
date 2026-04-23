@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\IntegrationConfigFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -18,17 +19,17 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  *
- * @method static \Database\Factories\IntegrationConfigFactory factory($count = null, $state = [])
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereEncrypted($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereIntegration($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereKey($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereUpdatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereValue($value)
+ * @method static IntegrationConfigFactory factory($count = null, $state = [])
+ * @method static Builder<static>|IntegrationConfig newModelQuery()
+ * @method static Builder<static>|IntegrationConfig newQuery()
+ * @method static Builder<static>|IntegrationConfig query()
+ * @method static Builder<static>|IntegrationConfig whereCreatedAt($value)
+ * @method static Builder<static>|IntegrationConfig whereEncrypted($value)
+ * @method static Builder<static>|IntegrationConfig whereId($value)
+ * @method static Builder<static>|IntegrationConfig whereIntegration($value)
+ * @method static Builder<static>|IntegrationConfig whereKey($value)
+ * @method static Builder<static>|IntegrationConfig whereUpdatedAt($value)
+ * @method static Builder<static>|IntegrationConfig whereValue($value)
  *
  * @mixin \Eloquent
  */

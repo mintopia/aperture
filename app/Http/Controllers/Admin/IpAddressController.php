@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\IpAddressStoreRequest;
 use App\Jobs\IpAddressAction;
 use App\Models\IpAddress;
+use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\TrafficMonitorInterface;
@@ -92,7 +93,7 @@ class IpAddressController extends Controller
         $metricsAvailable = $this->metrics->isAvailable();
 
         $port = $this->ipAddressActionService->getPortInfo($ip);
-        if ($port !== null) {
+        if ($port instanceof PortDetail) {
             $switchConfig = $this->resolveSwitchConfig($port);
             $switchInfo = [
                 'switchId' => $switchConfig->id,
@@ -130,7 +131,7 @@ class IpAddressController extends Controller
 
         return Inertia::render('Admin/Ips/Show', [
             'ip' => array_merge($ip->toArray(), [
-                'current_mac' => $currentMac !== null ? [
+                'current_mac' => $currentMac instanceof MacAddress ? [
                     'id' => $currentMac->id,
                     'mac_address' => $currentMac->mac_address,
                 ] : null,
@@ -251,7 +252,8 @@ class IpAddressController extends Controller
     private function sumSeries(array $series): int
     {
         $total = 0;
-        for ($i = 1; $i < count($series); $i++) {
+        $counter = count($series);
+        for ($i = 1; $i < $counter; $i++) {
             $dt = $series[$i]['timestamp'] - $series[$i - 1]['timestamp'];
             $avgRate = ($series[$i]['value'] + $series[$i - 1]['value']) / 2;
             $total += $avgRate * $dt / 8;

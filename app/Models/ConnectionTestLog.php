@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\ConnectionTestLogFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -23,21 +24,21 @@ use Illuminate\Support\Collection;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  *
- * @method static \Database\Factories\ConnectionTestLogFactory factory($count = null, $state = [])
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereIntegration($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereMessage($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereRequestMethod($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereRequestUrl($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereResponseData($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereResponseStatus($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereResponseTimeMs($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereSuccess($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ConnectionTestLog whereUpdatedAt($value)
+ * @method static ConnectionTestLogFactory factory($count = null, $state = [])
+ * @method static Builder<static>|ConnectionTestLog newModelQuery()
+ * @method static Builder<static>|ConnectionTestLog newQuery()
+ * @method static Builder<static>|ConnectionTestLog query()
+ * @method static Builder<static>|ConnectionTestLog whereCreatedAt($value)
+ * @method static Builder<static>|ConnectionTestLog whereId($value)
+ * @method static Builder<static>|ConnectionTestLog whereIntegration($value)
+ * @method static Builder<static>|ConnectionTestLog whereMessage($value)
+ * @method static Builder<static>|ConnectionTestLog whereRequestMethod($value)
+ * @method static Builder<static>|ConnectionTestLog whereRequestUrl($value)
+ * @method static Builder<static>|ConnectionTestLog whereResponseData($value)
+ * @method static Builder<static>|ConnectionTestLog whereResponseStatus($value)
+ * @method static Builder<static>|ConnectionTestLog whereResponseTimeMs($value)
+ * @method static Builder<static>|ConnectionTestLog whereSuccess($value)
+ * @method static Builder<static>|ConnectionTestLog whereUpdatedAt($value)
  *
  * @mixin \Eloquent
  */

@@ -45,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         } catch (Throwable) {
             $siteTitle = (string) config('app.name', 'Aperture');
         }
+
         View::share('siteTitle', $siteTitle);
     }
 }

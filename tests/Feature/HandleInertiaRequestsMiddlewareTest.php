@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Setting;
 use App\Models\User;
+use Closure;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -84,7 +85,7 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
         $this->assertArrayHasKey('theme', $shared);
 
         // theme is now a closure, resolve it
-        $theme = $shared['theme'] instanceof \Closure ? ($shared['theme'])() : $shared['theme'];
+        $theme = $shared['theme'] instanceof Closure ? ($shared['theme'])() : $shared['theme'];
         $this->assertArrayHasKey('accent_hue', $theme);
         $this->assertArrayHasKey('mode', $theme);
     }

@@ -332,8 +332,8 @@ class OpnSense implements FirewallBackendInterface
         return $this->reconcile(
             currentIps: $currentIps,
             desiredIps: $desiredIps,
-            enableAction: fn (string $ip) => $this->updateIp($ip, 'Reconciled'),
-            disableAction: fn (string $ip) => $this->removeIp($ip),
+            enableAction: fn (string $ip): OpnSense => $this->updateIp($ip, 'Reconciled'),
+            disableAction: fn (string $ip): OpnSense => $this->removeIp($ip),
             dryRun: $dryRun,
         );
     }
@@ -346,8 +346,8 @@ class OpnSense implements FirewallBackendInterface
         return $this->reconcile(
             currentIps: $currentIps,
             desiredIps: $desiredIps,
-            enableAction: fn (string $ip) => $this->limitIp($ip),
-            disableAction: fn (string $ip) => $this->unlimitIp($ip),
+            enableAction: fn (string $ip): FirewallBackendInterface => $this->limitIp($ip),
+            disableAction: fn (string $ip): FirewallBackendInterface => $this->unlimitIp($ip),
             dryRun: $dryRun,
         );
     }
