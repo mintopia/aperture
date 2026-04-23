@@ -105,6 +105,13 @@ class MacAddress extends Model
         return $this->morphMany(AuditLog::class, 'subject');
     }
 
+    public static function normalize(string $mac): string
+    {
+        $hex = strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $mac));
+
+        return implode(':', str_split($hex, 2));
+    }
+
     public function currentIp(): ?IpAddress
     {
         return $this->ipAddresses()

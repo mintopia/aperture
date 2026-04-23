@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Casts;
 
+use App\Models\MacAddress;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 
@@ -33,8 +34,6 @@ class NormalizeMacAddress implements CastsAttributes
             return null;
         }
 
-        $hex = strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $value));
-
-        return implode(':', str_split($hex, 2));
+        return MacAddress::normalize($value);
     }
 }

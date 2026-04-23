@@ -25,11 +25,14 @@ class ScanNetworkDevices implements ShouldQueue
 
     public int $tries = 1;
 
-    public function handle(): void
-    {
-        $dhcp = app(DhcpInterface::class);
-        $inventory = app(NetworkInventoryInterface::class);
-        $rangeService = app(NetworkRangeService::class);
+    public function handle(
+        ?DhcpInterface $dhcp = null,
+        ?NetworkInventoryInterface $inventory = null,
+        ?NetworkRangeService $rangeService = null,
+    ): void {
+        $dhcp ??= app(DhcpInterface::class);
+        $inventory ??= app(NetworkInventoryInterface::class);
+        $rangeService ??= app(NetworkRangeService::class);
 
         $leases = $dhcp->getLeases();
         $arpEntries = $inventory->getArpTable();
@@ -57,18 +60,18 @@ class ScanNetworkDevices implements ShouldQueue
         $allMacs = collect();
 
         foreach ($leases as $lease) {
-            $allMacs->put($this->normalizeMac($lease->mac), 'dhcp');
+            $allMacs->put(MacAddress::normalize($lease->mac), 'dhcp');
         }
 
         foreach ($arpEntries as $arp) {
-            if (! $allMacs->has($this->normalizeMac($arp->mac))) {
-                $allMacs->put($this->normalizeMac($arp->mac), 'arp');
+            if (! $allMacs->has(MacAddress::normalize($arp->mac))) {
+                $allMacs->put(MacAddress::normalize($arp->mac), 'arp');
             }
         }
 
         foreach ($forwardingEntries as $fwd) {
-            if (! $allMacs->has($this->normalizeMac($fwd->mac))) {
-                $allMacs->put($this->normalizeMac($fwd->mac), 'switch');
+            if (! $allMacs->has(MacAddress::normalize($fwd->mac))) {
+                $allMacs->put(MacAddress::normalize($fwd->mac), 'switch');
             }
         }
 
@@ -151,11 +154,11 @@ class ScanNetworkDevices implements ShouldQueue
         $pairs = [];
 
         foreach ($leases as $lease) {
-            $pairs[] = ['ip' => $lease->ip, 'mac' => $this->normalizeMac($lease->mac), 'source' => 'dhcp'];
+            $pairs[] = ['ip' => $lease->ip, 'mac' => MacAddress::normalize($lease->mac), 'source' => 'dhcp'];
         }
 
         foreach ($arpEntries as $arp) {
-            $pairs[] = ['ip' => $arp->ip, 'mac' => $this->normalizeMac($arp->mac), 'source' => 'arp'];
+            $pairs[] = ['ip' => $arp->ip, 'mac' => MacAddress::normalize($arp->mac), 'source' => 'arp'];
         }
 
         $pairsCollection = collect($pairs);
@@ -203,7 +206,7 @@ class ScanNetworkDevices implements ShouldQueue
     private function persistDhcpLeases(Collection $leases, NetworkRangeService $rangeService): void
     {
         $ips = IpAddress::whereIn('address', $leases->map(fn ($l): string => $l->ip))->get()->keyBy('address');
-        $macs = MacAddress::whereIn('mac_address', $leases->map(fn ($l): string => $this->normalizeMac($l->mac)))->get()->keyBy('mac_address');
+        $macs = MacAddress::whereIn('mac_address', $leases->map(fn ($l): string => MacAddress::normalize($l->mac)))->get()->keyBy('mac_address');
 
         foreach ($leases as $lease) {
             if (! $rangeService->isManaged($lease->ip)) {
@@ -211,7 +214,7 @@ class ScanNetworkDevices implements ShouldQueue
             }
 
             $ip = $ips->get($lease->ip);
-            $mac = $macs->get($this->normalizeMac($lease->mac));
+            $mac = $macs->get(MacAddress::normalize($lease->mac));
 
             if ($ip === null || $mac === null) {
                 continue;
@@ -233,7 +236,7 @@ class ScanNetworkDevices implements ShouldQueue
     private function linkSwitchPortMacs(Collection $forwardingEntries): void
     {
         /** @var Collection<string, ForwardingEntry> $normalizedFwdMacs */
-        $normalizedFwdMacs = $forwardingEntries->mapWithKeys(fn ($fwd): array => [$this->normalizeMac($fwd->mac) => $fwd]);
+        $normalizedFwdMacs = $forwardingEntries->mapWithKeys(fn ($fwd): array => [MacAddress::normalize($fwd->mac) => $fwd]);
         $macRecords = MacAddress::whereIn('mac_address', $normalizedFwdMacs->keys())->get()->keyBy('mac_address');
 
         SwitchPortMac::whereIn('mac_address', $normalizedFwdMacs->keys())
@@ -265,7 +268,7 @@ class ScanNetworkDevices implements ShouldQueue
         /** @var list<string> $prefixes */
         $prefixes = array_map('strtoupper', $prefixes);
 
-        $allMacs = MacAddress::all();
+        $allMacs = MacAddress::with('ipAddresses')->get();
 
         foreach ($allMacs as $mac) {
             $normalized = strtoupper($mac->mac_address);
@@ -283,7 +286,7 @@ class ScanNetworkDevices implements ShouldQueue
                 continue;
             }
 
-            $ips = $mac->ipAddresses()->get();
+            $ips = $mac->ipAddresses;
 
             foreach ($ips as $ip) {
                 if (! $ip->internet_enabled) {
@@ -300,12 +303,5 @@ class ScanNetworkDevices implements ShouldQueue
                 }
             }
         }
-    }
-
-    private function normalizeMac(string $mac): string
-    {
-        $hex = strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $mac));
-
-        return implode(':', str_split($hex, 2));
     }
 }
