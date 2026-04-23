@@ -213,12 +213,16 @@ class IntegrationController extends Controller
 
     public function opnsenseShaperRules(Request $request): JsonResponse
     {
-        return response()->json(OpnSenseApiService::getShaperRules($this->configMerger->merge('opnsense', $request)));
+        $service = new OpnSenseApiService($this->configMerger->merge('opnsense', $request));
+
+        return response()->json($service->getShaperRules());
     }
 
     public function opnsenseZones(Request $request): JsonResponse
     {
-        return response()->json(OpnSenseApiService::getZones($this->configMerger->merge('opnsense', $request)));
+        $service = new OpnSenseApiService($this->configMerger->merge('opnsense', $request));
+
+        return response()->json($service->getZones());
     }
 
     public function piholeGroups(Request $request): JsonResponse

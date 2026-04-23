@@ -9,38 +9,67 @@ use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
- * Stateless admin/config API methods for OPNsense.
+ * Admin/config API methods for OPNsense.
  *
  * These complement the runtime OpnSense service (which uses a DI'd Guzzle
- * client bound to a specific zone). The methods here accept a raw config
- * array (merged DB + unsaved request values) and use the Http facade so
- * they work without a pre-wired service instance.
+ * client bound to a specific zone). This service accepts a config array
+ * (merged DB + unsaved request values) via the constructor and uses the
+ * Http facade so it works without a pre-wired Guzzle instance.
  */
 class OpnSenseApiService
 {
+    private readonly string $endpoint;
+
+    private readonly string $key;
+
+    private readonly string $secret;
+
+    private readonly bool $verifySsl;
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public function __construct(array $config)
+    {
+        $this->endpoint = rtrim((string) ($config['endpoint'] ?? ''), '/');
+        $this->key = (string) ($config['key'] ?? '');
+        $this->secret = (string) ($config['secret'] ?? '');
+        $this->verifySsl = (bool) ($config['verify_ssl'] ?? true);
+    }
+
+    /**
+     * Validate that endpoint and credentials are present.
+     *
+     * Returns an error string when invalid, or null when valid.
+     */
+    private function validateConfig(): ?string
+    {
+        if ($this->endpoint === '') {
+            return 'OPNsense endpoint is not configured.';
+        }
+
+        if ($this->key === '' || $this->secret === '') {
+            return 'OPNsense API credentials are not configured.';
+        }
+
+        return null;
+    }
+
     /**
      * Fetch traffic shaper rules from OPNsense.
      *
-     * @param  array<string, mixed>  $config  Merged DB + request config
      * @return array{rules: list<array{uuid: string, description: string}>, error?: string}
      */
-    public static function getShaperRules(array $config): array
+    public function getShaperRules(): array
     {
         try {
-            $endpoint = rtrim($config['endpoint'] ?? '', '/');
-            $key = $config['key'] ?? '';
-            $secret = $config['secret'] ?? '';
-
-            if ($endpoint === '') {
-                return ['rules' => [], 'error' => 'OPNsense endpoint is not configured.'];
+            $error = $this->validateConfig();
+            if ($error !== null) {
+                return ['rules' => [], 'error' => $error];
             }
 
-            if ($key === '' || $secret === '') {
-                return ['rules' => [], 'error' => 'OPNsense API key and secret are required.'];
-            }
-
-            $response = self::makeClient($config)
-                ->post($endpoint.'/api/trafficshaper/settings/search_rules', [
+            $response = $this->makeClient()
+                ->post($this->endpoint.'/api/trafficshaper/settings/search_rules', [
                     'current' => 1,
                     'rowCount' => -1,
                     'searchPhrase' => '',
@@ -67,26 +96,18 @@ class OpnSenseApiService
     /**
      * Fetch captive portal zones from OPNsense.
      *
-     * @param  array<string, mixed>  $config  Merged DB + request config
      * @return array{zones: list<array{id: string, name: string}>, error?: string}
      */
-    public static function getZones(array $config): array
+    public function getZones(): array
     {
         try {
-            $endpoint = rtrim($config['endpoint'] ?? '', '/');
-            $key = $config['key'] ?? '';
-            $secret = $config['secret'] ?? '';
-
-            if ($endpoint === '') {
-                return ['zones' => [], 'error' => 'OPNsense endpoint is not configured.'];
+            $error = $this->validateConfig();
+            if ($error !== null) {
+                return ['zones' => [], 'error' => $error];
             }
 
-            if ($key === '' || $secret === '') {
-                return ['zones' => [], 'error' => 'OPNsense API key and secret are required.'];
-            }
-
-            $response = self::makeClient($config)
-                ->get($endpoint.'/api/captiveportal/settings/get');
+            $response = $this->makeClient()
+                ->get($this->endpoint.'/api/captiveportal/settings/get');
 
             $response->throw();
             $data = $response->json();
@@ -113,13 +134,11 @@ class OpnSenseApiService
 
     /**
      * Build an authenticated Http client pre-configured with OPNsense credentials.
-     *
-     * @param  array<string, mixed>  $config
      */
-    private static function makeClient(array $config): PendingRequest
+    private function makeClient(): PendingRequest
     {
-        return Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
-            ->withBasicAuth($config['key'] ?? '', $config['secret'] ?? '')
+        return Http::withOptions(['verify' => $this->verifySsl])
+            ->withBasicAuth($this->key, $this->secret)
             ->timeout(10);
     }
 }

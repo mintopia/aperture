@@ -140,7 +140,7 @@ class IntegrationControllerTest extends TestCase
         );
 
         $response->assertOk();
-        $response->assertJsonPath('error', 'OPNsense API key and secret are required.');
+        $response->assertJsonPath('error', 'OPNsense API credentials are not configured.');
         $response->assertJsonPath('rules', []);
     }
 
@@ -278,7 +278,7 @@ class IntegrationControllerTest extends TestCase
 
     public function test_opnsense_ratelimit_fields_are_select_remote_type(): void
     {
-        /** @var array<string, array{fields: array<string, array{type: string}>}> $integrations */
+        /** @var array<string, array{fields: array<string, array{type: string, remote_url: string, remote_label: string, remote_value: string}>}> $integrations */
         $integrations = config('integrations');
         $fields = $integrations['opnsense']['fields'];
 
@@ -292,7 +292,7 @@ class IntegrationControllerTest extends TestCase
 
     public function test_opnsense_zone_fields_are_select_remote_type(): void
     {
-        /** @var array<string, array{fields: array<string, array{type: string, remote_url?: string, remote_label?: string, remote_value?: string}>}> $integrations */
+        /** @var array<string, array{fields: array<string, array{type: string, remote_url: string, remote_label: string, remote_value: string}>}> $integrations */
         $integrations = config('integrations');
         $fields = $integrations['opnsense']['fields'];
 
@@ -411,7 +411,7 @@ class IntegrationControllerTest extends TestCase
         );
 
         $response->assertOk();
-        $response->assertJsonPath('error', 'OPNsense API key and secret are required.');
+        $response->assertJsonPath('error', 'OPNsense API credentials are not configured.');
         $response->assertJsonPath('zones', []);
     }
 

@@ -8,6 +8,7 @@ use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
 use App\Services\Dhcp\OpnSenseDhcpService;
 use App\Services\Firewalls\OpnSense;
+use App\Services\Firewalls\OpnSenseApiService;
 use App\Services\Integration\BorealisTester;
 use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\Integration\LibreNmsTester;
@@ -51,6 +52,10 @@ class IntegrationServiceProvider extends ServiceProvider
             $registry->register('prometheus', new PrometheusTester);
 
             return $registry;
+        });
+
+        $this->app->singleton(function (): OpnSenseApiService {
+            return new OpnSenseApiService($this->getIntegrationDbConfig('opnsense'));
         });
 
         $this->app->singleton(function (Application $app): FirewallBackendInterface {
