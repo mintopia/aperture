@@ -5,6 +5,7 @@ namespace Tests\Unit\Models;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -40,11 +41,13 @@ class MacAddressTest extends TestCase
         $this->assertNull($mac->user);
     }
 
-    public function test_has_many_ip_addresses(): void
+    public function test_belongs_to_many_ip_addresses(): void
     {
         $mac = MacAddress::factory()->create();
-        $ip = IpAddress::factory()->create(['mac_address_id' => $mac->id]);
+        $ip = IpAddress::factory()->create();
+        $mac->ipAddresses()->attach($ip, ['source' => 'auth', 'last_seen_at' => now()]);
 
+        $this->assertInstanceOf(BelongsToMany::class, $mac->ipAddresses());
         $this->assertTrue($mac->ipAddresses->contains($ip));
     }
 
@@ -56,12 +59,13 @@ class MacAddressTest extends TestCase
         $this->assertTrue($user->macAddresses->contains($mac));
     }
 
-    public function test_ip_address_belongs_to_mac_address(): void
+    public function test_ip_address_linked_to_mac_via_pivot(): void
     {
         $mac = MacAddress::factory()->create();
-        $ip = IpAddress::factory()->create(['mac_address_id' => $mac->id]);
+        $ip = IpAddress::factory()->create();
+        $ip->macAddresses()->attach($mac, ['source' => 'auth', 'last_seen_at' => now()]);
 
-        $this->assertTrue($ip->macAddress->is($mac));
+        $this->assertTrue($ip->currentMac()->is($mac));
     }
 
     public function test_mac_address_unique_constraint(): void
@@ -72,20 +76,11 @@ class MacAddressTest extends TestCase
         MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
     }
 
-    public function test_allowed_factory_state(): void
-    {
-        $mac = MacAddress::factory()->allowed()->create();
-
-        $this->assertTrue($mac->allowed);
-        $this->assertNotNull($mac->allowed_at);
-    }
-
     public function test_xbox_factory_state(): void
     {
         $mac = MacAddress::factory()->xbox()->create();
 
         $this->assertSame('xbox', $mac->source);
-        $this->assertTrue($mac->allowed);
         $this->assertSame('Xbox Console', $mac->description);
     }
 }

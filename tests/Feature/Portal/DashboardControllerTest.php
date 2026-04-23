@@ -178,12 +178,12 @@ class DashboardControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create(['nickname' => 'Player1', 'internet_enabled' => true]);
 
-        // Pre-create an IP with a known address, and associate a MAC
+        // Pre-create an IP with a known address, and associate a MAC via pivot
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
-        IpAddress::factory()->create([
+        $ip = IpAddress::factory()->create([
             'address' => '10.0.0.1',
-            'mac_address_id' => $mac->id,
         ]);
+        $ip->macAddresses()->attach($mac, ['source' => 'auth', 'last_seen_at' => now()]);
 
         // Create a user parameter
         UserParameter::factory()->create(['user_id' => $user->id, 'key' => 'seat', 'value' => 'A42']);

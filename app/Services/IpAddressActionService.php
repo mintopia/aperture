@@ -44,16 +44,12 @@ class IpAddressActionService
             if ($mac !== null) {
                 $macAddress = MacAddress::firstOrCreate(
                     ['mac_address' => $mac],
-                    ['source' => 'auth', 'allowed' => true, 'allowed_at' => now()],
+                    ['source' => 'auth'],
                 );
-                $ip->mac_address_id = (int) $macAddress->id;
-                $ip->saveQuietly();
 
-                if (! $macAddress->allowed) {
-                    $macAddress->allowed = true;
-                    $macAddress->allowed_at = now();
-                    $macAddress->save();
-                }
+                $ip->macAddresses()->syncWithoutDetaching([
+                    $macAddress->id => ['source' => 'auth', 'last_seen_at' => now()],
+                ]);
 
                 if ($macAddress->user_id === null && $userIp?->user) {
                     $macAddress->user_id = (int) $userIp->user->id;

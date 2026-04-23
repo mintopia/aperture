@@ -6,6 +6,7 @@ use App\Jobs\SyncInternetAccessJob;
 use App\Jobs\SyncRateLimitJob;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -39,18 +40,25 @@ class IpAddressTest extends TestCase
         $this->assertSame('address', $ip->getRouteKeyName());
     }
 
-    public function test_mac_returns_null_when_no_mac_address_linked(): void
+    public function test_current_mac_returns_null_when_no_mac_addresses_attached(): void
     {
-        $ip = IpAddress::factory()->create(['mac_address_id' => null]);
-        $this->assertNull($ip->mac);
+        $ip = IpAddress::factory()->create();
+        $this->assertNull($ip->currentMac());
     }
 
-    public function test_mac_returns_value_from_relationship(): void
+    public function test_current_mac_returns_mac_when_attached_via_pivot(): void
     {
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
-        $ip = IpAddress::factory()->create(['mac_address_id' => $mac->id]);
+        $ip = IpAddress::factory()->create();
+        $ip->macAddresses()->attach($mac, ['source' => 'auth', 'last_seen_at' => now()]);
 
-        $this->assertSame('AA:BB:CC:DD:EE:FF', $ip->mac);
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $ip->currentMac()?->mac_address);
+    }
+
+    public function test_mac_addresses_returns_belongs_to_many_relationship(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $this->assertInstanceOf(BelongsToMany::class, $ip->macAddresses());
     }
 
     public function test_get_falls_back_to_parent_for_other_attributes(): void

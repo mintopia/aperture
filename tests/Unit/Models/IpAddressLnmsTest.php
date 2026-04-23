@@ -11,17 +11,18 @@ class IpAddressLnmsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_mac_returns_value_from_relationship(): void
+    public function test_current_mac_returns_value_when_attached_via_pivot(): void
     {
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
-        $ip = IpAddress::factory()->create(['mac_address_id' => $mac->id]);
+        $ip = IpAddress::factory()->create();
+        $ip->macAddresses()->attach($mac, ['source' => 'auth', 'last_seen_at' => now()]);
 
-        $this->assertSame('AA:BB:CC:DD:EE:FF', $ip->mac);
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $ip->currentMac()?->mac_address);
     }
 
-    public function test_mac_returns_null_when_no_relationship(): void
+    public function test_current_mac_returns_null_when_no_mac_attached(): void
     {
-        $ip = IpAddress::factory()->create(['mac_address_id' => null]);
-        $this->assertNull($ip->mac);
+        $ip = IpAddress::factory()->create();
+        $this->assertNull($ip->currentMac());
     }
 }

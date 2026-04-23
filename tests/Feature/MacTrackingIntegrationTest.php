@@ -45,11 +45,10 @@ class MacTrackingIntegrationTest extends TestCase
         $this->makeService()->enableInternet($ip);
 
         $ip->refresh();
-        $this->assertNotNull($ip->mac_address_id);
+        $this->assertNotNull($ip->currentMac());
         $this->assertDatabaseHas('mac_addresses', [
             'mac_address' => 'AA:BB:CC:DD:EE:FF',
             'source' => 'auth',
-            'allowed' => true,
         ]);
     }
 
@@ -63,7 +62,7 @@ class MacTrackingIntegrationTest extends TestCase
         $this->makeService()->enableInternet($ip);
 
         $ip->refresh();
-        $this->assertNull($ip->mac_address_id);
+        $this->assertNull($ip->currentMac());
     }
 
     public function test_allow_reuses_existing_mac_address_record(): void
@@ -72,13 +71,15 @@ class MacTrackingIntegrationTest extends TestCase
         $resolver->shouldReceive('resolveIpToMac')->andReturn('AA:BB:CC:DD:EE:FF');
         $this->app->instance(MacAddressResolverInterface::class, $resolver);
 
-        $existingMac = MacAddress::factory()->allowed()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $existingMac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.102']);
         $this->makeService()->enableInternet($ip);
 
         $ip->refresh();
-        $this->assertSame($existingMac->id, $ip->mac_address_id);
+        $currentMac = $ip->currentMac();
+        $this->assertNotNull($currentMac);
+        $this->assertSame($existingMac->id, $currentMac->id);
         $this->assertSame(1, MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:FF')->count());
     }
 
@@ -113,10 +114,10 @@ class MacTrackingIntegrationTest extends TestCase
         $this->makeService()->enableInternet($ip);
 
         $ip->refresh();
-        $this->assertNull($ip->mac_address_id);
+        $this->assertNull($ip->currentMac());
     }
 
-    public function test_allow_marks_existing_unallowed_mac_as_allowed(): void
+    public function test_allow_links_existing_mac_via_pivot(): void
     {
         $resolver = Mockery::mock(MacAddressResolverInterface::class);
         $resolver->shouldReceive('resolveIpToMac')->andReturn('BB:CC:DD:EE:FF:00');
@@ -124,15 +125,14 @@ class MacTrackingIntegrationTest extends TestCase
 
         $mac = MacAddress::factory()->create([
             'mac_address' => 'BB:CC:DD:EE:FF:00',
-            'allowed' => false,
-            'allowed_at' => null,
         ]);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.105']);
         $this->makeService()->enableInternet($ip);
 
-        $mac->refresh();
-        $this->assertTrue((bool) $mac->allowed);
-        $this->assertNotNull($mac->allowed_at);
+        $ip->refresh();
+        $currentMac = $ip->currentMac();
+        $this->assertNotNull($currentMac);
+        $this->assertSame($mac->id, $currentMac->id);
     }
 }

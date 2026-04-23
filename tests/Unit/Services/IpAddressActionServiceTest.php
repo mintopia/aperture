@@ -98,12 +98,11 @@ class IpAddressActionServiceTest extends TestCase
         $service->enableInternet($ip);
 
         $ip->refresh();
-        $this->assertNotNull($ip->mac_address_id);
+        $this->assertNotNull($ip->currentMac());
 
         // NormalizeMacAddress cast converts to uppercase colon-separated format
         $mac = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:FF')->first();
         $this->assertNotNull($mac);
-        $this->assertTrue($mac->allowed);
     }
 
     public function test_enable_internet_does_not_save_ip_fields(): void
