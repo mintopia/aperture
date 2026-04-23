@@ -19,6 +19,8 @@ const props = defineProps({
     auths: { type: Array, default: () => [] },
     downloaded: { type: Number, default: 0 },
     uploaded: { type: Number, default: 0 },
+    macAddresses: { type: Array, default: () => [] },
+    auditLogs: { type: Array, default: () => [] },
 });
 
 const showBlockModal = ref(false);
@@ -49,6 +51,19 @@ const ipColumns = [
     { key: 'address', label: 'Address' },
     { key: 'status', label: 'Status' },
     { key: 'last_seen', label: 'Last Seen' },
+];
+
+const macColumns = [
+    { key: 'mac_address', label: 'MAC Address' },
+    { key: 'hostname', label: 'Hostname' },
+    { key: 'current_ips', label: 'Current IP(s)' },
+    { key: 'source', label: 'Source' },
+];
+
+const auditColumns = [
+    { key: 'action', label: 'Action' },
+    { key: 'process', label: 'Process' },
+    { key: 'timestamp', label: 'Timestamp' },
 ];
 </script>
 
@@ -143,6 +158,44 @@ const ipColumns = [
                     </td>
                     <td class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ formatRelative(row.last_seen_at) }}
+                    </td>
+                </template>
+            </DataTable>
+        </section>
+
+        <section data-testid="user-macs-section">
+            <SectionHeader title="MAC Addresses" class="mt-5" />
+            <DataTable
+                :columns="macColumns"
+                :rows="macAddresses"
+                clickable
+                :row-href="(row) => route('admin.macs.show', row.mac_address)"
+                :row-aria-label="(row) => `Open MAC ${row.mac_address}`"
+                empty-message="No MAC addresses associated."
+            >
+                <template #row="{ row }">
+                    <td class="font-mono text-[13px] text-[var(--color-text)]">{{ row.mac_address }}</td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">{{ row.hostname ?? '—' }}</td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        <span v-for="(ip, i) in row.current_ips" :key="ip.id">
+                            <span class="font-mono">{{ ip.address }}</span>
+                            <span v-if="i < row.current_ips.length - 1">, </span>
+                        </span>
+                        <span v-if="!row.current_ips?.length">&mdash;</span>
+                    </td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">{{ row.source }}</td>
+                </template>
+            </DataTable>
+        </section>
+
+        <section data-testid="user-audit-section">
+            <SectionHeader title="Audit Log" class="mt-5" />
+            <DataTable :columns="auditColumns" :rows="auditLogs" empty-message="No audit entries.">
+                <template #row="{ row }">
+                    <td class="font-mono text-[13px] text-[var(--color-text)]">{{ row.action }}</td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">{{ row.process }}</td>
+                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ formatRelative(row.created_at) }}
                     </td>
                 </template>
             </DataTable>

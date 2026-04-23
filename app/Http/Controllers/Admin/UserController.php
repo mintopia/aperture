@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
+use App\Models\MacAddress;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,12 +58,43 @@ class UserController extends Controller
         $downloaded = $ips->sum('ip.received');
         $uploaded = $ips->sum('ip.sent');
 
+        $macAddresses = $user->macAddresses()
+            ->get()
+            ->map(function (MacAddress $mac) {
+                return [
+                    'id' => $mac->id,
+                    'mac_address' => $mac->mac_address,
+                    'hostname' => $mac->currentHostname(),
+                    'current_ips' => $mac->ipAddresses()
+                        ->orderByPivot('last_seen_at', 'desc')
+                        ->take(3)
+                        ->get()
+                        ->map(fn ($ip) => ['id' => $ip->id, 'address' => $ip->address]),
+                    'source' => $mac->source,
+                ];
+            });
+
+        $auditLogs = AuditLog::where('subject_type', $user->getMorphClass())
+            ->where('subject_id', $user->id)
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get()
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'process' => $log->process,
+                'metadata' => $log->metadata,
+                'created_at' => $log->created_at?->toIso8601String(),
+            ]);
+
         return Inertia::render('Admin/Users/Show', [
             'user' => $user,
             'roles' => $roles,
             'ips' => $ips,
             'downloaded' => $downloaded,
             'uploaded' => $uploaded,
+            'macAddresses' => $macAddresses,
+            'auditLogs' => $auditLogs,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
                 ['label' => 'Users', 'href' => route('admin.users.index')],
