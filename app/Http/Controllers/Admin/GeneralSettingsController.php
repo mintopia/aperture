@@ -19,7 +19,6 @@ class GeneralSettingsController extends Controller
         return Inertia::render('Admin/Content/Settings', [
             'settings' => [
                 'site_title' => Setting::get('general.site_title', ''),
-                'dns_filtering_default' => (bool) Setting::get('general.dns_filtering_default', false),
                 'terms_type' => Setting::get('general.terms_type', 'url'),
                 'terms_value' => Setting::get('general.terms_value'),
                 'privacy_type' => Setting::get('general.privacy_type', 'url'),
@@ -38,7 +37,6 @@ class GeneralSettingsController extends Controller
     {
         $validated = $request->validate([
             'site_title' => 'required|string|max:255',
-            'dns_filtering_default' => 'boolean',
             'terms_type' => 'required|string|in:page,url',
             'terms_value' => 'nullable|string|max:500',
             'privacy_type' => 'required|string|in:page,url',
@@ -46,7 +44,6 @@ class GeneralSettingsController extends Controller
         ]);
 
         Setting::set('general.site_title', 'Site Title', $validated['site_title']);
-        Setting::set('general.dns_filtering_default', 'DNS Filtering Default', $validated['dns_filtering_default'] ? '1' : '0');
         Setting::set('general.terms_type', 'Terms Type', $validated['terms_type']);
         Setting::set('general.terms_value', 'Terms Value', $validated['terms_value'] ?? null);
         Setting::set('general.privacy_type', 'Privacy Type', $validated['privacy_type']);

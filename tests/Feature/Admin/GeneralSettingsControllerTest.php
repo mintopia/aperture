@@ -63,7 +63,6 @@ class GeneralSettingsControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->put('/admin/content/settings', [
             'site_title' => 'My Network Portal',
-            'dns_filtering_default' => false,
             'terms_type' => 'url',
             'terms_value' => null,
             'privacy_type' => 'url',
@@ -74,24 +73,6 @@ class GeneralSettingsControllerTest extends TestCase
         $this->assertEquals('My Network Portal', Setting::get('general.site_title'));
     }
 
-    public function test_admin_can_save_dns_filtering_default(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', [
-            'site_title' => 'Portal',
-            'dns_filtering_default' => true,
-            'terms_type' => 'url',
-            'terms_value' => null,
-            'privacy_type' => 'url',
-            'privacy_value' => null,
-        ]);
-
-        $response->assertRedirect();
-        $this->assertEquals('1', Setting::get('general.dns_filtering_default'));
-    }
-
     public function test_admin_can_save_terms_as_page(): void
     {
         Queue::fake();
@@ -99,7 +80,6 @@ class GeneralSettingsControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->put('/admin/content/settings', [
             'site_title' => 'Portal',
-            'dns_filtering_default' => false,
             'terms_type' => 'page',
             'terms_value' => 'terms-of-service',
             'privacy_type' => 'url',
@@ -118,7 +98,6 @@ class GeneralSettingsControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->put('/admin/content/settings', [
             'site_title' => 'Portal',
-            'dns_filtering_default' => false,
             'terms_type' => 'url',
             'terms_value' => 'https://example.com/terms',
             'privacy_type' => 'url',
@@ -137,7 +116,6 @@ class GeneralSettingsControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->put('/admin/content/settings', [
             'site_title' => '',
-            'dns_filtering_default' => false,
             'terms_type' => 'url',
             'terms_value' => null,
             'privacy_type' => 'url',
@@ -154,7 +132,6 @@ class GeneralSettingsControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->put('/admin/content/settings', [
             'site_title' => 'Portal',
-            'dns_filtering_default' => false,
             'terms_type' => 'invalid',
             'terms_value' => null,
             'privacy_type' => 'url',
@@ -172,7 +149,6 @@ class GeneralSettingsControllerTest extends TestCase
         $this->actingAs($user)->get('/admin/content/settings')->assertForbidden();
         $this->actingAs($user)->put('/admin/content/settings', [
             'site_title' => 'Portal',
-            'dns_filtering_default' => false,
             'terms_type' => 'url',
             'terms_value' => null,
             'privacy_type' => 'url',
@@ -186,7 +162,6 @@ class GeneralSettingsControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         $this->saveSetting('general.site_title', 'Site Title', 'My Portal');
-        $this->saveSetting('general.dns_filtering_default', 'DNS Filtering Default', '1');
         $this->saveSetting('general.terms_type', 'Terms Type', 'page');
         $this->saveSetting('general.terms_value', 'Terms Value', 'terms');
 
@@ -197,7 +172,6 @@ class GeneralSettingsControllerTest extends TestCase
             ->component('Admin/Content/Settings')
             ->has('settings')
             ->where('settings.site_title', 'My Portal')
-            ->where('settings.dns_filtering_default', true)
             ->where('settings.terms_type', 'page')
             ->where('settings.terms_value', 'terms')
         );

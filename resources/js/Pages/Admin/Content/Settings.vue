@@ -12,7 +12,6 @@ const props = defineProps({
 
 const form = useForm({
     site_title: props.settings?.site_title ?? '',
-    dns_filtering_default: props.settings?.dns_filtering_default ?? false,
     terms_type: props.settings?.terms_type ?? 'url',
     terms_value: props.settings?.terms_value ?? '',
     privacy_type: props.settings?.privacy_type ?? 'url',
@@ -54,30 +53,6 @@ function submit() {
                 <p class="mt-1 text-[11px] text-[var(--color-text-muted)]">
                     Displayed in the portal header and browser tab
                 </p>
-            </FormField>
-
-            <!-- Network Defaults -->
-            <h2
-                data-testid="section-heading-network"
-                class="font-heading mt-8 mb-4 text-[10px] font-bold tracking-[1.5px] text-[var(--color-text-muted)] uppercase"
-            >
-                Network Defaults
-            </h2>
-
-            <FormField label="DNS Filtering Default" name="dns_filtering_default">
-                <div class="flex items-center gap-3">
-                    <input
-                        id="dns_filtering_default"
-                        v-model="form.dns_filtering_default"
-                        type="checkbox"
-                        data-testid="toggle-dns-filtering"
-                        class="h-4 w-4 cursor-pointer rounded accent-[var(--color-primary)]"
-                    />
-                    <label for="dns_filtering_default" class="cursor-pointer text-[13px] text-[var(--color-text)]">
-                        Enabled for new connections
-                    </label>
-                </div>
-                <p class="mt-1 text-[11px] text-[var(--color-text-muted)]">Enabled for new connections</p>
             </FormField>
 
             <!-- Legal -->

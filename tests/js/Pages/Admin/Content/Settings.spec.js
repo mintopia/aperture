@@ -25,7 +25,6 @@ function mountPage(settings = {}, pages = []) {
         props: {
             settings: {
                 site_title: '',
-                dns_filtering_default: false,
                 terms_type: 'url',
                 terms_value: '',
                 privacy_type: 'url',
@@ -56,24 +55,6 @@ describe('Admin Content Settings page', () => {
         expect(input.element.value).toBe('My Site');
     });
 
-    it('renders DNS filtering toggle', () => {
-        const wrapper = mountPage({ dns_filtering_default: true });
-        const toggle = wrapper.find('[data-testid="toggle-dns-filtering"]');
-        expect(toggle.exists()).toBe(true);
-    });
-
-    it('reflects DNS filtering default state as checked', () => {
-        const wrapper = mountPage({ dns_filtering_default: true });
-        const toggle = wrapper.find('[data-testid="toggle-dns-filtering"]');
-        expect(toggle.element.checked).toBe(true);
-    });
-
-    it('reflects DNS filtering default state as unchecked', () => {
-        const wrapper = mountPage({ dns_filtering_default: false });
-        const toggle = wrapper.find('[data-testid="toggle-dns-filtering"]');
-        expect(toggle.element.checked).toBe(false);
-    });
-
     it('renders terms type selector', () => {
         const wrapper = mountPage();
         const select = wrapper.find('[data-testid="select-terms-type"]');
@@ -91,13 +72,6 @@ describe('Admin Content Settings page', () => {
         const headings = wrapper.findAll('[data-testid^="section-heading"]');
         const texts = headings.map((h) => h.text());
         expect(texts).toContain('Branding');
-    });
-
-    it('renders Network Defaults section heading', () => {
-        const wrapper = mountPage();
-        const headings = wrapper.findAll('[data-testid^="section-heading"]');
-        const texts = headings.map((h) => h.text());
-        expect(texts).toContain('Network Defaults');
     });
 
     it('renders Legal section heading', () => {
@@ -158,7 +132,6 @@ describe('Admin Content Settings page', () => {
         const mockPut = vi.fn();
         useForm.mockReturnValueOnce({
             site_title: '',
-            dns_filtering_default: false,
             terms_type: 'url',
             terms_value: '',
             privacy_type: 'url',
