@@ -148,7 +148,7 @@ class IosOutputParser
             return [];
         }
 
-        $pattern = '/^((?:GigabitEthernet|FastEthernet|TenGigabitEthernet|TwentyFiveGigE|FortyGigabitEthernet|HundredGigE|Vlan|Loopback|Port-channel)\S+)\s+is\s+/m';
+        $pattern = '/^(\S+)\s+is\s+/m';
 
         $parts = preg_split($pattern, $output, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
         if ($parts === false) {
@@ -156,7 +156,8 @@ class IosOutputParser
         }
 
         $result = [];
-        for ($i = 0; $i < count($parts) - 1; $i += 2) {
+        $partCount = count($parts);
+        for ($i = 0; $i < $partCount - 1; $i += 2) {
             $interfaceName = $parts[$i];
             $block = $interfaceName.' is '.$parts[$i + 1];
             $result[$interfaceName] = trim($block);
