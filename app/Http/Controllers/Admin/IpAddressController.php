@@ -40,7 +40,7 @@ class IpAddressController extends Controller
             'address' => $request->input('address', ''),
             'nickname' => $request->input('nickname', ''),
         ];
-        $query = IpAddress::query()->with(['users.user', 'macAddresses']);
+        $query = IpAddress::query()->with(['users.user']);
 
         if ($filters->address) {
             $query = $query->where('address', $filters->address);
