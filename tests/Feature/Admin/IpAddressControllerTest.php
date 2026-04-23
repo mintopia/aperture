@@ -255,6 +255,96 @@ class IpAddressControllerTest extends TestCase
         $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
     }
 
+    public function test_port_requires_shutdown_field(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.50';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/port', []);
+        $response->assertSessionHasErrors(['shutdown']);
+    }
+
+    public function test_port_rejects_non_boolean_shutdown(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.51';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/port', [
+            'shutdown' => 'notabool',
+        ]);
+        $response->assertSessionHasErrors(['shutdown']);
+    }
+
+    public function test_limit_requires_limit_field(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.52';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', []);
+        $response->assertSessionHasErrors(['limit']);
+    }
+
+    public function test_limit_rejects_non_boolean_limit(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.53';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', [
+            'limit' => 'notabool',
+        ]);
+        $response->assertSessionHasErrors(['limit']);
+    }
+
+    public function test_internet_requires_allow_field(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.54';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', []);
+        $response->assertSessionHasErrors(['allow']);
+    }
+
+    public function test_internet_rejects_non_boolean_allow(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.55';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', [
+            'allow' => 'notabool',
+        ]);
+        $response->assertSessionHasErrors(['allow']);
+    }
+
     public function test_admin_can_allow_internet(): void
     {
         Queue::fake();
@@ -351,7 +441,6 @@ class IpAddressControllerTest extends TestCase
             ->has('port')
             ->where('status', 'Unable to connect to switch')
             ->where('shutdown', true)
-            ->where('config', null)
         );
     }
 

@@ -17,7 +17,6 @@ const props = defineProps({
     ip: { type: Object, default: () => ({}) },
     port: { type: Object, default: () => ({}) },
     status: { type: String, default: '' },
-    config: { type: String, default: '' },
     shutdown: Boolean,
     users: { type: Array, default: () => [] },
 });
@@ -46,9 +45,8 @@ function confirmToggleInternet() {
     );
 }
 
-// eslint-disable-next-line no-unused-vars
-function togglePort(ip) {
-    router.post(route('admin.ips.port', ip.id), {
+function togglePort() {
+    router.post(route('admin.ips.port', props.ip.id), {
         shutdown: props.shutdown ? 0 : 1,
     });
 }
@@ -237,7 +235,21 @@ onMounted(() => {
         </DataTable>
 
         <template v-if="port">
-            <SectionHeader title="Switch Port" class="mt-5" />
+            <div class="mt-5 flex items-center justify-between">
+                <SectionHeader title="Switch Port" />
+                <button
+                    data-testid="action-toggle-port"
+                    :class="
+                        shutdown
+                            ? 'border-[var(--color-success)] bg-[var(--color-success)]'
+                            : 'border-[var(--color-danger)] bg-[var(--color-danger)]'
+                    "
+                    class="rounded-md border px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)]"
+                    @click="togglePort"
+                >
+                    {{ shutdown ? 'Enable Port' : 'Disable Port' }}
+                </button>
+            </div>
             <ConfigBlock v-if="status" :code="status" />
         </template>
     </div>

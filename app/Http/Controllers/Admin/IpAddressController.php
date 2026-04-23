@@ -86,7 +86,6 @@ class IpAddressController extends Controller
     public function show(IpAddress $ip): Response
     {
         $status = null;
-        $config = null;
         $shutdown = false;
         $port = $this->ipAddressActionService->getPortInfo($ip);
         if ($port !== null) {
@@ -107,7 +106,6 @@ class IpAddressController extends Controller
             'ip' => $ip,
             'port' => $port,
             'status' => $status,
-            'config' => $config,
             'shutdown' => $shutdown,
             'users' => $users,
             'breadcrumbs' => [
@@ -120,7 +118,9 @@ class IpAddressController extends Controller
 
     public function port(Request $request, IpAddress $ip): RedirectResponse
     {
-        if ($request->input('shutdown') == 1) {
+        $request->validate(['shutdown' => 'required|boolean']);
+
+        if ($request->boolean('shutdown')) {
             IpAddressAction::dispatch($ip, 'shutPort');
             $message = 'The network port will be disabled';
         } else {
@@ -133,7 +133,9 @@ class IpAddressController extends Controller
 
     public function limit(Request $request, IpAddress $ip): RedirectResponse
     {
-        $ip->rate_limit_enabled = (bool) $request->input('limit');
+        $request->validate(['limit' => 'required|boolean']);
+
+        $ip->rate_limit_enabled = $request->boolean('limit');
         $ip->save();
 
         $message = $ip->rate_limit_enabled ? 'The IP will be rate limited' : 'The rate limit will be removed for this IP';
@@ -143,7 +145,9 @@ class IpAddressController extends Controller
 
     public function internet(Request $request, IpAddress $ip): RedirectResponse
     {
-        $ip->internet_enabled = (bool) $request->input('allow');
+        $request->validate(['allow' => 'required|boolean']);
+
+        $ip->internet_enabled = $request->boolean('allow');
         $ip->save();
 
         $message = $ip->internet_enabled ? 'Internet will be enabled for this IP' : 'Internet will be disabled for this IP';
