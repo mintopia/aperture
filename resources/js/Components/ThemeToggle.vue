@@ -7,8 +7,11 @@ const { mode, toggleMode } = useTheme();
 <template>
     <button
         type="button"
-        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+        role="switch"
+        :aria-checked="mode === 'dark'"
+        :aria-label="mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
         :title="mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
         @click="toggleMode"
     >
         <!-- Sun icon (shown in dark mode) -->

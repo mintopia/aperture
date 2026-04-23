@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { Link } from '@inertiajs/vue3';
 
 defineProps({
@@ -8,10 +8,82 @@ defineProps({
 
 const open = ref(false);
 const menuRef = ref(null);
+const triggerRef = ref(null);
+const focusedIndex = ref(-1);
+
+function getMenuItems() {
+    if (!menuRef.value) {
+        return [];
+    }
+
+    return Array.from(menuRef.value.querySelectorAll('[role="menuitem"]'));
+}
 
 function handleClickOutside(e) {
     if (menuRef.value && !menuRef.value.contains(e.target)) {
         open.value = false;
+    }
+}
+
+function openMenu() {
+    open.value = true;
+    focusedIndex.value = -1;
+}
+
+function closeMenu() {
+    open.value = false;
+    focusedIndex.value = -1;
+
+    nextTick(() => {
+        if (triggerRef.value) {
+            triggerRef.value.focus();
+        }
+    });
+}
+
+function focusItem(index) {
+    const items = getMenuItems();
+
+    if (items.length === 0) {
+        return;
+    }
+
+    const clamped = Math.max(0, Math.min(index, items.length - 1));
+    focusedIndex.value = clamped;
+    items[clamped].focus();
+}
+
+function handleTriggerKeydown(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        openMenu();
+        nextTick(() => {
+            focusItem(e.key === 'ArrowDown' ? 0 : getMenuItems().length - 1);
+        });
+    } else if (e.key === 'Escape') {
+        closeMenu();
+    }
+}
+
+function handleMenuKeydown(e) {
+    const items = getMenuItems();
+    const count = items.length;
+
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        closeMenu();
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        focusItem(focusedIndex.value < count - 1 ? focusedIndex.value + 1 : 0);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        focusItem(focusedIndex.value > 0 ? focusedIndex.value - 1 : count - 1);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+        if (focusedIndex.value >= 0 && items[focusedIndex.value]) {
+            items[focusedIndex.value].click();
+        }
+    } else if (e.key === 'Tab') {
+        closeMenu();
     }
 }
 
@@ -22,9 +94,13 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 <template>
     <div ref="menuRef" class="relative">
         <button
+            ref="triggerRef"
             data-testid="user-menu-trigger"
+            aria-haspopup="menu"
+            :aria-expanded="open"
             class="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-[var(--color-surface-hover)]"
             @click="open = !open"
+            @keydown="handleTriggerKeydown"
         >
             <img
                 v-if="user.avatar_url"
@@ -57,12 +133,16 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
         <div
             v-if="open"
             data-testid="user-menu-dropdown"
+            role="menu"
             class="absolute top-full right-0 z-50 mt-2 w-52 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
+            @keydown="handleMenuKeydown"
         >
             <!-- Dashboard -->
             <a
                 :href="route('portal.dashboard')"
                 data-testid="user-menu-dashboard"
+                role="menuitem"
+                tabindex="-1"
                 class="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
                 @click="open = false"
             >
@@ -88,6 +168,8 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                 v-if="user.is_admin"
                 :href="route('admin.home')"
                 data-testid="user-menu-admin"
+                role="menuitem"
+                tabindex="-1"
                 class="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
                 @click="open = false"
             >
@@ -114,6 +196,8 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                 v-if="user.is_admin"
                 :href="route('account.settings')"
                 data-testid="user-menu-settings"
+                role="menuitem"
+                tabindex="-1"
                 class="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
                 @click="open = false"
             >
@@ -142,6 +226,8 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                 method="post"
                 as="button"
                 data-testid="user-menu-logout"
+                role="menuitem"
+                tabindex="-1"
                 class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-danger)] transition-colors hover:bg-[var(--color-surface-hover)]"
                 @click="open = false"
             >

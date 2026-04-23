@@ -176,4 +176,113 @@ describe('UserMenu', () => {
         const initialsDiv = trigger.find('div');
         expect(initialsDiv.text()).toBe('Z');
     });
+
+    // ARIA accessibility tests
+    it('trigger has aria-haspopup="menu"', () => {
+        const wrapper = mountComponent();
+        const trigger = wrapper.find('[data-testid="user-menu-trigger"]');
+        expect(trigger.attributes('aria-haspopup')).toBe('menu');
+    });
+
+    it('trigger has aria-expanded="false" when dropdown is closed', () => {
+        const wrapper = mountComponent();
+        const trigger = wrapper.find('[data-testid="user-menu-trigger"]');
+        expect(trigger.attributes('aria-expanded')).toBe('false');
+    });
+
+    it('trigger has aria-expanded="true" when dropdown is open', async () => {
+        const wrapper = mountComponent();
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+        const trigger = wrapper.find('[data-testid="user-menu-trigger"]');
+        expect(trigger.attributes('aria-expanded')).toBe('true');
+    });
+
+    it('dropdown has role="menu"', async () => {
+        const wrapper = mountComponent();
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+        const dropdown = wrapper.find('[data-testid="user-menu-dropdown"]');
+        expect(dropdown.attributes('role')).toBe('menu');
+    });
+
+    it('dashboard link has role="menuitem"', async () => {
+        const wrapper = mountComponent(regularUser);
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+        expect(wrapper.find('[data-testid="user-menu-dashboard"]').attributes('role')).toBe('menuitem');
+    });
+
+    it('logout link has role="menuitem"', async () => {
+        const wrapper = mountComponent(regularUser);
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+        expect(wrapper.find('[data-testid="user-menu-logout"]').attributes('role')).toBe('menuitem');
+    });
+
+    it('admin link has role="menuitem"', async () => {
+        const wrapper = mountComponent(adminUser);
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+        expect(wrapper.find('[data-testid="user-menu-admin"]').attributes('role')).toBe('menuitem');
+    });
+
+    it('settings link has role="menuitem"', async () => {
+        const wrapper = mountComponent(adminUser);
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+        expect(wrapper.find('[data-testid="user-menu-settings"]').attributes('role')).toBe('menuitem');
+    });
+
+    // Keyboard navigation tests
+    it('closes on Escape key', async () => {
+        const wrapper = mountComponent();
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+        expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(true);
+
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('keydown', { key: 'Escape' });
+        expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false);
+    });
+
+    it('opens menu on ArrowDown when closed', async () => {
+        const wrapper = mountComponent();
+        expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false);
+
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('keydown', { key: 'ArrowDown' });
+        expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(true);
+    });
+
+    it('opens menu on ArrowUp when closed', async () => {
+        const wrapper = mountComponent();
+        expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false);
+
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('keydown', { key: 'ArrowUp' });
+        expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(true);
+    });
+
+    it('navigates menu items with ArrowDown key', async () => {
+        const wrapper = mountComponent();
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+
+        const dropdown = wrapper.find('[data-testid="user-menu-dropdown"]');
+        await dropdown.trigger('keydown', { key: 'ArrowDown' });
+
+        const items = wrapper.findAll('[role="menuitem"]');
+        expect(items.length).toBeGreaterThan(0);
+    });
+
+    it('navigates menu items with ArrowUp key', async () => {
+        const wrapper = mountComponent();
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+
+        const dropdown = wrapper.find('[data-testid="user-menu-dropdown"]');
+        await dropdown.trigger('keydown', { key: 'ArrowUp' });
+
+        const items = wrapper.findAll('[role="menuitem"]');
+        expect(items.length).toBeGreaterThan(0);
+    });
+
+    it('dropdown has keydown handler for Escape', async () => {
+        const wrapper = mountComponent();
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+
+        const dropdown = wrapper.find('[data-testid="user-menu-dropdown"]');
+        await dropdown.trigger('keydown', { key: 'Escape' });
+
+        expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false);
+    });
 });
