@@ -22,9 +22,7 @@ describe('Admin IP Show access confirmation modal integration', () => {
     const defaultProps = {
         ip: { id: 1, address: '192.168.1.10', internet_enabled: true, comment: 'Test IP' },
         port: { interface: 'Gi1/0/1' },
-        status: '',
-        config: '',
-        shutdown: false,
+        switchInfo: null,
         users: [
             { user: { id: 1, nickname: 'Alice' }, last_seen_at: '2024-01-01T00:00:00Z' },
             { user: { id: 2, nickname: 'Bob' }, last_seen_at: '2024-01-01T00:00:00Z' },
@@ -50,7 +48,6 @@ describe('Admin IP Show access confirmation modal integration', () => {
                     MetadataStrip: { template: '<div data-testid="metadata-strip" />' },
                     SectionHeader: { template: '<div><slot /></div>' },
                     DataTable: { template: '<div data-testid="data-table" />' },
-                    ConfigBlock: { template: '<div data-testid="config-block" />' },
                     teleport: true,
                 },
             },
@@ -162,5 +159,61 @@ describe('Admin IP Show access confirmation modal integration', () => {
         await wrapper.find('[data-testid="action-grant"]').trigger('click');
 
         expect(wrapper.find('[data-testid="confirm-modal-message"]').text()).toMatch(/grant|restore|allow|access/i);
+    });
+
+    it('enable rate limit button calls router.post with limit: 1 when rate limiting is disabled', async () => {
+        const wrapper = mountPage({
+            ip: { rate_limit_enabled: false },
+        });
+
+        await wrapper.find('[data-testid="action-enable-rate-limit"]').trigger('click');
+
+        expect(router.post).toHaveBeenCalledWith(
+            expect.stringContaining('admin.ips.limit'),
+            { limit: 1 },
+            expect.any(Object),
+        );
+    });
+
+    it('disable rate limit button calls router.post with limit: 0 when rate limiting is enabled', async () => {
+        const wrapper = mountPage({
+            ip: { rate_limit_enabled: true },
+        });
+
+        await wrapper.find('[data-testid="action-disable-rate-limit"]').trigger('click');
+
+        expect(router.post).toHaveBeenCalledWith(
+            expect.stringContaining('admin.ips.limit'),
+            { limit: 0 },
+            expect.any(Object),
+        );
+    });
+
+    it('enable dns filter button calls router.post with filter: 1 when dns filtering is disabled', async () => {
+        const wrapper = mountPage({
+            ip: { dns_filtering_enabled: false },
+        });
+
+        await wrapper.find('[data-testid="action-enable-dns-filter"]').trigger('click');
+
+        expect(router.post).toHaveBeenCalledWith(
+            expect.stringContaining('admin.ips.dns-filter'),
+            { filter: 1 },
+            expect.any(Object),
+        );
+    });
+
+    it('disable dns filter button calls router.post with filter: 0 when dns filtering is enabled', async () => {
+        const wrapper = mountPage({
+            ip: { dns_filtering_enabled: true },
+        });
+
+        await wrapper.find('[data-testid="action-disable-dns-filter"]').trigger('click');
+
+        expect(router.post).toHaveBeenCalledWith(
+            expect.stringContaining('admin.ips.dns-filter'),
+            { filter: 0 },
+            expect.any(Object),
+        );
     });
 });

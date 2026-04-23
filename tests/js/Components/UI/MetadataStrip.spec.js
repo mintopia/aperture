@@ -1,6 +1,14 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
+
+vi.mock('@inertiajs/vue3', () => ({
+    Link: {
+        name: 'Link',
+        props: ['href'],
+        template: '<a :href="href"><slot /></a>',
+    },
+}));
 
 const items = [
     { label: 'Status', value: 'Active' },
@@ -99,5 +107,23 @@ describe('MetadataStrip', () => {
         });
         expect(wrapper.find('.custom-slot').exists()).toBe(true);
         expect(wrapper.text()).toContain('Custom');
+    });
+
+    it('renders a Link with correct href when item has href', () => {
+        const wrapper = mount(MetadataStrip, {
+            props: { items: [{ label: 'Switch', value: 'SW-01', href: '/admin/switches/5' }] },
+        });
+        const link = wrapper.find('a');
+        expect(link.exists()).toBe(true);
+        expect(link.attributes('href')).toBe('/admin/switches/5');
+        expect(link.text()).toContain('SW-01');
+    });
+
+    it('renders plain text (no Link) when item has no href', () => {
+        const wrapper = mount(MetadataStrip, {
+            props: { items: [{ label: 'Status', value: 'Active' }] },
+        });
+        expect(wrapper.find('a').exists()).toBe(false);
+        expect(wrapper.text()).toContain('Active');
     });
 });

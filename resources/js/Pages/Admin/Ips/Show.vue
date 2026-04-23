@@ -14,7 +14,7 @@ defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     ip: { type: Object, default: () => ({}) },
-    port: { type: Object, default: () => ({}) },
+    port: { type: Object, default: () => ({}) }, // kept for metadata — passed from controller
     switchInfo: { type: Object, default: null },
     users: { type: Array, default: () => [] },
 });
@@ -187,7 +187,7 @@ onMounted(() => {
         <MetadataStrip
             :items="[
                 { label: 'Status', value: statusValue },
-                { label: 'MAC Address', value: ip.mac || '\u2014' },
+                { label: 'MAC Address', value: ip.mac || '\u2014', mono: true },
                 { label: 'Rate Limiting', value: ip.rate_limit_enabled ? 'Enabled' : '\u2014' },
                 { label: 'DNS Filtering', value: ip.dns_filtering_enabled ? 'Enabled' : '\u2014' },
                 {

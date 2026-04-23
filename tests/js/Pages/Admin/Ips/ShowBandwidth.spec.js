@@ -28,9 +28,7 @@ const defaultBandwidthResponse = {
 const defaultProps = {
     ip: { id: 1, address: '10.0.0.1', internet_enabled: true, comment: 'Test' },
     port: null,
-    status: '',
-    config: '',
-    shutdown: false,
+    switchInfo: null,
     users: [],
 };
 
@@ -71,7 +69,6 @@ function mountPage(overrides = {}) {
                 MetadataStrip: { template: '<div data-testid="metadata-strip" />' },
                 SectionHeader: { template: '<div><slot /></div>' },
                 DataTable: { template: '<div data-testid="data-table" />' },
-                ConfigBlock: { template: '<div data-testid="config-block" />' },
                 TimeSeriesChart: TimeSeriesChartStub,
                 teleport: true,
             },
