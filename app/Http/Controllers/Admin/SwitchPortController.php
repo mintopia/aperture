@@ -13,6 +13,7 @@ use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use DateTimeInterface;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -104,46 +105,7 @@ class SwitchPortController extends Controller
             'port' => $portData,
             'prevPort' => $prevPort,
             'nextPort' => $nextPort,
-            'macs' => $macs->map(function (SwitchPortMac $mac): array {
-                $resolvedIps = [];
-
-                try {
-                    $resolvedIps = $this->macResolver->resolveMacToIps($mac->mac_address);
-                } catch (Throwable) {
-                    // DHCP unavailable, continue without IP resolution
-                }
-
-                $resolvedIps = array_map(function (array $ipData): array {
-                    try {
-                        $ipRecord = IpAddress::where('address', $ipData['ip'])->first();
-                        $latestUser = $ipRecord?->users()->with('user')->latest('last_seen_at')->first();
-
-                        return [
-                            'id' => $ipRecord?->id,
-                            'ip' => $ipData['ip'],
-                            'hostname' => $ipData['hostname'],
-                            'user' => $latestUser?->user ? [
-                                'id' => $latestUser->user->id,
-                                'nickname' => $latestUser->user->nickname,
-                            ] : null,
-                        ];
-                    } catch (Throwable) {
-                        return [
-                            'id' => null,
-                            'ip' => $ipData['ip'],
-                            'hostname' => $ipData['hostname'],
-                            'user' => null,
-                        ];
-                    }
-                }, $resolvedIps);
-
-                return [
-                    'mac_address' => $mac->mac_address,
-                    'vlan' => $mac->vlan,
-                    'last_seen_at' => $this->toIso8601String($mac->last_seen_at),
-                    'resolved_ips' => $resolvedIps,
-                ];
-            }),
+            'macs' => $this->resolveConnectedDevices($macs, $this->macResolver),
             'bandwidth' => $bandwidth,
             'errors' => $errors,
             'metricsAvailable' => $this->metrics->isAvailable(),
@@ -154,6 +116,86 @@ class SwitchPortController extends Controller
                 ['label' => $portId],
             ],
         ]);
+    }
+
+    /**
+     * Resolve connected devices for all MACs, batch-loading IP address records
+     * and their associated users to avoid N+1 queries.
+     *
+     * @param  Collection<int, SwitchPortMac>  $macs
+     * @return array<int, array{mac_address: string, vlan: int|null, last_seen_at: string|null, resolved_ips: array<int, array{id: int|null, ip: string, hostname: string|null, user: array{id: int, nickname: string}|null}>}>
+     */
+    private function resolveConnectedDevices(Collection $macs, MacAddressResolverInterface $macResolver): array
+    {
+        // Step 1: resolve all MACs to IPs in one pass, capturing per-MAC results.
+        /** @var array<string, array<int, array{ip: string, hostname: string|null}>> $macToIpData */
+        $macToIpData = [];
+
+        foreach ($macs as $mac) {
+            try {
+                $macToIpData[$mac->mac_address] = $macResolver->resolveMacToIps($mac->mac_address);
+            } catch (Throwable) {
+                // DHCP unavailable, continue without IP resolution
+                $macToIpData[$mac->mac_address] = [];
+            }
+        }
+
+        // Step 2: collect every unique IP address string across all MACs.
+        $allIpStrings = [];
+
+        foreach ($macToIpData as $ipDataList) {
+            foreach ($ipDataList as $ipData) {
+                $allIpStrings[] = $ipData['ip'];
+            }
+        }
+
+        $allIpStrings = array_unique($allIpStrings);
+
+        // Step 3: batch-load all IpAddress records and eager-load users with their user relationship.
+        /** @var array<string, IpAddress> $ipRecordsByAddress */
+        $ipRecordsByAddress = [];
+
+        try {
+            IpAddress::whereIn('address', $allIpStrings)
+                ->with(['users' => fn ($q) => $q->with('user')->latest('last_seen_at')->limit(1)])
+                ->get()
+                ->each(function (IpAddress $record) use (&$ipRecordsByAddress): void {
+                    $ipRecordsByAddress[$record->address] = $record;
+                });
+        } catch (Throwable) {
+            // DB unavailable — proceed with empty map; each IP will return null user.
+        }
+
+        // Step 4: assemble the output array, one entry per MAC.
+        $result = [];
+
+        foreach ($macs as $mac) {
+            $ipDataList = $macToIpData[$mac->mac_address];
+
+            $resolvedIps = array_map(function (array $ipData) use ($ipRecordsByAddress): array {
+                $ipRecord = $ipRecordsByAddress[$ipData['ip']] ?? null;
+                $latestUser = $ipRecord?->users->first();
+
+                return [
+                    'id' => $ipRecord?->id,
+                    'ip' => $ipData['ip'],
+                    'hostname' => $ipData['hostname'],
+                    'user' => $latestUser?->user ? [
+                        'id' => $latestUser->user->id,
+                        'nickname' => $latestUser->user->nickname,
+                    ] : null,
+                ];
+            }, $ipDataList);
+
+            $result[] = [
+                'mac_address' => $mac->mac_address,
+                'vlan' => $mac->vlan,
+                'last_seen_at' => $this->toIso8601String($mac->last_seen_at),
+                'resolved_ips' => $resolvedIps,
+            ];
+        }
+
+        return $result;
     }
 
     /**
