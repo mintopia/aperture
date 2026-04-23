@@ -6,7 +6,9 @@ import UsersIcon from '@/Components/Icons/UsersIcon.vue';
 import IpsIcon from '@/Components/Icons/IpsIcon.vue';
 import SwitchesIcon from '@/Components/Icons/SwitchesIcon.vue';
 import DhcpIcon from '@/Components/Icons/DhcpIcon.vue';
+import AuditLogIcon from '@/Components/Icons/AuditLogIcon.vue';
 import ContentIcon from '@/Components/Icons/ContentIcon.vue';
+import MacsIcon from '@/Components/Icons/MacsIcon.vue';
 import SettingsIcon from '@/Components/Icons/SettingsIcon.vue';
 
 const page = usePage();
@@ -22,6 +24,7 @@ const navGroups = [
             { label: 'IP Addresses', href: route('admin.ips.index'), icon: IpsIcon },
             { label: 'Switches', href: route('admin.switches.index'), icon: SwitchesIcon },
             { label: 'DHCP', href: route('admin.dhcp.index'), icon: DhcpIcon },
+            { label: 'MAC Addresses', href: route('admin.macs.index'), icon: MacsIcon },
         ],
     },
     {
@@ -41,6 +44,10 @@ const navGroups = [
             { label: 'Theme', href: route('admin.settings.theme'), icon: SettingsIcon },
             { label: 'Settings', href: route('admin.content.settings'), icon: SettingsIcon },
         ],
+    },
+    {
+        label: 'SYSTEM',
+        items: [{ label: 'Audit Log', href: route('admin.audit-log.index'), icon: AuditLogIcon }],
     },
 ];
 

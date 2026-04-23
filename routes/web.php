@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DhcpController;
 use App\Http\Controllers\Admin\DnsDetectionSettingsController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\IpAddressController;
 use App\Http\Controllers\Admin\Ipv6DetectionSettingsController;
+use App\Http\Controllers\Admin\MacAddressController;
 use App\Http\Controllers\Admin\NetworkSettingsController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\SearchController;
@@ -103,6 +105,13 @@ Route::middleware(['auth'])->group(function () {
         // DHCP
         Route::get('/dhcp', [DhcpController::class, 'index'])->name('dhcp.index');
         Route::get('/dhcp/leases', [DhcpController::class, 'leases'])->name('dhcp.leases');
+
+        // MAC Addresses
+        Route::get('/macs', [MacAddressController::class, 'index'])->name('macs.index');
+        Route::get('/macs/{mac}', [MacAddressController::class, 'show'])->name('macs.show');
+
+        // Audit Log
+        Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
 
         // Content blocks
         Route::put('/content/layout', [ContentController::class, 'updateLayout'])->name('content.layout.update');
