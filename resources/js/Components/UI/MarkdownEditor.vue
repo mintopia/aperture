@@ -1,10 +1,12 @@
 <script setup>
-import { ref, watch, onBeforeUnmount } from 'vue';
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
+import { marked } from 'marked';
+import TurndownService from 'turndown';
 
 const props = defineProps({
     modelValue: { type: String, default: '' },
@@ -16,39 +18,19 @@ const emit = defineEmits(['update:modelValue']);
 
 const mode = ref('visual');
 const sourceContent = ref(props.modelValue);
+const showLinkPopover = ref(false);
+const linkUrl = ref('');
+
+const turndown = new TurndownService();
 
 function markdownToHtml(md) {
     if (!md) return '';
-    return md
-        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
-        .replace(/^---$/gm, '<hr>')
-        .replace(/^- (.+)$/gm, '<li>$1</li>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/^(?!<[huo l p hr])(.+)$/gm, '<p>$1</p>');
+    return marked.parse(md);
 }
 
 function htmlToMarkdown(html) {
     if (!html) return '';
-    return html
-        .replace(/<h1>(.*?)<\/h1>/g, '# $1')
-        .replace(/<h2>(.*?)<\/h2>/g, '## $1')
-        .replace(/<h3>(.*?)<\/h3>/g, '### $1')
-        .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-        .replace(/<em>(.*?)<\/em>/g, '*$1*')
-        .replace(/<a href="(.*?)">(.*?)<\/a>/g, '[$2]($1)')
-        .replace(/<hr\s*\/?>/g, '---')
-        .replace(/<li>(.*?)<\/li>/g, '- $1')
-        .replace(/<\/?ul>/g, '')
-        .replace(/<\/?ol>/g, '')
-        .replace(/<\/?p>/g, '\n')
-        .replace(/<br\s*\/?>/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+    return turndown.turndown(html);
 }
 
 const editor = useEditor({
@@ -100,12 +82,25 @@ function onSourceInput(event) {
     emit('update:modelValue', value);
 }
 
+function openLinkPopover() {
+    linkUrl.value = '';
+    showLinkPopover.value = true;
+    nextTick(() => {
+        document.querySelector('[data-testid="link-url-input"]')?.focus();
+    });
+}
+
+function cancelLinkPopover() {
+    showLinkPopover.value = false;
+    linkUrl.value = '';
+}
+
 function insertLink() {
-    if (!editor.value) return;
-    const url = window.prompt('Enter URL');
-    if (url) {
-        editor.value.chain().focus().extendMarkToLink({ href: url }).run();
+    if (editor.value && linkUrl.value) {
+        editor.value.chain().focus().setLink({ href: linkUrl.value }).run();
     }
+    showLinkPopover.value = false;
+    linkUrl.value = '';
 }
 
 onBeforeUnmount(() => {
@@ -156,7 +151,7 @@ onBeforeUnmount(() => {
             <div
                 v-if="mode === 'visual'"
                 data-testid="editor-toolbar"
-                class="flex flex-wrap items-center gap-0.5 border-b border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1"
+                class="relative flex flex-wrap items-center gap-0.5 border-b border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1"
             >
                 <button
                     data-testid="toolbar-bold"
@@ -307,20 +302,57 @@ onBeforeUnmount(() => {
 
                 <span class="mx-1 h-4 w-px bg-[var(--color-border)]" aria-hidden="true" />
 
-                <button
-                    data-testid="toolbar-link"
-                    type="button"
-                    title="Link"
-                    class="rounded px-1.5 py-0.5 text-[13px] transition-colors"
-                    :class="
-                        editor?.isActive('link')
-                            ? 'bg-[var(--color-surface-hover)] text-[var(--color-text)]'
-                            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
-                    "
-                    @click="insertLink"
-                >
-                    🔗
-                </button>
+                <div class="relative">
+                    <button
+                        data-testid="toolbar-link"
+                        type="button"
+                        title="Link"
+                        class="rounded px-1.5 py-0.5 text-[13px] transition-colors"
+                        :class="
+                            editor?.isActive('link')
+                                ? 'bg-[var(--color-surface-hover)] text-[var(--color-text)]'
+                                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                        "
+                        @click="openLinkPopover"
+                    >
+                        Link
+                    </button>
+
+                    <!-- Inline link popover -->
+                    <div
+                        v-if="showLinkPopover"
+                        data-testid="link-popover"
+                        class="absolute top-full left-0 z-10 mt-1 flex items-center gap-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-md"
+                    >
+                        <input
+                            v-model="linkUrl"
+                            data-testid="link-url-input"
+                            type="url"
+                            placeholder="https://example.com"
+                            aria-label="URL"
+                            class="rounded border border-[var(--color-border)] bg-[var(--color-input-bg)] px-2 py-1 text-[12px] text-[var(--color-text)] focus:outline-none"
+                            @keydown.enter="insertLink"
+                            @keydown.esc="cancelLinkPopover"
+                        />
+                        <button
+                            data-testid="link-insert-button"
+                            type="button"
+                            class="rounded bg-[var(--color-primary)] px-2 py-1 text-[12px] text-[var(--color-accent-text)] transition-colors hover:opacity-90"
+                            @click="insertLink"
+                        >
+                            Insert
+                        </button>
+                        <button
+                            data-testid="link-cancel-button"
+                            type="button"
+                            class="rounded px-2 py-1 text-[12px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                            @click="cancelLinkPopover"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+
                 <button
                     data-testid="toolbar-code"
                     type="button"
