@@ -72,6 +72,21 @@ class SwitchConfig extends Model
 
     protected $hidden = ['password', 'enable_password'];
 
+    public static function defaultFallback(): self
+    {
+        return new self([
+            'name' => 'Default Cisco Switch',
+            'hostname' => (string) config('aperture.cisco.hostname', ''),
+            'type' => 'cisco',
+            'username' => (string) config('aperture.cisco.username', ''),
+            'password' => (string) config('aperture.cisco.password', ''),
+            'enable_password' => (string) config('aperture.cisco.enablePassword', ''),
+            'enabled' => true,
+            'port' => 22,
+            'timeout' => (int) config('aperture.cisco.timeout', 5),
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */

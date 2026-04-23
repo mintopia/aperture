@@ -381,16 +381,6 @@ class AppServiceProvider extends ServiceProvider
             // DB not available — use config fallback
         }
 
-        return new SwitchConfig([
-            'name' => 'Default Cisco Switch',
-            'hostname' => (string) config('aperture.cisco.hostname', ''),
-            'type' => 'cisco',
-            'username' => (string) config('aperture.cisco.username', ''),
-            'password' => (string) config('aperture.cisco.password', ''),
-            'enable_password' => (string) config('aperture.cisco.enablePassword', ''),
-            'enabled' => true,
-            'port' => 22,
-            'timeout' => (int) config('aperture.cisco.timeout', 5),
-        ]);
+        return SwitchConfig::defaultFallback();
     }
 }

@@ -111,4 +111,73 @@ class SwitchConfigTest extends TestCase
         $this->assertArrayNotHasKey('password', $array);
         $this->assertArrayNotHasKey('enable_password', $array);
     }
+
+    public function test_default_fallback_returns_switch_config_instance(): void
+    {
+        $switch = SwitchConfig::defaultFallback();
+
+        $this->assertInstanceOf(SwitchConfig::class, $switch);
+    }
+
+    public function test_default_fallback_uses_config_values(): void
+    {
+        config([
+            'aperture.cisco.hostname' => 'switch.example.com',
+            'aperture.cisco.username' => 'admin',
+            'aperture.cisco.password' => 'secret',
+            'aperture.cisco.enablePassword' => 'enable',
+            'aperture.cisco.timeout' => 10,
+        ]);
+
+        $switch = SwitchConfig::defaultFallback();
+
+        $this->assertSame('Default Cisco Switch', $switch->name);
+        $this->assertSame('switch.example.com', $switch->hostname);
+        $this->assertSame('cisco', $switch->type);
+        $this->assertSame('admin', $switch->username);
+        $this->assertSame('secret', $switch->password);
+        $this->assertSame('enable', $switch->enable_password);
+        $this->assertTrue($switch->enabled);
+        $this->assertSame(22, $switch->port);
+        $this->assertSame(10, $switch->timeout);
+    }
+
+    public function test_default_fallback_uses_empty_string_defaults_when_config_absent(): void
+    {
+        config([
+            'aperture.cisco.hostname' => null,
+            'aperture.cisco.username' => null,
+            'aperture.cisco.password' => null,
+            'aperture.cisco.enablePassword' => null,
+        ]);
+
+        $switch = SwitchConfig::defaultFallback();
+
+        $this->assertSame('', $switch->hostname);
+        $this->assertSame('', $switch->username);
+        $this->assertSame('', $switch->password);
+        $this->assertSame('', $switch->enable_password);
+    }
+
+    public function test_default_fallback_timeout_defaults_to_5_when_not_configured(): void
+    {
+        // Ensure the key is truly absent so the default of 5 is used
+        $config = config()->all();
+        if (isset($config['aperture']['cisco'])) {
+            unset($config['aperture']['cisco']['timeout']);
+            config($config);
+        }
+
+        $switch = SwitchConfig::defaultFallback();
+
+        $this->assertSame(5, $switch->timeout);
+    }
+
+    public function test_default_fallback_does_not_persist_to_database(): void
+    {
+        $switch = SwitchConfig::defaultFallback();
+
+        $this->assertFalse($switch->exists);
+        $this->assertDatabaseCount('switch_configs', 0);
+    }
 }

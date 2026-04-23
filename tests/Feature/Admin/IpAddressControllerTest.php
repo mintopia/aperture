@@ -407,11 +407,12 @@ class IpAddressControllerTest extends TestCase
     {
         // Covers IpAddressController::resolveSwitchConfig() lines 196-205:
         // when no SwitchConfig record matches the hostname, a new SwitchConfig is built
-        // from the aperture.cisco.* config values and returned as fallback.
+        // from the aperture.cisco.* config values via SwitchConfig::defaultFallback().
         Queue::fake();
         $admin = $this->createAdminUser();
 
         config([
+            'aperture.cisco.hostname' => 'fallback-switch.local',
             'aperture.cisco.username' => 'fallback-user',
             'aperture.cisco.password' => 'fallback-pass',
             'aperture.cisco.enablePassword' => 'fallback-enable',
@@ -442,8 +443,8 @@ class IpAddressControllerTest extends TestCase
         $factory->shouldReceive('make')
             ->once()
             ->with(Mockery::on(function (SwitchConfig $config): bool {
-                // The fallback SwitchConfig should use the config values
-                return $config->hostname === 'unknown-switch.local'
+                // The fallback SwitchConfig uses aperture.cisco.* config values via defaultFallback()
+                return $config->hostname === 'fallback-switch.local'
                     && $config->username === 'fallback-user';
             }))
             ->andThrow(new RuntimeException('Switch offline'));

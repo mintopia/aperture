@@ -202,16 +202,6 @@ class IpAddressController extends Controller
             return $switchConfig;
         }
 
-        return new SwitchConfig([
-            'name' => 'Default Cisco Switch',
-            'hostname' => $port->hostname,
-            'type' => 'cisco',
-            'username' => (string) config('aperture.cisco.username', ''),
-            'password' => (string) config('aperture.cisco.password', ''),
-            'enable_password' => (string) config('aperture.cisco.enablePassword', ''),
-            'enabled' => true,
-            'port' => 22,
-            'timeout' => (int) config('aperture.cisco.timeout', 5),
-        ]);
+        return SwitchConfig::defaultFallback();
     }
 }
