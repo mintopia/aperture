@@ -34,7 +34,7 @@ class ThemeServiceTest extends TestCase
         $this->saveSetting('theme.accent_chroma', 'Accent Chroma', '0.25');
         $this->saveSetting('theme.accent_lightness', 'Accent Lightness', '68');
         $this->saveSetting('theme.custom_css', 'Custom CSS', 'body { color: red; }');
-        $this->saveSetting('site_title', 'Site Title', 'My App');
+        $this->saveSetting('general.site_title', 'Site Title', 'My App');
 
         $service = new ThemeService;
         $theme = $service->getTheme();

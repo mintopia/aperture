@@ -39,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
         UserIpAddress::observe(UserIpAddressObserver::class);
 
         try {
-            $siteTitle = (string) Setting::get('site_title', config('app.name', 'Aperture'));
+            $siteTitle = (string) Setting::get('general.site_title', config('app.name', 'Aperture'));
         } catch (Throwable) {
             $siteTitle = (string) config('app.name', 'Aperture');
         }

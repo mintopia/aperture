@@ -57,8 +57,8 @@ class InjectThemeMiddlewareTest extends TestCase
 
     public function test_injects_site_title_from_settings(): void
     {
-        $setting = Setting::whereCode('site_title')->first() ?? new Setting;
-        $setting->code = 'site_title';
+        $setting = Setting::whereCode('general.site_title')->first() ?? new Setting;
+        $setting->code = 'general.site_title';
         $setting->name = 'Site Title';
         $setting->value = 'My Custom Aperture';
         $setting->save();

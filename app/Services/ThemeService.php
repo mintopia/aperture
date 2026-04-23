@@ -26,7 +26,7 @@ class ThemeService
             'accent_chroma' => (float) Setting::get('theme.accent_chroma', config('aperture.theme.accent_chroma')),
             'accent_lightness' => (int) Setting::get('theme.accent_lightness', config('aperture.theme.accent_lightness')),
             'custom_css' => Setting::get('theme.custom_css'),
-            'site_title' => (string) Setting::get('site_title', config('app.name', 'Aperture')),
+            'site_title' => (string) Setting::get('general.site_title', config('app.name', 'Aperture')),
         ];
 
         return $this->cached;
