@@ -660,4 +660,14 @@ class IpAddressControllerTest extends TestCase
         ]);
         $response->assertSessionHasErrors(['filter']);
     }
+
+    public function test_non_admin_cannot_toggle_dns_filter(): void
+    {
+        $user = User::factory()->create();
+        $ip = IpAddress::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/admin/ips/'.$ip->address.'/dns-filter', ['filter' => 1])
+            ->assertForbidden();
+    }
 }
