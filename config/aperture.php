@@ -1,14 +1,6 @@
 <?php
 
 return [
-    'cisco' => [
-        // Deprecated: use switch_configs records for active switch credentials.
-        'hostname' => env('APERTURE_CISCO_HOSTNAME'),
-        'username' => env('APERTURE_CISCO_USERNAME'),
-        'password' => env('APERTURE_CISCO_PASSWORD'),
-        'enablePassword' => env('APERTURE_CISCO_ENABLE_PASSWORD'),
-        'timeout' => env('APERTURE_CISCO_TIMEOUT', 5),
-    ],
     'session' => [
         'ttl' => env('APERTURE_SESSION_TTL', 7200),
     ],
