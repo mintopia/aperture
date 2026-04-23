@@ -8,6 +8,7 @@ use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
 use App\Providers\AppServiceProvider;
+use App\Providers\NetworkServiceProvider;
 use App\Services\BorealisService;
 use App\Services\CachedNetworkInventoryService;
 use App\Services\Dhcp\OpnSenseDhcpService;
@@ -203,8 +204,8 @@ class AppServiceProviderTest extends TestCase
             'foreign_key_constraints' => false,
         ]]);
 
-        $provider = collect($this->app->getProviders(AppServiceProvider::class))->first();
-        $this->assertNotNull($provider, 'AppServiceProvider should be registered');
+        $provider = collect($this->app->getProviders(NetworkServiceProvider::class))->first();
+        $this->assertNotNull($provider, 'NetworkServiceProvider should be registered');
 
         // Use DB::listen to intercept the SwitchConfig query and throw a RuntimeException,
         // which will be caught by the catch(Throwable) block in getDefaultSwitchConfig().

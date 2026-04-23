@@ -5,6 +5,8 @@ use App\Providers\AppServiceProvider;
 use App\Providers\AuthServiceProvider;
 use App\Providers\EventServiceProvider;
 use App\Providers\HorizonServiceProvider;
+use App\Providers\IntegrationServiceProvider;
+use App\Providers\NetworkServiceProvider;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
@@ -174,6 +176,8 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         EventServiceProvider::class,
         HorizonServiceProvider::class,
+        IntegrationServiceProvider::class,
+        NetworkServiceProvider::class,
         RouteServiceProvider::class,
     ])->toArray(),
 
