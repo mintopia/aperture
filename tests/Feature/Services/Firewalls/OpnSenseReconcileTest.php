@@ -107,8 +107,10 @@ class OpnSenseReconcileTest extends TestCase
         $result = $service->reconcileInternet();
 
         $this->assertInstanceOf(ReconcileResult::class, $result);
+        // 10.0.0.1 is desired-enabled and already connected — unchanged
         $this->assertContains('10.0.0.1', $result->unchanged);
-        $this->assertContains('10.0.0.2', $result->unchanged);
+        // 10.0.0.2 is desired-disabled and not connected — no action needed, not tracked
+        $this->assertNotContains('10.0.0.2', $result->unchanged);
         $this->assertEmpty($result->added);
         $this->assertEmpty($result->removed);
         $this->assertEmpty($result->errors);
@@ -218,8 +220,10 @@ class OpnSenseReconcileTest extends TestCase
         $result = $service->reconcileRateLimits();
 
         $this->assertInstanceOf(ReconcileResult::class, $result);
+        // 10.0.0.1 is desired-enabled and already rate-limited — unchanged
         $this->assertContains('10.0.0.1', $result->unchanged);
-        $this->assertContains('10.0.0.2', $result->unchanged);
+        // 10.0.0.2 is desired-disabled and not rate-limited — no action needed, not tracked
+        $this->assertNotContains('10.0.0.2', $result->unchanged);
         $this->assertEmpty($result->added);
         $this->assertEmpty($result->removed);
         $this->assertEmpty($result->errors);

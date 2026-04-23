@@ -4,6 +4,7 @@ namespace Tests\Unit\Services\Firewalls;
 
 use App\Services\Firewalls\Exceptions\BackendException;
 use App\Services\Firewalls\OpnSense;
+use App\Services\ValueObjects\ReconcileResult;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Handler\MockHandler;
@@ -370,5 +371,176 @@ class OpnSenseTest extends TestCase
 
         $this->expectException(BackendException::class);
         $service->updateIp('10.0.0.1', 'Test User');
+    }
+
+    public function test_reconcile_adds_desired_ips_not_in_current(): void
+    {
+        $service = $this->createServiceWithMockClient([]);
+
+        $reflection = new ReflectionClass($service);
+        $method = $reflection->getMethod('reconcile');
+
+        $enableCalled = [];
+        $disableCalled = [];
+
+        /** @var ReconcileResult $result */
+        $result = $method->invoke(
+            $service,
+            ['10.0.0.1'],
+            ['10.0.0.1', '10.0.0.2'],
+            function (string $ip) use (&$enableCalled): void {
+                $enableCalled[] = $ip;
+            },
+            function (string $ip) use (&$disableCalled): void {
+                $disableCalled[] = $ip;
+            },
+            false,
+        );
+
+        $this->assertSame(['10.0.0.2'], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertSame(['10.0.0.1'], $result->unchanged);
+        $this->assertSame([], $result->errors);
+        $this->assertSame(['10.0.0.2'], $enableCalled);
+        $this->assertSame([], $disableCalled);
+    }
+
+    public function test_reconcile_removes_current_ips_not_in_desired(): void
+    {
+        $service = $this->createServiceWithMockClient([]);
+
+        $reflection = new ReflectionClass($service);
+        $method = $reflection->getMethod('reconcile');
+
+        $enableCalled = [];
+        $disableCalled = [];
+
+        /** @var ReconcileResult $result */
+        $result = $method->invoke(
+            $service,
+            ['10.0.0.1', '10.0.0.2'],
+            ['10.0.0.1'],
+            function (string $ip) use (&$enableCalled): void {
+                $enableCalled[] = $ip;
+            },
+            function (string $ip) use (&$disableCalled): void {
+                $disableCalled[] = $ip;
+            },
+            false,
+        );
+
+        $this->assertSame([], $result->added);
+        $this->assertSame(['10.0.0.2'], $result->removed);
+        $this->assertSame(['10.0.0.1'], $result->unchanged);
+        $this->assertSame([], $result->errors);
+        $this->assertSame([], $enableCalled);
+        $this->assertSame(['10.0.0.2'], $disableCalled);
+    }
+
+    public function test_reconcile_skips_actions_on_dry_run(): void
+    {
+        $service = $this->createServiceWithMockClient([]);
+
+        $reflection = new ReflectionClass($service);
+        $method = $reflection->getMethod('reconcile');
+
+        $enableCalled = [];
+        $disableCalled = [];
+
+        /** @var ReconcileResult $result */
+        $result = $method->invoke(
+            $service,
+            ['10.0.0.1'],
+            ['10.0.0.2'],
+            function (string $ip) use (&$enableCalled): void {
+                $enableCalled[] = $ip;
+            },
+            function (string $ip) use (&$disableCalled): void {
+                $disableCalled[] = $ip;
+            },
+            true,
+        );
+
+        $this->assertSame(['10.0.0.2'], $result->added);
+        $this->assertSame(['10.0.0.1'], $result->removed);
+        $this->assertSame([], $result->unchanged);
+        $this->assertSame([], $result->errors);
+        $this->assertSame([], $enableCalled);
+        $this->assertSame([], $disableCalled);
+    }
+
+    public function test_reconcile_captures_enable_action_errors_per_ip(): void
+    {
+        $service = $this->createServiceWithMockClient([]);
+
+        $reflection = new ReflectionClass($service);
+        $method = $reflection->getMethod('reconcile');
+
+        /** @var ReconcileResult $result */
+        $result = $method->invoke(
+            $service,
+            [],
+            ['10.0.0.1', '10.0.0.2'],
+            function (string $ip): void {
+                throw new \RuntimeException('enable failed');
+            },
+            function (string $ip): void {},
+            false,
+        );
+
+        $this->assertSame(['10.0.0.1', '10.0.0.2'], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertCount(2, $result->errors);
+        $this->assertStringContainsString('10.0.0.1: enable failed', $result->errors[0]);
+        $this->assertStringContainsString('10.0.0.2: enable failed', $result->errors[1]);
+    }
+
+    public function test_reconcile_captures_disable_action_errors_per_ip(): void
+    {
+        $service = $this->createServiceWithMockClient([]);
+
+        $reflection = new ReflectionClass($service);
+        $method = $reflection->getMethod('reconcile');
+
+        /** @var ReconcileResult $result */
+        $result = $method->invoke(
+            $service,
+            ['10.0.0.1', '10.0.0.2'],
+            [],
+            function (string $ip): void {},
+            function (string $ip): void {
+                throw new \RuntimeException('disable failed');
+            },
+            false,
+        );
+
+        $this->assertSame([], $result->added);
+        $this->assertSame(['10.0.0.1', '10.0.0.2'], $result->removed);
+        $this->assertCount(2, $result->errors);
+        $this->assertStringContainsString('10.0.0.1: disable failed', $result->errors[0]);
+        $this->assertStringContainsString('10.0.0.2: disable failed', $result->errors[1]);
+    }
+
+    public function test_reconcile_handles_empty_sets(): void
+    {
+        $service = $this->createServiceWithMockClient([]);
+
+        $reflection = new ReflectionClass($service);
+        $method = $reflection->getMethod('reconcile');
+
+        /** @var ReconcileResult $result */
+        $result = $method->invoke(
+            $service,
+            [],
+            [],
+            function (string $ip): void {},
+            function (string $ip): void {},
+            false,
+        );
+
+        $this->assertSame([], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertSame([], $result->unchanged);
+        $this->assertSame([], $result->errors);
     }
 }

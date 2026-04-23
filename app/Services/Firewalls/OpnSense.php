@@ -338,77 +338,49 @@ class OpnSense implements FirewallBackendInterface
 
     public function reconcileInternet(bool $dryRun = false): ReconcileResult
     {
-        $connectedIps = $this->fetchConnectedIps();
+        $currentIps = $this->fetchConnectedIps();
+        $desiredIps = IpAddress::where('internet_enabled', true)->pluck('address')->all();
 
-        $desiredEnabled = IpAddress::where('internet_enabled', true)
-            ->pluck('address')
-            ->all();
-        $desiredDisabled = IpAddress::where('internet_enabled', false)
-            ->pluck('address')
-            ->all();
-
-        /** @var array<int, string> $added */
-        $added = [];
-        /** @var array<int, string> $removed */
-        $removed = [];
-        /** @var array<int, string> $unchanged */
-        $unchanged = [];
-        /** @var array<int, string> $errors */
-        $errors = [];
-
-        foreach ($desiredEnabled as $ip) {
-            if (in_array($ip, $connectedIps, true)) {
-                $unchanged[] = $ip;
-
-                continue;
-            }
-
-            $added[] = $ip;
-            if (! $dryRun) {
-                try {
-                    $this->updateIp($ip, 'Reconciled');
-                } catch (Throwable $e) {
-                    $errors[] = $ip.': '.$e->getMessage();
-                }
-            }
-        }
-
-        foreach ($desiredDisabled as $ip) {
-            if (! in_array($ip, $connectedIps, true)) {
-                $unchanged[] = $ip;
-
-                continue;
-            }
-
-            $removed[] = $ip;
-            if (! $dryRun) {
-                try {
-                    $this->removeIp($ip);
-                } catch (Throwable $e) {
-                    $errors[] = $ip.': '.$e->getMessage();
-                }
-            }
-        }
-
-        return new ReconcileResult(
-            added: $added,
-            removed: $removed,
-            unchanged: $unchanged,
-            errors: $errors,
+        return $this->reconcile(
+            currentIps: $currentIps,
+            desiredIps: $desiredIps,
+            enableAction: fn (string $ip) => $this->updateIp($ip, 'Reconciled'),
+            disableAction: fn (string $ip) => $this->removeIp($ip),
+            dryRun: $dryRun,
         );
     }
 
     public function reconcileRateLimits(bool $dryRun = false): ReconcileResult
     {
-        $rateLimitedIps = $this->fetchRateLimitedIps();
+        $currentIps = $this->fetchRateLimitedIps();
+        $desiredIps = IpAddress::where('rate_limit_enabled', true)->pluck('address')->all();
 
-        $desiredEnabled = IpAddress::where('rate_limit_enabled', true)
-            ->pluck('address')
-            ->all();
-        $desiredDisabled = IpAddress::where('rate_limit_enabled', false)
-            ->pluck('address')
-            ->all();
+        return $this->reconcile(
+            currentIps: $currentIps,
+            desiredIps: $desiredIps,
+            enableAction: fn (string $ip) => $this->limitIp($ip),
+            disableAction: fn (string $ip) => $this->unlimitIp($ip),
+            dryRun: $dryRun,
+        );
+    }
 
+    /**
+     * Generic reconciliation: computes the diff between current and desired IPs,
+     * executes enable/disable actions per IP (with per-IP error capture), and
+     * returns a result summarising what was added, removed, unchanged, and errored.
+     *
+     * @param  array<int, string>  $currentIps  IPs currently in the desired state on the firewall
+     * @param  array<int, string>  $desiredIps  IPs that should be in the desired state per DB
+     * @param  callable(string): mixed  $enableAction  Called for each IP to add
+     * @param  callable(string): mixed  $disableAction  Called for each IP to remove
+     */
+    private function reconcile(
+        array $currentIps,
+        array $desiredIps,
+        callable $enableAction,
+        callable $disableAction,
+        bool $dryRun,
+    ): ReconcileResult {
         /** @var array<int, string> $added */
         $added = [];
         /** @var array<int, string> $removed */
@@ -418,8 +390,8 @@ class OpnSense implements FirewallBackendInterface
         /** @var array<int, string> $errors */
         $errors = [];
 
-        foreach ($desiredEnabled as $ip) {
-            if (in_array($ip, $rateLimitedIps, true)) {
+        foreach ($desiredIps as $ip) {
+            if (in_array($ip, $currentIps, true)) {
                 $unchanged[] = $ip;
 
                 continue;
@@ -428,24 +400,22 @@ class OpnSense implements FirewallBackendInterface
             $added[] = $ip;
             if (! $dryRun) {
                 try {
-                    $this->limitIp($ip);
+                    $enableAction($ip);
                 } catch (Throwable $e) {
                     $errors[] = $ip.': '.$e->getMessage();
                 }
             }
         }
 
-        foreach ($desiredDisabled as $ip) {
-            if (! in_array($ip, $rateLimitedIps, true)) {
-                $unchanged[] = $ip;
-
+        foreach ($currentIps as $ip) {
+            if (in_array($ip, $desiredIps, true)) {
                 continue;
             }
 
             $removed[] = $ip;
             if (! $dryRun) {
                 try {
-                    $this->unlimitIp($ip);
+                    $disableAction($ip);
                 } catch (Throwable $e) {
                     $errors[] = $ip.': '.$e->getMessage();
                 }
