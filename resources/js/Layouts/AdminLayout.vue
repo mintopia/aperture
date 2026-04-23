@@ -41,7 +41,7 @@ const page = usePage();
 
             <FlashMessages />
 
-            <main id="main-content" class="mx-auto w-full max-w-[1400px] flex-1 px-10 pt-8 pb-16">
+            <main id="main-content" class="mx-auto w-full max-w-[1400px] flex-1 px-6 pt-8 pb-16 md:px-10">
                 <slot />
             </main>
         </div>

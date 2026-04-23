@@ -60,8 +60,13 @@ function userHref(id) {
         </div>
 
         <!-- Stat Strip -->
-        <div data-testid="dashboard-stats" class="my-6 mb-7 flex gap-0 border-b border-[var(--color-border)] pb-5">
-            <div class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8">
+        <div
+            data-testid="dashboard-stats"
+            class="my-6 mb-7 flex flex-wrap gap-y-4 border-b border-[var(--color-border)] pb-5"
+        >
+            <div
+                class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-full max-sm:border-0 max-sm:pr-0"
+            >
                 <StatCard label="Online Now" :value="onlineUsers" color="success" label-dot-color="success">
                     <p class="mt-[2px] font-mono text-[11px] text-[var(--color-text-muted)]">
                         of {{ totalUsers }} &middot;
@@ -70,21 +75,25 @@ function userHref(id) {
                 </StatCard>
             </div>
 
-            <div class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8">
+            <div
+                class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-1/3 max-sm:border-0 max-sm:pr-0"
+            >
                 <StatCard label="Total Users" :value="totalUsers" />
             </div>
 
-            <div class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8">
+            <div
+                class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-1/3 max-sm:border-0 max-sm:pr-0"
+            >
                 <StatCard label="IPs Active" :value="activeIps" />
             </div>
 
-            <div class="flex-1">
+            <div class="flex-1 max-sm:basis-1/3">
                 <StatCard label="Blocked" :value="blockedUsers" color="danger" />
             </div>
         </div>
 
         <!-- Two Column: DHCP Pools + Unique IPs Chart -->
-        <div class="mb-10 grid grid-cols-[3fr_2fr] gap-10">
+        <div class="mb-10 grid grid-cols-1 gap-6 md:grid-cols-[3fr_2fr]">
             <Deferred data="dhcpPools">
                 <template #fallback>
                     <div data-testid="dhcp-pools-loading">

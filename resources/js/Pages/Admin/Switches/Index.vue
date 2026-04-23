@@ -176,9 +176,11 @@ function syncStatusLabel(status) {
         <div
             v-if="switches.length > 0"
             data-testid="switches-summary"
-            class="mt-6 mb-7 flex border-b border-[var(--color-border)] pb-5"
+            class="mt-6 mb-7 flex flex-wrap gap-y-3 border-b border-[var(--color-border)] pb-5"
         >
-            <div class="mr-8 border-r border-[var(--color-border)] pr-8">
+            <div
+                class="mr-8 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-1/2 max-sm:border-0 max-sm:pr-0"
+            >
                 <p
                     class="mb-[3px] text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
                 >
@@ -191,7 +193,9 @@ function syncStatusLabel(status) {
                     {{ switchSummary.total }}
                 </p>
             </div>
-            <div class="mr-8 border-r border-[var(--color-border)] pr-8">
+            <div
+                class="mr-8 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-1/2 max-sm:border-0 max-sm:pr-0"
+            >
                 <p
                     class="mb-[3px] text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
                 >
@@ -204,7 +208,9 @@ function syncStatusLabel(status) {
                     {{ switchSummary.enabled }}
                 </p>
             </div>
-            <div class="mr-8 border-r border-[var(--color-border)] pr-8">
+            <div
+                class="mr-8 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-1/2 max-sm:border-0 max-sm:pr-0"
+            >
                 <p
                     class="mb-[3px] text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
                 >
@@ -217,7 +223,7 @@ function syncStatusLabel(status) {
                     {{ switchSummary.disabled }}
                 </p>
             </div>
-            <div>
+            <div class="max-sm:basis-1/2">
                 <p
                     class="mb-[3px] text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
                 >

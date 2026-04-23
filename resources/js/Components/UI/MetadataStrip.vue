@@ -9,12 +9,19 @@ defineProps({
 </script>
 
 <template>
-    <div data-testid="metadata-strip" class="mt-6 mb-7 flex gap-0 border-b border-[var(--color-border)] pb-5">
+    <div
+        data-testid="metadata-strip"
+        class="mt-6 mb-7 flex flex-wrap gap-y-3 border-b border-[var(--color-border)] pb-5"
+    >
         <div
             v-for="(item, index) in items"
             :key="item.label"
             data-testid="metadata-item"
-            :class="[index < items.length - 1 ? 'mr-8 border-r border-[var(--color-border)] pr-8' : '']"
+            :class="[
+                index > 0
+                    ? 'ml-6 border-l border-[var(--color-border)] pl-6 max-sm:ml-0 max-sm:border-0 max-sm:pl-0'
+                    : '',
+            ]"
             class="flex flex-none flex-col"
         >
             <span
