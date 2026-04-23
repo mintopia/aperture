@@ -99,7 +99,7 @@ class NetworkSettingsController extends Controller
 
         [$ip, $prefixStr] = $parts;
 
-        if (! is_numeric($prefixStr)) {
+        if (! ctype_digit($prefixStr)) {
             return false;
         }
 

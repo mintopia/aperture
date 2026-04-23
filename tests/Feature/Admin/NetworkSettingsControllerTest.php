@@ -187,6 +187,18 @@ class NetworkSettingsControllerTest extends TestCase
     }
 
     #[Test]
+    public function update_rejects_ipv4_in_ipv6_field(): void
+    {
+        $response = $this->actingAs($this->admin)->put('/admin/settings/network', [
+            'managed_ranges_v4' => '0.0.0.0/0',
+            'managed_ranges_v6' => '10.0.0.0/8',
+            'dns_filter_default' => false,
+        ]);
+
+        $response->assertSessionHasErrors('managed_ranges_v6');
+    }
+
+    #[Test]
     public function non_admin_cannot_access_network_settings(): void
     {
         $user = User::factory()->create();
