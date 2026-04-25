@@ -4,6 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
+import { formatBytes } from '@/helpers.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -32,6 +33,7 @@ const columns = [
     { key: 'nickname', label: 'Nickname' },
     { key: 'email', label: 'Email' },
     { key: 'ips', label: 'IPs' },
+    { key: 'bandwidth', label: 'Bandwidth (7d)' },
     { key: 'status', label: 'Status' },
 ];
 
@@ -161,6 +163,9 @@ const userSummary = computed(() => ({
                     </td>
                     <td data-testid="user-ips-count" class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ row.ips?.length ?? 0 }}
+                    </td>
+                    <td data-testid="user-bandwidth" class="font-mono text-[13px] text-[var(--color-text-secondary)]">
+                        {{ formatBytes(row.weekly_bandwidth ?? 0) }}
                     </td>
                     <td data-testid="user-status">
                         <span class="inline-flex items-center gap-1.5">

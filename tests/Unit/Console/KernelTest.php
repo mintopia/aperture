@@ -58,6 +58,16 @@ class KernelTest extends TestCase
         $this->assertEquals('*/5 * * * *', $found->expression);
     }
 
+    public function test_sync_user_bandwidth_command_is_scheduled(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:sync-user-bandwidth'));
+
+        $this->assertNotNull($found, 'aperture:sync-user-bandwidth should be scheduled');
+        $this->assertEquals('*/15 * * * *', $found->expression);
+    }
+
     public function test_sync_switch_ports_is_scheduled(): void
     {
         $schedule = $this->app->make(Schedule::class);

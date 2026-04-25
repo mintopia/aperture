@@ -85,10 +85,9 @@ class HomeController extends Controller
         return User::query()
             ->select('users.*')
             ->selectRaw('(SELECT COUNT(*) FROM user_ip_addresses WHERE user_ip_addresses.user_id = users.id) as ips_count')
-            ->selectRaw('(SELECT COALESCE(SUM(ip_addresses.received + ip_addresses.sent), 0) FROM user_ip_addresses INNER JOIN ip_addresses ON ip_addresses.id = user_ip_addresses.ip_address_id WHERE user_ip_addresses.user_id = users.id) as total_bandwidth')
             ->selectRaw('(SELECT MAX(user_ip_addresses.last_seen_at) FROM user_ip_addresses WHERE user_ip_addresses.user_id = users.id) as last_seen')
+            ->orderByDesc('users.weekly_bandwidth')
             ->orderByDesc('last_seen')
-            ->orderByDesc('users.updated_at')
             ->paginate(25);
     }
 }

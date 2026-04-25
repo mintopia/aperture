@@ -169,7 +169,7 @@ function userHref(id) {
                                 data-testid="user-bandwidth"
                                 class="py-[10px] font-mono text-[13px] text-[var(--color-text-secondary)]"
                             >
-                                {{ formatBytes(row.total_bandwidth ?? 0) }}
+                                {{ formatBytes(row.weekly_bandwidth ?? 0) }}
                             </td>
                             <td data-testid="user-status" class="py-[10px]">
                                 <span class="inline-flex items-center gap-1.5">
