@@ -9,6 +9,9 @@ use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\ValueObjects\UserBandwidth;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -295,5 +298,40 @@ class UserController extends Controller
             : 'Rate limiting has been removed for all user IPs';
 
         return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', $message);
+    }
+
+    public function bandwidth(Request $request, User $user, TrafficMonitorInterface $trafficMonitor): JsonResponse
+    {
+        $validated = $request->validate([
+            'range' => 'nullable|string|in:1h,24h,4d',
+        ]);
+
+        $range = $validated['range'] ?? '24h';
+
+        $ipAddresses = $user->ips()->with('ip')->get()
+            ->map(fn ($userIp) => $userIp->ip?->address)
+            ->filter()
+            ->values()
+            ->all();
+
+        if (empty($ipAddresses)) {
+            $bandwidth = new UserBandwidth(
+                received: 0,
+                sent: 0,
+                timestamps: [],
+                download: [],
+                upload: [],
+            );
+        } else {
+            $bandwidth = $trafficMonitor->getUserBandwidth($ipAddresses, $range);
+        }
+
+        return response()->json([
+            'timestamps' => $bandwidth->timestamps,
+            'download' => $bandwidth->download,
+            'upload' => $bandwidth->upload,
+            'totalReceived' => $bandwidth->received,
+            'totalSent' => $bandwidth->sent,
+        ]);
     }
 }

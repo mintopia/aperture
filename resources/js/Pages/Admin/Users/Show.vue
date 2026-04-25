@@ -1,11 +1,12 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
+import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelative } from '@/utils/dates';
 
@@ -102,6 +103,68 @@ const auditColumns = [
     { key: 'process', label: 'Process' },
     { key: 'timestamp', label: 'Timestamp' },
 ];
+
+const selectedRange = ref('24h');
+const bandwidthData = ref({ timestamps: [], download: [], upload: [], totalReceived: 0, totalSent: 0 });
+const bandwidthLoading = ref(true);
+const bandwidthError = ref(false);
+const ranges = ['1h', '24h', '4d'];
+
+const chartSeries = computed(() => {
+    const { timestamps, download, upload } = bandwidthData.value;
+    if (!timestamps.length) return [];
+    return [
+        {
+            label: 'Download',
+            color: 'var(--color-success)',
+            fill: true,
+            data: timestamps.map((ts, i) => ({ timestamp: Number(ts), value: download[i] ?? 0 })),
+        },
+        {
+            label: 'Upload',
+            color: 'var(--color-info)',
+            fill: true,
+            data: timestamps.map((ts, i) => ({ timestamp: Number(ts), value: upload[i] ?? 0 })),
+        },
+    ];
+});
+
+async function fetchBandwidth() {
+    bandwidthLoading.value = true;
+    bandwidthError.value = false;
+    try {
+        const response = await fetch(route('admin.users.bandwidth', props.user.id) + '?range=' + selectedRange.value);
+        if (response.ok) {
+            bandwidthData.value = await response.json();
+        } else {
+            bandwidthError.value = true;
+        }
+    } catch (_e) {
+        bandwidthError.value = true;
+    } finally {
+        bandwidthLoading.value = false;
+    }
+}
+
+function selectRange(range) {
+    selectedRange.value = range;
+    fetchBandwidth();
+}
+
+let bandwidthPoll = null;
+
+onMounted(() => {
+    if (props.ipCount > 0) {
+        fetchBandwidth();
+        bandwidthPoll = setInterval(fetchBandwidth, 30000);
+    } else {
+        bandwidthLoading.value = false;
+    }
+});
+
+onUnmounted(() => {
+    if (bandwidthPoll) clearInterval(bandwidthPoll);
+});
 </script>
 
 <template>
@@ -222,6 +285,62 @@ const auditColumns = [
                 { label: 'Uploaded', value: formatBytes(uploaded), mono: true },
             ]"
         />
+
+        <!-- Bandwidth Chart -->
+        <section data-testid="user-bandwidth-section">
+            <div class="flex items-baseline justify-between">
+                <SectionHeader title="Bandwidth" class="mt-5" />
+                <div class="flex items-center gap-3">
+                    <div class="flex items-baseline gap-4">
+                        <div data-testid="bandwidth-download">
+                            <span
+                                class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                            >
+                                Down
+                            </span>
+                            <span class="ml-1 font-mono text-sm font-bold text-[var(--color-success)]">
+                                {{ formatBytes(bandwidthData.totalReceived) }}
+                            </span>
+                        </div>
+                        <div data-testid="bandwidth-upload">
+                            <span
+                                class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                            >
+                                Up
+                            </span>
+                            <span class="ml-1 font-mono text-sm font-bold text-[var(--color-info)]">
+                                {{ formatBytes(bandwidthData.totalSent) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex gap-1" data-testid="bandwidth-range-selector">
+                        <button
+                            v-for="r in ranges"
+                            :key="r"
+                            type="button"
+                            :data-testid="'bandwidth-range-' + r"
+                            :class="[
+                                'rounded px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase transition-all',
+                                selectedRange === r
+                                    ? 'bg-[var(--color-accent-dim)] text-[var(--color-primary)]'
+                                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]',
+                            ]"
+                            @click="selectRange(r)"
+                        >
+                            {{ r === '4d' ? '72H' : r.toUpperCase() }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <TimeSeriesChart
+                :series="chartSeries"
+                :loading="bandwidthLoading"
+                y-axis-label="bps"
+                height="200px"
+                :empty-message="ipCount === 0 ? 'No IPs associated with this user' : 'No bandwidth data available'"
+                data-testid="bandwidth-chart"
+            />
+        </section>
 
         <!-- Converged Network Devices Table -->
         <section data-testid="user-devices-section">

@@ -6,8 +6,11 @@ use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserIpAddress;
+use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\ValueObjects\UserBandwidth;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class UserControllerTest extends TestCase
@@ -278,5 +281,93 @@ class UserControllerTest extends TestCase
             ->component('Admin/Users/Edit')
             ->has('availableRoles')
         );
+    }
+
+    public function test_admin_can_fetch_user_bandwidth(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $ip1 = IpAddress::factory()->create();
+        $ip2 = IpAddress::factory()->create();
+        $this->linkIpToUser($user, $ip1);
+        $this->linkIpToUser($user, $ip2);
+
+        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock) use ($ip1, $ip2): void {
+            $mock->shouldReceive('getUserBandwidth')
+                ->withArgs(function (array $ips) use ($ip1, $ip2): bool {
+                    return count($ips) === 2
+                        && in_array($ip1->address, $ips, true)
+                        && in_array($ip2->address, $ips, true);
+                })
+                ->once()
+                ->andReturn(new UserBandwidth(
+                    received: 2048000,
+                    sent: 1024000,
+                    timestamps: ['1700000000', '1700000060'],
+                    download: [8192.0, 9000.0],
+                    upload: [4096.0, 4500.0],
+                ));
+        });
+
+        $response = $this->actingAs($admin)->getJson(route('admin.users.bandwidth', $user));
+
+        $response->assertOk()
+            ->assertJsonStructure(['timestamps', 'download', 'upload', 'totalReceived', 'totalSent']);
+    }
+
+    public function test_admin_user_bandwidth_accepts_range_parameter(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $ip = IpAddress::factory()->create();
+        $this->linkIpToUser($user, $ip);
+
+        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getUserBandwidth')
+                ->withArgs(fn (array $ips, string $range): bool => $range === '4d')
+                ->once()
+                ->andReturn(new UserBandwidth(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($admin)->getJson(route('admin.users.bandwidth', $user).'?range=4d');
+
+        $response->assertOk();
+    }
+
+    public function test_user_bandwidth_returns_empty_when_no_ips(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($admin)->getJson(route('admin.users.bandwidth', $user));
+
+        $response->assertOk()
+            ->assertJson([
+                'timestamps' => [],
+                'download' => [],
+                'upload' => [],
+                'totalReceived' => 0,
+                'totalSent' => 0,
+            ]);
+    }
+
+    public function test_non_admin_cannot_fetch_user_bandwidth(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->getJson('/admin/users/'.$user->id.'/bandwidth')
+            ->assertForbidden();
     }
 }

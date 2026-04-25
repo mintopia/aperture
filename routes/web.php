@@ -94,6 +94,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('users/{user}/block', [UserController::class, 'block'])->name('users.block');
         Route::post('users/{user}/internet', [UserController::class, 'internet'])->name('users.internet');
         Route::post('users/{user}/limit', [UserController::class, 'limit'])->name('users.limit');
+        Route::get('users/{user}/bandwidth', [UserController::class, 'bandwidth'])->name('users.bandwidth');
 
         // IP Addresses
         Route::resource('ips', IpAddressController::class)->only('index', 'show', 'store', 'create');
