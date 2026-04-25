@@ -89,6 +89,9 @@
                         if (!internetEnabled) {
                             internetEnabled = true;
                             checkDns();
+                            setTimeout(function() {
+                                window.location.href = @json(route('portal.dashboard'));
+                            }, 1500);
                         }
                     } else {
                         setTimeout(checkStatus, timeout);
