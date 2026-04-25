@@ -90,6 +90,11 @@ class CaptivePortalController extends Controller
         $userInfo = $authProvider->getUserInfo($result->accessToken);
         $user = $userService->findOrCreateFromDeviceFlow($userInfo, $result);
 
+        if (! $user->internet_blocked && ! $user->internet_enabled) {
+            $user->internet_enabled = true;
+            $user->save();
+        }
+
         $ip = $user->addIp($flowData['ip'] ?? $request->getClientIp() ?? '0.0.0.0');
         if ($ip instanceof IpAddress && ! $user->internet_blocked) {
             $actionService->enableInternet($ip);
