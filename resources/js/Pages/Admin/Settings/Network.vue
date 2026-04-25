@@ -35,7 +35,7 @@ function submit() {
             <!-- Managed Network Ranges -->
             <h2
                 data-testid="section-heading-ranges"
-                class="font-heading mt-8 mb-4 text-[10px] font-bold tracking-[1.5px] text-[var(--color-text-muted)] uppercase"
+                class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
             >
                 Managed Network Ranges
             </h2>
@@ -69,7 +69,7 @@ function submit() {
             <!-- Network Defaults -->
             <h2
                 data-testid="section-heading-defaults"
-                class="font-heading mt-8 mb-4 text-[10px] font-bold tracking-[1.5px] text-[var(--color-text-muted)] uppercase"
+                class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
             >
                 Network Defaults
             </h2>
@@ -97,7 +97,7 @@ function submit() {
             <!-- OUI Auto-Allow -->
             <h2
                 data-testid="section-heading-oui"
-                class="font-heading mt-8 mb-4 text-[10px] font-bold tracking-[1.5px] text-[var(--color-text-muted)] uppercase"
+                class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
             >
                 OUI Auto-Allow
             </h2>

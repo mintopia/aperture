@@ -11,7 +11,8 @@ use Illuminate\Support\Collection;
 
 interface TrafficMonitorInterface
 {
-    public function getUserBandwidth(string $ipAddress, string $range = '24h'): UserBandwidth;
+    /** @param string|string[] $ipAddress */
+    public function getUserBandwidth(string|array $ipAddress, string $range = '24h'): UserBandwidth;
 
     public function getAggregateStats(): AggregateStats;
 

@@ -19,26 +19,24 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         protected string $ipLabel = 'ip',
     ) {}
 
-    public function getUserBandwidth(string $ipAddress, string $range = '24h'): UserBandwidth
+    public function getUserBandwidth(string|array $ipAddress, string $range = '24h'): UserBandwidth
     {
         $seconds = $this->rangeToSeconds($range);
         $end = time();
         $start = $end - $seconds;
         $step = $this->resolveStep($seconds);
 
-        $escapedIp = $this->prometheus->escapePromQLLabelValue($ipAddress);
+        $ipFilter = $this->buildIpFilter($ipAddress);
 
         $inQuery = sprintf(
-            'sum(rate(%s{%s="%s"}[30s]))',
+            'sum(rate(%s{%s}[30s]))',
             $this->rcvdMetric,
-            $this->ipLabel,
-            $escapedIp,
+            $ipFilter,
         );
         $outQuery = sprintf(
-            'sum(rate(%s{%s="%s"}[30s]))',
+            'sum(rate(%s{%s}[30s]))',
             $this->sentMetric,
-            $this->ipLabel,
-            $escapedIp,
+            $ipFilter,
         );
 
         $inSeries = $this->prometheus->queryRange($inQuery, (float) $start, (float) $end, $step);
@@ -137,6 +135,23 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
                 sent: 0,
             );
         });
+    }
+
+    /** @param string|string[] $ipAddress */
+    protected function buildIpFilter(string|array $ipAddress): string
+    {
+        if (is_string($ipAddress)) {
+            $escaped = $this->prometheus->escapePromQLLabelValue($ipAddress);
+
+            return sprintf('%s="%s"', $this->ipLabel, $escaped);
+        }
+
+        $escaped = array_map(
+            fn (string $ip): string => preg_quote($this->prometheus->escapePromQLLabelValue($ip), '/'),
+            $ipAddress,
+        );
+
+        return sprintf('%s=~"%s"', $this->ipLabel, implode('|', $escaped));
     }
 
     protected function rangeToSeconds(string $range): int

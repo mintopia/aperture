@@ -18,7 +18,6 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SwitchManagementController;
 use App\Http\Controllers\Admin\SwitchPortController;
 use App\Http\Controllers\Admin\TestConnectionController;
-use App\Http\Controllers\Admin\ThemeSettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptivePortalController;
@@ -146,8 +145,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/switches/{switchConfig}/ports/{portId}/enable', [SwitchPortController::class, 'enable'])->name('switches.ports.enable')->where('portId', '.+');
         // Settings
         Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
-        Route::get('/settings/theme', [ThemeSettingsController::class, 'show'])->name('settings.theme');
-        Route::put('/settings/theme', [ThemeSettingsController::class, 'update'])->name('settings.theme.update');
         Route::get('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'show'])->name('settings.ipv6-detection');
         Route::put('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'update'])->name('settings.ipv6-detection.update');
         Route::get('/settings/dns-detection', [DnsDetectionSettingsController::class, 'show'])->name('settings.dns-detection');

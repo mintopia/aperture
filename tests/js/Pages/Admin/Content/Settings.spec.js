@@ -13,6 +13,21 @@ vi.mock('@inertiajs/vue3', () => ({
     usePage: () => ({ url: '/admin/content/settings' }),
 }));
 
+vi.mock('@/composables/useTheme.js', () => ({
+    useTheme: () => ({
+        previewMode: vi.fn(),
+        cancelPreview: vi.fn(),
+    }),
+}));
+
+vi.mock('@/composables/useAccentColor.js', () => ({
+    ACCENT_PRESETS: [
+        { name: 'Gold', hue: 55, c: 0.19, l: 72 },
+        { name: 'Blue', hue: 230, c: 0.19, l: 72 },
+    ],
+    applyAccentColor: vi.fn(),
+}));
+
 window.route = vi.fn((name) => `/mocked/${name}`);
 
 const FormFieldStub = {
@@ -29,6 +44,11 @@ function mountPage(settings = {}, pages = []) {
                 terms_value: '',
                 privacy_type: 'url',
                 privacy_value: '',
+                theme_mode: 'dark',
+                accent_hue: 55,
+                accent_chroma: 0.19,
+                accent_lightness: 72,
+                custom_css: '',
                 ...settings,
             },
             pages,
@@ -136,6 +156,11 @@ describe('Admin Content Settings page', () => {
             terms_value: '',
             privacy_type: 'url',
             privacy_value: '',
+            theme_mode: 'dark',
+            accent_hue: 55,
+            accent_chroma: 0.19,
+            accent_lightness: 72,
+            custom_css: '',
             put: mockPut,
             processing: false,
             errors: {},
@@ -143,5 +168,50 @@ describe('Admin Content Settings page', () => {
         const wrapper = mountPage();
         await wrapper.find('form').trigger('submit');
         expect(mockPut).toHaveBeenCalledWith('/mocked/admin.content.settings.update');
+    });
+
+    it('renders accent color presets', () => {
+        const wrapper = mountPage();
+        expect(wrapper.find('[data-testid="accent-preset-55"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="accent-preset-230"]').exists()).toBe(true);
+    });
+
+    it('renders hue slider', () => {
+        const wrapper = mountPage();
+        expect(wrapper.find('[data-testid="accent-hue-slider"]').exists()).toBe(true);
+    });
+
+    it('renders chroma slider', () => {
+        const wrapper = mountPage();
+        expect(wrapper.find('[data-testid="accent-chroma-slider"]').exists()).toBe(true);
+    });
+
+    it('renders lightness slider', () => {
+        const wrapper = mountPage();
+        expect(wrapper.find('[data-testid="accent-lightness-slider"]').exists()).toBe(true);
+    });
+
+    it('renders accent preview swatch', () => {
+        const wrapper = mountPage();
+        expect(wrapper.find('[data-testid="accent-preview-swatch"]').exists()).toBe(true);
+    });
+
+    it('renders mode buttons', () => {
+        const wrapper = mountPage();
+        expect(wrapper.find('[data-testid="mode-option-light"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="mode-option-dark"]').exists()).toBe(true);
+    });
+
+    it('renders custom CSS textarea', () => {
+        const wrapper = mountPage({ custom_css: 'body { color: red; }' });
+        const textarea = wrapper.find('[data-testid="input-custom_css"]');
+        expect(textarea.exists()).toBe(true);
+        expect(textarea.element.value).toBe('body { color: red; }');
+    });
+
+    it('constrains sliders to max-w-sm width', () => {
+        const wrapper = mountPage();
+        const sliderContainer = wrapper.find('[data-testid="accent-hue-slider"]').element.closest('.max-w-sm');
+        expect(sliderContainer).not.toBeNull();
     });
 });

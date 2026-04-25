@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 
 class NullTrafficMonitor implements TrafficMonitorInterface
 {
-    public function getUserBandwidth(string $ipAddress, string $range = '24h'): UserBandwidth
+    public function getUserBandwidth(string|array $ipAddress, string $range = '24h'): UserBandwidth
     {
         return new UserBandwidth(
             received: 0,

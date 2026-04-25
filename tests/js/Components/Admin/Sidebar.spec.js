@@ -15,7 +15,6 @@ const routeMap = {
     'admin.settings.network': '/admin/settings/network',
     'admin.content.index': '/admin/content',
     'admin.content.pages.index': '/admin/content/pages',
-    'admin.settings.theme': '/admin/settings/theme',
     'admin.content.settings': '/admin/content/settings',
     'admin.audit-log.index': '/admin/audit-log',
 };
@@ -46,6 +45,7 @@ vi.mock('@inertiajs/vue3', () => ({
         template: '<a :href="href"><slot /></a>',
     },
     usePage: () => ({ url: '/admin/users' }),
+    router: { on: vi.fn() },
 }));
 
 // Import Sidebar after mocks are set up (vi.mock is hoisted, but window mocks are not)
@@ -116,14 +116,13 @@ describe('Sidebar.vue', () => {
         ]);
     });
 
-    it('renders Dashboard, Pages, Theme, and Settings under CONTENT', async () => {
+    it('renders Dashboard, Pages, and Settings under CONTENT', async () => {
         const wrapper = await mountSidebar();
         const groups = wrapper.findAll('aside nav section');
 
         expect(groups[2].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual([
             'Dashboard',
             'Pages',
-            'Theme',
             'Settings',
         ]);
     });
@@ -152,7 +151,6 @@ describe('Sidebar.vue', () => {
         expect(hrefsByTestId).toContainEqual(['nav-dns-detection', '/admin/settings/dns-detection']);
         expect(hrefsByTestId).toContainEqual(['nav-network', '/admin/settings/network']);
         expect(hrefsByTestId).toContainEqual(['nav-pages', '/admin/content/pages']);
-        expect(hrefsByTestId).toContainEqual(['nav-theme', '/admin/settings/theme']);
         expect(hrefsByTestId).toContainEqual(['nav-settings', '/admin/content/settings']);
         expect(hrefsByTestId).toContainEqual(['nav-audit-log', '/admin/audit-log']);
     });
@@ -172,7 +170,6 @@ describe('Sidebar.vue', () => {
         expect(window.route).toHaveBeenCalledWith('admin.settings.network');
         expect(window.route).toHaveBeenCalledWith('admin.content.index');
         expect(window.route).toHaveBeenCalledWith('admin.content.pages.index');
-        expect(window.route).toHaveBeenCalledWith('admin.settings.theme');
         expect(window.route).toHaveBeenCalledWith('admin.content.settings');
         expect(window.route).toHaveBeenCalledWith('admin.audit-log.index');
     });
@@ -181,7 +178,7 @@ describe('Sidebar.vue', () => {
         const wrapper = await mountSidebar();
         const svgs = wrapper.findAll('[data-testid^="nav-"] svg');
 
-        expect(svgs.length).toBe(15);
+        expect(svgs.length).toBe(14);
         svgs.forEach((svg) => {
             expect(svg.attributes('aria-hidden')).toBe('true');
             expect(svg.attributes('stroke')).toBe('currentColor');
@@ -236,7 +233,6 @@ describe('Sidebar.vue', () => {
             'Network',
             'Dashboard',
             'Pages',
-            'Theme',
             'Settings',
             'Audit Log',
         ]);

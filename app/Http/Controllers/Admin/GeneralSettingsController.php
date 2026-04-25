@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Models\Setting;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,6 +25,11 @@ class GeneralSettingsController extends Controller
                 'terms_value' => Setting::get('general.terms_value'),
                 'privacy_type' => Setting::get('general.privacy_type', 'url'),
                 'privacy_value' => Setting::get('general.privacy_value'),
+                'theme_mode' => Setting::get('theme.mode', config('aperture.theme.mode')),
+                'accent_hue' => (int) Setting::get('theme.accent_hue', config('aperture.theme.accent_hue')),
+                'accent_chroma' => (float) Setting::get('theme.accent_chroma', config('aperture.theme.accent_chroma')),
+                'accent_lightness' => (int) Setting::get('theme.accent_lightness', config('aperture.theme.accent_lightness')),
+                'custom_css' => Setting::get('theme.custom_css'),
             ],
             'pages' => Page::orderBy('title')->get(),
             'breadcrumbs' => [
@@ -35,13 +42,24 @@ class GeneralSettingsController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'site_title' => 'required|string|max:255',
             'terms_type' => 'required|string|in:page,url',
             'terms_value' => 'nullable|string|max:500',
             'privacy_type' => 'required|string|in:page,url',
             'privacy_value' => 'nullable|string|max:500',
+            'theme_mode' => 'required|string|in:light,dark',
+            'accent_hue' => 'required|integer|min:0|max:360',
+            'accent_chroma' => 'nullable|numeric|min:0.01|max:0.37',
+            'accent_lightness' => 'nullable|integer|min:40|max:95',
+            'custom_css' => ['nullable', 'string', 'max:10000', function (string $attribute, mixed $value, Closure $fail): void {
+                if (is_string($value) && stripos($value, '<script') !== false) {
+                    $fail('The custom CSS must not contain script tags.');
+                }
+            }],
         ]);
+
+        $validated = $validator->validate();
 
         Setting::set('general.site_title', 'Site Title', $validated['site_title']);
         Setting::set('general.terms_type', 'Terms Type', $validated['terms_type']);
@@ -49,6 +67,12 @@ class GeneralSettingsController extends Controller
         Setting::set('general.privacy_type', 'Privacy Type', $validated['privacy_type']);
         Setting::set('general.privacy_value', 'Privacy Value', $validated['privacy_value'] ?? null);
 
-        return back()->with('success', 'General settings updated.');
+        Setting::set('theme.mode', 'Theme Mode', $validated['theme_mode']);
+        Setting::set('theme.accent_hue', 'Accent Hue', (string) $validated['accent_hue']);
+        Setting::set('theme.accent_chroma', 'Accent Chroma', (string) ($validated['accent_chroma'] ?? config('aperture.theme.accent_chroma')));
+        Setting::set('theme.accent_lightness', 'Accent Lightness', (string) ($validated['accent_lightness'] ?? config('aperture.theme.accent_lightness')));
+        Setting::set('theme.custom_css', 'Custom CSS', $validated['custom_css'] ?? null);
+
+        return back()->with('success', 'Settings updated.');
     }
 }
