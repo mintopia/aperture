@@ -12,6 +12,7 @@ vi.mock('@inertiajs/vue3', () => ({
         reset: vi.fn(),
     })),
     Head: { template: '<div />' },
+    usePage: () => ({ props: {} }),
 }));
 
 describe('Login', () => {

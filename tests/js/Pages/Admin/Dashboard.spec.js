@@ -189,8 +189,9 @@ describe('Dashboard', () => {
         expect(wrapper.text()).toContain('1.5 KB');
         expect(wrapper.text()).toContain('5.0 GB');
 
-        // Status uses StatusPill with symbol prefix
-        expect(wrapper.findAll('[data-testid="status-pill"]').length).toBeGreaterThan(0);
+        // Status uses inline dots with text labels
+        const statusDots = recentUsersSection.findAll('.rounded-full');
+        expect(statusDots.length).toBeGreaterThan(0);
         expect(wrapper.text()).toContain('Active');
         expect(wrapper.text()).toContain('Blocked');
         expect(wrapper.text()).toContain('5m');

@@ -183,9 +183,8 @@ describe('Show — Polling & Last Updated', () => {
         expect(el.text()).toContain('1m ago');
     });
 
-    it('header refresh button triggers router.visit', async () => {
-        router.visit.mockImplementation((url, { onSuccess, onFinish }) => {
-            if (onSuccess) onSuccess();
+    it('header refresh button triggers router.post', async () => {
+        router.post.mockImplementation((_url, _data, { onFinish }) => {
             if (onFinish) onFinish();
         });
         const wrapper = mountShow();
@@ -193,13 +192,12 @@ describe('Show — Polling & Last Updated', () => {
         await wrapper.find('[data-testid="action-refresh"]').trigger('click');
         await flushPromises();
 
-        expect(router.visit).toHaveBeenCalled();
+        expect(router.post).toHaveBeenCalled();
     });
 
-    it('header refresh updates lastUpdated timestamp', async () => {
-        router.visit.mockImplementation((url, { onSuccess, onFinish }) => {
+    it('polling onSuccess resets lastUpdated timestamp', async () => {
+        router.reload.mockImplementation(({ onSuccess }) => {
             if (onSuccess) onSuccess();
-            if (onFinish) onFinish();
         });
         const wrapper = mountShow();
 
@@ -209,12 +207,13 @@ describe('Show — Polling & Last Updated', () => {
         await wrapper.vm.$nextTick();
         expect(wrapper.find('[data-testid="last-updated"]').text()).toContain('20s ago');
 
-        // Trigger refresh — resets lastUpdated to current time
-        await wrapper.find('[data-testid="action-refresh"]').trigger('click');
+        // Trigger polling — resets lastUpdated via onSuccess
+        vi.advanceTimersByTime(10000);
         await flushPromises();
+        await wrapper.vm.$nextTick();
 
-        // Advance 5s for the display timer to recalculate
-        vi.advanceTimersByTime(5000);
+        // After polling success, lastUpdated resets — advance 2s for display timer
+        vi.advanceTimersByTime(2000);
         await flushPromises();
         await wrapper.vm.$nextTick();
 

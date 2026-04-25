@@ -214,12 +214,17 @@ describe('Sidebar.vue', () => {
         expect(wrapper.text()).toContain('Aperture');
     });
 
-    it('renders grouped horizontal navigation on mobile and includes all items', async () => {
+    it('renders slide-out drawer on mobile when opened', async () => {
         const wrapper = await mountSidebar(false);
-        const mobileNav = wrapper.get('[data-testid="admin-nav-horizontal"]');
-        const items = mobileNav.findAll('[data-testid^="nav-"]').map((item) => item.text());
 
-        expect(mobileNav.exists()).toBe(true);
+        expect(wrapper.find('[data-testid="admin-sidebar"]').exists()).toBe(false);
+
+        wrapper.vm.drawerOpen = true;
+        await nextTick();
+
+        const drawer = document.querySelector('[data-testid="admin-drawer"]');
+        expect(drawer).not.toBeNull();
+        const items = [...drawer.querySelectorAll('[data-testid^="nav-"]')].map((el) => el.textContent.trim());
         expect(items).toEqual([
             'Dashboard',
             'Users',
@@ -236,6 +241,8 @@ describe('Sidebar.vue', () => {
             'Settings',
             'Audit Log',
         ]);
+
+        wrapper.unmount();
     });
 
     it('uses matchMedia instead of resize listener for breakpoint detection', async () => {
@@ -248,13 +255,13 @@ describe('Sidebar.vue', () => {
         const wrapper = await mountSidebar(true);
 
         expect(wrapper.find('[data-testid="admin-sidebar"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="admin-nav-horizontal"]').exists()).toBe(false);
 
         triggerBreakpointChange(false);
         await nextTick();
 
         expect(wrapper.find('[data-testid="admin-sidebar"]').exists()).toBe(false);
-        expect(wrapper.find('[data-testid="admin-nav-horizontal"]').exists()).toBe(true);
+
+        wrapper.unmount();
     });
 
     it('cleans up matchMedia listener on unmount', async () => {
