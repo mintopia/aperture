@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\IntegrationConfig;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Ipv6JwtService;
 use Illuminate\Contracts\View\View;
@@ -24,9 +25,12 @@ class PortalController extends Controller
         $dbConfig = IntegrationConfig::getAll('ipv6');
         $ipv6DetectionEndpoint = $dbConfig['detection_endpoint'] ?? '';
 
+        $dnsCheckUrl = Setting::get('dns.check_url', '');
+
         return view('portal', [
             'ip' => $ip,
             'ipv6DetectionEndpoint' => $ipv6DetectionEndpoint,
+            'dnsCheckUrl' => $dnsCheckUrl,
         ]);
     }
 

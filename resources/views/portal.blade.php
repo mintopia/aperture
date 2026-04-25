@@ -55,14 +55,25 @@
 @section('scripts')
     <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const statusOK = document.getElementById('status-ok');
-        const statusWaiting = document.getElementById('status-waiting');
+        var statusOK = document.getElementById('status-ok');
+        var statusWaiting = document.getElementById('status-waiting');
 
-        let checks = 0;
+        function uuid() {
+            if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+                return crypto.randomUUID();
+            }
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        }
+
+        var checks = 0;
+        var internetEnabled = {{ $ip?->internet_enabled ? 'true' : 'false' }};
 
         function checkStatus() {
             checks++;
-            let timeout = 2000;
+            var timeout = 2000;
             if (checks > 20) {
                 timeout = 30000;
             } else if (checks > 4) {
@@ -70,52 +81,64 @@
             }
 
             fetch('/status')
-                .then(response => response.json())
-                .then(data => {
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
                     if (data.internetEnabled === true) {
-                        statusWaiting.classList.add('hidden');
-                        statusOK.classList.remove('hidden');
+                        if (statusWaiting) statusWaiting.classList.add('hidden');
+                        if (statusOK) statusOK.classList.remove('hidden');
+                        if (!internetEnabled) {
+                            internetEnabled = true;
+                            checkDns();
+                        }
                     } else {
                         setTimeout(checkStatus, timeout);
                     }
                 })
-                .catch(error => {
+                .catch(function(error) {
                     console.error('Error fetching status:', error);
                     setTimeout(checkStatus, timeout);
                 });
         }
 
-        fetch('https://' + crypto.randomUUID() + '.lancache.test.entropylan.party', {
-            timeout: 2000,
-        }).then(response => {
-            if (response.ok) {
-                return response.json();
-            }
-        }).then(data => {
-            if (data && data.server !== 'event') {
-                document.getElementById('dns-warning').classList.remove('hidden');
-            }
-        }).catch(() => {});
+        function checkDns() {
+            @if($dnsCheckUrl)
+            var dnsUrl = @json($dnsCheckUrl).replace('{uuid}', uuid());
+            fetch(dnsUrl)
+                .then(function(response) { return response.ok ? response.json() : null; })
+                .then(function(data) {
+                    if (data && data.server !== 'event') {
+                        document.getElementById('dns-warning').classList.remove('hidden');
+                    }
+                })
+                .catch(function() {});
+            @endif
+        }
 
+        if (internetEnabled) {
+            checkDns();
+        }
+
+        @if(!$ip?->internet_enabled && !Auth::user()->internet_blocked)
         @if($ipv6DetectionEndpoint)
-        var ipv6Endpoint = '{{ $ipv6DetectionEndpoint }}'.replace('{random}', crypto.randomUUID());
+        var ipv6Endpoint = @json($ipv6DetectionEndpoint).replace('{random}', uuid());
         fetch(ipv6Endpoint)
-            .then(response => response.ok ? response.text() : null)
-            .then(token => {
+            .then(function(response) { return response.ok ? response.text() : null; })
+            .then(function(token) {
                 if (token && token.trim().length > 0) {
                     fetch("/ipv6", {
                         method: "POST",
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 'token': token.trim() }),
-                    }).then(() => setTimeout(checkStatus, 2000))
-                      .catch(() => setTimeout(checkStatus, 2000));
+                    }).then(function() { setTimeout(checkStatus, 2000); })
+                      .catch(function() { setTimeout(checkStatus, 2000); });
                 } else {
                     setTimeout(checkStatus, 2000);
                 }
             })
-            .catch(() => setTimeout(checkStatus, 2000));
+            .catch(function() { setTimeout(checkStatus, 2000); });
         @else
         setTimeout(checkStatus, 2000);
+        @endif
         @endif
     });
     </script>

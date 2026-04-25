@@ -3,6 +3,9 @@ import { ref } from 'vue';
 import { useForm, Head } from '@inertiajs/vue3';
 import FormField from '@/Components/UI/FormField.vue';
 import { base64UrlToBuffer, bufferToBase64, getCsrfToken } from '@/utils/webauthn';
+import { useTheme } from '@/composables/useTheme.js';
+
+useTheme();
 
 const form = useForm({
     email: '',
