@@ -10,21 +10,21 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
-class NtopNgCommand extends Command
+class SyncBandwidthCommand extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'aperture:ntopng';
+    protected $signature = 'aperture:sync-bandwidth';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Update all IP addresses from ntopng';
+    protected $description = 'Update bandwidth usage totals for all IP addresses';
 
     /**
      * Execute the console command.

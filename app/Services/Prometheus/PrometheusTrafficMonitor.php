@@ -185,7 +185,7 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
     {
         $window = max($step, 120);
 
-        return $window >= 60 ? (int) ($window / 60).'m' : $window.'s';
+        return (int) ($window / 60).'m';
     }
 
     /**

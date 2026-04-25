@@ -17,6 +17,7 @@ use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\HostStatsProviderInterface;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
@@ -25,6 +26,7 @@ use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NtopNgService;
+use App\Services\Null\NullHostStatsProvider;
 use App\Services\Null\NullTrafficMonitor;
 use App\Services\PiHole\PiHoleService;
 use App\Services\Prometheus\PrometheusService;
@@ -49,20 +51,28 @@ class AppServiceProviderTest extends TestCase
         );
     }
 
-    public function test_boot_registers_ntop_ng_service_singleton(): void
+    public function test_host_stats_provider_returns_null_when_no_capability(): void
     {
-        config([
-            'aperture.ntopng.endpoint' => 'http://localhost:3000',
-            'aperture.ntopng.username' => 'admin',
-            'aperture.ntopng.password' => 'admin',
-            'aperture.ntopng.interface' => 1,
-        ]);
+        $this->app->forgetInstance(HostStatsProviderInterface::class);
 
-        $service = $this->app->make(NtopNgService::class);
+        $service = $this->app->make(HostStatsProviderInterface::class);
+        $this->assertInstanceOf(NullHostStatsProvider::class, $service);
+    }
+
+    public function test_host_stats_provider_returns_ntopng_when_capability_assigned(): void
+    {
+        IntegrationConfig::setValue('ntopng', 'endpoint', 'http://localhost:3000');
+        IntegrationConfig::setValue('ntopng', 'username', 'admin');
+        IntegrationConfig::setValue('ntopng', 'password', 'admin', true);
+        IntegrationConfig::setValue('ntopng', 'interface', '1');
+        CapabilityAssignment::assign('host-stats', 'ntopng');
+
+        $this->app->forgetInstance(HostStatsProviderInterface::class);
+
+        $service = $this->app->make(HostStatsProviderInterface::class);
         $this->assertInstanceOf(NtopNgService::class, $service);
 
-        // Verify it's a singleton - same instance returned
-        $service2 = $this->app->make(NtopNgService::class);
+        $service2 = $this->app->make(HostStatsProviderInterface::class);
         $this->assertSame($service, $service2);
     }
 

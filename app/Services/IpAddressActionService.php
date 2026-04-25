@@ -9,6 +9,7 @@ use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\HostStatsProviderInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
@@ -16,7 +17,6 @@ use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Support\Facades\Log;
-use stdClass;
 use Throwable;
 
 class IpAddressActionService
@@ -25,7 +25,7 @@ class IpAddressActionService
         protected FirewallBackendInterface $firewall,
         protected SwitchServiceFactory $switchFactory,
         protected MacAddressResolverInterface $macResolver,
-        protected NtopNgService $ntopng,
+        protected HostStatsProviderInterface $hostStats,
         protected NetworkInventoryInterface $networkInventory,
     ) {}
 
@@ -139,22 +139,19 @@ class IpAddressActionService
     public function updateUsage(IpAddress $ip): void
     {
         try {
-            $stats = $this->ntopng->getStats($ip->address);
-            $attr = 'bytes.rcvd';
-            $ip->received = $stats->rsp->$attr;
-            $attr = 'bytes.sent';
-            $ip->sent = $stats->rsp->$attr;
+            $bytes = $this->hostStats->getHostBytes($ip->address);
+            if ($bytes === null) {
+                return;
+            }
+
+            $ip->received = $bytes->received;
+            $ip->sent = $bytes->sent;
             $ip->save();
-        } catch (Throwable $throwable) {
+        } catch (Throwable $e) {
             Log::warning('Failed to update usage for IP address', [
                 'ip' => $ip->address,
-                'error' => $throwable->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
-    }
-
-    public function getStats(IpAddress $ip): stdClass
-    {
-        return $this->ntopng->getStats($ip->address);
     }
 }

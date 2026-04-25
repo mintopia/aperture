@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Console;
 
-use App\Services\NtopNgService;
+use App\Services\Interfaces\HostStatsProviderInterface;
+use App\Services\ValueObjects\HostBytes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
-use stdClass;
 use Tests\TestCase;
 
 class TestCommandTest extends TestCase
@@ -17,17 +17,12 @@ class TestCommandTest extends TestCase
 
     public function test_command_calls_update_usage_on_ip_address(): void
     {
-        $mockStats = new stdClass;
-        $mockStats->rsp = new stdClass;
-        $mockStats->rsp->{'bytes.rcvd'} = 500;
-        $mockStats->rsp->{'bytes.sent'} = 1000;
-
-        /** @var NtopNgService&MockInterface $mock */
-        $mock = Mockery::mock(NtopNgService::class);
-        $mock->shouldReceive('getStats')
+        /** @var HostStatsProviderInterface&MockInterface $mock */
+        $mock = Mockery::mock(HostStatsProviderInterface::class);
+        $mock->shouldReceive('getHostBytes')
             ->with('10.30.0.197')
-            ->andReturn($mockStats);
-        $this->app->instance(NtopNgService::class, $mock);
+            ->andReturn(new HostBytes(received: 500, sent: 1000));
+        $this->app->instance(HostStatsProviderInterface::class, $mock);
 
         // The command creates a bare IpAddress (missing last_seen_at) and calls
         // updateUsage() via the service, which catches Throwable and logs a warning
@@ -41,14 +36,14 @@ class TestCommandTest extends TestCase
         $this->artisan('aperture:test')->assertExitCode(0);
     }
 
-    public function test_command_logs_warning_when_ntopng_fails(): void
+    public function test_command_logs_warning_when_host_stats_fails(): void
     {
-        /** @var NtopNgService&MockInterface $mock */
-        $mock = Mockery::mock(NtopNgService::class);
-        $mock->shouldReceive('getStats')
+        /** @var HostStatsProviderInterface&MockInterface $mock */
+        $mock = Mockery::mock(HostStatsProviderInterface::class);
+        $mock->shouldReceive('getHostBytes')
             ->with('10.30.0.197')
             ->andThrow(new RuntimeException('Connection refused'));
-        $this->app->instance(NtopNgService::class, $mock);
+        $this->app->instance(HostStatsProviderInterface::class, $mock);
 
         Log::shouldReceive('warning')
             ->once()

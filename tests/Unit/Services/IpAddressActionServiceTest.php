@@ -8,11 +8,12 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\HostStatsProviderInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\IpAddressActionService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
-use App\Services\NtopNgService;
+use App\Services\ValueObjects\HostBytes;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +21,6 @@ use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
-use stdClass;
 use Tests\TestCase;
 
 class IpAddressActionServiceTest extends TestCase
@@ -31,14 +31,14 @@ class IpAddressActionServiceTest extends TestCase
      * @param  (FirewallBackendInterface&MockInterface)|null  $firewall
      * @param  (SwitchServiceFactory&MockInterface)|null  $factory
      * @param  (MacAddressResolverInterface&MockInterface)|null  $macResolver
-     * @param  (NtopNgService&MockInterface)|null  $ntopng
+     * @param  (HostStatsProviderInterface&MockInterface)|null  $hostStats
      * @param  (NetworkInventoryInterface&MockInterface)|null  $inventory
      */
     private function createService(
         FirewallBackendInterface|MockInterface|null $firewall = null,
         SwitchServiceFactory|MockInterface|null $factory = null,
         MacAddressResolverInterface|MockInterface|null $macResolver = null,
-        NtopNgService|MockInterface|null $ntopng = null,
+        HostStatsProviderInterface|MockInterface|null $hostStats = null,
         NetworkInventoryInterface|MockInterface|null $inventory = null,
     ): IpAddressActionService {
         /** @var FirewallBackendInterface $resolvedFirewall */
@@ -47,8 +47,8 @@ class IpAddressActionServiceTest extends TestCase
         $resolvedFactory = $factory ?? Mockery::mock(SwitchServiceFactory::class);
         /** @var MacAddressResolverInterface $resolvedMacResolver */
         $resolvedMacResolver = $macResolver ?? Mockery::mock(MacAddressResolverInterface::class);
-        /** @var NtopNgService $resolvedNtopng */
-        $resolvedNtopng = $ntopng ?? Mockery::mock(NtopNgService::class);
+        /** @var HostStatsProviderInterface $resolvedHostStats */
+        $resolvedHostStats = $hostStats ?? Mockery::mock(HostStatsProviderInterface::class);
         /** @var NetworkInventoryInterface $resolvedInventory */
         $resolvedInventory = $inventory ?? Mockery::mock(NetworkInventoryInterface::class);
 
@@ -56,7 +56,7 @@ class IpAddressActionServiceTest extends TestCase
             $resolvedFirewall,
             $resolvedFactory,
             $resolvedMacResolver,
-            $resolvedNtopng,
+            $resolvedHostStats,
             $resolvedInventory,
         );
     }
@@ -407,19 +407,15 @@ class IpAddressActionServiceTest extends TestCase
 
     public function test_update_usage_updates_received_and_sent(): void
     {
-        /** @var NtopNgService&MockInterface $ntopng */
-        $ntopng = Mockery::mock(NtopNgService::class);
-        $mockStats = new stdClass;
-        $mockStats->rsp = new stdClass;
-        $mockStats->rsp->{'bytes.rcvd'} = 1000;
-        $mockStats->rsp->{'bytes.sent'} = 2000;
+        /** @var HostStatsProviderInterface&MockInterface $hostStats */
+        $hostStats = Mockery::mock(HostStatsProviderInterface::class);
 
-        $ntopng->shouldReceive('getStats')
+        $hostStats->shouldReceive('getHostBytes')
             ->with('10.0.0.1')
             ->once()
-            ->andReturn($mockStats);
+            ->andReturn(new HostBytes(received: 1000, sent: 2000));
 
-        $service = $this->createService(ntopng: $ntopng);
+        $service = $this->createService(hostStats: $hostStats);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $service->updateUsage($ip);
@@ -437,14 +433,14 @@ class IpAddressActionServiceTest extends TestCase
                 return $context['ip'] === '10.0.0.1' && str_contains($context['error'], 'Service unavailable');
             }));
 
-        /** @var NtopNgService&MockInterface $ntopng */
-        $ntopng = Mockery::mock(NtopNgService::class);
-        $ntopng->shouldReceive('getStats')
+        /** @var HostStatsProviderInterface&MockInterface $hostStats */
+        $hostStats = Mockery::mock(HostStatsProviderInterface::class);
+        $hostStats->shouldReceive('getHostBytes')
             ->with('10.0.0.1')
             ->once()
             ->andThrow(new RuntimeException('Service unavailable'));
 
-        $service = $this->createService(ntopng: $ntopng);
+        $service = $this->createService(hostStats: $hostStats);
 
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $service->updateUsage($ip);
@@ -453,23 +449,22 @@ class IpAddressActionServiceTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function test_get_stats_returns_stats_from_ntopng(): void
+    public function test_update_usage_does_nothing_when_host_bytes_returns_null(): void
     {
-        /** @var NtopNgService&MockInterface $ntopng */
-        $ntopng = Mockery::mock(NtopNgService::class);
-        $mockStats = new stdClass;
-        $mockStats->rsp = new stdClass;
-
-        $ntopng->shouldReceive('getStats')
+        /** @var HostStatsProviderInterface&MockInterface $hostStats */
+        $hostStats = Mockery::mock(HostStatsProviderInterface::class);
+        $hostStats->shouldReceive('getHostBytes')
             ->with('10.0.0.1')
             ->once()
-            ->andReturn($mockStats);
+            ->andReturnNull();
 
-        $service = $this->createService(ntopng: $ntopng);
+        $service = $this->createService(hostStats: $hostStats);
 
-        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
-        $result = $service->getStats($ip);
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1', 'received' => 0, 'sent' => 0]);
+        $service->updateUsage($ip);
 
-        $this->assertSame($mockStats, $result);
+        $ip->refresh();
+        $this->assertEquals(0, $ip->received);
+        $this->assertEquals(0, $ip->sent);
     }
 }

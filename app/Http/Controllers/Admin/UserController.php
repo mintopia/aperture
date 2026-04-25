@@ -157,7 +157,7 @@ class UserController extends Controller
                         'hostname' => $hostname,
                         'internet_enabled' => $ip->internet_enabled,
                         'rate_limit_enabled' => $ip->rate_limit_enabled,
-                        'last_seen_at' => $ip->pivot->last_seen_at?->toIso8601String(),
+                        'last_seen_at' => $ip->pivot->last_seen_at->toIso8601String(),
                     ], $switchInfo);
                 }
             }
@@ -265,10 +265,8 @@ class UserController extends Controller
             ->with('ip')
             ->get()
             ->each(function ($userIp) use ($enable): void {
-                if ($userIp->ip instanceof IpAddress) {
-                    $userIp->ip->internet_enabled = $enable;
-                    $userIp->ip->save();
-                }
+                $userIp->ip->internet_enabled = $enable;
+                $userIp->ip->save();
             });
 
         $message = $enable
@@ -287,10 +285,8 @@ class UserController extends Controller
             ->with('ip')
             ->get()
             ->each(function ($userIp) use ($limit): void {
-                if ($userIp->ip instanceof IpAddress) {
-                    $userIp->ip->rate_limit_enabled = $limit;
-                    $userIp->ip->save();
-                }
+                $userIp->ip->rate_limit_enabled = $limit;
+                $userIp->ip->save();
             });
 
         $message = $limit
@@ -309,7 +305,7 @@ class UserController extends Controller
         $range = $validated['range'] ?? '24h';
 
         $ipAddresses = $user->ips()->with('ip')->get()
-            ->map(fn ($userIp) => $userIp->ip?->address)
+            ->map(fn ($userIp) => $userIp->ip->address)
             ->filter()
             ->values()
             ->all();

@@ -21,12 +21,14 @@ use App\Services\Integration\PrometheusTester;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\HostStatsProviderInterface;
 use App\Services\Interfaces\MetricsProviderInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\LibreNmsService;
 use App\Services\NtopNgService;
 use App\Services\Null\NullDhcpService;
+use App\Services\Null\NullHostStatsProvider;
 use App\Services\Null\NullMetricsProvider;
 use App\Services\Null\NullNetworkInventoryService;
 use App\Services\Null\NullTrafficMonitor;
@@ -126,7 +128,17 @@ class IntegrationServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(function (Application $app): NtopNgService {
+        $this->app->singleton(function (): HostStatsProviderInterface {
+            try {
+                $isNtopng = CapabilityAssignment::isActiveProvider('ntopng', 'host-stats');
+            } catch (Throwable) {
+                $isNtopng = false;
+            }
+
+            if (! $isNtopng) {
+                return new NullHostStatsProvider;
+            }
+
             $dbConfig = $this->getIntegrationDbConfig('ntopng');
 
             return new NtopNgService(
