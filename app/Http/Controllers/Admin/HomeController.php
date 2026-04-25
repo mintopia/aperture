@@ -9,11 +9,12 @@ use App\Jobs\ResetAperture;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\ValueObjects\DhcpRange;
-use Carbon\CarbonImmutable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,12 +28,30 @@ class HomeController extends Controller
             'activeIps' => IpAddress::where('internet_enabled', true)->count(),
             'blockedUsers' => User::where('internet_blocked', true)->count(),
             'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools($dhcp)),
-            'uniqueIps' => Inertia::defer(fn (): array => $this->getUniqueIpsOverTime()),
             'recentUsers' => Inertia::defer(fn (): LengthAwarePaginator => $this->getRecentUsers()),
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
                 ['label' => 'Dashboard'],
             ],
+        ]);
+    }
+
+    public function bandwidth(Request $request, TrafficMonitorInterface $trafficMonitor): JsonResponse
+    {
+        $validated = $request->validate([
+            'range' => 'nullable|string|in:1h,24h,4d',
+        ]);
+
+        $range = $validated['range'] ?? '24h';
+
+        $bandwidth = $trafficMonitor->getTotalBandwidth($range);
+
+        return response()->json([
+            'timestamps' => $bandwidth->timestamps,
+            'download' => $bandwidth->download,
+            'upload' => $bandwidth->upload,
+            'totalReceived' => $bandwidth->received,
+            'totalSent' => $bandwidth->sent,
         ]);
     }
 
@@ -56,27 +75,6 @@ class HomeController extends Controller
         ])->all());
 
         return $pools;
-    }
-
-    /** @return list<array{date: string, count: int}> */
-    private function getUniqueIpsOverTime(): array
-    {
-        $start = CarbonImmutable::now()->subDays(6)->startOfDay();
-
-        /** @var list<array{date: string, count: int}> $results */
-        $results = DB::table('ip_addresses')
-            ->selectRaw('DATE(last_seen_at) as date, COUNT(DISTINCT id) as count')
-            ->where('last_seen_at', '>=', $start)
-            ->groupByRaw('DATE(last_seen_at)')
-            ->orderBy('date')
-            ->get()
-            ->map(fn (object $row): array => [
-                'date' => (string) $row->date,
-                'count' => (int) $row->count,
-            ])
-            ->all();
-
-        return $results;
     }
 
     /** @return LengthAwarePaginator<int, User> */

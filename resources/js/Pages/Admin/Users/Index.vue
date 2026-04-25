@@ -164,8 +164,27 @@ const userSummary = computed(() => ({
                     <td data-testid="user-ips-count" class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ row.ips?.length ?? 0 }}
                     </td>
-                    <td data-testid="user-bandwidth" class="font-mono text-[13px] text-[var(--color-text-secondary)]">
-                        {{ formatBytes(row.weekly_bandwidth ?? 0) }}
+                    <td data-testid="user-bandwidth">
+                        <div class="flex items-baseline gap-3">
+                            <span>
+                                <span
+                                    class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                    >Down</span
+                                >
+                                <span class="ml-0.5 font-mono text-[13px] text-[var(--color-success)]">{{
+                                    formatBytes(row.weekly_received ?? 0)
+                                }}</span>
+                            </span>
+                            <span>
+                                <span
+                                    class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                    >Up</span
+                                >
+                                <span class="ml-0.5 font-mono text-[13px] text-[var(--color-info)]">{{
+                                    formatBytes(row.weekly_sent ?? 0)
+                                }}</span>
+                            </span>
+                        </div>
                     </td>
                     <td data-testid="user-status">
                         <span class="inline-flex items-center gap-1.5">

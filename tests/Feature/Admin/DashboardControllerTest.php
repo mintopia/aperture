@@ -45,11 +45,9 @@ class DashboardControllerTest extends TestCase
             ->has('activeIps')
             ->has('blockedUsers')
             ->missing('dhcpPools')
-            ->missing('uniqueIps')
             ->missing('recentUsers')
             ->loadDeferredProps(fn ($reload) => $reload
                 ->has('dhcpPools')
-                ->has('uniqueIps')
                 ->has('recentUsers')
             )
         );

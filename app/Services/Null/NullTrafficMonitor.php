@@ -23,6 +23,17 @@ class NullTrafficMonitor implements TrafficMonitorInterface
         );
     }
 
+    public function getTotalBandwidth(string $range = '24h'): UserBandwidth
+    {
+        return new UserBandwidth(
+            received: 0,
+            sent: 0,
+            timestamps: [],
+            download: [],
+            upload: [],
+        );
+    }
+
     public function getAggregateStats(): AggregateStats
     {
         return new AggregateStats(

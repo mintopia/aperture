@@ -1,14 +1,14 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { Deferred, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DhcpPoolsCard from '@/Components/Admin/DhcpPoolsCard.vue';
-import UniqueIpsChart from '@/Components/Admin/UniqueIpsChart.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import EmptyState from '@/Components/UI/EmptyState.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import StatCard from '@/Components/UI/StatCard.vue';
+import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelativeTime } from '@/utils/dates';
 
@@ -20,7 +20,6 @@ const props = defineProps({
     activeIps: { type: Number, default: 0 },
     blockedUsers: { type: Number, default: 0 },
     dhcpPools: { type: Array, default: undefined },
-    uniqueIps: { type: Array, default: undefined },
     recentUsers: { type: Object, default: undefined },
 });
 
@@ -44,6 +43,82 @@ const recentUserRows = computed(() => props.recentUsers?.data ?? []);
 function userHref(id) {
     return route('admin.users.show', id);
 }
+
+const ranges = [
+    { value: '1h', label: '1H' },
+    { value: '24h', label: '24H' },
+    { value: '4d', label: '72H' },
+];
+
+const selectedRange = ref('1h');
+
+const bandwidthData = ref({
+    timestamps: [],
+    download: [],
+    upload: [],
+    totalReceived: 0,
+    totalSent: 0,
+});
+
+const bandwidthLoading = ref(true);
+
+const chartSeries = computed(() => {
+    const { timestamps, download, upload } = bandwidthData.value;
+    if (!timestamps.length) return [];
+
+    return [
+        {
+            label: 'Download',
+            color: 'var(--color-success)',
+            fill: true,
+            data: timestamps.map((ts, i) => ({
+                timestamp: Number(ts),
+                value: download[i] ?? 0,
+            })),
+        },
+        {
+            label: 'Upload',
+            color: 'var(--color-info)',
+            fill: true,
+            data: timestamps.map((ts, i) => ({
+                timestamp: Number(ts),
+                value: upload[i] ?? 0,
+            })),
+        },
+    ];
+});
+
+let bandwidthPoll = null;
+
+async function fetchBandwidth() {
+    try {
+        const response = await fetch(
+            route('admin.dashboard.bandwidth') + '?range=' + selectedRange.value + '&_t=' + Date.now(),
+        );
+        if (response.ok) {
+            bandwidthData.value = await response.json();
+        }
+    } catch (_e) {
+        // Silently fail — data will refresh next interval
+    } finally {
+        bandwidthLoading.value = false;
+    }
+}
+
+function selectRange(range) {
+    selectedRange.value = range;
+    bandwidthLoading.value = true;
+    fetchBandwidth();
+}
+
+onMounted(() => {
+    fetchBandwidth();
+    bandwidthPoll = setInterval(fetchBandwidth, 30000);
+});
+
+onUnmounted(() => {
+    if (bandwidthPoll) clearInterval(bandwidthPoll);
+});
 </script>
 
 <template>
@@ -91,7 +166,7 @@ function userHref(id) {
             </div>
         </div>
 
-        <!-- Two Column: DHCP Pools + Unique IPs Chart -->
+        <!-- Two Column: DHCP Pools + Total Bandwidth Chart -->
         <div class="mb-10 grid grid-cols-1 gap-6 md:grid-cols-[3fr_2fr]">
             <Deferred data="dhcpPools">
                 <template #fallback>
@@ -110,18 +185,60 @@ function userHref(id) {
                 <DhcpPoolsCard :pools="dhcpPools ?? []" />
             </Deferred>
 
-            <Deferred data="uniqueIps">
-                <template #fallback>
-                    <div data-testid="unique-ips-loading">
-                        <SectionHeader title="Unique IPs — Last 7 Days" />
-                        <div
-                            class="flex h-[200px] animate-pulse items-center justify-center rounded border border-[var(--color-border)] bg-[var(--color-surface-hover)]"
-                        />
+            <div data-testid="total-bandwidth-section">
+                <div class="flex items-baseline justify-between">
+                    <SectionHeader title="Total Bandwidth" />
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-baseline gap-4">
+                            <div data-testid="bandwidth-download">
+                                <span
+                                    class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                >
+                                    Down
+                                </span>
+                                <span class="ml-1 font-mono text-sm font-bold text-[var(--color-success)]">
+                                    {{ formatBytes(bandwidthData.totalReceived) }}
+                                </span>
+                            </div>
+                            <div data-testid="bandwidth-upload">
+                                <span
+                                    class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                >
+                                    Up
+                                </span>
+                                <span class="ml-1 font-mono text-sm font-bold text-[var(--color-info)]">
+                                    {{ formatBytes(bandwidthData.totalSent) }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex gap-1" data-testid="bandwidth-range-selector">
+                            <button
+                                v-for="r in ranges"
+                                :key="r.value"
+                                type="button"
+                                :data-testid="'bandwidth-range-' + r.value"
+                                :class="[
+                                    'rounded px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase transition-all',
+                                    selectedRange === r.value
+                                        ? 'bg-[var(--color-accent-dim)] text-[var(--color-primary)]'
+                                        : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]',
+                                ]"
+                                @click="selectRange(r.value)"
+                            >
+                                {{ r.label }}
+                            </button>
+                        </div>
                     </div>
-                </template>
-
-                <UniqueIpsChart :data="uniqueIps ?? []" />
-            </Deferred>
+                </div>
+                <TimeSeriesChart
+                    :series="chartSeries"
+                    :loading="bandwidthLoading"
+                    y-axis-label="bps"
+                    height="200px"
+                    empty-message="No bandwidth data available"
+                    data-testid="bandwidth-chart"
+                />
+            </div>
         </div>
 
         <!-- Recent Users Table -->
@@ -165,11 +282,27 @@ function userHref(id) {
                             >
                                 {{ row.ips_count ?? 0 }}
                             </td>
-                            <td
-                                data-testid="user-bandwidth"
-                                class="py-[10px] font-mono text-[13px] text-[var(--color-text-secondary)]"
-                            >
-                                {{ formatBytes(row.weekly_bandwidth ?? 0) }}
+                            <td data-testid="user-bandwidth" class="py-[10px]">
+                                <div class="flex items-baseline gap-3">
+                                    <span>
+                                        <span
+                                            class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                            >Down</span
+                                        >
+                                        <span class="ml-0.5 font-mono text-[13px] text-[var(--color-success)]">{{
+                                            formatBytes(row.weekly_received ?? 0)
+                                        }}</span>
+                                    </span>
+                                    <span>
+                                        <span
+                                            class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                                            >Up</span
+                                        >
+                                        <span class="ml-0.5 font-mono text-[13px] text-[var(--color-info)]">{{
+                                            formatBytes(row.weekly_sent ?? 0)
+                                        }}</span>
+                                    </span>
+                                </div>
                             </td>
                             <td data-testid="user-status" class="py-[10px]">
                                 <span class="inline-flex items-center gap-1.5">

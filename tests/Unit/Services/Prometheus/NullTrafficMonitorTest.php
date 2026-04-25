@@ -31,6 +31,30 @@ class NullTrafficMonitorTest extends TestCase
         $this->assertEmpty($result->upload);
     }
 
+    public function test_get_total_bandwidth_returns_empty_user_bandwidth(): void
+    {
+        $result = $this->monitor->getTotalBandwidth();
+
+        $this->assertInstanceOf(UserBandwidth::class, $result);
+        $this->assertSame(0, $result->received);
+        $this->assertSame(0, $result->sent);
+        $this->assertEmpty($result->timestamps);
+        $this->assertEmpty($result->download);
+        $this->assertEmpty($result->upload);
+    }
+
+    public function test_get_total_bandwidth_ignores_range_parameter(): void
+    {
+        $result = $this->monitor->getTotalBandwidth('1h');
+
+        $this->assertInstanceOf(UserBandwidth::class, $result);
+        $this->assertSame(0, $result->received);
+        $this->assertSame(0, $result->sent);
+        $this->assertEmpty($result->timestamps);
+        $this->assertEmpty($result->download);
+        $this->assertEmpty($result->upload);
+    }
+
     public function test_get_aggregate_stats_returns_zero_stats(): void
     {
         $result = $this->monitor->getAggregateStats();

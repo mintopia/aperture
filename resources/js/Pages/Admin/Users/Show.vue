@@ -92,6 +92,7 @@ const deviceColumns = [
     { key: 'mac_address', label: 'MAC' },
     { key: 'ip_address', label: 'IP' },
     { key: 'hostname', label: 'Hostname' },
+    { key: 'traffic', label: 'Down / Up' },
     { key: 'switch_port', label: 'Switch / Port' },
     { key: 'internet', label: 'Internet' },
     { key: 'rate_limit', label: 'Rate Limit' },
@@ -370,6 +371,17 @@ onUnmounted(() => {
                     </td>
                     <td data-testid="device-hostname" class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ row.hostname ?? '—' }}
+                    </td>
+                    <td data-testid="device-traffic">
+                        <div class="flex items-baseline gap-2">
+                            <span class="font-mono text-[13px] text-[var(--color-success)]">{{
+                                formatBytes(row.received ?? 0)
+                            }}</span>
+                            <span class="text-[10px] text-[var(--color-text-muted)]">/</span>
+                            <span class="font-mono text-[13px] text-[var(--color-info)]">{{
+                                formatBytes(row.sent ?? 0)
+                            }}</span>
+                        </div>
                     </td>
                     <td data-testid="device-switch-port" class="text-[13px]">
                         <template v-if="row.switch_name && row.port_name">

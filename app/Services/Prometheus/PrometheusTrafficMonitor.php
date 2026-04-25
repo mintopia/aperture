@@ -21,24 +21,36 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
 
     public function getUserBandwidth(string|array $ipAddress, string $range = '24h'): UserBandwidth
     {
+        $ipFilter = $this->buildIpFilter($ipAddress);
+
+        return $this->queryBandwidthRange($range, $ipFilter);
+    }
+
+    public function getTotalBandwidth(string $range = '24h'): UserBandwidth
+    {
+        return $this->queryBandwidthRange($range);
+    }
+
+    protected function queryBandwidthRange(string $range, ?string $ipFilter = null): UserBandwidth
+    {
         $seconds = $this->rangeToSeconds($range);
         $step = $this->resolveStep($seconds);
         $end = (int) (floor(time() / $step) * $step);
         $start = $end - $seconds;
 
-        $ipFilter = $this->buildIpFilter($ipAddress);
         $rateWindow = $this->resolveRateWindow($step);
+        $selector = $ipFilter !== null ? sprintf('{%s}', $ipFilter) : '';
 
         $inQuery = sprintf(
-            'sum(rate(%s{%s}[%s]))',
+            'sum(rate(%s%s[%s]))',
             $this->rcvdMetric,
-            $ipFilter,
+            $selector,
             $rateWindow,
         );
         $outQuery = sprintf(
-            'sum(rate(%s{%s}[%s]))',
+            'sum(rate(%s%s[%s]))',
             $this->sentMetric,
-            $ipFilter,
+            $selector,
             $rateWindow,
         );
 

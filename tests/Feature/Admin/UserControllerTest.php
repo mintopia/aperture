@@ -362,6 +362,32 @@ class UserControllerTest extends TestCase
             ]);
     }
 
+    public function test_show_network_devices_include_received_and_sent(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $ip = IpAddress::factory()->create([
+            'internet_enabled' => true,
+            'rate_limit_enabled' => false,
+            'received' => 50000,
+            'sent' => 25000,
+        ]);
+        $this->linkIpToUser($user, $ip);
+
+        $response = $this->actingAs($admin)->get(route('admin.users.show', $user));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Users/Show')
+            ->has('networkDevices', 1)
+            ->where('networkDevices.0.received', 50000)
+            ->where('networkDevices.0.sent', 25000)
+            ->where('networkDevices.0.ip_address', $ip->address)
+        );
+    }
+
     public function test_non_admin_cannot_fetch_user_bandwidth(): void
     {
         Queue::fake();

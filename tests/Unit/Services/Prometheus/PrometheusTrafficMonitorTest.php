@@ -180,6 +180,95 @@ class PrometheusTrafficMonitorTest extends TestCase
         $this->monitor->getUserBandwidth('10.0.0.1', 'invalid');
     }
 
+    public function test_get_total_bandwidth_returns_bandwidth_without_ip_filter(): void
+    {
+        $this->prometheus->shouldReceive('queryRange')
+            ->withArgs(function (string $query, float $start, float $end, int $step): bool {
+                return str_contains($query, 'ntopng_host_bytes_rcvd')
+                    && ! str_contains($query, 'ip=')
+                    && ! str_contains($query, '{')
+                    && str_contains($query, 'sum(rate(');
+            })
+            ->once()
+            ->andReturn([
+                'resultType' => 'matrix',
+                'result' => [
+                    [
+                        'metric' => [],
+                        'values' => [
+                            [1700000000.0, '5000'],
+                            [1700000300.0, '6000'],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $this->prometheus->shouldReceive('queryRange')
+            ->withArgs(function (string $query, float $start, float $end, int $step): bool {
+                return str_contains($query, 'ntopng_host_bytes_sent')
+                    && ! str_contains($query, 'ip=')
+                    && ! str_contains($query, '{')
+                    && str_contains($query, 'sum(rate(');
+            })
+            ->once()
+            ->andReturn([
+                'resultType' => 'matrix',
+                'result' => [
+                    [
+                        'metric' => [],
+                        'values' => [
+                            [1700000000.0, '2000'],
+                            [1700000300.0, '3000'],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $result = $this->monitor->getTotalBandwidth('24h');
+
+        $this->assertInstanceOf(UserBandwidth::class, $result);
+        $this->assertSame(3300000, $result->received);  // (5000 + 6000) bytes/s * step(300s)
+        $this->assertSame(1500000, $result->sent);       // (2000 + 3000) bytes/s * step(300s)
+        $this->assertCount(2, $result->timestamps);
+        $this->assertCount(2, $result->download);
+        $this->assertCount(2, $result->upload);
+        $this->assertSame(40000.0, $result->download[0]);  // 5000 bytes/s * 8 = bits/s
+        $this->assertSame(16000.0, $result->upload[0]);    // 2000 bytes/s * 8 = bits/s
+    }
+
+    public function test_get_total_bandwidth_returns_empty_when_no_data(): void
+    {
+        $this->prometheus->shouldReceive('queryRange')
+            ->twice()
+            ->andReturn([
+                'resultType' => 'matrix',
+                'result' => [],
+            ]);
+
+        $result = $this->monitor->getTotalBandwidth();
+
+        $this->assertInstanceOf(UserBandwidth::class, $result);
+        $this->assertSame(0, $result->received);
+        $this->assertSame(0, $result->sent);
+        $this->assertEmpty($result->timestamps);
+        $this->assertEmpty($result->download);
+        $this->assertEmpty($result->upload);
+    }
+
+    public function test_get_total_bandwidth_uses_correct_range(): void
+    {
+        $this->prometheus->shouldReceive('queryRange')
+            ->withArgs(function (string $query, float $start, float $end, int $step): bool {
+                $diff = $end - $start;
+
+                return abs($diff - 3600) < 2 && $step === 60;
+            })
+            ->twice()
+            ->andReturn(['result' => []]);
+
+        $this->monitor->getTotalBandwidth('1h');
+    }
+
     public function test_get_aggregate_stats_returns_aggregate_stats_value_object(): void
     {
         $this->prometheus->shouldReceive('query')

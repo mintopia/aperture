@@ -48,10 +48,12 @@ class SyncUserBandwidthCommand extends Command
             }
 
             $bandwidth = $trafficMonitor->getUserBandwidth($ipAddresses, '7d');
+            $user->weekly_received = max(0, $bandwidth->received);
+            $user->weekly_sent = max(0, $bandwidth->sent);
             $user->weekly_bandwidth = max(0, $bandwidth->received + $bandwidth->sent);
             $user->save();
 
-            Log::debug(sprintf('[%s] Updated weekly bandwidth: %d bytes', $user->nickname, $user->weekly_bandwidth));
+            Log::debug(sprintf('[%s] Updated weekly bandwidth: %d bytes (down: %d, up: %d)', $user->nickname, $user->weekly_bandwidth, $user->weekly_received, $user->weekly_sent));
         } catch (Throwable $e) {
             Log::warning('Failed to sync user bandwidth', [
                 'user_id' => $user->id,

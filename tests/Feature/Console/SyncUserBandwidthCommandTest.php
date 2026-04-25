@@ -42,6 +42,8 @@ class SyncUserBandwidthCommandTest extends TestCase
 
         $user->refresh();
         $this->assertEquals(8000, $user->weekly_bandwidth);
+        $this->assertEquals(5000, $user->weekly_received);
+        $this->assertEquals(3000, $user->weekly_sent);
     }
 
     public function test_command_skips_users_without_ips(): void
@@ -109,5 +111,7 @@ class SyncUserBandwidthCommandTest extends TestCase
 
         $user->refresh();
         $this->assertEquals(15000, $user->weekly_bandwidth);
+        $this->assertEquals(10000, $user->weekly_received);
+        $this->assertEquals(5000, $user->weekly_sent);
     }
 }

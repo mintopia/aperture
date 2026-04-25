@@ -14,6 +14,8 @@ interface TrafficMonitorInterface
     /** @param string|string[] $ipAddress */
     public function getUserBandwidth(string|array $ipAddress, string $range = '24h'): UserBandwidth;
 
+    public function getTotalBandwidth(string $range = '24h'): UserBandwidth;
+
     public function getAggregateStats(): AggregateStats;
 
     /** @return Collection<int, TopTalker> */
