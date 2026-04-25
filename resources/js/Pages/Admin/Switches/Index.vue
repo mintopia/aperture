@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import EmptyState from '@/Components/UI/EmptyState.vue';
@@ -13,12 +13,16 @@ defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     switches: { type: Array, default: () => [] },
+    filters: { type: Object, default: () => ({}) },
 });
 
-const sortColumn = ref('name');
-const sortDirection = ref('asc');
-const searchQuery = ref('');
-const filterValues = ref({});
+const sortColumn = ref(props.filters?.order ?? 'name');
+const sortDirection = ref(props.filters?.direction ?? 'asc');
+const searchQuery = ref(props.filters?.search ?? '');
+const filterValues = ref({
+    type: props.filters?.type ?? '',
+    status: props.filters?.status ?? '',
+});
 
 const columns = [
     { key: 'name', label: 'Name', sortable: true },
@@ -44,67 +48,21 @@ const filterDefinitions = computed(() => [
             { value: 'disabled', label: 'Disabled' },
         ],
     },
-    {
-        key: 'sync',
-        label: 'Sync',
-        options: [
-            { value: 'completed', label: 'Completed' },
-            { value: 'running', label: 'Running' },
-            { value: 'failed', label: 'Failed' },
-            { value: 'never', label: 'Never Synced' },
-        ],
-    },
 ]);
 
-const filteredSwitches = computed(() => {
-    let result = props.switches;
-    const q = searchQuery.value.toLowerCase().trim();
-
-    if (q) {
-        result = result.filter((sw) => sw.name.toLowerCase().includes(q) || sw.hostname.toLowerCase().includes(q));
-    }
-
-    if (filterValues.value.type) {
-        result = result.filter((sw) => sw.type === filterValues.value.type);
-    }
-
-    if (filterValues.value.status === 'enabled') {
-        result = result.filter((sw) => sw.enabled);
-    } else if (filterValues.value.status === 'disabled') {
-        result = result.filter((sw) => !sw.enabled);
-    }
-
-    if (filterValues.value.sync === 'never') {
-        result = result.filter((sw) => !sw.latest_sync_status);
-    } else if (filterValues.value.sync) {
-        result = result.filter((sw) => sw.latest_sync_status === filterValues.value.sync);
-    }
-
-    return result;
-});
-
-const sortedSwitches = computed(() => {
-    return [...filteredSwitches.value].sort((a, b) => {
-        let aVal = a[sortColumn.value];
-        let bVal = b[sortColumn.value];
-
-        if (aVal == null) aVal = '';
-        if (bVal == null) bVal = '';
-
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-            return sortDirection.value === 'asc' ? aVal - bVal : bVal - aVal;
-        }
-
-        if (typeof aVal === 'boolean') {
-            aVal = aVal ? 1 : 0;
-            bVal = bVal ? 1 : 0;
-            return sortDirection.value === 'asc' ? aVal - bVal : bVal - aVal;
-        }
-
-        const comparison = aVal.toString().localeCompare(bVal.toString());
-        return sortDirection.value === 'asc' ? comparison : -comparison;
-    });
-});
+function search() {
+    router.get(
+        route('admin.switches.index'),
+        {
+            search: searchQuery.value,
+            type: filterValues.value.type,
+            status: filterValues.value.status,
+            order: sortColumn.value,
+            direction: sortDirection.value,
+        },
+        { preserveState: true },
+    );
+}
 
 const switchSummary = computed(() => ({
     total: props.switches.length,
@@ -115,10 +73,12 @@ const switchSummary = computed(() => ({
 
 function onSortColumnUpdate(col) {
     sortColumn.value = col;
+    search();
 }
 
 function onSortDirectionUpdate(dir) {
     sortDirection.value = dir;
+    search();
 }
 
 function syncStatusDotClass(status) {
@@ -205,6 +165,7 @@ function syncStatusLabel(status) {
                     Enabled
                 </p>
                 <p
+                    data-testid="summary-enabled-value"
                     class="font-heading text-[20px] font-bold text-[var(--color-success)]"
                     style="font-variation-settings: 'opsz' 28"
                 >
@@ -220,6 +181,7 @@ function syncStatusLabel(status) {
                     Disabled
                 </p>
                 <p
+                    data-testid="summary-disabled-value"
                     class="font-heading text-[20px] font-bold text-[var(--color-text-muted)]"
                     style="font-variation-settings: 'opsz' 28"
                 >
@@ -233,6 +195,7 @@ function syncStatusLabel(status) {
                     Never Synced
                 </p>
                 <p
+                    data-testid="summary-never-synced-value"
                     class="font-heading text-[20px] font-bold text-[var(--color-warning)]"
                     style="font-variation-settings: 'opsz' 28"
                 >
@@ -266,14 +229,24 @@ function syncStatusLabel(status) {
                 :filters="filterDefinitions"
                 :filter-values="filterValues"
                 :total-count="switches.length"
-                :filtered-count="filteredSwitches.length"
-                @update:search="searchQuery = $event"
-                @update:filter-values="filterValues = $event"
+                :filtered-count="switches.length"
+                @update:search="
+                    (v) => {
+                        searchQuery = v;
+                        search();
+                    }
+                "
+                @update:filter-values="
+                    (v) => {
+                        filterValues = v;
+                        search();
+                    }
+                "
             />
 
             <DataTable
                 :columns="columns"
-                :rows="sortedSwitches"
+                :rows="switches"
                 :sort-column="sortColumn"
                 :sort-direction="sortDirection"
                 clickable

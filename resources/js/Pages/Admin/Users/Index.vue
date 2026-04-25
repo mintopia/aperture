@@ -92,6 +92,7 @@ const userSummary = computed(() => ({
                     Total
                 </p>
                 <p
+                    data-testid="summary-total-value"
                     class="font-heading text-[20px] font-bold text-[var(--color-text)]"
                     style="font-variation-settings: 'opsz' 28"
                 >
@@ -107,6 +108,7 @@ const userSummary = computed(() => ({
                     Active
                 </p>
                 <p
+                    data-testid="summary-active-value"
                     class="font-heading text-[20px] font-bold text-[var(--color-success)]"
                     style="font-variation-settings: 'opsz' 28"
                 >
@@ -120,6 +122,7 @@ const userSummary = computed(() => ({
                     Blocked
                 </p>
                 <p
+                    data-testid="summary-blocked-value"
                     class="font-heading text-[20px] font-bold text-[var(--color-danger)]"
                     style="font-variation-settings: 'opsz' 28"
                 >
@@ -150,16 +153,16 @@ const userSummary = computed(() => ({
                 empty-message="No users match your search."
             >
                 <template #row="{ row }">
-                    <td class="text-[13px] font-semibold text-[var(--color-text)]">
+                    <td data-testid="user-nickname" class="text-[13px] font-semibold text-[var(--color-text)]">
                         {{ row.nickname }}
                     </td>
-                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                    <td data-testid="user-email" class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ row.email }}
                     </td>
-                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                    <td data-testid="user-ips-count" class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ row.ips?.length ?? 0 }}
                     </td>
-                    <td>
+                    <td data-testid="user-status">
                         <span class="inline-flex items-center gap-1.5">
                             <span
                                 class="h-[7px] w-[7px] rounded-full"

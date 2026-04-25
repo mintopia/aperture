@@ -26,7 +26,6 @@ class DashboardController extends Controller
         $user = $request->user();
         $clientIp = (string) $request->getClientIp();
         $ip = $user->addIp($clientIp);
-
         $blocks = ContentBlock::active()->get();
 
         $checkUrl = Setting::get('dns.check_url');

@@ -225,6 +225,7 @@ function formatExpiry(expires) {
                         <th
                             v-for="(col, colIdx) in columns"
                             :key="col.key"
+                            :data-testid="'sort-' + col.key"
                             class="border-b border-[var(--color-border-hover)] py-2 text-left text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
                             :class="[col.sortable ? 'cursor-pointer' : '', colIdx > 0 ? 'pl-6' : '']"
                             @click="col.sortable ? toggleSort(col.key) : null"

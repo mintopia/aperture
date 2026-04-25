@@ -22,21 +22,24 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
     public function getUserBandwidth(string|array $ipAddress, string $range = '24h'): UserBandwidth
     {
         $seconds = $this->rangeToSeconds($range);
-        $end = time();
-        $start = $end - $seconds;
         $step = $this->resolveStep($seconds);
+        $end = (int) (floor(time() / $step) * $step);
+        $start = $end - $seconds;
 
         $ipFilter = $this->buildIpFilter($ipAddress);
+        $rateWindow = $this->resolveRateWindow($step);
 
         $inQuery = sprintf(
-            'sum(rate(%s{%s}[30s]))',
+            'sum(rate(%s{%s}[%s]))',
             $this->rcvdMetric,
             $ipFilter,
+            $rateWindow,
         );
         $outQuery = sprintf(
-            'sum(rate(%s{%s}[30s]))',
+            'sum(rate(%s{%s}[%s]))',
             $this->sentMetric,
             $ipFilter,
+            $rateWindow,
         );
 
         $inSeries = $this->prometheus->queryRange($inQuery, (float) $start, (float) $end, $step);
@@ -92,10 +95,10 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         $totalDevices = $this->extractScalarValue($devicesData);
 
         $rcvdBandwidthData = $this->prometheus->query(
-            sprintf('sum(rate(%s[30s]))', $this->rcvdMetric),
+            sprintf('sum(rate(%s[2m]))', $this->rcvdMetric),
         );
         $sentBandwidthData = $this->prometheus->query(
-            sprintf('sum(rate(%s[30s]))', $this->sentMetric),
+            sprintf('sum(rate(%s[2m]))', $this->sentMetric),
         );
         $totalBandwidth = (int) round(
             ((float) ($rcvdBandwidthData['result'][0]['value'][1] ?? 0)
@@ -113,7 +116,7 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
     public function getTopTalkers(int $limit = 10): Collection
     {
         $query = sprintf(
-            'topk(%d, sum by (%s) (rate(%s[30s])))',
+            'topk(%d, sum by (%s) (rate(%s[2m])))',
             $limit,
             $this->ipLabel,
             $this->rcvdMetric,
@@ -176,6 +179,13 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
             $seconds <= 86400 => 300,
             default => 900,
         };
+    }
+
+    protected function resolveRateWindow(int $step): string
+    {
+        $window = max($step, 120);
+
+        return $window >= 60 ? (int) ($window / 60).'m' : $window.'s';
     }
 
     /**

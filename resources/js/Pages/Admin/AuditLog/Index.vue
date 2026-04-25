@@ -18,6 +18,8 @@ const props = defineProps({
 });
 
 const searchQuery = ref('');
+const sortColumn = ref(props.filters?.order ?? 'created_at');
+const sortDirection = ref(props.filters?.direction ?? 'desc');
 const filterValues = ref({
     action: props.filters?.action ?? '',
     process: props.filters?.process ?? '',
@@ -43,12 +45,12 @@ const filterDefinitions = computed(() => [
 ]);
 
 const columns = [
-    { key: 'created_at', label: 'Timestamp' },
-    { key: 'action', label: 'Action' },
+    { key: 'created_at', label: 'Timestamp', sortable: true },
+    { key: 'action', label: 'Action', sortable: true },
     { key: 'subject', label: 'Subject' },
     { key: 'related', label: 'Related' },
     { key: 'actor', label: 'Actor' },
-    { key: 'process', label: 'Process' },
+    { key: 'process', label: 'Process', sortable: true },
 ];
 
 const allLogs = computed(() => props.logs.data ?? []);
@@ -71,6 +73,8 @@ function search() {
             action: filterValues.value.action,
             process: filterValues.value.process,
             subject_type: filterValues.value.subject_type,
+            order: sortColumn.value,
+            direction: sortDirection.value,
             perPage: props.filters?.perPage ?? 20,
         },
         { preserveState: true },
@@ -83,6 +87,16 @@ function onSearchUpdate(value) {
 
 function onFilterUpdate(values) {
     filterValues.value = values;
+    search();
+}
+
+function onSortColumnUpdate(col) {
+    sortColumn.value = col;
+    search();
+}
+
+function onSortDirectionUpdate(dir) {
+    sortDirection.value = dir;
     search();
 }
 
@@ -133,7 +147,15 @@ function formatTimestamp(iso) {
         />
 
         <section data-testid="audit-log-table-section">
-            <DataTable :columns="columns" :rows="filteredLogs" empty-message="No audit log entries found.">
+            <DataTable
+                :columns="columns"
+                :rows="filteredLogs"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
+                empty-message="No audit log entries found."
+                @update:sort-column="onSortColumnUpdate"
+                @update:sort-direction="onSortDirectionUpdate"
+            >
                 <template #row="{ row }">
                     <td
                         data-testid="audit-log-timestamp"

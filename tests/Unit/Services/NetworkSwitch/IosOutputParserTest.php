@@ -37,6 +37,7 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('up', $result->status);
         $this->assertEquals('1000Mb/s', $result->speed);
         $this->assertEquals('Full-duplex', $result->duplex);
+        $this->assertEquals('up', $result->adminStatus);
     }
 
     public function test_parse_show_interface_extracts_status_down(): void
@@ -53,6 +54,7 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('administratively down', $result->status);
         $this->assertEquals('Auto-speed', $result->speed);
         $this->assertEquals('Auto-duplex', $result->duplex);
+        $this->assertEquals('down', $result->adminStatus);
     }
 
     public function test_parse_show_interface_extracts_vlan_empty_by_default(): void
@@ -133,6 +135,7 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('a-full', $ports[0]->duplex);
         $this->assertEquals('100', $ports[0]->vlan);
         $this->assertEquals('access', $ports[0]->switchportMode);
+        $this->assertEquals('up', $ports[0]->adminStatus);
 
         $this->assertEquals('Gi1/0/2', $ports[1]->interface);
         $this->assertEquals('notconnect', $ports[1]->status);
@@ -141,6 +144,7 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('auto', $ports[1]->duplex);
         $this->assertEquals('100', $ports[1]->vlan);
         $this->assertEquals('access', $ports[1]->switchportMode);
+        $this->assertEquals('up', $ports[1]->adminStatus);
 
         $this->assertEquals('Gi1/0/3', $ports[2]->interface);
         $this->assertEquals('disabled', $ports[2]->status);
@@ -148,6 +152,7 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('auto', $ports[2]->duplex);
         $this->assertEquals('1', $ports[2]->vlan);
         $this->assertEquals('access', $ports[2]->switchportMode);
+        $this->assertEquals('down', $ports[2]->adminStatus);
 
         $this->assertEquals('Gi1/0/4', $ports[3]->interface);
         $this->assertEquals('Uplink', $ports[3]->description);

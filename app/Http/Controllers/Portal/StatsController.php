@@ -27,7 +27,7 @@ class StatsController extends Controller
             'upload' => $bandwidth->upload,
             'totalReceived' => $bandwidth->received,
             'totalSent' => $bandwidth->sent,
-        ]);
+        ])->header('Cache-Control', 'no-store');
     }
 
     /** @return string|string[] */
@@ -43,7 +43,9 @@ class StatsController extends Controller
             return $clientIp;
         }
 
-        $addresses = $mac->ipAddresses()->pluck('address')->all();
+        $addresses = $mac->ipAddresses()
+            ->pluck('address')
+            ->all();
 
         return count($addresses) > 1 ? $addresses : $clientIp;
     }

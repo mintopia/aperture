@@ -1,12 +1,18 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Index from '@/Pages/Admin/Switches/Index.vue';
+
+beforeEach(() => {
+    vi.clearAllMocks();
+    globalThis.route = (...args) => `/mocked/${args[0]}`;
+});
 
 vi.mock('@inertiajs/vue3', () => ({
     router: {
         post: vi.fn(),
         delete: vi.fn(),
         visit: vi.fn(),
+        get: vi.fn(),
     },
     Link: {
         template: '<a><slot /></a>',
@@ -166,12 +172,8 @@ describe('Index — Sync Status (inline dot)', () => {
 
 describe('Index — Sorting', () => {
     it('sorts by port_count column', async () => {
-        const switches = [
-            { ...baseSwitchData, id: 1, name: 'A', port_count: 10, ports_up: 10, ports_down: 0, ports_error: 0 },
-            { ...baseSwitchData, id: 2, name: 'B', port_count: 30, ports_up: 30, ports_down: 0, ports_error: 0 },
-            { ...baseSwitchData, id: 3, name: 'C', port_count: 5, ports_up: 5, ports_down: 0, ports_error: 0 },
-        ];
-        const wrapper = mountIndex(switches);
+        const { router } = await import('@inertiajs/vue3');
+        const wrapper = mountIndex();
 
         const portsSortButton = wrapper.find('[data-testid="sort-port_count"]');
         expect(portsSortButton.exists()).toBe(true);
@@ -179,11 +181,11 @@ describe('Index — Sorting', () => {
         await portsSortButton.trigger('click');
         await wrapper.vm.$nextTick();
 
-        // Verify sort order via port-breakdown cell testids (which use row.id)
-        const portBreakdownCells = wrapper.findAll('[data-testid^="port-breakdown-"]');
-        expect(portBreakdownCells[0].attributes('data-testid')).toBe('port-breakdown-3');
-        expect(portBreakdownCells[1].attributes('data-testid')).toBe('port-breakdown-1');
-        expect(portBreakdownCells[2].attributes('data-testid')).toBe('port-breakdown-2');
+        expect(router.get).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ order: 'port_count', direction: 'asc' }),
+            expect.any(Object),
+        );
     });
 
     it('adds aria-sort for sortable header state', async () => {

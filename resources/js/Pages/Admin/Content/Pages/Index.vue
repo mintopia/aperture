@@ -78,10 +78,13 @@ const columns = [
                     >
                         <span data-testid="page-title">{{ row.title }}</span>
                     </td>
-                    <td>
+                    <td :data-testid="`page-slug-${row.slug}`">
                         <span class="font-mono text-[12px] text-[var(--color-primary)]">/content/{{ row.slug }}</span>
                     </td>
-                    <td class="w-32 text-right text-[13px] text-[var(--color-text-secondary)]">
+                    <td
+                        :data-testid="`page-updated-${row.slug}`"
+                        class="w-32 text-right text-[13px] text-[var(--color-text-secondary)]"
+                    >
                         <span :title="formatDate(row.updated_at)">{{ formatRelative(row.updated_at) }}</span>
                     </td>
                 </template>

@@ -145,7 +145,7 @@ function userHref(id) {
                 <div v-if="recentUserRows.length" class="space-y-4">
                     <DataTable :columns="recentUserColumns" :rows="recentUserRows">
                         <template #row="{ row }">
-                            <td class="py-[10px] text-[13px]">
+                            <td data-testid="user-nickname" class="py-[10px] text-[13px]">
                                 <Link
                                     :href="userHref(row.id)"
                                     class="font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
@@ -153,16 +153,25 @@ function userHref(id) {
                                     {{ row.nickname }}
                                 </Link>
                             </td>
-                            <td class="py-[10px] text-[13px] text-[var(--color-text-secondary)]">
+                            <td
+                                data-testid="user-email"
+                                class="py-[10px] text-[13px] text-[var(--color-text-secondary)]"
+                            >
                                 {{ row.email }}
                             </td>
-                            <td class="py-[10px] font-mono text-[13px] text-[var(--color-text-secondary)]">
+                            <td
+                                data-testid="user-ips-count"
+                                class="py-[10px] font-mono text-[13px] text-[var(--color-text-secondary)]"
+                            >
                                 {{ row.ips_count ?? 0 }}
                             </td>
-                            <td class="py-[10px] font-mono text-[13px] text-[var(--color-text-secondary)]">
+                            <td
+                                data-testid="user-bandwidth"
+                                class="py-[10px] font-mono text-[13px] text-[var(--color-text-secondary)]"
+                            >
                                 {{ formatBytes(row.total_bandwidth ?? 0) }}
                             </td>
-                            <td class="py-[10px]">
+                            <td data-testid="user-status" class="py-[10px]">
                                 <span class="inline-flex items-center gap-1.5">
                                     <span
                                         class="h-[7px] w-[7px] rounded-full"
@@ -184,7 +193,10 @@ function userHref(id) {
                                     </span>
                                 </span>
                             </td>
-                            <td class="py-[10px] font-mono text-[12px] text-[var(--color-text-muted)]">
+                            <td
+                                data-testid="user-last-seen"
+                                class="py-[10px] font-mono text-[12px] text-[var(--color-text-muted)]"
+                            >
                                 {{ formatRelativeTime(row.last_seen) }}
                             </td>
                         </template>

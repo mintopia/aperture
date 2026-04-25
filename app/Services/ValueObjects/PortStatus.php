@@ -14,5 +14,6 @@ readonly class PortStatus
         public string $vlan = '',
         public string $description = '',
         public string $switchportMode = '',
+        public string $adminStatus = 'up',
     ) {}
 }

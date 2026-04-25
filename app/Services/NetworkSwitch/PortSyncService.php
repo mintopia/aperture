@@ -65,6 +65,7 @@ class PortSyncService
                     if ($existingPort instanceof SwitchPort) {
                         $existingPort->update([
                             'status' => $portStatus->status,
+                            'admin_status' => $portStatus->adminStatus,
                             'speed' => $portStatus->speed,
                             'duplex' => $portStatus->duplex,
                             'access_vlan' => $accessVlan,
@@ -77,11 +78,9 @@ class PortSyncService
                         SwitchPort::create([
                             'switch_config_id' => $switchConfig->id,
                             'port_name' => $portStatus->interface,
-                            // port_number is set to the same value as port_name (interface name from switch).
-                            // PortStatus VO only provides a single interface identifier; abbreviated forms
-                            // could be derived in future if needed for display purposes.
                             'port_number' => $portStatus->interface,
                             'status' => $portStatus->status,
+                            'admin_status' => $portStatus->adminStatus,
                             'speed' => $portStatus->speed,
                             'duplex' => $portStatus->duplex,
                             'access_vlan' => $accessVlan,

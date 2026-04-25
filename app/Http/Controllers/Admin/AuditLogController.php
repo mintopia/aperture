@@ -13,8 +13,21 @@ use Inertia\Response;
 
 class AuditLogController extends Controller
 {
+    private const SORTABLE_COLUMNS = ['created_at', 'action', 'subject_type', 'process'];
+
     public function index(Request $request): Response
     {
+        $order = 'created_at';
+        $direction = 'desc';
+
+        if (in_array($request->input('order'), self::SORTABLE_COLUMNS)) {
+            $order = $request->input('order');
+        }
+
+        if (in_array($request->input('direction'), ['asc', 'desc'])) {
+            $direction = $request->input('direction');
+        }
+
         $filters = (object) [
             'perPage' => (int) $request->input('perPage', 20),
             'action' => (string) $request->input('action', ''),
@@ -22,11 +35,13 @@ class AuditLogController extends Controller
             'subject_type' => (string) $request->input('subject_type', ''),
             'date_from' => (string) $request->input('date_from', ''),
             'date_to' => (string) $request->input('date_to', ''),
+            'order' => $order,
+            'direction' => $direction,
         ];
 
         $query = AuditLog::query()
             ->with(['subject', 'related', 'actor'])
-            ->orderByDesc('created_at');
+            ->orderBy($order, $direction);
 
         if ($filters->action !== '') {
             $query->where('action', $filters->action);

@@ -13,6 +13,7 @@ use App\Models\SwitchPort;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,16 +25,48 @@ class SwitchManagementController extends Controller
         protected SwitchServiceFactory $factory,
     ) {}
 
-    public function index(): Response
+    private const SORTABLE_COLUMNS = ['name', 'hostname', 'type', 'enabled'];
+
+    public function index(Request $request): Response
     {
-        $switches = SwitchConfig::orderBy('name')
+        $order = 'name';
+        $direction = 'asc';
+
+        if (in_array($request->input('order'), self::SORTABLE_COLUMNS)) {
+            $order = $request->input('order');
+        }
+
+        if (in_array($request->input('direction'), ['asc', 'desc'])) {
+            $direction = $request->input('direction');
+        }
+
+        $query = SwitchConfig::query()
             ->withCount([
                 'switchPorts',
                 'switchPorts as ports_up_count' => fn ($q) => $q->whereIn('status', ['connected', 'up']),
                 'switchPorts as ports_down_count' => fn ($q) => $q->whereIn('status', ['down', 'notconnect']),
                 'switchPorts as ports_error_count' => fn ($q) => $q->where('status', 'err-disabled'),
             ])
-            ->with('latestSyncRun')
+            ->with('latestSyncRun');
+
+        $search = (string) $request->input('search', '');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search): void {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('hostname', 'like', "%{$search}%");
+            });
+        }
+
+        if (in_array($request->input('status'), ['enabled', 'disabled'])) {
+            $query->where('enabled', $request->input('status') === 'enabled');
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        $switches = $query->orderBy($order, $direction)
             ->get()
             ->map(fn (SwitchConfig $s): array => [
                 ...$s->toPublicArray(),
@@ -45,8 +78,17 @@ class SwitchManagementController extends Controller
                 'latest_sync_status' => $s->latestSyncRun?->status,
             ]);
 
+        $filters = (object) [
+            'search' => $search,
+            'status' => (string) $request->input('status', ''),
+            'type' => (string) $request->input('type', ''),
+            'order' => $order,
+            'direction' => $direction,
+        ];
+
         return Inertia::render('Admin/Switches/Index', [
             'switches' => $switches,
+            'filters' => $filters,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
                 ['label' => 'Switches'],

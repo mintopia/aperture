@@ -47,6 +47,7 @@ export default defineConfig(({ mode }) => {
         },
         server: {
             host: '0.0.0.0',
+            cors: true,
             allowedHosts: [
                 env.VITE_HMR_HOST
             ],

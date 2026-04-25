@@ -190,4 +190,101 @@ class AuditLogControllerTest extends TestCase
             ->where('logs.data.0.actor_url', null)
         );
     }
+
+    public function test_sortable_by_action_ascending(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create();
+        AuditLog::record(action: 'ip.updated', subject: $ip, process: 'scan_network');
+        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log?order=action&direction=asc');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/AuditLog/Index')
+            ->where('logs.data.0.action', 'ip.created')
+            ->where('logs.data.1.action', 'ip.updated')
+            ->where('filters.order', 'action')
+            ->where('filters.direction', 'asc')
+        );
+    }
+
+    public function test_sortable_by_action_descending(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create();
+        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
+        AuditLog::record(action: 'ip.updated', subject: $ip, process: 'scan_network');
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log?order=action&direction=desc');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/AuditLog/Index')
+            ->where('logs.data.0.action', 'ip.updated')
+            ->where('logs.data.1.action', 'ip.created')
+        );
+    }
+
+    public function test_defaults_to_created_at_desc_sort(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('filters.order', 'created_at')
+            ->where('filters.direction', 'desc')
+        );
+    }
+
+    public function test_ignores_invalid_sort_column(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log?order=invalid_column&direction=asc');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('filters.order', 'created_at')
+            ->where('filters.direction', 'asc')
+        );
+    }
+
+    public function test_ignores_invalid_sort_direction(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log?order=action&direction=invalid');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('filters.order', 'action')
+            ->where('filters.direction', 'desc')
+        );
+    }
+
+    public function test_sortable_by_process(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create();
+        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
+        AuditLog::record(action: 'ip.created', subject: $ip, process: 'admin');
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log?order=process&direction=asc');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('logs.data.0.process', 'admin')
+            ->where('logs.data.1.process', 'scan_network')
+        );
+    }
 }

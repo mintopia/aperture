@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import DashboardIcon from '@/Components/Icons/DashboardIcon.vue';
 import UsersIcon from '@/Components/Icons/UsersIcon.vue';
@@ -190,15 +190,24 @@ defineExpose({ drawerOpen });
                                 <line x1="14.31" y1="16" x2="2.83" y2="16" />
                                 <line x1="16.62" y1="12" x2="10.88" y2="21.94" />
                             </svg>
-                            <span class="font-heading text-lg font-bold tracking-tight text-[var(--color-text)]">Aperture</span>
+                            <span class="font-heading text-lg font-bold tracking-tight text-[var(--color-text)]"
+                                >Aperture</span
+                            >
                         </div>
                         <button
                             data-testid="admin-drawer-close"
                             class="rounded p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
                             @click="drawerOpen = false"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
-                                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-5 w-5"
+                            >
+                                <path
+                                    d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
+                                />
                             </svg>
                         </button>
                     </div>

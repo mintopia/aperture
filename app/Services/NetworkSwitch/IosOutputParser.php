@@ -35,6 +35,8 @@ class IosOutputParser
             $speed = $matches[2];
         }
 
+        $adminStatus = str_contains($status, 'administratively down') ? 'down' : 'up';
+
         return new PortStatus(
             interface: $interface,
             status: $status,
@@ -42,6 +44,7 @@ class IosOutputParser
             duplex: $duplex,
             vlan: '',
             description: $description,
+            adminStatus: $adminStatus,
         );
     }
 
@@ -107,6 +110,7 @@ class IosOutputParser
                     vlan: $vlan,
                     description: trim($matches['description']),
                     switchportMode: $switchportMode,
+                    adminStatus: $matches['status'] === 'disabled' ? 'down' : 'up',
                 );
             }
         }

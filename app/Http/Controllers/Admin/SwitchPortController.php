@@ -13,8 +13,10 @@ use App\Services\Interfaces\MetricsProviderInterface;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class SwitchPortController extends Controller
 {
