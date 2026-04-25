@@ -162,11 +162,16 @@ class PrometheusTrafficMonitor implements TrafficMonitorInterface
         }
 
         $escaped = array_map(
-            fn (string $ip): string => preg_quote($this->prometheus->escapePromQLLabelValue($ip), '/'),
+            fn (string $ip): string => $this->prometheus->escapePromQLLabelValue($this->escapeRe2($ip)),
             $ipAddress,
         );
 
         return sprintf('%s=~"%s"', $this->ipLabel, implode('|', $escaped));
+    }
+
+    protected function escapeRe2(string $value): string
+    {
+        return (string) preg_replace('/([.\\\\*+?{}()\[\]^$|])/', '\\\\$1', $value);
     }
 
     protected function rangeToSeconds(string $range): int
