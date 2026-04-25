@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { formatBytes } from '@/helpers.js';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 
@@ -9,6 +9,14 @@ defineProps({
     settings: { type: Object, default: () => ({}) },
     blockContext: { type: Object, default: () => ({}) },
 });
+
+const ranges = [
+    { value: '1h', label: '1H' },
+    { value: '24h', label: '24H' },
+    { value: '3d', label: '72H' },
+];
+
+const selectedRange = ref('1h');
 
 const bandwidthData = ref({
     timestamps: [],
@@ -50,7 +58,7 @@ let pollInterval = null;
 
 async function fetchBandwidth() {
     try {
-        const response = await fetch(route('portal.stats.bandwidth') + '?range=6h');
+        const response = await fetch(route('portal.stats.bandwidth') + '?range=' + selectedRange.value);
         if (response.ok) {
             bandwidthData.value = await response.json();
         }
@@ -60,6 +68,15 @@ async function fetchBandwidth() {
         loading.value = false;
     }
 }
+
+function selectRange(range) {
+    selectedRange.value = range;
+}
+
+watch(selectedRange, () => {
+    loading.value = true;
+    fetchBandwidth();
+});
 
 onMounted(() => {
     fetchBandwidth();
@@ -91,6 +108,23 @@ onUnmounted(() => {
                         {{ formatBytes(bandwidthData.totalSent) }}
                     </span>
                 </div>
+            </div>
+            <div class="flex gap-1" data-testid="bandwidth-range-selector">
+                <button
+                    v-for="r in ranges"
+                    :key="r.value"
+                    type="button"
+                    :data-testid="'bandwidth-range-' + r.value"
+                    :class="[
+                        'rounded px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase transition-all',
+                        selectedRange === r.value
+                            ? 'bg-[var(--color-accent-dim)] text-[var(--color-primary)]'
+                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]',
+                    ]"
+                    @click="selectRange(r.value)"
+                >
+                    {{ r.label }}
+                </button>
             </div>
         </div>
         <TimeSeriesChart
