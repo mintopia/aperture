@@ -16,12 +16,11 @@ use Throwable;
 
 class PortalController extends Controller
 {
-    public function index(Request $request, IpAddressActionService $actionService): View
+    public function index(Request $request): View
     {
         $clientIp = (string) $request->getClientIp();
         /** @var User $user */
         $user = $request->user();
-        $this->ensureInternetEnabled($user, $actionService);
         $ip = $user->addIp($clientIp);
 
         $dbConfig = IntegrationConfig::getAll('ipv6');
