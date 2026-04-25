@@ -12,6 +12,16 @@
 	frankenphp {
 		{$CADDY_SERVER_FRANKENPHP_OPTIONS:import worker}
 	}
+
+	servers {
+		listener_wrappers {
+			proxy_protocol {
+				allow 0.0.0.0/0
+			}
+			tls
+		}
+		trusted_proxies static {$CADDY_TRUSTED_PROXIES:private_ranges}
+	}
 }
 
 {$CADDY_EXTRA_CONFIG}

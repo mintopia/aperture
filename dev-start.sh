@@ -26,6 +26,13 @@ LOCAL_VITE_SCHEME="${DEV_VITE_SCHEME:-https}"
 LOCAL_SSH_PROXY_HOST="${DEV_SSH_PROXY_HOST:-127.0.0.1}"
 LOCAL_SSH_PROXY_PORT="${DEV_SSH_PROXY_PORT:-8022}"
 
+export CADDY_TRUSTED_PROXIES="${CADDY_TRUSTED_PROXIES:-0.0.0.0/0 ::/0}"
+
+if [[ -x "${ROOT_DIR}/bin/frankenphp" ]]; then
+    export PATH="${ROOT_DIR}/bin:${PATH}"
+    export PHPRC="${ROOT_DIR}/docker/develop/php-dev.ini"
+fi
+
 if [[ -z "${APERTURE_SSH_PROXY_API_KEY:-}" && -f "${ROOT_DIR}/.env" ]]; then
     raw_ssh_proxy_key="$(grep -m1 '^APERTURE_SSH_PROXY_API_KEY=' "${ROOT_DIR}/.env" | cut -d= -f2- || true)"
     raw_ssh_proxy_key="${raw_ssh_proxy_key%\"}"
@@ -211,7 +218,7 @@ else
 
     failed_services=()
 
-    start_local_service "aperture" "php artisan serve --host=${LOCAL_APP_HOST} --port=${LOCAL_APP_PORT}" "${LOCAL_APP_HOST}" "${LOCAL_APP_PORT}" || failed_services+=("aperture")
+    start_local_service "aperture" "php artisan octane:frankenphp --host=${LOCAL_APP_HOST} --port=${LOCAL_APP_PORT} --caddyfile=docker/Caddyfile --max-requests=1 --watch --poll" "${LOCAL_APP_HOST}" "${LOCAL_APP_PORT}" || failed_services+=("aperture")
     start_local_service "reverb" "php artisan reverb:start --host=${LOCAL_REVERB_HOST} --port=${LOCAL_REVERB_PORT}" "${LOCAL_REVERB_HOST}" "${LOCAL_REVERB_PORT}" || failed_services+=("reverb")
     start_local_service "horizon" "php artisan horizon" || failed_services+=("horizon")
     start_local_service "scheduler" "php artisan schedule:work" || failed_services+=("scheduler")
