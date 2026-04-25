@@ -22,11 +22,26 @@ describe('Admin User Show block confirmation modal integration', () => {
     const defaultProps = {
         user: { id: 1, nickname: 'TestUser', email: 'test@example.com', internet_blocked: false },
         roles: [{ name: 'user' }],
-        ips: [
-            { ip: { address: '192.168.1.10', allowed: true }, last_seen_at: '2024-01-01T00:00:00Z' },
-            { ip: { address: '192.168.1.11', allowed: true }, last_seen_at: '2024-01-01T00:00:00Z' },
+        networkDevices: [
+            {
+                mac_address: 'aa:bb:cc:dd:ee:01',
+                ip_address: '192.168.1.10',
+                hostname: null,
+                internet_enabled: true,
+                rate_limit_enabled: false,
+            },
+            {
+                mac_address: 'aa:bb:cc:dd:ee:02',
+                ip_address: '192.168.1.11',
+                hostname: null,
+                internet_enabled: true,
+                rate_limit_enabled: false,
+            },
         ],
-        auths: [],
+        allInternetEnabled: true,
+        allRateLimited: false,
+        ipCount: 2,
+        auditLogs: [],
         downloaded: 1024,
         uploaded: 512,
     };

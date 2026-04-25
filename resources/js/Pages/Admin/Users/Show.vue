@@ -8,23 +8,27 @@ import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelative } from '@/utils/dates';
-import { ipStatusLabel, ipStatusDotClass, ipStatusTextClass } from '@/utils/ipStatus';
 
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     user: { type: Object, default: () => ({}) },
     roles: { type: Array, default: () => [] },
-    ips: { type: Array, default: () => [] },
-    auths: { type: Array, default: () => [] },
     downloaded: { type: Number, default: 0 },
     uploaded: { type: Number, default: 0 },
-    macAddresses: { type: Array, default: () => [] },
+    networkDevices: { type: Array, default: () => [] },
+    allInternetEnabled: { type: Boolean, default: false },
+    allRateLimited: { type: Boolean, default: false },
+    ipCount: { type: Number, default: 0 },
     auditLogs: { type: Array, default: () => [] },
 });
 
 const showBlockModal = ref(false);
 const blocking = ref(false);
+const showInternetModal = ref(false);
+const togglingInternet = ref(false);
+const showRateLimitModal = ref(false);
+const togglingRateLimit = ref(false);
 
 function toggleBlock() {
     showBlockModal.value = true;
@@ -34,9 +38,7 @@ function confirmBlock() {
     blocking.value = true;
     router.post(
         route('admin.users.block', props.user.id),
-        {
-            block: props.user.internet_blocked ? 0 : 1,
-        },
+        { block: props.user.internet_blocked ? 0 : 1 },
         {
             preserveScroll: true,
             onFinish: () => {
@@ -47,17 +49,52 @@ function confirmBlock() {
     );
 }
 
-const ipColumns = [
-    { key: 'address', label: 'Address' },
-    { key: 'status', label: 'Status' },
-    { key: 'last_seen', label: 'Last Seen' },
-];
+function toggleInternet() {
+    showInternetModal.value = true;
+}
 
-const macColumns = [
-    { key: 'mac_address', label: 'MAC Address' },
+function confirmToggleInternet() {
+    togglingInternet.value = true;
+    router.post(
+        route('admin.users.internet', props.user.id),
+        { enable: props.allInternetEnabled ? 0 : 1 },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                togglingInternet.value = false;
+                showInternetModal.value = false;
+            },
+        },
+    );
+}
+
+function toggleRateLimit() {
+    showRateLimitModal.value = true;
+}
+
+function confirmToggleRateLimit() {
+    togglingRateLimit.value = true;
+    router.post(
+        route('admin.users.limit', props.user.id),
+        { limit: props.allRateLimited ? 0 : 1 },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                togglingRateLimit.value = false;
+                showRateLimitModal.value = false;
+            },
+        },
+    );
+}
+
+const deviceColumns = [
+    { key: 'mac_address', label: 'MAC' },
+    { key: 'ip_address', label: 'IP' },
     { key: 'hostname', label: 'Hostname' },
-    { key: 'current_ips', label: 'Current IP(s)' },
-    { key: 'source', label: 'Source' },
+    { key: 'switch_port', label: 'Switch / Port' },
+    { key: 'internet', label: 'Internet' },
+    { key: 'rate_limit', label: 'Rate Limit' },
+    { key: 'last_seen_at', label: 'Last Seen' },
 ];
 
 const auditColumns = [
@@ -81,7 +118,7 @@ const auditColumns = [
                 </h1>
                 <p class="mt-1 text-[13px] text-[var(--color-text-secondary)]">User account details and IP history.</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <Link
                     :href="route('admin.users.edit', user.id)"
                     data-testid="action-edit"
@@ -93,16 +130,39 @@ const auditColumns = [
                     :data-testid="user.internet_blocked ? 'action-unblock' : 'action-block'"
                     :class="
                         user.internet_blocked
-                            ? 'rounded-md border border-[var(--color-success)] bg-[var(--color-success)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition-colors hover:opacity-90'
-                            : 'rounded-md border border-[var(--color-danger)] bg-[var(--color-danger)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition-colors hover:opacity-90'
+                            ? 'border-[var(--color-success)] bg-[var(--color-success)]'
+                            : 'border-[var(--color-danger)] bg-[var(--color-danger)]'
                     "
+                    class="rounded-md border px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition-colors hover:opacity-90"
                     @click="toggleBlock"
                 >
                     {{ user.internet_blocked ? 'Unblock' : 'Block' }}
                 </button>
+                <button
+                    v-if="ipCount > 0"
+                    :data-testid="allInternetEnabled ? 'action-disable-internet' : 'action-enable-internet'"
+                    :class="
+                        allInternetEnabled
+                            ? 'border-[var(--color-danger)] bg-[var(--color-danger)]'
+                            : 'border-[var(--color-success)] bg-[var(--color-success)]'
+                    "
+                    class="rounded-md border px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition-colors hover:opacity-90"
+                    @click="toggleInternet"
+                >
+                    {{ allInternetEnabled ? 'Disable Internet' : 'Enable Internet' }}
+                </button>
+                <button
+                    v-if="ipCount > 0"
+                    :data-testid="allRateLimited ? 'action-disable-rate-limit' : 'action-enable-rate-limit'"
+                    class="rounded-md border border-[var(--color-border)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-border-hover)] hover:text-[var(--color-text)]"
+                    @click="toggleRateLimit"
+                >
+                    {{ allRateLimited ? 'Remove Rate Limit' : 'Rate Limit' }}
+                </button>
             </div>
         </header>
 
+        <!-- Block Confirm -->
         <ConfirmModal
             :show="showBlockModal"
             :title="user.internet_blocked ? 'Unblock User?' : 'Block User?'"
@@ -118,9 +178,41 @@ const auditColumns = [
             @cancel="showBlockModal = false"
         >
             <p class="mt-2 text-[13px] text-[var(--color-text-secondary)]">
-                This user has {{ ips.length }} associated IP(s).
+                This user has {{ ipCount }} associated IP(s).
             </p>
         </ConfirmModal>
+
+        <!-- Internet Confirm -->
+        <ConfirmModal
+            :show="showInternetModal"
+            :title="allInternetEnabled ? 'Disable Internet?' : 'Enable Internet?'"
+            :message="
+                allInternetEnabled
+                    ? `This will disable internet for all ${ipCount} IP(s) associated with this user.`
+                    : `This will enable internet for all ${ipCount} IP(s) associated with this user.`
+            "
+            :confirm-label="allInternetEnabled ? 'Disable Internet' : 'Enable Internet'"
+            :variant="allInternetEnabled ? 'danger' : 'primary'"
+            :loading="togglingInternet"
+            @confirm="confirmToggleInternet"
+            @cancel="showInternetModal = false"
+        />
+
+        <!-- Rate Limit Confirm -->
+        <ConfirmModal
+            :show="showRateLimitModal"
+            :title="allRateLimited ? 'Remove Rate Limit?' : 'Apply Rate Limit?'"
+            :message="
+                allRateLimited
+                    ? `This will remove rate limiting from all ${ipCount} IP(s) associated with this user.`
+                    : `This will rate limit all ${ipCount} IP(s) associated with this user.`
+            "
+            :confirm-label="allRateLimited ? 'Remove Rate Limit' : 'Rate Limit'"
+            :variant="allRateLimited ? 'primary' : 'danger'"
+            :loading="togglingRateLimit"
+            @confirm="confirmToggleRateLimit"
+            @cancel="showRateLimitModal = false"
+        />
 
         <MetadataStrip
             :items="[
@@ -131,57 +223,89 @@ const auditColumns = [
             ]"
         />
 
-        <section data-testid="user-ips-section">
-            <SectionHeader title="IP Addresses" class="mt-5" />
+        <!-- Converged Network Devices Table -->
+        <section data-testid="user-devices-section">
+            <SectionHeader title="Network Devices" class="mt-5" />
 
-            <DataTable
-                :columns="ipColumns"
-                :rows="ips"
-                clickable
-                :row-href="(row) => route('admin.ips.show', row.ip?.address)"
-                :row-aria-label="(row) => `Open IP ${row.ip?.address}`"
-                empty-message="No IP addresses found."
-            >
+            <DataTable :columns="deviceColumns" :rows="networkDevices" empty-message="No network devices associated.">
                 <template #row="{ row }">
-                    <td class="font-mono text-[13px] text-[var(--color-text)]">
-                        {{ row.ip?.address }}
+                    <td data-testid="device-mac" class="font-mono text-[13px]">
+                        <Link
+                            v-if="row.mac_address"
+                            :href="route('admin.macs.show', row.mac_address)"
+                            class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
+                        >
+                            {{ row.mac_address }}
+                        </Link>
+                        <span v-else class="text-[var(--color-text-muted)]">&mdash;</span>
                     </td>
-                    <td>
-                        <span class="inline-flex items-center gap-1.5">
-                            <span class="h-[7px] w-[7px] rounded-full" :class="ipStatusDotClass(row.ip?.allowed)" />
-                            <span class="text-[12px] font-semibold" :class="ipStatusTextClass(row.ip?.allowed)">
-                                {{ ipStatusLabel(row.ip?.allowed) }}
+                    <td data-testid="device-ip" class="font-mono text-[13px]">
+                        <Link
+                            v-if="row.ip_address"
+                            :href="route('admin.ips.show', row.ip_address)"
+                            class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
+                        >
+                            {{ row.ip_address }}
+                        </Link>
+                        <span v-else class="text-[var(--color-text-muted)]">&mdash;</span>
+                    </td>
+                    <td data-testid="device-hostname" class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.hostname ?? '—' }}
+                    </td>
+                    <td data-testid="device-switch-port" class="text-[13px]">
+                        <template v-if="row.switch_name && row.port_name">
+                            <Link
+                                :href="route('admin.switches.ports.show', [row.switch_id, row.port_name])"
+                                class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
+                            >
+                                {{ row.switch_name }} / {{ row.port_name }}
+                            </Link>
+                        </template>
+                        <span v-else class="text-[var(--color-text-muted)]">&mdash;</span>
+                    </td>
+                    <td data-testid="device-internet">
+                        <template v-if="row.internet_enabled !== null">
+                            <span class="inline-flex items-center gap-1.5">
+                                <span
+                                    class="h-[7px] w-[7px] rounded-full"
+                                    :class="
+                                        row.internet_enabled
+                                            ? 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]'
+                                            : 'bg-[var(--color-text-muted)] shadow-none'
+                                    "
+                                />
+                                <span
+                                    class="text-[12px] font-semibold"
+                                    :class="
+                                        row.internet_enabled
+                                            ? 'text-[var(--color-success)]'
+                                            : 'text-[var(--color-text-muted)]'
+                                    "
+                                >
+                                    {{ row.internet_enabled ? 'Enabled' : 'Disabled' }}
+                                </span>
                             </span>
-                        </span>
+                        </template>
+                        <span v-else class="text-[var(--color-text-muted)]">&mdash;</span>
                     </td>
-                    <td class="text-[13px] text-[var(--color-text-secondary)]">
-                        {{ formatRelative(row.last_seen_at) }}
+                    <td data-testid="device-rate-limit">
+                        <template v-if="row.rate_limit_enabled !== null">
+                            <span
+                                class="text-[12px] font-semibold"
+                                :class="
+                                    row.rate_limit_enabled
+                                        ? 'text-[var(--color-warning)]'
+                                        : 'text-[var(--color-text-muted)]'
+                                "
+                            >
+                                {{ row.rate_limit_enabled ? 'Limited' : 'None' }}
+                            </span>
+                        </template>
+                        <span v-else class="text-[var(--color-text-muted)]">&mdash;</span>
                     </td>
-                </template>
-            </DataTable>
-        </section>
-
-        <section data-testid="user-macs-section">
-            <SectionHeader title="MAC Addresses" class="mt-5" />
-            <DataTable
-                :columns="macColumns"
-                :rows="macAddresses"
-                clickable
-                :row-href="(row) => route('admin.macs.show', row.mac_address)"
-                :row-aria-label="(row) => `Open MAC ${row.mac_address}`"
-                empty-message="No MAC addresses associated."
-            >
-                <template #row="{ row }">
-                    <td class="font-mono text-[13px] text-[var(--color-text)]">{{ row.mac_address }}</td>
-                    <td class="text-[13px] text-[var(--color-text-secondary)]">{{ row.hostname ?? '—' }}</td>
-                    <td class="text-[13px] text-[var(--color-text-secondary)]">
-                        <span v-for="(ip, i) in row.current_ips" :key="ip.id">
-                            <span class="font-mono">{{ ip.address }}</span>
-                            <span v-if="i < row.current_ips.length - 1">, </span>
-                        </span>
-                        <span v-if="!row.current_ips?.length">&mdash;</span>
+                    <td data-testid="device-last-seen" class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.last_seen_at ? formatRelative(row.last_seen_at) : '—' }}
                     </td>
-                    <td class="text-[13px] text-[var(--color-text-secondary)]">{{ row.source }}</td>
                 </template>
             </DataTable>
         </section>
@@ -190,9 +314,13 @@ const auditColumns = [
             <SectionHeader title="Audit Log" class="mt-5" />
             <DataTable :columns="auditColumns" :rows="auditLogs" empty-message="No audit entries.">
                 <template #row="{ row }">
-                    <td class="font-mono text-[13px] text-[var(--color-text)]">{{ row.action }}</td>
-                    <td class="text-[13px] text-[var(--color-text-secondary)]">{{ row.process }}</td>
-                    <td class="text-[13px] text-[var(--color-text-secondary)]">
+                    <td data-testid="audit-action" class="font-mono text-[13px] text-[var(--color-text)]">
+                        {{ row.action }}
+                    </td>
+                    <td data-testid="audit-process" class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ row.process }}
+                    </td>
+                    <td data-testid="audit-timestamp" class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ formatRelative(row.created_at) }}
                     </td>
                 </template>

@@ -80,7 +80,7 @@ class CrossReferenceTest extends TestCase
         );
     }
 
-    public function test_user_show_includes_mac_addresses(): void
+    public function test_user_show_includes_network_devices(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -91,7 +91,7 @@ class CrossReferenceTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->has('macAddresses', 1)
+            ->has('networkDevices', 1)
         );
     }
 

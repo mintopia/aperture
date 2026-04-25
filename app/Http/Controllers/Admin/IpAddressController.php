@@ -79,6 +79,16 @@ class IpAddressController extends Controller
 
         $ips = $query->orderBy($order, $direction)->paginate($filters->perPage)->appends((array) $filters);
 
+        $ips->load('macAddresses');
+        $ips->through(function (IpAddress $ip): IpAddress {
+            $currentMac = $ip->macAddresses
+                ->sortByDesc(fn (MacAddress $mac) => $mac->pivot->last_seen_at)
+                ->first();
+            $ip->setAttribute('mac', $currentMac?->mac_address);
+
+            return $ip;
+        });
+
         return Inertia::render('Admin/Ips/Index', [
             'ips' => $ips,
             'filters' => $filters,

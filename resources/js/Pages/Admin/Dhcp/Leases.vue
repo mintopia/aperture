@@ -253,15 +253,29 @@ function formatExpiry(expires) {
                     >
                         <td
                             :data-testid="`lease-row-${index}-ip`"
-                            class="border-b border-[var(--color-border)] py-[10px] align-top font-mono text-[13px] text-[var(--color-text)]"
+                            class="border-b border-[var(--color-border)] py-[10px] align-top font-mono text-[13px]"
                         >
-                            {{ row.ip }}
+                            <Link
+                                v-if="row.ip"
+                                :href="route('admin.ips.show', row.ip)"
+                                class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
+                            >
+                                {{ row.ip }}
+                            </Link>
+                            <span v-else class="text-[var(--color-text-muted)]">&mdash;</span>
                         </td>
                         <td
                             :data-testid="`lease-row-${index}-mac`"
-                            class="border-b border-[var(--color-border)] py-[10px] pl-6 align-top font-mono text-[13px] text-[var(--color-text-secondary)]"
+                            class="border-b border-[var(--color-border)] py-[10px] pl-6 align-top font-mono text-[13px]"
                         >
-                            {{ normalizeMac(row.mac) }}
+                            <Link
+                                v-if="row.mac"
+                                :href="route('admin.macs.show', normalizeMac(row.mac))"
+                                class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
+                            >
+                                {{ normalizeMac(row.mac) }}
+                            </Link>
+                            <span v-else class="text-[var(--color-text-muted)]">&mdash;</span>
                         </td>
                         <td
                             :data-testid="`lease-row-${index}-hostname`"

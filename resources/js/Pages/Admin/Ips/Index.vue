@@ -106,8 +106,16 @@ function onFilterUpdate(values) {
                 <td data-testid="ip-address" class="font-mono text-[13px] text-[var(--color-primary)]">
                     {{ row.address }}
                 </td>
-                <td data-testid="ip-mac" class="font-mono text-[13px] text-[var(--color-text-secondary)]">
-                    {{ row.mac ?? '—' }}
+                <td data-testid="ip-mac" class="font-mono text-[13px]">
+                    <Link
+                        v-if="row.mac"
+                        :href="route('admin.macs.show', row.mac)"
+                        class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
+                        @click.stop
+                    >
+                        {{ row.mac }}
+                    </Link>
+                    <span v-else class="text-[var(--color-text-muted)]">—</span>
                 </td>
                 <td data-testid="ip-user">
                     <Link

@@ -7,6 +7,7 @@ defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     user: { type: Object, default: () => null },
+    availableRoles: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -15,6 +16,7 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     clear_password: false,
+    roles: [...(props.user.roles ?? [])],
 });
 
 function submit() {
@@ -138,6 +140,35 @@ function submit() {
                         Clear password (disable email/password login for this user)
                     </label>
                 </div>
+            </section>
+
+            <!-- Roles -->
+            <section v-if="availableRoles.length > 0">
+                <h2
+                    class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                    style="font-variation-settings: 'opsz' 16"
+                >
+                    Roles
+                </h2>
+                <div class="space-y-2">
+                    <label
+                        v-for="role in availableRoles"
+                        :key="role.code"
+                        class="flex items-center gap-2 text-[13px] text-[var(--color-text)]"
+                    >
+                        <input
+                            v-model="form.roles"
+                            type="checkbox"
+                            :value="role.code"
+                            :data-testid="`role-${role.code}`"
+                            class="rounded border-[var(--color-border-hover)]"
+                        />
+                        {{ role.name }}
+                    </label>
+                </div>
+                <p v-if="form.errors.roles" class="mt-1 text-[12px] text-[var(--color-danger)]">
+                    {{ form.errors.roles }}
+                </p>
             </section>
 
             <!-- Actions -->
