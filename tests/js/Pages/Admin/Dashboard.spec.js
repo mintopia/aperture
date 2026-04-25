@@ -215,7 +215,7 @@ describe('Dashboard', () => {
         expect(wrapper.text()).toContain('10.0.3.0/24');
     });
 
-    it('renders the recent users table with Down/Up bandwidth labels', () => {
+    it('renders the recent users table with separate Down and Up columns', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
             global: defaultGlobal,
@@ -225,24 +225,18 @@ describe('Dashboard', () => {
         const headers = recentUsersSection.findAll('th').map((header) => header.text());
 
         expect(wrapper.text()).toContain('Top Bandwidth & Recent Users');
-        expect(headers).toEqual(['Nickname', 'Email', 'IPs', 'Bandwidth', 'Status', 'Seen']);
+        expect(headers).toEqual(['Nickname', 'Email', 'IPs', 'Down', 'Up', 'Status', 'Seen']);
         expect(wrapper.find('a[href="/mocked/admin.users.show/1"]').text()).toBe('alice');
 
-        // Bandwidth column shows Down and Up separately
-        const bandwidthCells = recentUsersSection.findAll('[data-testid="user-bandwidth"]');
-        expect(bandwidthCells.length).toBeGreaterThan(0);
+        const downCells = recentUsersSection.findAll('[data-testid="user-down"]');
+        const upCells = recentUsersSection.findAll('[data-testid="user-up"]');
+        expect(downCells).toHaveLength(2);
+        expect(upCells).toHaveLength(2);
 
-        const aliceBandwidth = bandwidthCells[0].text();
-        expect(aliceBandwidth).toContain('Down');
-        expect(aliceBandwidth).toContain('Up');
-        expect(aliceBandwidth).toContain('1.5 KB');
-        expect(aliceBandwidth).toContain('512.0 B');
-
-        const bobBandwidth = bandwidthCells[1].text();
-        expect(bobBandwidth).toContain('Down');
-        expect(bobBandwidth).toContain('Up');
-        expect(bobBandwidth).toContain('5.0 GB');
-        expect(bobBandwidth).toContain('1.0 GB');
+        expect(downCells[0].text()).toBe('1.5 KB');
+        expect(upCells[0].text()).toBe('512.0 B');
+        expect(downCells[1].text()).toBe('5.0 GB');
+        expect(upCells[1].text()).toBe('1.0 GB');
     });
 
     it('renders the recent users table with inline status dots', () => {
