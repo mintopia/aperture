@@ -46,7 +46,9 @@
         "chartjs-adapter-date-fns": "^3.0.0",
         "date-fns": "^4.1.0",
         "dompurify": "^3.4.1",
+        "laravel-echo": "^2.3.4",
         "marked": "^18.0.2",
+        "pusher-js": "^8.5.0",
         "tailwindcss": "^4.2.2",
         "turndown": "^7.2.4",
         "vue": "^3.5.32"
