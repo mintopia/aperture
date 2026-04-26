@@ -3,8 +3,8 @@
 namespace Tests\Unit\Services;
 
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
-use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\MacAddressResolver;
 use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease;
@@ -20,7 +20,7 @@ class MacAddressResolverTest extends TestCase
             ->with('192.168.1.100')
             ->andReturn(new DhcpLease(ip: '192.168.1.100', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'test', expires: ''));
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(IpMacResolverInterface::class);
         $inventory->shouldNotReceive('getArpTable');
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
@@ -36,7 +36,7 @@ class MacAddressResolverTest extends TestCase
             ->with('192.168.1.100')
             ->andReturnNull();
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(IpMacResolverInterface::class);
         $inventory->shouldReceive('getArpTable')
             ->andReturn(collect([
                 new ArpEntry(ip: '192.168.1.100', mac: 'aa:bb:cc:dd:ee:ff'),
@@ -54,7 +54,7 @@ class MacAddressResolverTest extends TestCase
         $dhcp = Mockery::mock(DhcpInterface::class);
         $dhcp->shouldReceive('getLease')->andReturnNull();
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(IpMacResolverInterface::class);
         $inventory->shouldReceive('getArpTable')->andReturn(collect([]));
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
@@ -69,7 +69,7 @@ class MacAddressResolverTest extends TestCase
         $dhcp->shouldReceive('getLease')
             ->andReturn(new DhcpLease(ip: '10.0.0.1', mac: 'aabb.ccdd.eeff', hostname: '', expires: ''));
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(IpMacResolverInterface::class);
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
         $result = $resolver->resolveIpToMac('10.0.0.1');
@@ -87,7 +87,7 @@ class MacAddressResolverTest extends TestCase
                 new DhcpLease(ip: '10.0.0.20', mac: '11:22:33:44:55:66', hostname: 'host2', expires: ''),
             ]));
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(IpMacResolverInterface::class);
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
         $result = $resolver->resolveMacToIps('aa:bb:cc:dd:ee:ff');
@@ -106,7 +106,7 @@ class MacAddressResolverTest extends TestCase
                 new DhcpLease(ip: '10.0.0.10', mac: '11:22:33:44:55:66', hostname: 'other', expires: ''),
             ]));
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(IpMacResolverInterface::class);
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
         $result = $resolver->resolveMacToIps('aa:bb:cc:dd:ee:ff');
@@ -125,7 +125,7 @@ class MacAddressResolverTest extends TestCase
                 new DhcpLease(ip: '10.0.0.30', mac: '11:22:33:44:55:66', hostname: 'other', expires: ''),
             ]));
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(IpMacResolverInterface::class);
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
         $result = $resolver->resolveMacToIps('aa:bb:cc:dd:ee:ff');
@@ -146,7 +146,7 @@ class MacAddressResolverTest extends TestCase
                 new DhcpLease(ip: '10.0.0.10', mac: 'aabb.ccdd.eeff', hostname: 'cisco-host', expires: ''),
             ]));
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(IpMacResolverInterface::class);
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
         $result = $resolver->resolveMacToIps('AA:BB:CC:DD:EE:FF');
@@ -159,7 +159,7 @@ class MacAddressResolverTest extends TestCase
     public function test_container_binding_resolves_correctly(): void
     {
         $this->app->instance(DhcpInterface::class, Mockery::mock(DhcpInterface::class));
-        $this->app->instance(NetworkInventoryInterface::class, Mockery::mock(NetworkInventoryInterface::class));
+        $this->app->instance(IpMacResolverInterface::class, Mockery::mock(IpMacResolverInterface::class));
 
         $resolver = $this->app->make(MacAddressResolverInterface::class);
 

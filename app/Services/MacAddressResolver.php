@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
-use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\ValueObjects\DhcpLease;
 
 class MacAddressResolver implements MacAddressResolverInterface
 {
     public function __construct(
         protected DhcpInterface $dhcp,
-        protected NetworkInventoryInterface $inventory,
+        protected IpMacResolverInterface $ipMac,
     ) {}
 
     public function resolveIpToMac(string $ipAddress): ?string
@@ -23,7 +23,7 @@ class MacAddressResolver implements MacAddressResolverInterface
             return $this->normalizeMac($lease->mac);
         }
 
-        $arpEntry = $this->inventory->getArpTable()->firstWhere('ip', $ipAddress);
+        $arpEntry = $this->ipMac->getArpTable()->firstWhere('ip', $ipAddress);
         if ($arpEntry !== null && ! empty($arpEntry->mac)) {
             return $this->normalizeMac($arpEntry->mac);
         }

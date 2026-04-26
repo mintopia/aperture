@@ -6,8 +6,8 @@ namespace App\Providers;
 
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
-use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\MacAddressResolver;
@@ -73,7 +73,7 @@ class NetworkServiceProvider extends ServiceProvider
         $this->app->singleton(function (Application $app): MacAddressResolverInterface {
             return new MacAddressResolver(
                 $app->make(DhcpInterface::class),
-                $app->make(NetworkInventoryInterface::class),
+                $app->make(IpMacResolverInterface::class),
             );
         });
     }
