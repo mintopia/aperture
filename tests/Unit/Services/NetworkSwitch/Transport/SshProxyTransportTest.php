@@ -41,6 +41,7 @@ class SshProxyTransportTest extends TestCase
                         && $commands[3]['command'] === 'show interface status';
                 }),
                 22,
+                'commands',
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -114,6 +115,7 @@ class SshProxyTransportTest extends TestCase
                     ['command' => 'show interface status', 'expect' => '/^.*[>#]\s*$/'],
                 ],
                 22,
+                'commands',
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -155,6 +157,7 @@ class SshProxyTransportTest extends TestCase
                     return true;
                 }),
                 22,
+                'commands',
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -202,6 +205,7 @@ class SshProxyTransportTest extends TestCase
                     return true;
                 }),
                 22,
+                'commands',
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -251,6 +255,7 @@ class SshProxyTransportTest extends TestCase
                     return true;
                 }),
                 22,
+                'commands',
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -311,6 +316,7 @@ class SshProxyTransportTest extends TestCase
                     return true;
                 }),
                 22,
+                'commands',
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -364,6 +370,7 @@ class SshProxyTransportTest extends TestCase
                     return true;
                 }),
                 22,
+                'commands',
             )
             ->andReturn(new CommandResult(
                 success: true,

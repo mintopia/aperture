@@ -18,6 +18,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
     public function __construct(
         protected SshProxyClientInterface $proxyClient,
         protected SwitchConfig $switchConfig,
+        protected string $channel = 'commands',
     ) {}
 
     public function execute(string $command): string
@@ -49,6 +50,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
             $this->switchConfig->password,
             $proxyCommands,
             $this->switchConfig->port ?? 22,
+            $this->channel,
         );
 
         if (! $result->success) {

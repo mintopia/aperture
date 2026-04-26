@@ -27,7 +27,7 @@ class SshProxyClient implements SshProxyClientInterface
         ]);
     }
 
-    public function execute(string $hostname, string $username, string $password, array $commands, int $port = 22): CommandResult
+    public function execute(string $hostname, string $username, string $password, array $commands, int $port = 22, string $channel = 'commands'): CommandResult
     {
         try {
             $response = $this->client->post('execute', [
@@ -37,6 +37,7 @@ class SshProxyClient implements SshProxyClientInterface
                     'password' => $password,
                     'commands' => $commands,
                     'port' => $port,
+                    'channel' => $channel,
                 ],
             ]);
 
