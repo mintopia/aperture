@@ -8,26 +8,12 @@ use App\Jobs\ResetAperture;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Firewalls\OpnSense;
-use App\Services\Interfaces\FirewallBackendInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery;
 use Tests\TestCase;
 
 class ResetApertureJobTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $mock = Mockery::mock(OpnSense::class);
-        $mock->shouldReceive('unlimitIp')->andReturnSelf();
-        $mock->shouldReceive('removeIp')->andReturnSelf();
-        $mock->shouldReceive('updateIp')->andReturnSelf();
-        $this->app->instance(FirewallBackendInterface::class, $mock);
-    }
 
     public function test_deletes_all_ips(): void
     {

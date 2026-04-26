@@ -8,7 +8,7 @@ use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserParameter;
-use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\ArpEntry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -22,11 +22,11 @@ class DashboardControllerTest extends TestCase
     {
         parent::setUp();
 
-        // Default mock for NetworkInventoryInterface — returns no IPv6 neighbors.
+        // Default mock for LibreNmsService — returns no IPv6 neighbors.
         // Individual tests can override by re-binding.
-        $mock = $this->createMock(NetworkInventoryInterface::class);
+        $mock = $this->createMock(LibreNmsService::class);
         $mock->method('getIpv6Neighbors')->willReturn(collect());
-        $this->app->instance(NetworkInventoryInterface::class, $mock);
+        $this->app->instance(LibreNmsService::class, $mock);
     }
 
     public function test_authenticated_user_sees_dashboard(): void
@@ -188,12 +188,12 @@ class DashboardControllerTest extends TestCase
         // Create a user parameter
         UserParameter::factory()->create(['user_id' => $user->id, 'key' => 'seat', 'value' => 'A42']);
 
-        // Mock NetworkInventoryInterface to return an IPv6 neighbor matching the MAC
-        $mockInventory = $this->createMock(NetworkInventoryInterface::class);
+        // Mock LibreNmsService to return an IPv6 neighbor matching the MAC
+        $mockInventory = $this->createMock(LibreNmsService::class);
         $mockInventory->method('getIpv6Neighbors')->willReturn(collect([
             new ArpEntry(ip: 'fe80::1', mac: 'AA:BB:CC:DD:EE:FF'),
         ]));
-        $this->app->instance(NetworkInventoryInterface::class, $mockInventory);
+        $this->app->instance(LibreNmsService::class, $mockInventory);
 
         $response = $this->actingAs($user)
             ->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])

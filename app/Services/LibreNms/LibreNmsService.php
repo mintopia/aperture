@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\LibreNms;
 
-use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\NetworkDevice;
@@ -13,7 +12,7 @@ use App\Services\ValueObjects\ResolvedPort;
 use GuzzleHttp\Client;
 use Illuminate\Support\Collection;
 
-class LibreNmsService implements NetworkInventoryInterface
+class LibreNmsService
 {
     protected Client $client;
 

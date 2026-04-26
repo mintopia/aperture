@@ -6,7 +6,7 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
-use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\IpAddressActionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,10 +22,10 @@ class MacTrackingIntegrationTest extends TestCase
     {
         parent::setUp();
 
-        // Mock firewall to prevent real HTTP calls
-        $firewall = Mockery::mock(FirewallBackendInterface::class);
-        $firewall->shouldReceive('updateIp')->andReturnSelf();
-        $this->app->instance(FirewallBackendInterface::class, $firewall);
+        // Mock captive portal to prevent real HTTP calls
+        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
+        $captivePortal->shouldReceive('addIp')->andReturnNull();
+        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
     }
 
     private function makeService(): IpAddressActionService

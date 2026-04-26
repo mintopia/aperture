@@ -8,7 +8,7 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\LibreNms\LibreNmsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
@@ -26,7 +26,7 @@ class ConsumerUpdateTest extends TestCase
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
         $ip->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
 
-        $this->mock(NetworkInventoryInterface::class, function (MockInterface $mock): void {
+        $this->mock(LibreNmsService::class, function (MockInterface $mock): void {
             $mock->allows(['getIpv6Neighbors' => collect()]);
         });
 
@@ -43,7 +43,7 @@ class ConsumerUpdateTest extends TestCase
         Queue::fake();
         $user = User::factory()->create(['internet_blocked' => false]);
 
-        $this->mock(NetworkInventoryInterface::class, function (MockInterface $mock): void {
+        $this->mock(LibreNmsService::class, function (MockInterface $mock): void {
             $mock->allows(['getIpv6Neighbors' => collect()]);
         });
 

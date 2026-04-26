@@ -7,45 +7,34 @@ namespace App\Providers;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
-use App\Services\CachedNetworkInventoryService;
-use App\Services\Firewalls\OpnSense;
 use App\Services\Firewalls\OpnSenseApiService;
 use App\Services\Integration\BorealisTester;
 use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\Integration\LibreNmsTester;
-use App\Services\Integration\NtopNgTester;
 use App\Services\Integration\OpnSenseTester;
 use App\Services\Integration\PiHoleTester;
 use App\Services\Integration\PrometheusTester;
 use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsFilteringInterface;
-use App\Services\Interfaces\FirewallBackendInterface;
-use App\Services\Interfaces\HostStatsProviderInterface;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
-use App\Services\Interfaces\MetricsProviderInterface;
-use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\PortBandwidthInterface;
 use App\Services\Interfaces\PortErrorsInterface;
 use App\Services\Interfaces\PortMacInterface;
 use App\Services\Interfaces\RateLimitingInterface;
-use App\Services\Interfaces\TrafficMonitorInterface;
 use App\Services\LibreNms\LibreNmsIpMacResolver;
 use App\Services\LibreNms\LibreNmsPortMac;
 use App\Services\LibreNms\LibreNmsService;
-use App\Services\NtopNgService;
 use App\Services\Null\NullCaptivePortal;
 use App\Services\Null\NullDhcpService;
 use App\Services\Null\NullDnsFiltering;
-use App\Services\Null\NullHostStatsProvider;
 use App\Services\Null\NullIpBandwidth;
 use App\Services\Null\NullIpMacResolver;
 use App\Services\Null\NullPortBandwidth;
 use App\Services\Null\NullPortErrors;
 use App\Services\Null\NullPortMac;
 use App\Services\Null\NullRateLimiter;
-use App\Services\Null\NullTrafficMonitor;
 use App\Services\OpnSense\OpnSenseCaptivePortal;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
@@ -55,7 +44,6 @@ use App\Services\Prometheus\PrometheusIpBandwidth;
 use App\Services\Prometheus\PrometheusPortBandwidth;
 use App\Services\Prometheus\PrometheusPortErrors;
 use App\Services\Prometheus\PrometheusService;
-use App\Services\Prometheus\PrometheusTrafficMonitor;
 use GuzzleHttp\Client;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -84,7 +72,6 @@ class IntegrationServiceProvider extends ServiceProvider
             $registry->register('opnsense', new OpnSenseTester);
             $registry->register('pihole', new PiHoleTester);
             $registry->register('librenms', new LibreNmsTester);
-            $registry->register('ntopng', new NtopNgTester);
             $registry->register('borealis', new BorealisTester);
             $registry->register('prometheus', new PrometheusTester);
 
@@ -118,10 +105,6 @@ class IntegrationServiceProvider extends ServiceProvider
                 verifySsl: (bool) ($config['verify_ssl'] ?? true),
                 defaultStep: (int) ($config['default_step'] ?? 60),
             );
-        });
-
-        $this->app->singleton(MetricsProviderInterface::class, function (Application $app): MetricsProviderInterface {
-            return $app->make(PrometheusService::class);
         });
 
         $this->app->singleton(LibreNmsService::class, function (): LibreNmsService {
@@ -254,7 +237,7 @@ class IntegrationServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register non-capability bindings (BorealisService, NetworkInventoryInterface, etc.).
+     * Register non-capability bindings (BorealisService, etc.).
      */
     protected function registerNonCapabilityBindings(): void
     {
@@ -269,82 +252,6 @@ class IntegrationServiceProvider extends ServiceProvider
                 clientId: (string) ($dbConfig['client_id'] ?? ''),
                 clientSecret: (string) ($dbConfig['client_secret'] ?? ''),
                 endpoint: (string) ($dbConfig['endpoint'] ?? ''),
-            );
-        });
-
-        $this->app->singleton(NetworkInventoryInterface::class, function (Application $app): NetworkInventoryInterface {
-            $libreNms = $app->make(LibreNmsService::class);
-
-            return new CachedNetworkInventoryService(
-                $libreNms,
-                $app->make('cache.store'),
-            );
-        });
-
-        $this->registerLegacyBindings();
-    }
-
-    /**
-     * Legacy bindings for interfaces still consumed by existing code.
-     * These will be removed as consumers are migrated to capability-specific interfaces.
-     */
-    protected function registerLegacyBindings(): void
-    {
-        $this->app->singleton(FirewallBackendInterface::class, function (Application $app): FirewallBackendInterface {
-            $dbConfig = $this->getIntegrationDbConfig('opnsense');
-
-            $client = new Client([
-                'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
-                'base_uri' => $dbConfig['endpoint'] ?? '',
-                'auth' => [$dbConfig['key'] ?? '', $dbConfig['secret'] ?? ''],
-            ]);
-
-            return new OpnSense(
-                client: $client,
-                zoneId: (int) ($dbConfig['zone_id'] ?? 0),
-                uploadRuleUuid: (string) ($dbConfig['ratelimit_up_uuid'] ?? ''),
-                downloadRuleUuid: (string) ($dbConfig['ratelimit_down_uuid'] ?? ''),
-            );
-        });
-
-        $this->app->singleton(TrafficMonitorInterface::class, function (): TrafficMonitorInterface {
-            if (! $this->isActive('prometheus', 'user-bandwidth')) {
-                return new NullTrafficMonitor;
-            }
-
-            $config = $this->getIntegrationDbConfig('prometheus');
-            $endpoint = $config['endpoint'] ?? '';
-            if ($endpoint === '' || ! ($config['enabled'] ?? false)) {
-                return new NullTrafficMonitor;
-            }
-
-            $prometheus = new PrometheusService(
-                endpoint: $endpoint,
-                bearerToken: (string) ($config['bearer_token'] ?? ''),
-                verifySsl: (bool) ($config['verify_ssl'] ?? true),
-                defaultStep: (int) ($config['default_step'] ?? 60),
-            );
-
-            return new PrometheusTrafficMonitor(
-                prometheus: $prometheus,
-                rcvdMetric: (string) ($config['bandwidth_rcvd_metric'] ?? 'ntopng_host_bytes_rcvd'),
-                sentMetric: (string) ($config['bandwidth_sent_metric'] ?? 'ntopng_host_bytes_sent'),
-                ipLabel: (string) ($config['bandwidth_ip_label'] ?? 'ip'),
-            );
-        });
-
-        $this->app->singleton(HostStatsProviderInterface::class, function (): HostStatsProviderInterface {
-            if (! $this->isActive('ntopng', 'host-stats')) {
-                return new NullHostStatsProvider;
-            }
-
-            $dbConfig = $this->getIntegrationDbConfig('ntopng');
-
-            return new NtopNgService(
-                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
-                username: (string) ($dbConfig['username'] ?? ''),
-                password: (string) ($dbConfig['password'] ?? ''),
-                interface: (int) ($dbConfig['interface'] ?? 0),
             );
         });
     }

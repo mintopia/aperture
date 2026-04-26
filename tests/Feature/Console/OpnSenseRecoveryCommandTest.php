@@ -5,8 +5,7 @@ namespace Tests\Feature\Console;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
-use App\Services\Firewalls\OpnSense;
-use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\OpnSense\OpnSenseClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
@@ -18,9 +17,9 @@ class OpnSenseRecoveryCommandTest extends TestCase
 
     public function test_command_exits_early_when_uptime_over_hour(): void
     {
-        $mock = Mockery::mock(OpnSense::class);
+        $mock = Mockery::mock(OpnSenseClient::class);
         $mock->shouldReceive('getUptime')->andReturn(7200);
-        $this->app->instance(OpnSense::class, $mock);
+        $this->app->instance(OpnSenseClient::class, $mock);
 
         Cache::put('opnsense.uptime', 3600);
 
@@ -30,9 +29,9 @@ class OpnSenseRecoveryCommandTest extends TestCase
 
     public function test_command_exits_when_uptime_higher_than_last(): void
     {
-        $mock = Mockery::mock(OpnSense::class);
+        $mock = Mockery::mock(OpnSenseClient::class);
         $mock->shouldReceive('getUptime')->andReturn(600);
-        $this->app->instance(OpnSense::class, $mock);
+        $this->app->instance(OpnSenseClient::class, $mock);
 
         Cache::put('opnsense.uptime', 300);
 
@@ -42,11 +41,9 @@ class OpnSenseRecoveryCommandTest extends TestCase
 
     public function test_command_restores_ips_when_reboot_detected(): void
     {
-        $mock = Mockery::mock(OpnSense::class);
+        $mock = Mockery::mock(OpnSenseClient::class);
         $mock->shouldReceive('getUptime')->andReturn(100);
-        $mock->shouldReceive('updateIp')->andReturnSelf();
-        $this->app->instance(OpnSense::class, $mock);
-        $this->app->instance(FirewallBackendInterface::class, $mock);
+        $this->app->instance(OpnSenseClient::class, $mock);
 
         Cache::put('opnsense.uptime', 3500);
 
@@ -57,9 +54,9 @@ class OpnSenseRecoveryCommandTest extends TestCase
 
     public function test_command_skips_blocked_users(): void
     {
-        $mock = Mockery::mock(OpnSense::class);
+        $mock = Mockery::mock(OpnSenseClient::class);
         $mock->shouldReceive('getUptime')->andReturn(100);
-        $this->app->instance(OpnSense::class, $mock);
+        $this->app->instance(OpnSenseClient::class, $mock);
 
         Cache::put('opnsense.uptime', 3500);
 
@@ -81,12 +78,9 @@ class OpnSenseRecoveryCommandTest extends TestCase
 
     public function test_command_processes_unblocked_user_ips(): void
     {
-        $mock = Mockery::mock(OpnSense::class);
+        $mock = Mockery::mock(OpnSenseClient::class);
         $mock->shouldReceive('getUptime')->andReturn(100);
-        $mock->shouldReceive('updateIp')->andReturnSelf();
-        $mock->shouldReceive('removeIp')->andReturnSelf();
-        $this->app->instance(OpnSense::class, $mock);
-        $this->app->instance(FirewallBackendInterface::class, $mock);
+        $this->app->instance(OpnSenseClient::class, $mock);
 
         Cache::put('opnsense.uptime', 3500);
 

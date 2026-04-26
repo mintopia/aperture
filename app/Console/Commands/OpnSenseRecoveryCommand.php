@@ -6,7 +6,7 @@ namespace App\Console\Commands;
 
 use App\Models\IpAddress;
 use App\Models\UserIpAddress;
-use App\Services\Firewalls\OpnSense;
+use App\Services\OpnSense\OpnSenseClient;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -30,7 +30,7 @@ class OpnSenseRecoveryCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(OpnSense $opnSense): int
+    public function handle(OpnSenseClient $opnSense): int
     {
         $uptime = $opnSense->getUptime();
         $lastUptime = Cache::get('opnsense.uptime', 0);

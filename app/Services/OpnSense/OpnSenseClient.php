@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\OpnSense;
 
 use App\Services\Firewalls\Exceptions\BackendException;
+use Carbon\CarbonImmutable;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
@@ -52,6 +53,19 @@ class OpnSenseClient
         } catch (GuzzleException $guzzleException) {
             throw new BackendException('Error from Opnsense: '.$guzzleException->getMessage(), $guzzleException->getCode(), $guzzleException);
         }
+    }
+
+    /**
+     * Fetch the OPNsense system uptime in seconds.
+     *
+     * @throws BackendException
+     */
+    public function getUptime(): int
+    {
+        $response = $this->get('/api/diagnostics/system/system_time');
+        $time = new CarbonImmutable($response->uptime);
+
+        return (int) $time->diffInSeconds(CarbonImmutable::now());
     }
 
     /**

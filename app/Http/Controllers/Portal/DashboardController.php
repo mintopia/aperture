@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\LibreNms\LibreNmsService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,7 +17,7 @@ use Throwable;
 class DashboardController extends Controller
 {
     public function __construct(
-        private readonly NetworkInventoryInterface $networkInventory,
+        private readonly LibreNmsService $networkInventory,
     ) {}
 
     public function index(Request $request): Response

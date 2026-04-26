@@ -193,58 +193,6 @@ class TestConnectionControllerTest extends TestCase
         $this->assertSame(200, $log->response_status);
     }
 
-    public function test_admin_can_test_ntopng_connection_success(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        IntegrationConfig::setValue('ntopng', 'endpoint', 'https://ntopng.local');
-
-        Http::fake([
-            'ntopng.local/*' => Http::response(['rc' => 0], 200),
-        ]);
-
-        $response = $this->actingAs($admin)->postJson('/admin/settings/test/ntopng');
-
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
-    }
-
-    public function test_admin_can_test_ntopng_connection_failure(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        IntegrationConfig::setValue('ntopng', 'endpoint', 'https://ntopng.local');
-
-        Http::fake([
-            'ntopng.local/*' => Http::response('Unauthorized', 401),
-        ]);
-
-        $response = $this->actingAs($admin)->postJson('/admin/settings/test/ntopng');
-
-        $response->assertOk();
-        $response->assertJson(['success' => false]);
-    }
-
-    public function test_ntopng_test_stores_response_data(): void
-    {
-        Queue::fake();
-        Http::fake(['*' => Http::response(['rc' => 0], 200)]);
-        $admin = $this->createAdminUser();
-
-        IntegrationConfig::setValue('ntopng', 'endpoint', 'https://ntopng.example.com');
-
-        $response = $this->actingAs($admin)->postJson('/admin/settings/test/ntopng');
-
-        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'response_status', 'output']);
-
-        $log = ConnectionTestLog::where('integration', 'ntopng')->latest()->first();
-        $this->assertNotNull($log->response_data);
-        $this->assertSame('GET', $log->request_method);
-        $this->assertStringContainsString('/lua/pro/rest/v2/get/system/data.lua', $log->request_url);
-        $this->assertSame(200, $log->response_status);
-    }
-
     public function test_admin_can_test_pihole_connection_success(): void
     {
         Queue::fake();
@@ -586,26 +534,6 @@ class TestConnectionControllerTest extends TestCase
         $response->assertOk();
         $response->assertJson(['success' => true]);
         Http::assertSent(fn ($req): bool => str_contains($req->url(), 'new-librenms.example.com'));
-    }
-
-    public function test_ntopng_test_uses_request_values_over_db(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        IntegrationConfig::setValue('ntopng', 'endpoint', 'https://old-ntopng.example.com');
-
-        Http::fake([
-            'new-ntopng.example.com/*' => Http::response(['rc' => 0], 200),
-        ]);
-
-        $response = $this->actingAs($admin)->postJson('/admin/settings/test/ntopng', [
-            'endpoint' => 'https://new-ntopng.example.com',
-        ]);
-
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'new-ntopng.example.com'));
     }
 
     public function test_pihole_test_uses_request_values_over_db(): void

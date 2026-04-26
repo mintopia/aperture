@@ -7,7 +7,6 @@ namespace Tests\Unit\Providers;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
-use App\Services\CachedNetworkInventoryService;
 use App\Services\Firewalls\OpnSenseApiService;
 use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\Interfaces\CaptivePortalInterface;
@@ -15,8 +14,6 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
-use App\Services\Interfaces\MetricsProviderInterface;
-use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\Interfaces\PortBandwidthInterface;
 use App\Services\Interfaces\PortErrorsInterface;
 use App\Services\Interfaces\PortMacInterface;
@@ -80,18 +77,6 @@ class IntegrationServiceProviderTest extends TestCase
 
         $this->assertInstanceOf(PrometheusService::class, $service1);
         $this->assertSame($service1, $service2);
-    }
-
-    public function test_metrics_provider_interface_resolves_to_prometheus_service(): void
-    {
-        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
-
-        $this->app->forgetInstance(MetricsProviderInterface::class);
-        $this->app->forgetInstance(PrometheusService::class);
-
-        $service = $this->app->make(MetricsProviderInterface::class);
-
-        $this->assertInstanceOf(PrometheusService::class, $service);
     }
 
     public function test_librenms_service_is_registered_as_singleton(): void
@@ -363,19 +348,6 @@ class IntegrationServiceProviderTest extends TestCase
 
         $this->assertInstanceOf(BorealisService::class, $service1);
         $this->assertSame($service1, $service2);
-    }
-
-    public function test_network_inventory_interface_resolves_to_cached_service(): void
-    {
-        IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
-        IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
-
-        $this->app->forgetInstance(NetworkInventoryInterface::class);
-        $this->app->forgetInstance(LibreNmsService::class);
-
-        $service = $this->app->make(NetworkInventoryInterface::class);
-
-        $this->assertInstanceOf(CachedNetworkInventoryService::class, $service);
     }
 
     public function test_librenms_service_is_directly_resolvable(): void

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Prometheus;
 
-use App\Services\Interfaces\MetricsProviderInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
-class PrometheusService implements MetricsProviderInterface
+class PrometheusService
 {
     public function __construct(
         protected string $endpoint,

@@ -5,25 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\Console;
 
 use App\Models\IpAddress;
-use App\Services\Firewalls\OpnSense;
-use App\Services\Interfaces\FirewallBackendInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery;
 use Tests\TestCase;
 
 class ExpireSessionsCommandTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $mock = Mockery::mock(OpnSense::class);
-        $mock->shouldReceive('unlimitIp')->andReturnSelf();
-        $mock->shouldReceive('removeIp')->andReturnSelf();
-        $this->app->instance(FirewallBackendInterface::class, $mock);
-    }
 
     public function test_expires_ips_past_expiry(): void
     {
