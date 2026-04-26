@@ -6,8 +6,8 @@ use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserIpAddress;
-use App\Services\Interfaces\TrafficMonitorInterface;
-use App\Services\ValueObjects\UserBandwidth;
+use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
@@ -294,15 +294,15 @@ class UserControllerTest extends TestCase
         $this->linkIpToUser($user, $ip1);
         $this->linkIpToUser($user, $ip2);
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock) use ($ip1, $ip2): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock) use ($ip1, $ip2): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->withArgs(function (array $ips) use ($ip1, $ip2): bool {
                     return count($ips) === 2
                         && in_array($ip1->address, $ips, true)
                         && in_array($ip2->address, $ips, true);
                 })
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 2048000,
                     sent: 1024000,
                     timestamps: ['1700000000', '1700000060'],
@@ -326,11 +326,11 @@ class UserControllerTest extends TestCase
         $ip = IpAddress::factory()->create();
         $this->linkIpToUser($user, $ip);
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->withArgs(fn (array $ips, string $range): bool => $range === '4d')
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],

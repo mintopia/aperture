@@ -9,8 +9,8 @@ use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Interfaces\TrafficMonitorInterface;
-use App\Services\ValueObjects\UserBandwidth;
+use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -302,7 +302,7 @@ class UserController extends Controller
         return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', $message);
     }
 
-    public function bandwidth(Request $request, User $user, TrafficMonitorInterface $trafficMonitor): JsonResponse
+    public function bandwidth(Request $request, User $user, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
         $validated = $request->validate([
             'range' => 'nullable|string|in:1h,24h,4d',
@@ -317,7 +317,7 @@ class UserController extends Controller
             ->all();
 
         if (empty($ipAddresses)) {
-            $bandwidth = new UserBandwidth(
+            $bandwidth = new IpBandwidthResult(
                 received: 0,
                 sent: 0,
                 timestamps: [],
@@ -325,7 +325,7 @@ class UserController extends Controller
                 upload: [],
             );
         } else {
-            $bandwidth = $trafficMonitor->getUserBandwidth($ipAddresses, $range);
+            $bandwidth = $ipBandwidth->getIpBandwidth($ipAddresses, $range);
         }
 
         return response()->json([
