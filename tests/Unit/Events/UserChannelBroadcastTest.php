@@ -98,7 +98,7 @@ class UserChannelBroadcastTest extends TestCase
         $user->method('__get')->willReturnCallback(
             fn (string $key): mixed => match ($key) {
                 'id' => 20,
-                'name' => 'Test User',
+                'nickname' => 'Test User',
                 default => null,
             }
         );

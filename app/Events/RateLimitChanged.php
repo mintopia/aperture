@@ -40,10 +40,8 @@ class RateLimitChanged implements ShouldBroadcast
         ];
 
         $users = $this->ipAddress->users;
-        if (is_iterable($users)) {
-            foreach ($users as $userIp) {
-                $channels[] = new PrivateChannel('user.'.$userIp->user_id);
-            }
+        foreach ($users as $userIp) {
+            $channels[] = new PrivateChannel('user.'.$userIp->user_id);
         }
 
         return $channels;
@@ -58,7 +56,7 @@ class RateLimitChanged implements ShouldBroadcast
     {
         return [
             'ip_address_id' => $this->ipAddress->id,
-            'ip_address' => $this->ipAddress->ip_address,
+            'ip_address' => $this->ipAddress->address,
             'old_limit' => $this->oldLimit,
             'new_limit' => $this->newLimit,
             'changed_by_id' => $this->changedBy?->id,

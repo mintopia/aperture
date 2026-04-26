@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\SwitchConfigResource;
-use App\Http\Resources\SwitchPortResource;
 use App\Jobs\SwitchPortActionJob;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;

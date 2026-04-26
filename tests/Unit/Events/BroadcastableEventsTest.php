@@ -58,7 +58,7 @@ class BroadcastableEventsTest extends TestCase
         $ipAddress = $this->createStub(IpAddress::class);
         $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 2,
-            'ip_address' => '192.168.1.100',
+            'address' => '192.168.1.100',
             default => null,
         });
 
@@ -145,7 +145,7 @@ class BroadcastableEventsTest extends TestCase
         $ipAddress = $this->createStub(IpAddress::class);
         $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 5,
-            'ip_address' => '10.0.0.1',
+            'address' => '10.0.0.1',
             default => null,
         });
 
@@ -169,7 +169,7 @@ class BroadcastableEventsTest extends TestCase
         $ipAddress = $this->createStub(IpAddress::class);
         $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 5,
-            'ip_address' => '10.0.0.1',
+            'address' => '10.0.0.1',
             default => null,
         });
 
@@ -204,7 +204,7 @@ class BroadcastableEventsTest extends TestCase
         $ipAddress = $this->createStub(IpAddress::class);
         $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 7,
-            'ip_address' => '10.0.0.5',
+            'address' => '10.0.0.5',
             default => null,
         });
 
@@ -301,7 +301,7 @@ class BroadcastableEventsTest extends TestCase
         $ipAddress = $this->createStub(IpAddress::class);
         $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 8,
-            'ip_address' => '10.0.0.8',
+            'address' => '10.0.0.8',
             default => null,
         });
 
@@ -326,7 +326,7 @@ class BroadcastableEventsTest extends TestCase
         $ipAddress = $this->createStub(IpAddress::class);
         $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 8,
-            'ip_address' => '10.0.0.8',
+            'address' => '10.0.0.8',
             default => null,
         });
 
@@ -405,14 +405,14 @@ class BroadcastableEventsTest extends TestCase
         $user = $this->createStub(User::class);
         $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 20,
-            'name' => 'John Doe',
+            'nickname' => 'John Doe',
             default => null,
         });
 
         $ipAddress = $this->createStub(IpAddress::class);
         $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 30,
-            'ip_address' => '192.168.1.50',
+            'address' => '192.168.1.50',
             default => null,
         });
 
@@ -452,14 +452,14 @@ class BroadcastableEventsTest extends TestCase
         $user = $this->createStub(User::class);
         $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 25,
-            'name' => 'Jane Smith',
+            'nickname' => 'Jane Smith',
             default => null,
         });
 
         $ipAddress = $this->createStub(IpAddress::class);
         $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
             'id' => 35,
-            'ip_address' => '192.168.1.75',
+            'address' => '192.168.1.75',
             default => null,
         });
 

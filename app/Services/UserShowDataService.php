@@ -22,7 +22,7 @@ class UserShowDataService
      *     allInternetEnabled: bool,
      *     allRateLimited: bool,
      *     ipCount: int,
-     *     auditLogs: Collection<int, array<string, mixed>>,
+     *     auditLogs: Collection<int, mixed>,
      * }
      */
     public function assemble(User $user): array
@@ -134,7 +134,7 @@ class UserShowDataService
     }
 
     /**
-     * @return Collection<int, array{id: int, action: string, process: string, metadata: mixed, created_at: string}>
+     * @return Collection<int, mixed>
      */
     private function getAuditLogs(User $user): Collection
     {

@@ -40,9 +40,9 @@ class IpAddressShowDataService
      *     portErrors: array{in_series: array<int, array{timestamp: float, value: float}>, out_series: array<int, array{timestamp: float, value: float}>}|null,
      *     metricsAvailable: bool,
      *     users: \Illuminate\Database\Eloquent\Collection<int, UserIpAddress>,
-     *     macAddresses: Collection<int, array<string, mixed>>,
-     *     dhcpLeases: Collection<int, array<string, mixed>>,
-     *     auditLogs: Collection<int, array<string, mixed>>,
+     *     macAddresses: Collection<int, mixed>,
+     *     dhcpLeases: Collection<int, mixed>,
+     *     auditLogs: Collection<int, mixed>,
      * }
      */
     public function assemble(IpAddress $ip): array
@@ -182,7 +182,7 @@ class IpAddressShowDataService
     }
 
     /**
-     * @return Collection<int, array{id: int, action: string, process: string, metadata: mixed, created_at: string}>
+     * @return Collection<int, mixed>
      */
     private function getAuditLogs(IpAddress $ip): Collection
     {

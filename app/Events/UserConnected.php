@@ -49,9 +49,9 @@ class UserConnected implements ShouldBroadcast
     {
         return [
             'user_id' => $this->user->id,
-            'user_name' => $this->user->name,
+            'user_name' => $this->user->nickname,
             'ip_address_id' => $this->ipAddress->id,
-            'ip_address' => $this->ipAddress->ip_address,
+            'ip_address' => $this->ipAddress->address,
             'mac_address_id' => $this->macAddress->id,
             'mac_address' => $this->macAddress->mac_address,
         ];

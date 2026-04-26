@@ -180,7 +180,7 @@ onMounted(() => {
         </div>
 
         <!-- Two Column: DHCP Pools + Total Bandwidth Chart -->
-        <div class="mb-10 grid grid-cols-1 gap-6 md:grid-cols-[3fr_2fr]">
+        <div class="mb-10 grid grid-cols-1 gap-6 md:grid-cols-[2fr_3fr]">
             <Deferred data="dhcpPools">
                 <template #fallback>
                     <div data-testid="dhcp-pools-loading">

@@ -49,7 +49,7 @@ class DeviceDiscovered implements ShouldBroadcast
     {
         return [
             'mac_address' => $this->macAddress->mac_address,
-            'ip_address' => $this->ipAddress?->ip_address,
+            'ip_address' => $this->ipAddress?->address,
             'switch_port_id' => $this->switchPort?->id,
         ];
     }

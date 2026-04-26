@@ -17,7 +17,7 @@ class SwitchIndexDataService
      * Assemble all display data for the switch index page.
      *
      * @return array{
-     *     switches: Collection<int, array<string, mixed>>,
+     *     switches: Collection<int, mixed>,
      *     filters: object,
      * }
      */
