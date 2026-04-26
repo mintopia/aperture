@@ -4,7 +4,14 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\IntegrationConfig;
+use App\Models\IpAddress;
+use App\Models\SwitchConfig;
 use App\Models\User;
+use App\Policies\IntegrationConfigPolicy;
+use App\Policies\IpAddressPolicy;
+use App\Policies\SwitchConfigPolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -16,7 +23,10 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        //
+        User::class => UserPolicy::class,
+        IpAddress::class => IpAddressPolicy::class,
+        SwitchConfig::class => SwitchConfigPolicy::class,
+        IntegrationConfig::class => IntegrationConfigPolicy::class,
     ];
 
     /**
