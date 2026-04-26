@@ -150,13 +150,25 @@ class LoginControllerTest extends TestCase
         $response->assertSessionHasErrors(['email', 'password']);
     }
 
-    public function test_login_is_rate_limited(): void
+    public function test_login_post_route_has_throttle_middleware(): void
+    {
+        $route = collect(app('router')->getRoutes()->getRoutesByMethod()['POST'])
+            ->first(fn ($r) => $r->uri() === 'login');
+
+        $this->assertNotNull($route, 'POST /login route should exist');
+        $this->assertTrue(
+            collect($route->gatherMiddleware())->contains(fn ($m) => str_contains((string) $m, 'throttle')),
+            'POST /login should have throttle middleware'
+        );
+    }
+
+    public function test_login_is_rate_limited_by_throttle_middleware(): void
     {
         User::factory()->withPassword('secret')->create([
             'email' => 'admin@test.com',
         ]);
 
-        for ($i = 0; $i < 6; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             $this->post('/login', [
                 'email' => 'admin@test.com',
                 'password' => 'wrong',
@@ -169,6 +181,29 @@ class LoginControllerTest extends TestCase
         ]);
 
         $response->assertStatus(429);
+    }
+
+    public function test_successful_login_is_not_blocked_by_rate_limit(): void
+    {
+        User::factory()->withPassword('secret123')->create([
+            'email' => 'admin@test.com',
+        ]);
+
+        // Make 3 failed attempts (under limit)
+        for ($i = 0; $i < 3; $i++) {
+            $this->post('/login', [
+                'email' => 'admin@test.com',
+                'password' => 'wrong',
+            ]);
+        }
+
+        $response = $this->post('/login', [
+            'email' => 'admin@test.com',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertRedirect('/');
+        $this->assertAuthenticated();
     }
 
     public function test_authenticate_middleware_still_redirects_to_captive(): void

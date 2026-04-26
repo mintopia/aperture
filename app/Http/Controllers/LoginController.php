@@ -9,7 +9,6 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -58,14 +57,7 @@ class LoginController extends Controller
             return redirect()->intended(route('admin.home'));
         }
 
-        $key = 'login-attempt:'.Str::lower($credentials['email']).'|'.$request->ip();
-
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            abort(429);
-        }
-
         if (Auth::attempt($credentials)) {
-            RateLimiter::clear($key);
             $request->session()->regenerate();
 
             /** @var User $user */
@@ -74,8 +66,6 @@ class LoginController extends Controller
 
             return redirect()->intended($defaultUrl);
         }
-
-        RateLimiter::hit($key, 60);
 
         throw ValidationException::withMessages([
             'email' => __('The provided credentials do not match our records.'),

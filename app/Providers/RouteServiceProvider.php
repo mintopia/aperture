@@ -32,6 +32,16 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('login', function (Request $request) {
+            $email = (string) $request->input('email', '');
+
+            return Limit::perMinute(5)->by(mb_strtolower($email).'|'.$request->ip());
+        });
+
+        RateLimiter::for('captive-portal', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
+
         $this->routes(function (): void {
             Route::middleware('api')
                 ->prefix('api')

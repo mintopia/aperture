@@ -35,16 +35,18 @@ use Illuminate\Support\Facades\Route;
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Captive portal / login
-Route::get('/captive', [CaptivePortalController::class, 'index'])->name('captive.index');
-Route::get('/captive/poll/{deviceCode}', [CaptivePortalController::class, 'poll'])->name('captive.poll');
-Route::get('/captive/interstitial', [CaptivePortalController::class, 'interstitial'])->name('captive.interstitial');
+Route::middleware(['throttle:captive-portal'])->group(function () {
+    Route::get('/captive', [CaptivePortalController::class, 'index'])->name('captive.index');
+    Route::get('/captive/poll/{deviceCode}', [CaptivePortalController::class, 'poll'])->name('captive.poll');
+    Route::get('/captive/interstitial', [CaptivePortalController::class, 'interstitial'])->name('captive.interstitial');
+});
 
 // Public content pages
 Route::get('/content/{slug}', [PageViewController::class, 'show'])->name('content.show');
 
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'authenticate']);
+    Route::post('/login', [LoginController::class, 'authenticate'])->middleware('throttle:login');
 });
 
 // Passkey registration (requires auth)

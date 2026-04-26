@@ -155,4 +155,36 @@ class CaptivePortalViewTest extends TestCase
         $response->assertSee('Portal authentication is currently unavailable.');
         $response->assertSee('data-testid="captive-config-error"', false);
     }
+
+    public function test_captive_routes_have_throttle_middleware(): void
+    {
+        $routes = app('router')->getRoutes();
+
+        $captiveIndex = $routes->getByName('captive.index');
+        $this->assertNotNull($captiveIndex, 'captive.index route should exist');
+        $this->assertTrue(
+            collect($captiveIndex->gatherMiddleware())->contains(fn ($m) => str_contains((string) $m, 'throttle')),
+            'captive.index should have throttle middleware'
+        );
+
+        $captivePoll = $routes->getByName('captive.poll');
+        $this->assertNotNull($captivePoll, 'captive.poll route should exist');
+        $this->assertTrue(
+            collect($captivePoll->gatherMiddleware())->contains(fn ($m) => str_contains((string) $m, 'throttle')),
+            'captive.poll should have throttle middleware'
+        );
+    }
+
+    public function test_captive_portal_is_rate_limited(): void
+    {
+        $this->mockAuthProvider();
+
+        for ($i = 0; $i < 30; $i++) {
+            $this->get('/captive');
+        }
+
+        $response = $this->get('/captive');
+
+        $response->assertStatus(429);
+    }
 }
