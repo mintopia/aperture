@@ -8,8 +8,12 @@ use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Models\User;
-use App\Services\Interfaces\MetricsProviderInterface;
-use App\Services\Null\NullMetricsProvider;
+use App\Services\Interfaces\PortBandwidthInterface;
+use App\Services\Interfaces\PortErrorsInterface;
+use App\Services\Null\NullPortBandwidth;
+use App\Services\Null\NullPortErrors;
+use App\Services\Prometheus\PrometheusPortBandwidth;
+use App\Services\Prometheus\PrometheusPortErrors;
 use App\Services\Prometheus\PrometheusService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -47,10 +51,9 @@ class SwitchPortMetricsTest extends TestCase
             ]),
         ]);
 
-        $this->app->instance(MetricsProviderInterface::class, new PrometheusService(
-            endpoint: 'https://prom.test',
-            bearerToken: 'test',
-        ));
+        $prometheus = new PrometheusService(endpoint: 'https://prom.test', bearerToken: 'test');
+        $this->app->instance(PortBandwidthInterface::class, new PrometheusPortBandwidth($prometheus));
+        $this->app->instance(PortErrorsInterface::class, new PrometheusPortErrors($prometheus));
 
         $response = $this->actingAs($this->user)
             ->get(route('admin.switches.ports.show', [
@@ -64,7 +67,8 @@ class SwitchPortMetricsTest extends TestCase
 
     public function test_port_show_includes_metrics_available_false_without_prometheus(): void
     {
-        $this->app->instance(MetricsProviderInterface::class, new NullMetricsProvider);
+        $this->app->instance(PortBandwidthInterface::class, new NullPortBandwidth);
+        $this->app->instance(PortErrorsInterface::class, new NullPortErrors);
 
         $response = $this->actingAs($this->user)
             ->get(route('admin.switches.ports.show', [
@@ -96,10 +100,9 @@ class SwitchPortMetricsTest extends TestCase
             ]),
         ]);
 
-        $this->app->instance(MetricsProviderInterface::class, new PrometheusService(
-            endpoint: 'https://prom.test',
-            bearerToken: 'test',
-        ));
+        $prometheus = new PrometheusService(endpoint: 'https://prom.test', bearerToken: 'test');
+        $this->app->instance(PortBandwidthInterface::class, new PrometheusPortBandwidth($prometheus));
+        $this->app->instance(PortErrorsInterface::class, new PrometheusPortErrors($prometheus));
 
         $response = $this->actingAs($this->user)
             ->get(route('admin.switches.ports.show', [
@@ -122,10 +125,9 @@ class SwitchPortMetricsTest extends TestCase
     {
         Http::fake(['*' => Http::response('Server Error', 500)]);
 
-        $this->app->instance(MetricsProviderInterface::class, new PrometheusService(
-            endpoint: 'https://prom.test',
-            bearerToken: 'test',
-        ));
+        $prometheus = new PrometheusService(endpoint: 'https://prom.test', bearerToken: 'test');
+        $this->app->instance(PortBandwidthInterface::class, new PrometheusPortBandwidth($prometheus));
+        $this->app->instance(PortErrorsInterface::class, new PrometheusPortErrors($prometheus));
 
         $response = $this->actingAs($this->user)
             ->get(route('admin.switches.ports.show', [
@@ -160,10 +162,9 @@ class SwitchPortMetricsTest extends TestCase
             ]),
         ]);
 
-        $this->app->instance(MetricsProviderInterface::class, new PrometheusService(
-            endpoint: 'https://prom.test',
-            bearerToken: 'test',
-        ));
+        $prometheus = new PrometheusService(endpoint: 'https://prom.test', bearerToken: 'test');
+        $this->app->instance(PortBandwidthInterface::class, new PrometheusPortBandwidth($prometheus));
+        $this->app->instance(PortErrorsInterface::class, new PrometheusPortErrors($prometheus));
 
         $response = $this->actingAs($this->user)
             ->get(route('admin.switches.ports.show', [

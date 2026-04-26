@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\IpAddress;
-use App\Services\IpAddressActionService;
+use App\Services\Interfaces\HostStatsProviderInterface;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class SyncBandwidthCommand extends Command
 {
@@ -29,14 +30,27 @@ class SyncBandwidthCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(IpAddressActionService $service): void
+    public function handle(HostStatsProviderInterface $hostStats): void
     {
-        IpAddress::query()->chunk(20, function (Collection $chunk) use ($service): void {
+        IpAddress::query()->chunk(20, function (Collection $chunk) use ($hostStats): void {
             foreach ($chunk as $ip) {
                 /** @var IpAddress $ip */
                 Log::debug(sprintf('[%s] Updating usage', $ip->address));
                 $this->output->writeln(sprintf('[%s] Updating usage', $ip->address));
-                $service->updateUsage($ip);
+
+                try {
+                    $bytes = $hostStats->getHostBytes($ip->address);
+                    if ($bytes !== null) {
+                        $ip->received = $bytes->received;
+                        $ip->sent = $bytes->sent;
+                        $ip->save();
+                    }
+                } catch (Throwable $e) {
+                    Log::warning('Failed to update usage for IP address', [
+                        'ip' => $ip->address,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         });
     }

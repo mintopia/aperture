@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\IpAddress;
-use App\Services\IpAddressActionService;
+use App\Services\Interfaces\HostStatsProviderInterface;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class TestCommand extends Command
 {
@@ -27,11 +29,23 @@ class TestCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(IpAddressActionService $service): void
+    public function handle(HostStatsProviderInterface $hostStats): void
     {
         $ip = new IpAddress;
         $ip->address = '10.30.0.197';
 
-        $service->updateUsage($ip);
+        try {
+            $bytes = $hostStats->getHostBytes($ip->address);
+            if ($bytes !== null) {
+                $ip->received = $bytes->received;
+                $ip->sent = $bytes->sent;
+                $ip->save();
+            }
+        } catch (Throwable $e) {
+            Log::warning('Failed to update usage for IP address', [
+                'ip' => $ip->address,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
