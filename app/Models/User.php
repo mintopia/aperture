@@ -101,6 +101,24 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
     /**
      * @var list<string>
      */
+    protected $fillable = [
+        'nickname',
+        'email',
+        'password',
+        'internet_blocked',
+        'internet_enabled',
+        'rate_limit_enabled',
+        'dns_filtering_enabled',
+        'external_id',
+        'access_token',
+        'refresh_token',
+        'token_expires_at',
+        'avatar_url',
+    ];
+
+    /**
+     * @var list<string>
+     */
     protected $hidden = [
         'password',
         'access_token',
@@ -160,7 +178,11 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
     {
         $code = $role instanceof Role ? $role->code : $role;
 
-        return $this->roles()->whereCode($code)->count() > 0;
+        if (! $this->relationLoaded('roles')) {
+            $this->load('roles');
+        }
+
+        return $this->roles->contains('code', $code);
     }
 
     public function addIp(string $clientIp, bool $cascade = true): ?IpAddress

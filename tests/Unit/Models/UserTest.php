@@ -7,13 +7,14 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class UserTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_user_can_be_created_with_factory(): void
     {
@@ -63,6 +64,66 @@ class UserTest extends TestCase
         $this->assertTrue($user->hasRole($role));
     }
 
+    public function test_has_role_caches_roles_for_request_lifecycle(): void
+    {
+        $user = User::factory()->create();
+        $role = new Role;
+        $role->name = 'Admin';
+        $role->code = 'admin';
+        $role->save();
+        $user->roles()->attach($role);
+
+        // Fresh user to clear any loaded relations
+        $user = User::findOrFail($user->id);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        // Call hasRole multiple times
+        $user->hasRole('admin');
+        $user->hasRole('admin');
+        $user->hasRole('nonexistent');
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        // Should only query the database once (to load the roles relation)
+        $roleQueries = array_filter($queries, function (array $query): bool {
+            return str_contains($query['query'], 'roles') || str_contains($query['query'], 'role_user');
+        });
+
+        $this->assertCount(1, $roleQueries, 'hasRole() should only query the database once for roles, not on every call');
+    }
+
+    public function test_has_role_uses_loaded_roles_relation(): void
+    {
+        $user = User::factory()->create();
+        $role = new Role;
+        $role->name = 'Editor';
+        $role->code = 'editor';
+        $role->save();
+        $user->roles()->attach($role);
+
+        // Eager load roles before checking
+        $user->load('roles');
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->assertTrue($user->hasRole('editor'));
+        $this->assertFalse($user->hasRole('admin'));
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        // No additional queries should be made since roles were already loaded
+        $roleQueries = array_filter($queries, function (array $query): bool {
+            return str_contains($query['query'], 'roles') || str_contains($query['query'], 'role_user');
+        });
+
+        $this->assertCount(0, $roleQueries, 'hasRole() should not query the database when roles are already loaded');
+    }
+
     public function test_add_ip_creates_new_ip_and_user_ip_address(): void
     {
         Queue::fake();
@@ -85,6 +146,8 @@ class UserTest extends TestCase
         $ip1 = $user->addIp('192.168.1.100');
         $ip2 = $user->addIp('192.168.1.100');
 
+        $this->assertNotNull($ip1);
+        $this->assertNotNull($ip2);
         $this->assertEquals($ip1->id, $ip2->id);
         $this->assertEquals(1, IpAddress::whereAddress('192.168.1.100')->count());
     }
