@@ -19,12 +19,24 @@ use App\Services\ValueObjects\ForwardingEntry;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ScanNetworkDevices implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 1;
+    public int $tries = 3;
+
+    public int $timeout = 120;
+
+    /**
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [10, 30, 60];
+    }
 
     public function handle(
         ?DhcpInterface $dhcp = null,
@@ -289,40 +301,38 @@ class ScanNetworkDevices implements ShouldQueue
         /** @var list<string> $prefixes */
         $prefixes = array_map('strtoupper', $prefixes);
 
-        $allMacs = MacAddress::with('ipAddresses')->get();
-
-        foreach ($allMacs as $mac) {
-            $normalized = strtoupper($mac->mac_address);
-            $matched = false;
-
-            foreach ($prefixes as $prefix) {
-                if (str_starts_with($normalized, strtoupper($prefix))) {
-                    $matched = true;
-
-                    break;
+        MacAddress::query()
+            ->with('ipAddresses')
+            ->where(function ($query) use ($prefixes): void {
+                foreach ($prefixes as $prefix) {
+                    $query->orWhere('mac_address', 'like', $prefix.'%');
                 }
-            }
+            })
+            ->chunkById(200, function (Collection $macs): void {
+                /** @var Collection<int, MacAddress> $macs */
+                foreach ($macs as $mac) {
+                    foreach ($mac->ipAddresses as $ip) {
+                        if (! $ip->internet_enabled) {
+                            $ip->internet_enabled = true;
+                            $ip->save();
 
-            if (! $matched) {
-                continue;
-            }
-
-            $ips = $mac->ipAddresses;
-
-            foreach ($ips as $ip) {
-                if (! $ip->internet_enabled) {
-                    $ip->internet_enabled = true;
-                    $ip->save();
-
-                    AuditLog::record(
-                        action: 'oui.auto_allowed',
-                        subject: $ip,
-                        related: $mac,
-                        process: 'oui_policy',
-                        metadata: ['mac' => $mac->mac_address],
-                    );
+                            AuditLog::record(
+                                action: 'oui.auto_allowed',
+                                subject: $ip,
+                                related: $mac,
+                                process: 'oui_policy',
+                                metadata: ['mac' => $mac->mac_address],
+                            );
+                        }
+                    }
                 }
-            }
-        }
+            });
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        Log::error('ScanNetworkDevices failed', [
+            'error' => $exception->getMessage(),
+        ]);
     }
 }
