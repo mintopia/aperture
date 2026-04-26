@@ -1,0 +1,189 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\OpnSense;
+
+use App\Models\IpAddress;
+use App\Services\Firewalls\Exceptions\BackendException;
+use App\Services\Interfaces\CaptivePortalInterface;
+use App\Services\ValueObjects\ReconcileResult;
+use Throwable;
+
+class OpnSenseCaptivePortal implements CaptivePortalInterface
+{
+    public function __construct(
+        protected OpnSenseClient $client,
+        protected int $zoneId,
+    ) {}
+
+    /**
+     * @throws BackendException
+     */
+    public function addIp(string $ip, string $description): void
+    {
+        $payload = (object) [
+            'user' => $description,
+            'ip' => $ip,
+        ];
+        $query = [
+            'zoneid' => $this->zoneId,
+        ];
+        $this->client->post('/api/captiveportal/session/connect', $query, $payload);
+    }
+
+    /**
+     * @throws BackendException
+     */
+    public function removeIp(string $ip): void
+    {
+        $query = [
+            'zoneid' => $this->zoneId,
+        ];
+        $response = $this->client->get('/api/captiveportal/session/list', $query);
+        $response = (array) $response;
+        foreach ($response as $session) {
+            if (! is_object($session) || ! property_exists($session, 'sessionId') || ! property_exists($session, 'ipAddress')) {
+                continue;
+            }
+
+            if ($session->ipAddress !== $ip) {
+                continue;
+            }
+
+            $this->client->post('/api/captiveportal/session/disconnect', $query, [
+                'sessionId' => $session->sessionId,
+            ]);
+
+            break;
+        }
+    }
+
+    /**
+     * @param  array<int, string>  $hostnames
+     *
+     * @throws BackendException
+     */
+    public function addAllowedHostnames(array $hostnames): void
+    {
+        $result = $this->client->get('/api/captiveportal/settings/get');
+        $zones = $result->zone->zones->zone ?? null;
+        if (! is_object($zones)) {
+            throw new BackendException('Response is malformed');
+        }
+
+        $zones = (array) $zones;
+
+        foreach ($zones as $uuid => $zone) {
+            if (! is_object($zone) || ! property_exists($zone, 'zoneid')) {
+                continue;
+            }
+
+            if ((int) $zone->zoneid !== $this->zoneId) {
+                continue;
+            }
+
+            $allowed = [];
+            if (property_exists($zone, 'allowedAddresses') && is_object($zone->allowedAddresses)) {
+                $zoneAllowed = (array) $zone->allowedAddresses;
+                foreach ($zoneAllowed as $ip) {
+                    $allowed[] = $ip->value;
+                }
+            }
+
+            foreach ($hostnames as $hostname) {
+                $ips = gethostbynamel($hostname);
+                if ($ips === false) {
+                    continue;
+                }
+
+                $allowed = array_merge($allowed, $ips);
+            }
+
+            $allowed = array_unique($allowed);
+
+            $this->client->post('/api/captiveportal/settings/setZone/'.$uuid, [], [
+                'zone' => [
+                    'allowedAddresses' => implode(',', $allowed),
+                ],
+            ]);
+        }
+    }
+
+    public function reconcile(bool $dryRun = false): ReconcileResult
+    {
+        $currentIps = $this->fetchConnectedIps();
+        $desiredIps = IpAddress::where('internet_enabled', true)->pluck('address')->all();
+
+        /** @var array<int, string> $added */
+        $added = [];
+        /** @var array<int, string> $removed */
+        $removed = [];
+        /** @var array<int, string> $unchanged */
+        $unchanged = [];
+        /** @var array<int, string> $errors */
+        $errors = [];
+
+        foreach ($desiredIps as $ip) {
+            if (in_array($ip, $currentIps, true)) {
+                $unchanged[] = $ip;
+
+                continue;
+            }
+
+            $added[] = $ip;
+            if (! $dryRun) {
+                try {
+                    $this->addIp($ip, 'Reconciled');
+                } catch (Throwable $e) {
+                    $errors[] = $ip.': '.$e->getMessage();
+                }
+            }
+        }
+
+        foreach ($currentIps as $ip) {
+            if (in_array($ip, $desiredIps, true)) {
+                continue;
+            }
+
+            $removed[] = $ip;
+            if (! $dryRun) {
+                try {
+                    $this->removeIp($ip);
+                } catch (Throwable $e) {
+                    $errors[] = $ip.': '.$e->getMessage();
+                }
+            }
+        }
+
+        return new ReconcileResult(
+            added: $added,
+            removed: $removed,
+            unchanged: $unchanged,
+            errors: $errors,
+        );
+    }
+
+    /**
+     * Fetch IPs currently connected via the captive portal.
+     *
+     * @return array<int, string>
+     */
+    protected function fetchConnectedIps(): array
+    {
+        $query = ['zoneid' => $this->zoneId];
+        $response = $this->client->get('/api/captiveportal/session/list', $query);
+        $sessions = (array) $response;
+
+        $ips = [];
+        foreach ($sessions as $session) {
+            if (! is_object($session) || ! property_exists($session, 'ipAddress')) {
+                continue;
+            }
+
+            $ips[] = $session->ipAddress;
+        }
+
+        return array_unique($ips);
+    }
+}
