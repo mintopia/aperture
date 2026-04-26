@@ -125,6 +125,7 @@ function onFilterUpdate(values) {
                             v-for="ip in row.current_ips"
                             :key="ip.id"
                             :href="route('admin.ips.show', ip.address)"
+                            data-testid="mac-ip-link"
                             class="mr-2 inline-block text-[var(--color-primary)] hover:underline"
                             @click.stop
                         >

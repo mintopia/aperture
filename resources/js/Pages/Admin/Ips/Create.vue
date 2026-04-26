@@ -29,12 +29,13 @@ function submit() {
             </h1>
         </div>
 
-        <form class="mt-6 space-y-5" @submit.prevent="submit">
+        <form data-testid="ip-create-form" class="mt-6 space-y-5" @submit.prevent="submit">
             <FormField label="IP Address" name="address" required :error="form.errors.address">
                 <input
                     id="address"
                     v-model="form.address"
                     type="text"
+                    data-testid="input-address"
                     class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
                 />
             </FormField>
@@ -44,6 +45,7 @@ function submit() {
                     id="comment"
                     v-model="form.comment"
                     type="text"
+                    data-testid="input-comment"
                     class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
                 />
             </FormField>
