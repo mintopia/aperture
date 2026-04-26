@@ -36,6 +36,16 @@ async function toggle() {
         loading.value = false;
     }
 }
+
+/**
+ * Update DNS filter state from an Echo event.
+ * Called by the parent Dashboard via template ref.
+ */
+function updateDnsFilter(isEnabled) {
+    enabled.value = isEnabled;
+}
+
+defineExpose({ updateDnsFilter });
 </script>
 
 <template>

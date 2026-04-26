@@ -36,6 +36,7 @@ class UserBlocked implements ShouldBroadcast
     {
         return [
             new PrivateChannel('admin.events'),
+            new PrivateChannel('user.'.$this->user->id),
         ];
     }
 

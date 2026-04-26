@@ -90,6 +90,51 @@ class BroadcastChannelAuthorizationTest extends TestCase
         $this->assertFalse($user->hasRole('admin'));
     }
 
+    private function getUserChannelCallback(): callable
+    {
+        $channels = Broadcast::getChannels();
+
+        return $channels['user.{id}'];
+    }
+
+    public function test_user_channel_is_registered(): void
+    {
+        $channels = Broadcast::getChannels();
+
+        $this->assertArrayHasKey('user.{id}', $channels);
+    }
+
+    public function test_user_channel_authorizes_matching_user(): void
+    {
+        $user = User::factory()->create();
+        $callback = $this->getUserChannelCallback();
+
+        $result = $callback($user, $user->id);
+
+        $this->assertTrue($result);
+    }
+
+    public function test_user_channel_rejects_different_user(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $callback = $this->getUserChannelCallback();
+
+        $result = $callback($user, $otherUser->id);
+
+        $this->assertFalse($result);
+    }
+
+    public function test_user_channel_authorizes_with_string_id(): void
+    {
+        $user = User::factory()->create();
+        $callback = $this->getUserChannelCallback();
+
+        $result = $callback($user, (string) $user->id);
+
+        $this->assertTrue($result);
+    }
+
     public function test_broadcast_routes_are_registered(): void
     {
         $routes = $this->app->make('router')->getRoutes();

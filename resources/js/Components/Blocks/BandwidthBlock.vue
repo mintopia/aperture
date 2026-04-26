@@ -80,6 +80,17 @@ watch(selectedRange, () => {
     fetchBandwidth();
 });
 
+/**
+ * Trigger an immediate bandwidth refresh.
+ * Called by the parent Dashboard via template ref when a
+ * RateLimitChanged Echo event is received.
+ */
+function refreshBandwidth() {
+    fetchBandwidth();
+}
+
+defineExpose({ refreshBandwidth });
+
 onMounted(() => {
     fetchBandwidth();
     pollInterval = setInterval(fetchBandwidth, 30000);

@@ -381,17 +381,23 @@ class BroadcastableEventsTest extends TestCase
         );
     }
 
-    public function test_user_blocked_broadcasts_on_admin_channel(): void
+    public function test_user_blocked_broadcasts_on_admin_and_user_channels(): void
     {
         $user = $this->createStub(User::class);
+        $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+            'id' => 20,
+            default => null,
+        });
         $ipAddress = $this->createStub(IpAddress::class);
 
         $event = new UserBlocked($user, $ipAddress, 'Violation');
         $channels = $event->broadcastOn();
 
-        $this->assertCount(1, $channels);
+        $this->assertCount(2, $channels);
         $this->assertInstanceOf(PrivateChannel::class, $channels[0]);
         $this->assertSame('private-admin.events', $channels[0]->name);
+        $this->assertInstanceOf(PrivateChannel::class, $channels[1]);
+        $this->assertSame('private-user.20', $channels[1]->name);
     }
 
     public function test_user_blocked_broadcast_with_returns_expected_payload(): void

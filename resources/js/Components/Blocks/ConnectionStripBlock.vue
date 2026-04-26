@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { renderTemplate } from '@/utils/contentTemplating.js';
 
 const props = defineProps({
@@ -8,6 +8,8 @@ const props = defineProps({
     settings: { type: Object, default: () => ({}) },
     blockContext: { type: Object, default: () => ({}) },
 });
+
+const internetOverride = ref(null);
 
 const DEFAULT_FIELDS = [
     { label: 'IPv4', value: '{ipv4}' },
@@ -24,17 +26,34 @@ const fields = computed(() => {
     return DEFAULT_FIELDS;
 });
 
+const isInternetEnabled = computed(() => {
+    if (internetOverride.value !== null) {
+        return internetOverride.value;
+    }
+    return props.blockContext.internetEnabled;
+});
+
 function isStatusField(template) {
     return template === '{status}';
 }
 
 function resolveValue(template) {
     if (isStatusField(template)) {
-        return props.blockContext.internetEnabled ? 'Online' : 'Offline';
+        return isInternetEnabled.value ? 'Online' : 'Offline';
     }
     const result = renderTemplate(template, props.blockContext);
     return result || '\u2014';
 }
+
+/**
+ * Update internet status from an Echo event.
+ * Called by the parent Dashboard via template ref.
+ */
+function updateInternetStatus(enabled) {
+    internetOverride.value = enabled;
+}
+
+defineExpose({ updateInternetStatus });
 </script>
 
 <template>
@@ -56,11 +75,7 @@ function resolveValue(template) {
                         v-if="isStatusField(field.value)"
                         data-testid="status-dot"
                         class="inline-block size-2 shrink-0 rounded-full"
-                        :class="
-                            props.blockContext.internetEnabled
-                                ? 'bg-[var(--color-success)]'
-                                : 'bg-[var(--color-danger)]'
-                        "
+                        :class="isInternetEnabled ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'"
                     />
                     {{ resolveValue(field.value) }}
                 </span>

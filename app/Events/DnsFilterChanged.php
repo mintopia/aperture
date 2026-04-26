@@ -34,9 +34,18 @@ class DnsFilterChanged implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        return [
+        $channels = [
             new PrivateChannel('admin.events'),
         ];
+
+        $users = $this->ipAddress->users;
+        if (is_iterable($users)) {
+            foreach ($users as $userIp) {
+                $channels[] = new PrivateChannel('user.'.$userIp->user_id);
+            }
+        }
+
+        return $channels;
     }
 
     /**
