@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\CaptivePortalInterface;
 use Illuminate\Console\Command;
 
 class ReconcileInternetCommand extends Command
@@ -26,10 +26,10 @@ class ReconcileInternetCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(FirewallBackendInterface $firewall): int
+    public function handle(CaptivePortalInterface $captivePortal): int
     {
         $dryRun = $this->option('dry-run');
-        $result = $firewall->reconcileInternet((bool) $dryRun);
+        $result = $captivePortal->reconcile((bool) $dryRun);
 
         if ($dryRun) {
             $this->info('[DRY RUN] No changes applied.');

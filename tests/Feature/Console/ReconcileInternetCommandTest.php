@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Console;
 
-use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\ValueObjects\ReconcileResult;
 use Mockery\MockInterface;
 use Tests\TestCase;
@@ -13,8 +13,8 @@ class ReconcileInternetCommandTest extends TestCase
 {
     public function test_command_calls_reconcile_internet_without_dry_run(): void
     {
-        $this->mock(FirewallBackendInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('reconcileInternet')
+        $this->mock(CaptivePortalInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('reconcile')
                 ->with(false)
                 ->once()
                 ->andReturn(new ReconcileResult(
@@ -31,8 +31,8 @@ class ReconcileInternetCommandTest extends TestCase
 
     public function test_command_calls_reconcile_internet_with_dry_run(): void
     {
-        $this->mock(FirewallBackendInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('reconcileInternet')
+        $this->mock(CaptivePortalInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('reconcile')
                 ->with(true)
                 ->once()
                 ->andReturn(new ReconcileResult(
@@ -49,8 +49,8 @@ class ReconcileInternetCommandTest extends TestCase
 
     public function test_command_outputs_summary(): void
     {
-        $this->mock(FirewallBackendInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('reconcileInternet')
+        $this->mock(CaptivePortalInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('reconcile')
                 ->with(false)
                 ->once()
                 ->andReturn(new ReconcileResult(
@@ -68,8 +68,8 @@ class ReconcileInternetCommandTest extends TestCase
 
     public function test_command_outputs_dry_run_notice(): void
     {
-        $this->mock(FirewallBackendInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('reconcileInternet')
+        $this->mock(CaptivePortalInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('reconcile')
                 ->with(true)
                 ->once()
                 ->andReturn(new ReconcileResult(
@@ -87,8 +87,8 @@ class ReconcileInternetCommandTest extends TestCase
 
     public function test_command_outputs_errors(): void
     {
-        $this->mock(FirewallBackendInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('reconcileInternet')
+        $this->mock(CaptivePortalInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('reconcile')
                 ->with(false)
                 ->once()
                 ->andReturn(new ReconcileResult(
