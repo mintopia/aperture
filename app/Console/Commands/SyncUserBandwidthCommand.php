@@ -6,7 +6,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Models\UserIpAddress;
-use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\Interfaces\IpBandwidthInterface;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
@@ -18,20 +18,20 @@ class SyncUserBandwidthCommand extends Command
 
     protected $description = 'Update weekly bandwidth totals for all users from the user-bandwidth capability';
 
-    public function handle(TrafficMonitorInterface $trafficMonitor): void
+    public function handle(IpBandwidthInterface $ipBandwidth): void
     {
         User::query()
             ->whereHas('ips')
             ->with('ips.ip')
-            ->chunk(50, function ($users) use ($trafficMonitor): void {
+            ->chunk(50, function ($users) use ($ipBandwidth): void {
                 foreach ($users as $user) {
                     /** @var User $user */
-                    $this->syncUser($user, $trafficMonitor);
+                    $this->syncUser($user, $ipBandwidth);
                 }
             });
     }
 
-    private function syncUser(User $user, TrafficMonitorInterface $trafficMonitor): void
+    private function syncUser(User $user, IpBandwidthInterface $ipBandwidth): void
     {
         try {
             /** @var Collection<int, UserIpAddress> $userIps */
@@ -47,7 +47,7 @@ class SyncUserBandwidthCommand extends Command
                 return;
             }
 
-            $bandwidth = $trafficMonitor->getUserBandwidth($ipAddresses, '7d');
+            $bandwidth = $ipBandwidth->getIpBandwidth($ipAddresses, '7d');
             $user->weekly_received = max(0, $bandwidth->received);
             $user->weekly_sent = max(0, $bandwidth->sent);
             $user->weekly_bandwidth = max(0, $bandwidth->received + $bandwidth->sent);

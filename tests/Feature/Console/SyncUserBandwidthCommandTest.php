@@ -6,8 +6,8 @@ namespace Tests\Feature\Console;
 
 use App\Models\IpAddress;
 use App\Models\User;
-use App\Services\Interfaces\TrafficMonitorInterface;
-use App\Services\ValueObjects\UserBandwidth;
+use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;
@@ -23,19 +23,19 @@ class SyncUserBandwidthCommandTest extends TestCase
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
         $user->addIp($ip->address);
 
-        /** @var TrafficMonitorInterface&MockInterface $mock */
-        $mock = Mockery::mock(TrafficMonitorInterface::class);
-        $mock->shouldReceive('getUserBandwidth')
+        /** @var IpBandwidthInterface&MockInterface $mock */
+        $mock = Mockery::mock(IpBandwidthInterface::class);
+        $mock->shouldReceive('getIpBandwidth')
             ->once()
             ->with(Mockery::on(fn ($ips) => in_array('10.0.0.1', $ips, true)), '7d')
-            ->andReturn(new UserBandwidth(
+            ->andReturn(new IpBandwidthResult(
                 received: 5000,
                 sent: 3000,
                 timestamps: [],
                 download: [],
                 upload: [],
             ));
-        $this->app->instance(TrafficMonitorInterface::class, $mock);
+        $this->app->instance(IpBandwidthInterface::class, $mock);
 
         $this->artisan('aperture:sync-user-bandwidth')
             ->assertSuccessful();
@@ -50,10 +50,10 @@ class SyncUserBandwidthCommandTest extends TestCase
     {
         User::factory()->create();
 
-        /** @var TrafficMonitorInterface&MockInterface $mock */
-        $mock = Mockery::mock(TrafficMonitorInterface::class);
-        $mock->shouldNotReceive('getUserBandwidth');
-        $this->app->instance(TrafficMonitorInterface::class, $mock);
+        /** @var IpBandwidthInterface&MockInterface $mock */
+        $mock = Mockery::mock(IpBandwidthInterface::class);
+        $mock->shouldNotReceive('getIpBandwidth');
+        $this->app->instance(IpBandwidthInterface::class, $mock);
 
         $this->artisan('aperture:sync-user-bandwidth')
             ->assertSuccessful();
@@ -71,11 +71,11 @@ class SyncUserBandwidthCommandTest extends TestCase
         $ip = IpAddress::factory()->create(['address' => '10.0.0.2']);
         $user->addIp($ip->address);
 
-        /** @var TrafficMonitorInterface&MockInterface $mock */
-        $mock = Mockery::mock(TrafficMonitorInterface::class);
-        $mock->shouldReceive('getUserBandwidth')
+        /** @var IpBandwidthInterface&MockInterface $mock */
+        $mock = Mockery::mock(IpBandwidthInterface::class);
+        $mock->shouldReceive('getIpBandwidth')
             ->andThrow(new \RuntimeException('Connection refused'));
-        $this->app->instance(TrafficMonitorInterface::class, $mock);
+        $this->app->instance(IpBandwidthInterface::class, $mock);
 
         $this->artisan('aperture:sync-user-bandwidth')
             ->assertSuccessful();
@@ -92,19 +92,19 @@ class SyncUserBandwidthCommandTest extends TestCase
         $user->addIp($ip1->address);
         $user->addIp($ip2->address);
 
-        /** @var TrafficMonitorInterface&MockInterface $mock */
-        $mock = Mockery::mock(TrafficMonitorInterface::class);
-        $mock->shouldReceive('getUserBandwidth')
+        /** @var IpBandwidthInterface&MockInterface $mock */
+        $mock = Mockery::mock(IpBandwidthInterface::class);
+        $mock->shouldReceive('getIpBandwidth')
             ->once()
             ->with(Mockery::on(fn ($ips) => count($ips) === 2), '7d')
-            ->andReturn(new UserBandwidth(
+            ->andReturn(new IpBandwidthResult(
                 received: 10000,
                 sent: 5000,
                 timestamps: [],
                 download: [],
                 upload: [],
             ));
-        $this->app->instance(TrafficMonitorInterface::class, $mock);
+        $this->app->instance(IpBandwidthInterface::class, $mock);
 
         $this->artisan('aperture:sync-user-bandwidth')
             ->assertSuccessful();
