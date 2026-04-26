@@ -7,9 +7,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreSwitchRequest;
 use App\Http\Requests\Admin\UpdateSwitchRequest;
+use App\Http\Resources\SwitchConfigResource;
+use App\Http\Resources\SwitchPortResource;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
-use App\Models\SwitchPort;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -69,7 +70,7 @@ class SwitchManagementController extends Controller
         $switches = $query->orderBy($order, $direction)
             ->get()
             ->map(fn (SwitchConfig $s): array => [
-                ...$s->toPublicArray(),
+                ...(new SwitchConfigResource($s))->toArray(request()),
                 'port_count' => $s->switch_ports_count,
                 'ports_up' => $s->ports_up_count,
                 'ports_down' => $s->ports_down_count,
@@ -124,19 +125,8 @@ class SwitchManagementController extends Controller
         $latestSync = $switchConfig->latestSyncRun;
 
         return Inertia::render('Admin/Switches/Show', [
-            'switchConfig' => $switchConfig->toPublicArray(),
-            'ports' => $ports->map(fn (SwitchPort $port): array => [
-                'id' => $port->id,
-                'interface' => $port->port_name,
-                'description' => $port->switch_description,
-                'status' => $port->status,
-                'admin_status' => $port->admin_status,
-                'speed' => $port->speed,
-                'vlan' => $port->access_vlan,
-                'poe' => $port->poe_status,
-                'duplex' => $port->duplex,
-                'switchport_mode' => $port->switchport_mode,
-            ]),
+            'switchConfig' => (new SwitchConfigResource($switchConfig))->toArray(request()),
+            'ports' => SwitchPortResource::collection($ports)->resolve(),
             'canDownloadConfig' => in_array($switchConfig->type, ['cisco', 'cisco_ios', 'cisco_nxos'], true),
             'latestSync' => $latestSync,
             'breadcrumbs' => [
@@ -150,7 +140,7 @@ class SwitchManagementController extends Controller
     public function edit(SwitchConfig $switchConfig): Response
     {
         return Inertia::render('Admin/Switches/Edit', [
-            'switchConfig' => $switchConfig->toPublicArray(),
+            'switchConfig' => (new SwitchConfigResource($switchConfig))->toArray(request()),
             'switchTypes' => $this->availableSwitchTypes(),
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
@@ -228,7 +218,7 @@ class SwitchManagementController extends Controller
         }
 
         return Inertia::render('Admin/Switches/Config', [
-            'switchConfig' => $switchConfig->toPublicArray(),
+            'switchConfig' => (new SwitchConfigResource($switchConfig))->toArray(request()),
             'config' => $config,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
