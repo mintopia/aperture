@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Services;
 
-use App\Services\LibreNmsService;
+use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\ResolvedPort;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;

@@ -1,0 +1,100 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e6]:
+      - img [ref=e7]
+      - generic [ref=e13]: Aperture
+    - navigation [ref=e14]:
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: OVERVIEW
+        - link "Dashboard" [ref=e17] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e19]
+          - generic [ref=e21]: Dashboard
+      - generic [ref=e22]:
+        - paragraph [ref=e23]: MANAGEMENT
+        - link "Users" [ref=e24] [cursor=pointer]:
+          - /url: /admin/users
+          - img [ref=e26]
+          - generic [ref=e28]: Users
+        - link "IP Addresses" [ref=e29] [cursor=pointer]:
+          - /url: /admin/ips
+          - img [ref=e31]
+          - generic [ref=e33]: IP Addresses
+        - link "Switches" [ref=e34] [cursor=pointer]:
+          - /url: /admin/switches
+          - img [ref=e36]
+          - generic [ref=e38]: Switches
+        - link "DHCP" [ref=e39] [cursor=pointer]:
+          - /url: /admin/dhcp
+          - img [ref=e41]
+          - generic [ref=e43]: DHCP
+      - generic [ref=e44]:
+        - paragraph [ref=e45]: TOOLS
+        - link "Stats" [ref=e46] [cursor=pointer]:
+          - /url: /admin/stats
+          - img [ref=e48]
+          - generic [ref=e50]: Stats
+        - link "Content" [ref=e51] [cursor=pointer]:
+          - /url: /admin/content
+          - img [ref=e53]
+          - generic [ref=e55]: Content
+        - link "Settings" [ref=e56] [cursor=pointer]:
+          - /url: /admin/settings/integrations
+          - img [ref=e58]
+          - generic [ref=e61]: Settings
+  - generic [ref=e62]:
+    - banner [ref=e63]:
+      - navigation "Breadcrumb" [ref=e64]:
+        - list [ref=e65]:
+          - listitem [ref=e66]:
+            - link "Admin" [ref=e67] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/admin
+          - listitem [ref=e68]:
+            - generic [ref=e69]: /
+            - link "IP Addresses" [ref=e178] [cursor=pointer]:
+              - /url: http://127.0.0.1:8000/admin/ips
+          - listitem [ref=e179]:
+            - generic [ref=e180]: /
+            - generic [ref=e181]: 44.30.69.131
+      - generic [ref=e71]:
+        - button "Search... ⌘K" [ref=e73]:
+          - text: Search...
+          - generic [ref=e74]: ⌘K
+        - button "Switch to light mode" [ref=e75]:
+          - img [ref=e76]
+        - button "J jess" [ref=e84]:
+          - generic [ref=e85]: J
+          - generic [ref=e86]: jess
+          - img [ref=e87]
+    - main [ref=e89]:
+      - generic [ref=e182]:
+        - generic [ref=e183]:
+          - heading "44.30.69.131" [level=1] [ref=e184]
+          - button "Grant Access" [ref=e185]
+        - generic [ref=e186]:
+          - generic [ref=e187]:
+            - generic [ref=e188]: Status
+            - generic [ref=e189]: Denied
+          - generic [ref=e190]:
+            - generic [ref=e191]: Comment
+            - generic [ref=e192]: —
+        - generic [ref=e193]:
+          - generic [ref=e194]:
+            - heading "Bandwidth" [level=2] [ref=e197]
+            - generic [ref=e198]:
+              - button "1h" [ref=e199]
+              - button "24h" [ref=e200]
+              - button "4d" [ref=e201]
+          - generic [ref=e202]:
+            - generic [ref=e203]: Down338.0 MB
+            - generic [ref=e204]: Up19.3 MB
+        - heading "Associated Users" [level=2] [ref=e210]
+        - table [ref=e212]:
+          - rowgroup [ref=e213]:
+            - row "Nickname Last Seen" [ref=e214]:
+              - columnheader "Nickname" [ref=e215]
+              - columnheader "Last Seen" [ref=e216]
+          - rowgroup [ref=e217]:
+            - link "Open row 1" [ref=e218] [cursor=pointer]:
+              - cell "jess" [ref=e219]
+              - cell "2m ago" [ref=e220]

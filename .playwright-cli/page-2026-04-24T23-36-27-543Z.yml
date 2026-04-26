@@ -1,0 +1,25 @@
+- generic [ref=e3]:
+  - generic [ref=e5]: A
+  - heading "Connect to Network" [level=1] [ref=e6]
+  - paragraph [ref=e7]: Scan the QR code or enter the code below
+  - img [ref=e10]
+  - paragraph [ref=e25]:
+    - text: Visit
+    - link "https://borealis.entropylan.party/auth" [ref=e26] [cursor=pointer]:
+      - /url: https://borealis.entropylan.party/auth
+  - generic [ref=e27]:
+    - paragraph [ref=e28]: Enter this code
+    - generic [ref=e29]: 44D6
+  - generic [ref=e30]:
+    - paragraph [ref=e31]: How to connect
+    - list [ref=e32]:
+      - listitem [ref=e33]:
+        - generic [ref=e34]: "1"
+        - generic [ref=e35]: Scan the QR code or visit the URL above on a device with internet
+      - listitem [ref=e36]:
+        - generic [ref=e37]: "2"
+        - generic [ref=e38]: Enter the code shown above when prompted
+      - listitem [ref=e39]:
+        - generic [ref=e40]: "3"
+        - generic [ref=e41]: Authorize the connection — you'll be connected automatically
+  - generic [ref=e45]: Waiting for authorization…

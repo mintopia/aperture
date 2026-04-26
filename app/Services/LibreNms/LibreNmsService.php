@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Services\LibreNms;
 
 use App\Services\Interfaces\NetworkInventoryInterface;
 use App\Services\ValueObjects\ArpEntry;

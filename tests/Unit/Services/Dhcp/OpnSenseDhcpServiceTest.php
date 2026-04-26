@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
-use App\Services\Dhcp\OpnSenseDhcpService;
+use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Handler\MockHandler;

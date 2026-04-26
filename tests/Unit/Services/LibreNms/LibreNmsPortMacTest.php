@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\LibreNms;
 
 use App\Services\LibreNms\LibreNmsPortMac;
-use App\Services\LibreNmsService;
+use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\ForwardingEntry;
 use Mockery;
 use Mockery\MockInterface;

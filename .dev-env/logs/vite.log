@@ -1268,3 +1268,261 @@ Error: Port 5173 is already in use
 10:00:27 PM [vite] (client) page reload resources/js/Pages/Admin/Content/Pages/Create.vue
 10:00:34 PM [vite] (client) page reload resources/js/Pages/Admin/Content/Pages/Edit.vue
 10:00:41 PM [vite] full reload routes/web.php
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+error when starting dev server:
+Error: Port 5173 is already in use
+    at httpServerStart (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:10660:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async startServer (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26304:30)
+    at async Object.listen (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26125:4)
+    at async CAC.<anonymous> (file:///home/workspace/aperture/node_modules/vite/dist/node/cli.js:722:3)
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+10:28:01 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+
+  VITE v8.0.8  ready in 304 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+The request id "/home/workspace/aperture/.git/index" is outside of Vite serving allow list.
+
+- /home/workspace/aperture
+
+Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for configurations and more details.
+
+10:51:59 PM [vite] (client) hmr update /resources/js/Components/UI/StatusPill.vue, /resources/css/app.css?direct, /resources/css/app.css
+10:52:30 PM [vite] (client) hmr update /resources/js/Components/UI/StatusPill.vue, /resources/css/app.css?direct, /resources/css/app.css
+10:52:36 PM [vite] (client) hmr update /resources/js/Pages/Admin/Dashboard.vue, /resources/css/app.css?direct, /resources/css/app.css
+10:52:41 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+10:52:49 PM [vite] (client) hmr update /resources/js/Pages/Admin/Macs/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+10:52:56 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+10:53:04 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+10:53:09 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+10:55:18 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:01:41 PM [vite] (client) hmr update /resources/js/Components/UI/StatusPill.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:02:01 PM [vite] (client) hmr update /resources/js/Pages/Admin/Dashboard.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:02:09 PM [vite] (client) hmr update /resources/js/Pages/Admin/Dashboard.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:02:18 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:02:25 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:02:34 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:02:44 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:02:50 PM [vite] (client) hmr update /resources/js/Pages/Admin/Macs/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:02:57 PM [vite] (client) hmr update /resources/js/Pages/Admin/Macs/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:03:08 PM [vite] (client) hmr update /resources/js/Pages/Admin/Macs/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:03:17 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:03:26 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:03:46 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:03:53 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:04:05 PM [vite] (client) hmr update /resources/js/Pages/Admin/Macs/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:04:13 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:04:21 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:04:48 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:05:19 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:05:23 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:05:29 PM [vite] (client) hmr update /resources/js/Pages/Admin/Ips/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:06:14 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:06:15 PM [vite] (client) hmr update /resources/js/Pages/Admin/Users/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:06:15 PM [vite] (client) hmr update /resources/js/Pages/Admin/Macs/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:06:15 PM [vite] (client) hmr update /resources/css/app.css?direct, /resources/css/app.css
+11:12:37 PM [vite] full reload routes/web.php.tmp.810557.1776985957964
+11:12:37 PM [vite] full reload routes/web.php
+11:12:48 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:16:32 PM [vite] full reload routes/web.php.tmp.810557.1776986192522
+11:16:32 PM [vite] full reload routes/web.php
+11:20:57 PM [vite] (client) hmr update /resources/js/Pages/Admin/AuditLog/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:21:13 PM [vite] (client) hmr update /resources/js/Pages/Admin/AuditLog/Index.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:33:48 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:33:53 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:34:01 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:34:08 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:37:15 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:37:24 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:38:19 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:38:23 PM [vite] (client) hmr update /resources/js/Pages/Admin/Switches/Ports/Show.vue, /resources/css/app.css?direct, /resources/css/app.css
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+1:39:11 AM [vite] (client) Re-optimizing dependencies because vite config has changed
+
+  VITE v8.0.8  ready in 349 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+The request id "/home/workspace/aperture/.git/config" is outside of Vite serving allow list.
+
+- /home/workspace/aperture
+
+Refer to docs https://vite.dev/config/server-options.html#server-fs-allow for configurations and more details.
+
+9:38:55 PM [vite] vite.config.js changed, restarting server...
+9:38:55 PM [vite] server restarted.
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+error when starting dev server:
+Error: Port 5173 is already in use
+    at httpServerStart (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:10660:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async startServer (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26304:30)
+    at async Object.listen (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26125:4)
+    at async CAC.<anonymous> (file:///home/workspace/aperture/node_modules/vite/dist/node/cli.js:722:3)
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+11:07:12 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+
+  VITE v8.0.8  ready in 375 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+11:07:13 PM [vite] (client) [optimizer] scanning dependencies...
+11:10:21 PM [vite] .env changed, restarting server...
+11:10:22 PM [vite] server restarted.
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+error when starting dev server:
+Error: Port 5173 is already in use
+    at httpServerStart (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:10660:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async startServer (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26304:30)
+    at async Object.listen (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26125:4)
+    at async CAC.<anonymous> (file:///home/workspace/aperture/node_modules/vite/dist/node/cli.js:722:3)
+11:15:40 PM [vite] .env changed, restarting server...
+11:15:40 PM [vite] server restarted.
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+
+  VITE v8.0.8  ready in 304 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+11:26:16 PM [vite] (client) [Unhandled error] TypeError: crypto.randomUUID is not a function
+ > ../../../login%20line%203344%20%3E%20injectedScript:287:35
+
+11:31:34 PM [vite] (client) [Unhandled error] TypeError: crypto.randomUUID is not a function
+ > ../../..:288:35
+
+11:31:50 PM [vite] (client) [Unhandled error] TypeError: crypto.randomUUID is not a function
+ > ../../..:288:35
+
+11:31:54 PM [vite] (client) [Unhandled error] TypeError: crypto.randomUUID is not a function
+ > ../../..:288:35
+
+11:32:26 PM [vite] (client) hmr update /resources/js/Layouts/AdminLayout.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:32:34 PM [vite] (client) hmr update /resources/js/Layouts/AdminLayout.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:35:50 PM [vite] (client) hmr update /resources/js/Components/Admin/Sidebar.vue, /resources/css/app.css?direct, /resources/css/app.css
+11:36:15 PM [vite] (client) hmr update /resources/js/Layouts/AdminLayout.vue, /resources/css/app.css?direct, /resources/css/app.css
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+11:46:18 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+
+  VITE v8.0.8  ready in 346 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+error when starting dev server:
+Error: Port 5173 is already in use
+    at httpServerStart (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:10660:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async startServer (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26304:30)
+    at async Object.listen (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26125:4)
+    at async CAC.<anonymous> (file:///home/workspace/aperture/node_modules/vite/dist/node/cli.js:722:3)
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+
+  VITE v8.0.8  ready in 313 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+error when starting dev server:
+Error: Port 5173 is already in use
+    at httpServerStart (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:10660:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async startServer (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26304:30)
+    at async Object.listen (file:///home/workspace/aperture/node_modules/vite/dist/node/chunks/node.js:26125:4)
+    at async CAC.<anonymous> (file:///home/workspace/aperture/node_modules/vite/dist/node/cli.js:722:3)
+2:10:35 AM [vite] full reload resources/views/portal.blade.php.tmp.2432.1777083035588
+2:10:35 AM [vite] full reload resources/views/portal.blade.php
+2:23:25 AM [vite] full reload resources/views/portal.blade.php.tmp.2432.1777083805907
+2:23:25 AM [vite] full reload resources/views/portal.blade.php
+
+> dev
+> vite --host=0.0.0.0 --port=5173 --strictPort
+
+
+  VITE v8.0.8  ready in 324 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.242.1.197:5173/
+
+  LARAVEL v13.4.0  plugin v3.0.1
+
+  ➜  APP_URL: https://hallowed-rincewind.ws.cloudagent.mintopia.net
+3:07:14 AM [vite] (client) hmr update /resources/js/Pages/Admin/Settings/Network.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:07:15 AM [vite] (client) hmr update /resources/js/Pages/Admin/Content/Settings.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:15:59 AM [vite] (client) hmr update /resources/js/Pages/Admin/Content/Settings.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:16:06 AM [vite] (client) hmr update /resources/js/Components/Admin/Sidebar.vue, /resources/css/app.css?direct, /resources/css/app.css
+3:16:12 AM [vite] full reload routes/web.php.tmp.2432.1777086972475
+3:16:12 AM [vite] full reload routes/web.php
+3:16:16 AM [vite] full reload routes/web.php.tmp.2432.1777086976497
+3:16:16 AM [vite] full reload routes/web.php

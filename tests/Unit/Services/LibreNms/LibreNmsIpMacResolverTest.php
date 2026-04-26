@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\LibreNms;
 
 use App\Services\LibreNms\LibreNmsIpMacResolver;
-use App\Services\LibreNmsService;
+use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\ArpEntry;
 use Mockery;
 use Mockery\MockInterface;

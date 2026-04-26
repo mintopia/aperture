@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Dhcp;
+namespace App\Services\OpnSense;
 
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpLease;

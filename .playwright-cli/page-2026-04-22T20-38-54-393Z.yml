@@ -1,0 +1,53 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - link "Aperture" [ref=e5] [cursor=pointer]:
+      - /url: http://localhost:8000/
+      - generic [ref=e6]:
+        - img [ref=e7]
+        - generic [ref=e13]: Aperture
+    - generic [ref=e14]:
+      - button "Switch to light mode" [ref=e15]:
+        - img [ref=e16]
+      - button "J jess" [ref=e24]:
+        - generic [ref=e25]: J
+        - generic [ref=e26]: jess
+        - img [ref=e27]
+  - main [ref=e29]:
+    - generic [ref=e30]:
+      - heading "Welcome, jess" [level=1] [ref=e32]
+      - generic [ref=e33]:
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - generic [ref=e38]: IPv4
+            - generic [ref=e39]: 127.0.0.1
+          - generic [ref=e40]:
+            - generic [ref=e41]: IPv6
+            - generic [ref=e42]: —
+          - generic [ref=e43]:
+            - generic [ref=e44]: MAC Address
+            - generic [ref=e45]: —
+          - generic [ref=e46]:
+            - generic [ref=e47]: Status
+            - generic [ref=e48]: Offline
+        - generic [ref=e51]:
+          - generic [ref=e53]:
+            - generic [ref=e54]: Down 0 B
+            - generic [ref=e55]: Up 0 B
+          - generic [ref=e60]: Loading chart data…
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - generic [ref=e65]: Label Text
+            - generic [ref=e66]: Content Here
+          - button [ref=e67] [cursor=pointer]
+        - generic [ref=e69]:
+          - 'heading "Welcome to EntropyLAN #6!" [level=3] [ref=e70]'
+          - generic [ref=e71]:
+            - paragraph [ref=e72]:
+              - text: Look! We do content. We do
+              - link "links" [ref=e73] [cursor=pointer]:
+                - /url: https://www.google.com
+              - text: "!"
+            - list [ref=e74]:
+              - listitem [ref=e75]:
+                - emphasis [ref=e76]: Shamelessly
+                - text: built this with AI

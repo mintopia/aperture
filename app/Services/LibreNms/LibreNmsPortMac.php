@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\LibreNms;
 
 use App\Services\Interfaces\PortMacInterface;
-use App\Services\LibreNmsService;
 use Illuminate\Support\Collection;
 
 class LibreNmsPortMac implements PortMacInterface

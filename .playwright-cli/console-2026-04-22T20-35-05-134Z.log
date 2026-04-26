@@ -1,0 +1,7 @@
+[      53ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/login:14
+[   56272ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ :6
+[   56282ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://{uuid}.ipv6.test.entropylan.party/:0
+[   69668ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ :6
+[   69674ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://{uuid}.ipv6.test.entropylan.party/:0
+[   93491ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ :6
+[   93500ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://{uuid}.ipv6.test.entropylan.party/:0

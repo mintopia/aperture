@@ -1,0 +1,4 @@
+[      45ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: https://hallowed-rincewind.ws.cloudagent.mintopia.net/_boost/browser-logs @ https://hallowed-rincewind.ws.cloudagent.mintopia.net/:30
+[      54ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://{uuid}.ipv6.test.entropylan.party/:0
+[      61ms] [ERROR] Access to fetch at 'https://c930b14c-aac5-4e94-b895-79b3b5998fdf.lancache.test.entropylan.party/' from origin 'https://hallowed-rincewind.ws.cloudagent.mintopia.net' has been blocked by CORS policy: Permission was denied for this request to access the `local` address space. @ https://hallowed-rincewind.ws.cloudagent.mintopia.net/:0
+[      61ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://c930b14c-aac5-4e94-b895-79b3b5998fdf.lancache.test.entropylan.party/:0
