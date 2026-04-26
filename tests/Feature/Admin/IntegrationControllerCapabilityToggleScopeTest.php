@@ -60,17 +60,17 @@ class IntegrationControllerCapabilityToggleScopeTest extends TestCase
         // opnsense currently owns 'dhcp'
         CapabilityAssignment::assign('dhcp', 'opnsense');
 
-        // pihole requests to deactivate 'dhcp' — it should NOT remove opnsense's assignment
-        // (both opnsense and pihole support 'dhcp' per config/integrations.php)
+        // pihole requests to deactivate 'dhcp' — it should be rejected because
+        // pihole does not support 'dhcp' (only 'dns-filtering' per config/integrations.php)
         $response = $this->actingAs($admin)->putJson('/admin/settings/capabilities', [
             'capability' => 'dhcp',
             'integration' => 'pihole',
             'active' => false,
         ]);
 
-        $response->assertOk();
+        $response->assertUnprocessable();
 
-        // opnsense's dhcp assignment must still exist — pihole should not be able to revoke it
+        // opnsense's dhcp assignment must still exist — pihole cannot revoke it
         $this->assertDatabaseHas('capability_assignments', [
             'capability' => 'dhcp',
             'integration' => 'opnsense',
