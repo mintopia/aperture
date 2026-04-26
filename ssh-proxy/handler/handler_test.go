@@ -965,6 +965,338 @@ func TestIsValidChannel(t *testing.T) {
 	}
 }
 
+// --- Stale connection recovery tests ---
+
+// failOnceExecutor returns a connection error on the first call, then succeeds.
+type failOnceExecutor struct {
+	callCount int
+	failResult *ssh.CommandResult
+	successResult *ssh.CommandResult
+}
+
+func (e *failOnceExecutor) Execute(_ ssh.Session, _ []ssh.Command) *ssh.CommandResult {
+	e.callCount++
+	if e.callCount == 1 {
+		return e.failResult
+	}
+	return e.successResult
+}
+
+func TestExecute_RetryOnStaleConnection(t *testing.T) {
+	p := pool.New(10 * time.Minute)
+
+	// Pre-populate pool with a "stale" connection.
+	staleSession := newMockSession("Switch#")
+	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
+	p.SetConnection("switch1", pool.DefaultChannel, staleSession)
+	p.Release("switch1", pool.DefaultChannel)
+
+	// Fresh session for the retry.
+	freshSession := newMockSession("Switch#", "output\nSwitch#")
+
+	connectorCallCount := 0
+	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+		connectorCallCount++
+		return freshSession, nil
+	}
+
+	executor := &failOnceExecutor{
+		failResult: &ssh.CommandResult{
+			Success: false,
+			Output:  make([]ssh.CommandOutput, 0),
+			Error:   "Failed to send command: connection closed",
+		},
+		successResult: &ssh.CommandResult{
+			Success: true,
+			Output:  []ssh.CommandOutput{{Command: "show ver", Output: "Cisco IOS..."}},
+		},
+	}
+
+	h := testHandler(p, connector, executor)
+
+	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	h.Execute(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+
+	var resp executeResponse
+	json.NewDecoder(w.Body).Decode(&resp)
+	if !resp.Success {
+		t.Errorf("expected success after retry, got error: %s", resp.Error)
+	}
+
+	// Connector should have been called once (for the retry reconnection).
+	if connectorCallCount != 1 {
+		t.Errorf("expected connector called 1 time (retry), got %d", connectorCallCount)
+	}
+
+	// Executor should have been called twice (original + retry).
+	if executor.callCount != 2 {
+		t.Errorf("expected executor called 2 times, got %d", executor.callCount)
+	}
+}
+
+func TestExecute_RetryNotTriggeredOnNewConnection(t *testing.T) {
+	p := pool.New(10 * time.Minute)
+
+	// No pre-populated connection — this will be a new connection.
+	session := newMockSession("Switch#")
+	connector := mockConnectorSuccess(session)
+
+	// Executor fails with a connection error.
+	executor := &mockExecutor{
+		result: &ssh.CommandResult{
+			Success: false,
+			Output:  make([]ssh.CommandOutput, 0),
+			Error:   "Failed to send command: connection closed",
+		},
+	}
+
+	h := testHandler(p, connector, executor)
+
+	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	h.Execute(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+
+	var resp executeResponse
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp.Success {
+		t.Error("expected failure — retry should NOT happen on new connections")
+	}
+	if resp.Error != "Failed to send command: connection closed" {
+		t.Errorf("unexpected error: %q", resp.Error)
+	}
+}
+
+func TestExecute_RetryReconnectFailure(t *testing.T) {
+	p := pool.New(10 * time.Minute)
+
+	// Pre-populate pool with a "stale" connection.
+	staleSession := newMockSession("Switch#")
+	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
+	p.SetConnection("switch1", pool.DefaultChannel, staleSession)
+	p.Release("switch1", pool.DefaultChannel)
+
+	// Connector fails on retry reconnect.
+	connector := mockConnectorFailure("connection refused")
+
+	executor := &mockExecutor{
+		result: &ssh.CommandResult{
+			Success: false,
+			Output:  make([]ssh.CommandOutput, 0),
+			Error:   "Failed to send command: connection closed",
+		},
+	}
+
+	h := testHandler(p, connector, executor)
+
+	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	h.Execute(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", w.Code)
+	}
+
+	var resp executeResponse
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp.Success {
+		t.Error("expected failure when retry reconnect fails")
+	}
+	if !strings.Contains(resp.Error, "connection refused") {
+		t.Errorf("expected 'connection refused' in error, got %q", resp.Error)
+	}
+}
+
+func TestExecute_RetryNotTriggeredOnNonConnectionError(t *testing.T) {
+	p := pool.New(10 * time.Minute)
+
+	// Pre-populate pool with an existing connection.
+	session := newMockSession("Switch#")
+	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
+	p.SetConnection("switch1", pool.DefaultChannel, session)
+	p.Release("switch1", pool.DefaultChannel)
+
+	connectorCalled := false
+	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+		connectorCalled = true
+		return nil, fmt.Errorf("should not be called")
+	}
+
+	// A command timeout is not a connection error — should not trigger retry.
+	executor := &mockExecutor{
+		result: &ssh.CommandResult{
+			Success: false,
+			Output:  []ssh.CommandOutput{{Command: "show ver", Output: "partial"}},
+			Error:   "Timeout waiting for expected pattern: #",
+		},
+	}
+
+	h := testHandler(p, connector, executor)
+
+	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	h.Execute(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+
+	var resp executeResponse
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp.Success {
+		t.Error("expected failure (non-connection error)")
+	}
+
+	if connectorCalled {
+		t.Error("connector should NOT be called — non-connection errors should not trigger retry")
+	}
+}
+
+func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
+	var logBuf bytes.Buffer
+	logger := testLoggerWithBuffer(&logBuf)
+
+	p := pool.New(10 * time.Minute)
+
+	// Pre-populate pool with a "stale" connection.
+	staleSession := newMockSession("Switch#")
+	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
+	p.SetConnection("switch1", pool.DefaultChannel, staleSession)
+	p.Release("switch1", pool.DefaultChannel)
+
+	freshSession := newMockSession("Switch#", "output\nSwitch#")
+	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+		return freshSession, nil
+	}
+
+	executor := &failOnceExecutor{
+		failResult: &ssh.CommandResult{
+			Success: false,
+			Output:  make([]ssh.CommandOutput, 0),
+			Error:   "Failed to send command: connection closed",
+		},
+		successResult: &ssh.CommandResult{
+			Success: true,
+			Output:  []ssh.CommandOutput{{Command: "show ver", Output: "..."}},
+		},
+	}
+
+	h := testHandlerWithLogger(p, connector, executor, logger)
+
+	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	h.Execute(w, req)
+
+	// Find the stale connection recovery log line.
+	logs := logBuf.String()
+	foundStaleWarning := false
+	foundRetrySuccess := false
+	for _, line := range strings.Split(strings.TrimSpace(logs), "\n") {
+		var entry map[string]any
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			continue
+		}
+		if entry["msg"] == "stale connection detected, retrying with new connection" {
+			foundStaleWarning = true
+		}
+		if entry["msg"] == "retry succeeded after stale connection recovery" {
+			foundRetrySuccess = true
+		}
+	}
+	if !foundStaleWarning {
+		t.Error("expected 'stale connection detected' log message")
+	}
+	if !foundRetrySuccess {
+		t.Error("expected 'retry succeeded after stale connection recovery' log message")
+	}
+}
+
+func TestIsConnectionError(t *testing.T) {
+	tests := []struct {
+		errMsg   string
+		expected bool
+	}{
+		{"Failed to send command: connection closed", true},
+		{"connection reset by peer", true},
+		{"write: broken pipe", true},
+		{"read: EOF", true},
+		{"use of closed network connection", true},
+		{"i/o timeout", true},
+		{"Timeout waiting for expected pattern: #", false},
+		{"some other error", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.errMsg, func(t *testing.T) {
+			result := isConnectionError(tt.errMsg)
+			if result != tt.expected {
+				t.Errorf("isConnectionError(%q) = %v, want %v", tt.errMsg, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestExecute_RetryReleasesLock(t *testing.T) {
+	p := pool.New(10 * time.Minute)
+
+	// Pre-populate pool with a "stale" connection.
+	staleSession := newMockSession("Switch#")
+	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
+	p.SetConnection("switch1", pool.DefaultChannel, staleSession)
+	p.Release("switch1", pool.DefaultChannel)
+
+	freshSession := newMockSession("Switch#", "output\nSwitch#")
+	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+		return freshSession, nil
+	}
+
+	executor := &failOnceExecutor{
+		failResult: &ssh.CommandResult{
+			Success: false,
+			Output:  make([]ssh.CommandOutput, 0),
+			Error:   "Failed to send command: connection closed",
+		},
+		successResult: &ssh.CommandResult{
+			Success: true,
+			Output:  []ssh.CommandOutput{{Command: "show ver", Output: "..."}},
+		},
+	}
+
+	h := testHandler(p, connector, executor)
+
+	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	h.Execute(w, req)
+
+	// After the execute (including retry), the lock should be released.
+	_, _, err := p.Acquire("switch1", pool.DefaultChannel)
+	if err != nil {
+		t.Errorf("expected lock to be released after retry, got error: %v", err)
+	}
+	p.Release("switch1", pool.DefaultChannel)
+}
+
 func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 	p := pool.New(10 * time.Minute)
 	// Lock the host on the commands channel

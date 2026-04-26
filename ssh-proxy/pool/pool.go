@@ -23,6 +23,13 @@ type KeepaliveChecker interface {
 	SendKeepalive() error
 }
 
+// HealthChecker is implemented by connections that support a lightweight
+// health probe. The pool can optionally check health before reusing a
+// connection to detect stale connections early.
+type HealthChecker interface {
+	CheckHealth() error
+}
+
 // Entry represents a pooled connection for a single hostname+channel pair.
 type Entry struct {
 	Hostname      string
@@ -119,6 +126,77 @@ func (p *Pool) Acquire(hostname, channel string) (*Entry, bool, error) {
 	}
 	p.entries[key] = entry
 	return entry, true, nil
+}
+
+// AcquireWithHealthCheck works like Acquire but additionally runs a health
+// check on existing connections that implement HealthChecker. If the check
+// fails, the stale connection is evicted and a fresh entry is returned
+// (isNew=true) so the caller can establish a new connection.
+func (p *Pool) AcquireWithHealthCheck(hostname, channel string) (*Entry, bool, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	key := PoolKey(hostname, channel)
+	entry, exists := p.entries[key]
+	if exists {
+		if entry.Dead {
+			p.stopKeepaliveLocked(entry)
+			if entry.Conn != nil {
+				entry.Conn.Close()
+			}
+			delete(p.entries, key)
+		} else {
+			if entry.Locked {
+				return nil, false, ErrHostLocked
+			}
+
+			// Run health check if the connection supports it.
+			if entry.Conn != nil {
+				if checker, ok := entry.Conn.(HealthChecker); ok {
+					if err := checker.CheckHealth(); err != nil {
+						// Connection is stale — evict it.
+						p.stopKeepaliveLocked(entry)
+						entry.Conn.Close()
+						delete(p.entries, key)
+						// Fall through to create a new entry.
+						goto createNew
+					}
+				}
+			}
+
+			entry.Locked = true
+			entry.LastUsed = time.Now()
+			return entry, false, nil
+		}
+	}
+
+createNew:
+	entry = &Entry{
+		Hostname:  hostname,
+		Channel:   channel,
+		Locked:    true,
+		CreatedAt: time.Now(),
+		LastUsed:  time.Now(),
+	}
+	p.entries[key] = entry
+	return entry, true, nil
+}
+
+// Evict forcibly removes and closes the entry for the given hostname and
+// channel, regardless of its lock state. Use this to recover from a stale
+// connection detected during command execution.
+func (p *Pool) Evict(hostname, channel string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	key := PoolKey(hostname, channel)
+	if entry, ok := p.entries[key]; ok {
+		p.stopKeepaliveLocked(entry)
+		if entry.Conn != nil {
+			entry.Conn.Close()
+		}
+		delete(p.entries, key)
+	}
 }
 
 // Release unlocks the entry for the given hostname and channel.

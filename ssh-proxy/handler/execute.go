@@ -170,6 +170,94 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 	result := h.executor.Execute(session, req.Commands)
 	execDuration := time.Since(execStart)
 
+	// If the command failed with a connection error on a reused (pooled)
+	// connection, attempt stale recovery: evict, reconnect, retry once.
+	if !result.Success && !isNew && isConnectionError(result.Error) {
+		h.logger.Warn("stale connection detected, retrying with new connection",
+			"hostname", req.Hostname,
+			"channel", req.Channel,
+			"original_error", result.Error,
+			"request_id", requestID,
+		)
+
+		// Evict the stale connection.
+		h.pool.Evict(req.Hostname, req.Channel)
+
+		// Establish a new connection.
+		retryCtx, retryCancel := context.WithTimeout(r.Context(), h.connectTimeout)
+		defer retryCancel()
+
+		retryConn, retryErr := h.connector(retryCtx, req.Hostname, req.Port, req.Username, req.Password)
+		if retryErr != nil {
+			h.logger.Error("retry reconnection failed",
+				"hostname", req.Hostname,
+				"channel", req.Channel,
+				"error", retryErr,
+				"request_id", requestID,
+			)
+			writeJSON(w, http.StatusInternalServerError, executeResponse{
+				Success: false,
+				Output:  make([]ssh.CommandOutput, 0),
+				Error:   fmt.Sprintf("SSH connection failed: %s", retryErr),
+			})
+			return
+		}
+
+		// Re-acquire a pool slot, store the new connection, and retry.
+		retryEntry, _, acquireErr := h.pool.Acquire(req.Hostname, req.Channel)
+		if acquireErr != nil {
+			retryConn.Close()
+			h.logger.Error("retry pool acquire failed",
+				"hostname", req.Hostname,
+				"channel", req.Channel,
+				"error", acquireErr,
+				"request_id", requestID,
+			)
+			writeJSON(w, http.StatusInternalServerError, executeResponse{
+				Success: false,
+				Output:  make([]ssh.CommandOutput, 0),
+				Error:   fmt.Sprintf("Pool error: %s", acquireErr),
+			})
+			return
+		}
+		_ = retryEntry // entry is created; set the connection on it
+		h.pool.SetConnection(req.Hostname, req.Channel, retryConn)
+
+		h.logger.Info("retrying commands after reconnection",
+			"hostname", req.Hostname,
+			"channel", req.Channel,
+			"request_id", requestID,
+		)
+
+		execStart = time.Now()
+		result = h.executor.Execute(retryConn, req.Commands)
+		execDuration = time.Since(execStart)
+
+		if result.Success {
+			h.logger.Info("retry succeeded after stale connection recovery",
+				"hostname", req.Hostname,
+				"channel", req.Channel,
+				"duration_ms", execDuration.Milliseconds(),
+				"request_id", requestID,
+			)
+		} else {
+			h.logger.Error("retry failed after stale connection recovery",
+				"hostname", req.Hostname,
+				"channel", req.Channel,
+				"error", result.Error,
+				"duration_ms", execDuration.Milliseconds(),
+				"request_id", requestID,
+			)
+		}
+
+		writeJSON(w, http.StatusOK, executeResponse{
+			Success: result.Success,
+			Output:  result.Output,
+			Error:   result.Error,
+		})
+		return
+	}
+
 	// Build log attributes for the "commands executed" line.
 	logAttrs := []any{
 		"hostname", req.Hostname,
@@ -193,6 +281,26 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 // NotFound handles unmatched routes.
 func (h *Handler) NotFound(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusNotFound, map[string]string{"error": "Not found"})
+}
+
+// isConnectionError returns true if the error string indicates a broken
+// or stale SSH connection (as opposed to a command timeout or expect
+// pattern mismatch). These errors warrant a retry with a fresh connection.
+func isConnectionError(errMsg string) bool {
+	connectionPatterns := []string{
+		"connection closed",
+		"connection reset",
+		"broken pipe",
+		"EOF",
+		"use of closed network connection",
+		"i/o timeout",
+	}
+	for _, pattern := range connectionPatterns {
+		if strings.Contains(errMsg, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 func commandsSummary(commands []ssh.Command) []string {

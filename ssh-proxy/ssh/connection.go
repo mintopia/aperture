@@ -214,6 +214,13 @@ func (c *Connection) SendKeepalive() error {
 	return err
 }
 
+// CheckHealth performs a lightweight health probe by sending an SSH keepalive
+// request. This satisfies pool.HealthChecker, allowing the pool to verify
+// a connection is still alive before reusing it.
+func (c *Connection) CheckHealth() error {
+	return c.SendKeepalive()
+}
+
 // Close terminates the SSH session and underlying TCP connection.
 func (c *Connection) Close() error {
 	if c.closed {
