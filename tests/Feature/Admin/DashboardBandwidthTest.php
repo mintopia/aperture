@@ -6,8 +6,8 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Interfaces\TrafficMonitorInterface;
-use App\Services\ValueObjects\UserBandwidth;
+use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
@@ -34,11 +34,11 @@ class DashboardBandwidthTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
             $mock->shouldReceive('getTotalBandwidth')
                 ->once()
                 ->with('24h')
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 1024000,
                     sent: 512000,
                     timestamps: ['1700000000', '1700000300'],
@@ -65,11 +65,11 @@ class DashboardBandwidthTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
             $mock->shouldReceive('getTotalBandwidth')
                 ->once()
                 ->with('1h')
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],
@@ -88,11 +88,11 @@ class DashboardBandwidthTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
             $mock->shouldReceive('getTotalBandwidth')
                 ->once()
                 ->with('4d')
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],
@@ -133,11 +133,11 @@ class DashboardBandwidthTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
             $mock->shouldReceive('getTotalBandwidth')
                 ->once()
                 ->with('24h')
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],

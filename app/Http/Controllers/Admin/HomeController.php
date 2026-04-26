@@ -9,7 +9,7 @@ use App\Jobs\ResetAperture;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -36,7 +36,7 @@ class HomeController extends Controller
         ]);
     }
 
-    public function bandwidth(Request $request, TrafficMonitorInterface $trafficMonitor): JsonResponse
+    public function bandwidth(Request $request, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
         $validated = $request->validate([
             'range' => 'nullable|string|in:1h,24h,4d',
@@ -44,7 +44,7 @@ class HomeController extends Controller
 
         $range = $validated['range'] ?? '24h';
 
-        $bandwidth = $trafficMonitor->getTotalBandwidth($range);
+        $bandwidth = $ipBandwidth->getTotalBandwidth($range);
 
         return response()->json([
             'timestamps' => $bandwidth->timestamps,
