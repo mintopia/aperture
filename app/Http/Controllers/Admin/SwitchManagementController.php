@@ -12,6 +12,7 @@ use App\Http\Resources\SwitchPortResource;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\SwitchIndexDataService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,72 +25,15 @@ class SwitchManagementController extends Controller
 {
     public function __construct(
         protected SwitchServiceFactory $factory,
+        protected SwitchIndexDataService $indexDataService,
     ) {}
-
-    private const SORTABLE_COLUMNS = ['name', 'hostname', 'type', 'enabled'];
 
     public function index(Request $request): Response
     {
-        $order = 'name';
-        $direction = 'asc';
-
-        if (in_array($request->input('order'), self::SORTABLE_COLUMNS)) {
-            $order = $request->input('order');
-        }
-
-        if (in_array($request->input('direction'), ['asc', 'desc'])) {
-            $direction = $request->input('direction');
-        }
-
-        $query = SwitchConfig::query()
-            ->withCount([
-                'switchPorts',
-                'switchPorts as ports_up_count' => fn ($q) => $q->whereIn('status', ['connected', 'up']),
-                'switchPorts as ports_down_count' => fn ($q) => $q->whereIn('status', ['down', 'notconnect']),
-                'switchPorts as ports_error_count' => fn ($q) => $q->where('status', 'err-disabled'),
-            ])
-            ->with('latestSyncRun');
-
-        $search = (string) $request->input('search', '');
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search): void {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('hostname', 'like', "%{$search}%");
-            });
-        }
-
-        if (in_array($request->input('status'), ['enabled', 'disabled'])) {
-            $query->where('enabled', $request->input('status') === 'enabled');
-        }
-
-        if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
-        }
-
-        $switches = $query->orderBy($order, $direction)
-            ->get()
-            ->map(fn (SwitchConfig $s): array => [
-                ...(new SwitchConfigResource($s))->toArray(request()),
-                'port_count' => $s->switch_ports_count,
-                'ports_up' => $s->ports_up_count,
-                'ports_down' => $s->ports_down_count,
-                'ports_error' => $s->ports_error_count,
-                'last_synced_at' => $s->latestSyncRun?->finished_at,
-                'latest_sync_status' => $s->latestSyncRun?->status,
-            ]);
-
-        $filters = (object) [
-            'search' => $search,
-            'status' => (string) $request->input('status', ''),
-            'type' => (string) $request->input('type', ''),
-            'order' => $order,
-            'direction' => $direction,
-        ];
+        $data = $this->indexDataService->assemble($request);
 
         return Inertia::render('Admin/Switches/Index', [
-            'switches' => $switches,
-            'filters' => $filters,
+            ...$data,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
                 ['label' => 'Switches'],
