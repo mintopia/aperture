@@ -4,7 +4,7 @@ return [
     'opnsense' => [
         'name' => 'OPNsense',
         'description' => 'Network firewall providing captive portal, rate limiting, and DHCP services.',
-        'capabilities' => ['captive-portal', 'firewall', 'rate-limiting', 'dhcp'],
+        'capabilities' => ['captive-portal', 'rate-limiting', 'dhcp'],
         'fields' => [
             // Connection settings
             'endpoint' => [
@@ -94,7 +94,7 @@ return [
     'librenms' => [
         'name' => 'LibreNMS',
         'description' => 'Network monitoring for IP/MAC resolution, port mapping, and bandwidth data.',
-        'capabilities' => ['ip-to-mac', 'mac-to-port', 'port-bandwidth', 'device-list'],
+        'capabilities' => ['ip-mac', 'port-mac'],
         'fields' => [
             'endpoint' => [
                 'type' => 'url',
@@ -119,52 +119,10 @@ return [
             'enabled' => 'nullable|string|in:0,1',
         ],
     ],
-    'ntopng' => [
-        'name' => 'ntopng',
-        'description' => 'Traffic analysis providing per-user bandwidth metrics and top talker data.',
-        'capabilities' => ['user-bandwidth', 'top-talkers', 'aggregate-stats'],
-        'fields' => [
-            'endpoint' => [
-                'type' => 'url',
-                'label' => 'API Endpoint',
-                'placeholder' => 'https://ntopng.local:3000',
-                'help' => 'Base URL of your ntopng instance.',
-            ],
-            'username' => [
-                'type' => 'text',
-                'label' => 'Username',
-                'placeholder' => 'admin',
-                'help' => 'Username for ntopng authentication.',
-            ],
-            'password' => [
-                'type' => 'password',
-                'label' => 'Password',
-                'help' => 'Password for ntopng authentication.',
-            ],
-            'interface' => [
-                'type' => 'text',
-                'label' => 'Interface',
-                'placeholder' => '0',
-                'help' => 'Network interface index to monitor.',
-            ],
-            'enabled' => [
-                'type' => 'toggle',
-                'label' => 'Enabled',
-                'help' => 'Enable or disable this integration.',
-            ],
-        ],
-        'validation' => [
-            'endpoint' => 'nullable|url|max:500',
-            'username' => 'nullable|string|max:255',
-            'password' => 'nullable|string|max:500',
-            'interface' => 'nullable|string|max:100',
-            'enabled' => 'nullable|string|in:0,1',
-        ],
-    ],
     'pihole' => [
         'name' => 'Pi-hole',
         'description' => 'DNS filtering and optional DHCP/IP-to-MAC resolution.',
-        'capabilities' => ['dns-filtering', 'dhcp', 'ip-to-mac'],
+        'capabilities' => ['dns-filtering'],
         'fields' => [
             'endpoint' => [
                 'type' => 'url',
@@ -208,7 +166,7 @@ return [
     'borealis' => [
         'name' => 'Borealis',
         'description' => 'OAuth2 authentication provider for user login via device code flow.',
-        'capabilities' => ['authentication', 'sso', 'user-info'],
+        'capabilities' => [],
         'fields' => [
             'endpoint' => [
                 'type' => 'url',
@@ -245,7 +203,7 @@ return [
     'prometheus' => [
         'name' => 'Prometheus',
         'description' => 'Time-series metrics database for network bandwidth and device monitoring.',
-        'capabilities' => ['port-bandwidth', 'port-errors', 'device-metrics', 'aggregate-stats', 'user-bandwidth'],
+        'capabilities' => ['ip-bandwidth', 'port-bandwidth', 'port-errors'],
         'fields' => [
             'endpoint' => [
                 'type' => 'url',

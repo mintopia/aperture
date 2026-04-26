@@ -42,7 +42,6 @@ class SettingsControllerIntegrationExpansionTest extends TestCase
                 return in_array('borealis', $ids)
                     && in_array('opnsense', $ids)
                     && in_array('librenms', $ids)
-                    && in_array('ntopng', $ids)
                     && in_array('pihole', $ids)
                     && in_array('prometheus', $ids);
             })

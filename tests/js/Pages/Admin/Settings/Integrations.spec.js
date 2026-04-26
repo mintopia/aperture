@@ -17,10 +17,7 @@ describe('Integrations.vue', () => {
             enabled: true,
             health: null,
             readonly: true,
-            capabilities: [
-                { name: 'authentication', active: true },
-                { name: 'sso', active: true },
-            ],
+            capabilities: [],
         },
         {
             id: 'opnsense',
@@ -29,7 +26,7 @@ describe('Integrations.vue', () => {
             health: true,
             capabilities: [
                 { name: 'captive-portal', active: true },
-                { name: 'firewall', active: false },
+                { name: 'rate-limiting', active: false },
             ],
         },
         {
@@ -37,14 +34,7 @@ describe('Integrations.vue', () => {
             name: 'LibreNMS',
             enabled: false,
             health: false,
-            capabilities: [{ name: 'ip-to-mac', active: false }],
-        },
-        {
-            id: 'ntopng',
-            name: 'ntopng',
-            enabled: false,
-            health: null,
-            capabilities: [],
+            capabilities: [{ name: 'ip-mac', active: false }],
         },
     ];
 
@@ -75,7 +65,6 @@ describe('Integrations.vue', () => {
         expect(wrapper.find('[data-testid="integration-row-borealis"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="integration-row-opnsense"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="integration-row-librenms"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="integration-row-ntopng"]').exists()).toBe(true);
     });
 
     it('shows read-only badge for borealis', () => {
@@ -97,7 +86,6 @@ describe('Integrations.vue', () => {
         const wrapper = mountPage();
         expect(wrapper.find('[data-testid="integration-health-opnsense"]').text()).toBe('Healthy');
         expect(wrapper.find('[data-testid="integration-health-librenms"]').text()).toBe('Unhealthy');
-        expect(wrapper.find('[data-testid="integration-health-ntopng"]').text()).toBe('Unknown');
     });
 
     it('renders capability tags with active/inactive state', () => {
@@ -105,7 +93,7 @@ describe('Integrations.vue', () => {
         const activeTag = wrapper.find('[data-testid="integration-capability-opnsense-captive-portal"]');
         expect(activeTag.exists()).toBe(true);
 
-        const inactiveTag = wrapper.find('[data-testid="integration-capability-opnsense-firewall"]');
+        const inactiveTag = wrapper.find('[data-testid="integration-capability-opnsense-rate-limiting"]');
         expect(inactiveTag.exists()).toBe(true);
     });
 

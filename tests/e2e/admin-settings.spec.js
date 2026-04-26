@@ -39,6 +39,5 @@ test.describe('Settings Pages (S8)', () => {
     test('integrations page has form fields for endpoints', async ({ page }) => {
         await page.goto('/admin/settings/integrations');
         await expect(page.getByTestId('form-field-opnsense_endpoint')).toBeVisible();
-        await expect(page.getByTestId('form-field-ntopng_endpoint')).toBeVisible();
     });
 });

@@ -17,7 +17,7 @@ class ConnectionTestLogFactory extends Factory
     public function definition(): array
     {
         return [
-            'integration' => fake()->randomElement(['opnsense', 'librenms', 'ntopng', 'pihole']),
+            'integration' => fake()->randomElement(['opnsense', 'librenms', 'pihole', 'prometheus', 'borealis']),
             'success' => fake()->boolean(80),
             'message' => fake()->sentence(),
             'response_time_ms' => fake()->numberBetween(50, 3000),
