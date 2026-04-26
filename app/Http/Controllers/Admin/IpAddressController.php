@@ -13,8 +13,9 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Models\User;
-use App\Services\Interfaces\MetricsProviderInterface;
-use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\Interfaces\PortBandwidthInterface;
+use App\Services\Interfaces\PortErrorsInterface;
 use App\Services\IpAddressActionService;
 use App\Services\ValueObjects\PortDetail;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +31,8 @@ class IpAddressController extends Controller
 {
     public function __construct(
         protected IpAddressActionService $ipAddressActionService,
-        protected MetricsProviderInterface $metrics,
+        protected PortBandwidthInterface $portBandwidth,
+        protected PortErrorsInterface $portErrors,
     ) {}
 
     public function index(Request $request): Response
@@ -102,7 +104,7 @@ class IpAddressController extends Controller
         $switchInfo = null;
         $portBandwidth = ['in' => [], 'out' => [], 'in_bytes' => 0, 'out_bytes' => 0];
         $portErrors = ['in_series' => [], 'out_series' => []];
-        $metricsAvailable = $this->metrics->isAvailable();
+        $metricsAvailable = $this->portBandwidth->isAvailable();
 
         $port = $this->ipAddressActionService->getPortInfo($ip);
         if ($port instanceof PortDetail) {
@@ -118,15 +120,15 @@ class IpAddressController extends Controller
                 $start = (float) now()->subHours(24)->timestamp;
 
                 try {
-                    $bw = $this->metrics->getPortBandwidth($switchConfig->hostname, $port->interface, $start, $end);
-                    $portBandwidth['in'] = $bw['in'];
-                    $portBandwidth['out'] = $bw['out'];
-                    $portBandwidth['in_bytes'] = $this->sumSeries($bw['in']);
-                    $portBandwidth['out_bytes'] = $this->sumSeries($bw['out']);
+                    $bw = $this->portBandwidth->getPortBandwidth($switchConfig->hostname, $port->interface, $start, $end);
+                    $portBandwidth['in'] = $bw->in;
+                    $portBandwidth['out'] = $bw->out;
+                    $portBandwidth['in_bytes'] = $this->sumSeries($bw->in);
+                    $portBandwidth['out_bytes'] = $this->sumSeries($bw->out);
 
-                    $err = $this->metrics->getPortErrors($switchConfig->hostname, $port->interface, $start, $end);
-                    $portErrors['in_series'] = $err['in'];
-                    $portErrors['out_series'] = $err['out'];
+                    $err = $this->portErrors->getPortErrors($switchConfig->hostname, $port->interface, $start, $end);
+                    $portErrors['in_series'] = $err->in;
+                    $portErrors['out_series'] = $err->out;
                 } catch (Throwable $e) {
                     Log::warning('Failed to fetch port metrics for IP show', [
                         'ip' => $ip->address,
@@ -278,7 +280,7 @@ class IpAddressController extends Controller
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', 'The IP address has been added');
     }
 
-    public function bandwidth(Request $request, IpAddress $ip, TrafficMonitorInterface $trafficMonitor): JsonResponse
+    public function bandwidth(Request $request, IpAddress $ip, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
         $validated = $request->validate([
             'range' => 'nullable|string|in:1h,24h,4d',
@@ -286,7 +288,7 @@ class IpAddressController extends Controller
 
         $range = $validated['range'] ?? '24h';
 
-        $bandwidth = $trafficMonitor->getUserBandwidth($ip->address, $range);
+        $bandwidth = $ipBandwidth->getIpBandwidth($ip->address, $range);
 
         return response()->json([
             'timestamps' => $bandwidth->timestamps,

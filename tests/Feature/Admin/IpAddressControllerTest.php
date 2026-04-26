@@ -6,11 +6,11 @@ use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
+use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\Interfaces\NetworkInventoryInterface;
-use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\ValueObjects\IpBandwidthResult;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
-use App\Services\ValueObjects\UserBandwidth;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -522,11 +522,11 @@ class IpAddressControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->with('10.0.0.1', '24h')
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 1024000,
                     sent: 512000,
                     timestamps: ['1700000000'],
@@ -547,11 +547,11 @@ class IpAddressControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->withArgs(fn (string $ipAddr, string $range): bool => $range === '4d')
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],
