@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Console;
 
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -86,5 +87,31 @@ class ExpireSessionsCommandTest extends TestCase
             ->assertSuccessful();
 
         $this->assertDatabaseMissing('ip_addresses', ['address' => '10.0.0.5']);
+    }
+
+    public function test_expired_session_creates_audit_log(): void
+    {
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.6';
+        $ip->last_seen_at = now();
+        $ip->internet_enabled = true;
+        $ip->expires_at = now()->subHour();
+        $ip->save();
+
+        $ipId = $ip->id;
+        $morphClass = $ip->getMorphClass();
+
+        $this->artisan('aperture:expire-sessions')
+            ->assertSuccessful();
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip.session_expired',
+            'subject_type' => $morphClass,
+            'subject_id' => $ipId,
+            'process' => 'system',
+        ]);
+        $log = AuditLog::where('action', 'ip.session_expired')->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('session_timeout', $log->metadata['reason']);
     }
 }

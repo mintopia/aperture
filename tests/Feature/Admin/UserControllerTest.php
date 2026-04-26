@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
@@ -392,5 +393,80 @@ class UserControllerTest extends TestCase
 
         $this->actingAs($user)->getJson('/admin/users/'.$user->id.'/bandwidth')
             ->assertForbidden();
+    }
+
+    public function test_block_toggle_creates_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $this->actingAs($admin)->post(route('admin.users.block', $user), ['block' => 1]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'user.block_toggled',
+            'subject_type' => $user->getMorphClass(),
+            'subject_id' => $user->id,
+            'process' => 'admin',
+        ]);
+        $log = AuditLog::where('action', 'user.block_toggled')->first();
+        $this->assertNotNull($log);
+        $this->assertTrue((bool) $log->metadata['blocked']);
+    }
+
+    public function test_user_internet_bulk_toggle_creates_audit_logs_per_ip(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $ip1 = IpAddress::factory()->create(['internet_enabled' => false]);
+        $ip2 = IpAddress::factory()->create(['internet_enabled' => false]);
+        $user->addIp($ip1->address);
+        $user->addIp($ip2->address);
+
+        $this->actingAs($admin)->post(route('admin.users.internet', $user), ['enable' => 1]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip.internet_toggled',
+            'subject_type' => $ip1->getMorphClass(),
+            'subject_id' => $ip1->id,
+            'process' => 'admin',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip.internet_toggled',
+            'subject_type' => $ip2->getMorphClass(),
+            'subject_id' => $ip2->id,
+            'process' => 'admin',
+        ]);
+        $this->assertCount(2, AuditLog::where('action', 'ip.internet_toggled')->get());
+    }
+
+    public function test_user_limit_bulk_toggle_creates_audit_logs_per_ip(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $ip1 = IpAddress::factory()->create(['rate_limit_enabled' => false]);
+        $ip2 = IpAddress::factory()->create(['rate_limit_enabled' => false]);
+        $user->addIp($ip1->address);
+        $user->addIp($ip2->address);
+
+        $this->actingAs($admin)->post(route('admin.users.limit', $user), ['limit' => 1]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip.rate_limit_toggled',
+            'subject_type' => $ip1->getMorphClass(),
+            'subject_id' => $ip1->id,
+            'process' => 'admin',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip.rate_limit_toggled',
+            'subject_type' => $ip2->getMorphClass(),
+            'subject_id' => $ip2->id,
+            'process' => 'admin',
+        ]);
+        $this->assertCount(2, AuditLog::where('action', 'ip.rate_limit_toggled')->get());
     }
 }

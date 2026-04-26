@@ -225,6 +225,13 @@ class IpAddressController extends Controller
         $ip->rate_limit_enabled = $request->boolean('limit');
         $ip->save();
 
+        AuditLog::record(
+            action: 'ip.rate_limit_toggled',
+            subject: $ip,
+            process: 'admin',
+            metadata: ['enabled' => $ip->rate_limit_enabled],
+        );
+
         $message = $ip->rate_limit_enabled ? 'The IP will be rate limited' : 'The rate limit will be removed for this IP';
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
@@ -237,6 +244,13 @@ class IpAddressController extends Controller
         $ip->internet_enabled = $request->boolean('allow');
         $ip->save();
 
+        AuditLog::record(
+            action: 'ip.internet_toggled',
+            subject: $ip,
+            process: 'admin',
+            metadata: ['enabled' => $ip->internet_enabled],
+        );
+
         $message = $ip->internet_enabled ? 'Internet will be enabled for this IP' : 'Internet will be disabled for this IP';
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
@@ -248,6 +262,13 @@ class IpAddressController extends Controller
 
         $ip->dns_filtering_enabled = $request->boolean('filter');
         $ip->save();
+
+        AuditLog::record(
+            action: 'ip.dns_filter_toggled',
+            subject: $ip,
+            process: 'admin',
+            metadata: ['enabled' => $ip->dns_filtering_enabled],
+        );
 
         $message = $ip->dns_filtering_enabled ? 'DNS filtering will be enabled for this IP' : 'DNS filtering will be disabled for this IP';
 

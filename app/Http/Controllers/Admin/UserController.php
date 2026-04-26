@@ -242,6 +242,14 @@ class UserController extends Controller
         $request->validate(['block' => 'required|boolean']);
         $user->internet_blocked = $request->boolean('block');
         $user->save();
+
+        AuditLog::record(
+            action: 'user.block_toggled',
+            subject: $user,
+            process: 'admin',
+            metadata: ['blocked' => $user->internet_blocked],
+        );
+
         if ($user->internet_blocked) {
             $message = 'The user will be blocked from accessing the Internet from new IPs';
         } else {
@@ -262,6 +270,13 @@ class UserController extends Controller
             ->each(function ($userIp) use ($enable): void {
                 $userIp->ip->internet_enabled = $enable;
                 $userIp->ip->save();
+
+                AuditLog::record(
+                    action: 'ip.internet_toggled',
+                    subject: $userIp->ip,
+                    process: 'admin',
+                    metadata: ['enabled' => $userIp->ip->internet_enabled],
+                );
             });
 
         $message = $enable
@@ -282,6 +297,13 @@ class UserController extends Controller
             ->each(function ($userIp) use ($limit): void {
                 $userIp->ip->rate_limit_enabled = $limit;
                 $userIp->ip->save();
+
+                AuditLog::record(
+                    action: 'ip.rate_limit_toggled',
+                    subject: $userIp->ip,
+                    process: 'admin',
+                    metadata: ['enabled' => $userIp->ip->rate_limit_enabled],
+                );
             });
 
         $message = $limit

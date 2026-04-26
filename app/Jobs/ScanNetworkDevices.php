@@ -261,6 +261,13 @@ class ScanNetworkDevices implements ShouldQueue
                 if ($macRecord !== null) {
                     $spm->mac_address_id = $macRecord->id;
                     $spm->save();
+
+                    AuditLog::record(
+                        action: 'port_mac.linked',
+                        subject: $spm,
+                        process: 'scan_network',
+                        metadata: ['mac' => $spm->mac_address],
+                    );
                 }
             });
     }

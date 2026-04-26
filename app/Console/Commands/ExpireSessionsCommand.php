@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
@@ -32,6 +33,14 @@ class ExpireSessionsCommand extends Command
 
                     $ip->internet_enabled = false;
                     $ip->saveQuietly();
+
+                    AuditLog::record(
+                        action: 'ip.session_expired',
+                        subject: $ip,
+                        process: 'system',
+                        metadata: ['reason' => 'session_timeout'],
+                    );
+
                     $ip->delete();
                     $count++;
                 }

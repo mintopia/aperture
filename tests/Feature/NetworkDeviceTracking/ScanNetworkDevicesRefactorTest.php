@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\NetworkDeviceTracking;
 
 use App\Jobs\ScanNetworkDevices;
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
@@ -247,5 +248,34 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         (new ScanNetworkDevices)->handle();
 
         $this->assertDatabaseHas('mac_addresses', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
+    }
+
+    public function test_link_switch_port_macs_creates_audit_log(): void
+    {
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:04']);
+        $switchPort = SwitchPort::factory()->create();
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $switchPort->id,
+            'mac_address' => 'AA:BB:CC:DD:EE:04',
+            'mac_address_id' => null,
+        ]);
+
+        $this->mockDhcp();
+        $this->mockInventory([], [new ForwardingEntry('aabb.ccdd.ee04', $switchPort->port_name, 100)]);
+
+        (new ScanNetworkDevices)->handle();
+
+        $spm = SwitchPortMac::where('mac_address', 'AA:BB:CC:DD:EE:04')->first();
+        $this->assertNotNull($spm);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'port_mac.linked',
+            'subject_type' => $spm->getMorphClass(),
+            'subject_id' => $spm->id,
+            'process' => 'scan_network',
+        ]);
+        $log = AuditLog::where('action', 'port_mac.linked')->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('AA:BB:CC:DD:EE:04', $log->metadata['mac']);
     }
 }

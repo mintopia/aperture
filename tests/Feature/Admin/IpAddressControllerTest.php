@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\SwitchConfig;
@@ -685,5 +686,62 @@ class IpAddressControllerTest extends TestCase
             ->missing('status')
             ->missing('shutdown')
         );
+    }
+
+    public function test_internet_toggle_creates_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create(['internet_enabled' => false]);
+
+        $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', ['allow' => 1]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip.internet_toggled',
+            'subject_type' => $ip->getMorphClass(),
+            'subject_id' => $ip->id,
+            'process' => 'admin',
+        ]);
+        $log = AuditLog::where('action', 'ip.internet_toggled')->first();
+        $this->assertNotNull($log);
+        $this->assertTrue($log->metadata['enabled']);
+    }
+
+    public function test_rate_limit_toggle_creates_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create(['rate_limit_enabled' => false]);
+
+        $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', ['limit' => 1]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip.rate_limit_toggled',
+            'subject_type' => $ip->getMorphClass(),
+            'subject_id' => $ip->id,
+            'process' => 'admin',
+        ]);
+        $log = AuditLog::where('action', 'ip.rate_limit_toggled')->first();
+        $this->assertNotNull($log);
+        $this->assertTrue($log->metadata['enabled']);
+    }
+
+    public function test_dns_filter_toggle_creates_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create(['dns_filtering_enabled' => false]);
+
+        $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', ['filter' => 1]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip.dns_filter_toggled',
+            'subject_type' => $ip->getMorphClass(),
+            'subject_id' => $ip->id,
+            'process' => 'admin',
+        ]);
+        $log = AuditLog::where('action', 'ip.dns_filter_toggled')->first();
+        $this->assertNotNull($log);
+        $this->assertTrue($log->metadata['enabled']);
     }
 }
