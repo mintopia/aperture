@@ -18,6 +18,7 @@ func TestLoad_Defaults(t *testing.T) {
 		"SSH_PROXY_COMMAND_TIMEOUT",
 		"SSH_PROXY_READ_TIMEOUT",
 		"SSH_PROXY_CONNECT_TIMEOUT",
+		"SSH_PROXY_KEEPALIVE_INTERVAL",
 		"SSH_PROXY_LOG_LEVEL",
 	}
 	for _, v := range envVars {
@@ -47,6 +48,9 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.ConnectTimeout != 10*time.Second {
 		t.Errorf("expected connect timeout 10s, got %v", cfg.ConnectTimeout)
 	}
+	if cfg.KeepaliveInterval != 30*time.Second {
+		t.Errorf("expected keepalive interval 30s, got %v", cfg.KeepaliveInterval)
+	}
 	if cfg.LogLevel != "info" {
 		t.Errorf("expected log level 'info', got %q", cfg.LogLevel)
 	}
@@ -60,6 +64,7 @@ func TestLoad_EnvOverride(t *testing.T) {
 	t.Setenv("SSH_PROXY_COMMAND_TIMEOUT", "60")
 	t.Setenv("SSH_PROXY_READ_TIMEOUT", "10")
 	t.Setenv("SSH_PROXY_CONNECT_TIMEOUT", "15")
+	t.Setenv("SSH_PROXY_KEEPALIVE_INTERVAL", "45")
 	t.Setenv("SSH_PROXY_LOG_LEVEL", "DEBUG")
 
 	cfg := Load()
@@ -84,6 +89,9 @@ func TestLoad_EnvOverride(t *testing.T) {
 	}
 	if cfg.ConnectTimeout != 15*time.Second {
 		t.Errorf("expected connect timeout 15s, got %v", cfg.ConnectTimeout)
+	}
+	if cfg.KeepaliveInterval != 45*time.Second {
+		t.Errorf("expected keepalive interval 45s, got %v", cfg.KeepaliveInterval)
 	}
 	if cfg.LogLevel != "debug" {
 		t.Errorf("expected log level 'debug', got %q", cfg.LogLevel)

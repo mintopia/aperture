@@ -1,7 +1,9 @@
 package pool
 
 import (
+	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -13,6 +15,30 @@ type mockCloser struct {
 
 func (m *mockCloser) Close() error {
 	m.closed = true
+	return nil
+}
+
+// mockKeepaliveConn implements both io.Closer and KeepaliveChecker for testing.
+type mockKeepaliveConn struct {
+	closed         bool
+	keepaliveCount atomic.Int32
+	failAfter      int32 // if > 0, fail after this many keepalives
+	shouldFail     bool  // if true, always fail
+}
+
+func (m *mockKeepaliveConn) Close() error {
+	m.closed = true
+	return nil
+}
+
+func (m *mockKeepaliveConn) SendKeepalive() error {
+	if m.shouldFail {
+		return errors.New("keepalive failed: connection dead")
+	}
+	count := m.keepaliveCount.Add(1)
+	if m.failAfter > 0 && count >= m.failAfter {
+		return errors.New("keepalive failed: connection dead")
+	}
 	return nil
 }
 
@@ -304,4 +330,189 @@ func TestPool_MultipleHostnames(t *testing.T) {
 	if len(infos) != len(hosts) {
 		t.Errorf("expected %d connections, got %d", len(hosts), len(infos))
 	}
+}
+
+// --- Keepalive tests ---
+
+func TestPool_KeepaliveStartsOnSetConnection(t *testing.T) {
+	// Use a short keepalive interval so we can verify it fires.
+	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+
+	conn := &mockKeepaliveConn{}
+	_, _, _ = p.Acquire("switch1.local")
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	// Wait enough time for at least 2 keepalives to fire.
+	time.Sleep(150 * time.Millisecond)
+
+	count := conn.keepaliveCount.Load()
+	if count < 2 {
+		t.Errorf("expected at least 2 keepalive requests, got %d", count)
+	}
+
+	// Clean up
+	p.Remove("switch1.local")
+}
+
+func TestPool_KeepaliveMarksDeadOnFailure(t *testing.T) {
+	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+
+	conn := &mockKeepaliveConn{failAfter: 2}
+	_, _, _ = p.Acquire("switch1.local")
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	// Wait for the keepalive to fail (after 2 successful ones).
+	time.Sleep(200 * time.Millisecond)
+
+	p.mu.Lock()
+	entry, exists := p.entries["switch1.local"]
+	dead := exists && entry.Dead
+	p.mu.Unlock()
+
+	if !dead {
+		t.Error("expected entry to be marked dead after keepalive failure")
+	}
+}
+
+func TestPool_AcquireEvictsDeadEntry(t *testing.T) {
+	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+
+	conn := &mockKeepaliveConn{shouldFail: true}
+	_, _, _ = p.Acquire("switch1.local")
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	// Wait for keepalive to mark connection dead.
+	time.Sleep(100 * time.Millisecond)
+
+	// Acquire should evict the dead entry and return isNew=true.
+	entry, isNew, err := p.Acquire("switch1.local")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isNew {
+		t.Error("expected isNew=true when acquiring dead entry")
+	}
+	if entry == nil {
+		t.Fatal("expected non-nil entry")
+	}
+	if !conn.closed {
+		t.Error("expected dead connection to be closed on eviction")
+	}
+
+	// Clean up
+	p.Remove("switch1.local")
+}
+
+func TestPool_SweepEvictsDeadEntries(t *testing.T) {
+	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+
+	conn := &mockKeepaliveConn{shouldFail: true}
+	_, _, _ = p.Acquire("dead-switch")
+	p.SetConnection("dead-switch", conn)
+	p.Release("dead-switch")
+
+	// Wait for keepalive to mark dead.
+	time.Sleep(100 * time.Millisecond)
+
+	removed := p.SweepIdle()
+	if removed != 1 {
+		t.Errorf("expected 1 removed (dead), got %d", removed)
+	}
+	if !conn.closed {
+		t.Error("expected dead connection to be closed by sweep")
+	}
+}
+
+func TestPool_KeepaliveStopsOnRemove(t *testing.T) {
+	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+
+	conn := &mockKeepaliveConn{}
+	_, _, _ = p.Acquire("switch1.local")
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	// Let a few keepalives fire.
+	time.Sleep(100 * time.Millisecond)
+	countBefore := conn.keepaliveCount.Load()
+
+	// Remove should stop the keepalive goroutine.
+	p.Remove("switch1.local")
+
+	// Wait and verify no more keepalives fire.
+	time.Sleep(100 * time.Millisecond)
+	countAfter := conn.keepaliveCount.Load()
+
+	// Allow at most 1 more (race between stop and tick).
+	if countAfter > countBefore+1 {
+		t.Errorf("expected keepalive to stop after Remove, but count went from %d to %d", countBefore, countAfter)
+	}
+}
+
+func TestPool_KeepaliveStopsOnDisconnectAll(t *testing.T) {
+	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+
+	conn := &mockKeepaliveConn{}
+	_, _, _ = p.Acquire("switch1.local")
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	// Let a few keepalives fire.
+	time.Sleep(100 * time.Millisecond)
+	countBefore := conn.keepaliveCount.Load()
+
+	p.DisconnectAll()
+
+	// Wait and verify no more keepalives fire.
+	time.Sleep(100 * time.Millisecond)
+	countAfter := conn.keepaliveCount.Load()
+
+	if countAfter > countBefore+1 {
+		t.Errorf("expected keepalive to stop after DisconnectAll, but count went from %d to %d", countBefore, countAfter)
+	}
+}
+
+func TestPool_NoKeepaliveWithZeroInterval(t *testing.T) {
+	// When keepalive interval is 0, no keepalive goroutine should start.
+	p := New(10 * time.Minute)
+
+	conn := &mockKeepaliveConn{}
+	_, _, _ = p.Acquire("switch1.local")
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	time.Sleep(100 * time.Millisecond)
+
+	count := conn.keepaliveCount.Load()
+	if count != 0 {
+		t.Errorf("expected 0 keepalive requests with zero interval, got %d", count)
+	}
+
+	p.Remove("switch1.local")
+}
+
+func TestPool_KeepaliveDoesNotRunOnNonKeepaliveConn(t *testing.T) {
+	// When the connection doesn't implement KeepaliveChecker, no keepalive should run.
+	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+
+	conn := &mockCloser{} // doesn't implement KeepaliveChecker
+	_, _, _ = p.Acquire("switch1.local")
+	p.SetConnection("switch1.local", conn)
+	p.Release("switch1.local")
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Entry should not be marked dead — no keepalive was running.
+	p.mu.Lock()
+	entry, exists := p.entries["switch1.local"]
+	dead := exists && entry.Dead
+	p.mu.Unlock()
+
+	if dead {
+		t.Error("expected entry NOT to be dead when conn doesn't implement KeepaliveChecker")
+	}
+
+	p.Remove("switch1.local")
 }

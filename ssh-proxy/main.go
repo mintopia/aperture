@@ -32,8 +32,8 @@ func main() {
 	logger := slog.New(logHandler)
 	slog.SetDefault(logger)
 
-	// Create connection pool.
-	connPool := pool.New(cfg.IdleTimeout)
+	// Create connection pool with keepalive support.
+	connPool := pool.NewWithKeepalive(cfg.IdleTimeout, cfg.KeepaliveInterval)
 
 	// Create SSH connector function.
 	connector := func(ctx context.Context, hostname string, port int, username, password string) (ssh.Session, error) {
@@ -70,6 +70,7 @@ func main() {
 			"command_timeout", cfg.CommandTimeout.String(),
 			"read_timeout", cfg.ReadTimeout.String(),
 			"connect_timeout", cfg.ConnectTimeout.String(),
+			"keepalive_interval", cfg.KeepaliveInterval.String(),
 		)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("server error", "error", err)

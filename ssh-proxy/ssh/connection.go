@@ -203,6 +203,17 @@ func (c *Connection) Read(timeout time.Duration) string {
 	}
 }
 
+// SendKeepalive sends an SSH keepalive request to verify the connection is alive.
+// This uses the "keepalive@openssh.com" global request which is widely supported.
+// Returns nil if the remote end responds, or an error if the connection is dead.
+func (c *Connection) SendKeepalive() error {
+	if c.closed {
+		return fmt.Errorf("connection closed")
+	}
+	_, _, err := c.client.SendRequest("keepalive@openssh.com", true, nil)
+	return err
+}
+
 // Close terminates the SSH session and underlying TCP connection.
 func (c *Connection) Close() error {
 	if c.closed {

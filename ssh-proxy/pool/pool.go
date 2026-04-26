@@ -1,6 +1,6 @@
 // Package pool provides a thread-safe SSH connection pool keyed by hostname.
 // Connections are acquired with exclusive locking per hostname and
-// automatically swept when idle.
+// automatically swept when idle or dead.
 package pool
 
 import (
@@ -13,13 +13,21 @@ import (
 // ErrHostLocked is returned when a hostname is already locked by another request.
 var ErrHostLocked = errors.New("host is currently locked by another request")
 
+// KeepaliveChecker is implemented by connections that support SSH keepalive.
+// The pool sends periodic keepalive requests to detect dead connections.
+type KeepaliveChecker interface {
+	SendKeepalive() error
+}
+
 // Entry represents a pooled connection for a single hostname.
 type Entry struct {
-	Hostname  string
-	Conn      io.Closer
-	CreatedAt time.Time
-	LastUsed  time.Time
-	Locked    bool
+	Hostname      string
+	Conn          io.Closer
+	CreatedAt     time.Time
+	LastUsed      time.Time
+	Locked        bool
+	Dead          bool
+	keepaliveStop chan struct{} // closed to stop the keepalive goroutine
 }
 
 // ConnectionInfo describes a pooled connection's current state for status reporting.
@@ -33,13 +41,15 @@ type ConnectionInfo struct {
 // Pool manages SSH connections keyed by hostname with mutual exclusion.
 // All methods are safe for concurrent use.
 type Pool struct {
-	mu          sync.Mutex
-	entries     map[string]*Entry
-	idleTimeout time.Duration
-	startedAt   time.Time
+	mu                sync.Mutex
+	entries           map[string]*Entry
+	idleTimeout       time.Duration
+	keepaliveInterval time.Duration
+	startedAt         time.Time
 }
 
 // New creates a connection pool that evicts idle connections after idleTimeout.
+// No keepalive is configured; use NewWithKeepalive for keepalive support.
 func New(idleTimeout time.Duration) *Pool {
 	return &Pool{
 		entries:     make(map[string]*Entry),
@@ -48,8 +58,22 @@ func New(idleTimeout time.Duration) *Pool {
 	}
 }
 
+// NewWithKeepalive creates a connection pool with periodic SSH keepalive.
+// Connections that implement KeepaliveChecker will receive keepalive requests
+// at the specified interval. If a keepalive fails, the connection is marked
+// dead and will be evicted on the next Acquire or SweepIdle call.
+func NewWithKeepalive(idleTimeout, keepaliveInterval time.Duration) *Pool {
+	return &Pool{
+		entries:           make(map[string]*Entry),
+		idleTimeout:       idleTimeout,
+		keepaliveInterval: keepaliveInterval,
+		startedAt:         time.Now(),
+	}
+}
+
 // Acquire obtains or creates a pool entry for the given hostname.
 // If the hostname is already locked, returns ErrHostLocked.
+// Dead entries are evicted and treated as new (requiring a fresh connection).
 // Returns the entry, whether it is new (needs a connection), and any error.
 // The returned entry is always locked — the caller must call Release when done.
 func (p *Pool) Acquire(hostname string) (*Entry, bool, error) {
@@ -58,12 +82,22 @@ func (p *Pool) Acquire(hostname string) (*Entry, bool, error) {
 
 	entry, exists := p.entries[hostname]
 	if exists {
-		if entry.Locked {
-			return nil, false, ErrHostLocked
+		// Evict dead entries — connection is no longer usable.
+		if entry.Dead {
+			p.stopKeepaliveLocked(entry)
+			if entry.Conn != nil {
+				entry.Conn.Close()
+			}
+			delete(p.entries, hostname)
+			// Fall through to create a new entry.
+		} else {
+			if entry.Locked {
+				return nil, false, ErrHostLocked
+			}
+			entry.Locked = true
+			entry.LastUsed = time.Now()
+			return entry, false, nil
 		}
-		entry.Locked = true
-		entry.LastUsed = time.Now()
-		return entry, false, nil
 	}
 
 	// Create a placeholder entry — the caller will establish the SSH connection.
@@ -88,21 +122,37 @@ func (p *Pool) Release(hostname string) {
 }
 
 // SetConnection stores the SSH connection on an existing entry.
+// If the pool has a keepalive interval configured and the connection
+// implements KeepaliveChecker, a keepalive goroutine is started.
 func (p *Pool) SetConnection(hostname string, conn io.Closer) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if entry, ok := p.entries[hostname]; ok {
-		entry.Conn = conn
+	entry, ok := p.entries[hostname]
+	if !ok {
+		return
+	}
+
+	entry.Conn = conn
+
+	// Start keepalive goroutine if configured and connection supports it.
+	if p.keepaliveInterval > 0 {
+		if checker, ok := conn.(KeepaliveChecker); ok {
+			stopCh := make(chan struct{})
+			entry.keepaliveStop = stopCh
+			go p.keepaliveLoop(hostname, checker, stopCh)
+		}
 	}
 }
 
-// Remove closes and removes the entry for the given hostname.
+// Remove closes and removes the entry for the given hostname,
+// stopping its keepalive goroutine if one is running.
 func (p *Pool) Remove(hostname string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if entry, ok := p.entries[hostname]; ok {
+		p.stopKeepaliveLocked(entry)
 		if entry.Conn != nil {
 			entry.Conn.Close()
 		}
@@ -111,7 +161,8 @@ func (p *Pool) Remove(hostname string) {
 }
 
 // SweepIdle removes and closes all unlocked connections that have been
-// idle longer than the pool's idle timeout. Returns the number removed.
+// idle longer than the pool's idle timeout, as well as any connections
+// marked dead by a failed keepalive. Returns the number removed.
 func (p *Pool) SweepIdle() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -122,7 +173,9 @@ func (p *Pool) SweepIdle() int {
 		if entry.Locked {
 			continue
 		}
-		if now.Sub(entry.LastUsed) >= p.idleTimeout {
+		shouldRemove := entry.Dead || now.Sub(entry.LastUsed) >= p.idleTimeout
+		if shouldRemove {
+			p.stopKeepaliveLocked(entry)
 			if entry.Conn != nil {
 				entry.Conn.Close()
 			}
@@ -152,15 +205,49 @@ func (p *Pool) Status() (int, []ConnectionInfo) {
 	return uptime, infos
 }
 
-// DisconnectAll closes and removes all pooled connections.
+// DisconnectAll closes and removes all pooled connections,
+// stopping all keepalive goroutines.
 func (p *Pool) DisconnectAll() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	for hostname, entry := range p.entries {
+		p.stopKeepaliveLocked(entry)
 		if entry.Conn != nil {
 			entry.Conn.Close()
 		}
 		delete(p.entries, hostname)
+	}
+}
+
+// stopKeepaliveLocked signals the keepalive goroutine for an entry to stop.
+// Must be called with p.mu held.
+func (p *Pool) stopKeepaliveLocked(entry *Entry) {
+	if entry.keepaliveStop != nil {
+		close(entry.keepaliveStop)
+		entry.keepaliveStop = nil
+	}
+}
+
+// keepaliveLoop sends periodic keepalive requests to detect dead connections.
+// It marks the entry as Dead if a keepalive fails.
+func (p *Pool) keepaliveLoop(hostname string, checker KeepaliveChecker, stopCh chan struct{}) {
+	ticker := time.NewTicker(p.keepaliveInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-stopCh:
+			return
+		case <-ticker.C:
+			if err := checker.SendKeepalive(); err != nil {
+				p.mu.Lock()
+				if entry, ok := p.entries[hostname]; ok {
+					entry.Dead = true
+				}
+				p.mu.Unlock()
+				return
+			}
+		}
 	}
 }
