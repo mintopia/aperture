@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IpAddressStoreRequest;
-use App\Jobs\IpAddressAction;
 use App\Models\AuditLog;
 use App\Models\DhcpLease;
 use App\Models\IpAddress;
@@ -16,7 +15,6 @@ use App\Models\User;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\Interfaces\PortBandwidthInterface;
 use App\Services\Interfaces\PortErrorsInterface;
-use App\Services\IpAddressActionService;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
@@ -32,7 +30,6 @@ use Throwable;
 class IpAddressController extends Controller
 {
     public function __construct(
-        protected IpAddressActionService $ipAddressActionService,
         protected PortBandwidthInterface $portBandwidth,
         protected PortErrorsInterface $portErrors,
         protected LibreNmsService $libreNms,
@@ -201,21 +198,6 @@ class IpAddressController extends Controller
                 ['label' => $ip->address],
             ],
         ]);
-    }
-
-    public function port(Request $request, IpAddress $ip): RedirectResponse
-    {
-        $request->validate(['shutdown' => 'required|boolean']);
-
-        if ($request->boolean('shutdown')) {
-            IpAddressAction::dispatch($ip, 'shutPort');
-            $message = 'The network port will be disabled';
-        } else {
-            IpAddressAction::dispatch($ip, 'unshutPort');
-            $message = 'The network port will be enabled';
-        }
-
-        return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
 
     public function limit(Request $request, IpAddress $ip): RedirectResponse

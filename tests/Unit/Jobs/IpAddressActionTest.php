@@ -59,39 +59,6 @@ class IpAddressActionTest extends TestCase
         $job->handle($service);
     }
 
-    public function test_handle_calls_shut_port_on_service(): void
-    {
-        $ip = IpAddress::factory()->create();
-        /** @var IpAddressActionService&MockInterface $service */
-        $service = Mockery::mock(IpAddressActionService::class);
-        $service->shouldReceive('shutPort')->once()->with($ip);
-
-        $job = new IpAddressAction($ip, 'shutPort');
-        $job->handle($service);
-    }
-
-    public function test_handle_calls_unshut_port_on_service(): void
-    {
-        $ip = IpAddress::factory()->create();
-        /** @var IpAddressActionService&MockInterface $service */
-        $service = Mockery::mock(IpAddressActionService::class);
-        $service->shouldReceive('unshutPort')->once()->with($ip);
-
-        $job = new IpAddressAction($ip, 'unshutPort');
-        $job->handle($service);
-    }
-
-    public function test_handle_calls_update_usage_on_service(): void
-    {
-        $ip = IpAddress::factory()->create();
-        /** @var IpAddressActionService&MockInterface $service */
-        $service = Mockery::mock(IpAddressActionService::class);
-        $service->shouldReceive('updateUsage')->once()->with($ip);
-
-        $job = new IpAddressAction($ip, 'updateUsage');
-        $job->handle($service);
-    }
-
     public function test_handle_rejects_invalid_method_and_logs_error(): void
     {
         $ip = IpAddress::factory()->create();

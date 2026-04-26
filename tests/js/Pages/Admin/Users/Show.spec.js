@@ -61,15 +61,11 @@ describe('Users Show', () => {
             ...(overrides.user ?? {}),
         },
         roles: [{ name: 'user' }],
-        downloaded: 1048576,
-        uploaded: 524288,
         networkDevices: [
             {
                 mac_address: 'aa:bb:cc:dd:ee:01',
                 ip_address: '10.0.0.1',
                 hostname: 'device-one',
-                received: 2048,
-                sent: 512,
                 switch_name: 'Switch-A',
                 switch_id: 1,
                 port_name: 'Gi0/1',
@@ -81,8 +77,6 @@ describe('Users Show', () => {
                 mac_address: 'aa:bb:cc:dd:ee:02',
                 ip_address: '10.0.0.2',
                 hostname: null,
-                received: 5368709120,
-                sent: 1073741824,
                 switch_name: null,
                 switch_id: null,
                 port_name: null,
@@ -124,47 +118,6 @@ describe('Users Show', () => {
         });
 
         expect(wrapper.find('[data-testid="user-devices-section"]').exists()).toBe(true);
-    });
-
-    it('renders device table with Down / Up traffic column header', () => {
-        const wrapper = mount(Show, {
-            props: makeProps(),
-            global: defaultGlobal,
-        });
-
-        const deviceSection = wrapper.find('[data-testid="user-devices-section"]');
-        const headers = deviceSection.findAll('th').map((th) => th.text());
-        expect(headers).toContain('Down / Up');
-    });
-
-    it('renders device-traffic cells with formatted received and sent bytes', () => {
-        const wrapper = mount(Show, {
-            props: makeProps(),
-            global: defaultGlobal,
-        });
-
-        const trafficCells = wrapper.findAll('[data-testid="device-traffic"]');
-        expect(trafficCells).toHaveLength(2);
-
-        // First device: 2048 received, 512 sent
-        const firstTraffic = trafficCells[0].text();
-        expect(firstTraffic).toContain('2.0 KB');
-        expect(firstTraffic).toContain('512.0 B');
-
-        // Second device: 5368709120 received, 1073741824 sent
-        const secondTraffic = trafficCells[1].text();
-        expect(secondTraffic).toContain('5.0 GB');
-        expect(secondTraffic).toContain('1.0 GB');
-    });
-
-    it('renders device-traffic cells with a slash separator', () => {
-        const wrapper = mount(Show, {
-            props: makeProps(),
-            global: defaultGlobal,
-        });
-
-        const trafficCells = wrapper.findAll('[data-testid="device-traffic"]');
-        expect(trafficCells[0].text()).toContain('/');
     });
 
     it('renders device MAC addresses as links', () => {
@@ -209,33 +162,6 @@ describe('Users Show', () => {
         const rateLimitCells = wrapper.findAll('[data-testid="device-rate-limit"]');
         expect(rateLimitCells[0].text()).toContain('None');
         expect(rateLimitCells[1].text()).toContain('Limited');
-    });
-
-    it('renders zero traffic when received and sent are 0', () => {
-        const wrapper = mount(Show, {
-            props: makeProps({
-                networkDevices: [
-                    {
-                        mac_address: 'aa:bb:cc:dd:ee:03',
-                        ip_address: '10.0.0.3',
-                        hostname: null,
-                        received: 0,
-                        sent: 0,
-                        switch_name: null,
-                        switch_id: null,
-                        port_name: null,
-                        internet_enabled: null,
-                        rate_limit_enabled: null,
-                        last_seen_at: null,
-                    },
-                ],
-            }),
-            global: defaultGlobal,
-        });
-
-        const trafficCells = wrapper.findAll('[data-testid="device-traffic"]');
-        expect(trafficCells).toHaveLength(1);
-        expect(trafficCells[0].text()).toContain('0 B');
     });
 
     it('renders bandwidth chart section', () => {

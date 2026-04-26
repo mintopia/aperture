@@ -99,7 +99,6 @@ Route::middleware(['auth'])->group(function () {
 
         // IP Addresses
         Route::resource('ips', IpAddressController::class)->only('index', 'show', 'store', 'create');
-        Route::post('ips/{ip}/port', [IpAddressController::class, 'port'])->name('ips.port');
         Route::post('ips/{ip}/internet', [IpAddressController::class, 'internet'])->name('ips.internet');
         Route::post('ips/{ip}/limit', [IpAddressController::class, 'limit'])->name('ips.limit');
         Route::post('ips/{ip}/dns-filter', [IpAddressController::class, 'dnsFilter'])->name('ips.dns-filter');

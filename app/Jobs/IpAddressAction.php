@@ -22,13 +22,10 @@ class IpAddressAction implements ShouldQueue
 
     /** @var array<int, string> */
     private const array ALLOWED_METHODS = [
-        'shutPort',
-        'unshutPort',
         'enableInternet',
         'disableInternet',
         'enableRateLimit',
         'disableRateLimit',
-        'updateUsage',
     ];
 
     /**

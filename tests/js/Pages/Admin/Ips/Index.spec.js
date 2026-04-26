@@ -14,18 +14,12 @@ vi.mock('@inertiajs/vue3', () => ({
     })),
 }));
 
-vi.mock('@/helpers.js', () => ({
-    formatBytes: vi.fn((bytes) => `${bytes} B`),
-}));
-
 const defaultIps = {
     data: [
         {
             id: 1,
             address: '10.0.0.1',
             mac: 'AA:BB:CC:DD:EE:FF',
-            received: 1073741824,
-            sent: 536870912,
             allowed: true,
             users: [{ user: { id: 42, nickname: 'testuser' } }],
         },
@@ -33,8 +27,6 @@ const defaultIps = {
             id: 2,
             address: '10.0.0.2',
             mac: null,
-            received: 0,
-            sent: 0,
             allowed: false,
             users: [],
         },
@@ -109,7 +101,7 @@ describe('Ips/Index', () => {
         const wrapper = mountComponent();
         const headers = wrapper.findAll('th');
         const headerTexts = headers.map((h) => h.text().trim());
-        expect(headerTexts).toEqual(['Address', 'MAC', 'User', 'Downloaded', 'Uploaded', 'Status']);
+        expect(headerTexts).toEqual(['Address', 'MAC', 'User', 'Status']);
     });
 
     it('renders correct number of rows', () => {
@@ -153,18 +145,6 @@ describe('Ips/Index', () => {
         const userCells = wrapper.findAll('[data-testid="ip-user"]');
         expect(userCells[1].find('a').exists()).toBe(false);
         expect(userCells[1].text()).toBe('—');
-    });
-
-    it('renders downloaded using formatBytes', () => {
-        const wrapper = mountComponent();
-        const downloadedCell = wrapper.find('[data-testid="ip-downloaded"]');
-        expect(downloadedCell.text()).toBe('1073741824 B');
-    });
-
-    it('renders uploaded using formatBytes', () => {
-        const wrapper = mountComponent();
-        const uploadedCell = wrapper.find('[data-testid="ip-uploaded"]');
-        expect(uploadedCell.text()).toBe('536870912 B');
     });
 
     it('renders "Allowed" status text for allowed IP', () => {

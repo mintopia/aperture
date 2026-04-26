@@ -16,6 +16,9 @@ class PrometheusService
         protected int $defaultStep = 60,
     ) {}
 
+    /**
+     * @return array<string, mixed>
+     */
     public function query(string $promql, ?float $time = null): array
     {
         $params = ['query' => $promql];
@@ -29,6 +32,9 @@ class PrometheusService
         return $response->json('data', []);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function queryRange(string $promql, float $start, float $end, ?int $step = null): array
     {
         $response = $this->http()->get($this->url('/api/v1/query_range'), [
@@ -42,6 +48,9 @@ class PrometheusService
         return $response->json('data', []);
     }
 
+    /**
+     * @return array{in: array<int, array{timestamp: float, value: float}>, out: array<int, array{timestamp: float, value: float}>}
+     */
     public function getPortBandwidth(string $device, string $ifName, float $start, float $end, ?int $step = null): array
     {
         $escapedDevice = $this->escapePromQLLabelValue($device);
@@ -68,6 +77,9 @@ class PrometheusService
         ];
     }
 
+    /**
+     * @return array{in: array<int, array{timestamp: float, value: float}>, out: array<int, array{timestamp: float, value: float}>}
+     */
     public function getPortErrors(string $device, string $ifName, float $start, float $end, ?int $step = null): array
     {
         $escapedDevice = $this->escapePromQLLabelValue($device);
@@ -82,6 +94,9 @@ class PrometheusService
         ];
     }
 
+    /**
+     * @return array{in: array<int, array{timestamp: float, value: float}>, out: array<int, array{timestamp: float, value: float}>}
+     */
     public function getDeviceBandwidth(string $device, float $start, float $end, ?int $step = null): array
     {
         $escapedDevice = $this->escapePromQLLabelValue($device);
