@@ -15,6 +15,7 @@ use App\Services\Auth\BorealisDeviceFlowService;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\NetworkRangeService;
 use App\Services\ThemeService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -36,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Model::preventLazyLoading(! $this->app->isProduction());
+
         User::observe(UserObserver::class);
         IpAddress::observe(IpAddressObserver::class);
         UserIpAddress::observe(UserIpAddressObserver::class);

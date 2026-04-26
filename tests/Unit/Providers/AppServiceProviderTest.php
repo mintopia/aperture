@@ -12,6 +12,7 @@ use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SshProxy\SshProxyClient;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +66,13 @@ class AppServiceProviderTest extends TestCase
         $client = $this->app->make(SshProxyClientInterface::class);
 
         $this->assertInstanceOf(SshProxyClient::class, $client);
+    }
+
+    public function test_prevent_lazy_loading_is_enabled_in_non_production(): void
+    {
+        $this->assertSame('testing', app()->environment());
+        $this->assertFalse(app()->isProduction());
+        $this->assertTrue(Model::preventsLazyLoading());
     }
 
     public function test_get_default_switch_config_returns_fallback_when_db_throws(): void
