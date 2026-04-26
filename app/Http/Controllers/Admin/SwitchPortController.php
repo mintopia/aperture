@@ -9,7 +9,8 @@ use App\Jobs\SwitchPortActionJob;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPortMac;
-use App\Services\Interfaces\MetricsProviderInterface;
+use App\Services\Interfaces\PortBandwidthInterface;
+use App\Services\Interfaces\PortErrorsInterface;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,8 @@ use Throwable;
 class SwitchPortController extends Controller
 {
     public function __construct(
-        protected MetricsProviderInterface $metrics,
+        protected PortBandwidthInterface $portBandwidth,
+        protected PortErrorsInterface $portErrors,
     ) {}
 
     public function show(SwitchConfig $switchConfig, string $portId): Response
@@ -55,32 +57,32 @@ class SwitchPortController extends Controller
         $bandwidth = ['in' => [], 'out' => [], 'in_bytes' => 0, 'out_bytes' => 0];
         $errors = ['input' => 0, 'output' => 0, 'crc' => 0, 'collisions' => 0, 'in_series' => [], 'out_series' => []];
 
-        if ($this->metrics->isAvailable()) {
+        if ($this->portBandwidth->isAvailable()) {
             $end = now()->timestamp;
             $start = now()->subHours(24)->timestamp;
 
             try {
-                $bw = $this->metrics->getPortBandwidth(
+                $bw = $this->portBandwidth->getPortBandwidth(
                     $switchConfig->hostname,
                     $portId,
                     (float) $start,
                     (float) $end,
                 );
-                $bandwidth['in'] = $bw['in'];
-                $bandwidth['out'] = $bw['out'];
-                $bandwidth['in_bytes'] = $this->sumSeries($bw['in']);
-                $bandwidth['out_bytes'] = $this->sumSeries($bw['out']);
+                $bandwidth['in'] = $bw->in;
+                $bandwidth['out'] = $bw->out;
+                $bandwidth['in_bytes'] = $this->sumSeries($bw->in);
+                $bandwidth['out_bytes'] = $this->sumSeries($bw->out);
 
-                $err = $this->metrics->getPortErrors(
+                $err = $this->portErrors->getPortErrors(
                     $switchConfig->hostname,
                     $portId,
                     (float) $start,
                     (float) $end,
                 );
-                $errors['in_series'] = $err['in'];
-                $errors['out_series'] = $err['out'];
-                $errors['input'] = $this->sumSeriesValues($err['in']);
-                $errors['output'] = $this->sumSeriesValues($err['out']);
+                $errors['in_series'] = $err->in;
+                $errors['out_series'] = $err->out;
+                $errors['input'] = $this->sumSeriesValues($err->in);
+                $errors['output'] = $this->sumSeriesValues($err->out);
             } catch (Throwable $throwable) {
                 Log::warning('Failed to fetch port metrics', [
                     'switch' => $switchConfig->id,
@@ -105,7 +107,7 @@ class SwitchPortController extends Controller
             'macs' => $this->resolveConnectedDevices($macs),
             'bandwidth' => $bandwidth,
             'errors' => $errors,
-            'metricsAvailable' => $this->metrics->isAvailable(),
+            'metricsAvailable' => $this->portBandwidth->isAvailable(),
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
                 ['label' => 'Switches', 'href' => route('admin.switches.index')],
