@@ -15,6 +15,32 @@ class IpAddressActionTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    public function test_has_correct_retry_configuration(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $job = new IpAddressAction($ip, 'enableInternet');
+
+        $this->assertSame(3, $job->tries);
+        $this->assertSame(30, $job->timeout);
+        $this->assertSame([2, 10, 30], $job->backoff());
+    }
+
+    public function test_failed_logs_error(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $job = new IpAddressAction($ip, 'enableInternet');
+
+        Log::shouldReceive('error')
+            ->once()
+            ->with('IpAddressAction failed', [
+                'ip' => $ip->address,
+                'method' => 'enableInternet',
+                'error' => 'Service unavailable',
+            ]);
+
+        $job->failed(new \RuntimeException('Service unavailable'));
+    }
+
     public function test_handle_calls_specified_method_on_service(): void
     {
         $ip = IpAddress::factory()->create();

@@ -14,6 +14,28 @@ class ReapplyAccessRulesJobTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    public function test_has_correct_retry_configuration(): void
+    {
+        $job = new ReapplyAccessRules;
+
+        $this->assertSame(3, $job->tries);
+        $this->assertSame(120, $job->timeout);
+        $this->assertSame([10, 30, 60], $job->backoff());
+    }
+
+    public function test_failed_logs_error(): void
+    {
+        $job = new ReapplyAccessRules;
+
+        Log::shouldReceive('error')
+            ->once()
+            ->with('ReapplyAccessRules failed', [
+                'error' => 'Database connection lost',
+            ]);
+
+        $job->failed(new \RuntimeException('Database connection lost'));
+    }
+
     public function test_handle_reapplies_access_for_allowed_ips(): void
     {
         Log::spy();

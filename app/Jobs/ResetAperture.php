@@ -10,12 +10,23 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ResetAperture implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 1;
+    public int $tries = 3;
+
+    public int $timeout = 120;
+
+    /**
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [10, 30, 60];
+    }
 
     public function handle(): void
     {
@@ -44,5 +55,12 @@ class ResetAperture implements ShouldQueue
         });
 
         Log::info('Aperture reset completed');
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        Log::error('ResetAperture failed', [
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

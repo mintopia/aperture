@@ -12,6 +12,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class IpAddressAction implements ShouldQueue
 {
@@ -19,6 +20,10 @@ class IpAddressAction implements ShouldQueue
     use InteractsWithQueue;
     use Queueable;
     use SerializesModels;
+
+    public int $tries = 3;
+
+    public int $timeout = 30;
 
     /** @var array<int, string> */
     private const array ALLOWED_METHODS = [
@@ -37,6 +42,14 @@ class IpAddressAction implements ShouldQueue
     }
 
     /**
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [2, 10, 30];
+    }
+
+    /**
      * Execute the job.
      */
     public function handle(IpAddressActionService $service): void
@@ -48,5 +61,14 @@ class IpAddressAction implements ShouldQueue
         }
 
         $service->{$this->method}($this->ip);
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        Log::error('IpAddressAction failed', [
+            'ip' => $this->ip->address,
+            'method' => $this->method,
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

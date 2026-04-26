@@ -9,11 +9,34 @@ use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class ResetApertureJobTest extends TestCase
 {
     use LazilyRefreshDatabase;
+
+    public function test_has_correct_retry_configuration(): void
+    {
+        $job = new ResetAperture;
+
+        $this->assertSame(3, $job->tries);
+        $this->assertSame(120, $job->timeout);
+        $this->assertSame([10, 30, 60], $job->backoff());
+    }
+
+    public function test_failed_logs_error(): void
+    {
+        $job = new ResetAperture;
+
+        Log::shouldReceive('error')
+            ->once()
+            ->with('ResetAperture failed', [
+                'error' => 'Database error',
+            ]);
+
+        $job->failed(new \RuntimeException('Database error'));
+    }
 
     public function test_deletes_all_ips(): void
     {

@@ -14,7 +14,17 @@ class ReapplyAccessRules implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 1;
+    public int $tries = 3;
+
+    public int $timeout = 120;
+
+    /**
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [10, 30, 60];
+    }
 
     public function handle(): void
     {
@@ -34,6 +44,13 @@ class ReapplyAccessRules implements ShouldQueue
 
         Log::info('Access rules reapplied', [
             'count' => $allowedIps->count(),
+        ]);
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        Log::error('ReapplyAccessRules failed', [
+            'error' => $exception->getMessage(),
         ]);
     }
 }
