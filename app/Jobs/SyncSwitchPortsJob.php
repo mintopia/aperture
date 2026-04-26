@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\SwitchConfig;
 use App\Models\SwitchSyncRun;
+use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\PortSyncService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -39,13 +40,24 @@ class SyncSwitchPortsJob implements ShouldBeUnique, ShouldQueue
         return [1, 5, 10];
     }
 
-    public function handle(PortSyncService $syncService): void
+    public function handle(PortSyncService $syncService, CircuitBreaker $circuitBreaker): void
     {
         if (! $this->switchConfig->enabled) {
             return;
         }
 
-        $syncService->syncSwitch($this->switchConfig);
+        if (! $circuitBreaker->isAvailable($this->switchConfig)) {
+            return;
+        }
+
+        try {
+            $syncService->syncSwitch($this->switchConfig);
+            $circuitBreaker->recordSuccess($this->switchConfig);
+        } catch (Throwable $throwable) {
+            $circuitBreaker->recordFailure($this->switchConfig);
+
+            throw $throwable;
+        }
     }
 
     public function failed(Throwable $exception): void

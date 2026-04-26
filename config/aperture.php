@@ -19,6 +19,9 @@ return [
         'request_timeout' => (int) env('APERTURE_SSH_PROXY_REQUEST_TIMEOUT', 60),
     ],
     'switch_sync_interval' => (int) env('APERTURE_SWITCH_SYNC_INTERVAL', 5),
+    'circuit_breaker' => [
+        'failure_threshold' => (int) env('APERTURE_CIRCUIT_BREAKER_THRESHOLD', 3),
+    ],
     'theme' => [
         'mode' => 'dark',
         'accent_hue' => 55,

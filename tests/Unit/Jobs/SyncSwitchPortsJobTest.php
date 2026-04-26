@@ -7,6 +7,7 @@ namespace Tests\Unit\Jobs;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use App\Models\SwitchSyncRun;
+use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\PortSyncService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -33,8 +34,13 @@ class SyncSwitchPortsJobTest extends TestCase
             ->once()
             ->andReturn($syncRun);
 
+        /** @var MockInterface&CircuitBreaker $circuitBreaker */
+        $circuitBreaker = Mockery::mock(CircuitBreaker::class);
+        $circuitBreaker->shouldReceive('isAvailable')->andReturn(true);
+        $circuitBreaker->shouldReceive('recordSuccess');
+
         $job = new SyncSwitchPortsJob($switchConfig);
-        $job->handle($service);
+        $job->handle($service, $circuitBreaker);
     }
 
     public function test_job_implements_should_be_unique(): void
@@ -133,7 +139,11 @@ class SyncSwitchPortsJobTest extends TestCase
         $service = Mockery::mock(PortSyncService::class);
         $service->shouldNotReceive('syncSwitch');
 
+        /** @var MockInterface&CircuitBreaker $circuitBreaker */
+        $circuitBreaker = Mockery::mock(CircuitBreaker::class);
+        $circuitBreaker->shouldNotReceive('isAvailable');
+
         $job = new SyncSwitchPortsJob($switchConfig);
-        $job->handle($service);
+        $job->handle($service, $circuitBreaker);
     }
 }
