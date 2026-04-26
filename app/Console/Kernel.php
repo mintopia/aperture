@@ -19,6 +19,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('aperture:expire-sessions')->everyFiveMinutes()->onOneServer();
+        $schedule->command('aperture:detect-bandwidth-anomalies')->everyFiveMinutes()->onOneServer();
         $schedule->command('aperture:sync-user-bandwidth')->everyFifteenMinutes()->onOneServer();
         $schedule->job(new ReapplyAccessRules)->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
         $schedule->job(new ScanNetworkDevices)->everyFiveMinutes()->withoutOverlapping()->onOneServer();

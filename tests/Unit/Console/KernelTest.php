@@ -187,4 +187,24 @@ class KernelTest extends TestCase
         Queue::assertPushed(SyncSwitchPortsJob::class, fn ($job) => $job->switchConfig->is($enabledSwitch1));
         Queue::assertPushed(SyncSwitchPortsJob::class, fn ($job) => $job->switchConfig->is($enabledSwitch2));
     }
+
+    public function test_detect_bandwidth_anomalies_command_is_scheduled(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:detect-bandwidth-anomalies'));
+
+        $this->assertNotNull($found, 'aperture:detect-bandwidth-anomalies should be scheduled');
+        $this->assertEquals('*/5 * * * *', $found->expression);
+    }
+
+    public function test_detect_bandwidth_anomalies_runs_on_one_server(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:detect-bandwidth-anomalies'));
+
+        $this->assertNotNull($found, 'aperture:detect-bandwidth-anomalies should be scheduled');
+        $this->assertTrue($found->onOneServer, 'aperture:detect-bandwidth-anomalies should use onOneServer');
+    }
 }

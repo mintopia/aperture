@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Events;
 
+use App\Events\BandwidthAnomalyDetected;
 use App\Events\DeviceDiscovered;
 use App\Events\DhcpPoolThresholdReached;
 use App\Events\DnsFilterChanged;
@@ -474,9 +475,75 @@ class BroadcastableEventsTest extends TestCase
         $this->assertSame('11:22:33:44:55:66', $payload['mac_address']);
     }
 
+    public function test_bandwidth_anomaly_detected_implements_should_broadcast(): void
+    {
+        $this->assertTrue(
+            is_subclass_of(BandwidthAnomalyDetected::class, ShouldBroadcast::class)
+        );
+    }
+
+    public function test_bandwidth_anomaly_detected_broadcasts_on_admin_channel(): void
+    {
+        $event = new BandwidthAnomalyDetected(
+            ipAddress: '10.0.0.50',
+            userName: 'Test User',
+            userId: 1,
+            shortTermAvg: 150000.0,
+            longTermAvg: 30000.0,
+            ratio: 5.0,
+            threshold: 3.0,
+        );
+        $channels = $event->broadcastOn();
+
+        $this->assertCount(1, $channels);
+        $this->assertInstanceOf(PrivateChannel::class, $channels[0]);
+        $this->assertSame('private-admin.events', $channels[0]->name);
+    }
+
+    public function test_bandwidth_anomaly_detected_broadcast_with_returns_expected_payload(): void
+    {
+        $event = new BandwidthAnomalyDetected(
+            ipAddress: '10.0.0.50',
+            userName: 'John Doe',
+            userId: 42,
+            shortTermAvg: 150000.0,
+            longTermAvg: 30000.0,
+            ratio: 5.0,
+            threshold: 3.0,
+        );
+        $payload = $event->broadcastWith();
+
+        $this->assertSame('10.0.0.50', $payload['ip_address']);
+        $this->assertSame('John Doe', $payload['user_name']);
+        $this->assertSame(42, $payload['user_id']);
+        $this->assertSame(150000.0, $payload['short_term_avg']);
+        $this->assertSame(30000.0, $payload['long_term_avg']);
+        $this->assertSame(5.0, $payload['ratio']);
+        $this->assertSame(3.0, $payload['threshold']);
+    }
+
+    public function test_bandwidth_anomaly_detected_broadcast_with_handles_null_user(): void
+    {
+        $event = new BandwidthAnomalyDetected(
+            ipAddress: '10.0.0.99',
+            userName: null,
+            userId: null,
+            shortTermAvg: 100000.0,
+            longTermAvg: 20000.0,
+            ratio: 5.0,
+            threshold: 3.0,
+        );
+        $payload = $event->broadcastWith();
+
+        $this->assertSame('10.0.0.99', $payload['ip_address']);
+        $this->assertNull($payload['user_name']);
+        $this->assertNull($payload['user_id']);
+    }
+
     public function test_all_events_use_correct_broadcast_event_name(): void
     {
         $events = [
+            BandwidthAnomalyDetected::class => 'BandwidthAnomalyDetected',
             DeviceDiscovered::class => 'DeviceDiscovered',
             DhcpPoolThresholdReached::class => 'DhcpPoolThresholdReached',
             DnsFilterChanged::class => 'DnsFilterChanged',

@@ -22,6 +22,9 @@ return [
     'circuit_breaker' => [
         'failure_threshold' => (int) env('APERTURE_CIRCUIT_BREAKER_THRESHOLD', 3),
     ],
+    'bandwidth_anomaly' => [
+        'threshold' => (float) env('APERTURE_BANDWIDTH_ANOMALY_THRESHOLD', 3.0),
+    ],
     'theme' => [
         'mode' => 'dark',
         'accent_hue' => 55,
