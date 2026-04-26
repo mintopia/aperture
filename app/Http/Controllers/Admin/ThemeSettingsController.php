@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateThemeSettingsRequest;
 use App\Models\Setting;
-use Closure;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -33,21 +31,9 @@ class ThemeSettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(UpdateThemeSettingsRequest $request): RedirectResponse
     {
-        $validator = Validator::make($request->all(), [
-            'theme_mode' => 'required|string|in:light,dark',
-            'accent_hue' => 'required|integer|min:0|max:360',
-            'accent_chroma' => 'nullable|numeric|min:0.01|max:0.37',
-            'accent_lightness' => 'nullable|integer|min:40|max:95',
-            'custom_css' => ['nullable', 'string', 'max:10000', function (string $attribute, mixed $value, Closure $fail): void {
-                if (is_string($value) && stripos($value, '<script') !== false) {
-                    $fail('The custom CSS must not contain script tags.');
-                }
-            }],
-        ]);
-
-        $validated = $validator->validate();
+        $validated = $request->validated();
 
         Setting::set('theme.mode', 'Theme Mode', $validated['theme_mode']);
         Setting::set('theme.accent_hue', 'Accent Hue', (string) $validated['accent_hue']);

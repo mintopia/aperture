@@ -5,6 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BandwidthRequest;
+use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Http\Requests\Admin\UserBlockRequest;
+use App\Http\Requests\Admin\UserIndexRequest;
+use App\Http\Requests\Admin\UserInternetRequest;
+use App\Http\Requests\Admin\UserLimitRequest;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\Role;
@@ -13,19 +19,14 @@ use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class UserController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(UserIndexRequest $request): Response
     {
-        $request->validate([
-            'perPage' => 'sometimes|integer|min:1|max:100',
-        ]);
-
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
             'nickname' => $request->input('nickname', ''),
@@ -201,20 +202,9 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $rules = [
-            'nickname' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'roles' => 'sometimes|array',
-            'roles.*' => 'string|exists:roles,code',
-        ];
-
-        if ($request->filled('password')) {
-            $rules['password'] = 'required|string|min:8|confirmed';
-        }
-
-        $validated = $request->validate($rules);
+        $validated = $request->validated();
 
         $user->nickname = $validated['nickname'];
         $user->email = $validated['email'];
@@ -237,9 +227,8 @@ class UserController extends Controller
         return redirect()->route('admin.users.show', $user)->with('success', 'User updated successfully.');
     }
 
-    public function block(Request $request, User $user): RedirectResponse
+    public function block(UserBlockRequest $request, User $user): RedirectResponse
     {
-        $request->validate(['block' => 'required|boolean']);
         $user->internet_blocked = $request->boolean('block');
         $user->save();
 
@@ -259,9 +248,8 @@ class UserController extends Controller
         return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', $message);
     }
 
-    public function internet(Request $request, User $user): RedirectResponse
+    public function internet(UserInternetRequest $request, User $user): RedirectResponse
     {
-        $request->validate(['enable' => 'required|boolean']);
         $enable = $request->boolean('enable');
 
         $user->ips()
@@ -286,9 +274,8 @@ class UserController extends Controller
         return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', $message);
     }
 
-    public function limit(Request $request, User $user): RedirectResponse
+    public function limit(UserLimitRequest $request, User $user): RedirectResponse
     {
-        $request->validate(['limit' => 'required|boolean']);
         $limit = $request->boolean('limit');
 
         $user->ips()
@@ -313,11 +300,9 @@ class UserController extends Controller
         return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', $message);
     }
 
-    public function bandwidth(Request $request, User $user, IpBandwidthInterface $ipBandwidth): JsonResponse
+    public function bandwidth(BandwidthRequest $request, User $user, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
-        $validated = $request->validate([
-            'range' => 'nullable|string|in:1h,24h,4d',
-        ]);
+        $validated = $request->validated();
 
         $range = $validated['range'] ?? '24h';
 

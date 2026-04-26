@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ToggleCapabilityRequest;
 use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
@@ -172,13 +173,9 @@ class IntegrationController extends Controller
         return $value;
     }
 
-    public function toggleCapability(Request $request): JsonResponse
+    public function toggleCapability(ToggleCapabilityRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'capability' => 'required|string',
-            'integration' => 'required|string',
-            'active' => 'required|boolean',
-        ]);
+        $validated = $request->validated();
 
         $integrations = $this->integrations();
         $capabilities = $integrations[$validated['integration']]['capabilities'] ?? [];

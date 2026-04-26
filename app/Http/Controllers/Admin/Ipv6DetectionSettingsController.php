@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateIpv6DetectionSettingsRequest;
 use App\Models\IntegrationConfig;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,12 +30,9 @@ class Ipv6DetectionSettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(UpdateIpv6DetectionSettingsRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'detection_endpoint' => ['nullable', 'string', 'max:500', 'regex:/^https:\/\/.+/'],
-            'jwks_url' => 'nullable|url:https|max:500',
-        ]);
+        $validated = $request->validated();
 
         IntegrationConfig::setValue('ipv6', 'detection_endpoint', $validated['detection_endpoint'] ?? '');
         IntegrationConfig::setValue('ipv6', 'jwks_url', $validated['jwks_url'] ?? '');

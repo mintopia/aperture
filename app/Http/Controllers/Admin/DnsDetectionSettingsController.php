@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateDnsDetectionSettingsRequest;
 use App\Models\Setting;
-use Closure;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,26 +28,9 @@ class DnsDetectionSettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(UpdateDnsDetectionSettingsRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'dns_check_url' => [
-                'nullable',
-                'string',
-                'max:500',
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    if ($value !== null && $value !== '' && ! str_contains($value, '{uuid}')) {
-                        $fail('The URL must contain the {uuid} placeholder.');
-                    }
-                },
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    if ($value !== null && $value !== '' && ! filter_var(str_replace('{uuid}', 'test', $value), FILTER_VALIDATE_URL)) {
-                        $fail('The URL must be a valid URL.');
-                    }
-                },
-            ],
-            'dns_warning_message' => 'nullable|string|max:500',
-        ]);
+        $validated = $request->validated();
 
         Setting::set('dns.check_url', 'DNS Check URL', $validated['dns_check_url']);
         Setting::set('dns.warning_message', 'DNS Warning Message', $validated['dns_warning_message']);
