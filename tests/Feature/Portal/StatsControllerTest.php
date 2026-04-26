@@ -8,8 +8,8 @@ use App\Models\IpAddress;
 use App\Models\IpAddressMacAddress;
 use App\Models\MacAddress;
 use App\Models\User;
-use App\Services\Interfaces\TrafficMonitorInterface;
-use App\Services\ValueObjects\UserBandwidth;
+use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
@@ -24,10 +24,10 @@ class StatsControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create();
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 3072000,
                     sent: 1536000,
                     timestamps: ['1700000000', '1700000300'],
@@ -54,11 +54,11 @@ class StatsControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create();
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->with('44.30.69.131', '24h')
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],
@@ -94,8 +94,8 @@ class StatsControllerTest extends TestCase
             'last_seen_at' => now()->subMinute(),
         ]);
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->withArgs(function (string|array $ips, string $range): bool {
                     if (! is_array($ips)) {
                         return false;
@@ -105,7 +105,7 @@ class StatsControllerTest extends TestCase
                     return $ips === ['10.0.0.10', '10.0.0.11'] && $range === '24h';
                 })
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 5000000,
                     sent: 2000000,
                     timestamps: ['1700000000'],
@@ -136,11 +136,11 @@ class StatsControllerTest extends TestCase
             'last_seen_at' => now(),
         ]);
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->with('10.0.0.10', '24h')
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],
@@ -161,11 +161,11 @@ class StatsControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create();
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->withArgs(fn (string|array $ip, string $range): bool => $range === '1h')
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],
@@ -184,10 +184,10 @@ class StatsControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create();
 
-        $this->mock(TrafficMonitorInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getUserBandwidth')
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
                 ->once()
-                ->andReturn(new UserBandwidth(
+                ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
                     timestamps: [],

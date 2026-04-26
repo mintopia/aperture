@@ -6,20 +6,20 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\IpAddress;
-use App\Services\Interfaces\TrafficMonitorInterface;
+use App\Services\Interfaces\IpBandwidthInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StatsController extends Controller
 {
-    public function bandwidth(Request $request, TrafficMonitorInterface $trafficMonitor): JsonResponse
+    public function bandwidth(Request $request, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
         $clientIp = $request->ip() ?? '127.0.0.1';
         $range = $request->query('range', '24h');
 
         $ips = $this->resolveIpsForMac($clientIp);
 
-        $bandwidth = $trafficMonitor->getUserBandwidth($ips, is_string($range) ? $range : '24h');
+        $bandwidth = $ipBandwidth->getIpBandwidth($ips, is_string($range) ? $range : '24h');
 
         return response()->json([
             'timestamps' => $bandwidth->timestamps,
