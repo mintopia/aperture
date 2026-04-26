@@ -21,11 +21,13 @@ services:
     volumes:
       - ./:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   db:
-    image: mariadb:10.5-focal
+    image: mariadb:11.4-noble
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
@@ -34,6 +36,12 @@ services:
       MYSQL_PASSWORD: "${DB_PASSWORD}"
     volumes:
       - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   horizon:
     build:
@@ -130,8 +138,14 @@ services:
       - ./:/app
 
   redis:
-    image: redis:6.0
+    image: redis:7.4-alpine
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   composer:
     profiles: [ "composer" ]
