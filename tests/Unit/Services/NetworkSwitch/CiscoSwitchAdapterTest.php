@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\NetworkSwitch;
 
+use App\Exceptions\InvalidPortIdentifierException;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class CiscoSwitchAdapterTest extends TestCase
@@ -227,5 +229,161 @@ class CiscoSwitchAdapterTest extends TestCase
         $this->assertEquals('aabb.ccdd.eeff', $result[0]->mac);
         $this->assertEquals('Gi1/0/1', $result[0]->port);
         $this->assertEquals(100, $result[0]->vlan);
+    }
+
+    // -------------------------------------------------------------------------
+    // Port identifier validation — command injection prevention (#9)
+    // -------------------------------------------------------------------------
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function validCiscoPortIdentifiers(): array
+    {
+        return [
+            'gigabit short' => ['Gi1/0/1'],
+            'gigabit full' => ['GigabitEthernet1/0/1'],
+            'fast ethernet short' => ['Fa0/1'],
+            'fast ethernet full' => ['FastEthernet0/1'],
+            'ten gigabit short' => ['Te1/1/1'],
+            'ten gigabit full' => ['TenGigabitEthernet1/1/1'],
+            'port-channel' => ['Po1'],
+            'port-channel full' => ['Port-channel1'],
+            'vlan' => ['Vl100'],
+            'vlan full' => ['Vlan100'],
+            'loopback' => ['Lo0'],
+            'loopback full' => ['Loopback0'],
+            'two-digit slot' => ['Gi1/0/24'],
+            'two-digit stack' => ['Gi12/0/1'],
+            'twenty-five-gig short' => ['Twe1/0/1'],
+            'twenty-five-gig full' => ['TwentyFiveGigE1/0/1'],
+            'forty-gig short' => ['Fo1/1/1'],
+            'forty-gig full' => ['FortyGigabitEthernet1/1/1'],
+            'hundred-gig short' => ['Hu1/0/1'],
+            'hundred-gig full' => ['HundredGigE1/0/1'],
+            'management' => ['Mgmt0'],
+            'nve interface' => ['nve1'],
+            'tunnel interface' => ['Tu0'],
+            'tunnel full' => ['Tunnel0'],
+            'ethernet' => ['Eth1/1'],
+            'ethernet full' => ['Ethernet1/1'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function maliciousPortIdentifiers(): array
+    {
+        return [
+            'semicolon injection' => ['Gi1/0/1; show running-config'],
+            'newline injection' => ["Gi1/0/1\nshow running-config"],
+            'carriage return injection' => ["Gi1/0/1\rshow running-config"],
+            'pipe injection' => ['Gi1/0/1 | include password'],
+            'backtick injection' => ['Gi1/0/1`show run`'],
+            'ampersand injection' => ['Gi1/0/1 && show run'],
+            'dollar injection' => ['Gi1/0/1$(show run)'],
+            'exclamation injection' => ['Gi1/0/1!'],
+            'bare command' => ['show running-config'],
+            'empty string' => [''],
+            'space only' => [' '],
+            'special chars' => ['../../../etc/passwd'],
+            'config terminal injection' => ['Gi1/0/1; configure terminal'],
+            'question mark' => ['Gi1/0/1?'],
+        ];
+    }
+
+    #[DataProvider('validCiscoPortIdentifiers')]
+    public function test_shutdown_port_accepts_valid_port_identifiers(string $portId): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('executeMultiple')->once();
+
+        $adapter = $this->createAdapter($transport);
+        $result = $adapter->shutdownPort($portId);
+
+        $this->assertTrue($result);
+    }
+
+    #[DataProvider('maliciousPortIdentifiers')]
+    public function test_shutdown_port_rejects_malicious_port_identifiers(string $portId): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldNotReceive('executeMultiple');
+        $transport->shouldNotReceive('execute');
+
+        $adapter = $this->createAdapter($transport);
+
+        $this->expectException(InvalidPortIdentifierException::class);
+        $adapter->shutdownPort($portId);
+    }
+
+    #[DataProvider('maliciousPortIdentifiers')]
+    public function test_enable_port_rejects_malicious_port_identifiers(string $portId): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldNotReceive('executeMultiple');
+        $transport->shouldNotReceive('execute');
+
+        $adapter = $this->createAdapter($transport);
+
+        $this->expectException(InvalidPortIdentifierException::class);
+        $adapter->enablePort($portId);
+    }
+
+    #[DataProvider('maliciousPortIdentifiers')]
+    public function test_get_port_status_rejects_malicious_port_identifiers(string $portId): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show interface')
+            ->andReturn('');
+
+        $adapter = $this->createAdapter($transport);
+
+        $this->expectException(InvalidPortIdentifierException::class);
+        $adapter->getPortStatus($portId);
+    }
+
+    #[DataProvider('maliciousPortIdentifiers')]
+    public function test_get_port_statistics_rejects_malicious_port_identifiers(string $portId): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show interface')
+            ->andReturn('');
+
+        $adapter = $this->createAdapter($transport);
+
+        $this->expectException(InvalidPortIdentifierException::class);
+        $adapter->getPortStatistics($portId);
+    }
+
+    #[DataProvider('maliciousPortIdentifiers')]
+    public function test_get_port_running_config_rejects_malicious_port_identifiers(string $portId): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show running-config | section ^interface')
+            ->andReturn('');
+
+        $adapter = $this->createAdapter($transport);
+
+        $this->expectException(InvalidPortIdentifierException::class);
+        $adapter->getPortRunningConfig($portId);
+    }
+
+    #[DataProvider('maliciousPortIdentifiers')]
+    public function test_get_port_interface_output_rejects_malicious_port_identifiers(string $portId): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $transport->shouldReceive('execute')
+            ->with('show interface')
+            ->andReturn('');
+
+        $adapter = $this->createAdapter($transport);
+
+        $this->expectException(InvalidPortIdentifierException::class);
+        $adapter->getPortInterfaceOutput($portId);
     }
 }

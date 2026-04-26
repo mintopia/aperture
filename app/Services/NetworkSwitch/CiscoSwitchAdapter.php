@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\NetworkSwitch;
 
+use App\Exceptions\InvalidPortIdentifierException;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SupportsInterfaceOutputCapture;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
@@ -14,6 +15,16 @@ use Illuminate\Support\Collection;
 
 class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOutputCapture
 {
+    /**
+     * Regex matching valid Cisco IOS interface identifiers.
+     *
+     * Covers: GigabitEthernet, FastEthernet, TenGigabitEthernet,
+     * TwentyFiveGigE, FortyGigabitEthernet, HundredGigE,
+     * Port-channel, Vlan, Loopback, Tunnel, Mgmt, nve, Ethernet
+     * and their abbreviated forms (Gi, Fa, Te, Twe, Fo, Hu, Po, Vl, Lo, Tu, Eth).
+     */
+    private const string PORT_ID_PATTERN = '/^[A-Za-z][A-Za-z0-9-]*\d+(\\/\d+){0,3}$/';
+
     /** @var array<string, string>|null */
     private ?array $bulkInterfaceCache = null;
 
@@ -25,8 +36,21 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
         protected IosOutputParser $parser,
     ) {}
 
+    /**
+     * Validate a port identifier against the Cisco IOS interface naming pattern.
+     *
+     * @throws InvalidPortIdentifierException
+     */
+    private function validatePortIdentifier(string $portId): void
+    {
+        if (preg_match(self::PORT_ID_PATTERN, $portId) !== 1) {
+            throw InvalidPortIdentifierException::forPortId($portId);
+        }
+    }
+
     public function getPortStatus(string $portId): PortStatus
     {
+        $this->validatePortIdentifier($portId);
         $output = $this->getBulkInterfaceOutputs()[$portId] ?? $this->getPortInterfaceOutput($portId);
         $parsed = $this->parser->parseShowInterface($output);
 
@@ -43,6 +67,8 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function getPortInterfaceOutput(string $portId): string
     {
+        $this->validatePortIdentifier($portId);
+
         return $this->getBulkInterfaceOutputs()[$portId]
             ?? $this->transport->execute('show interface '.$portId);
     }
@@ -83,6 +109,7 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function shutdownPort(string $portId): bool
     {
+        $this->validatePortIdentifier($portId);
         $this->transport->executeMultiple([
             'configure terminal',
             'interface '.$portId,
@@ -96,6 +123,7 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function enablePort(string $portId): bool
     {
+        $this->validatePortIdentifier($portId);
         $this->transport->executeMultiple([
             'configure terminal',
             'interface '.$portId,
@@ -109,6 +137,7 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function getPortStatistics(string $portId): PortStatistics
     {
+        $this->validatePortIdentifier($portId);
         $output = $this->getBulkInterfaceOutputs()[$portId]
             ?? $this->transport->execute('show interface '.$portId);
 
@@ -122,6 +151,8 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsInterfaceOut
 
     public function getPortRunningConfig(string $portId): string
     {
+        $this->validatePortIdentifier($portId);
+
         return $this->getBulkRunningConfigs()[$portId]
             ?? $this->transport->execute('show run interface '.$portId);
     }

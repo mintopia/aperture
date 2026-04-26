@@ -144,10 +144,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/switches/{switchConfig}/config', [SwitchManagementController::class, 'config'])->name('switches.config');
 
         // Switch Port Management
-        Route::get('/switches/{switchConfig}/ports/{portId}', [SwitchPortController::class, 'show'])->name('switches.ports.show')->where('portId', '.+');
-        Route::post('/switches/{switchConfig}/ports/{portId}/refresh', [SwitchPortController::class, 'refresh'])->name('switches.ports.refresh')->where('portId', '.+');
-        Route::post('/switches/{switchConfig}/ports/{portId}/shutdown', [SwitchPortController::class, 'shutdown'])->name('switches.ports.shutdown')->where('portId', '.+');
-        Route::post('/switches/{switchConfig}/ports/{portId}/enable', [SwitchPortController::class, 'enable'])->name('switches.ports.enable')->where('portId', '.+');
+        // Port ID regex: alphanumeric interface names with slashes and hyphens (e.g. Gi1/0/1, Port-channel1)
+        Route::get('/switches/{switchConfig}/ports/{portId}', [SwitchPortController::class, 'show'])->name('switches.ports.show')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
+        Route::post('/switches/{switchConfig}/ports/{portId}/refresh', [SwitchPortController::class, 'refresh'])->name('switches.ports.refresh')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
+        Route::post('/switches/{switchConfig}/ports/{portId}/shutdown', [SwitchPortController::class, 'shutdown'])->name('switches.ports.shutdown')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
+        Route::post('/switches/{switchConfig}/ports/{portId}/enable', [SwitchPortController::class, 'enable'])->name('switches.ports.enable')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
         // Settings
         Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
         Route::get('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'show'])->name('settings.ipv6-detection');

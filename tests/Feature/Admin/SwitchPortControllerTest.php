@@ -692,6 +692,137 @@ class SwitchPortControllerTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // Route-level command injection prevention (#9)
+    // -------------------------------------------------------------------------
+
+    public function test_route_rejects_port_id_with_semicolon_injection(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run');
+
+        $response->assertNotFound();
+    }
+
+    public function test_route_rejects_port_id_with_pipe_injection(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1+%7C+include+password');
+
+        $response->assertNotFound();
+    }
+
+    public function test_route_rejects_port_id_with_newline_injection(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%0Ashow+run');
+
+        $response->assertNotFound();
+    }
+
+    public function test_route_rejects_port_id_with_backtick_injection(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%60show+run%60');
+
+        $response->assertNotFound();
+    }
+
+    public function test_shutdown_route_rejects_command_injection(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run/shutdown');
+
+        $response->assertNotFound();
+    }
+
+    public function test_enable_route_rejects_command_injection(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run/enable');
+
+        $response->assertNotFound();
+    }
+
+    public function test_refresh_route_rejects_command_injection(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run/refresh');
+
+        $response->assertNotFound();
+    }
+
+    public function test_route_accepts_valid_cisco_port_formats(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        // Gi0/1 - should match route (404 is from missing port record, not route)
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Gi0/1',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+        $response->assertOk();
+    }
+
+    public function test_route_accepts_port_channel_format(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Po1',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Po1');
+        $response->assertOk();
+    }
+
+    public function test_route_accepts_vlan_format(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Vl100',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Vl100');
+        $response->assertOk();
+    }
+
+    public function test_route_accepts_ten_gigabit_format(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        SwitchPort::factory()->create([
+            'switch_config_id' => $switch->id,
+            'port_name' => 'Te1/1/1',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Te1%2F1%2F1');
+        $response->assertOk();
+    }
+
+    // -------------------------------------------------------------------------
     // Route names
     // -------------------------------------------------------------------------
 
