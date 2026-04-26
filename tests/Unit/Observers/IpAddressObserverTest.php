@@ -84,7 +84,7 @@ class IpAddressObserverTest extends TestCase
 
         $ip = IpAddress::factory()->create();
 
-        $ip->received = 12345;
+        $ip->comment = 'updated comment';
         $ip->save();
 
         Queue::assertNotPushed(SyncInternetAccessJob::class);

@@ -60,9 +60,6 @@ class UserController extends Controller
         $userIps = $user->ips()->with('ip')->get();
         $roles = $user->roles()->get();
 
-        $downloaded = $userIps->sum('ip.received');
-        $uploaded = $userIps->sum('ip.sent');
-
         $ipModels = $userIps->map(fn ($userIp) => $userIp->ip)->filter();
 
         $networkDevices = $this->buildNetworkDevices($user, $ipModels);
@@ -86,8 +83,6 @@ class UserController extends Controller
         return Inertia::render('Admin/Users/Show', [
             'user' => $user,
             'roles' => $roles,
-            'downloaded' => $downloaded,
-            'uploaded' => $uploaded,
             'networkDevices' => $networkDevices,
             'allInternetEnabled' => $allInternetEnabled,
             'allRateLimited' => $allRateLimited,
@@ -142,8 +137,6 @@ class UserController extends Controller
                     'ip_address' => null,
                     'ip_id' => null,
                     'hostname' => $hostname,
-                    'received' => 0,
-                    'sent' => 0,
                     'internet_enabled' => null,
                     'rate_limit_enabled' => null,
                     'last_seen_at' => null,
@@ -157,8 +150,6 @@ class UserController extends Controller
                         'ip_address' => $ip->address,
                         'ip_id' => $ip->id,
                         'hostname' => $hostname,
-                        'received' => $ip->received,
-                        'sent' => $ip->sent,
                         'internet_enabled' => $ip->internet_enabled,
                         'rate_limit_enabled' => $ip->rate_limit_enabled,
                         'last_seen_at' => $ip->pivot->last_seen_at->toIso8601String(),
@@ -178,8 +169,6 @@ class UserController extends Controller
                     'switch_name' => null,
                     'switch_id' => null,
                     'port_name' => null,
-                    'received' => $ip->received,
-                    'sent' => $ip->sent,
                     'internet_enabled' => $ip->internet_enabled,
                     'rate_limit_enabled' => $ip->rate_limit_enabled,
                     'last_seen_at' => null,

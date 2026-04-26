@@ -15,8 +15,6 @@ defineOptions({ layout: AdminLayout });
 const props = defineProps({
     user: { type: Object, default: () => ({}) },
     roles: { type: Array, default: () => [] },
-    downloaded: { type: Number, default: 0 },
-    uploaded: { type: Number, default: 0 },
     networkDevices: { type: Array, default: () => [] },
     allInternetEnabled: { type: Boolean, default: false },
     allRateLimited: { type: Boolean, default: false },
@@ -92,7 +90,6 @@ const deviceColumns = [
     { key: 'mac_address', label: 'MAC' },
     { key: 'ip_address', label: 'IP' },
     { key: 'hostname', label: 'Hostname' },
-    { key: 'traffic', label: 'Down / Up' },
     { key: 'switch_port', label: 'Switch / Port' },
     { key: 'internet', label: 'Internet' },
     { key: 'rate_limit', label: 'Rate Limit' },
@@ -282,8 +279,6 @@ onUnmounted(() => {
             :items="[
                 { label: 'Email', value: user.email },
                 { label: 'Roles', value: roles.map((r) => r.name).join(', ') || 'None' },
-                { label: 'Downloaded', value: formatBytes(downloaded), mono: true },
-                { label: 'Uploaded', value: formatBytes(uploaded), mono: true },
             ]"
         />
 
@@ -371,17 +366,6 @@ onUnmounted(() => {
                     </td>
                     <td data-testid="device-hostname" class="text-[13px] text-[var(--color-text-secondary)]">
                         {{ row.hostname ?? '—' }}
-                    </td>
-                    <td data-testid="device-traffic">
-                        <div class="flex items-baseline gap-2">
-                            <span class="font-mono text-[13px] text-[var(--color-success)]">{{
-                                formatBytes(row.received ?? 0)
-                            }}</span>
-                            <span class="text-[10px] text-[var(--color-text-muted)]">/</span>
-                            <span class="font-mono text-[13px] text-[var(--color-info)]">{{
-                                formatBytes(row.sent ?? 0)
-                            }}</span>
-                        </div>
                     </td>
                     <td data-testid="device-switch-port" class="text-[13px]">
                         <template v-if="row.switch_name && row.port_name">

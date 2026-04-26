@@ -286,6 +286,8 @@ class IntegrationServiceProviderTest extends TestCase
 
     public function test_ip_mac_returns_null_when_no_capability(): void
     {
+        CapabilityAssignment::where('capability', 'ip-mac')->delete();
+
         $service = $this->app->make(IpMacResolverInterface::class);
 
         $this->assertInstanceOf(NullIpMacResolver::class, $service);
@@ -310,6 +312,8 @@ class IntegrationServiceProviderTest extends TestCase
 
     public function test_port_mac_returns_null_when_no_capability(): void
     {
+        CapabilityAssignment::where('capability', 'port-mac')->delete();
+
         $service = $this->app->make(PortMacInterface::class);
 
         $this->assertInstanceOf(NullPortMac::class, $service);

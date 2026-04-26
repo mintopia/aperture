@@ -362,7 +362,7 @@ class UserControllerTest extends TestCase
             ]);
     }
 
-    public function test_show_network_devices_include_received_and_sent(): void
+    public function test_show_network_devices_include_ip_address(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -371,8 +371,6 @@ class UserControllerTest extends TestCase
         $ip = IpAddress::factory()->create([
             'internet_enabled' => true,
             'rate_limit_enabled' => false,
-            'received' => 50000,
-            'sent' => 25000,
         ]);
         $this->linkIpToUser($user, $ip);
 
@@ -382,9 +380,8 @@ class UserControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Users/Show')
             ->has('networkDevices', 1)
-            ->where('networkDevices.0.received', 50000)
-            ->where('networkDevices.0.sent', 25000)
             ->where('networkDevices.0.ip_address', $ip->address)
+            ->where('networkDevices.0.internet_enabled', true)
         );
     }
 

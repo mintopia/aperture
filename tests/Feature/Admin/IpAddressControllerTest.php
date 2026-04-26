@@ -7,7 +7,7 @@ use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Interfaces\IpBandwidthInterface;
-use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\IpBandwidthResult;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
@@ -139,7 +139,7 @@ class IpAddressControllerTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_admin_can_sort_ips_by_received(): void
+    public function test_admin_can_sort_ips_by_last_seen_at(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -147,10 +147,9 @@ class IpAddressControllerTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.10';
         $ip->last_seen_at = Carbon::now();
-        $ip->received = 1000;
         $ip->save();
 
-        $response = $this->actingAs($admin)->get('/admin/ips?order=received');
+        $response = $this->actingAs($admin)->get('/admin/ips?order=last_seen_at');
         $response->assertOk();
     }
 
@@ -408,12 +407,12 @@ class IpAddressControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(LibreNmsService::class);
         $inventory->shouldReceive('resolveIpToPort')
             ->andReturn(new ResolvedPort(ip: '10.0.0.200', mac: 'AA:BB:CC:DD:EE:FF', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
             ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'down', speed: 1000));
-        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+        $this->app->instance(LibreNmsService::class, $inventory);
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.200';
@@ -440,12 +439,12 @@ class IpAddressControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(LibreNmsService::class);
         $inventory->shouldReceive('resolveIpToPort')
             ->andReturn(new ResolvedPort(ip: '10.0.0.201', mac: 'AA:BB:CC:DD:EE:01', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
             ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'down', speed: 1000));
-        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+        $this->app->instance(LibreNmsService::class, $inventory);
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.201';
@@ -483,7 +482,7 @@ class IpAddressControllerTest extends TestCase
             'aperture.cisco.timeout' => 10,
         ]);
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(LibreNmsService::class);
         $inventory->shouldReceive('resolveIpToPort')
             ->andReturn(new ResolvedPort(ip: '10.0.0.99', mac: 'BB:CC:DD:EE:FF:00', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
@@ -494,7 +493,7 @@ class IpAddressControllerTest extends TestCase
                 adminStatus: 'up',
                 speed: 1000
             ));
-        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+        $this->app->instance(LibreNmsService::class, $inventory);
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.99';
@@ -642,12 +641,12 @@ class IpAddressControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(LibreNmsService::class);
         $inventory->shouldReceive('resolveIpToPort')
             ->andReturn(new ResolvedPort(ip: '10.0.0.1', mac: 'AA:BB:CC:DD:EE:FF', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
             ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000));
-        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+        $this->app->instance(LibreNmsService::class, $inventory);
 
         $ip = IpAddress::factory()->create();
         $switchConfig = SwitchConfig::factory()->create(['hostname' => 'switch01']);
@@ -671,9 +670,9 @@ class IpAddressControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $inventory = Mockery::mock(NetworkInventoryInterface::class);
+        $inventory = Mockery::mock(LibreNmsService::class);
         $inventory->shouldReceive('resolveIpToPort')->andReturn(null);
-        $this->app->instance(NetworkInventoryInterface::class, $inventory);
+        $this->app->instance(LibreNmsService::class, $inventory);
 
         $ip = IpAddress::factory()->create();
 

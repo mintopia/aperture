@@ -17,7 +17,9 @@ use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\Interfaces\PortBandwidthInterface;
 use App\Services\Interfaces\PortErrorsInterface;
 use App\Services\IpAddressActionService;
+use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\PortDetail;
+use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,6 +35,7 @@ class IpAddressController extends Controller
         protected IpAddressActionService $ipAddressActionService,
         protected PortBandwidthInterface $portBandwidth,
         protected PortErrorsInterface $portErrors,
+        protected LibreNmsService $libreNms,
     ) {}
 
     public function index(Request $request): Response
@@ -56,8 +59,6 @@ class IpAddressController extends Controller
 
         $orderBy = [
             'address',
-            'received',
-            'sent',
             'last_seen_at',
             'internet_enabled',
             'rate_limit_enabled',
@@ -69,9 +70,6 @@ class IpAddressController extends Controller
 
         $filters->order = $order;
         $direction = 'asc';
-        if ($order === 'received' || $order === 'sent') {
-            $direction = 'desc';
-        }
 
         if (in_array($request->input('direction'), ['asc', 'desc'])) {
             $direction = $request->input('direction');
@@ -106,7 +104,7 @@ class IpAddressController extends Controller
         $portErrors = ['in_series' => [], 'out_series' => []];
         $metricsAvailable = $this->portBandwidth->isAvailable();
 
-        $port = $this->ipAddressActionService->getPortInfo($ip);
+        $port = $this->resolvePortInfo($ip);
         if ($port instanceof PortDetail) {
             $switchConfig = $this->resolveSwitchConfig($port);
             $switchInfo = [
@@ -315,6 +313,20 @@ class IpAddressController extends Controller
         }
 
         return (int) $total;
+    }
+
+    protected function resolvePortInfo(IpAddress $ip): ?PortDetail
+    {
+        try {
+            $resolved = $this->libreNms->resolveIpToPort($ip->address);
+            if (! $resolved instanceof ResolvedPort) {
+                return null;
+            }
+
+            return $this->libreNms->getPortDetail($resolved->port);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     protected function resolveSwitchConfig(PortDetail $port): SwitchConfig

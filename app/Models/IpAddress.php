@@ -24,8 +24,6 @@ use Illuminate\Support\Carbon;
  * @property bool $internet_enabled
  * @property bool $rate_limit_enabled
  * @property bool $dns_filtering_enabled
- * @property int $received
- * @property int $sent
  * @property string|null $comment
  * @property Carbon $last_seen_at
  * @property Carbon|null $expires_at
@@ -54,8 +52,6 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|IpAddress whereInternetEnabled($value)
  * @method static Builder<static>|IpAddress whereLastSeenAt($value)
  * @method static Builder<static>|IpAddress whereRateLimitEnabled($value)
- * @method static Builder<static>|IpAddress whereReceived($value)
- * @method static Builder<static>|IpAddress whereSent($value)
  * @method static Builder|IpAddress whereUpdatedAt($value)
  *
  * @mixin IdeHelperIpAddress

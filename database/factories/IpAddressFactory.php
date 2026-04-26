@@ -25,8 +25,6 @@ class IpAddressFactory extends Factory
             'internet_enabled' => false,
             'rate_limit_enabled' => false,
             'dns_filtering_enabled' => false,
-            'received' => 0,
-            'sent' => 0,
         ];
     }
 

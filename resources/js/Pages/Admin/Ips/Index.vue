@@ -6,7 +6,6 @@ import DataTable from '@/Components/UI/DataTable.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
 import Pagination from '@/Components/UI/Pagination.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
-import { formatBytes } from '@/helpers.js';
 import { ipStatusLabel, ipStatusDotClass, ipStatusTextClass } from '@/utils/ipStatus';
 
 defineOptions({ layout: AdminLayout });
@@ -36,8 +35,6 @@ const columns = [
     { key: 'address', label: 'Address' },
     { key: 'mac', label: 'MAC' },
     { key: 'user', label: 'User' },
-    { key: 'downloaded', label: 'Downloaded' },
-    { key: 'uploaded', label: 'Uploaded' },
     { key: 'status', label: 'Status' },
 ];
 
@@ -127,12 +124,6 @@ function onFilterUpdate(values) {
                         {{ row.users[0].user.nickname }}
                     </Link>
                     <span v-else class="text-[13px] text-[var(--color-text-muted)]">—</span>
-                </td>
-                <td data-testid="ip-downloaded" class="font-mono text-[13px] text-[var(--color-text-secondary)]">
-                    {{ formatBytes(row.received) }}
-                </td>
-                <td data-testid="ip-uploaded" class="font-mono text-[13px] text-[var(--color-text-secondary)]">
-                    {{ formatBytes(row.sent) }}
                 </td>
                 <td data-testid="ip-status">
                     <span class="inline-flex items-center gap-1.5">

@@ -43,7 +43,7 @@ class CapabilityAssignmentTest extends TestCase
             'capability' => 'dhcp',
             'integration' => 'opnsense',
         ]);
-        $this->assertSame(1, CapabilityAssignment::query()->count());
+        $this->assertSame(1, CapabilityAssignment::query()->where('capability', 'dhcp')->count());
     }
 
     public function test_can_unassign_capability(): void
