@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Events\IpAllowed;
+use App\Events\InternetAccessChanged;
 use App\Models\IpAddress;
 use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,7 +31,7 @@ class GrantNetworkAccess implements ShouldQueue
         $this->ipAddress->internet_enabled = true;
         $this->ipAddress->save();
 
-        IpAllowed::dispatch();
+        InternetAccessChanged::dispatch($this->ipAddress, true, $this->user);
 
         Log::info('Network access granted', [
             'user_id' => $this->user->id,

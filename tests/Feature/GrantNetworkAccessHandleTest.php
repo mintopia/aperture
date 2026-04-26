@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Events\IpAllowed;
+use App\Events\InternetAccessChanged;
 use App\Jobs\GrantNetworkAccess;
 use App\Models\IpAddress;
 use App\Models\User;
 use Exception;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Mockery;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class GrantNetworkAccessHandleTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_handle_sets_internet_enabled_and_dispatches_event(): void
     {
@@ -32,7 +32,7 @@ class GrantNetworkAccessHandleTest extends TestCase
         $job->handle();
 
         $this->assertTrue($mockIp->internet_enabled);
-        Event::assertDispatched(IpAllowed::class);
+        Event::assertDispatched(InternetAccessChanged::class);
     }
 
     public function test_failed_logs_error(): void

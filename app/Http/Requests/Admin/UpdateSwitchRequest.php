@@ -15,7 +15,10 @@ class UpdateSwitchRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        /** @var SwitchConfig $switchConfig */
+        $switchConfig = $this->route('switchConfig');
+
+        return $this->user()?->can('update', $switchConfig) ?? false;
     }
 
     /**
