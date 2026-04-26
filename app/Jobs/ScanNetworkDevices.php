@@ -11,7 +11,8 @@ use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\SwitchPortMac;
 use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\Interfaces\IpMacResolverInterface;
+use App\Services\Interfaces\PortMacInterface;
 use App\Services\NetworkRangeService;
 use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\ForwardingEntry;
@@ -27,16 +28,18 @@ class ScanNetworkDevices implements ShouldQueue
 
     public function handle(
         ?DhcpInterface $dhcp = null,
-        ?NetworkInventoryInterface $inventory = null,
+        ?IpMacResolverInterface $ipMac = null,
+        ?PortMacInterface $portMac = null,
         ?NetworkRangeService $rangeService = null,
     ): void {
         $dhcp ??= app(DhcpInterface::class);
-        $inventory ??= app(NetworkInventoryInterface::class);
+        $ipMac ??= app(IpMacResolverInterface::class);
+        $portMac ??= app(PortMacInterface::class);
         $rangeService ??= app(NetworkRangeService::class);
 
         $leases = $dhcp->getLeases();
-        $arpEntries = $inventory->getArpTable();
-        $forwardingEntries = $inventory->getForwardingDatabase();
+        $arpEntries = $ipMac->getArpTable();
+        $forwardingEntries = $portMac->getForwardingDatabase();
 
         // Phase 1: Discovery
         $this->persistMacs($leases, $arpEntries, $forwardingEntries);

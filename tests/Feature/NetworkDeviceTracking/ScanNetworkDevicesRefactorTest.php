@@ -11,7 +11,8 @@ use App\Models\Setting;
 use App\Models\SwitchPort;
 use App\Models\SwitchPortMac;
 use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\NetworkInventoryInterface;
+use App\Services\Interfaces\IpMacResolverInterface;
+use App\Services\Interfaces\PortMacInterface;
 use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
 use App\Services\ValueObjects\ForwardingEntry;
@@ -49,9 +50,14 @@ class ScanNetworkDevicesRefactorTest extends TestCase
      */
     private function mockInventory(array $arp = [], array $fdb = []): void
     {
-        $this->mock(NetworkInventoryInterface::class, function (MockInterface $mock) use ($arp, $fdb): void {
+        $this->mock(IpMacResolverInterface::class, function (MockInterface $mock) use ($arp): void {
             $mock->allows([
                 'getArpTable' => collect($arp),
+            ]);
+        });
+
+        $this->mock(PortMacInterface::class, function (MockInterface $mock) use ($fdb): void {
+            $mock->allows([
                 'getForwardingDatabase' => collect($fdb),
             ]);
         });
