@@ -411,6 +411,62 @@ class OpnSenseCaptivePortalTest extends TestCase
         $this->assertSame([], $result->errors);
     }
 
+    public function test_reconcile_correctly_categorises_large_ip_sets(): void
+    {
+        // Create a mix of desired IPs: 50 that should be unchanged, 50 that should be added
+        $unchangedIps = [];
+        $addedIps = [];
+        for ($i = 1; $i <= 50; $i++) {
+            $ip = '10.1.0.'.$i;
+            $unchangedIps[] = $ip;
+            IpAddress::factory()->create(['address' => $ip, 'internet_enabled' => true]);
+        }
+        for ($i = 51; $i <= 100; $i++) {
+            $ip = '10.1.0.'.$i;
+            $addedIps[] = $ip;
+            IpAddress::factory()->create(['address' => $ip, 'internet_enabled' => true]);
+        }
+
+        // Current IPs include the 50 unchanged + 30 that should be removed
+        $removedIps = [];
+        $currentSessionIps = $unchangedIps;
+        for ($i = 101; $i <= 130; $i++) {
+            $ip = '10.1.0.'.$i;
+            $removedIps[] = $ip;
+            $currentSessionIps[] = $ip;
+        }
+
+        $sessionList = new \stdClass;
+        foreach ($currentSessionIps as $idx => $ip) {
+            $sessionList->{$idx} = (object) ['sessionId' => 'sess-'.$idx, 'ipAddress' => $ip];
+        }
+
+        $this->client->expects($this->atLeastOnce())
+            ->method('get')
+            ->willReturn($sessionList);
+
+        $this->client->expects($this->atLeastOnce())
+            ->method('post')
+            ->willReturn((object) ['status' => 'ok']);
+
+        $result = $this->portal->reconcile();
+
+        $resultAdded = $result->added;
+        $resultRemoved = $result->removed;
+        $resultUnchanged = $result->unchanged;
+        sort($resultAdded);
+        sort($resultRemoved);
+        sort($resultUnchanged);
+        sort($addedIps);
+        sort($removedIps);
+        sort($unchangedIps);
+
+        $this->assertSame($addedIps, $resultAdded);
+        $this->assertSame($removedIps, $resultRemoved);
+        $this->assertSame($unchangedIps, $resultUnchanged);
+        $this->assertSame([], $result->errors);
+    }
+
     public function test_fetch_connected_ips_deduplicates(): void
     {
         // Two sessions with the same IP

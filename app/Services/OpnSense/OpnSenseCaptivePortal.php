@@ -115,6 +115,11 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
         $currentIps = $this->fetchConnectedIps();
         $desiredIps = IpAddress::where('internet_enabled', true)->pluck('address')->all();
 
+        /** @var array<string, true> $currentIpLookup */
+        $currentIpLookup = array_flip($currentIps);
+        /** @var array<string, true> $desiredIpLookup */
+        $desiredIpLookup = array_flip($desiredIps);
+
         /** @var array<int, string> $added */
         $added = [];
         /** @var array<int, string> $removed */
@@ -125,7 +130,7 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
         $errors = [];
 
         foreach ($desiredIps as $ip) {
-            if (in_array($ip, $currentIps, true)) {
+            if (isset($currentIpLookup[$ip])) {
                 $unchanged[] = $ip;
 
                 continue;
@@ -142,7 +147,7 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
         }
 
         foreach ($currentIps as $ip) {
-            if (in_array($ip, $desiredIps, true)) {
+            if (isset($desiredIpLookup[$ip])) {
                 continue;
             }
 

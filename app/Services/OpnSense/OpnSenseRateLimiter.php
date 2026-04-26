@@ -38,6 +38,11 @@ class OpnSenseRateLimiter implements RateLimitingInterface
         $currentIps = $this->fetchRateLimitedIps();
         $desiredIps = IpAddress::where('rate_limit_enabled', true)->pluck('address')->all();
 
+        /** @var array<string, true> $currentIpLookup */
+        $currentIpLookup = array_flip($currentIps);
+        /** @var array<string, true> $desiredIpLookup */
+        $desiredIpLookup = array_flip($desiredIps);
+
         /** @var array<int, string> $added */
         $added = [];
         /** @var array<int, string> $removed */
@@ -48,7 +53,7 @@ class OpnSenseRateLimiter implements RateLimitingInterface
         $errors = [];
 
         foreach ($desiredIps as $ip) {
-            if (in_array($ip, $currentIps, true)) {
+            if (isset($currentIpLookup[$ip])) {
                 $unchanged[] = $ip;
 
                 continue;
@@ -65,7 +70,7 @@ class OpnSenseRateLimiter implements RateLimitingInterface
         }
 
         foreach ($currentIps as $ip) {
-            if (in_array($ip, $desiredIps, true)) {
+            if (isset($desiredIpLookup[$ip])) {
                 continue;
             }
 

@@ -493,6 +493,65 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->assertSame([], $result->errors);
     }
 
+    public function test_reconcile_correctly_categorises_large_ip_sets(): void
+    {
+        // Create a mix of desired IPs: 50 that should be unchanged, 50 that should be added
+        $unchangedIps = [];
+        $addedIps = [];
+        for ($i = 1; $i <= 50; $i++) {
+            $ip = '10.2.0.'.$i;
+            $unchangedIps[] = $ip;
+            IpAddress::factory()->create(['address' => $ip, 'rate_limit_enabled' => true]);
+        }
+        for ($i = 51; $i <= 100; $i++) {
+            $ip = '10.2.0.'.$i;
+            $addedIps[] = $ip;
+            IpAddress::factory()->create(['address' => $ip, 'rate_limit_enabled' => true]);
+        }
+
+        // Current IPs include the 50 unchanged + 30 that should be removed
+        $removedIps = [];
+        $currentIps = $unchangedIps;
+        for ($i = 101; $i <= 130; $i++) {
+            $ip = '10.2.0.'.$i;
+            $removedIps[] = $ip;
+            $currentIps[] = $ip;
+        }
+
+        $ruleWithCurrentIps = $this->makeRuleResponse($currentIps);
+
+        $this->client->expects($this->atLeastOnce())
+            ->method('get')
+            ->willReturn($ruleWithCurrentIps);
+
+        $this->client->expects($this->atLeastOnce())
+            ->method('post')
+            ->willReturnCallback(function (string $uri): stdClass {
+                if (str_contains($uri, 'set_rule')) {
+                    return (object) ['result' => 'saved'];
+                }
+
+                return (object) ['status' => 'ok'];
+            });
+
+        $result = $this->limiter->reconcile();
+
+        $resultAdded = $result->added;
+        $resultRemoved = $result->removed;
+        $resultUnchanged = $result->unchanged;
+        sort($resultAdded);
+        sort($resultRemoved);
+        sort($resultUnchanged);
+        sort($addedIps);
+        sort($removedIps);
+        sort($unchangedIps);
+
+        $this->assertSame($addedIps, $resultAdded);
+        $this->assertSame($removedIps, $resultRemoved);
+        $this->assertSame($unchangedIps, $resultUnchanged);
+        $this->assertSame([], $result->errors);
+    }
+
     // --- filter helper tests ---
 
     public function test_filter_extracts_selected_keys(): void
