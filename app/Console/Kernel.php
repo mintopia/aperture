@@ -18,10 +18,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('aperture:expire-sessions')->everyFiveMinutes();
-        $schedule->command('aperture:sync-user-bandwidth')->everyFifteenMinutes();
-        $schedule->job(new ReapplyAccessRules)->everyFifteenMinutes();
-        $schedule->job(new ScanNetworkDevices)->everyFiveMinutes();
+        $schedule->command('aperture:expire-sessions')->everyFiveMinutes()->onOneServer();
+        $schedule->command('aperture:sync-user-bandwidth')->everyFifteenMinutes()->onOneServer();
+        $schedule->job(new ReapplyAccessRules)->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
+        $schedule->job(new ScanNetworkDevices)->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 
         $interval = (int) config('aperture.switch_sync_interval', 5);
 

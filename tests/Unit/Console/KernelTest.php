@@ -48,6 +48,16 @@ class KernelTest extends TestCase
         $this->assertEquals('*/5 * * * *', $found->expression);
     }
 
+    public function test_expire_sessions_runs_on_one_server(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:expire-sessions'));
+
+        $this->assertNotNull($found, 'aperture:expire-sessions should be scheduled');
+        $this->assertTrue($found->onOneServer, 'aperture:expire-sessions should use onOneServer');
+    }
+
     public function test_sync_user_bandwidth_command_is_scheduled(): void
     {
         $schedule = $this->app->make(Schedule::class);
@@ -56,6 +66,66 @@ class KernelTest extends TestCase
 
         $this->assertNotNull($found, 'aperture:sync-user-bandwidth should be scheduled');
         $this->assertEquals('*/15 * * * *', $found->expression);
+    }
+
+    public function test_sync_user_bandwidth_runs_on_one_server(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:sync-user-bandwidth'));
+
+        $this->assertNotNull($found, 'aperture:sync-user-bandwidth should be scheduled');
+        $this->assertTrue($found->onOneServer, 'aperture:sync-user-bandwidth should use onOneServer');
+    }
+
+    public function test_reapply_access_rules_runs_on_one_server(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->description ?? '', 'ReapplyAccessRules'));
+
+        $this->assertNotNull($found, 'ReapplyAccessRules should be scheduled');
+        $this->assertTrue($found->onOneServer, 'ReapplyAccessRules should use onOneServer');
+    }
+
+    public function test_reapply_access_rules_uses_without_overlapping(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->description ?? '', 'ReapplyAccessRules'));
+
+        $this->assertNotNull($found, 'ReapplyAccessRules should be scheduled');
+        $this->assertTrue($found->withoutOverlapping, 'ReapplyAccessRules should use withoutOverlapping');
+    }
+
+    public function test_scan_network_devices_runs_on_one_server(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->description ?? '', 'ScanNetworkDevices'));
+
+        $this->assertNotNull($found, 'ScanNetworkDevices should be scheduled');
+        $this->assertTrue($found->onOneServer, 'ScanNetworkDevices should use onOneServer');
+    }
+
+    public function test_scan_network_devices_uses_without_overlapping(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => str_contains($event->description ?? '', 'ScanNetworkDevices'));
+
+        $this->assertNotNull($found, 'ScanNetworkDevices should be scheduled');
+        $this->assertTrue($found->withoutOverlapping, 'ScanNetworkDevices should use withoutOverlapping');
+    }
+
+    public function test_sync_switch_ports_runs_on_one_server(): void
+    {
+        $schedule = $this->app->make(Schedule::class);
+        $events = collect($schedule->events());
+        $found = $events->first(fn ($event): bool => ($event->description ?? '') === 'sync-switch-ports');
+
+        $this->assertNotNull($found, 'sync-switch-ports should be scheduled');
+        $this->assertTrue($found->onOneServer, 'sync-switch-ports should use onOneServer');
     }
 
     public function test_sync_switch_ports_is_scheduled(): void
