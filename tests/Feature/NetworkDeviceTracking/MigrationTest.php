@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\NetworkDeviceTracking;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class MigrationTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_ip_address_mac_address_table_exists(): void
     {

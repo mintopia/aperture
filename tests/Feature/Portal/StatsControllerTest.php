@@ -10,14 +10,14 @@ use App\Models\MacAddress;
 use App\Models\User;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\ValueObjects\IpBandwidthResult;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 class StatsControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_returns_bandwidth_from_traffic_monitor(): void
     {

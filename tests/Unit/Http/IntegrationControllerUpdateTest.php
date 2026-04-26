@@ -7,7 +7,7 @@ namespace Tests\Unit\Http;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Models\IntegrationConfig;
 use App\Services\Integration\IntegrationConfigMerger;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Mockery;
 use Tests\TestCase;
@@ -23,7 +23,7 @@ use Tests\TestCase;
  */
 class IntegrationControllerUpdateTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_update_skips_config_key_not_in_validation_rules(): void
     {

@@ -3,12 +3,12 @@
 namespace Tests\Unit;
 
 use App\Models\ContentBlock;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class ContentBlockModelTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_active_scope_returns_only_active_blocks(): void
     {

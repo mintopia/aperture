@@ -8,7 +8,7 @@ use App\Models\SwitchConfig;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\ValueObjects\PortStatus;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Collection;
 use Mockery;
 use RuntimeException;
@@ -16,7 +16,7 @@ use Tests\TestCase;
 
 class TestSwitchConnectionCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function tearDown(): void
     {

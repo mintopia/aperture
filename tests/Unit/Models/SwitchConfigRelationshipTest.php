@@ -9,12 +9,12 @@ use App\Models\SwitchPort;
 use App\Models\SwitchPortConfig;
 use App\Models\SwitchPortMac;
 use App\Models\SwitchSyncRun;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class SwitchConfigRelationshipTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_has_many_switch_ports(): void
     {

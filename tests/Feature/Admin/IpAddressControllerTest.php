@@ -13,7 +13,7 @@ use App\Services\ValueObjects\IpBandwidthResult;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Mockery\MockInterface;
@@ -21,7 +21,7 @@ use Tests\TestCase;
 
 class IpAddressControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function createAdminUser(): User
     {

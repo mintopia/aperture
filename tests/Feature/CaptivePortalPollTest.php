@@ -10,7 +10,7 @@ use App\Services\Auth\AuthResult;
 use App\Services\Auth\UserInfo;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\IpAddressActionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
@@ -18,7 +18,7 @@ use Tests\TestCase;
 
 class CaptivePortalPollTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_poll_returns_expired_when_no_cache(): void
     {

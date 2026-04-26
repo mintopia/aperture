@@ -6,13 +6,13 @@ namespace Tests\Unit\Services\Integration;
 
 use App\Models\IntegrationConfig;
 use App\Services\Integration\IntegrationConfigMerger;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class IntegrationConfigMergerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private IntegrationConfigMerger $merger;
 

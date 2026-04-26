@@ -10,13 +10,13 @@ use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\RateLimitingInterface;
 use App\Services\IpAddressActionService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Tests\TestCase;
 
 class IpAddressDirectTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private IpAddressActionService $service;
 

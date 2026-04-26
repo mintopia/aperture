@@ -6,13 +6,13 @@ namespace Tests\Unit\Models;
 
 use App\Models\SwitchConfig;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class SwitchConfigTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_can_create_switch_config(): void
     {

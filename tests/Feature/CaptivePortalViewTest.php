@@ -4,14 +4,14 @@ namespace Tests\Feature;
 
 use App\Services\Auth\DeviceFlowResponse;
 use App\Services\Interfaces\AuthProviderInterface;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 use Tests\TestCase;
 
 class CaptivePortalViewTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function mockAuthProvider(): void
     {

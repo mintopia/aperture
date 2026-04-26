@@ -7,14 +7,14 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\Ipv6JwtService;
 use Firebase\JWT\SignatureInvalidException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
 
 class PortalControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_index_creates_ip_and_renders_view(): void
     {

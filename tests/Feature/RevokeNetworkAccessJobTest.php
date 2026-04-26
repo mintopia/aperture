@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Jobs\RevokeNetworkAccess;
 use App\Models\IpAddress;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class RevokeNetworkAccessJobTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_job_has_correct_retry_config(): void
     {

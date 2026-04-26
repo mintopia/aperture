@@ -6,13 +6,13 @@ namespace Tests\Feature\Console;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Testing\PendingCommand;
 use Tests\TestCase;
 
 class SetupCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_setup_command_creates_first_admin_and_borealis_config(): void
     {

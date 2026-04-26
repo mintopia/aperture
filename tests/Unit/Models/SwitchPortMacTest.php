@@ -7,13 +7,13 @@ namespace Tests\Unit\Models;
 use App\Models\SwitchPort;
 use App\Models\SwitchPortMac;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class SwitchPortMacTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_factory_creates_valid_instance(): void
     {

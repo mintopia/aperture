@@ -6,13 +6,13 @@ use App\Jobs\ReapplyAccessRules;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class ReapplyAccessRulesJobTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_handle_reapplies_access_for_allowed_ips(): void
     {

@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Http\Middleware\InjectTheme;
 use App\Models\Setting;
 use Illuminate\Contracts\Routing\ResponseFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\View;
@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class InjectThemeMiddlewareTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function makeMiddleware(): InjectTheme
     {

@@ -5,7 +5,7 @@ namespace Tests\Unit\Jobs;
 use App\Jobs\IpAddressAction;
 use App\Models\IpAddress;
 use App\Services\IpAddressActionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class IpAddressActionTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_handle_calls_specified_method_on_service(): void
     {

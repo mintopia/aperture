@@ -10,14 +10,14 @@ use App\Services\Interfaces\RateLimitingInterface;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseRateLimiter;
 use App\Services\ValueObjects\ReconcileResult;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\MockObject\MockObject;
 use stdClass;
 use Tests\TestCase;
 
 class OpnSenseRateLimiterTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private OpnSenseClient&MockObject $client;
 

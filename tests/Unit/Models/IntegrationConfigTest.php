@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Models;
 
 use App\Models\IntegrationConfig;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class IntegrationConfigTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_can_create_with_plain_value(): void
     {

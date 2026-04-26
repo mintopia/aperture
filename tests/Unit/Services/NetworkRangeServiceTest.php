@@ -6,13 +6,13 @@ namespace Tests\Unit\Services;
 
 use App\Models\Setting;
 use App\Services\NetworkRangeService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class NetworkRangeServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private NetworkRangeService $service;
 

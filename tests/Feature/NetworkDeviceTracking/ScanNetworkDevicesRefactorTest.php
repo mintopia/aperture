@@ -17,14 +17,14 @@ use App\Services\Interfaces\PortMacInterface;
 use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
 use App\Services\ValueObjects\ForwardingEntry;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 class ScanNetworkDevicesRefactorTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function setUp(): void
     {

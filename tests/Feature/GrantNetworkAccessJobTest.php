@@ -5,13 +5,13 @@ namespace Tests\Feature;
 use App\Jobs\GrantNetworkAccess;
 use App\Models\IpAddress;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class GrantNetworkAccessJobTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_job_can_be_dispatched(): void
     {

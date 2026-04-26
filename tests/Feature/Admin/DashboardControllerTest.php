@@ -9,14 +9,14 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Null\NullDhcpService;
 use App\Services\ValueObjects\DhcpRange;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class DashboardControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function createAdminUser(): User
     {

@@ -4,12 +4,12 @@ namespace Tests\Unit\Models;
 
 use App\Models\IpAddress;
 use App\Models\MacAddress;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class IpAddressLnmsTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_current_mac_returns_value_when_attached_via_pivot(): void
     {

@@ -6,14 +6,14 @@ use App\Jobs\RevokeNetworkAccess;
 use App\Models\IpAddress;
 use App\Models\User;
 use Exception;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Tests\TestCase;
 
 class RevokeNetworkAccessHandleTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_handle_sets_internet_disabled(): void
     {

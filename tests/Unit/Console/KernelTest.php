@@ -8,7 +8,7 @@ use App\Console\Kernel;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Queue;
 use ReflectionClass;
@@ -16,7 +16,7 @@ use Tests\TestCase;
 
 class KernelTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_kernel_schedules_commands(): void
     {

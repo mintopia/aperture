@@ -9,14 +9,14 @@ use App\Models\MacAddress;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\LibreNms\LibreNmsService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 class ConsumerUpdateTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_dashboard_uses_current_mac(): void
     {

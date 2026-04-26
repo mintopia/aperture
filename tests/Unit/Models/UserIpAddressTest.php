@@ -6,13 +6,13 @@ use App\Models\IpAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class UserIpAddressTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_user_returns_belongs_to_relationship(): void
     {

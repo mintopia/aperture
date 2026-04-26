@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Models;
 
 use App\Models\ConnectionTestLog;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ConnectionTestLogTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_can_record_successful_test(): void
     {
@@ -201,7 +201,7 @@ class ConnectionTestLogTest extends TestCase
         $log = ConnectionTestLog::factory()->create();
 
         $this->assertInstanceOf(ConnectionTestLog::class, $log);
-        $this->assertContains($log->integration, ['opnsense', 'librenms', 'ntopng', 'pihole']);
+        $this->assertContains($log->integration, ['opnsense', 'librenms', 'pihole', 'prometheus', 'borealis']);
         $this->assertIsBool($log->success);
         $this->assertNotNull($log->message);
         $this->assertNotNull($log->id);

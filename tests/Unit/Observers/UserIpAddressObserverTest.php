@@ -8,13 +8,13 @@ use App\Models\IpAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\IpPolicyService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 class UserIpAddressObserverTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_calls_apply_defaults_when_user_ip_address_is_deleted(): void
     {

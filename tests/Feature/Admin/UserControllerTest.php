@@ -9,14 +9,14 @@ use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\ValueObjects\IpBandwidthResult;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 class UserControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function createAdminUser(): User
     {

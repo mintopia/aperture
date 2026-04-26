@@ -6,7 +6,7 @@ namespace Tests\Unit\Http;
 
 use App\Http\Controllers\LoginController;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
@@ -20,7 +20,7 @@ use Tests\TestCase;
  */
 class LoginControllerNicknameTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_first_login_uses_admin_nickname_when_email_local_part_is_empty(): void
     {

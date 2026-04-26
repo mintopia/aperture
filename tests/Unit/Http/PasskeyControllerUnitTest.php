@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Http;
 
 use App\Http\Controllers\PasskeyController;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
 use Laragear\WebAuthn\Http\Requests\AssertedRequest;
@@ -19,7 +19,7 @@ use Tests\TestCase;
  */
 class PasskeyControllerUnitTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_destroy_returns_403_when_user_is_null(): void
     {

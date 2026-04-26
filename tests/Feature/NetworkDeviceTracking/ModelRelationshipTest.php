@@ -10,13 +10,13 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\SwitchPort;
 use App\Models\SwitchPortMac;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class ModelRelationshipTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_ip_has_many_mac_addresses_via_pivot(): void
     {

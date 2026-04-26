@@ -10,13 +10,13 @@ use App\Models\User;
 use App\Models\UserParameter;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\ArpEntry;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class DashboardControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function setUp(): void
     {

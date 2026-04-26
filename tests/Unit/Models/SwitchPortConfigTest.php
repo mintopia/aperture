@@ -6,13 +6,13 @@ namespace Tests\Unit\Models;
 
 use App\Models\SwitchPort;
 use App\Models\SwitchPortConfig;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class SwitchPortConfigTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_factory_creates_valid_instance(): void
     {

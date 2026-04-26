@@ -12,13 +12,13 @@ use App\Models\Role;
 use App\Models\SwitchPort;
 use App\Models\SwitchPortMac;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class MacAddressControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function createAdminUser(): User
     {

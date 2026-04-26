@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Setting;
 use App\Services\ThemeService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class ThemeServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_returns_default_theme_values(): void
     {

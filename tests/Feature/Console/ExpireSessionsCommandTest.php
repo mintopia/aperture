@@ -6,12 +6,12 @@ namespace Tests\Feature\Console;
 
 use App\Models\AuditLog;
 use App\Models\IpAddress;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class ExpireSessionsCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_expires_ips_past_expiry(): void
     {

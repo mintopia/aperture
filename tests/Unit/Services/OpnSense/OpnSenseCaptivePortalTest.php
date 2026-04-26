@@ -8,13 +8,13 @@ use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\OpnSense\OpnSenseCaptivePortal;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\ValueObjects\ReconcileResult;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
 
 class OpnSenseCaptivePortalTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private OpnSenseClient&MockObject $client;
 

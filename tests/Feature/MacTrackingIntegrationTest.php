@@ -9,14 +9,14 @@ use App\Models\UserIpAddress;
 use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\IpAddressActionService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
 
 class MacTrackingIntegrationTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function setUp(): void
     {

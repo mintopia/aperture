@@ -8,13 +8,13 @@ use App\Jobs\SyncUserPolicyJob;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class UserObserverTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_dispatches_sync_user_policy_job_when_internet_enabled_changes(): void
     {

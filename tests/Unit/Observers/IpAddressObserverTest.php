@@ -8,13 +8,13 @@ use App\Jobs\SyncDnsFilteringJob;
 use App\Jobs\SyncInternetAccessJob;
 use App\Jobs\SyncRateLimitJob;
 use App\Models\IpAddress;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class IpAddressObserverTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_dispatches_sync_internet_access_job_when_internet_enabled_changes(): void
     {

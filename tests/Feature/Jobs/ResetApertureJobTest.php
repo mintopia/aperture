@@ -8,12 +8,12 @@ use App\Jobs\ResetAperture;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class ResetApertureJobTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_deletes_all_ips(): void
     {

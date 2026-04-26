@@ -9,13 +9,13 @@ use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Null\NullDhcpService;
 use App\Services\OpnSense\OpnSenseDhcpService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use ReflectionProperty;
 use Tests\TestCase;
 
 class DhcpServiceBindingTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_resolves_null_service_when_dhcp_server_is_empty(): void
     {

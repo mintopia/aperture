@@ -7,7 +7,7 @@ namespace Tests\Feature\Console;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Redis;
 use RuntimeException;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class PrepareE2eCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_prepare_e2e_creates_admin_user_and_fixtures(): void
     {

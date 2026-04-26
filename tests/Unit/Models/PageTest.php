@@ -6,12 +6,12 @@ namespace Tests\Unit\Models;
 
 use App\Models\Page;
 use Illuminate\Database\QueryException;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class PageTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_page_can_be_created_with_required_fields(): void
     {

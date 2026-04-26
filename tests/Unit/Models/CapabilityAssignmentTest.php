@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Models;
 
 use App\Models\CapabilityAssignment;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class CapabilityAssignmentTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_can_assign_capability_to_integration(): void
     {

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature\Portal;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class DnsFilterControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_toggle_disables_dns_filtering_when_currently_enabled(): void
     {

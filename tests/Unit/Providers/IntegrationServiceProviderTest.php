@@ -39,12 +39,12 @@ use App\Services\Prometheus\PrometheusIpBandwidth;
 use App\Services\Prometheus\PrometheusPortBandwidth;
 use App\Services\Prometheus\PrometheusPortErrors;
 use App\Services\Prometheus\PrometheusService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class IntegrationServiceProviderTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     // -------------------------------------------------------
     // Shared singletons

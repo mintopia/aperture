@@ -6,12 +6,12 @@ use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use App\Services\Auth\DeviceFlowResponse;
 use App\Services\Interfaces\AuthProviderInterface;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class RedirectIfAuthenticatedTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_authenticated_user_is_redirected(): void
     {

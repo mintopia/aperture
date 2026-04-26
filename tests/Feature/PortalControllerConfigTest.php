@@ -4,13 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\IntegrationConfig;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PortalControllerConfigTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_portal_reads_ipv6_config_from_integration_config(): void
     {

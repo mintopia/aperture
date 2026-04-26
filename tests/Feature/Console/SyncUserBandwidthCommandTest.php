@@ -8,14 +8,14 @@ use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\ValueObjects\IpBandwidthResult;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 class SyncUserBandwidthCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_command_updates_weekly_bandwidth_for_users_with_ips(): void
     {

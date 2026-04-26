@@ -13,7 +13,7 @@ use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SshProxy\SshProxyClient;
 use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use ReflectionClass;
 use RuntimeException;
@@ -21,7 +21,7 @@ use Tests\TestCase;
 
 class AppServiceProviderTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_registers_auth_provider_interface_binding(): void
     {

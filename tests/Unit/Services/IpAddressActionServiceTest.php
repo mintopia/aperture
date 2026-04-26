@@ -11,14 +11,14 @@ use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\RateLimitingInterface;
 use App\Services\IpAddressActionService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 class IpAddressActionServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     /**
      * @param  (CaptivePortalInterface&MockInterface)|null  $captivePortal

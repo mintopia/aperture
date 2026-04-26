@@ -7,13 +7,13 @@ namespace Tests\Unit\Services;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\IpPolicyService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class IpPolicyServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_apply_user_policy_sets_ip_fields_to_match_user(): void
     {

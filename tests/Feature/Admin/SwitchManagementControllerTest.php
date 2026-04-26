@@ -12,7 +12,7 @@ use App\Models\SwitchSyncRun;
 use App\Models\User;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use RuntimeException;
@@ -20,7 +20,7 @@ use Tests\TestCase;
 
 class SwitchManagementControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     protected function createAdminUser(): User
     {

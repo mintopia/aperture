@@ -6,7 +6,7 @@ namespace Tests\Unit\Http\Middleware;
 
 use App\Http\Middleware\EnsureAccountSecurityVerified;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class EnsureAccountSecurityVerifiedTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_returns_401_json_when_user_is_null(): void
     {

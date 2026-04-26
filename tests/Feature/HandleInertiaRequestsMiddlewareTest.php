@@ -6,13 +6,13 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Setting;
 use App\Models\User;
 use Closure;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class HandleInertiaRequestsMiddlewareTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function makeMiddleware(): HandleInertiaRequests
     {

@@ -3,12 +3,12 @@
 namespace Tests\Feature\Migrations;
 
 use App\Models\ContentBlock;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class DeleteRemovedBlockTypesMigrationTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_migration_removes_orphaned_block_types(): void
     {
