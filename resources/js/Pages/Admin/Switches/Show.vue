@@ -7,6 +7,7 @@ import DataTable from '@/Components/UI/DataTable.vue';
 import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import { formatRelative, formatDate } from '@/utils/dates';
 import { typeLabel, statusLabel, formatSpeed, formatVlan } from '@/utils/switches';
+import { useAdminChannel } from '@/composables/useAdminChannel';
 
 function statusDotClass(type) {
     const map = {
@@ -180,6 +181,30 @@ onBeforeUnmount(() => {
     if (testDismissTimer) {
         clearTimeout(testDismissTimer);
     }
+});
+
+function refreshSwitchData() {
+    router.reload({
+        only: ['switchConfig', 'ports', 'latestSync', 'runningConfig'],
+        preserveScroll: true,
+    });
+}
+
+function onSwitchSyncCompleted(event) {
+    if (event.switch_config_id === props.switchConfig.id) {
+        refreshSwitchData();
+    }
+}
+
+function onPortStateChanged() {
+    refreshSwitchData();
+}
+
+useAdminChannel({
+    events: {
+        SwitchSyncCompleted: onSwitchSyncCompleted,
+        PortStateChanged: onPortStateChanged,
+    },
 });
 </script>
 

@@ -11,6 +11,7 @@ import ConnectedDevicesSummary from '@/Components/UI/ConnectedDevicesSummary.vue
 import { formatBytesComponents, normalizeMac } from '@/helpers.js';
 import { formatPortStatus, formatSpeed, formatDuplex, formatVlan } from '@/utils/switches';
 import { formatRelative } from '@/utils/dates';
+import { useAdminChannel } from '@/composables/useAdminChannel';
 
 defineOptions({ layout: AdminLayout });
 
@@ -32,7 +33,6 @@ const optimisticAdminStatus = ref(null);
 
 const lastUpdated = ref(new Date());
 const displayTime = ref('just now');
-let pollInterval = null;
 let displayTimer = null;
 
 function updateDisplayTime() {
@@ -53,13 +53,32 @@ function refreshData() {
     });
 }
 
+function onPortStateChanged(event) {
+    if (event.switch_port_id === props.port.id || event.port_name === props.port.interface) {
+        refreshData();
+    }
+}
+
+function onSwitchSyncCompleted(event) {
+    if (event.switch_config_id === props.switchConfig.id) {
+        refreshData();
+    }
+}
+
+useAdminChannel({
+    events: {
+        PortStateChanged: onPortStateChanged,
+        SwitchSyncCompleted: onSwitchSyncCompleted,
+    },
+    poll: refreshData,
+    pollInterval: 30000,
+});
+
 onMounted(() => {
-    pollInterval = setInterval(refreshData, 30000);
     displayTimer = setInterval(updateDisplayTime, 5000);
 });
 
 onBeforeUnmount(() => {
-    if (pollInterval) clearInterval(pollInterval);
     if (displayTimer) clearInterval(displayTimer);
 });
 

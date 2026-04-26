@@ -112,7 +112,9 @@ function hexToRgb(hex) {
 function expectBgColor(cell, hex) {
     const style = cell.attributes('style');
     const rgb = hexToRgb(hex);
-    expect(style).toMatch(new RegExp(`background-color:\\s*(${hex}|${rgb})`));
+    const hasHex = style.includes(`background-color: ${hex}`);
+    const hasRgb = style.includes(`background-color: ${rgb}`);
+    expect(hasHex || hasRgb).toBe(true);
 }
 
 describe('SwitchPortGrid', () => {

@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
-import { Deferred, Link } from '@inertiajs/vue3';
+import { computed, ref, onMounted } from 'vue';
+import { Deferred, Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DhcpPoolsCard from '@/Components/Admin/DhcpPoolsCard.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
@@ -11,6 +11,7 @@ import StatCard from '@/Components/UI/StatCard.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelativeTime } from '@/utils/dates';
+import { useAdminChannel } from '@/composables/useAdminChannel';
 
 defineOptions({ layout: AdminLayout });
 
@@ -89,8 +90,6 @@ const chartSeries = computed(() => {
     ];
 });
 
-let bandwidthPoll = null;
-
 async function fetchBandwidth() {
     try {
         const response = await fetch(
@@ -106,19 +105,32 @@ async function fetchBandwidth() {
     }
 }
 
+function refreshDashboard() {
+    fetchBandwidth();
+    router.reload({
+        only: ['totalUsers', 'onlineUsers', 'activeIps', 'blockedUsers', 'dhcpPools', 'recentUsers'],
+        preserveScroll: true,
+    });
+}
+
 function selectRange(range) {
     selectedRange.value = range;
     bandwidthLoading.value = true;
     fetchBandwidth();
 }
 
-onMounted(() => {
-    fetchBandwidth();
-    bandwidthPoll = setInterval(fetchBandwidth, 30000);
+useAdminChannel({
+    events: {
+        UserConnected: () => refreshDashboard(),
+        DeviceDiscovered: () => refreshDashboard(),
+        DhcpPoolThresholdReached: () => refreshDashboard(),
+    },
+    poll: fetchBandwidth,
+    pollInterval: 30000,
 });
 
-onUnmounted(() => {
-    if (bandwidthPoll) clearInterval(bandwidthPoll);
+onMounted(() => {
+    fetchBandwidth();
 });
 </script>
 

@@ -8,6 +8,7 @@ import FilterBar from '@/Components/UI/FilterBar.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { formatRelative } from '@/utils/dates';
 import { typeLabel, statusLabel } from '@/utils/switches';
+import { useAdminChannel } from '@/composables/useAdminChannel';
 
 defineOptions({ layout: AdminLayout });
 
@@ -108,6 +109,19 @@ function syncStatusLabel(status) {
     };
     return map[status] ?? statusLabel(status);
 }
+
+function refreshSwitches() {
+    router.reload({
+        only: ['switches'],
+        preserveScroll: true,
+    });
+}
+
+useAdminChannel({
+    events: {
+        SwitchSyncCompleted: () => refreshSwitches(),
+    },
+});
 </script>
 
 <template>

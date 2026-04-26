@@ -14,6 +14,8 @@ export default defineConfig({
             include: [
                 'resources/js/Components/UI/**/*.vue',
                 'resources/js/Pages/Admin/Switches/Ports/Show.vue',
+                'resources/js/Pages/Admin/Switches/Index.vue',
+                'resources/js/Pages/Admin/Switches/Show.vue',
                 'resources/js/Pages/Admin/Dashboard.vue',
                 'resources/js/Pages/Admin/Macs/Index.vue',
                 'resources/js/Pages/Admin/Macs/Show.vue',
