@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Interfaces;
 
-use App\Models\User;
-use App\Services\ValueObjects\ActiveSession;
-use Illuminate\Support\Collection;
+use App\Services\ValueObjects\ReconcileResult;
 
 interface CaptivePortalInterface
 {
-    public function grantAccess(string $ipAddress, User $user): bool;
+    public function addIp(string $ip, string $description): void;
 
-    public function revokeAccess(string $ipAddress, User $user): bool;
+    public function removeIp(string $ip): void;
 
-    public function isAllowed(string $ipAddress): bool;
+    /** @param array<int, string> $hostnames */
+    public function addAllowedHostnames(array $hostnames): void;
 
-    /** @return Collection<int, ActiveSession> */
-    public function listActiveSessions(): Collection;
+    public function reconcile(bool $dryRun = false): ReconcileResult;
 }
