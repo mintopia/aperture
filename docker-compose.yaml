@@ -57,8 +57,10 @@ services:
     volumes:
       - ./:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       disable: true
 
@@ -97,8 +99,10 @@ services:
     volumes:
       - ./:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       disable: true
 
@@ -188,8 +192,10 @@ services:
     volumes:
       - ./:/app/
     depends_on:
-      - redis
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       disable: true
 
@@ -224,8 +230,10 @@ services:
     volumes:
       - ./:/app/
     depends_on:
-      - redis
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       disable: true
 
