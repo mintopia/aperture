@@ -10,6 +10,7 @@ use App\Models\SwitchPortConfig;
 use App\Models\SwitchPortMac;
 use App\Models\SwitchSyncRun;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\SupportsBulkOperations;
 use App\Services\Interfaces\SupportsInterfaceOutputCapture;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -150,8 +151,114 @@ class PortSyncService
 
     /**
      * Fetch and store per-port running configuration and interface output.
+     *
+     * Uses bulk commands when the adapter supports SupportsBulkOperations,
+     * reducing 96+ individual SSH commands to just 2 bulk commands for a
+     * 48-port switch.
      */
     private function syncPortConfigs(
+        NetworkSwitchInterface $adapter,
+        SwitchConfig $switchConfig,
+        Carbon $syncStartedAt,
+    ): void {
+        if ($adapter instanceof SupportsBulkOperations) {
+            $this->syncPortConfigsBulk($adapter, $switchConfig, $syncStartedAt);
+
+            return;
+        }
+
+        $this->syncPortConfigsPerPort($adapter, $switchConfig, $syncStartedAt);
+    }
+
+    /**
+     * Sync port configs using bulk commands (2 SSH commands total).
+     */
+    private function syncPortConfigsBulk(
+        NetworkSwitchInterface&SupportsBulkOperations $adapter,
+        SwitchConfig $switchConfig,
+        Carbon $syncStartedAt,
+    ): void {
+        $bulkConfigs = $adapter->getAllPortRunningConfigs();
+        $bulkInterfaceOutputs = $adapter instanceof SupportsInterfaceOutputCapture
+            ? $adapter->getAllPortInterfaceOutputs()
+            : [];
+
+        Log::debug('PortSyncService: bulk config fetch completed', [
+            'switch' => $switchConfig->hostname,
+            'configs_fetched' => count($bulkConfigs),
+            'interface_outputs_fetched' => count($bulkInterfaceOutputs),
+        ]);
+
+        $switchPorts = SwitchPort::where('switch_config_id', $switchConfig->id)
+            ->with('config')
+            ->get();
+
+        foreach ($switchPorts as $port) {
+            try {
+                $rawConfigText = $bulkConfigs[$port->port_name] ?? null;
+                $rawInterfaceOutput = $bulkInterfaceOutputs[$port->port_name] ?? null;
+
+                if ($rawConfigText === null && $rawInterfaceOutput === null) {
+                    Log::debug('PortSyncService: port not found in bulk output, skipping', [
+                        'switch' => $switchConfig->hostname,
+                        'port' => $port->port_name,
+                    ]);
+
+                    continue;
+                }
+
+                $existingConfig = $port->config;
+                $configText = $rawConfigText !== null
+                    ? $this->trimRunningConfigPreamble($rawConfigText)
+                    : '';
+                $interfaceOutput = ($rawInterfaceOutput !== null && $rawInterfaceOutput !== '')
+                    ? $rawInterfaceOutput
+                    : null;
+
+                $hasUsableRunningConfig = $rawConfigText !== null
+                    && ! $this->isCiscoCliErrorOutput($configText)
+                    && ! $this->isSwitchportOutput($configText);
+
+                if (! $hasUsableRunningConfig && ! is_string($interfaceOutput)) {
+                    if ($existingConfig instanceof SwitchPortConfig && $this->isCiscoCliErrorOutput($existingConfig->config_text)) {
+                        $existingConfig->delete();
+                    }
+
+                    throw new RuntimeException('Cisco CLI returned error output while fetching running config.');
+                }
+
+                $persistedConfigText = $hasUsableRunningConfig ? $configText : '';
+
+                if (
+                    ! $hasUsableRunningConfig
+                    && $existingConfig instanceof SwitchPortConfig
+                    && $existingConfig->config_text !== ''
+                ) {
+                    $persistedConfigText = $existingConfig->config_text;
+                }
+
+                $this->persistPortConfig($port, $existingConfig, $persistedConfigText, $interfaceOutput, $syncStartedAt);
+
+                Log::debug('PortSyncService: config sync succeeded for port', [
+                    'switch' => $switchConfig->hostname,
+                    'port' => $port->port_name,
+                ]);
+            } catch (Throwable $e) {
+                Log::debug('PortSyncService: config sync failed for port', [
+                    'switch' => $switchConfig->hostname,
+                    'port' => $port->port_name,
+                    'error' => $e->getMessage(),
+                ]);
+
+                continue;
+            }
+        }
+    }
+
+    /**
+     * Sync port configs using per-port commands (legacy fallback).
+     */
+    private function syncPortConfigsPerPort(
         NetworkSwitchInterface $adapter,
         SwitchConfig $switchConfig,
         Carbon $syncStartedAt,
@@ -209,29 +316,7 @@ class PortSyncService
                     $persistedConfigText = $existingConfig->config_text;
                 }
 
-                $configHash = md5($persistedConfigText);
-
-                if ($existingConfig instanceof SwitchPortConfig && $existingConfig->config_hash === $configHash) {
-                    $existingConfig->update([
-                        'interface_output' => $interfaceOutput,
-                        'last_fetched_at' => $syncStartedAt,
-                    ]);
-                } elseif ($existingConfig instanceof SwitchPortConfig) {
-                    $existingConfig->update([
-                        'config_text' => $persistedConfigText,
-                        'config_hash' => $configHash,
-                        'interface_output' => $interfaceOutput,
-                        'last_fetched_at' => $syncStartedAt,
-                    ]);
-                } else {
-                    SwitchPortConfig::create([
-                        'switch_port_id' => $port->id,
-                        'config_text' => $persistedConfigText,
-                        'config_hash' => $configHash,
-                        'interface_output' => $interfaceOutput,
-                        'last_fetched_at' => $syncStartedAt,
-                    ]);
-                }
+                $this->persistPortConfig($port, $existingConfig, $persistedConfigText, $interfaceOutput, $syncStartedAt);
 
                 Log::debug('PortSyncService: config fetch succeeded for port', [
                     'switch' => $switchConfig->hostname,
@@ -246,6 +331,41 @@ class PortSyncService
 
                 continue;
             }
+        }
+    }
+
+    /**
+     * Persist a port's config to the database (create/update as needed).
+     */
+    private function persistPortConfig(
+        SwitchPort $port,
+        ?SwitchPortConfig $existingConfig,
+        string $persistedConfigText,
+        ?string $interfaceOutput,
+        Carbon $syncStartedAt,
+    ): void {
+        $configHash = md5($persistedConfigText);
+
+        if ($existingConfig instanceof SwitchPortConfig && $existingConfig->config_hash === $configHash) {
+            $existingConfig->update([
+                'interface_output' => $interfaceOutput,
+                'last_fetched_at' => $syncStartedAt,
+            ]);
+        } elseif ($existingConfig instanceof SwitchPortConfig) {
+            $existingConfig->update([
+                'config_text' => $persistedConfigText,
+                'config_hash' => $configHash,
+                'interface_output' => $interfaceOutput,
+                'last_fetched_at' => $syncStartedAt,
+            ]);
+        } else {
+            SwitchPortConfig::create([
+                'switch_port_id' => $port->id,
+                'config_text' => $persistedConfigText,
+                'config_hash' => $configHash,
+                'interface_output' => $interfaceOutput,
+                'last_fetched_at' => $syncStartedAt,
+            ]);
         }
     }
 

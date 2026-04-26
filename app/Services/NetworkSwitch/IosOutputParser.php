@@ -142,6 +142,45 @@ class IosOutputParser
     }
 
     /**
+     * Cisco IOS interface name abbreviation mapping.
+     *
+     * Maps full interface type names to their abbreviated forms
+     * as used by `show interface status`.
+     *
+     * @var array<string, string>
+     */
+    private const array INTERFACE_ABBREVIATIONS = [
+        'GigabitEthernet' => 'Gi',
+        'FastEthernet' => 'Fa',
+        'TenGigabitEthernet' => 'Te',
+        'TwentyFiveGigE' => 'Twe',
+        'FortyGigabitEthernet' => 'Fo',
+        'HundredGigE' => 'Hu',
+        'Port-channel' => 'Po',
+        'Vlan' => 'Vl',
+        'Loopback' => 'Lo',
+        'Tunnel' => 'Tu',
+        'Ethernet' => 'Eth',
+    ];
+
+    /**
+     * Abbreviate a full Cisco IOS interface name to its short form.
+     *
+     * For example: "GigabitEthernet1/0/1" => "Gi1/0/1"
+     * Names already abbreviated are returned as-is.
+     */
+    public function abbreviateInterfaceName(string $name): string
+    {
+        foreach (self::INTERFACE_ABBREVIATIONS as $full => $short) {
+            if (str_starts_with($name, $full)) {
+                return $short.substr($name, strlen($full));
+            }
+        }
+
+        return $name;
+    }
+
+    /**
      * Split bulk `show interface` output into per-interface blocks.
      *
      * @return array<string, string> interface name => output block

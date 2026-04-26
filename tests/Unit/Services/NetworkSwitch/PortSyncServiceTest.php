@@ -10,6 +10,8 @@ use App\Models\SwitchPortConfig;
 use App\Models\SwitchPortMac;
 use App\Models\SwitchSyncRun;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\SupportsBulkOperations;
+use App\Services\Interfaces\SupportsInterfaceOutputCapture;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
@@ -432,7 +434,7 @@ class PortSyncServiceTest extends TestCase
     public function test_sync_captures_interface_output_from_show_interface_command_not_status_description(): void
     {
         $statusDescription = 'Cached status description should not be used as interface output';
-        $runningConfig = "!\ninterface Gi1/0/7\n description Uplink\n end";
+        $runningConfig = "interface GigabitEthernet1/0/7\n description Uplink\n end";
         $rawShowInterfaceOutput = implode("\r\n", [
             'GigabitEthernet1/0/7 is up, line protocol is up (connected)',
             '  Hardware is Gigabit Ethernet, address is aabb.ccdd.ee07',
@@ -444,37 +446,23 @@ class PortSyncServiceTest extends TestCase
         $transport->shouldReceive('execute')
             ->with('show interface status')
             ->once()
-            ->ordered()
             ->andReturn(implode("\r\n", [
                 'Port      Name               Status       Vlan       Duplex  Speed Type',
                 sprintf('Gi1/0/7   %s  connected    100        a-full  a-1000 10/100/1000BaseTX', $statusDescription),
             ]));
-        // CiscoSwitchAdapter fetches bulk running configs first; return empty so it falls back to per-port call
+        // Bulk running-config returns the config under the full interface name
         $transport->shouldReceive('execute')
             ->with('show running-config | section ^interface')
             ->once()
-            ->ordered()
-            ->andReturn('');
-        $transport->shouldReceive('execute')
-            ->with('show run interface Gi1/0/7')
-            ->once()
-            ->ordered()
-            ->andReturn($runningConfig);
-        // CiscoSwitchAdapter fetches bulk interface output first; return empty so it falls back to per-port call
+            ->andReturn($runningConfig."\n!");
+        // Bulk show interface returns the raw output under the full interface name
         $transport->shouldReceive('execute')
             ->with('show interface')
             ->once()
-            ->ordered()
-            ->andReturn('');
-        $transport->shouldReceive('execute')
-            ->with('show interface Gi1/0/7')
-            ->once()
-            ->ordered()
             ->andReturn($rawShowInterfaceOutput);
         $transport->shouldReceive('execute')
             ->with('show mac address-table')
             ->once()
-            ->ordered()
             ->andReturn('');
 
         $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
@@ -1111,5 +1099,327 @@ class PortSyncServiceTest extends TestCase
         $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'aabb.ccdd.ee01']);
         $this->assertDatabaseMissing('switch_port_macs', ['mac_address' => 'aabb.ccdd.ee02']);
         $this->assertSame('completed', $syncRun->status);
+    }
+
+    // -------------------------------------------------------------------------
+    // Bulk operations: PortSyncService uses SupportsBulkOperations when available
+    // -------------------------------------------------------------------------
+
+    public function test_sync_uses_bulk_operations_for_config_sync_when_adapter_supports_it(): void
+    {
+        $bulkAdapter = Mockery::mock(NetworkSwitchInterface::class, SupportsBulkOperations::class, SupportsInterfaceOutputCapture::class);
+
+        $this->factory->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
+            ->once()
+            ->andReturn($bulkAdapter);
+
+        $bulkAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+            new PortStatus(interface: 'Gi1/0/2', status: 'notconnect', speed: 'auto', duplex: 'auto', vlan: '200'),
+        ]));
+
+        $bulkAdapter->shouldReceive('getAllPortRunningConfigs')->once()->andReturn([
+            'Gi1/0/1' => "interface Gi1/0/1\n switchport access vlan 100",
+            'Gi1/0/2' => "interface Gi1/0/2\n switchport access vlan 200",
+        ]);
+
+        $bulkAdapter->shouldReceive('getAllPortInterfaceOutputs')->once()->andReturn([
+            'Gi1/0/1' => "GigabitEthernet1/0/1 is up, line protocol is up (connected)\n  Hardware is Gigabit Ethernet",
+            'Gi1/0/2' => "GigabitEthernet1/0/2 is down, line protocol is down (notconnect)\n  Hardware is Gigabit Ethernet",
+        ]);
+
+        // Per-port methods should NOT be called when bulk is available
+        $bulkAdapter->shouldNotReceive('getPortRunningConfig');
+        $bulkAdapter->shouldNotReceive('getPortInterfaceOutput');
+        $bulkAdapter->shouldNotReceive('getPortStatus');
+
+        $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $syncRun = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertSame('completed', $syncRun->status);
+
+        $port1 = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/1')
+            ->firstOrFail();
+        $port2 = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/2')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port1->id,
+            'config_text' => "interface Gi1/0/1\n switchport access vlan 100",
+        ]);
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port2->id,
+            'config_text' => "interface Gi1/0/2\n switchport access vlan 200",
+        ]);
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port1->id,
+            'interface_output' => "GigabitEthernet1/0/1 is up, line protocol is up (connected)\n  Hardware is Gigabit Ethernet",
+        ]);
+    }
+
+    public function test_sync_bulk_operations_handles_port_missing_from_bulk_config(): void
+    {
+        $bulkAdapter = Mockery::mock(NetworkSwitchInterface::class, SupportsBulkOperations::class, SupportsInterfaceOutputCapture::class);
+
+        $this->factory->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
+            ->once()
+            ->andReturn($bulkAdapter);
+
+        $bulkAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+            new PortStatus(interface: 'Gi1/0/2', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '200'),
+        ]));
+
+        // Only Gi1/0/1 in bulk configs; Gi1/0/2 is missing
+        $bulkAdapter->shouldReceive('getAllPortRunningConfigs')->once()->andReturn([
+            'Gi1/0/1' => "interface Gi1/0/1\n switchport access vlan 100",
+        ]);
+
+        $bulkAdapter->shouldReceive('getAllPortInterfaceOutputs')->once()->andReturn([
+            'Gi1/0/1' => 'GigabitEthernet1/0/1 is up, line protocol is up (connected)',
+        ]);
+
+        $bulkAdapter->shouldNotReceive('getPortRunningConfig');
+        $bulkAdapter->shouldNotReceive('getPortInterfaceOutput');
+        $bulkAdapter->shouldNotReceive('getPortStatus');
+
+        $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $syncRun = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertSame('completed', $syncRun->status);
+
+        $port1 = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/1')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port1->id,
+            'config_text' => "interface Gi1/0/1\n switchport access vlan 100",
+        ]);
+
+        // Port missing from bulk config should not have a config entry
+        $port2 = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/2')
+            ->firstOrFail();
+
+        $this->assertDatabaseMissing('switch_port_configs', [
+            'switch_port_id' => $port2->id,
+        ]);
+    }
+
+    public function test_sync_bulk_operations_trims_running_config_preamble(): void
+    {
+        $bulkAdapter = Mockery::mock(NetworkSwitchInterface::class, SupportsBulkOperations::class, SupportsInterfaceOutputCapture::class);
+
+        $this->factory->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
+            ->once()
+            ->andReturn($bulkAdapter);
+
+        $bulkAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+
+        $rawConfig = "Building configuration...\n\nCurrent configuration : 121 bytes\ninterface Gi1/0/1\n switchport access vlan 100\nend";
+        $trimmedConfig = "interface Gi1/0/1\n switchport access vlan 100\nend";
+
+        $bulkAdapter->shouldReceive('getAllPortRunningConfigs')->once()->andReturn([
+            'Gi1/0/1' => $rawConfig,
+        ]);
+        $bulkAdapter->shouldReceive('getAllPortInterfaceOutputs')->once()->andReturn([]);
+        $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/1')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'config_text' => $trimmedConfig,
+        ]);
+    }
+
+    public function test_sync_bulk_operations_detects_cisco_cli_error_in_bulk_config(): void
+    {
+        $bulkAdapter = Mockery::mock(NetworkSwitchInterface::class, SupportsBulkOperations::class, SupportsInterfaceOutputCapture::class);
+
+        $this->factory->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
+            ->once()
+            ->andReturn($bulkAdapter);
+
+        $bulkAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+
+        $bulkAdapter->shouldReceive('getAllPortRunningConfigs')->once()->andReturn([
+            'Gi1/0/1' => "% Invalid input detected at '^' marker.",
+        ]);
+        $bulkAdapter->shouldReceive('getAllPortInterfaceOutputs')->once()->andReturn([]);
+        $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $this->assertSame('completed', $syncRun->status);
+
+        $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', 'Gi1/0/1')
+            ->firstOrFail();
+
+        // Error output should not be persisted as config
+        $this->assertDatabaseMissing('switch_port_configs', [
+            'switch_port_id' => $port->id,
+        ]);
+    }
+
+    public function test_sync_bulk_operations_updates_existing_config_when_changed(): void
+    {
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/1',
+        ]);
+        $originalConfig = "interface Gi1/0/1\n description Old";
+        SwitchPortConfig::factory()->create([
+            'switch_port_id' => $port->id,
+            'config_text' => $originalConfig,
+            'config_hash' => md5($originalConfig),
+            'last_fetched_at' => now()->subDay(),
+        ]);
+
+        $bulkAdapter = Mockery::mock(NetworkSwitchInterface::class, SupportsBulkOperations::class, SupportsInterfaceOutputCapture::class);
+
+        $this->factory->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
+            ->once()
+            ->andReturn($bulkAdapter);
+
+        $bulkAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+
+        $updatedConfig = "interface Gi1/0/1\n description New";
+        $bulkAdapter->shouldReceive('getAllPortRunningConfigs')->once()->andReturn([
+            'Gi1/0/1' => $updatedConfig,
+        ]);
+        $bulkAdapter->shouldReceive('getAllPortInterfaceOutputs')->once()->andReturn([]);
+        $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertDatabaseHas('switch_port_configs', [
+            'switch_port_id' => $port->id,
+            'config_text' => $updatedConfig,
+            'config_hash' => md5($updatedConfig),
+        ]);
+    }
+
+    public function test_sync_bulk_operations_only_updates_timestamp_when_config_unchanged(): void
+    {
+        $this->travelTo(now()->startOfSecond()->subMinute());
+
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/1',
+        ]);
+        $configText = "interface Gi1/0/1\n description Stable";
+        $existingConfig = SwitchPortConfig::factory()->create([
+            'switch_port_id' => $port->id,
+            'config_text' => $configText,
+            'config_hash' => md5($configText),
+            'last_fetched_at' => now(),
+        ]);
+        $originalLastFetchedAt = $existingConfig->last_fetched_at;
+
+        $this->travelTo(now()->addMinute());
+
+        $bulkAdapter = Mockery::mock(NetworkSwitchInterface::class, SupportsBulkOperations::class, SupportsInterfaceOutputCapture::class);
+
+        $this->factory->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
+            ->once()
+            ->andReturn($bulkAdapter);
+
+        $bulkAdapter->shouldReceive('getAllPorts')->once()->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+
+        $bulkAdapter->shouldReceive('getAllPortRunningConfigs')->once()->andReturn([
+            'Gi1/0/1' => $configText,
+        ]);
+        $bulkAdapter->shouldReceive('getAllPortInterfaceOutputs')->once()->andReturn([]);
+        $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $existingConfig->refresh();
+        $this->assertSame($configText, $existingConfig->config_text);
+        $this->assertTrue($existingConfig->last_fetched_at->greaterThan($originalLastFetchedAt));
+    }
+
+    public function test_sync_end_to_end_with_cisco_adapter_uses_only_three_bulk_commands(): void
+    {
+        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
+
+        // These are the only 3 bulk commands that should be executed for the entire sync
+        $transport->shouldReceive('execute')
+            ->with('show interface status')
+            ->once()
+            ->andReturn(implode("\r\n", [
+                'Port      Name               Status       Vlan       Duplex  Speed Type',
+                'Gi1/0/1   Server-1           connected    100        a-full  a-1000 10/100/1000BaseTX',
+                'Gi1/0/2   Server-2           notconnect   100        auto    auto  10/100/1000BaseTX',
+            ]));
+
+        $transport->shouldReceive('execute')
+            ->with('show running-config | section ^interface')
+            ->once()
+            ->andReturn(implode("\n", [
+                'interface GigabitEthernet1/0/1',
+                ' description Server 1',
+                ' switchport access vlan 100',
+                '!',
+                'interface GigabitEthernet1/0/2',
+                ' description Server 2',
+                ' switchport access vlan 100',
+                '!',
+            ]));
+
+        $transport->shouldReceive('execute')
+            ->with('show interface')
+            ->once()
+            ->andReturn(implode("\n", [
+                'GigabitEthernet1/0/1 is up, line protocol is up (connected)',
+                '  Hardware is Gigabit Ethernet, address is aabb.ccdd.0001',
+                'GigabitEthernet1/0/2 is down, line protocol is down (notconnect)',
+                '  Hardware is Gigabit Ethernet, address is aabb.ccdd.0002',
+            ]));
+
+        $transport->shouldReceive('execute')
+            ->with('show mac address-table')
+            ->once()
+            ->andReturn('');
+
+        // NO per-port commands should be issued
+        $transport->shouldNotReceive('execute')
+            ->with(Mockery::pattern('/^show (interface|run interface) Gi/'));
+
+        $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
+        $this->factory->shouldReceive('make')
+            ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
+            ->once()
+            ->andReturn($adapter);
+
+        $syncRun = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertSame('completed', $syncRun->status);
+        $this->assertSame(2, $syncRun->ports_created);
+        $this->assertDatabaseCount('switch_port_configs', 2);
     }
 }
