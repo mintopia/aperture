@@ -38,4 +38,12 @@ class Role extends Model
     use HasFactory;
 
     use ToString;
+
+    /**
+     * @var list<string>
+     */
+    protected $fillable = [
+        'code',
+        'name',
+    ];
 }

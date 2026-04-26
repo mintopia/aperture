@@ -67,6 +67,19 @@ class IpAddress extends Model
     protected string $stringDescriptionProperty = 'address';
 
     /**
+     * @var list<string>
+     */
+    protected $fillable = [
+        'address',
+        'internet_enabled',
+        'rate_limit_enabled',
+        'dns_filtering_enabled',
+        'comment',
+        'last_seen_at',
+        'expires_at',
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

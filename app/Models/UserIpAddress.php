@@ -40,6 +40,15 @@ class UserIpAddress extends Model
     /** @use HasFactory<Factory<self>> */
     use HasFactory;
 
+    /**
+     * @var list<string>
+     */
+    protected $fillable = [
+        'user_id',
+        'ip_address_id',
+        'last_seen_at',
+    ];
+
     protected $casts = [
         'last_seen_at' => 'datetime',
         'created_at' => 'datetime',
