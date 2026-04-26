@@ -38,7 +38,7 @@ func testServer(apiKey string) *http.Server {
 	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
 		return &mockSession{}, nil
 	}
-	h := handler.New(p, connector, &mockExecutor{}, 10*time.Second, logger)
+	h := handler.New(p, connector, &mockExecutor{}, 10*time.Second, logger, []string{"commands", "polling"})
 	return New("localhost:0", apiKey, h, logger)
 }
 

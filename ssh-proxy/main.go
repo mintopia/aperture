@@ -48,7 +48,7 @@ func main() {
 	}
 
 	// Create HTTP handlers.
-	h := handler.New(connPool, connector, executor, cfg.ConnectTimeout, logger)
+	h := handler.New(connPool, connector, executor, cfg.ConnectTimeout, logger, cfg.Channels)
 
 	// Create HTTP server.
 	srv := server.New(cfg.ListenAddr, cfg.APIKey, h, logger)
@@ -71,6 +71,7 @@ func main() {
 			"read_timeout", cfg.ReadTimeout.String(),
 			"connect_timeout", cfg.ConnectTimeout.String(),
 			"keepalive_interval", cfg.KeepaliveInterval.String(),
+			"channels", cfg.Channels,
 		)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("server error", "error", err)

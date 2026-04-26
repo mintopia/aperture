@@ -19,6 +19,7 @@ type executeRequest struct {
 	Password string        `json:"password"`
 	Commands []ssh.Command `json:"commands"`
 	Port     int           `json:"port"`
+	Channel  string        `json:"channel"`
 }
 
 // executeResponse matches the PHP API's success response shape.
@@ -54,12 +55,26 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		req.Port = 22
 	}
 
-	// Acquire a pool slot for this hostname.
-	entry, isNew, err := h.pool.Acquire(req.Hostname)
+	// Default channel to "commands".
+	if req.Channel == "" {
+		req.Channel = pool.DefaultChannel
+	}
+
+	// Validate channel name against configured channels.
+	if !h.IsValidChannel(req.Channel) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": fmt.Sprintf("Invalid channel: %s", req.Channel),
+		})
+		return
+	}
+
+	// Acquire a pool slot for this hostname+channel.
+	entry, isNew, err := h.pool.Acquire(req.Hostname, req.Channel)
 	if err != nil {
 		if errors.Is(err, pool.ErrHostLocked) {
 			h.logger.Warn("host is locked",
 				"hostname", req.Hostname,
+				"channel", req.Channel,
 				"request_id", requestID,
 			)
 			writeJSON(w, http.StatusConflict, map[string]string{
@@ -83,6 +98,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		h.logger.Info("connecting to host",
 			"hostname", req.Hostname,
 			"port", req.Port,
+			"channel", req.Channel,
 			"request_id", requestID,
 		)
 
@@ -91,11 +107,12 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error("SSH connection failed",
 				"hostname", req.Hostname,
 				"port", req.Port,
+				"channel", req.Channel,
 				"error", connErr,
 				"request_id", requestID,
 			)
 			// Clean up the placeholder entry.
-			h.pool.Remove(req.Hostname)
+			h.pool.Remove(req.Hostname, req.Channel)
 			writeJSON(w, http.StatusInternalServerError, executeResponse{
 				Success: false,
 				Output:  make([]ssh.CommandOutput, 0),
@@ -104,11 +121,12 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.pool.SetConnection(req.Hostname, conn)
+		h.pool.SetConnection(req.Hostname, req.Channel, conn)
 		session = conn
 		h.logger.Info("connected to host",
 			"hostname", req.Hostname,
 			"port", req.Port,
+			"channel", req.Channel,
 			"request_id", requestID,
 		)
 	} else {
@@ -119,9 +137,10 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		if !ok || session == nil {
 			h.logger.Error("pooled connection is not a valid session",
 				"hostname", req.Hostname,
+				"channel", req.Channel,
 				"request_id", requestID,
 			)
-			h.pool.Remove(req.Hostname)
+			h.pool.Remove(req.Hostname, req.Channel)
 			writeJSON(w, http.StatusInternalServerError, executeResponse{
 				Success: false,
 				Output:  make([]ssh.CommandOutput, 0),
@@ -131,15 +150,17 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		}
 		h.logger.Debug("reusing pooled connection",
 			"hostname", req.Hostname,
+			"channel", req.Channel,
 			"request_id", requestID,
 		)
 	}
 
 	// Execute commands — always release the lock afterwards.
-	defer h.pool.Release(req.Hostname)
+	defer h.pool.Release(req.Hostname, req.Channel)
 
 	h.logger.Info("executing commands",
 		"hostname", req.Hostname,
+		"channel", req.Channel,
 		"command_count", len(req.Commands),
 		"commands_summary", commandsSummary(req.Commands),
 		"request_id", requestID,
@@ -152,6 +173,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 	// Build log attributes for the "commands executed" line.
 	logAttrs := []any{
 		"hostname", req.Hostname,
+		"channel", req.Channel,
 		"success", result.Success,
 		"duration_ms", execDuration.Milliseconds(),
 		"request_id", requestID,

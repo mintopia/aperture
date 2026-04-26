@@ -20,6 +20,7 @@ func TestLoad_Defaults(t *testing.T) {
 		"SSH_PROXY_CONNECT_TIMEOUT",
 		"SSH_PROXY_KEEPALIVE_INTERVAL",
 		"SSH_PROXY_LOG_LEVEL",
+		"SSH_PROXY_CHANNELS",
 	}
 	for _, v := range envVars {
 		os.Unsetenv(v)
@@ -53,6 +54,9 @@ func TestLoad_Defaults(t *testing.T) {
 	}
 	if cfg.LogLevel != "info" {
 		t.Errorf("expected log level 'info', got %q", cfg.LogLevel)
+	}
+	if len(cfg.Channels) != 2 || cfg.Channels[0] != "commands" || cfg.Channels[1] != "polling" {
+		t.Errorf("expected default channels [commands, polling], got %v", cfg.Channels)
 	}
 }
 
@@ -150,5 +154,69 @@ func TestConfig_SlogLevel(t *testing.T) {
 				t.Errorf("SlogLevel(%q) = %v, want %v", tt.level, got, tt.expected)
 			}
 		})
+	}
+}
+
+func TestLoad_ChannelsEnvOverride(t *testing.T) {
+	t.Setenv("SSH_PROXY_CHANNELS", "commands,polling,monitoring")
+
+	cfg := Load()
+
+	if len(cfg.Channels) != 3 {
+		t.Fatalf("expected 3 channels, got %d: %v", len(cfg.Channels), cfg.Channels)
+	}
+	expected := []string{"commands", "polling", "monitoring"}
+	for i, ch := range expected {
+		if cfg.Channels[i] != ch {
+			t.Errorf("expected channel[%d] = %q, got %q", i, ch, cfg.Channels[i])
+		}
+	}
+}
+
+func TestLoad_ChannelsEnvWithSpaces(t *testing.T) {
+	t.Setenv("SSH_PROXY_CHANNELS", " commands , polling , monitoring ")
+
+	cfg := Load()
+
+	if len(cfg.Channels) != 3 {
+		t.Fatalf("expected 3 channels, got %d: %v", len(cfg.Channels), cfg.Channels)
+	}
+	expected := []string{"commands", "polling", "monitoring"}
+	for i, ch := range expected {
+		if cfg.Channels[i] != ch {
+			t.Errorf("expected channel[%d] = %q, got %q", i, ch, cfg.Channels[i])
+		}
+	}
+}
+
+func TestLoad_ChannelsEnvEmpty(t *testing.T) {
+	t.Setenv("SSH_PROXY_CHANNELS", "")
+
+	cfg := Load()
+
+	// Should fall back to defaults
+	if len(cfg.Channels) != 2 || cfg.Channels[0] != "commands" || cfg.Channels[1] != "polling" {
+		t.Errorf("expected default channels on empty env, got %v", cfg.Channels)
+	}
+}
+
+func TestLoad_ChannelsEnvOnlyCommas(t *testing.T) {
+	t.Setenv("SSH_PROXY_CHANNELS", ",,")
+
+	cfg := Load()
+
+	// Should fall back to defaults since no valid channel names
+	if len(cfg.Channels) != 2 || cfg.Channels[0] != "commands" || cfg.Channels[1] != "polling" {
+		t.Errorf("expected default channels on commas-only env, got %v", cfg.Channels)
+	}
+}
+
+func TestLoad_ChannelsSingleChannel(t *testing.T) {
+	t.Setenv("SSH_PROXY_CHANNELS", "commands")
+
+	cfg := Load()
+
+	if len(cfg.Channels) != 1 || cfg.Channels[0] != "commands" {
+		t.Errorf("expected single channel [commands], got %v", cfg.Channels)
 	}
 }

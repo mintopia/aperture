@@ -20,6 +20,7 @@ type Config struct {
 	ConnectTimeout    time.Duration
 	KeepaliveInterval time.Duration
 	LogLevel          string
+	Channels          []string
 }
 
 // Load reads configuration from environment variables, applying defaults
@@ -35,7 +36,28 @@ func Load() Config {
 		ConnectTimeout:    getDurationEnv("SSH_PROXY_CONNECT_TIMEOUT", 10),
 		KeepaliveInterval: getDurationEnv("SSH_PROXY_KEEPALIVE_INTERVAL", 30),
 		LogLevel:          strings.ToLower(getEnv("SSH_PROXY_LOG_LEVEL", "info")),
+		Channels:          getChannelsEnv(),
 	}
+}
+
+// getChannelsEnv reads the allowed channel names from SSH_PROXY_CHANNELS.
+// Returns the default channels (commands, polling) if not set.
+func getChannelsEnv() []string {
+	val := os.Getenv("SSH_PROXY_CHANNELS")
+	if val == "" {
+		return []string{"commands", "polling"}
+	}
+	channels := make([]string, 0)
+	for _, ch := range strings.Split(val, ",") {
+		trimmed := strings.TrimSpace(ch)
+		if trimmed != "" {
+			channels = append(channels, trimmed)
+		}
+	}
+	if len(channels) == 0 {
+		return []string{"commands", "polling"}
+	}
+	return channels
 }
 
 func getAPIKeyEnv() string {

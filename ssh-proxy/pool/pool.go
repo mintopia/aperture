@@ -1,16 +1,20 @@
-// Package pool provides a thread-safe SSH connection pool keyed by hostname.
-// Connections are acquired with exclusive locking per hostname and
-// automatically swept when idle or dead.
+// Package pool provides a thread-safe SSH connection pool keyed by
+// hostname and channel. Connections are acquired with exclusive locking
+// per hostname+channel pair and automatically swept when idle or dead.
 package pool
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
 )
 
-// ErrHostLocked is returned when a hostname is already locked by another request.
+// DefaultChannel is the channel used when no channel is specified.
+const DefaultChannel = "commands"
+
+// ErrHostLocked is returned when a hostname+channel is already locked by another request.
 var ErrHostLocked = errors.New("host is currently locked by another request")
 
 // KeepaliveChecker is implemented by connections that support SSH keepalive.
@@ -19,26 +23,28 @@ type KeepaliveChecker interface {
 	SendKeepalive() error
 }
 
-// Entry represents a pooled connection for a single hostname.
+// Entry represents a pooled connection for a single hostname+channel pair.
 type Entry struct {
 	Hostname      string
+	Channel       string
 	Conn          io.Closer
 	CreatedAt     time.Time
 	LastUsed      time.Time
 	Locked        bool
 	Dead          bool
-	keepaliveStop chan struct{} // closed to stop the keepalive goroutine
+	keepaliveStop chan struct{}
 }
 
 // ConnectionInfo describes a pooled connection's current state for status reporting.
 type ConnectionInfo struct {
 	Hostname           string `json:"hostname"`
+	Channel            string `json:"channel"`
 	ConnectedSeconds   int    `json:"connected_seconds"`
 	LastUsedSecondsAgo int    `json:"last_used_seconds_ago"`
 	Locked             bool   `json:"locked"`
 }
 
-// Pool manages SSH connections keyed by hostname with mutual exclusion.
+// Pool manages SSH connections keyed by hostname+channel with mutual exclusion.
 // All methods are safe for concurrent use.
 type Pool struct {
 	mu                sync.Mutex
@@ -46,6 +52,11 @@ type Pool struct {
 	idleTimeout       time.Duration
 	keepaliveInterval time.Duration
 	startedAt         time.Time
+}
+
+// PoolKey returns the composite key for a hostname+channel pair.
+func PoolKey(hostname, channel string) string {
+	return fmt.Sprintf("%s:%s", hostname, channel)
 }
 
 // New creates a connection pool that evicts idle connections after idleTimeout.
@@ -71,25 +82,24 @@ func NewWithKeepalive(idleTimeout, keepaliveInterval time.Duration) *Pool {
 	}
 }
 
-// Acquire obtains or creates a pool entry for the given hostname.
-// If the hostname is already locked, returns ErrHostLocked.
+// Acquire obtains or creates a pool entry for the given hostname and channel.
+// If the hostname+channel is already locked, returns ErrHostLocked.
 // Dead entries are evicted and treated as new (requiring a fresh connection).
 // Returns the entry, whether it is new (needs a connection), and any error.
 // The returned entry is always locked — the caller must call Release when done.
-func (p *Pool) Acquire(hostname string) (*Entry, bool, error) {
+func (p *Pool) Acquire(hostname, channel string) (*Entry, bool, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	entry, exists := p.entries[hostname]
+	key := PoolKey(hostname, channel)
+	entry, exists := p.entries[key]
 	if exists {
-		// Evict dead entries — connection is no longer usable.
 		if entry.Dead {
 			p.stopKeepaliveLocked(entry)
 			if entry.Conn != nil {
 				entry.Conn.Close()
 			}
-			delete(p.entries, hostname)
-			// Fall through to create a new entry.
+			delete(p.entries, key)
 		} else {
 			if entry.Locked {
 				return nil, false, ErrHostLocked
@@ -100,23 +110,24 @@ func (p *Pool) Acquire(hostname string) (*Entry, bool, error) {
 		}
 	}
 
-	// Create a placeholder entry — the caller will establish the SSH connection.
 	entry = &Entry{
 		Hostname:  hostname,
+		Channel:   channel,
 		Locked:    true,
 		CreatedAt: time.Now(),
 		LastUsed:  time.Now(),
 	}
-	p.entries[hostname] = entry
+	p.entries[key] = entry
 	return entry, true, nil
 }
 
-// Release unlocks the entry for the given hostname.
-func (p *Pool) Release(hostname string) {
+// Release unlocks the entry for the given hostname and channel.
+func (p *Pool) Release(hostname, channel string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if entry, ok := p.entries[hostname]; ok {
+	key := PoolKey(hostname, channel)
+	if entry, ok := p.entries[key]; ok {
 		entry.Locked = false
 	}
 }
@@ -124,39 +135,40 @@ func (p *Pool) Release(hostname string) {
 // SetConnection stores the SSH connection on an existing entry.
 // If the pool has a keepalive interval configured and the connection
 // implements KeepaliveChecker, a keepalive goroutine is started.
-func (p *Pool) SetConnection(hostname string, conn io.Closer) {
+func (p *Pool) SetConnection(hostname, channel string, conn io.Closer) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	entry, ok := p.entries[hostname]
+	key := PoolKey(hostname, channel)
+	entry, ok := p.entries[key]
 	if !ok {
 		return
 	}
 
 	entry.Conn = conn
 
-	// Start keepalive goroutine if configured and connection supports it.
 	if p.keepaliveInterval > 0 {
 		if checker, ok := conn.(KeepaliveChecker); ok {
 			stopCh := make(chan struct{})
 			entry.keepaliveStop = stopCh
-			go p.keepaliveLoop(hostname, checker, stopCh)
+			go p.keepaliveLoop(key, checker, stopCh)
 		}
 	}
 }
 
-// Remove closes and removes the entry for the given hostname,
+// Remove closes and removes the entry for the given hostname and channel,
 // stopping its keepalive goroutine if one is running.
-func (p *Pool) Remove(hostname string) {
+func (p *Pool) Remove(hostname, channel string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if entry, ok := p.entries[hostname]; ok {
+	key := PoolKey(hostname, channel)
+	if entry, ok := p.entries[key]; ok {
 		p.stopKeepaliveLocked(entry)
 		if entry.Conn != nil {
 			entry.Conn.Close()
 		}
-		delete(p.entries, hostname)
+		delete(p.entries, key)
 	}
 }
 
@@ -169,7 +181,7 @@ func (p *Pool) SweepIdle() int {
 
 	removed := 0
 	now := time.Now()
-	for hostname, entry := range p.entries {
+	for key, entry := range p.entries {
 		if entry.Locked {
 			continue
 		}
@@ -179,7 +191,7 @@ func (p *Pool) SweepIdle() int {
 			if entry.Conn != nil {
 				entry.Conn.Close()
 			}
-			delete(p.entries, hostname)
+			delete(p.entries, key)
 			removed++
 		}
 	}
@@ -197,6 +209,7 @@ func (p *Pool) Status() (int, []ConnectionInfo) {
 	for _, entry := range p.entries {
 		infos = append(infos, ConnectionInfo{
 			Hostname:           entry.Hostname,
+			Channel:            entry.Channel,
 			ConnectedSeconds:   int(now.Sub(entry.CreatedAt).Seconds()),
 			LastUsedSecondsAgo: int(now.Sub(entry.LastUsed).Seconds()),
 			Locked:             entry.Locked,
@@ -211,12 +224,12 @@ func (p *Pool) DisconnectAll() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	for hostname, entry := range p.entries {
+	for key, entry := range p.entries {
 		p.stopKeepaliveLocked(entry)
 		if entry.Conn != nil {
 			entry.Conn.Close()
 		}
-		delete(p.entries, hostname)
+		delete(p.entries, key)
 	}
 }
 
@@ -231,7 +244,7 @@ func (p *Pool) stopKeepaliveLocked(entry *Entry) {
 
 // keepaliveLoop sends periodic keepalive requests to detect dead connections.
 // It marks the entry as Dead if a keepalive fails.
-func (p *Pool) keepaliveLoop(hostname string, checker KeepaliveChecker, stopCh chan struct{}) {
+func (p *Pool) keepaliveLoop(key string, checker KeepaliveChecker, stopCh chan struct{}) {
 	ticker := time.NewTicker(p.keepaliveInterval)
 	defer ticker.Stop()
 
@@ -242,7 +255,7 @@ func (p *Pool) keepaliveLoop(hostname string, checker KeepaliveChecker, stopCh c
 		case <-ticker.C:
 			if err := checker.SendKeepalive(); err != nil {
 				p.mu.Lock()
-				if entry, ok := p.entries[hostname]; ok {
+				if entry, ok := p.entries[key]; ok {
 					entry.Dead = true
 				}
 				p.mu.Unlock()

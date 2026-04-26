@@ -40,6 +40,7 @@ type Handler struct {
 	connectTimeout time.Duration
 	logger         *slog.Logger
 	startTime      time.Time
+	channels       map[string]bool
 }
 
 // New creates a Handler with the given dependencies.
@@ -49,7 +50,12 @@ func New(
 	executor CommandExecutor,
 	connectTimeout time.Duration,
 	logger *slog.Logger,
+	channels []string,
 ) *Handler {
+	channelSet := make(map[string]bool, len(channels))
+	for _, ch := range channels {
+		channelSet[ch] = true
+	}
 	return &Handler{
 		pool:           p,
 		connector:      connector,
@@ -57,7 +63,13 @@ func New(
 		connectTimeout: connectTimeout,
 		logger:         logger,
 		startTime:      time.Now(),
+		channels:       channelSet,
 	}
+}
+
+// IsValidChannel reports whether the given channel name is allowed.
+func (h *Handler) IsValidChannel(channel string) bool {
+	return h.channels[channel]
 }
 
 // GenerateRequestID creates a short random request ID (8 hex characters).
