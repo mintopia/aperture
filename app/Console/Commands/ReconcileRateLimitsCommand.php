@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\Interfaces\FirewallBackendInterface;
+use App\Services\Interfaces\RateLimitingInterface;
 use Illuminate\Console\Command;
 
 class ReconcileRateLimitsCommand extends Command
@@ -26,10 +26,10 @@ class ReconcileRateLimitsCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(FirewallBackendInterface $firewall): int
+    public function handle(RateLimitingInterface $rateLimiter): int
     {
         $dryRun = $this->option('dry-run');
-        $result = $firewall->reconcileRateLimits((bool) $dryRun);
+        $result = $rateLimiter->reconcile((bool) $dryRun);
 
         if ($dryRun) {
             $this->info('[DRY RUN] No changes applied.');
