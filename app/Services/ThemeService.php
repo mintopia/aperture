@@ -11,6 +11,10 @@ class ThemeService
     /** @var array<string, mixed>|null */
     private ?array $cached = null;
 
+    public function __construct(
+        private readonly LogoService $logoService,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -27,6 +31,9 @@ class ThemeService
             'accent_lightness' => (int) Setting::get('theme.accent_lightness', config('aperture.theme.accent_lightness')),
             'custom_css' => Setting::get('theme.custom_css'),
             'site_title' => (string) Setting::get('general.site_title', config('app.name', 'Aperture')),
+            'has_site_logo' => $this->logoService->exists(),
+            'site_logo_url' => $this->logoService->url(),
+            'favicon_urls' => $this->logoService->faviconUrls(),
         ];
 
         return $this->cached;

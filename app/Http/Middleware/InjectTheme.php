@@ -30,6 +30,9 @@ class InjectTheme
         View::share('accentChroma', $theme['accent_chroma']);
         View::share('accentLightness', $theme['accent_lightness']);
         View::share('customCss', $theme['custom_css']);
+        View::share('siteLogoUrl', $theme['site_logo_url']);
+        View::share('hasSiteLogo', $theme['has_site_logo']);
+        View::share('faviconUrls', $theme['favicon_urls']);
 
         return $next($request);
     }
