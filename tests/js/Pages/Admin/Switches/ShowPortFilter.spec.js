@@ -29,6 +29,8 @@ vi.mock('@/utils/switches', () => ({
     formatVlan: vi.fn((vlan) => (vlan == null ? '—' : String(vlan))),
 }));
 
+globalThis.route = (...args) => `/mocked/${args[0]}`;
+
 const mockPorts = [
     {
         id: 1,
@@ -97,6 +99,7 @@ function mountShow(propsOverride = {}) {
             stubs: {
                 AdminLayout: { template: '<div><slot /></div>' },
                 MetadataStrip: { template: '<div />', props: ['items'] },
+                SwitchPortGrid: { template: '<div />', props: ['ports', 'switchId'] },
                 teleport: true,
             },
         },

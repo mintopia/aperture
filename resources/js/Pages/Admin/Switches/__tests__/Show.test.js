@@ -67,7 +67,7 @@ const defaultProps = {
 };
 
 const globalConfig = {
-    stubs: ['AdminLayout', 'MetadataStrip', 'DataTable', 'ConfigBlock', 'Link'],
+    stubs: ['AdminLayout', 'MetadataStrip', 'DataTable', 'ConfigBlock', 'SwitchPortGrid', 'Link'],
     config: {
         globalProperties: {
             route: routeMock,

@@ -7,6 +7,7 @@ import DataTable from '@/Components/UI/DataTable.vue';
 import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import { formatRelative, formatDate } from '@/utils/dates';
 import { typeLabel, statusLabel, formatSpeed, formatVlan } from '@/utils/switches';
+import SwitchPortGrid from '@/Components/Admin/SwitchPortGrid.vue';
 import { useAdminChannel } from '@/composables/useAdminChannel';
 
 function statusDotClass(type) {
@@ -327,6 +328,17 @@ useAdminChannel({
             >
                 {{ latestSync.error }}
             </p>
+        </section>
+
+        <!-- Port Grid Overview -->
+        <section v-if="ports.length > 0" data-testid="switch-port-grid-section" class="mb-8">
+            <h2
+                class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                :style="{ fontVariationSettings: '\'opsz\' 16' }"
+            >
+                Port Overview
+            </h2>
+            <SwitchPortGrid :ports="ports" :switch-id="switchConfig.id" />
         </section>
 
         <section data-testid="switch-ports-card">
