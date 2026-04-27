@@ -31,6 +31,8 @@ class Kernel extends ConsoleKernel
                 SyncSwitchPortsJob::dispatch($switch);
             });
         })->cron(sprintf('*/%d * * * *', $interval))->name('sync-switch-ports')->onOneServer();
+
+        $schedule->command('events:prune')->daily()->onOneServer();
     }
 
     /**
