@@ -18,6 +18,8 @@ class LogoService
         ['size' => '180', 'file' => 'apple-touch-icon.png'],
     ];
 
+    private ?bool $existsCache = null;
+
     public function store(UploadedFile $file): void
     {
         $disk = Storage::disk('public');
@@ -43,6 +45,7 @@ class LogoService
         imagedestroy($image);
 
         Setting::set('general.site_logo', 'Site Logo', 'true');
+        $this->existsCache = true;
     }
 
     public function delete(): void
@@ -56,12 +59,19 @@ class LogoService
 
         $setting = Setting::whereCode('general.site_logo')->first();
         $setting?->delete();
+        $this->existsCache = false;
     }
 
     public function exists(): bool
     {
-        return Setting::get('general.site_logo') === 'true'
+        if ($this->existsCache !== null) {
+            return $this->existsCache;
+        }
+
+        $this->existsCache = Setting::get('general.site_logo') === 'true'
             && Storage::disk('public')->exists(self::BRANDING_DIR.'/logo.png');
+
+        return $this->existsCache;
     }
 
     public function url(): ?string
@@ -106,7 +116,7 @@ class LogoService
             'image/png' => imagecreatefrompng($path),
             'image/jpeg' => imagecreatefromjpeg($path),
             'image/webp' => imagecreatefromwebp($path),
-            default => imagecreatefrompng($path),
+            default => throw new \RuntimeException("Unsupported image type: {$mime}"),
         };
 
         if ($image === false) {
