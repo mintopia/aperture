@@ -23,9 +23,13 @@
             </div>
         @else
             {{-- Logo mark --}}
-            <div class="mx-auto mb-4 inline-flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-primary)]">
-                <span class="font-heading text-lg font-extrabold tracking-tight text-[var(--color-bg)]">A</span>
-            </div>
+            @if($hasSiteLogo ?? false)
+                <img src="{{ $siteLogoUrl }}" alt="{{ $siteTitle }}" class="mx-auto mb-4 h-10 w-10 rounded-[10px]" data-testid="captive-logo-image">
+            @else
+                <div class="mx-auto mb-4 inline-flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-primary)]">
+                    <span class="font-heading text-lg font-extrabold tracking-tight text-[var(--color-bg)]">A</span>
+                </div>
+            @endif
 
             <h1 class="font-heading text-2xl font-bold tracking-tight" style="font-variation-settings: 'opsz' 32;">Connect to Network</h1>
             <p class="mt-1.5 text-sm text-[var(--color-text-secondary)]">Scan the QR code or enter the code below</p>

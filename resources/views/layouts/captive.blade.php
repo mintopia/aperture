@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $siteTitle }} - @yield('title', 'Connect')</title>
+    @if($hasSiteLogo ?? false)
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ $faviconUrls['32'] }}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ $faviconUrls['16'] }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ $faviconUrls['180'] }}">
+    @endif
     @vite(['resources/css/app.css'])
     @php
         $hue = $accentHue ?? 55;
