@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onBeforeUnmount } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import { useTheme } from '@/composables/useTheme.js';
 import { ACCENT_PRESETS, applyAccentColor } from '@/composables/useAccentColor.js';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
@@ -25,6 +25,31 @@ const form = useForm({
     accent_lightness: props.settings?.accent_lightness ?? 72,
     custom_css: props.settings?.custom_css ?? '',
 });
+
+const logoError = ref(null);
+
+function onLogoSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    logoError.value = null;
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    router.post(route('admin.content.settings.logo.update'), formData, {
+        preserveScroll: true,
+        onError: (errors) => {
+            logoError.value = errors.logo || 'Upload failed';
+        },
+    });
+}
+
+function removeLogo() {
+    router.delete(route('admin.content.settings.logo.delete'), {
+        preserveScroll: true,
+    });
+}
 
 const { previewMode, cancelPreview } = useTheme();
 
@@ -120,6 +145,40 @@ onBeforeUnmount(() => {
                 <p class="mt-1 text-[11px] text-[var(--color-text-muted)]">
                     Displayed in the portal header and browser tab
                 </p>
+            </FormField>
+
+            <FormField label="Site Logo" name="logo" :error="logoError">
+                <div class="flex items-center gap-4">
+                    <img
+                        v-if="props.settings?.site_logo_url"
+                        :src="props.settings.site_logo_url"
+                        alt="Current logo"
+                        class="h-16 w-16 rounded-lg border border-[var(--color-border)]"
+                        data-testid="logo-preview"
+                    />
+                    <div class="space-y-2">
+                        <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            data-testid="input-logo"
+                            class="text-[13px] text-[var(--color-text-secondary)]"
+                            @change="onLogoSelected"
+                        />
+                        <p class="text-[11px] text-[var(--color-text-muted)]">
+                            Square image, min 64&times;64, max 2 MB. Used as favicon and logo on user-facing pages.
+                        </p>
+                    </div>
+                </div>
+                <div v-if="props.settings?.site_logo_url" class="mt-2">
+                    <button
+                        type="button"
+                        data-testid="action-remove-logo"
+                        class="text-[13px] text-[var(--color-danger)] hover:underline"
+                        @click="removeLogo"
+                    >
+                        Remove logo
+                    </button>
+                </div>
             </FormField>
 
             <FormField label="Accent Color" name="accent_hue">

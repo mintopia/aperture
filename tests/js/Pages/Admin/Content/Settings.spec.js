@@ -11,6 +11,7 @@ vi.mock('@inertiajs/vue3', () => ({
     })),
     Link: { template: '<a><slot /></a>' },
     usePage: () => ({ url: '/admin/content/settings' }),
+    router: { post: vi.fn(), delete: vi.fn() },
 }));
 
 vi.mock('@/composables/useTheme.js', () => ({
@@ -213,5 +214,36 @@ describe('Admin Content Settings page', () => {
         const wrapper = mountPage();
         const sliderContainer = wrapper.find('[data-testid="accent-hue-slider"]').element.closest('.max-w-sm');
         expect(sliderContainer).not.toBeNull();
+    });
+
+    it('renders logo upload input', () => {
+        const wrapper = mountPage();
+        expect(wrapper.find('[data-testid="input-logo"]').exists()).toBe(true);
+    });
+
+    it('shows current logo preview when site_logo_url is set', () => {
+        const wrapper = mountPage({ site_logo_url: '/storage/branding/logo.png?v=123' });
+        expect(wrapper.find('[data-testid="logo-preview"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="logo-preview"]').attributes('src')).toBe('/storage/branding/logo.png?v=123');
+    });
+
+    it('does not show logo preview when no logo', () => {
+        const wrapper = mountPage({ site_logo_url: null });
+        expect(wrapper.find('[data-testid="logo-preview"]').exists()).toBe(false);
+    });
+
+    it('shows remove logo button when logo exists', () => {
+        const wrapper = mountPage({ site_logo_url: '/storage/branding/logo.png?v=123' });
+        expect(wrapper.find('[data-testid="action-remove-logo"]').exists()).toBe(true);
+    });
+
+    it('does not show remove button when no logo', () => {
+        const wrapper = mountPage({ site_logo_url: null });
+        expect(wrapper.find('[data-testid="action-remove-logo"]').exists()).toBe(false);
+    });
+
+    it('shows upload help text', () => {
+        const wrapper = mountPage();
+        expect(wrapper.text()).toContain('Square image');
     });
 });
