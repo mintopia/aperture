@@ -8,12 +8,20 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateGeneralSettingsRequest;
 use App\Models\Page;
 use App\Models\Setting;
+use App\Services\LogoService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rules\File;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class GeneralSettingsController extends Controller
 {
+    public function __construct(
+        private readonly LogoService $logoService,
+    ) {}
+
     public function show(): Response
     {
         return Inertia::render('Admin/Content/Settings', [
@@ -28,6 +36,7 @@ class GeneralSettingsController extends Controller
                 'accent_chroma' => (float) Setting::get('theme.accent_chroma', config('aperture.theme.accent_chroma')),
                 'accent_lightness' => (int) Setting::get('theme.accent_lightness', config('aperture.theme.accent_lightness')),
                 'custom_css' => Setting::get('theme.custom_css'),
+                'site_logo_url' => $this->logoService->url(),
             ],
             'pages' => Page::orderBy('title')->get(),
             'breadcrumbs' => [
@@ -55,5 +64,44 @@ class GeneralSettingsController extends Controller
         Setting::set('theme.custom_css', 'Custom CSS', $validated['custom_css'] ?? null);
 
         return back()->with('success', 'Settings updated.');
+    }
+
+    public function updateLogo(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'logo' => [
+                'required',
+                File::image()->types(['png', 'jpg', 'jpeg', 'webp'])->max(2048),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! $value instanceof UploadedFile) {
+                        return;
+                    }
+                    $size = @getimagesize($value->getRealPath());
+                    if ($size === false) {
+                        $fail('The logo must be a valid image.');
+
+                        return;
+                    }
+                    [$width, $height] = $size;
+                    if ($width !== $height) {
+                        $fail('The logo must be square (1:1 aspect ratio).');
+                    }
+                    if ($width < 64 || $height < 64) {
+                        $fail('The logo must be at least 64x64 pixels.');
+                    }
+                },
+            ],
+        ]);
+
+        $this->logoService->store($request->file('logo'));
+
+        return back()->with('success', 'Logo uploaded.');
+    }
+
+    public function deleteLogo(): RedirectResponse
+    {
+        $this->logoService->delete();
+
+        return back()->with('success', 'Logo removed.');
     }
 }

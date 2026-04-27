@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DhcpController;
 use App\Http\Controllers\Admin\DnsDetectionSettingsController;
+use App\Http\Controllers\Admin\EventController;
 use App\Http\Controllers\Admin\GeneralSettingsController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\IntegrationController;
@@ -117,12 +118,17 @@ Route::middleware(['auth'])->group(function () {
         // Audit Log
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
 
+        // Event Feed
+        Route::get('/events', [EventController::class, 'index'])->name('events.index');
+
         // Content blocks
         Route::put('/content/layout', [ContentController::class, 'updateLayout'])->name('content.layout.update');
 
         // Content settings (must be before content resource to avoid {content} wildcard conflict)
         Route::get('/content/settings', [GeneralSettingsController::class, 'show'])->name('content.settings');
         Route::put('/content/settings', [GeneralSettingsController::class, 'update'])->name('content.settings.update');
+        Route::post('/content/settings/logo', [GeneralSettingsController::class, 'updateLogo'])->name('content.settings.logo.update');
+        Route::delete('/content/settings/logo', [GeneralSettingsController::class, 'deleteLogo'])->name('content.settings.logo.delete');
 
         Route::resource('content', ContentController::class)->except(['create', 'edit', 'show']);
 
