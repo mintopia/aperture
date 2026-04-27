@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Models\SwitchConfig;
+use App\Models\SwitchPort;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -50,6 +51,12 @@ class SwitchPortActionJob implements ShouldQueue
             'shutdown' => $adapter->shutdownPort($this->portId),
             'enable' => $adapter->enablePort($this->portId),
         };
+
+        $newAdminStatus = $this->action === 'shutdown' ? 'down' : 'up';
+
+        SwitchPort::where('switch_config_id', $this->switchConfig->id)
+            ->where('port_name', $this->portId)
+            ->update(['admin_status' => $newAdminStatus]);
     }
 
     public function failed(Throwable $exception): void
