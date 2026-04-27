@@ -41,3 +41,15 @@ test.describe('Settings Pages (S8)', () => {
         await expect(page.getByTestId('form-field-opnsense_endpoint')).toBeVisible();
     });
 });
+
+test.describe('Logo Upload', () => {
+    test('settings page has logo upload input', async ({ page }) => {
+        await page.goto('/admin/content/settings');
+        await expect(page.getByTestId('input-logo')).toBeVisible();
+    });
+
+    test('settings page shows help text for logo', async ({ page }) => {
+        await page.goto('/admin/content/settings');
+        await expect(page.getByText('Square image')).toBeVisible();
+    });
+});

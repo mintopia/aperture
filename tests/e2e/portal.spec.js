@@ -16,4 +16,9 @@ test.describe('Portal Dashboard (S3)', () => {
         await page.goto('/portal');
         await expect(page.getByTestId('portal-layout')).toBeVisible();
     });
+
+    test('portal renders app logo', async ({ page }) => {
+        await page.goto('/portal');
+        await expect(page.getByTestId('app-logo')).toBeVisible();
+    });
 });

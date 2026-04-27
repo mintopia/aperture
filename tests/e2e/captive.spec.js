@@ -20,6 +20,15 @@ test.describe('Captive Portal Login (S1)', () => {
     });
 });
 
+test.describe('Captive Portal Logo', () => {
+    test('captive portal renders default A logo mark when no custom logo', async ({ page }) => {
+        await page.goto('/captive');
+        const loginSection = page.getByTestId('captive-login');
+        await expect(loginSection).toBeVisible();
+        await expect(loginSection.locator('.font-heading').first()).toContainText('A');
+    });
+});
+
 test.describe('Activating Interstitial (S2)', () => {
     test('renders step indicators', async ({ page }) => {
         await page.goto('/captive/interstitial');
