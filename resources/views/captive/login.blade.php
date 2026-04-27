@@ -24,7 +24,7 @@
         @else
             {{-- Logo mark --}}
             @if($hasSiteLogo ?? false)
-                <img src="{{ $siteLogoUrl }}" alt="{{ $siteTitle }}" class="mx-auto mb-4 h-10 w-10 rounded-[10px]" data-testid="captive-logo-image">
+                <img src="{{ $siteLogoUrl }}" alt="{{ $siteTitle }}" class="mx-auto mb-5 h-24 w-24 rounded-xl" data-testid="captive-logo-image">
             @else
                 <div class="mx-auto mb-4 inline-flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-primary)]">
                     <span class="font-heading text-lg font-extrabold tracking-tight text-[var(--color-bg)]">A</span>

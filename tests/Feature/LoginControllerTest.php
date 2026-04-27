@@ -34,6 +34,21 @@ class LoginControllerTest extends TestCase
         $response->assertRedirect('/');
     }
 
+    public function test_authenticated_admin_is_redirected_to_admin_dashboard_from_login(): void
+    {
+        $adminRole = new Role;
+        $adminRole->code = 'admin';
+        $adminRole->name = 'Admin';
+        $adminRole->save();
+
+        $user = User::factory()->create();
+        $user->roles()->attach($adminRole);
+
+        $response = $this->actingAs($user)->get('/login');
+
+        $response->assertRedirect(route('admin.home'));
+    }
+
     public function test_user_can_login_with_email_and_password(): void
     {
         $user = User::factory()->withPassword('secret123')->create([
