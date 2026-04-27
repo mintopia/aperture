@@ -56,6 +56,15 @@ class LogoServiceTest extends TestCase
         Storage::disk('public')->assertExists('branding/logo.png');
     }
 
+    public function test_store_converts_webp_to_png(): void
+    {
+        $file = UploadedFile::fake()->image('logo.webp', 128, 128);
+
+        $this->service->store($file);
+
+        Storage::disk('public')->assertExists('branding/logo.png');
+    }
+
     public function test_store_resizes_large_image_to_max_512(): void
     {
         $file = UploadedFile::fake()->image('logo.png', 1024, 1024);
