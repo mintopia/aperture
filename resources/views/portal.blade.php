@@ -13,9 +13,13 @@
         </div>
 
         <div class="text-center">
-            <div class="mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-primary)]">
-                <span class="font-heading text-sm font-bold text-white">A</span>
-            </div>
+            @if($hasSiteLogo ?? false)
+                <img src="{{ $siteLogoUrl }}" alt="{{ $siteTitle }}" class="mx-auto mb-3 h-9 w-9 rounded-lg" data-testid="portal-logo-image">
+            @else
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-3 h-9 w-9 text-[var(--color-primary)]" aria-hidden="true" data-testid="portal-logo-icon">
+                    <circle cx="12" cy="12" r="10" /><line x1="14.31" y1="8" x2="20.05" y2="17.94" /><line x1="9.69" y1="8" x2="21.17" y2="8" /><line x1="7.38" y1="12" x2="13.12" y2="2.06" /><line x1="9.69" y1="16" x2="3.95" y2="6.06" /><line x1="14.31" y1="16" x2="2.83" y2="16" /><line x1="16.62" y1="12" x2="10.88" y2="21.94" />
+                </svg>
+            @endif
 
             <h1 class="font-heading text-xl font-bold sm:text-2xl">
                 Hi {{ Auth::user()->nickname }}!
