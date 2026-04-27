@@ -13,9 +13,9 @@ class LogoService
     private const BRANDING_DIR = 'branding';
 
     private const FAVICON_SIZES = [
-        '16' => 'favicon-16x16.png',
-        '32' => 'favicon-32x32.png',
-        '180' => 'apple-touch-icon.png',
+        ['size' => '16', 'file' => 'favicon-16x16.png'],
+        ['size' => '32', 'file' => 'favicon-32x32.png'],
+        ['size' => '180', 'file' => 'apple-touch-icon.png'],
     ];
 
     public function store(UploadedFile $file): void
@@ -33,9 +33,10 @@ class LogoService
 
         $this->savePng($image, $disk->path(self::BRANDING_DIR.'/logo.png'));
 
-        foreach (self::FAVICON_SIZES as $size => $filename) {
-            $resized = $this->resize($image, (int) $size, (int) $size);
-            $this->savePng($resized, $disk->path(self::BRANDING_DIR.'/'.$filename));
+        foreach (self::FAVICON_SIZES as $entry) {
+            $dim = (int) $entry['size'];
+            $resized = $this->resize($image, $dim, $dim);
+            $this->savePng($resized, $disk->path(self::BRANDING_DIR.'/'.$entry['file']));
             imagedestroy($resized);
         }
 
@@ -49,8 +50,8 @@ class LogoService
         $disk = Storage::disk('public');
 
         $disk->delete(self::BRANDING_DIR.'/logo.png');
-        foreach (self::FAVICON_SIZES as $filename) {
-            $disk->delete(self::BRANDING_DIR.'/'.$filename);
+        foreach (self::FAVICON_SIZES as $entry) {
+            $disk->delete(self::BRANDING_DIR.'/'.$entry['file']);
         }
 
         $setting = Setting::whereCode('general.site_logo')->first();
@@ -85,10 +86,12 @@ class LogoService
         }
 
         $urls = [];
-        foreach (self::FAVICON_SIZES as $size => $filename) {
-            $path = Storage::disk('public')->path(self::BRANDING_DIR.'/'.$filename);
+        foreach (self::FAVICON_SIZES as $entry) {
+            $path = Storage::disk('public')->path(self::BRANDING_DIR.'/'.$entry['file']);
             $version = file_exists($path) ? filemtime($path) : 0;
-            $urls[$size] = asset('storage/'.self::BRANDING_DIR.'/'.$filename).'?v='.$version;
+            /** @var string $size */
+            $size = $entry['size'];
+            $urls[$size] = asset('storage/'.self::BRANDING_DIR.'/'.$entry['file']).'?v='.$version;
         }
 
         return $urls;
@@ -113,6 +116,10 @@ class LogoService
         return $image;
     }
 
+    /**
+     * @param  positive-int  $width
+     * @param  positive-int  $height
+     */
     private function resize(\GdImage $source, int $width, int $height): \GdImage
     {
         $dest = imagecreatetruecolor($width, $height);

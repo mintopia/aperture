@@ -16,7 +16,7 @@ class ThemeServiceTest extends TestCase
         // Remove migration-seeded settings to test defaults
         Setting::whereIn('code', ['theme.name', 'theme.mode'])->delete();
 
-        $service = new ThemeService;
+        $service = app(ThemeService::class);
         $theme = $service->getTheme();
 
         $this->assertEquals(config('aperture.theme.mode'), $theme['mode']);
@@ -36,7 +36,7 @@ class ThemeServiceTest extends TestCase
         $this->saveSetting('theme.custom_css', 'Custom CSS', 'body { color: red; }');
         $this->saveSetting('general.site_title', 'Site Title', 'My App');
 
-        $service = new ThemeService;
+        $service = app(ThemeService::class);
         $theme = $service->getTheme();
 
         $this->assertEquals('light', $theme['mode']);
@@ -49,7 +49,7 @@ class ThemeServiceTest extends TestCase
 
     public function test_caches_result_on_subsequent_calls(): void
     {
-        $service = new ThemeService;
+        $service = app(ThemeService::class);
 
         $first = $service->getTheme();
         $second = $service->getTheme();
@@ -75,7 +75,7 @@ class ThemeServiceTest extends TestCase
         config(['aperture.theme.accent_chroma' => 0.25]);
         config(['aperture.theme.accent_lightness' => 80]);
 
-        $service = new ThemeService;
+        $service = app(ThemeService::class);
         $theme = $service->getTheme();
 
         $this->assertEquals('light', $theme['mode']);
@@ -89,7 +89,7 @@ class ThemeServiceTest extends TestCase
         config(['aperture.theme.mode' => 'light']);
 
         // Migration seeds theme.mode as 'dark' — DB should win
-        $service = new ThemeService;
+        $service = app(ThemeService::class);
         $theme = $service->getTheme();
 
         $this->assertEquals('dark', $theme['mode']);
