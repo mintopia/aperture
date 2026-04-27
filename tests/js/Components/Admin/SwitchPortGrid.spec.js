@@ -393,6 +393,64 @@ describe('SwitchPortGrid', () => {
         });
     });
 
+    describe('layout', () => {
+        it('uses single-row layout for fewer than 16 ports', () => {
+            const wrapper = mountGrid();
+            expect(wrapper.find('[data-testid="port-grid-dual"]').exists()).toBe(false);
+        });
+
+        it('uses dual-row layout for 16 or more ports', () => {
+            const manyPorts = Array.from({ length: 24 }, (_, i) => ({
+                id: i + 1,
+                interface: `Gi0/${i + 1}`,
+                status: 'connected',
+                admin_status: 'up',
+                speed: '1000',
+                description: null,
+            }));
+            const wrapper = mountGrid({ ports: manyPorts });
+            expect(wrapper.find('[data-testid="port-grid-dual"]').exists()).toBe(true);
+        });
+
+        it('splits odd-indexed ports to top row and even-indexed to bottom row', () => {
+            const manyPorts = Array.from({ length: 24 }, (_, i) => ({
+                id: i + 1,
+                interface: `Gi0/${i + 1}`,
+                status: 'connected',
+                admin_status: 'up',
+                speed: '1000',
+                description: null,
+            }));
+            const wrapper = mountGrid({ ports: manyPorts });
+            const rows = wrapper.findAll('[data-testid="port-grid-dual"] > .flex');
+            expect(rows.length).toBe(2);
+            expect(rows[0].findAll('a').length).toBe(12);
+            expect(rows[1].findAll('a').length).toBe(12);
+        });
+
+        it('shows first and last port labels', () => {
+            const manyPorts = Array.from({ length: 24 }, (_, i) => ({
+                id: i + 1,
+                interface: `Gi0/${i + 1}`,
+                status: 'connected',
+                admin_status: 'up',
+                speed: '1000',
+                description: null,
+            }));
+            const wrapper = mountGrid({ ports: manyPorts });
+            const text = wrapper.text();
+            expect(text).toContain('Gi0/1');
+            expect(text).toContain('Gi0/24');
+        });
+
+        it('shows labels for single-row layout with multiple ports', () => {
+            const wrapper = mountGrid();
+            const text = wrapper.text();
+            expect(text).toContain('Gi0/1');
+            expect(text).toContain('Gi0/8');
+        });
+    });
+
     describe('legend', () => {
         it('renders the legend', () => {
             const wrapper = mountGrid();

@@ -6,15 +6,14 @@ const props = defineProps({
     switchId: { type: [Number, String], required: true },
 });
 
-/**
- * Determine the grid cell color for a port based on status and speed.
- *
- * Priority:
- * 1. err-disabled -> red
- * 2. admin_status down -> grey
- * 3. notconnect / down (oper) -> dark
- * 4. connected/up + speed-based color
- */
+const useDualRow = computed(() => props.ports.length >= 16);
+
+const oddPorts = computed(() => props.ports.filter((_, i) => i % 2 === 0));
+const evenPorts = computed(() => props.ports.filter((_, i) => i % 2 === 1));
+
+const firstLabel = computed(() => props.ports[0]?.interface ?? '');
+const lastLabel = computed(() => props.ports[props.ports.length - 1]?.interface ?? '');
+
 function portColor(port) {
     if (port.status === 'err-disabled') return '#ef4444';
     if (port.admin_status === 'down') return '#6b7280';
@@ -28,10 +27,6 @@ function portColor(port) {
     return '#22c55e';
 }
 
-/**
- * Parse a speed string into a numeric Mbps value.
- * Handles: '1000', 'a-1000', '10G', 'auto', null
- */
 function parseSpeed(raw) {
     if (!raw || raw === 'auto') return 1000;
 
@@ -60,6 +55,16 @@ function portHref(port) {
     });
 }
 
+function portCell(port) {
+    return {
+        key: port.id,
+        testId: `port-cell-${port.interface}`,
+        href: portHref(port),
+        title: portTooltip(port),
+        color: portColor(port),
+    };
+}
+
 const legendItems = [
     { label: '1Gbps+', color: '#22c55e' },
     { label: '100Mbps', color: '#eab308' },
@@ -72,17 +77,56 @@ const legendItems = [
 
 <template>
     <div data-testid="switch-port-grid">
-        <div class="flex flex-wrap gap-1.5">
-            <a
-                v-for="port in ports"
-                :key="port.id"
-                :data-testid="`port-cell-${port.interface}`"
-                :href="portHref(port)"
-                :title="portTooltip(port)"
-                :style="{ backgroundColor: portColor(port) }"
-                class="block h-6 w-6 rounded-sm transition-transform duration-100 hover:scale-125 hover:ring-2 hover:ring-[var(--color-text)]/30 focus:scale-125 focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none"
-            />
-        </div>
+        <!-- Dual-row layout: odd ports top, even ports bottom -->
+        <template v-if="useDualRow">
+            <div class="inline-flex flex-col gap-1" data-testid="port-grid-dual">
+                <div class="flex gap-1">
+                    <a
+                        v-for="port in oddPorts"
+                        :key="port.id"
+                        :data-testid="`port-cell-${port.interface}`"
+                        :href="portHref(port)"
+                        :title="portTooltip(port)"
+                        :style="{ backgroundColor: portColor(port) }"
+                        class="block h-6 w-6 rounded-sm transition-transform duration-100 hover:scale-125 hover:ring-2 hover:ring-[var(--color-text)]/30 focus:scale-125 focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none"
+                    />
+                </div>
+                <div class="flex gap-1">
+                    <a
+                        v-for="port in evenPorts"
+                        :key="port.id"
+                        :data-testid="`port-cell-${port.interface}`"
+                        :href="portHref(port)"
+                        :title="portTooltip(port)"
+                        :style="{ backgroundColor: portColor(port) }"
+                        class="block h-6 w-6 rounded-sm transition-transform duration-100 hover:scale-125 hover:ring-2 hover:ring-[var(--color-text)]/30 focus:scale-125 focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none"
+                    />
+                </div>
+            </div>
+            <div class="mt-1 flex justify-between" :style="{ width: oddPorts.length * 28 - 4 + 'px' }">
+                <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ firstLabel }}</span>
+                <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ lastLabel }}</span>
+            </div>
+        </template>
+
+        <!-- Single-row layout: all ports horizontal -->
+        <template v-else>
+            <div class="inline-flex gap-1.5">
+                <a
+                    v-for="port in ports"
+                    :key="port.id"
+                    :data-testid="`port-cell-${port.interface}`"
+                    :href="portHref(port)"
+                    :title="portTooltip(port)"
+                    :style="{ backgroundColor: portColor(port) }"
+                    class="block h-6 w-6 rounded-sm transition-transform duration-100 hover:scale-125 hover:ring-2 hover:ring-[var(--color-text)]/30 focus:scale-125 focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none"
+                />
+            </div>
+            <div v-if="ports.length > 1" class="mt-1 flex justify-between" :style="{ width: ports.length * 28 - 4 + 'px' }">
+                <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ firstLabel }}</span>
+                <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ lastLabel }}</span>
+            </div>
+        </template>
 
         <!-- Legend -->
         <div data-testid="port-grid-legend" class="mt-4 flex flex-wrap items-center gap-3">

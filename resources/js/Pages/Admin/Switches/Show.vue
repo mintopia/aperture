@@ -4,7 +4,6 @@ import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
-import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import { formatRelative, formatDate } from '@/utils/dates';
 import { typeLabel, statusLabel, formatSpeed, formatVlan } from '@/utils/switches';
 import SwitchPortGrid from '@/Components/Admin/SwitchPortGrid.vue';
@@ -52,12 +51,8 @@ defineOptions({ layout: AdminLayout });
 const props = defineProps({
     switchConfig: { type: Object, default: () => ({}) },
     ports: { type: Array, default: () => [] },
-    canDownloadConfig: { type: Boolean, default: false },
     latestSync: { type: Object, default: null },
-    runningConfig: { type: String, default: null },
 });
-
-const showConfig = ref(false);
 
 const syncing = ref(false);
 const testing = ref(false);
@@ -458,40 +453,5 @@ useAdminChannel({
             </div>
         </section>
 
-        <!-- Running Config -->
-        <div v-if="canDownloadConfig" data-testid="running-config-card" class="mt-8">
-            <div class="mb-3 flex items-center justify-between">
-                <h2
-                    class="font-heading text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
-                    :style="{ fontVariationSettings: '\'opsz\' 16' }"
-                >
-                    Running Config
-                </h2>
-                <div class="flex gap-2">
-                    <button
-                        data-testid="action-toggle-config"
-                        class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-                        @click="showConfig = !showConfig"
-                    >
-                        {{ showConfig ? 'Hide Config' : 'View Running Config' }}
-                    </button>
-                    <a
-                        :href="route('admin.switches.config', switchConfig.id)"
-                        data-testid="action-download-config"
-                        class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
-                    >
-                        Download
-                    </a>
-                </div>
-            </div>
-
-            <ConfigBlock v-if="showConfig && runningConfig" :code="runningConfig" />
-            <p
-                v-else-if="showConfig && !runningConfig"
-                class="py-8 text-center text-[13px] text-[var(--color-text-muted)]"
-            >
-                No running config available. Sync the switch to retrieve its configuration.
-            </p>
-        </div>
     </div>
 </template>

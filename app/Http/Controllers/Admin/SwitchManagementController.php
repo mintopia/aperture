@@ -71,7 +71,6 @@ class SwitchManagementController extends Controller
         return Inertia::render('Admin/Switches/Show', [
             'switchConfig' => (new SwitchConfigResource($switchConfig))->toArray(request()),
             'ports' => SwitchPortResource::collection($ports)->resolve(),
-            'canDownloadConfig' => in_array($switchConfig->type, ['cisco', 'cisco_ios', 'cisco_nxos'], true),
             'latestSync' => $latestSync,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],

@@ -462,45 +462,6 @@ class SwitchManagementControllerTest extends TestCase
         );
     }
 
-    public function test_show_includes_can_download_config_true_for_cisco_ios(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create(['type' => 'cisco_ios']);
-
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id);
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->where('canDownloadConfig', true)
-        );
-    }
-
-    public function test_show_includes_can_download_config_true_for_cisco_nxos(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create(['type' => 'cisco_nxos']);
-
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id);
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->where('canDownloadConfig', true)
-        );
-    }
-
-    public function test_show_includes_can_download_config_true_for_cisco(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create(['type' => 'cisco']);
-
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id);
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->where('canDownloadConfig', true)
-        );
-    }
-
     public function test_show_maps_port_fields_correctly(): void
     {
         $admin = $this->createAdminUser();

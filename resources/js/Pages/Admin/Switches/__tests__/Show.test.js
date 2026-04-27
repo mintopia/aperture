@@ -61,13 +61,11 @@ const defaultProps = {
             poe: 'enabled',
         },
     ],
-    canDownloadConfig: false,
     latestSync: null,
-    runningConfig: null,
 };
 
 const globalConfig = {
-    stubs: ['AdminLayout', 'MetadataStrip', 'DataTable', 'ConfigBlock', 'SwitchPortGrid', 'Link'],
+    stubs: ['AdminLayout', 'MetadataStrip', 'DataTable', 'SwitchPortGrid', 'Link'],
     config: {
         globalProperties: {
             route: routeMock,
