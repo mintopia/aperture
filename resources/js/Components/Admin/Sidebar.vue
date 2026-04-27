@@ -7,6 +7,7 @@ import IpsIcon from '@/Components/Icons/IpsIcon.vue';
 import SwitchesIcon from '@/Components/Icons/SwitchesIcon.vue';
 import DhcpIcon from '@/Components/Icons/DhcpIcon.vue';
 import AuditLogIcon from '@/Components/Icons/AuditLogIcon.vue';
+import EventFeedIcon from '@/Components/Icons/EventFeedIcon.vue';
 import ContentIcon from '@/Components/Icons/ContentIcon.vue';
 import MacsIcon from '@/Components/Icons/MacsIcon.vue';
 import SettingsIcon from '@/Components/Icons/SettingsIcon.vue';
@@ -47,7 +48,10 @@ const navGroups = [
     },
     {
         label: 'SYSTEM',
-        items: [{ label: 'Audit Log', href: route('admin.audit-log.index'), icon: AuditLogIcon }],
+        items: [
+            { label: 'Audit Log', href: route('admin.audit-log.index'), icon: AuditLogIcon },
+            { label: 'Event Feed', href: route('admin.events.index'), icon: EventFeedIcon },
+        ],
     },
 ];
 
