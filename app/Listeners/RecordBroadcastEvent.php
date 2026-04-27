@@ -45,15 +45,19 @@ class RecordBroadcastEvent
 
     public function handleBroadcastEvent(ShouldBroadcast $event): void
     {
-        $type = class_basename($event);
-        $data = method_exists($event, 'broadcastWith') ? $event->broadcastWith() : [];
+        try {
+            $type = class_basename($event);
+            $data = method_exists($event, 'broadcastWith') ? $event->broadcastWith() : [];
 
-        SystemEvent::create([
-            'type' => $type,
-            'level' => self::LEVEL_MAP[$type] ?? 'info',
-            'message' => $this->formatMessage($type, $data),
-            'data' => $data ?: null,
-        ]);
+            SystemEvent::create([
+                'type' => $type,
+                'level' => self::LEVEL_MAP[$type] ?? 'info',
+                'message' => $this->formatMessage($type, $data),
+                'data' => $data ?: null,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**
