@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\ResetAperture;
 use App\Models\IpAddress;
+use App\Models\SystemEvent;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpBandwidthInterface;
@@ -29,6 +30,18 @@ class HomeController extends Controller
             'blockedUsers' => User::where('internet_blocked', true)->count(),
             'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools($dhcp)),
             'recentUsers' => Inertia::defer(fn (): LengthAwarePaginator => $this->getRecentUsers()),
+            'recentEvents' => Inertia::defer(fn (): array => SystemEvent::query()
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get()
+                ->map(fn (SystemEvent $event): array => [
+                    'id' => $event->id,
+                    'type' => $event->type,
+                    'level' => $event->level,
+                    'message' => $event->message,
+                    'created_at' => $event->created_at->toIso8601String(),
+                ])
+                ->all()),
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
                 ['label' => 'Dashboard'],

@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\IpAddress;
 use App\Models\Role;
+use App\Models\SystemEvent;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Null\NullDhcpService;
@@ -46,9 +47,11 @@ class DashboardControllerTest extends TestCase
             ->has('blockedUsers')
             ->missing('dhcpPools')
             ->missing('recentUsers')
+            ->missing('recentEvents')
             ->loadDeferredProps(fn ($reload) => $reload
                 ->has('dhcpPools')
                 ->has('recentUsers')
+                ->has('recentEvents')
             )
         );
     }
@@ -149,6 +152,24 @@ class DashboardControllerTest extends TestCase
             ->loadDeferredProps(fn ($reload) => $reload
                 ->has('recentUsers')
                 ->has('recentUsers.data', 4)
+            )
+        );
+    }
+
+    public function test_dashboard_includes_recent_events_deferred_prop(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        SystemEvent::factory()->count(15)->create();
+
+        $response = $this->actingAs($admin)->get('/admin');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Dashboard')
+            ->missing('recentEvents')
+            ->loadDeferredProps(fn ($reload) => $reload
+                ->has('recentEvents', 10)
             )
         );
     }

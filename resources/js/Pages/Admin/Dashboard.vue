@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { Deferred, Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DhcpPoolsCard from '@/Components/Admin/DhcpPoolsCard.vue';
@@ -9,6 +9,7 @@ import Pagination from '@/Components/UI/Pagination.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import StatCard from '@/Components/UI/StatCard.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
+import EventFeed from '@/Components/Admin/EventFeed.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelativeTime } from '@/utils/dates';
 import { useAdminChannel } from '@/composables/useAdminChannel';
@@ -22,6 +23,7 @@ const props = defineProps({
     blockedUsers: { type: Number, default: 0 },
     dhcpPools: { type: Array, default: undefined },
     recentUsers: { type: Object, default: undefined },
+    recentEvents: { type: Array, default: undefined },
 });
 
 const onlinePercentage = computed(() => {
@@ -113,6 +115,50 @@ function refreshDashboard() {
     });
 }
 
+const eventFeedItems = ref([]);
+
+const EVENT_FORMATTERS = {
+    UserConnected: (data) => `${data.user_name} connected from ${data.ip_address}`,
+    DeviceDiscovered: (data) => {
+        const location = data.ip_address ? ` on ${data.ip_address}` : '';
+        return `New device ${data.mac_address} discovered${location}`;
+    },
+    PortStateChanged: (data) => `Port ${data.port_name} changed to ${data.new_status}`,
+    SwitchSyncCompleted: (data) => {
+        const base = `Switch ${data.hostname} sync completed (${data.ports_updated} ports updated)`;
+        return data.errors?.length ? `${base} - ${data.errors.length} errors` : base;
+    },
+    DhcpPoolThresholdReached: (data) => `DHCP pool ${data.pool} reached ${data.usage}% utilization`,
+    InternetAccessChanged: (data) => `Internet access ${data.enabled ? 'enabled' : 'disabled'} for ${data.ip_address}`,
+    RateLimitChanged: (data) =>
+        `Rate limit changed for ${data.ip_address} from ${data.old_limit} to ${data.new_limit}`,
+    UserBlocked: (data) => `${data.user_name} blocked on ${data.ip_address}: ${data.reason}`,
+    DnsFilterChanged: (data) => `DNS filter ${data.enabled ? 'enabled' : 'disabled'} for ${data.ip_address}`,
+    SwitchUnreachable: (data) => `Switch ${data.hostname} unreachable after ${data.failure_count} failures`,
+    BandwidthAnomalyDetected: (data) => {
+        const parts = ['Bandwidth anomaly detected'];
+        if (data.ip_address) parts.push(`on ${data.ip_address}`);
+        return parts.join(' ');
+    },
+};
+
+function addEventFeedItem(type, data) {
+    const entry = {
+        id: Date.now() + Math.random(),
+        type,
+        message: EVENT_FORMATTERS[type]?.(data) ?? `${type} event received`,
+        created_at: new Date().toISOString(),
+    };
+    eventFeedItems.value = [entry, ...eventFeedItems.value].slice(0, 50);
+}
+
+function handleBroadcastEvent(eventType) {
+    return (data) => {
+        refreshDashboard();
+        addEventFeedItem(eventType, data);
+    };
+}
+
 function selectRange(range) {
     selectedRange.value = range;
     bandwidthLoading.value = true;
@@ -121,13 +167,31 @@ function selectRange(range) {
 
 useAdminChannel({
     events: {
-        UserConnected: () => refreshDashboard(),
-        DeviceDiscovered: () => refreshDashboard(),
-        DhcpPoolThresholdReached: () => refreshDashboard(),
+        UserConnected: handleBroadcastEvent('UserConnected'),
+        DeviceDiscovered: handleBroadcastEvent('DeviceDiscovered'),
+        DhcpPoolThresholdReached: handleBroadcastEvent('DhcpPoolThresholdReached'),
+        PortStateChanged: handleBroadcastEvent('PortStateChanged'),
+        SwitchSyncCompleted: handleBroadcastEvent('SwitchSyncCompleted'),
+        InternetAccessChanged: handleBroadcastEvent('InternetAccessChanged'),
+        RateLimitChanged: handleBroadcastEvent('RateLimitChanged'),
+        UserBlocked: handleBroadcastEvent('UserBlocked'),
+        DnsFilterChanged: handleBroadcastEvent('DnsFilterChanged'),
+        SwitchUnreachable: handleBroadcastEvent('SwitchUnreachable'),
+        BandwidthAnomalyDetected: handleBroadcastEvent('BandwidthAnomalyDetected'),
     },
     poll: fetchBandwidth,
     pollInterval: 30000,
 });
+
+watch(
+    () => props.recentEvents,
+    (newEvents) => {
+        if (newEvents && eventFeedItems.value.length === 0) {
+            eventFeedItems.value = [...newEvents];
+        }
+    },
+    { immediate: true },
+);
 
 onMounted(() => {
     fetchBandwidth();
@@ -345,5 +409,10 @@ onMounted(() => {
                 />
             </section>
         </Deferred>
+
+        <!-- Live Event Feed -->
+        <div class="mt-10">
+            <EventFeed :events="eventFeedItems" data-testid="event-feed" />
+        </div>
     </div>
 </template>
