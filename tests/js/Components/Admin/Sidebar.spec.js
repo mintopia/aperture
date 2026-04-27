@@ -17,6 +17,7 @@ const routeMap = {
     'admin.content.pages.index': '/admin/content/pages',
     'admin.content.settings': '/admin/content/settings',
     'admin.audit-log.index': '/admin/audit-log',
+    'admin.events.index': '/admin/events',
 };
 
 window.route = vi.fn((name) => routeMap[name] || `/${name}`);
@@ -131,7 +132,7 @@ describe('Sidebar.vue', () => {
         const wrapper = await mountSidebar();
         const groups = wrapper.findAll('aside nav section');
 
-        expect(groups[3].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual(['Audit Log']);
+        expect(groups[3].findAll('[data-testid^="nav-"]').map((item) => item.text())).toEqual(['Audit Log', 'Event Feed']);
     });
 
     it('renders all nav items with correct hrefs from named routes', async () => {
@@ -153,6 +154,7 @@ describe('Sidebar.vue', () => {
         expect(hrefsByTestId).toContainEqual(['nav-pages', '/admin/content/pages']);
         expect(hrefsByTestId).toContainEqual(['nav-settings', '/admin/content/settings']);
         expect(hrefsByTestId).toContainEqual(['nav-audit-log', '/admin/audit-log']);
+        expect(hrefsByTestId).toContainEqual(['nav-event-feed', '/admin/events']);
     });
 
     it('calls route() with correct named route identifiers', async () => {
@@ -172,13 +174,14 @@ describe('Sidebar.vue', () => {
         expect(window.route).toHaveBeenCalledWith('admin.content.pages.index');
         expect(window.route).toHaveBeenCalledWith('admin.content.settings');
         expect(window.route).toHaveBeenCalledWith('admin.audit-log.index');
+        expect(window.route).toHaveBeenCalledWith('admin.events.index');
     });
 
     it('renders SVG icon components with aria-hidden instead of v-html', async () => {
         const wrapper = await mountSidebar();
         const svgs = wrapper.findAll('[data-testid^="nav-"] svg');
 
-        expect(svgs.length).toBe(14);
+        expect(svgs.length).toBe(15);
         svgs.forEach((svg) => {
             expect(svg.attributes('aria-hidden')).toBe('true');
             expect(svg.attributes('stroke')).toBe('currentColor');
@@ -240,6 +243,7 @@ describe('Sidebar.vue', () => {
             'Pages',
             'Settings',
             'Audit Log',
+            'Event Feed',
         ]);
 
         wrapper.unmount();
