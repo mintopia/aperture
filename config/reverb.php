@@ -67,6 +67,13 @@ return [
     |
     */
 
+    'frontend' => [
+        'key' => env('VITE_REVERB_APP_KEY', env('REVERB_APP_KEY')),
+        'host' => env('VITE_REVERB_HOST'),
+        'port' => (int) env('VITE_REVERB_PORT', 443),
+        'scheme' => env('VITE_REVERB_SCHEME', 'https'),
+    ],
+
     'apps' => [
 
         'provider' => 'config',

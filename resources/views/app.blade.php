@@ -12,6 +12,9 @@
     @else
         <link rel="icon" type="image/svg+xml" href="/img/aperture-icon.svg">
     @endif
+    <script>
+        window.__reverb = @json(config('reverb.frontend'));
+    </script>
     @routes
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
