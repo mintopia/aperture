@@ -126,7 +126,7 @@ jobs:
         run: npm run build
 
   docker:
-    name: Build & Push Docker Image
+    name: Build & Push App Image
     needs: [php-quality, js-quality]
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -172,3 +172,53 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+
+  docker-ssh-proxy:
+    name: Build & Push SSH Proxy Image
+    needs: [php-quality, js-quality]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ssh-proxy
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=raw,value=develop,enable=${{ github.ref == format('refs/heads/{0}', 'develop') }}
+            type=semver,pattern={{version}}
+            type=ref,event=branch
+
+      - name: Build and push SSH proxy image
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          file: ssh-proxy/Dockerfile
+          context: ssh-proxy
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=${{ github.ref_name }}
