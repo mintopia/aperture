@@ -38,8 +38,7 @@ class InternetAccessChanged implements ShouldBroadcast
             new PrivateChannel('admin.events'),
         ];
 
-        $users = $this->ipAddress->users;
-        foreach ($users as $userIp) {
+        foreach ($this->ipAddress->users as $userIp) {
             $channels[] = new PrivateChannel('user.'.$userIp->user_id);
         }
 

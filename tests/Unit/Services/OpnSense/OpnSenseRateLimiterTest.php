@@ -11,6 +11,7 @@ use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseRateLimiter;
 use App\Services\ValueObjects\ReconcileResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use ReflectionClass;
 use stdClass;
@@ -36,6 +37,7 @@ class OpnSenseRateLimiterTest extends TestCase
         );
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function test_implements_rate_limiting_interface(): void
     {
         $this->assertInstanceOf(RateLimitingInterface::class, $this->limiter);
@@ -567,6 +569,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
     // --- filter helper tests ---
 
+    #[AllowMockObjectsWithoutExpectations]
     public function test_filter_extracts_selected_keys(): void
     {
         $reflection = new ReflectionClass($this->limiter);
@@ -583,6 +586,7 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->assertSame(['10.0.0.1', '10.0.0.3'], $result);
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function test_filter_handles_empty_object(): void
     {
         $reflection = new ReflectionClass($this->limiter);
@@ -593,6 +597,7 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->assertSame([], $result);
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function test_filter_handles_array_input(): void
     {
         $reflection = new ReflectionClass($this->limiter);

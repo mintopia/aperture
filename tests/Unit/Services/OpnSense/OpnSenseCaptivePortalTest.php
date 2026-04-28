@@ -9,6 +9,7 @@ use App\Services\OpnSense\OpnSenseCaptivePortal;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\ValueObjects\ReconcileResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use stdClass;
 use Tests\TestCase;
@@ -29,6 +30,7 @@ class OpnSenseCaptivePortalTest extends TestCase
         $this->portal = new OpnSenseCaptivePortal($this->client, zoneId: 1);
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function test_implements_captive_portal_interface(): void
     {
         $this->assertInstanceOf(CaptivePortalInterface::class, $this->portal);

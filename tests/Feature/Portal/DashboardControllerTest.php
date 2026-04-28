@@ -24,9 +24,9 @@ class DashboardControllerTest extends TestCase
 
         // Default mock for LibreNmsService — returns no IPv6 neighbors.
         // Individual tests can override by re-binding.
-        $mock = $this->createMock(LibreNmsService::class);
-        $mock->method('getIpv6Neighbors')->willReturn(collect());
-        $this->app->instance(LibreNmsService::class, $mock);
+        $stub = $this->createStub(LibreNmsService::class);
+        $stub->method('getIpv6Neighbors')->willReturn(collect());
+        $this->app->instance(LibreNmsService::class, $stub);
     }
 
     public function test_authenticated_user_sees_dashboard(): void
@@ -189,11 +189,11 @@ class DashboardControllerTest extends TestCase
         UserParameter::factory()->create(['user_id' => $user->id, 'key' => 'seat', 'value' => 'A42']);
 
         // Mock LibreNmsService to return an IPv6 neighbor matching the MAC
-        $mockInventory = $this->createMock(LibreNmsService::class);
-        $mockInventory->method('getIpv6Neighbors')->willReturn(collect([
+        $stubInventory = $this->createStub(LibreNmsService::class);
+        $stubInventory->method('getIpv6Neighbors')->willReturn(collect([
             new ArpEntry(ip: 'fe80::1', mac: 'AA:BB:CC:DD:EE:FF'),
         ]));
-        $this->app->instance(LibreNmsService::class, $mockInventory);
+        $this->app->instance(LibreNmsService::class, $stubInventory);
 
         $response = $this->actingAs($user)
             ->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])

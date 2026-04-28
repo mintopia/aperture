@@ -6,20 +6,20 @@ namespace Tests\Unit\Casts;
 
 use App\Casts\NormalizeMacAddress;
 use Illuminate\Database\Eloquent\Model;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use Tests\TestCase;
 
 class NormalizeMacAddressTest extends TestCase
 {
     private NormalizeMacAddress $cast;
 
-    private MockObject $model;
+    private Stub $model;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->cast = new NormalizeMacAddress;
-        $this->model = $this->createMock(Model::class);
+        $this->model = $this->createStub(Model::class);
     }
 
     public function test_set_normalizes_colon_lowercase(): void

@@ -21,6 +21,7 @@ use App\Models\SwitchPort;
 use App\Models\User;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
 class BroadcastableEventsTest extends TestCase
@@ -130,6 +131,10 @@ class BroadcastableEventsTest extends TestCase
     public function test_dns_filter_changed_broadcasts_on_admin_channel(): void
     {
         $ipAddress = $this->createStub(IpAddress::class);
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): mixed => match ($key) {
+            'users' => new Collection,
+            default => null,
+        });
         $user = $this->createStub(User::class);
 
         $event = new DnsFilterChanged($ipAddress, true, $user);
@@ -189,6 +194,10 @@ class BroadcastableEventsTest extends TestCase
     public function test_internet_access_changed_broadcasts_on_admin_channel(): void
     {
         $ipAddress = $this->createStub(IpAddress::class);
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): mixed => match ($key) {
+            'users' => new Collection,
+            default => null,
+        });
         $user = $this->createStub(User::class);
 
         $event = new InternetAccessChanged($ipAddress, true, $user);
@@ -286,6 +295,10 @@ class BroadcastableEventsTest extends TestCase
     public function test_rate_limit_changed_broadcasts_on_admin_channel(): void
     {
         $ipAddress = $this->createStub(IpAddress::class);
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): mixed => match ($key) {
+            'users' => new Collection,
+            default => null,
+        });
         $user = $this->createStub(User::class);
 
         $event = new RateLimitChanged($ipAddress, 100, 200, $user);
