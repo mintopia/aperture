@@ -23,8 +23,8 @@ vi.mock('@/composables/useTheme.js', () => ({
 
 vi.mock('@/composables/useAccentColor.js', () => ({
     ACCENT_PRESETS: [
-        { name: 'Gold', hue: 55, c: 0.19, l: 72 },
-        { name: 'Blue', hue: 230, c: 0.19, l: 72 },
+        { name: 'Gold', hue: 55, c: 0.16, l: 76 },
+        { name: 'Blue', hue: 230, c: 0.14, l: 72 },
     ],
     applyAccentColor: vi.fn(),
 }));
@@ -47,8 +47,8 @@ function mountPage(settings = {}, pages = []) {
                 privacy_value: '',
                 theme_mode: 'dark',
                 accent_hue: 55,
-                accent_chroma: 0.19,
-                accent_lightness: 72,
+                accent_chroma: 0.16,
+                accent_lightness: 76,
                 custom_css: '',
                 ...settings,
             },
@@ -159,8 +159,8 @@ describe('Admin Content Settings page', () => {
             privacy_value: '',
             theme_mode: 'dark',
             accent_hue: 55,
-            accent_chroma: 0.19,
-            accent_lightness: 72,
+            accent_chroma: 0.16,
+            accent_lightness: 76,
             custom_css: '',
             put: mockPut,
             processing: false,

@@ -21,8 +21,8 @@ const form = useForm({
     privacy_value: props.settings?.privacy_value ?? '',
     theme_mode: props.settings?.theme_mode ?? 'dark',
     accent_hue: props.settings?.accent_hue ?? 55,
-    accent_chroma: props.settings?.accent_chroma ?? 0.19,
-    accent_lightness: props.settings?.accent_lightness ?? 72,
+    accent_chroma: props.settings?.accent_chroma ?? 0.16,
+    accent_lightness: props.settings?.accent_lightness ?? 76,
     custom_css: props.settings?.custom_css ?? '',
 });
 
@@ -54,8 +54,8 @@ function removeLogo() {
 const { previewMode, cancelPreview } = useTheme();
 
 const originalHue = ref(props.settings?.accent_hue ?? 55);
-const originalChroma = ref(props.settings?.accent_chroma ?? 0.19);
-const originalLightness = ref(props.settings?.accent_lightness ?? 72);
+const originalChroma = ref(props.settings?.accent_chroma ?? 0.16);
+const originalLightness = ref(props.settings?.accent_lightness ?? 76);
 
 const modes = ['light', 'dark'];
 

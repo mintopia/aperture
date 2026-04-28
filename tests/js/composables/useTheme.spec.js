@@ -11,8 +11,8 @@ vi.mock('@/composables/useAccentColor', () => ({
     applyAccentColor: vi.fn(),
     useAccentColor: vi.fn(() => ({
         accentHue: ref(55),
-        accentChroma: ref(0.19),
-        accentLightness: ref(72),
+        accentChroma: ref(0.16),
+        accentLightness: ref(76),
         setAccentColor: vi.fn(),
         presets: [],
     })),

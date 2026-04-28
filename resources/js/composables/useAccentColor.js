@@ -13,8 +13,8 @@ export const ACCENT_PRESETS = [
 ];
 
 const DEFAULT_HUE = 55;
-const DEFAULT_CHROMA = 0.19;
-const DEFAULT_LIGHTNESS = 72;
+const DEFAULT_CHROMA = 0.16;
+const DEFAULT_LIGHTNESS = 76;
 
 export function applyAccentColor(hue, chroma, lightness, mode = 'dark') {
     const root = document.documentElement;

@@ -28,7 +28,7 @@ return [
     'theme' => [
         'mode' => 'dark',
         'accent_hue' => 55,
-        'accent_chroma' => 0.19,
-        'accent_lightness' => 72,
+        'accent_chroma' => 0.16,
+        'accent_lightness' => 76,
     ],
 ];

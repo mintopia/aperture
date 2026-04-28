@@ -75,11 +75,11 @@ describe('applyAccentHue', () => {
         expect(root.style.getPropertyValue('--color-primary')).toContain('0.19');
     });
 
-    it('uses default l=72, c=0.19 for non-preset hues', () => {
+    it('uses default l=76, c=0.16 for non-preset hues', () => {
         applyAccentHue(123, 'dark');
         const root = document.documentElement;
-        expect(root.style.getPropertyValue('--color-primary')).toContain('72%');
-        expect(root.style.getPropertyValue('--color-primary')).toContain('0.19');
+        expect(root.style.getPropertyValue('--color-primary')).toContain('76%');
+        expect(root.style.getPropertyValue('--color-primary')).toContain('0.16');
     });
 
     it('sets accent-text property', () => {
