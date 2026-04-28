@@ -7,6 +7,7 @@ export function useViewTransitions() {
 
     router.on('start', (event) => {
         if (event.detail.visit.method !== 'get') return;
+        if (event.detail.visit.only?.length > 0) return;
         const main = document.getElementById('main-content');
         if (main) main.classList.add('page-exit');
     });
