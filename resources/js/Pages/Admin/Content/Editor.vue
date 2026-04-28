@@ -301,7 +301,10 @@ const blockTypeColors = {
 };
 
 function onClickOutside(event) {
-    if (showAddMenu.value && !event.target.closest('[data-testid="action-add-block"]')?.parentElement?.contains(event.target)) {
+    if (
+        showAddMenu.value &&
+        !event.target.closest('[data-testid="action-add-block"]')?.parentElement?.contains(event.target)
+    ) {
         showAddMenu.value = false;
     }
 }

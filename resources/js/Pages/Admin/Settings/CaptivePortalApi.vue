@@ -51,7 +51,7 @@ function submit() {
         <!-- API Endpoint -->
         <h2
             data-testid="section-heading-endpoint"
-            class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] uppercase text-[var(--color-text-secondary)]"
+            class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
         >
             API Endpoint
         </h2>
@@ -79,7 +79,7 @@ function submit() {
         <!-- DHCP Configuration -->
         <h2
             data-testid="section-heading-dhcp"
-            class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] uppercase text-[var(--color-text-secondary)]"
+            class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
         >
             DHCP &amp; Router Advertisement Configuration
         </h2>
@@ -103,8 +103,7 @@ function submit() {
                             <span class="text-[13px] font-semibold text-[var(--color-text)]">Option 114</span>
                         </div>
                         <p class="mt-1.5 text-[12px] text-[var(--color-text-secondary)]">
-                            Captive-Portal option. Set the value to the API URL as a UTF-8 string (not
-                            null-terminated).
+                            Captive-Portal option. Set the value to the API URL as a UTF-8 string (not null-terminated).
                         </p>
                     </div>
                     <button
@@ -181,9 +180,7 @@ function submit() {
                     </button>
                 </div>
                 <div class="mt-3 rounded bg-[var(--color-bg)] px-3 py-2">
-                    <code class="text-[12px] text-[var(--color-text-muted)]"
-                        >AdvCaptivePortalAPI "{{ apiUrl }}";</code
-                    >
+                    <code class="text-[12px] text-[var(--color-text-muted)]">AdvCaptivePortalAPI "{{ apiUrl }}";</code>
                 </div>
             </div>
         </div>
@@ -191,7 +188,7 @@ function submit() {
         <!-- Response Settings -->
         <h2
             data-testid="section-heading-response"
-            class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] uppercase text-[var(--color-text-secondary)]"
+            class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
         >
             Response Settings
         </h2>
@@ -264,7 +261,7 @@ function submit() {
         <!-- Example Response -->
         <h2
             data-testid="section-heading-example"
-            class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] uppercase text-[var(--color-text-secondary)]"
+            class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
         >
             Example Response
         </h2>
@@ -274,18 +271,22 @@ function submit() {
         </p>
 
         <div class="rounded border border-[var(--color-border)] bg-[var(--color-bg)] p-4">
-            <pre class="font-mono text-[12px] leading-relaxed text-[var(--color-text-muted)]" data-testid="example-response">{{
-                JSON.stringify(
-                    {
-                        captive: true,
-                        ...(form.user_portal_url ? { 'user-portal-url': form.user_portal_url } : {}),
-                        ...(form.venue_info_url ? { 'venue-info-url': form.venue_info_url } : {}),
-                        ...(form.can_extend_session ? { 'can-extend-session': true } : {}),
-                    },
-                    null,
-                    2,
-                )
-            }}</pre>
+            <pre
+                class="font-mono text-[12px] leading-relaxed text-[var(--color-text-muted)]"
+                data-testid="example-response"
+                >{{
+                    JSON.stringify(
+                        {
+                            captive: true,
+                            ...(form.user_portal_url ? { 'user-portal-url': form.user_portal_url } : {}),
+                            ...(form.venue_info_url ? { 'venue-info-url': form.venue_info_url } : {}),
+                            ...(form.can_extend_session ? { 'can-extend-session': true } : {}),
+                        },
+                        null,
+                        2,
+                    )
+                }}</pre
+            >
         </div>
     </div>
 </template>

@@ -79,7 +79,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div data-testid="flash-messages" class="fixed top-16 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-3">
+    <div
+        data-testid="flash-messages"
+        class="fixed top-16 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-3"
+    >
         <TransitionGroup
             enter-active-class="transition-all duration-300 ease-out"
             enter-from-class="-translate-y-4 opacity-0"
