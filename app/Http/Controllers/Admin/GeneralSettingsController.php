@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateGeneralSettingsRequest;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Services\LogoService;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -72,20 +73,23 @@ class GeneralSettingsController extends Controller
             'logo' => [
                 'required',
                 File::image()->types(['png', 'jpg', 'jpeg', 'webp'])->max(2048),
-                function (string $attribute, mixed $value, \Closure $fail): void {
+                function (string $attribute, mixed $value, Closure $fail): void {
                     if (! $value instanceof UploadedFile) {
                         return;
                     }
+
                     $size = @getimagesize($value->getRealPath());
                     if ($size === false) {
                         $fail('The logo must be a valid image.');
 
                         return;
                     }
+
                     [$width, $height] = $size;
                     if ($width !== $height) {
                         $fail('The logo must be square (1:1 aspect ratio).');
                     }
+
                     if ($width < 64 || $height < 64) {
                         $fail('The logo must be at least 64x64 pixels.');
                     }

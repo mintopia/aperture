@@ -14,6 +14,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Mockery;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class DetectBandwidthAnomaliesCommandTest extends TestCase
@@ -138,7 +139,7 @@ class DetectBandwidthAnomaliesCommandTest extends TestCase
         $mock = Mockery::mock(IpBandwidthInterface::class);
         $mock->shouldReceive('getTopTalkers')
             ->once()
-            ->andThrow(new \RuntimeException('Connection refused'));
+            ->andThrow(new RuntimeException('Connection refused'));
         $this->app->instance(IpBandwidthInterface::class, $mock);
 
         $this->artisan('aperture:detect-bandwidth-anomalies')

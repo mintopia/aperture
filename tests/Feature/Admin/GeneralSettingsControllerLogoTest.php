@@ -205,7 +205,7 @@ class GeneralSettingsControllerLogoTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->has('settings.site_logo_url')
-            ->where('settings.site_logo_url', fn ($value) => str_contains($value, 'branding/logo.png'))
+            ->where('settings.site_logo_url', fn ($value): bool => str_contains($value, 'branding/logo.png'))
         );
     }
 

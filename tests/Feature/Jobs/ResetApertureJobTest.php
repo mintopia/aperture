@@ -10,6 +10,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Tests\TestCase;
 
 class ResetApertureJobTest extends TestCase
@@ -35,7 +36,7 @@ class ResetApertureJobTest extends TestCase
                 'error' => 'Database error',
             ]);
 
-        $job->failed(new \RuntimeException('Database error'));
+        $job->failed(new RuntimeException('Database error'));
     }
 
     public function test_deletes_all_ips(): void

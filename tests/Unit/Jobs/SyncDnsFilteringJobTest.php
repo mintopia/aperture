@@ -8,6 +8,7 @@ use App\Jobs\SyncDnsFilteringJob;
 use App\Services\Interfaces\DnsFilteringInterface;
 use Illuminate\Support\Facades\Log;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class SyncDnsFilteringJobTest extends TestCase
@@ -33,7 +34,7 @@ class SyncDnsFilteringJobTest extends TestCase
                 'error' => 'DNS service unavailable',
             ]);
 
-        $job->failed(new \RuntimeException('DNS service unavailable'));
+        $job->failed(new RuntimeException('DNS service unavailable'));
     }
 
     public function test_enables_dns_filtering_for_ip(): void

@@ -24,6 +24,7 @@ use App\Models\SystemEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use stdClass;
 use Tests\TestCase;
 
 class RecordBroadcastEventTest extends TestCase
@@ -250,7 +251,7 @@ class RecordBroadcastEventTest extends TestCase
 
     public function test_ignores_non_broadcast_events(): void
     {
-        $this->listener->handleWildcard('eloquent.created: App\Models\User', [new \stdClass]);
+        $this->listener->handleWildcard('eloquent.created: App\Models\User', [new stdClass]);
 
         $this->assertDatabaseCount('system_events', 0);
     }

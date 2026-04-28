@@ -119,8 +119,8 @@ class EventControllerTest extends TestCase
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        $old = SystemEvent::factory()->create(['message' => 'old', 'created_at' => now()->subHour()]);
-        $new = SystemEvent::factory()->create(['message' => 'new', 'created_at' => now()]);
+        SystemEvent::factory()->create(['message' => 'old', 'created_at' => now()->subHour()]);
+        SystemEvent::factory()->create(['message' => 'new', 'created_at' => now()]);
 
         $response = $this->actingAs($admin)->get('/admin/events');
 

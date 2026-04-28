@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Services\OpnSense;
 
 use App\Services\Firewalls\Exceptions\BackendException;

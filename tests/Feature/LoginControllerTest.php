@@ -168,11 +168,11 @@ class LoginControllerTest extends TestCase
     public function test_login_post_route_has_throttle_middleware(): void
     {
         $route = collect(app('router')->getRoutes()->getRoutesByMethod()['POST'])
-            ->first(fn ($r) => $r->uri() === 'login');
+            ->first(fn ($r): bool => $r->uri() === 'login');
 
         $this->assertNotNull($route, 'POST /login route should exist');
         $this->assertTrue(
-            collect($route->gatherMiddleware())->contains(fn ($m) => str_contains((string) $m, 'throttle')),
+            collect($route->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
             'POST /login should have throttle middleware'
         );
     }

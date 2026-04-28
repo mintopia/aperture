@@ -10,6 +10,6 @@ class InvalidPortIdentifierException extends InvalidArgumentException
 {
     public static function forPortId(string $portId): self
     {
-        return new self("Invalid port identifier: {$portId}");
+        return new self('Invalid port identifier: '.$portId);
     }
 }

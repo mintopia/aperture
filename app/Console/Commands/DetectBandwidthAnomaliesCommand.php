@@ -25,9 +25,9 @@ class DetectBandwidthAnomaliesCommand extends Command
 
         try {
             $topTalkers = $ipBandwidth->getTopTalkers(limit: 50, range: '5m');
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             Log::warning('Failed to fetch top talkers for bandwidth anomaly detection', [
-                'error' => $e->getMessage(),
+                'error' => $throwable->getMessage(),
             ]);
 
             return self::SUCCESS;

@@ -145,8 +145,8 @@ OUTPUT;
     {
         $lines = [];
         for ($i = 1; $i <= 48; $i++) {
-            $lines[] = "interface GigabitEthernet1/0/{$i}";
-            $lines[] = " description Port {$i}";
+            $lines[] = 'interface GigabitEthernet1/0/'.$i;
+            $lines[] = ' description Port '.$i;
             $lines[] = ' switchport access vlan 100';
             $lines[] = '!';
         }

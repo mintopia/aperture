@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Services\ValueObjects;
 
 use App\Services\ValueObjects\IpBandwidthResult;

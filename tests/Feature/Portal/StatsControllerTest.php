@@ -100,6 +100,7 @@ class StatsControllerTest extends TestCase
                     if (! is_array($ips)) {
                         return false;
                     }
+
                     sort($ips);
 
                     return $ips === ['10.0.0.10', '10.0.0.11'] && $range === '24h';

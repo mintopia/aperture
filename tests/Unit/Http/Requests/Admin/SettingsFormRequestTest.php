@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateGeneralSettingsRequest;
 use App\Http\Requests\Admin\UpdateIpv6DetectionSettingsRequest;
 use App\Http\Requests\Admin\UpdateNetworkSettingsRequest;
 use App\Http\Requests\Admin\UpdateThemeSettingsRequest;
+use Closure;
 use Tests\TestCase;
 
 class SettingsFormRequestTest extends TestCase
@@ -37,7 +38,7 @@ class SettingsFormRequestTest extends TestCase
         $request = new UpdateDnsDetectionSettingsRequest;
         $rules = $request->rules();
 
-        $closures = array_filter($rules['dns_check_url'], fn ($rule) => $rule instanceof \Closure);
+        $closures = array_filter($rules['dns_check_url'], fn ($rule): bool => $rule instanceof Closure);
         $this->assertCount(2, $closures);
     }
 
@@ -85,9 +86,9 @@ class SettingsFormRequestTest extends TestCase
         $request = new UpdateNetworkSettingsRequest;
         $rules = $request->rules();
 
-        $v4Closures = array_filter($rules['managed_ranges_v4'], fn ($rule) => $rule instanceof \Closure);
-        $v6Closures = array_filter($rules['managed_ranges_v6'], fn ($rule) => $rule instanceof \Closure);
-        $ouiClosures = array_filter($rules['oui_auto_allow'], fn ($rule) => $rule instanceof \Closure);
+        $v4Closures = array_filter($rules['managed_ranges_v4'], fn ($rule): bool => $rule instanceof Closure);
+        $v6Closures = array_filter($rules['managed_ranges_v6'], fn ($rule): bool => $rule instanceof Closure);
+        $ouiClosures = array_filter($rules['oui_auto_allow'], fn ($rule): bool => $rule instanceof Closure);
 
         $this->assertCount(1, $v4Closures);
         $this->assertCount(1, $v6Closures);
@@ -123,7 +124,7 @@ class SettingsFormRequestTest extends TestCase
         $rules = $request->rules();
 
         $this->assertIsArray($rules['custom_css']);
-        $closures = array_filter($rules['custom_css'], fn ($rule) => $rule instanceof \Closure);
+        $closures = array_filter($rules['custom_css'], fn ($rule): bool => $rule instanceof Closure);
         $this->assertCount(1, $closures);
     }
 
@@ -151,7 +152,7 @@ class SettingsFormRequestTest extends TestCase
         $rules = $request->rules();
 
         $this->assertIsArray($rules['custom_css']);
-        $closures = array_filter($rules['custom_css'], fn ($rule) => $rule instanceof \Closure);
+        $closures = array_filter($rules['custom_css'], fn ($rule): bool => $rule instanceof Closure);
         $this->assertCount(1, $closures);
     }
 }

@@ -19,6 +19,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class IpAddressShowDataServiceTest extends TestCase
@@ -220,7 +221,7 @@ class IpAddressShowDataServiceTest extends TestCase
         $ip = IpAddress::factory()->create();
 
         $this->libreNms->shouldReceive('resolveIpToPort')
-            ->andThrow(new \RuntimeException('Connection failed'));
+            ->andThrow(new RuntimeException('Connection failed'));
 
         $result = $this->service->resolvePortInfo($ip);
 

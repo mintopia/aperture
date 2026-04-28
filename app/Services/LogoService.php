@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Setting;
+use GdImage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class LogoService
 {
@@ -107,7 +109,7 @@ class LogoService
         return $urls;
     }
 
-    private function loadImage(UploadedFile $file): \GdImage
+    private function loadImage(UploadedFile $file): GdImage
     {
         $path = $file->getRealPath();
         $mime = $file->getMimeType();
@@ -116,11 +118,11 @@ class LogoService
             'image/png' => imagecreatefrompng($path),
             'image/jpeg' => imagecreatefromjpeg($path),
             'image/webp' => imagecreatefromwebp($path),
-            default => throw new \RuntimeException("Unsupported image type: {$mime}"),
+            default => throw new RuntimeException('Unsupported image type: '.$mime),
         };
 
         if ($image === false) {
-            throw new \RuntimeException('Failed to load image');
+            throw new RuntimeException('Failed to load image');
         }
 
         return $image;
@@ -130,11 +132,11 @@ class LogoService
      * @param  positive-int  $width
      * @param  positive-int  $height
      */
-    private function resize(\GdImage $source, int $width, int $height): \GdImage
+    private function resize(GdImage $source, int $width, int $height): GdImage
     {
         $dest = imagecreatetruecolor($width, $height);
         if ($dest === false) {
-            throw new \RuntimeException('Failed to create image');
+            throw new RuntimeException('Failed to create image');
         }
 
         imagealphablending($dest, false);
@@ -150,7 +152,7 @@ class LogoService
         return $dest;
     }
 
-    private function savePng(\GdImage $image, string $path): void
+    private function savePng(GdImage $image, string $path): void
     {
         imagepng($image, $path, 9);
     }

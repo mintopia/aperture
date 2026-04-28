@@ -54,10 +54,10 @@ class SyncUserBandwidthCommand extends Command
             $user->save();
 
             Log::debug(sprintf('[%s] Updated weekly bandwidth: %d bytes (down: %d, up: %d)', $user->nickname, $user->weekly_bandwidth, $user->weekly_received, $user->weekly_sent));
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             Log::warning('Failed to sync user bandwidth', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage(),
+                'error' => $throwable->getMessage(),
             ]);
         }
     }

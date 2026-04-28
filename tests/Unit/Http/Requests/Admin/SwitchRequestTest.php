@@ -37,7 +37,7 @@ class SwitchRequestTest extends TestCase
     public function test_store_switch_request_authorizes_for_admin(): void
     {
         $request = new StoreSwitchRequest;
-        $request->setUserResolver(fn () => $this->admin);
+        $request->setUserResolver(fn (): User => $this->admin);
 
         $this->assertTrue($request->authorize());
     }
@@ -45,7 +45,7 @@ class SwitchRequestTest extends TestCase
     public function test_store_switch_request_denies_for_non_admin(): void
     {
         $request = new StoreSwitchRequest;
-        $request->setUserResolver(fn () => $this->regularUser);
+        $request->setUserResolver(fn (): User => $this->regularUser);
 
         $this->assertFalse($request->authorize());
     }
@@ -76,11 +76,13 @@ class SwitchRequestTest extends TestCase
         $switchConfig->save();
 
         $request = new UpdateSwitchRequest;
-        $request->setUserResolver(fn () => $this->admin);
+        $request->setUserResolver(fn (): User => $this->admin);
+
         $route = new Route('PUT', '/admin/switches/{switchConfig}', []);
         $route->bind($request);
         $route->setParameter('switchConfig', $switchConfig);
-        $request->setRouteResolver(fn () => $route);
+
+        $request->setRouteResolver(fn (): Route => $route);
 
         $this->assertTrue($request->authorize());
     }
@@ -99,11 +101,13 @@ class SwitchRequestTest extends TestCase
         $switchConfig->save();
 
         $request = new UpdateSwitchRequest;
-        $request->setUserResolver(fn () => $this->regularUser);
+        $request->setUserResolver(fn (): User => $this->regularUser);
+
         $route = new Route('PUT', '/admin/switches/{switchConfig}', []);
         $route->bind($request);
         $route->setParameter('switchConfig', $switchConfig);
-        $request->setRouteResolver(fn () => $route);
+
+        $request->setRouteResolver(fn (): Route => $route);
 
         $this->assertFalse($request->authorize());
     }
@@ -125,7 +129,8 @@ class SwitchRequestTest extends TestCase
         $route = new Route('PUT', '/admin/switches/{switchConfig}', []);
         $route->bind($request);
         $route->setParameter('switchConfig', $switchConfig);
-        $request->setRouteResolver(fn () => $route);
+
+        $request->setRouteResolver(fn (): Route => $route);
 
         $rules = $request->rules();
 

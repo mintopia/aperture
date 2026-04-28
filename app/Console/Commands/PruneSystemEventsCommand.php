@@ -27,7 +27,7 @@ class PruneSystemEventsCommand extends Command
             $deleted += $batch;
         } while ($batch > 0);
 
-        $this->info("Pruned {$deleted} system events older than {$days} days.");
+        $this->info(sprintf('Pruned %s system events older than %d days.', $deleted, $days));
 
         return self::SUCCESS;
     }

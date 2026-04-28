@@ -49,21 +49,21 @@ class BroadcastableEventsTest extends TestCase
     public function test_device_discovered_broadcast_with_returns_expected_payload(): void
     {
         $macAddress = $this->createStub(MacAddress::class);
-        $macAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $macAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 1,
             'mac_address' => 'AA:BB:CC:DD:EE:FF',
             default => null,
         });
 
         $ipAddress = $this->createStub(IpAddress::class);
-        $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 2,
             'address' => '192.168.1.100',
             default => null,
         });
 
         $switchPort = $this->createStub(SwitchPort::class);
-        $switchPort->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $switchPort->method('__get')->willReturnCallback(fn (string $key): ?int => match ($key) {
             'id' => 3,
             default => null,
         });
@@ -79,7 +79,7 @@ class BroadcastableEventsTest extends TestCase
     public function test_device_discovered_broadcast_with_handles_null_optional_fields(): void
     {
         $macAddress = $this->createStub(MacAddress::class);
-        $macAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $macAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 1,
             'mac_address' => 'AA:BB:CC:DD:EE:FF',
             default => null,
@@ -143,14 +143,14 @@ class BroadcastableEventsTest extends TestCase
     public function test_dns_filter_changed_broadcast_with_returns_expected_payload(): void
     {
         $ipAddress = $this->createStub(IpAddress::class);
-        $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 5,
             'address' => '10.0.0.1',
             default => null,
         });
 
         $user = $this->createStub(User::class);
-        $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $user->method('__get')->willReturnCallback(fn (string $key): ?int => match ($key) {
             'id' => 10,
             default => null,
         });
@@ -167,7 +167,7 @@ class BroadcastableEventsTest extends TestCase
     public function test_dns_filter_changed_broadcast_with_handles_null_changed_by(): void
     {
         $ipAddress = $this->createStub(IpAddress::class);
-        $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 5,
             'address' => '10.0.0.1',
             default => null,
@@ -202,14 +202,14 @@ class BroadcastableEventsTest extends TestCase
     public function test_internet_access_changed_broadcast_with_returns_expected_payload(): void
     {
         $ipAddress = $this->createStub(IpAddress::class);
-        $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 7,
             'address' => '10.0.0.5',
             default => null,
         });
 
         $user = $this->createStub(User::class);
-        $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $user->method('__get')->willReturnCallback(fn (string $key): ?int => match ($key) {
             'id' => 3,
             default => null,
         });
@@ -245,7 +245,7 @@ class BroadcastableEventsTest extends TestCase
     public function test_port_state_changed_broadcast_with_returns_expected_payload(): void
     {
         $switchPort = $this->createStub(SwitchPort::class);
-        $switchPort->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $switchPort->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 42,
             'port_name' => 'GigabitEthernet0/1',
             default => null,
@@ -263,7 +263,7 @@ class BroadcastableEventsTest extends TestCase
     public function test_port_state_changed_broadcast_with_handles_null_old_status(): void
     {
         $switchPort = $this->createStub(SwitchPort::class);
-        $switchPort->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $switchPort->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 42,
             'port_name' => 'GigabitEthernet0/1',
             default => null,
@@ -299,14 +299,14 @@ class BroadcastableEventsTest extends TestCase
     public function test_rate_limit_changed_broadcast_with_returns_expected_payload(): void
     {
         $ipAddress = $this->createStub(IpAddress::class);
-        $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 8,
             'address' => '10.0.0.8',
             default => null,
         });
 
         $user = $this->createStub(User::class);
-        $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $user->method('__get')->willReturnCallback(fn (string $key): ?int => match ($key) {
             'id' => 15,
             default => null,
         });
@@ -324,7 +324,7 @@ class BroadcastableEventsTest extends TestCase
     public function test_rate_limit_changed_broadcast_with_handles_null_old_limit(): void
     {
         $ipAddress = $this->createStub(IpAddress::class);
-        $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 8,
             'address' => '10.0.0.8',
             default => null,
@@ -359,7 +359,7 @@ class BroadcastableEventsTest extends TestCase
     public function test_switch_sync_completed_broadcast_with_returns_expected_payload(): void
     {
         $switchConfig = $this->createStub(SwitchConfig::class);
-        $switchConfig->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $switchConfig->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 99,
             'hostname' => 'switch-01.local',
             default => null,
@@ -384,7 +384,7 @@ class BroadcastableEventsTest extends TestCase
     public function test_user_blocked_broadcasts_on_admin_and_user_channels(): void
     {
         $user = $this->createStub(User::class);
-        $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $user->method('__get')->willReturnCallback(fn (string $key): ?int => match ($key) {
             'id' => 20,
             default => null,
         });
@@ -403,14 +403,14 @@ class BroadcastableEventsTest extends TestCase
     public function test_user_blocked_broadcast_with_returns_expected_payload(): void
     {
         $user = $this->createStub(User::class);
-        $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $user->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 20,
             'nickname' => 'John Doe',
             default => null,
         });
 
         $ipAddress = $this->createStub(IpAddress::class);
-        $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 30,
             'address' => '192.168.1.50',
             default => null,
@@ -450,21 +450,21 @@ class BroadcastableEventsTest extends TestCase
     public function test_user_connected_broadcast_with_returns_expected_payload(): void
     {
         $user = $this->createStub(User::class);
-        $user->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $user->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 25,
             'nickname' => 'Jane Smith',
             default => null,
         });
 
         $ipAddress = $this->createStub(IpAddress::class);
-        $ipAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $ipAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 35,
             'address' => '192.168.1.75',
             default => null,
         });
 
         $macAddress = $this->createStub(MacAddress::class);
-        $macAddress->method('__get')->willReturnCallback(fn (string $key) => match ($key) {
+        $macAddress->method('__get')->willReturnCallback(fn (string $key): int|string|null => match ($key) {
             'id' => 45,
             'mac_address' => '11:22:33:44:55:66',
             default => null,
@@ -561,10 +561,10 @@ class BroadcastableEventsTest extends TestCase
             UserConnected::class => 'UserConnected',
         ];
 
-        foreach ($events as $eventClass => $expectedName) {
+        foreach (array_keys($events) as $eventClass) {
             $this->assertTrue(
                 is_subclass_of($eventClass, ShouldBroadcast::class),
-                "{$eventClass} should implement ShouldBroadcast"
+                $eventClass.' should implement ShouldBroadcast'
             );
         }
     }

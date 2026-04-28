@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\UserIpAddress;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Tests\TestCase;
 
 class ReapplyAccessRulesJobTest extends TestCase
@@ -33,7 +34,7 @@ class ReapplyAccessRulesJobTest extends TestCase
                 'error' => 'Database connection lost',
             ]);
 
-        $job->failed(new \RuntimeException('Database connection lost'));
+        $job->failed(new RuntimeException('Database connection lost'));
     }
 
     public function test_handle_reapplies_access_for_allowed_ips(): void

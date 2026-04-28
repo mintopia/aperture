@@ -252,7 +252,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
 
     public function test_link_switch_port_macs_creates_audit_log(): void
     {
-        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:04']);
+        MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:04']);
         $switchPort = SwitchPort::factory()->create();
         SwitchPortMac::factory()->create([
             'switch_port_id' => $switchPort->id,

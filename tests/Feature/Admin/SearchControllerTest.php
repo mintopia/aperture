@@ -264,7 +264,7 @@ class SearchControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
         for ($i = 0; $i < 7; $i++) {
-            SwitchConfig::factory()->create(['name' => "TestSwitchX$i"]);
+            SwitchConfig::factory()->create(['name' => 'TestSwitchX'.$i]);
         }
 
         $response = $this->actingAs($admin)->getJson('/admin/search?q=TestSwitchX');
@@ -278,7 +278,7 @@ class SearchControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
         for ($i = 0; $i < 7; $i++) {
-            DhcpLease::factory()->create(['hostname' => "testhostx$i"]);
+            DhcpLease::factory()->create(['hostname' => 'testhostx'.$i]);
         }
 
         $response = $this->actingAs($admin)->getJson('/admin/search?q=testhostx');
@@ -292,7 +292,7 @@ class SearchControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
         for ($i = 0; $i < 7; $i++) {
-            AuditLog::factory()->create(['action' => "test.actionx$i"]);
+            AuditLog::factory()->create(['action' => 'test.actionx'.$i]);
         }
 
         $response = $this->actingAs($admin)->getJson('/admin/search?q=test.actionx');

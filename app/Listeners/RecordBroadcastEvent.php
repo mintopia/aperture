@@ -7,6 +7,7 @@ namespace App\Listeners;
 use App\Models\SystemEvent;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Events\Dispatcher;
+use Throwable;
 
 class RecordBroadcastEvent
 {
@@ -55,8 +56,8 @@ class RecordBroadcastEvent
                 'message' => $this->formatMessage($type, $data),
                 'data' => $data ?: null,
             ]);
-        } catch (\Throwable $e) {
-            report($e);
+        } catch (Throwable $throwable) {
+            report($throwable);
         }
     }
 

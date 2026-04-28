@@ -18,6 +18,6 @@ class LibreNmsIpMacResolver implements IpMacResolverInterface
         $arp = $this->libreNms->getArpTable();
         $ipv6 = $this->libreNms->getIpv6Neighbors();
 
-        return $arp->concat($ipv6)->unique(fn ($entry) => $entry->ip.'|'.$entry->mac)->values();
+        return $arp->concat($ipv6)->unique(fn ($entry): string => $entry->ip.'|'.$entry->mac)->values();
     }
 }

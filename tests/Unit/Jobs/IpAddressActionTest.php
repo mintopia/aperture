@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class IpAddressActionTest extends TestCase
@@ -38,7 +39,7 @@ class IpAddressActionTest extends TestCase
                 'error' => 'Service unavailable',
             ]);
 
-        $job->failed(new \RuntimeException('Service unavailable'));
+        $job->failed(new RuntimeException('Service unavailable'));
     }
 
     public function test_handle_calls_specified_method_on_service(): void

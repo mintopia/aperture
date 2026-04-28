@@ -10,6 +10,7 @@ use App\Services\OpnSense\OpnSenseClient;
 use App\Services\ValueObjects\ReconcileResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\MockObject\MockObject;
+use stdClass;
 use Tests\TestCase;
 
 class OpnSenseCaptivePortalTest extends TestCase
@@ -421,6 +422,7 @@ class OpnSenseCaptivePortalTest extends TestCase
             $unchangedIps[] = $ip;
             IpAddress::factory()->create(['address' => $ip, 'internet_enabled' => true]);
         }
+
         for ($i = 51; $i <= 100; $i++) {
             $ip = '10.1.0.'.$i;
             $addedIps[] = $ip;
@@ -436,7 +438,7 @@ class OpnSenseCaptivePortalTest extends TestCase
             $currentSessionIps[] = $ip;
         }
 
-        $sessionList = new \stdClass;
+        $sessionList = new stdClass;
         foreach ($currentSessionIps as $idx => $ip) {
             $sessionList->{$idx} = (object) ['sessionId' => 'sess-'.$idx, 'ipAddress' => $ip];
         }

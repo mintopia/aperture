@@ -163,14 +163,14 @@ class CaptivePortalViewTest extends TestCase
         $captiveIndex = $routes->getByName('captive.index');
         $this->assertNotNull($captiveIndex, 'captive.index route should exist');
         $this->assertTrue(
-            collect($captiveIndex->gatherMiddleware())->contains(fn ($m) => str_contains((string) $m, 'throttle')),
+            collect($captiveIndex->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
             'captive.index should have throttle middleware'
         );
 
         $captivePoll = $routes->getByName('captive.poll');
         $this->assertNotNull($captivePoll, 'captive.poll route should exist');
         $this->assertTrue(
-            collect($captivePoll->gatherMiddleware())->contains(fn ($m) => str_contains((string) $m, 'throttle')),
+            collect($captivePoll->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
             'captive.poll should have throttle middleware'
         );
     }

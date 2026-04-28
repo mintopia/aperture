@@ -235,10 +235,10 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $ips = [];
         for ($i = 0; $i < 5; $i++) {
             $suffix = str_pad(dechex($i), 2, '0', STR_PAD_LEFT);
-            $macAddress = "AA:BB:CC:DD:EE:{$suffix}";
+            $macAddress = 'AA:BB:CC:DD:EE:'.$suffix;
             $mac = MacAddress::factory()->create(['mac_address' => $macAddress]);
             $ip = IpAddress::factory()->create([
-                'address' => "127.0.0.{$i}",
+                'address' => '127.0.0.'.$i,
                 'internet_enabled' => false,
             ]);
             $ip->macAddresses()->attach($mac, ['source' => 'dhcp', 'last_seen_at' => now()]);
@@ -254,7 +254,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         // Verify all matching IPs were enabled
         foreach ($ips as $ip) {
             $ip->refresh();
-            $this->assertTrue($ip->internet_enabled, "IP {$ip->address} should be internet_enabled");
+            $this->assertTrue($ip->internet_enabled, sprintf('IP %s should be internet_enabled', $ip->address));
         }
     }
 }

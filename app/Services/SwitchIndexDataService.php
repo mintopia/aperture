@@ -47,8 +47,8 @@ class SwitchIndexDataService
 
         if ($search !== '') {
             $query->where(function ($q) use ($search): void {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('hostname', 'like', "%{$search}%");
+                $q->where('name', 'like', sprintf('%%%s%%', $search))
+                    ->orWhere('hostname', 'like', sprintf('%%%s%%', $search));
             });
         }
 

@@ -11,6 +11,7 @@ use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class SyncUserBandwidthCommandTest extends TestCase
@@ -27,7 +28,7 @@ class SyncUserBandwidthCommandTest extends TestCase
         $mock = Mockery::mock(IpBandwidthInterface::class);
         $mock->shouldReceive('getIpBandwidth')
             ->once()
-            ->with(Mockery::on(fn ($ips) => in_array('10.0.0.1', $ips, true)), '7d')
+            ->with(Mockery::on(fn ($ips): bool => in_array('10.0.0.1', $ips, true)), '7d')
             ->andReturn(new IpBandwidthResult(
                 received: 5000,
                 sent: 3000,
@@ -53,6 +54,7 @@ class SyncUserBandwidthCommandTest extends TestCase
         /** @var IpBandwidthInterface&MockInterface $mock */
         $mock = Mockery::mock(IpBandwidthInterface::class);
         $mock->shouldNotReceive('getIpBandwidth');
+
         $this->app->instance(IpBandwidthInterface::class, $mock);
 
         $this->artisan('aperture:sync-user-bandwidth')
@@ -74,7 +76,7 @@ class SyncUserBandwidthCommandTest extends TestCase
         /** @var IpBandwidthInterface&MockInterface $mock */
         $mock = Mockery::mock(IpBandwidthInterface::class);
         $mock->shouldReceive('getIpBandwidth')
-            ->andThrow(new \RuntimeException('Connection refused'));
+            ->andThrow(new RuntimeException('Connection refused'));
         $this->app->instance(IpBandwidthInterface::class, $mock);
 
         $this->artisan('aperture:sync-user-bandwidth')
@@ -96,7 +98,7 @@ class SyncUserBandwidthCommandTest extends TestCase
         $mock = Mockery::mock(IpBandwidthInterface::class);
         $mock->shouldReceive('getIpBandwidth')
             ->once()
-            ->with(Mockery::on(fn ($ips) => count($ips) === 2), '7d')
+            ->with(Mockery::on(fn ($ips): bool => count($ips) === 2), '7d')
             ->andReturn(new IpBandwidthResult(
                 received: 10000,
                 sent: 5000,

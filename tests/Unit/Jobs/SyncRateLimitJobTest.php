@@ -9,6 +9,7 @@ use App\Models\IpAddress;
 use App\Services\IpAddressActionService;
 use Illuminate\Support\Facades\Log;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class SyncRateLimitJobTest extends TestCase
@@ -36,7 +37,7 @@ class SyncRateLimitJobTest extends TestCase
                 'error' => 'Connection timed out',
             ]);
 
-        $job->failed(new \RuntimeException('Connection timed out'));
+        $job->failed(new RuntimeException('Connection timed out'));
     }
 
     public function test_enables_rate_limit_for_ip(): void

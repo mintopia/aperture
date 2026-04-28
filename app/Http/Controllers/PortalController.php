@@ -40,7 +40,7 @@ class PortalController extends Controller
         $clientIp = (string) $request->getClientIp();
         /** @var User $user */
         $user = $request->user();
-        $this->ensureInternetEnabled($user, $actionService);
+        $this->ensureInternetEnabled($user);
         $ip = $user->addIp($clientIp);
 
         return response()->json((object) [
@@ -76,7 +76,7 @@ class PortalController extends Controller
         ]);
     }
 
-    private function ensureInternetEnabled(User $user, IpAddressActionService $actionService): void
+    private function ensureInternetEnabled(User $user): void
     {
         if ($user->internet_blocked || $user->internet_enabled) {
             return;

@@ -104,7 +104,7 @@ class AuditLogController extends Controller
 
     private function resolveEntityUrl(?string $type, ?Model $model): ?string
     {
-        if ($type === null || $model === null) {
+        if ($type === null || ! $model instanceof Model) {
             return null;
         }
 

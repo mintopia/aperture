@@ -12,6 +12,7 @@ use App\Services\OpnSense\OpnSenseRateLimiter;
 use App\Services\ValueObjects\ReconcileResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\MockObject\MockObject;
+use ReflectionClass;
 use stdClass;
 use Tests\TestCase;
 
@@ -57,6 +58,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
                     return $downloadRule;
                 }
+
                 $this->assertSame('/api/trafficshaper/settings/get_rule/up-uuid', $uri);
 
                 return $uploadRule;
@@ -74,6 +76,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
                     return (object) ['result' => 'saved'];
                 }
+
                 if ($postCallIndex === 2) {
                     $this->assertSame('/api/trafficshaper/settings/set_rule/up-uuid', $uri);
                     $this->assertInstanceOf(stdClass::class, $payload);
@@ -81,6 +84,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
                     return (object) ['result' => 'saved'];
                 }
+
                 $this->assertSame('/api/trafficshaper/service/reconfigure', $uri);
 
                 return (object) ['status' => 'ok'];
@@ -108,6 +112,7 @@ class OpnSenseRateLimiterTest extends TestCase
                     if ($postCallIndex === 1) {
                         $this->assertSame('10.0.0.10,10.0.0.50', $payload->rule->destination);
                     }
+
                     if ($postCallIndex === 2) {
                         $this->assertSame('10.0.0.10,10.0.0.50', $payload->rule->source);
                     }
@@ -140,6 +145,7 @@ class OpnSenseRateLimiterTest extends TestCase
                     if ($postCallIndex === 1) {
                         $this->assertSame('10.0.0.50', $payload->rule->destination);
                     }
+
                     if ($postCallIndex === 2) {
                         $this->assertSame('10.0.0.50', $payload->rule->source);
                     }
@@ -188,6 +194,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
                     return $downloadRule;
                 }
+
                 $this->assertSame('/api/trafficshaper/settings/get_rule/up-uuid', $uri);
 
                 return $uploadRule;
@@ -205,6 +212,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
                     return (object) ['result' => 'saved'];
                 }
+
                 if ($postCallIndex === 2) {
                     $this->assertSame('/api/trafficshaper/settings/set_rule/up-uuid', $uri);
                     $this->assertInstanceOf(stdClass::class, $payload);
@@ -212,6 +220,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
                     return (object) ['result' => 'saved'];
                 }
+
                 $this->assertSame('/api/trafficshaper/service/reconfigure', $uri);
 
                 return (object) ['status' => 'ok'];
@@ -239,6 +248,7 @@ class OpnSenseRateLimiterTest extends TestCase
                     if ($postCallIndex === 1) {
                         $this->assertSame('10.0.0.10', $payload->rule->destination);
                     }
+
                     if ($postCallIndex === 2) {
                         $this->assertSame('10.0.0.10', $payload->rule->source);
                     }
@@ -271,6 +281,7 @@ class OpnSenseRateLimiterTest extends TestCase
                     if ($postCallIndex === 1) {
                         $this->assertSame('', $payload->rule->destination);
                     }
+
                     if ($postCallIndex === 2) {
                         $this->assertSame('', $payload->rule->source);
                     }
@@ -332,7 +343,7 @@ class OpnSenseRateLimiterTest extends TestCase
             });
 
         // Use reflection to test addHostToRule directly
-        $reflection = new \ReflectionClass($this->limiter);
+        $reflection = new ReflectionClass($this->limiter);
         $method = $reflection->getMethod('addHostToRule');
         $method->invoke($this->limiter, 'down-uuid', '10.0.0.50', 'destination');
     }
@@ -462,6 +473,7 @@ class OpnSenseRateLimiterTest extends TestCase
                 if ($getCallIndex === 1) {
                     return $emptyRule;
                 }
+
                 throw new BackendException('Connection refused');
             });
 
@@ -503,6 +515,7 @@ class OpnSenseRateLimiterTest extends TestCase
             $unchangedIps[] = $ip;
             IpAddress::factory()->create(['address' => $ip, 'rate_limit_enabled' => true]);
         }
+
         for ($i = 51; $i <= 100; $i++) {
             $ip = '10.2.0.'.$i;
             $addedIps[] = $ip;
@@ -556,7 +569,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
     public function test_filter_extracts_selected_keys(): void
     {
-        $reflection = new \ReflectionClass($this->limiter);
+        $reflection = new ReflectionClass($this->limiter);
         $method = $reflection->getMethod('filter');
 
         $objects = (object) [
@@ -572,7 +585,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
     public function test_filter_handles_empty_object(): void
     {
-        $reflection = new \ReflectionClass($this->limiter);
+        $reflection = new ReflectionClass($this->limiter);
         $method = $reflection->getMethod('filter');
 
         $result = $method->invoke($this->limiter, (object) []);
@@ -582,7 +595,7 @@ class OpnSenseRateLimiterTest extends TestCase
 
     public function test_filter_handles_array_input(): void
     {
-        $reflection = new \ReflectionClass($this->limiter);
+        $reflection = new ReflectionClass($this->limiter);
         $method = $reflection->getMethod('filter');
 
         $objects = [

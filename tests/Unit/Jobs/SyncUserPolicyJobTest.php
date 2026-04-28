@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\IpPolicyService;
 use Illuminate\Support\Facades\Log;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class SyncUserPolicyJobTest extends TestCase
@@ -39,7 +40,7 @@ class SyncUserPolicyJobTest extends TestCase
                 'error' => 'Policy service error',
             ]);
 
-        $job->failed(new \RuntimeException('Policy service error'));
+        $job->failed(new RuntimeException('Policy service error'));
     }
 
     public function test_applies_user_policy_to_ip(): void
