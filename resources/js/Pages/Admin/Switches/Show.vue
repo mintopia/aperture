@@ -7,6 +7,7 @@ import DataTable from '@/Components/UI/DataTable.vue';
 import { formatRelative, formatDate } from '@/utils/dates';
 import { typeLabel, statusLabel, formatSpeed, formatVlan } from '@/utils/switches';
 import SwitchPortGrid from '@/Components/Admin/SwitchPortGrid.vue';
+import ConfigBlock from '@/Components/UI/ConfigBlock.vue';
 import { useAdminChannel } from '@/composables/useAdminChannel';
 
 function statusDotClass(type) {
@@ -52,10 +53,13 @@ const props = defineProps({
     switchConfig: { type: Object, default: () => ({}) },
     ports: { type: Array, default: () => [] },
     latestSync: { type: Object, default: null },
+    canDownloadConfig: { type: Boolean, default: false },
+    runningConfig: { type: String, default: null },
 });
 
 const syncing = ref(false);
 const testing = ref(false);
+const showConfig = ref(false);
 
 const portSearch = ref('');
 const portFilter = ref('all');
@@ -323,6 +327,30 @@ useAdminChannel({
             >
                 {{ latestSync.error }}
             </p>
+        </section>
+
+        <!-- Running Config -->
+        <section v-if="canDownloadConfig" data-testid="running-config-card" class="mb-8">
+            <div class="flex items-center gap-2">
+                <button
+                    data-testid="action-toggle-config"
+                    class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                    @click="showConfig = !showConfig"
+                >
+                    {{ showConfig ? 'Hide Config' : 'View Running Config' }}
+                </button>
+                <a
+                    data-testid="action-download-config"
+                    :href="route('admin.switches.download-config', switchConfig.id)"
+                    class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                >
+                    Download Config
+                </a>
+            </div>
+            <div v-if="showConfig" class="mt-3">
+                <ConfigBlock v-if="runningConfig" :code="runningConfig" />
+                <p v-else class="text-[13px] text-[var(--color-text-muted)]">No running config available</p>
+            </div>
         </section>
 
         <!-- Port Grid Overview -->

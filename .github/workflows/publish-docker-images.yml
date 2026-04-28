@@ -48,8 +48,14 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
+      - name: Copy environment file
+        run: cp .env.example .env
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Generate application key
+        run: php artisan key:generate
 
       - name: Laravel Pint (formatting)
         run: vendor/bin/pint --test --format agent
@@ -59,12 +65,6 @@ jobs:
 
       - name: Rector (code quality)
         run: vendor/bin/rector process --dry-run --no-progress-bar
-
-      - name: Copy environment file
-        run: cp .env.example .env
-
-      - name: Generate application key
-        run: php artisan key:generate
 
       - name: PHPUnit (tests + coverage)
         run: XDEBUG_MODE=coverage php artisan test --parallel --compact --coverage-clover=storage/coverage/php/clover.xml
