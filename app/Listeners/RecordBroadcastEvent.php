@@ -70,7 +70,7 @@ class RecordBroadcastEvent
             'DeviceDiscovered' => $this->formatDeviceDiscovered($data),
             'PortStateChanged' => sprintf('Port %s changed to %s', $data['port_name'] ?? 'unknown', $data['new_status'] ?? 'unknown'),
             'SwitchSyncCompleted' => $this->formatSwitchSyncCompleted($data),
-            'DhcpPoolThresholdReached' => sprintf('DHCP pool %s reached %s%% utilization', $data['pool'] ?? 'unknown', (int) ($data['usage'] ?? 0)),
+            'DhcpPoolThresholdReached' => sprintf('DHCP pool %s reached %s%% utilisation', $data['pool'] ?? 'unknown', (int) ($data['usage'] ?? 0)),
             'InternetAccessChanged' => sprintf('Internet access %s for %s', ($data['enabled'] ?? false) ? 'enabled' : 'disabled', $data['ip_address'] ?? 'unknown'),
             'RateLimitChanged' => sprintf('Rate limit changed for %s from %s to %s', $data['ip_address'] ?? 'unknown', $data['old_limit'] ?? '?', $data['new_limit'] ?? '?'),
             'UserBlocked' => sprintf('%s blocked on %s: %s', $data['user_name'] ?? 'Unknown', $data['ip_address'] ?? 'unknown', $data['reason'] ?? 'no reason'),

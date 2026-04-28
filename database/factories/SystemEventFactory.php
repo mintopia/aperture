@@ -61,7 +61,7 @@ class SystemEventFactory extends Factory
         return $this->state([
             'type' => 'DhcpPoolThresholdReached',
             'level' => 'warning',
-            'message' => 'DHCP pool LAN reached 90% utilization',
+            'message' => 'DHCP pool LAN reached 90% utilisation',
         ]);
     }
 }

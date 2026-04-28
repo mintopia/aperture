@@ -41,7 +41,7 @@ const mockEvents = [
         id: 3,
         type: 'DhcpPoolThresholdReached',
         level: 'warning',
-        message: 'DHCP pool LAN reached 92% utilization',
+        message: 'DHCP pool LAN reached 92% utilisation',
         created_at: '2026-04-27T11:58:00+00:00',
     },
 ];

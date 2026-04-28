@@ -34,3 +34,6 @@ storage/coverage/
 /reports/
 core.*
 /.playwright-cli/
+AGENTS.md
+CODEX.md
+GEMINI.md

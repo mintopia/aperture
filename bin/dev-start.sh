@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 COMPOSE_FILES=(-f docker-compose.yaml)
@@ -163,13 +163,13 @@ if compose_available; then
                 COMPOSE_FILES+=(-f docker-compose.override.ports.yml)
                 ACTIVE_MODE="ports"
                 echo "Traefik container '${TRAEFIK_CONTAINER}' is not running; using local port fallback."
-                echo "Tip: start Traefik or run DEV_START_MODE=traefik ./dev-start.sh for strict mode."
+                echo "Tip: start Traefik or run DEV_START_MODE=traefik bin/dev-start.sh for strict mode."
             fi
             ;;
         traefik)
             if ! is_traefik_running; then
                 echo "Error: Traefik container '${TRAEFIK_CONTAINER}' is not running." >&2
-                echo "Start Traefik first, or run DEV_START_MODE=ports ./dev-start.sh for local ports." >&2
+                echo "Start Traefik first, or run DEV_START_MODE=ports bin/dev-start.sh for local ports." >&2
                 exit 1
             fi
             apply_traefik_mode

@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
-class ApplyOuiPolicyOptimizationTest extends TestCase
+class ApplyOuiPolicyOptimisationTest extends TestCase
 {
     use LazilyRefreshDatabase;
 

@@ -190,7 +190,7 @@ func (e *Executor) readUntilExpect(session Session, expect string) (string, erro
 }
 
 // getLastLine returns the last non-empty line from the output.
-// Matches PHP behavior: trim → split by \n → filter empty → last element.
+// Matches PHP behaviour: trim → split by \n → filter empty → last element.
 func getLastLine(output string) string {
 	trimmed := strings.TrimSpace(output)
 	if trimmed == "" {
@@ -209,7 +209,7 @@ func getLastLine(output string) string {
 //   - If condition is surrounded by /, treat as regex: /pattern/
 //   - Otherwise, perform a substring match.
 //
-// Matches PHP behavior: strlen > 2 && first == '/' && last == '/'.
+// Matches PHP behaviour: strlen > 2 && first == '/' && last == '/'.
 func matchesCondition(text, condition string) bool {
 	if len(condition) > 2 && condition[0] == '/' && condition[len(condition)-1] == '/' {
 		pattern := condition[1 : len(condition)-1]

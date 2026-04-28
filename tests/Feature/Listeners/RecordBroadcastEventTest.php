@@ -118,7 +118,7 @@ class RecordBroadcastEventTest extends TestCase
         $this->assertDatabaseHas('system_events', [
             'type' => 'DhcpPoolThresholdReached',
             'level' => 'warning',
-            'message' => 'DHCP pool LAN reached 92% utilization',
+            'message' => 'DHCP pool LAN reached 92% utilisation',
         ]);
     }
 

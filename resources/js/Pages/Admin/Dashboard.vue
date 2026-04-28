@@ -135,7 +135,7 @@ const EVENT_FORMATTERS = {
         const base = `Switch ${data.hostname} sync completed (${data.ports_updated} ports updated)`;
         return data.errors?.length ? `${base} - ${data.errors.length} errors` : base;
     },
-    DhcpPoolThresholdReached: (data) => `DHCP pool ${data.pool} reached ${data.usage}% utilization`,
+    DhcpPoolThresholdReached: (data) => `DHCP pool ${data.pool} reached ${data.usage}% utilisation`,
     InternetAccessChanged: (data) => `Internet access ${data.enabled ? 'enabled' : 'disabled'} for ${data.ip_address}`,
     RateLimitChanged: (data) => `Rate limit changed for ${data.ip_address} from ${data.old_limit} to ${data.new_limit}`,
     UserBlocked: (data) => `${data.user_name} blocked on ${data.ip_address}: ${data.reason}`,
