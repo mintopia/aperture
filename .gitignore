@@ -33,3 +33,4 @@ storage/coverage/
 /storage/playwright-report/
 /reports/
 core.*
+/.playwright-cli/

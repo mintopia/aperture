@@ -1,2 +1,0 @@
-[      51ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://localhost:8000/_boost/browser-logs @ http://localhost:8000/:30
-[      58ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://{uuid}.ipv6.test.entropylan.party/:0

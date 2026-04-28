@@ -1,7 +1,0 @@
-- generic [ref=e4]:
-  - generic [ref=e6]: A
-  - heading "Hi jess!" [level=1] [ref=e7]
-  - generic [ref=e8]:
-    - paragraph [ref=e9]: Setting up your internet access…
-    - img [ref=e11]
-  - paragraph [ref=e14]: "Your IP: 44.30.69.58"

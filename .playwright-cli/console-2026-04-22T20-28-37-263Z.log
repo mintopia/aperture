@@ -1,4 +1,0 @@
-[      54ms] [ERROR] Error fetching status: TypeError: Failed to fetch
-    at checkStatus (http://127.0.0.1:8000/:272:13) @ http://127.0.0.1:8000/:89
-[      72ms] [LOG] 🔍 Browser logger active (MCP server detected). Posting to: http://127.0.0.1:8000/_boost/browser-logs @ http://127.0.0.1:8000/admin/ips/127.0.0.1:14
-[   19836ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8000/admin/ips/2/internet:0
