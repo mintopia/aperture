@@ -79,6 +79,9 @@ const legendItems = [
     <div data-testid="switch-port-grid">
         <!-- Dual-row layout: odd ports top, even ports bottom -->
         <template v-if="useDualRow">
+            <div class="mb-1" :style="{ width: oddPorts.length * 28 - 4 + 'px' }">
+                <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ firstLabel }}</span>
+            </div>
             <div class="inline-flex flex-col gap-1" data-testid="port-grid-dual">
                 <div class="flex gap-1">
                     <a
@@ -103,14 +106,16 @@ const legendItems = [
                     />
                 </div>
             </div>
-            <div class="mt-1 flex justify-between" :style="{ width: oddPorts.length * 28 - 4 + 'px' }">
-                <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ firstLabel }}</span>
+            <div class="mt-1 flex justify-end" :style="{ width: oddPorts.length * 28 - 4 + 'px' }">
                 <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ lastLabel }}</span>
             </div>
         </template>
 
         <!-- Single-row layout: all ports horizontal -->
         <template v-else>
+            <div v-if="ports.length > 1" class="mb-1" :style="{ width: ports.length * 30 - 6 + 'px' }">
+                <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ firstLabel }}</span>
+            </div>
             <div class="inline-flex gap-1.5">
                 <a
                     v-for="port in ports"
@@ -122,8 +127,7 @@ const legendItems = [
                     class="block h-6 w-6 rounded-sm transition-transform duration-100 hover:scale-125 hover:ring-2 hover:ring-[var(--color-text)]/30 focus:scale-125 focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none"
                 />
             </div>
-            <div v-if="ports.length > 1" class="mt-1 flex justify-between" :style="{ width: ports.length * 28 - 4 + 'px' }">
-                <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ firstLabel }}</span>
+            <div v-if="ports.length > 1" class="mt-1 flex justify-end" :style="{ width: ports.length * 30 - 6 + 'px' }">
                 <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ lastLabel }}</span>
             </div>
         </template>

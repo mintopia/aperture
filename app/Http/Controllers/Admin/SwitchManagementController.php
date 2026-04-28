@@ -11,6 +11,7 @@ use App\Http\Resources\SwitchConfigResource;
 use App\Http\Resources\SwitchPortResource;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
+use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SwitchIndexDataService;
 use Illuminate\Http\JsonResponse;
@@ -64,8 +65,9 @@ class SwitchManagementController extends Controller
     public function show(SwitchConfig $switchConfig): Response
     {
         $ports = $switchConfig->switchPorts()
-            ->orderBy('port_name')
-            ->get();
+            ->get()
+            ->sortBy('port_name', SORT_NATURAL)
+            ->values();
         $latestSync = $switchConfig->latestSyncRun;
 
         return Inertia::render('Admin/Switches/Show', [
@@ -119,8 +121,10 @@ class SwitchManagementController extends Controller
             ->with('success', 'Switch deleted successfully.');
     }
 
-    public function sync(SwitchConfig $switchConfig): RedirectResponse
+    public function sync(SwitchConfig $switchConfig, CircuitBreaker $circuitBreaker): RedirectResponse
     {
+        $circuitBreaker->reset($switchConfig);
+
         SyncSwitchPortsJob::dispatch($switchConfig);
 
         return back()->with('success', 'Switch sync has been queued.');

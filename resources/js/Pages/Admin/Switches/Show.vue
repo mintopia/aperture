@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
 
 function refreshSwitchData() {
     router.reload({
-        only: ['switchConfig', 'ports', 'latestSync', 'runningConfig'],
+        only: ['switchConfig', 'ports', 'latestSync'],
         preserveScroll: true,
     });
 }

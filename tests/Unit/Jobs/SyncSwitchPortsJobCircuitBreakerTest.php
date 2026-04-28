@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Jobs;
 
+use App\Events\SwitchSyncCompleted;
 use App\Events\SwitchUnreachable;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
@@ -51,6 +52,8 @@ class SyncSwitchPortsJobCircuitBreakerTest extends TestCase
 
     public function test_job_records_success_on_circuit_breaker_after_sync(): void
     {
+        Event::fake([SwitchSyncCompleted::class]);
+
         $switchConfig = SwitchConfig::factory()->create();
         $syncRun = SwitchSyncRun::factory()->completed()->create([
             'switch_config_id' => $switchConfig->id,

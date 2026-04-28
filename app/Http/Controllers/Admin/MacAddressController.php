@@ -100,7 +100,6 @@ class MacAddressController extends Controller
                 return [
                     'id' => $ip->id,
                     'address' => $ip->address,
-                    'internet_enabled' => $ip->internet_enabled,
                     'source' => $ip->pivot->source,
                     'last_seen_at' => Carbon::parse($ip->pivot->last_seen_at)->toIso8601String(),
                 ];

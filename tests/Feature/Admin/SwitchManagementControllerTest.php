@@ -11,6 +11,7 @@ use App\Models\SwitchPort;
 use App\Models\SwitchSyncRun;
 use App\Models\User;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -790,6 +791,24 @@ class SwitchManagementControllerTest extends TestCase
         Queue::assertPushed(SyncSwitchPortsJob::class, function (SyncSwitchPortsJob $job) use ($switch): bool {
             return $job->switchConfig->id === $switch->id;
         });
+    }
+
+    public function test_sync_resets_circuit_breaker(): void
+    {
+        Queue::fake();
+
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $circuitBreaker = app(CircuitBreaker::class);
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+        $this->assertFalse($circuitBreaker->isAvailable($switch));
+
+        $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/sync');
+
+        $this->assertTrue($circuitBreaker->isAvailable($switch));
     }
 
     public function test_sync_returns_404_for_nonexistent_switch(): void

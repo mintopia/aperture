@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Jobs;
 
+use App\Events\SwitchSyncCompleted;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use App\Models\SwitchSyncRun;
@@ -11,6 +12,7 @@ use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\PortSyncService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
@@ -22,6 +24,8 @@ class SyncSwitchPortsJobTest extends TestCase
 
     public function test_job_dispatches_sync_service(): void
     {
+        Event::fake([SwitchSyncCompleted::class]);
+
         $switchConfig = SwitchConfig::factory()->create();
         $syncRun = SwitchSyncRun::factory()->completed()->create([
             'switch_config_id' => $switchConfig->id,
@@ -41,6 +45,59 @@ class SyncSwitchPortsJobTest extends TestCase
 
         $job = new SyncSwitchPortsJob($switchConfig);
         $job->handle($service, $circuitBreaker);
+    }
+
+    public function test_job_dispatches_switch_sync_completed_event(): void
+    {
+        Event::fake([SwitchSyncCompleted::class]);
+
+        $switchConfig = SwitchConfig::factory()->create();
+        $syncRun = SwitchSyncRun::factory()->completed()->create([
+            'switch_config_id' => $switchConfig->id,
+            'ports_updated' => 12,
+        ]);
+
+        /** @var MockInterface&PortSyncService $service */
+        $service = Mockery::mock(PortSyncService::class);
+        $service->shouldReceive('syncSwitch')->once()->andReturn($syncRun);
+
+        /** @var MockInterface&CircuitBreaker $circuitBreaker */
+        $circuitBreaker = Mockery::mock(CircuitBreaker::class);
+        $circuitBreaker->shouldReceive('isAvailable')->andReturn(true);
+        $circuitBreaker->shouldReceive('recordSuccess');
+
+        $job = new SyncSwitchPortsJob($switchConfig);
+        $job->handle($service, $circuitBreaker);
+
+        Event::assertDispatched(SwitchSyncCompleted::class, function (SwitchSyncCompleted $event) use ($switchConfig): bool {
+            return $event->switchConfig->is($switchConfig) && $event->portsUpdated === 12;
+        });
+    }
+
+    public function test_job_does_not_dispatch_event_on_failure(): void
+    {
+        Event::fake([SwitchSyncCompleted::class]);
+
+        $switchConfig = SwitchConfig::factory()->create();
+
+        /** @var MockInterface&PortSyncService $service */
+        $service = Mockery::mock(PortSyncService::class);
+        $service->shouldReceive('syncSwitch')->once()->andThrow(new RuntimeException('SSH error'));
+
+        /** @var MockInterface&CircuitBreaker $circuitBreaker */
+        $circuitBreaker = Mockery::mock(CircuitBreaker::class);
+        $circuitBreaker->shouldReceive('isAvailable')->andReturn(true);
+        $circuitBreaker->shouldReceive('recordFailure');
+
+        $job = new SyncSwitchPortsJob($switchConfig);
+
+        try {
+            $job->handle($service, $circuitBreaker);
+        } catch (RuntimeException) {
+            // Expected
+        }
+
+        Event::assertNotDispatched(SwitchSyncCompleted::class);
     }
 
     public function test_job_implements_should_be_unique(): void
