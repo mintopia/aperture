@@ -88,4 +88,41 @@ describe('Edit User', () => {
         expect(wrapper.find('[data-testid="edit-user-submit"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="edit-user-cancel"]').exists()).toBe(true);
     });
+
+    // ── Checkbox design-system styling ──────────────────────────────────────
+
+    it('applies design-system classes to the clear-password checkbox', () => {
+        const wrapper = mountEdit({ ...defaultUser, has_password: true });
+        const checkbox = wrapper.find('[data-testid="edit-user-clear-password"]');
+        expect(checkbox.exists()).toBe(true);
+        expect(checkbox.classes()).toContain('h-4');
+        expect(checkbox.classes()).toContain('w-4');
+        expect(checkbox.classes()).toContain('bg-[var(--color-surface)]');
+        expect(checkbox.classes()).toContain('accent-[var(--color-primary)]');
+    });
+
+    it('applies design-system classes to role checkboxes', () => {
+        const wrapperWithRoles = mount(Edit, {
+            props: {
+                user: { ...defaultUser, has_password: true, roles: ['admin'] },
+                availableRoles: [{ code: 'admin', name: 'Admin' }],
+            },
+            global: {
+                stubs: {
+                    AdminLayout: { template: '<div><slot /></div>' },
+                },
+                config: {
+                    globalProperties: {
+                        route: (name, params) => `/${name.replace(/\./g, '/')}/${params ?? ''}`,
+                    },
+                },
+            },
+        });
+        const roleCheckbox = wrapperWithRoles.find('[data-testid="role-admin"]');
+        expect(roleCheckbox.exists()).toBe(true);
+        expect(roleCheckbox.classes()).toContain('h-4');
+        expect(roleCheckbox.classes()).toContain('w-4');
+        expect(roleCheckbox.classes()).toContain('bg-[var(--color-surface)]');
+        expect(roleCheckbox.classes()).toContain('accent-[var(--color-primary)]');
+    });
 });

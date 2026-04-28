@@ -56,7 +56,7 @@ function submit() {
                         v-model="form.allow"
                         data-testid="field-allow"
                         type="checkbox"
-                        class="rounded border-[var(--color-border-hover)]"
+                        class="h-4 w-4 rounded border-[var(--color-border-hover)] bg-[var(--color-surface)] accent-[var(--color-primary)]"
                     />
                     Allow Internet
                 </label>
@@ -65,7 +65,7 @@ function submit() {
                         v-model="form.limit"
                         data-testid="field-limit"
                         type="checkbox"
-                        class="rounded border-[var(--color-border-hover)]"
+                        class="h-4 w-4 rounded border-[var(--color-border-hover)] bg-[var(--color-surface)] accent-[var(--color-primary)]"
                     />
                     Rate Limit
                 </label>

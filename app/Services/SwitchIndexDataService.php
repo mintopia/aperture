@@ -68,7 +68,6 @@ class SwitchIndexDataService
                 'ports_up' => $s->ports_up_count,
                 'ports_down' => $s->ports_down_count,
                 'ports_error' => $s->ports_error_count,
-                'last_synced_at' => $s->latestSyncRun?->finished_at,
                 'latest_sync_status' => $s->latestSyncRun?->status,
             ]);
 

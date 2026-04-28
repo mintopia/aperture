@@ -16,7 +16,9 @@ const props = defineProps({
 const page = usePage();
 const layoutComponent = computed(() => (page.props.auth?.user?.is_admin ? AdminLayout : PortalLayout));
 
-const needsVerification = (props.user.has_password || props.user.passkeys.length > 0) && !props.verified;
+const needsVerification = computed(
+    () => (props.user.has_password || props.user.passkeys.length > 0) && !props.verified,
+);
 
 const verifyForm = useForm({ password: '' });
 const passwordForm = useForm({ password: '', password_confirmation: '' });

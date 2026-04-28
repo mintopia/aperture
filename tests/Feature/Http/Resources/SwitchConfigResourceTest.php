@@ -6,6 +6,7 @@ namespace Tests\Feature\Http\Resources;
 
 use App\Http\Resources\SwitchConfigResource;
 use App\Models\SwitchConfig;
+use App\Models\SwitchSyncRun;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -79,6 +80,35 @@ class SwitchConfigResourceTest extends TestCase
 
         $this->assertSame(array_keys($publicArray), array_keys($resourceArray));
         $this->assertEquals($publicArray, $resourceArray);
+    }
+
+    public function test_to_array_includes_last_synced_at_when_sync_exists(): void
+    {
+        $switchConfig = SwitchConfig::factory()->create();
+        $syncRun = SwitchSyncRun::factory()->create([
+            'switch_config_id' => $switchConfig->id,
+            'status' => 'completed',
+            'finished_at' => now()->subMinutes(5),
+        ]);
+
+        $switchConfig->load('latestSyncRun');
+        $resource = new SwitchConfigResource($switchConfig);
+        $result = $resource->toArray(Request::create('/'));
+
+        $this->assertArrayHasKey('last_synced_at', $result);
+        $this->assertEquals($syncRun->finished_at, $result['last_synced_at']);
+    }
+
+    public function test_to_array_returns_null_last_synced_at_when_no_sync(): void
+    {
+        $switchConfig = SwitchConfig::factory()->create();
+
+        $switchConfig->load('latestSyncRun');
+        $resource = new SwitchConfigResource($switchConfig);
+        $result = $resource->toArray(Request::create('/'));
+
+        $this->assertArrayHasKey('last_synced_at', $result);
+        $this->assertNull($result['last_synced_at']);
     }
 
     public function test_resource_collection_returns_array_of_resources(): void

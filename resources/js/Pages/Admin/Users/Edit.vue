@@ -135,7 +135,7 @@ function submit() {
                             v-model="form.clear_password"
                             type="checkbox"
                             data-testid="edit-user-clear-password"
-                            class="rounded border-[var(--color-border-hover)]"
+                            class="h-4 w-4 rounded border-[var(--color-border-hover)] bg-[var(--color-surface)] accent-[var(--color-primary)]"
                         />
                         Clear password (disable email/password login for this user)
                     </label>
@@ -161,7 +161,7 @@ function submit() {
                             type="checkbox"
                             :value="role.code"
                             :data-testid="`role-${role.code}`"
-                            class="rounded border-[var(--color-border-hover)]"
+                            class="h-4 w-4 rounded border-[var(--color-border-hover)] bg-[var(--color-surface)] accent-[var(--color-primary)]"
                         />
                         {{ role.name }}
                     </label>

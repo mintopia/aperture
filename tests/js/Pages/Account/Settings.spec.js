@@ -376,6 +376,24 @@ describe('Account/Settings', () => {
         expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
     });
 
+    // ── Reactivity: needsVerification updates when verified prop changes ───
+
+    it('reactively hides verify-form and shows password-section when verified prop changes to true', async () => {
+        const wrapper = mountComponent(userWithPassword, false);
+
+        // Initially: verify form shown, password section hidden
+        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(false);
+
+        // Simulate Inertia redirect updating the verified prop
+        await wrapper.setProps({ verified: true });
+        await wrapper.vm.$nextTick();
+
+        // After prop change: verify form hidden, password section shown
+        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(true);
+    });
+
     // ── Delete passkey confirm modal ────────────────────────────────────────
 
     it('shows delete-passkey confirm modal when Remove is clicked', async () => {

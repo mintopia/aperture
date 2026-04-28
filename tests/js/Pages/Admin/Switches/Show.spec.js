@@ -57,8 +57,11 @@ function mountShow(propsOverride = {}) {
             },
             stubs: {
                 AdminLayout: { template: '<div><slot /></div>' },
-                MetadataStrip: { template: '<div />', props: ['items'] },
-                DataTable: { template: '<div />', props: ['columns', 'rows', 'rowClass', 'clickable', 'rowHref', 'rowAriaLabel', 'emptyMessage'] },
+                MetadataStrip: { name: 'MetadataStrip', template: '<div />', props: ['items'] },
+                DataTable: {
+                    template: '<div />',
+                    props: ['columns', 'rows', 'rowClass', 'clickable', 'rowHref', 'rowAriaLabel', 'emptyMessage'],
+                },
                 ConfigBlock: { template: '<div data-testid="config-block" />', props: ['code'] },
                 teleport: true,
             },
@@ -207,10 +210,46 @@ describe('Show.vue - broken template references', () => {
         });
     });
 
+    describe('metadata strip last synced', () => {
+        it('passes last_synced_at through formatRelative to the metadata strip', () => {
+            const wrapper = mountShow({
+                switchConfig: {
+                    ...defaultProps.switchConfig,
+                    last_synced_at: '2024-06-15T14:30:00Z',
+                },
+            });
+            const strip = wrapper.findComponent({ name: 'MetadataStrip' });
+            expect(strip.exists()).toBe(true);
+            const lastSyncedItem = strip.props('items').find((i) => i.label === 'Last Synced');
+            expect(lastSyncedItem).toBeDefined();
+            expect(lastSyncedItem.value).toBe('relative:2024-06-15T14:30:00Z');
+        });
+
+        it('shows Never when last_synced_at is null', () => {
+            const wrapper = mountShow({
+                switchConfig: {
+                    ...defaultProps.switchConfig,
+                    last_synced_at: null,
+                },
+            });
+            const strip = wrapper.findComponent({ name: 'MetadataStrip' });
+            const lastSyncedItem = strip.props('items').find((i) => i.label === 'Last Synced');
+            expect(lastSyncedItem).toBeDefined();
+            expect(lastSyncedItem.value).toBe('Never');
+        });
+    });
+
     describe('syncStatusType and syncStatusLabel helper functions', () => {
         it('renders correct status display for completed sync', () => {
             const wrapper = mountShow({
-                latestSync: { status: 'completed', finished_at: '2024-01-01T01:00:00Z', started_at: null, ports_created: 0, ports_updated: 0, error: null },
+                latestSync: {
+                    status: 'completed',
+                    finished_at: '2024-01-01T01:00:00Z',
+                    started_at: null,
+                    ports_created: 0,
+                    ports_updated: 0,
+                    error: null,
+                },
             });
             const syncSection = wrapper.find('[data-testid="sync-status"]');
             expect(syncSection.exists()).toBe(true);
@@ -218,7 +257,14 @@ describe('Show.vue - broken template references', () => {
 
         it('renders sync status for failed state', () => {
             const wrapper = mountShow({
-                latestSync: { status: 'failed', finished_at: null, started_at: '2024-01-01T00:55:00Z', ports_created: 0, ports_updated: 0, error: 'Auth failed' },
+                latestSync: {
+                    status: 'failed',
+                    finished_at: null,
+                    started_at: '2024-01-01T00:55:00Z',
+                    ports_created: 0,
+                    ports_updated: 0,
+                    error: 'Auth failed',
+                },
             });
             const syncSection = wrapper.find('[data-testid="sync-status"]');
             expect(syncSection.exists()).toBe(true);
@@ -226,14 +272,28 @@ describe('Show.vue - broken template references', () => {
 
         it('renders sync status for running state', () => {
             const wrapper = mountShow({
-                latestSync: { status: 'running', finished_at: null, started_at: '2024-01-01T00:55:00Z', ports_created: 0, ports_updated: 0, error: null },
+                latestSync: {
+                    status: 'running',
+                    finished_at: null,
+                    started_at: '2024-01-01T00:55:00Z',
+                    ports_created: 0,
+                    ports_updated: 0,
+                    error: null,
+                },
             });
             expect(wrapper.find('[data-testid="sync-status"]').exists()).toBe(true);
         });
 
         it('renders sync status for pending state', () => {
             const wrapper = mountShow({
-                latestSync: { status: 'pending', finished_at: null, started_at: null, ports_created: 0, ports_updated: 0, error: null },
+                latestSync: {
+                    status: 'pending',
+                    finished_at: null,
+                    started_at: null,
+                    ports_created: 0,
+                    ports_updated: 0,
+                    error: null,
+                },
             });
             expect(wrapper.find('[data-testid="sync-status"]').exists()).toBe(true);
         });
