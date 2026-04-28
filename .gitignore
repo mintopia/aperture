@@ -29,3 +29,7 @@ storage/coverage/
 .superpowers/
 
 .worktrees/
+/test-results/
+/storage/playwright-report/
+/reports/
+core.*
