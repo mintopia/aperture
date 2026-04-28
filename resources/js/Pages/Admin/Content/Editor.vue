@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import EditorSidePanel from '@/Components/Admin/Content/EditorSidePanel.vue';
 import { useGridEditor } from '@/composables/useGridEditor.js';
@@ -16,6 +16,8 @@ const localBlocks = ref(JSON.parse(JSON.stringify(props.blocks)));
 const selectedBlock = ref(null);
 const hasChanges = ref(false);
 const saving = ref(false);
+const showAddMenu = ref(false);
+const addingBlock = ref(false);
 
 const { totalRows, moveBlock, computeDisplacement } = useGridEditor(localBlocks);
 
@@ -247,6 +249,50 @@ function blockStyle(block) {
 
 const displayRows = () => Math.max(totalRows.value + 1, 3);
 
+const blockTypes = [
+    { type: 'custom_markdown', label: 'Markdown', description: 'Rich text content' },
+    { type: 'connection_strip', label: 'Connection Strip', description: 'Network status display' },
+    { type: 'bandwidth', label: 'Bandwidth', description: 'Bandwidth usage chart' },
+    { type: 'dns_filter', label: 'DNS Filter', description: 'DNS filtering toggle' },
+];
+
+const availableBlockTypes = computed(() =>
+    blockTypes.filter((bt) => {
+        if (props.singletonTypes.includes(bt.type)) {
+            return !localBlocks.value.some((b) => b.type === bt.type);
+        }
+        return true;
+    }),
+);
+
+async function addBlock(type) {
+    addingBlock.value = true;
+    showAddMenu.value = false;
+    try {
+        const response = await fetch(route('admin.content.store'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+            },
+            body: JSON.stringify({
+                type,
+                title: blockTypes.find((bt) => bt.type === type)?.label ?? type,
+                content: '',
+                is_active: true,
+            }),
+        });
+        if (response.ok) {
+            const block = await response.json();
+            localBlocks.value.push(block);
+            hasChanges.value = false;
+            selectedBlock.value = block;
+        }
+    } finally {
+        addingBlock.value = false;
+    }
+}
+
 const blockTypeColors = {
     custom_markdown: 'rgba(34,197,94,0.3)',
     connection_strip: 'rgba(99,102,241,0.4)',
@@ -254,9 +300,20 @@ const blockTypeColors = {
     dns_filter: 'rgba(236,72,153,0.3)',
 };
 
+function onClickOutside(event) {
+    if (showAddMenu.value && !event.target.closest('[data-testid="action-add-block"]')?.parentElement?.contains(event.target)) {
+        showAddMenu.value = false;
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', onClickOutside, true);
+});
+
 onBeforeUnmount(() => {
     document.removeEventListener('mousemove', onResizeMove);
     document.removeEventListener('mouseup', onResizeEnd);
+    document.removeEventListener('click', onClickOutside, true);
 });
 </script>
 
@@ -271,12 +328,32 @@ onBeforeUnmount(() => {
                 Grid Editor
             </h1>
             <div class="flex gap-2">
-                <button
-                    data-testid="action-add-block"
-                    class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)]"
-                >
-                    + Add Block
-                </button>
+                <div class="relative">
+                    <button
+                        data-testid="action-add-block"
+                        :disabled="addingBlock || availableBlockTypes.length === 0"
+                        class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:opacity-40"
+                        @click="showAddMenu = !showAddMenu"
+                    >
+                        {{ addingBlock ? 'Adding...' : '+ Add Block' }}
+                    </button>
+                    <div
+                        v-if="showAddMenu"
+                        data-testid="add-block-menu"
+                        class="absolute right-0 z-20 mt-1 w-56 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
+                    >
+                        <button
+                            v-for="bt in availableBlockTypes"
+                            :key="bt.type"
+                            :data-testid="'add-block-' + bt.type"
+                            class="flex w-full flex-col px-3 py-2 text-left transition-colors hover:bg-[var(--color-surface-hover)]"
+                            @click="addBlock(bt.type)"
+                        >
+                            <span class="text-[13px] font-medium text-[var(--color-text)]">{{ bt.label }}</span>
+                            <span class="text-[11px] text-[var(--color-text-muted)]">{{ bt.description }}</span>
+                        </button>
+                    </div>
+                </div>
                 <button
                     data-testid="action-save-layout"
                     class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--color-accent-text)]"
