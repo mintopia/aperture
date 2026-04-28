@@ -79,14 +79,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div data-testid="flash-messages" class="fixed top-16 right-4 z-50 flex flex-col gap-3">
+    <div data-testid="flash-messages" class="fixed top-16 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center gap-3">
         <TransitionGroup
             enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="translate-x-full opacity-0"
-            enter-to-class="translate-x-0 opacity-100"
+            enter-from-class="-translate-y-4 opacity-0"
+            enter-to-class="translate-y-0 opacity-100"
             leave-active-class="transition-all duration-200 ease-in"
-            leave-from-class="translate-x-0 opacity-100"
-            leave-to-class="translate-x-full opacity-0"
+            leave-from-class="translate-y-0 opacity-100"
+            leave-to-class="-translate-y-4 opacity-0"
         >
             <div
                 v-for="msg in messages"
