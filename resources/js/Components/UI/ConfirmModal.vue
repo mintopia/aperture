@@ -99,62 +99,91 @@ onBeforeUnmount(() => {
 
 <template>
     <Teleport to="body">
-        <div
-            v-if="show"
-            ref="overlayRef"
-            data-testid="confirm-modal"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]"
-            @keydown="onOverlayKeydown"
-        >
+        <Transition name="modal">
             <div
-                ref="dialogRef"
-                role="dialog"
-                aria-modal="true"
-                :aria-labelledby="titleId"
-                :aria-describedby="descriptionId"
-                class="w-full max-w-md rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-[var(--color-text)] shadow-xl focus:outline-none"
+                v-if="show"
+                ref="overlayRef"
+                data-testid="confirm-modal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]"
+                @keydown="onOverlayKeydown"
+                @click.self="emit('cancel')"
             >
-                <h2
-                    :id="titleId"
-                    data-testid="confirm-modal-title"
-                    class="font-heading text-[14px] font-bold text-[var(--color-text)]"
+                <div
+                    ref="dialogRef"
+                    role="dialog"
+                    aria-modal="true"
+                    :aria-labelledby="titleId"
+                    :aria-describedby="descriptionId"
+                    class="w-full max-w-md rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-[var(--color-text)] shadow-xl focus:outline-none"
                 >
-                    {{ title }}
-                </h2>
-                <p
-                    :id="descriptionId"
-                    data-testid="confirm-modal-message"
-                    class="mt-2 text-[13px] text-[var(--color-text-secondary)]"
-                >
-                    {{ message }}
-                </p>
-
-                <slot />
-
-                <div class="mt-6 flex items-center justify-end gap-3">
-                    <button
-                        ref="cancelButtonRef"
-                        data-testid="confirm-modal-cancel"
-                        type="button"
-                        class="rounded-md border border-[var(--color-border-hover)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-                        :disabled="loading"
-                        @click="emit('cancel')"
+                    <h2
+                        :id="titleId"
+                        data-testid="confirm-modal-title"
+                        class="font-heading text-[14px] font-bold text-[var(--color-text)]"
                     >
-                        {{ cancelLabel }}
-                    </button>
-                    <button
-                        ref="confirmButtonRef"
-                        data-testid="confirm-modal-confirm"
-                        type="button"
-                        class="rounded-md px-4 py-[7px] text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                        :class="confirmButtonClass"
-                        :disabled="loading"
-                        @click="emit('confirm')"
+                        {{ title }}
+                    </h2>
+                    <p
+                        :id="descriptionId"
+                        data-testid="confirm-modal-message"
+                        class="mt-2 text-[13px] text-[var(--color-text-secondary)]"
                     >
-                        {{ loading ? `${confirmLabel}…` : confirmLabel }}
-                    </button>
+                        {{ message }}
+                    </p>
+
+                    <slot />
+
+                    <div class="mt-6 flex items-center justify-end gap-3">
+                        <button
+                            ref="cancelButtonRef"
+                            data-testid="confirm-modal-cancel"
+                            type="button"
+                            class="rounded-md border border-[var(--color-border-hover)] px-4 py-2 text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                            :disabled="loading"
+                            @click="emit('cancel')"
+                        >
+                            {{ cancelLabel }}
+                        </button>
+                        <button
+                            ref="confirmButtonRef"
+                            data-testid="confirm-modal-confirm"
+                            type="button"
+                            class="rounded-md px-4 py-2 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                            :class="confirmButtonClass"
+                            :disabled="loading"
+                            @click="emit('confirm')"
+                        >
+                            {{ loading ? `${confirmLabel}…` : confirmLabel }}
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Transition>
     </Teleport>
 </template>
+
+<style scoped>
+.modal-enter-active {
+    transition: opacity 200ms ease-out;
+}
+.modal-leave-active {
+    transition: opacity 150ms ease-in;
+}
+.modal-enter-from,
+.modal-leave-to {
+    opacity: 0;
+}
+
+.modal-enter-active [role='dialog'] {
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-leave-active [role='dialog'] {
+    transition: transform 150ms ease-in;
+}
+.modal-enter-from [role='dialog'] {
+    transform: scale(0.96);
+}
+.modal-leave-to [role='dialog'] {
+    transform: scale(0.98);
+}
+</style>

@@ -65,6 +65,19 @@ describe('AppLogo', () => {
         });
     });
 
+    describe('aperture icon hover delight', () => {
+        beforeEach(() => {
+            mockPageProps = { appName: 'My Network' };
+        });
+
+        it('renders SVG aperture icon with data-testid for hover target', () => {
+            const wrapper = mount(AppLogo);
+            const icon = wrapper.find('[data-testid="app-logo-icon"]');
+            expect(icon.exists()).toBe(true);
+            expect(icon.element.tagName).toBe('svg');
+        });
+    });
+
     describe('with theme but no logo', () => {
         beforeEach(() => {
             mockPageProps = {

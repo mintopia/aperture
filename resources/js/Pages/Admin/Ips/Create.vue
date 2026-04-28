@@ -75,7 +75,7 @@ function submit() {
                 type="submit"
                 data-testid="action-submit"
                 :disabled="form.processing"
-                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-accent-text)]"
+                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
             >
                 Add IP Address
             </button>

@@ -452,6 +452,5 @@ useAdminChannel({
                 </DataTable>
             </div>
         </section>
-
     </div>
 </template>

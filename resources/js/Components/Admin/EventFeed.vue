@@ -28,10 +28,11 @@ defineProps({
 
             <div v-else class="space-y-0">
                 <div
-                    v-for="event in events"
+                    v-for="(event, index) in events"
                     :key="event.id"
                     data-testid="event-feed-entry"
-                    class="flex items-start gap-3 border-b border-[var(--color-border)] px-1 py-2 last:border-b-0"
+                    class="event-feed-item flex items-start gap-3 border-b border-[var(--color-border)] px-1 py-2 last:border-b-0"
+                    :style="{ '--i': Math.min(index, 7) }"
                 >
                     <span
                         data-testid="event-feed-timestamp"
@@ -47,3 +48,23 @@ defineProps({
         </div>
     </div>
 </template>
+
+<style scoped>
+.event-feed-item {
+    animation: event-slide-in 300ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+@keyframes event-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .event-feed-item {
+        animation: none;
+    }
+}
+</style>

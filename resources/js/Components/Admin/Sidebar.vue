@@ -146,7 +146,7 @@ defineExpose({ drawerOpen });
                     :href="item.href"
                     :data-testid="testId(item.label)"
                     :class="itemClass(item.href)"
-                    class="flex items-center gap-2.5 px-5 py-2 text-sm transition-all"
+                    class="flex items-center gap-2.5 px-5 py-2 text-sm transition-colors"
                 >
                     <component :is="item.icon" />
                     <span>{{ item.label }}</span>
@@ -228,7 +228,7 @@ defineExpose({ drawerOpen });
                                 :href="item.href"
                                 :data-testid="testId(item.label)"
                                 :class="itemClass(item.href)"
-                                class="flex items-center gap-2.5 px-5 py-2 text-sm transition-all"
+                                class="flex items-center gap-2.5 px-5 py-2 text-sm transition-colors"
                             >
                                 <component :is="item.icon" />
                                 <span>{{ item.label }}</span>

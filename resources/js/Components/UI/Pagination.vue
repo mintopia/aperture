@@ -11,8 +11,9 @@ defineProps({
 </script>
 
 <template>
-    <div
+    <nav
         v-if="paginator.last_page > 1"
+        aria-label="Pagination"
         data-testid="pagination"
         class="flex flex-wrap items-center justify-between gap-4 pt-3"
     >
@@ -37,16 +38,16 @@ defineProps({
                             ? 'bg-[var(--color-primary)]/[0.14] font-semibold text-[var(--color-primary)]'
                             : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]'
                     "
-                    class="rounded-md border border-[var(--color-border-hover)] px-4 py-[7px] text-[13px] font-semibold transition-colors"
+                    class="rounded-md border border-[var(--color-border-hover)] px-4 py-2 text-[13px] font-semibold transition-colors"
                     preserve-state
                     v-html="link.label"
                 />
                 <span
                     v-else
-                    class="rounded-md border border-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-muted)] opacity-40"
+                    class="rounded-md border border-transparent px-4 py-2 text-[13px] font-semibold text-[var(--color-text-muted)] opacity-40"
                     v-html="link.label"
                 />
             </template>
         </div>
-    </div>
+    </nav>
 </template>

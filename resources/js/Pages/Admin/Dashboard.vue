@@ -13,6 +13,7 @@ import EventFeed from '@/Components/Admin/EventFeed.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelativeTime } from '@/utils/dates';
 import { useAdminChannel } from '@/composables/useAdminChannel';
+import { useCountUp } from '@/composables/useCountUp';
 
 defineOptions({ layout: AdminLayout });
 
@@ -31,6 +32,12 @@ const onlinePercentage = computed(() => {
 
     return Math.round((props.onlineUsers / props.totalUsers) * 100);
 });
+
+const statsRef = ref(null);
+const animatedOnline = useCountUp(() => props.onlineUsers, statsRef);
+const animatedTotal = useCountUp(() => props.totalUsers, statsRef, { delay: 60 });
+const animatedActive = useCountUp(() => props.activeIps, statsRef, { delay: 120 });
+const animatedBlocked = useCountUp(() => props.blockedUsers, statsRef, { delay: 180 });
 
 const recentUserColumns = [
     { key: 'nickname', label: 'Nickname' },
@@ -211,15 +218,16 @@ onMounted(() => {
 
         <!-- Stat Strip -->
         <div
+            ref="statsRef"
             data-testid="dashboard-stats"
-            class="my-6 mb-7 flex flex-wrap gap-y-4 border-b border-[var(--color-border)] pb-5"
+            class="mt-6 mb-7 flex flex-wrap gap-y-4 border-b border-[var(--color-border)] pb-5"
         >
             <div
                 class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-full max-sm:border-0 max-sm:pr-0"
             >
-                <StatCard label="Online Now" :value="onlineUsers" color="success" label-dot-color="success">
+                <StatCard label="Online Now" :value="animatedOnline" color="success" label-dot-color="success">
                     <p class="mt-[2px] font-mono text-[11px] text-[var(--color-text-muted)]">
-                        of {{ totalUsers }} &middot;
+                        of {{ animatedTotal }} &middot;
                         <span class="text-[var(--color-success)]">{{ onlinePercentage }}%</span>
                     </p>
                 </StatCard>
@@ -228,17 +236,17 @@ onMounted(() => {
             <div
                 class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-1/3 max-sm:border-0 max-sm:pr-0"
             >
-                <StatCard label="Total Users" :value="totalUsers" />
+                <StatCard label="Total Users" :value="animatedTotal" />
             </div>
 
             <div
                 class="mr-8 flex-1 border-r border-[var(--color-border)] pr-8 max-sm:mr-0 max-sm:basis-1/3 max-sm:border-0 max-sm:pr-0"
             >
-                <StatCard label="IPs Active" :value="activeIps" />
+                <StatCard label="IPs Active" :value="animatedActive" />
             </div>
 
             <div class="flex-1 max-sm:basis-1/3">
-                <StatCard label="Blocked" :value="blockedUsers" color="danger" />
+                <StatCard label="Blocked" :value="animatedBlocked" color="danger" />
             </div>
         </div>
 

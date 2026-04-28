@@ -7,8 +7,10 @@ import Sidebar from '@/Components/Admin/Sidebar.vue';
 import GlobalSearch from '@/Components/Admin/GlobalSearch.vue';
 import UserMenu from '@/Components/UserMenu.vue';
 import FlashMessages from '@/Components/UI/FlashMessages.vue';
+import { useViewTransitions } from '@/composables/useViewTransitions';
 
 const page = usePage();
+useViewTransitions();
 const sidebarRef = ref(null);
 
 function toggleDrawer() {
@@ -39,6 +41,7 @@ function toggleDrawer() {
                 <div class="flex items-center gap-3">
                     <button
                         data-testid="admin-menu-toggle"
+                        aria-label="Toggle navigation menu"
                         class="rounded p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] min-[1025px]:hidden"
                         @click="toggleDrawer"
                     >

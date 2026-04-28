@@ -182,6 +182,7 @@ async function doDeletePasskey() {
             <div>
                 <h1
                     class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                    style="font-variation-settings: 'opsz' 48"
                 >
                     Account Settings
                 </h1>
@@ -225,7 +226,7 @@ async function doDeletePasskey() {
                     <button
                         type="submit"
                         data-testid="verify-submit"
-                        class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:opacity-90 disabled:opacity-50"
+                        class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
                         :disabled="verifyForm.processing"
                     >
                         {{ verifyForm.processing ? 'Verifying…' : 'Verify Identity' }}
@@ -291,7 +292,7 @@ async function doDeletePasskey() {
                         <button
                             type="submit"
                             data-testid="password-save"
-                            class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:opacity-90 disabled:opacity-50"
+                            class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
                             :disabled="passwordForm.processing"
                         >
                             {{
@@ -336,7 +337,7 @@ async function doDeletePasskey() {
                     <button
                         type="button"
                         data-testid="passkey-register"
-                        class="flex items-center gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:opacity-90 disabled:opacity-50"
+                        class="flex items-center gap-2 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
                         :disabled="passkeyLoading"
                         @click="registerPasskey"
                     >

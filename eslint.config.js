@@ -35,6 +35,15 @@ export default [
         },
     },
     {
+        files: ['**/__tests__/**/*.js', '**/*.test.js', '**/*.spec.js'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                global: 'readonly',
+            },
+        },
+    },
+    {
         ignores: ['vendor/**', 'node_modules/**', 'public/**', 'storage/**', 'resources/js/highlight.min.js'],
     },
 ];

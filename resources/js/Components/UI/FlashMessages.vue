@@ -93,15 +93,36 @@ onBeforeUnmount(() => {
                 :key="msg.id"
                 :data-testid="`flash-message-${msg.type}`"
                 :class="[typeConfig[msg.type].bg, typeConfig[msg.type].text, typeConfig[msg.type].border]"
-                class="flex w-80 items-start gap-3 rounded border p-4 shadow-lg backdrop-blur-sm"
+                class="relative flex w-80 items-start gap-3 rounded border p-4 shadow-lg backdrop-blur-sm"
                 role="alert"
             >
-                <span class="mt-0.5 font-mono text-sm leading-none" aria-hidden="true">
+                <svg
+                    v-if="msg.type === 'success'"
+                    data-testid="flash-checkmark"
+                    class="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-success)]"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <path class="flash-checkmark-path" pathLength="1" d="M3.5 8.5L6.5 11.5L12.5 4.5" />
+                </svg>
+                <span v-else class="mt-0.5 font-mono text-sm leading-none" aria-hidden="true">
                     {{ typeConfig[msg.type].icon }}
                 </span>
                 <p class="flex-1 text-[13px] leading-snug text-[var(--color-text)]">
                     {{ msg.text }}
                 </p>
+                <div
+                    v-if="autoDismissTypes.includes(msg.type)"
+                    data-testid="flash-timer"
+                    class="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-b"
+                >
+                    <div class="flash-timer-bar h-full bg-current opacity-30" :class="typeConfig[msg.type].text" />
+                </div>
                 <button
                     data-testid="flash-dismiss"
                     class="ml-auto shrink-0 rounded p-0.5 opacity-60 transition-opacity hover:opacity-100"
@@ -120,3 +141,31 @@ onBeforeUnmount(() => {
         </TransitionGroup>
     </div>
 </template>
+
+<style scoped>
+.flash-checkmark-path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: flash-checkmark-draw 400ms ease-out 100ms forwards;
+}
+
+@keyframes flash-checkmark-draw {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.flash-timer-bar {
+    transform-origin: left;
+    animation: flash-timer-shrink 5000ms linear forwards;
+}
+
+@keyframes flash-timer-shrink {
+    from {
+        transform: scaleX(1);
+    }
+    to {
+        transform: scaleX(0);
+    }
+}
+</style>

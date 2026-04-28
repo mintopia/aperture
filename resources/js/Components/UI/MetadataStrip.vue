@@ -26,10 +26,9 @@ defineProps({
             ]"
             class="flex flex-none flex-col"
         >
-            <span
-                class="mb-[3px] text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
-                >{{ item.label }}</span
-            >
+            <span class="mb-1 text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase">{{
+                item.label
+            }}</span>
             <span
                 :class="[
                     item.mono ? 'font-mono text-[14px]' : '',

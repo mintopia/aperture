@@ -19,7 +19,14 @@ const colorMap = {
 <template>
     <div data-testid="progress-bar" class="flex items-center gap-1.5 text-[11px]">
         <span class="w-[90px] text-[var(--color-text-secondary)]">{{ label }}</span>
-        <div class="mt-[6px] h-[6px] flex-1 overflow-hidden rounded-[3px] bg-[var(--color-surface-hover)]">
+        <div
+            role="progressbar"
+            :aria-valuenow="value"
+            aria-valuemin="0"
+            :aria-valuemax="max"
+            :aria-label="label"
+            class="mt-1.5 h-1.5 flex-1 overflow-hidden rounded-[3px] bg-[var(--color-surface-hover)]"
+        >
             <div
                 data-testid="progress-bar-fill"
                 :class="colorMap[color]"

@@ -246,6 +246,79 @@ describe('FlashMessages', () => {
         // No assertions needed beyond not throwing
     });
 
+    it('renders animated SVG checkmark for success messages', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { success: 'Done!' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        const checkmark = wrapper.find('[data-testid="flash-checkmark"]');
+        expect(checkmark.exists()).toBe(true);
+        expect(checkmark.element.tagName).toBe('svg');
+        expect(checkmark.find('.flash-checkmark-path').exists()).toBe(true);
+    });
+
+    it('renders text icon for non-success message types', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { error: 'Failed' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        expect(wrapper.find('[data-testid="flash-checkmark"]').exists()).toBe(false);
+        const icon = wrapper.find('[data-testid="flash-message-error"] span[aria-hidden]');
+        expect(icon.exists()).toBe(true);
+    });
+
+    it('renders auto-dismiss timer bar for success messages', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { success: 'Done!' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        const timer = wrapper.find('[data-testid="flash-timer"]');
+        expect(timer.exists()).toBe(true);
+        expect(timer.find('.flash-timer-bar').exists()).toBe(true);
+    });
+
+    it('renders auto-dismiss timer bar for info messages', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { info: 'FYI' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        expect(wrapper.find('[data-testid="flash-timer"]').exists()).toBe(true);
+    });
+
+    it('does not render timer bar for error messages', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { error: 'Bad!' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        expect(wrapper.find('[data-testid="flash-timer"]').exists()).toBe(false);
+    });
+
+    it('does not render timer bar for warning messages', () => {
+        usePage.mockReturnValue({
+            props: {
+                flash: { warning: 'Watch out!' },
+            },
+        });
+
+        const wrapper = mount(FlashMessages);
+        expect(wrapper.find('[data-testid="flash-timer"]').exists()).toBe(false);
+    });
+
     it('uses semantic info color instead of primary', () => {
         usePage.mockReturnValue({
             props: {

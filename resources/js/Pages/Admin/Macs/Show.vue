@@ -65,7 +65,7 @@ function formatMetadata(metadata) {
         <header data-testid="mac-show-header" class="mb-2">
             <h1
                 data-testid="page-title"
-                class="font-heading font-mono text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
+                class="font-mono text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
                 style="font-variation-settings: 'opsz' 48"
             >
                 {{ mac.mac_address }}

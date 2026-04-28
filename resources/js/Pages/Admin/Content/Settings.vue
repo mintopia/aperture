@@ -424,7 +424,7 @@ onBeforeUnmount(() => {
                 type="submit"
                 data-testid="action-save"
                 :disabled="form.processing"
-                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-accent-text)]"
+                class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-accent-text)] hover:bg-[var(--color-primary-hover)]"
             >
                 Save Settings
             </button>

@@ -17,20 +17,27 @@ defineProps({
             {{ macs.length }} Connected Device{{ macs.length !== 1 ? 's' : '' }}
         </h2>
         <div class="overflow-x-auto">
-            <table data-testid="connected-devices-table" class="w-full border-collapse text-[13px]">
+            <table
+                data-testid="connected-devices-table"
+                aria-label="Connected devices"
+                class="w-full border-collapse text-[13px]"
+            >
                 <thead>
                     <tr>
                         <th
+                            scope="col"
                             class="border-b border-[var(--color-border-hover)] py-2 text-left text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
                         >
                             Device
                         </th>
                         <th
+                            scope="col"
                             class="border-b border-[var(--color-border-hover)] py-2 pl-6 text-left text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
                         >
                             MAC Address
                         </th>
                         <th
+                            scope="col"
                             class="border-b border-[var(--color-border-hover)] py-2 pl-6 text-left text-[11px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
                         >
                             IP Address
@@ -38,7 +45,12 @@ defineProps({
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(mac, i) in macs" :key="i" data-testid="connected-devices-row">
+                    <tr
+                        v-for="(mac, i) in macs"
+                        :key="i"
+                        data-testid="connected-devices-row"
+                        class="transition-colors hover:bg-[var(--color-surface-hover)]"
+                    >
                         <td class="border-b border-[var(--color-border)] py-2.5 align-top">
                             <span
                                 v-if="mac.resolved_ips?.some((r) => r.user)"

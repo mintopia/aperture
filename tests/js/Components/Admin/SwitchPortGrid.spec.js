@@ -17,6 +17,28 @@ vi.mock('@inertiajs/vue3', () => ({
 
 globalThis.route = vi.fn((...args) => `/mocked/${args[0]}/${JSON.stringify(args[1] || {})}`);
 
+const themeVars = {
+    '--color-danger': 'oklch(65% 0.2 25)',
+    '--color-success': 'oklch(72% 0.17 155)',
+    '--color-warning': 'oklch(78% 0.15 85)',
+    '--color-primary': 'oklch(76% 0.16 55)',
+    '--color-text-muted': 'oklch(55% 0.006 60)',
+    '--color-border': 'oklch(26% 0.004 60)',
+};
+
+const origGetComputedStyle = window.getComputedStyle;
+vi.spyOn(window, 'getComputedStyle').mockImplementation((el) => {
+    const real = origGetComputedStyle(el);
+    return new Proxy(real, {
+        get(target, prop) {
+            if (prop === 'getPropertyValue') {
+                return (name) => themeVars[name] || target.getPropertyValue(name);
+            }
+            return target[prop];
+        },
+    });
+});
+
 const samplePorts = [
     {
         id: 1,
@@ -99,22 +121,14 @@ function mountGrid(propsOverride = {}) {
     });
 }
 
-/**
- * Convert hex color to rgb() format as jsdom normalizes inline styles.
- */
-function hexToRgb(hex) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgb(${r}, ${g}, ${b})`;
+function normalizeOklch(val) {
+    return val.replace(/(\d+)%/g, (_, n) => String(Number(n) / 100));
 }
 
-function expectBgColor(cell, hex) {
+function expectBgColor(cell, color) {
     const style = cell.attributes('style');
-    const rgb = hexToRgb(hex);
-    const hasHex = style.includes(`background-color: ${hex}`);
-    const hasRgb = style.includes(`background-color: ${rgb}`);
-    expect(hasHex || hasRgb).toBe(true);
+    const normalized = normalizeOklch(color);
+    expect(style).toContain(`background-color: ${normalized}`);
 }
 
 describe('SwitchPortGrid', () => {
@@ -150,7 +164,7 @@ describe('SwitchPortGrid', () => {
     });
 
     describe('color mapping', () => {
-        it('applies green (#22c55e) for 1Gbps connected port', () => {
+        it('applies success color for 1Gbps connected port', () => {
             const wrapper = mountGrid({
                 ports: [
                     {
@@ -164,7 +178,7 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#22c55e');
+            expectBgColor(cell, themeVars['--color-success']);
         });
 
         it('applies green for auto-negotiated 1Gbps (a-1000)', () => {
@@ -181,10 +195,10 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#22c55e');
+            expectBgColor(cell, themeVars['--color-success']);
         });
 
-        it('applies yellow (#eab308) for 100Mbps connected port', () => {
+        it('applies warning color for 100Mbps connected port', () => {
             const wrapper = mountGrid({
                 ports: [
                     {
@@ -198,7 +212,7 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#eab308');
+            expectBgColor(cell, themeVars['--color-warning']);
         });
 
         it('applies yellow for auto-negotiated 100Mbps (a-100)', () => {
@@ -215,10 +229,10 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#eab308');
+            expectBgColor(cell, themeVars['--color-warning']);
         });
 
-        it('applies orange (#f97316) for 10Mbps connected port', () => {
+        it('applies primary color for 10Mbps connected port', () => {
             const wrapper = mountGrid({
                 ports: [
                     {
@@ -232,10 +246,10 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#f97316');
+            expectBgColor(cell, themeVars['--color-primary']);
         });
 
-        it('applies red (#ef4444) for error-disabled port', () => {
+        it('applies danger color for error-disabled port', () => {
             const wrapper = mountGrid({
                 ports: [
                     {
@@ -249,10 +263,10 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#ef4444');
+            expectBgColor(cell, themeVars['--color-danger']);
         });
 
-        it('applies grey (#6b7280) for admin down port', () => {
+        it('applies muted color for admin down port', () => {
             const wrapper = mountGrid({
                 ports: [
                     {
@@ -266,10 +280,10 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#6b7280');
+            expectBgColor(cell, themeVars['--color-text-muted']);
         });
 
-        it('applies dark (#1f2937) for not connected port', () => {
+        it('applies border color for not connected port', () => {
             const wrapper = mountGrid({
                 ports: [
                     {
@@ -283,10 +297,10 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#1f2937');
+            expectBgColor(cell, themeVars['--color-border']);
         });
 
-        it('applies dark (#1f2937) for down port that is not admin down', () => {
+        it('applies border color for down port that is not admin down', () => {
             const wrapper = mountGrid({
                 ports: [
                     {
@@ -300,7 +314,7 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#1f2937');
+            expectBgColor(cell, themeVars['--color-border']);
         });
 
         it('applies green for 10Gbps connected port', () => {
@@ -317,7 +331,7 @@ describe('SwitchPortGrid', () => {
                 ],
             });
             const cell = wrapper.find('[data-testid="port-cell-Gi0/1"]');
-            expectBgColor(cell, '#22c55e');
+            expectBgColor(cell, themeVars['--color-success']);
         });
     });
 

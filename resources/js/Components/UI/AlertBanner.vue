@@ -29,6 +29,7 @@ const config = {
 
 <template>
     <div
+        role="alert"
         data-testid="alert-banner"
         :class="[config[type].bg, config[type].border]"
         class="flex items-center justify-between rounded border p-4"

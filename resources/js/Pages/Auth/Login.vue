@@ -152,7 +152,7 @@ async function loginWithPasskey() {
                     <button
                         type="submit"
                         data-testid="login-submit"
-                        class="w-full rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-text)] transition hover:opacity-90 disabled:opacity-50"
+                        class="w-full rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-text)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
                         :disabled="form.processing"
                     >
                         {{ form.processing ? 'Signing in…' : 'Sign In' }}

@@ -132,6 +132,17 @@ describe('GlobalSearch.vue', () => {
     });
 
     describe('dialog styling', () => {
+        it('applies entrance animation classes to backdrop and dialog', async () => {
+            const wrapper = mountGlobalSearch();
+            await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');
+
+            const backdrop = wrapper.find('.search-backdrop');
+            expect(backdrop.exists()).toBe(true);
+
+            const dialog = wrapper.find('.search-dialog');
+            expect(dialog.exists()).toBe(true);
+        });
+
         it('applies Dispatch surface background and border to the dialog', async () => {
             const wrapper = mountGlobalSearch();
             await wrapper.get('[data-testid="global-search-trigger"]').trigger('click');

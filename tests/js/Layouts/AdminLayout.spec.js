@@ -8,6 +8,7 @@ vi.mock('@inertiajs/vue3', () => ({
             auth: { user: { name: 'Test User' } },
         },
     }),
+    router: { on: vi.fn() },
 }));
 
 vi.mock('@/Components/Admin/Breadcrumbs.vue', () => ({

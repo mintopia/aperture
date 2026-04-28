@@ -279,7 +279,7 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     data-testid="action-save-layout"
-                    class="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                    class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--color-accent-text)]"
                     :class="hasChanges ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-text-muted)]'"
                     :disabled="saving || !hasChanges"
                     @click="saveLayout"

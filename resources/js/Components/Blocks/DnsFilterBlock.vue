@@ -65,6 +65,8 @@ defineExpose({ updateDnsFilter });
             </span>
             <button
                 data-testid="dns-filter-toggle"
+                role="switch"
+                :aria-checked="enabled"
                 class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none"
                 :class="[
                     enabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-surface-alt)]',

@@ -86,11 +86,11 @@ describe('ProgressBar', () => {
             props: { label: 'Pool', value: 50 },
         });
         const track = wrapper.find('[data-testid="progress-bar-fill"]').element.parentElement;
-        expect(track.className).toContain('h-[6px]');
+        expect(track.className).toContain('h-1.5');
         expect(track.className).toContain('rounded-[3px]');
         expect(track.className).toContain('bg-[var(--color-surface-hover)]');
         expect(track.className).toContain('overflow-hidden');
-        expect(track.className).toContain('mt-[6px]');
+        expect(track.className).toContain('mt-1.5');
     });
 
     it('applies Dispatch mockup fill styling', () => {

@@ -31,7 +31,7 @@ const stateClasses = computed(() =>
     <span
         :class="stateClasses"
         :data-testid="`capability-tag-${name}`"
-        class="rounded px-2 py-0.5 text-[11px] font-semibold"
+        class="rounded px-2 py-0.5 text-[11px] font-semibold transition-colors duration-150"
     >
         {{ formattedName }}
     </span>

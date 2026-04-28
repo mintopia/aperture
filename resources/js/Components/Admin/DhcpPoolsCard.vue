@@ -1,4 +1,5 @@
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 
@@ -7,6 +8,34 @@ defineProps({
         type: Array,
         default: () => [],
     },
+});
+
+const noIO = typeof window === 'undefined' || !('IntersectionObserver' in window);
+const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const skipAnimation = noIO || reducedMotion;
+
+const entered = ref(skipAnimation);
+const cardRef = ref(null);
+let observer = null;
+
+onMounted(() => {
+    if (skipAnimation) return;
+
+    observer = new IntersectionObserver(
+        ([entry]) => {
+            if (entry.isIntersecting) {
+                entered.value = true;
+                observer.disconnect();
+            }
+        },
+        { threshold: 0.1 },
+    );
+
+    if (cardRef.value) observer.observe(cardRef.value);
+});
+
+onUnmounted(() => {
+    observer?.disconnect();
 });
 
 function barColor(utilisation) {
@@ -24,7 +53,7 @@ function pctClass(utilisation) {
 </script>
 
 <template>
-    <div data-testid="dhcp-pools-card">
+    <div ref="cardRef" data-testid="dhcp-pools-card">
         <SectionHeader title="DHCP Pools" />
 
         <div v-if="pools.length" class="overflow-x-auto">
@@ -85,10 +114,12 @@ function pctClass(utilisation) {
                                 >
                                     <div
                                         data-testid="dhcp-pool-bar"
-                                        class="h-full rounded-[3px] transition-[width] duration-300"
+                                        class="h-full rounded-[3px] transition-[width] duration-700"
                                         :style="{
-                                            width: `${Math.min((pool.used / pool.total) * 100, 100)}%`,
+                                            width: entered ? `${Math.min((pool.used / pool.total) * 100, 100)}%` : '0%',
                                             backgroundColor: barColor(pool.utilisation),
+                                            transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+                                            transitionDelay: `${100}ms`,
                                         }"
                                     />
                                 </div>

@@ -14,17 +14,29 @@ const evenPorts = computed(() => props.ports.filter((_, i) => i % 2 === 1));
 const firstLabel = computed(() => props.ports[0]?.interface ?? '');
 const lastLabel = computed(() => props.ports[props.ports.length - 1]?.interface ?? '');
 
+const themeColors = computed(() => {
+    const s = getComputedStyle(document.documentElement);
+    return {
+        danger: s.getPropertyValue('--color-danger').trim(),
+        success: s.getPropertyValue('--color-success').trim(),
+        warning: s.getPropertyValue('--color-warning').trim(),
+        primary: s.getPropertyValue('--color-primary').trim(),
+        muted: s.getPropertyValue('--color-text-muted').trim(),
+        border: s.getPropertyValue('--color-border').trim(),
+    };
+});
+
 function portColor(port) {
-    if (port.status === 'err-disabled') return '#ef4444';
-    if (port.admin_status === 'down') return '#6b7280';
-    if (['notconnect', 'down'].includes(port.status)) return '#1f2937';
+    if (port.status === 'err-disabled') return themeColors.value.danger;
+    if (port.admin_status === 'down') return themeColors.value.muted;
+    if (['notconnect', 'down'].includes(port.status)) return themeColors.value.border;
 
     const speed = parseSpeed(port.speed);
-    if (speed >= 1000) return '#22c55e';
-    if (speed >= 100) return '#eab308';
-    if (speed >= 10) return '#f97316';
+    if (speed >= 1000) return themeColors.value.success;
+    if (speed >= 100) return themeColors.value.warning;
+    if (speed >= 10) return themeColors.value.primary;
 
-    return '#22c55e';
+    return themeColors.value.success;
 }
 
 function parseSpeed(raw) {
@@ -55,24 +67,14 @@ function portHref(port) {
     });
 }
 
-function portCell(port) {
-    return {
-        key: port.id,
-        testId: `port-cell-${port.interface}`,
-        href: portHref(port),
-        title: portTooltip(port),
-        color: portColor(port),
-    };
-}
-
-const legendItems = [
-    { label: '1Gbps+', color: '#22c55e' },
-    { label: '100Mbps', color: '#eab308' },
-    { label: '10Mbps', color: '#f97316' },
-    { label: 'Error', color: '#ef4444' },
-    { label: 'Admin Down', color: '#6b7280' },
-    { label: 'Not Connected', color: '#1f2937' },
-];
+const legendItems = computed(() => [
+    { label: '1Gbps+', color: themeColors.value.success },
+    { label: '100Mbps', color: themeColors.value.warning },
+    { label: '10Mbps', color: themeColors.value.primary },
+    { label: 'Error', color: themeColors.value.danger },
+    { label: 'Admin Down', color: themeColors.value.muted },
+    { label: 'Not Connected', color: themeColors.value.border },
+]);
 </script>
 
 <template>

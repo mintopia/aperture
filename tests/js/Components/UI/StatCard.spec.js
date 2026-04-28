@@ -76,7 +76,7 @@ describe('StatCard', () => {
         expect(labelEl.classes()).toContain('font-semibold');
         expect(labelEl.classes()).toContain('tracking-[0.06em]');
         expect(labelEl.classes()).toContain('uppercase');
-        expect(labelEl.classes()).toContain('mb-[3px]');
+        expect(labelEl.classes()).toContain('mb-1');
         expect(labelEl.classes()).toContain('text-[var(--color-text-muted)]');
     });
 
@@ -133,7 +133,7 @@ describe('StatCard', () => {
         const subEl = wrapper.find('[data-testid="stat-sub"]');
         expect(subEl.classes()).toContain('text-[11px]');
         expect(subEl.classes()).toContain('text-[var(--color-text-muted)]');
-        expect(subEl.classes()).toContain('mt-[2px]');
+        expect(subEl.classes()).toContain('mt-0.5');
         expect(subEl.classes()).toContain('font-mono');
     });
 

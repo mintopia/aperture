@@ -176,7 +176,7 @@ function submit() {
                 <button
                     type="submit"
                     data-testid="edit-user-submit"
-                    class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:opacity-90 disabled:opacity-50"
+                    class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-accent-text)] transition hover:opacity-90 disabled:opacity-50"
                     :disabled="form.processing"
                 >
                     {{ form.processing ? 'Saving…' : 'Save Changes' }}

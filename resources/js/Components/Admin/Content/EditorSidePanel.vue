@@ -282,7 +282,7 @@ function save() {
         <div class="flex gap-2">
             <button
                 data-testid="panel-save"
-                class="flex-1 rounded-md bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white"
+                class="flex-1 rounded-md bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-[var(--color-accent-text)]"
                 @click="save"
             >
                 Save Block

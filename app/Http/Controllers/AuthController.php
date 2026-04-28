@@ -15,6 +15,6 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->regenerate(true);
 
-        return response()->redirectToRoute('home');
+        return response()->redirectToRoute('login');
     }
 }

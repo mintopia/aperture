@@ -142,7 +142,7 @@ useAdminChannel({
                 <Link
                     :href="route('admin.switches.create')"
                     data-testid="action-add-switch"
-                    class="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-bold text-[var(--color-bg)] transition-all hover:bg-[var(--color-primary-hover)]"
+                    class="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-bold text-[var(--color-accent-text)] transition-all hover:bg-[var(--color-primary-hover)]"
                 >
                     Add Switch
                 </Link>
@@ -227,7 +227,7 @@ useAdminChannel({
             <Link
                 :href="route('admin.switches.create')"
                 data-testid="empty-add-switch"
-                class="mt-3 inline-flex items-center gap-1.5 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-bold text-[var(--color-bg)] transition-all hover:bg-[var(--color-primary-hover)]"
+                class="mt-3 inline-flex items-center gap-1.5 rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-bold text-[var(--color-accent-text)] transition-all hover:bg-[var(--color-primary-hover)]"
             >
                 Add Switch
             </Link>

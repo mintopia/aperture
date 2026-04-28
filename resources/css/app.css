@@ -31,6 +31,63 @@
     samp {
         font-family: var(--font-mono);
     }
+
+    :focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
+    ::selection {
+        background: oklch(from var(--color-primary) l c h / 0.3);
+        color: var(--color-text);
+    }
+
+    button:not(:disabled):active {
+        translate: 0 1px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: var(--color-bg);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--color-border-hover);
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--color-text-muted);
+    }
+}
+
+/* Page transitions — admin navigation */
+#main-content.page-exit {
+    opacity: 0.6;
+    transition: opacity 80ms ease-out;
+}
+
+#main-content.page-enter {
+    animation: page-fade-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes page-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
 }
 
 .prose {

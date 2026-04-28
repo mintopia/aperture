@@ -61,8 +61,8 @@ function onSearchInput(event) {
 }
 
 function levelColorClass(level) {
-    if (level === 'critical') return 'text-[var(--color-danger)] danger';
-    if (level === 'warning') return 'text-[var(--color-warning)] warning';
+    if (level === 'critical') return 'text-[var(--color-danger)]';
+    if (level === 'warning') return 'text-[var(--color-warning)]';
     return 'text-[var(--color-primary)]';
 }
 
@@ -114,11 +114,11 @@ defineExpose({ addLiveEvent });
                 <span
                     data-testid="live-indicator"
                     class="flex items-center gap-1.5 text-[11px] font-semibold"
-                    :class="connected ? 'text-green-500' : 'text-[var(--color-text-muted)]'"
+                    :class="connected ? 'text-[var(--color-success)]' : 'text-[var(--color-text-muted)]'"
                 >
                     <span
                         class="inline-block h-2 w-2 rounded-full"
-                        :class="connected ? 'animate-pulse bg-green-500' : 'bg-[var(--color-text-muted)]'"
+                        :class="connected ? 'animate-pulse bg-[var(--color-success)]' : 'bg-[var(--color-text-muted)]'"
                     />
                     {{ connected ? 'Live' : 'Disconnected' }}
                 </span>

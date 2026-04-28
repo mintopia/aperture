@@ -113,7 +113,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     <div>
         <button
             data-testid="global-search-trigger"
-            class="flex items-center gap-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[7px] text-[12px] text-[var(--color-text-muted)]"
+            class="flex items-center gap-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[7px] text-[12px] text-[var(--color-text-muted)] hover:border-[var(--color-border-hover)]"
             @click="open = true"
         >
             Search...
@@ -133,14 +133,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
             @click.self="open = false"
             @keydown="onOverlayKeydown"
         >
-            <div class="fixed inset-0 bg-black/50" />
+            <div class="search-backdrop fixed inset-0 bg-black/50" />
             <div
                 ref="dialogRef"
                 data-testid="global-search-dialog"
                 role="dialog"
                 aria-modal="true"
                 aria-label="Search"
-                class="relative w-full max-w-lg rounded border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl"
+                class="search-dialog relative w-full max-w-lg rounded border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl"
             >
                 <div class="relative">
                     <svg
@@ -231,3 +231,26 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
         </div>
     </div>
 </template>
+
+<style scoped>
+.search-backdrop {
+    animation: search-fade-in 150ms ease-out;
+}
+
+.search-dialog {
+    animation: search-scale-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes search-fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes search-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(-8px);
+    }
+}
+</style>

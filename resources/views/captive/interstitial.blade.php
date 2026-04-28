@@ -6,15 +6,17 @@
     <div class="text-center" data-testid="captive-interstitial">
         {{-- Animated spinner using accent color --}}
         <div
-            class="mx-auto mb-5 h-[52px] w-[52px] rounded-full border-[3px] border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin"
+            class="captive-reveal mx-auto mb-5 h-[52px] w-[52px] rounded-full border-[3px] border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin"
             data-testid="interstitial-spinner"
         ></div>
 
-        <h1 class="font-heading text-2xl font-bold tracking-tight" style="font-variation-settings: 'opsz' 32;">Granting Network Access</h1>
-        <p class="mt-1.5 text-sm text-[var(--color-text-secondary)]" id="status-message">Please wait while we configure your connection&hellip;</p>
+        <div class="captive-reveal">
+            <h1 class="font-heading text-2xl font-bold tracking-tight" style="font-variation-settings: 'opsz' 32;">Granting Network Access</h1>
+            <p class="mt-1.5 text-sm text-[var(--color-text-secondary)]" id="status-message">Please wait while we configure your connection&hellip;</p>
+        </div>
 
         {{-- Step list --}}
-        <div class="mx-auto mt-7 flex max-w-[240px] flex-col gap-2.5">
+        <div class="captive-reveal mx-auto mt-7 flex max-w-[240px] flex-col gap-2.5">
             {{-- Step 1: done --}}
             <div class="flex items-center gap-2.5 text-[13px]" id="step-1" data-testid="interstitial-step-1">
                 <span class="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[var(--color-success)]/10 text-[11px] text-[var(--color-success)]">&#10003;</span>
@@ -35,7 +37,7 @@
         {{-- Error state with retry --}}
         <div id="status-error" data-testid="interstitial-error" class="mt-6 hidden text-[13px] text-[var(--color-danger)]">
             <p>Something went wrong granting access.</p>
-            <button onclick="window.location.reload()" class="mt-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]">
+            <button onclick="window.location.reload()" class="mt-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)]">
                 Retry
             </button>
         </div>
@@ -95,6 +97,15 @@
                     if (data.allowed) {
                         setStepDone('step-2');
                         setStepDone('step-3');
+
+                        var spinner = document.querySelector('[data-testid="interstitial-spinner"]');
+                        if (spinner) {
+                            var success = document.createElement('div');
+                            success.className = 'success-burst mx-auto mb-5 text-[var(--color-success)]';
+                            success.innerHTML = '<svg class="success-checkmark h-[52px] w-[52px]" viewBox="0 0 52 52" fill="none" aria-hidden="true"><circle cx="26" cy="26" r="24" stroke="currentColor" stroke-width="1.5" fill="currentColor" fill-opacity="0.1"/><path pathLength="1" d="M15 26L22.5 33.5L37 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                            spinner.replaceWith(success);
+                        }
+
                         document.getElementById('status-message').textContent = 'Connected! Redirecting…';
                         setTimeout(function() { window.location.href = '/'; }, 1000);
                     } else {

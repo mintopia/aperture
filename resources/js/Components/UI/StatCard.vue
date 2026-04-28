@@ -28,7 +28,7 @@ const dotColorMap = {
 <template>
     <div data-testid="stat-card">
         <p
-            class="mb-[3px] inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
+            class="mb-1 inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
         >
             <span
                 v-if="labelDotColor"
@@ -46,7 +46,7 @@ const dotColorMap = {
         >
             {{ value }}
         </p>
-        <p v-if="sub" data-testid="stat-sub" class="mt-[2px] font-mono text-[11px] text-[var(--color-text-muted)]">
+        <p v-if="sub" data-testid="stat-sub" class="mt-0.5 font-mono text-[11px] text-[var(--color-text-muted)]">
             {{ sub }}
         </p>
         <slot />

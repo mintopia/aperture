@@ -248,7 +248,7 @@ watch(
         >
             <div class="flex flex-col items-center gap-2">
                 <div
-                    class="h-6 w-6 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent"
+                    class="h-6 w-6 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent motion-reduce:animate-none"
                 ></div>
                 <span class="text-xs text-[var(--color-text-muted)]">Loading chart data…</span>
             </div>
@@ -261,7 +261,7 @@ watch(
             <span class="text-sm text-[var(--color-text-muted)]">{{ emptyMessage }}</span>
         </div>
         <div v-else class="h-full rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
-            <canvas ref="canvas" data-testid="chart-canvas"></canvas>
+            <canvas ref="canvas" data-testid="chart-canvas" role="img" :aria-label="yAxisLabel || 'Chart'"></canvas>
         </div>
     </div>
 </template>
