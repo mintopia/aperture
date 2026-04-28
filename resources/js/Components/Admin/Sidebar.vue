@@ -36,6 +36,7 @@ const navGroups = [
             { label: 'IPv6 Detection', href: route('admin.settings.ipv6-detection'), icon: SettingsIcon },
             { label: 'DNS Detection', href: route('admin.settings.dns-detection'), icon: SettingsIcon },
             { label: 'Network', href: route('admin.settings.network'), icon: SettingsIcon },
+            { label: 'Captive Portal API', href: route('admin.settings.captive-portal-api'), icon: SettingsIcon },
         ],
     },
     {

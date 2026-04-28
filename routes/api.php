@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CaptivePortalApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+Route::get('/captive-portal', CaptivePortalApiController::class)->name('captive-portal');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {

@@ -114,6 +114,7 @@ describe('Sidebar.vue', () => {
             'IPv6 Detection',
             'DNS Detection',
             'Network',
+            'Captive Portal API',
         ]);
     });
 
@@ -181,7 +182,7 @@ describe('Sidebar.vue', () => {
         const wrapper = await mountSidebar();
         const svgs = wrapper.findAll('[data-testid^="nav-"] svg');
 
-        expect(svgs.length).toBe(15);
+        expect(svgs.length).toBe(16);
         svgs.forEach((svg) => {
             expect(svg.attributes('aria-hidden')).toBe('true');
             expect(svg.attributes('stroke')).toBe('currentColor');
@@ -239,6 +240,7 @@ describe('Sidebar.vue', () => {
             'IPv6 Detection',
             'DNS Detection',
             'Network',
+            'Captive Portal API',
             'Dashboard',
             'Pages',
             'Settings',

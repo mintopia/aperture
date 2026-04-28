@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\CaptivePortalApiSettingsController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DhcpController;
 use App\Http\Controllers\Admin\DnsDetectionSettingsController;
@@ -163,6 +164,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/settings/dns-detection', [DnsDetectionSettingsController::class, 'update'])->name('settings.dns-detection.update');
         Route::get('/settings/network', [NetworkSettingsController::class, 'show'])->name('settings.network');
         Route::put('/settings/network', [NetworkSettingsController::class, 'update'])->name('settings.network.update');
+        Route::get('/settings/captive-portal-api', [CaptivePortalApiSettingsController::class, 'show'])->name('settings.captive-portal-api');
+        Route::put('/settings/captive-portal-api', [CaptivePortalApiSettingsController::class, 'update'])->name('settings.captive-portal-api.update');
 
         Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
         Route::post('/settings/test/{service}', [TestConnectionController::class, 'test'])->name('settings.test');
