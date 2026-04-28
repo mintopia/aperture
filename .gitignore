@@ -37,3 +37,6 @@ core.*
 AGENTS.md
 CODEX.md
 GEMINI.md
+/.codex/
+/.junie/
+/.playwright-mcp/
