@@ -93,6 +93,78 @@ describe('useGridEditor', () => {
         expect(blocks.value[0].row_span).toBe(3);
     });
 
+    it('resizeBlock produces valid numbers when col_span and row_span are strings from MySQL', () => {
+        // MySQL returns integers as strings; if col_span is "1" (string),
+        // arithmetic like "1" + Math.round(dx) produces string concatenation ("1-1") -> NaN
+        const blocks = ref([
+            {
+                id: 1,
+                type: 'custom_markdown',
+                title: 'Block 1',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: '2', // string from MySQL
+                row_span: '1', // string from MySQL
+            },
+        ]);
+        const { resizeBlock, canPlace } = useGridEditor(blocks);
+
+        // Resize to smaller: colSpan from "2" to 1
+        resizeBlock(1, 1, 1);
+        expect(blocks.value[0].col_span).toBe(1);
+        expect(blocks.value[0].row_span).toBe(1);
+        expect(Number.isNaN(blocks.value[0].col_span)).toBe(false);
+        expect(Number.isNaN(blocks.value[0].row_span)).toBe(false);
+
+        // Verify canPlace still works with the updated values
+        expect(canPlace(1, 1, 1, 1, 1)).toBe(true);
+    });
+
+    it('isOccupied handles string col_span and row_span from MySQL', () => {
+        // When MySQL returns col_span/row_span as strings, the occupied cell
+        // computation must still work correctly. The bug: "1" + "2" = "12" (string concat)
+        // causing the loop to run from 1 to 12 instead of 1 to 3.
+        const blocks = ref([
+            {
+                id: 1,
+                type: 'custom_markdown',
+                title: 'Block 1',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: '2', // string from MySQL
+                row_span: '2', // string from MySQL
+            },
+        ]);
+        const { isOccupied } = useGridEditor(blocks);
+
+        // With col_span=2 and row_span=2, cells (1,1), (2,1), (1,2), (2,2) should be occupied
+        expect(isOccupied(1, 1)).toBe(true);
+        expect(isOccupied(2, 1)).toBe(true);
+        expect(isOccupied(1, 2)).toBe(true);
+        expect(isOccupied(2, 2)).toBe(true);
+        // Cell (3,1) should NOT be occupied — but with string concatenation bug it would be
+        expect(isOccupied(3, 1)).toBe(false);
+    });
+
+    it('totalRows computes correctly when col_span and row_span are strings', () => {
+        // MySQL returns strings for integers; totalRows must still compute correctly
+        const blocks = ref([
+            {
+                id: 1,
+                type: 'custom_markdown',
+                title: 'Block 1',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: '1', // string from MySQL
+                row_span: '2', // string from MySQL
+            },
+        ]);
+        const { totalRows } = useGridEditor(blocks);
+        // grid_row(1) + row_span(2) - 1 = 2, so totalRows should be 2
+        // With string concat: "1" + "2" - 1 = "12" - 1 = 11 (wrong)
+        expect(totalRows.value).toBe(2);
+    });
+
     it('findFirstAvailable returns an empty cell', () => {
         const blocks = makeBlocks([
             [1, 1],

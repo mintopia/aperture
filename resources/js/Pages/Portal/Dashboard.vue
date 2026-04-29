@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, onMounted, onUnmounted } from 'vue';
+import { reactive, computed, onMounted, onUnmounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import BlockGrid from '@/Components/BlockGrid.vue';
@@ -18,9 +18,16 @@ const props = defineProps({
         default: () => ({}),
     },
     dnsDetection: { type: Object, default: null },
+    coverImage: { type: String, default: null },
 });
 
 const user = usePage().props.auth?.user;
+
+const coverStyle = computed(() => {
+    if (!props.coverImage) return {};
+    const safe = props.coverImage.replace(/'/g, "\\'");
+    return { backgroundImage: `url('${safe}')` };
+});
 
 const liveContext = reactive({ ...props.blockContext });
 
@@ -59,6 +66,14 @@ onUnmounted(() => {
 
 <template>
     <div>
+        <!-- Cover image -->
+        <div
+            v-if="coverImage"
+            data-testid="dashboard-cover"
+            class="-mx-6 -mt-8 mb-6 h-32 bg-[var(--color-surface)] bg-cover bg-center md:h-48 lg:h-56"
+            :style="coverStyle"
+        />
+
         <!-- Welcome heading -->
         <div class="mb-3">
             <h1

@@ -196,4 +196,70 @@ describe('BlockGrid', () => {
         const grid = wrapper.find('[data-testid="block-grid"]');
         expect(grid.attributes('style')).toContain('grid-template-rows: repeat(1, minmax(0, auto))');
     });
+
+    it('renders MapBlock for type "map"', () => {
+        const blocks = [
+            {
+                id: 10,
+                type: 'map',
+                title: 'Location',
+                content: '',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: 1,
+                row_span: 1,
+                is_active: true,
+                settings: { lat: 51.5074, lng: -0.1278, zoom: 13 },
+            },
+        ];
+        const wrapper = mount(BlockGrid, {
+            props: { blocks, blockContext: defaultContext },
+        });
+        expect(wrapper.find('[data-testid="block-map-wrapper"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="block-map"]').exists()).toBe(true);
+    });
+
+    it('renders ImageBlock for type "image"', () => {
+        const blocks = [
+            {
+                id: 11,
+                type: 'image',
+                title: 'Banner',
+                content: '',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: 1,
+                row_span: 1,
+                is_active: true,
+                settings: { url: 'https://example.com/photo.jpg', alt: 'Banner image' },
+            },
+        ];
+        const wrapper = mount(BlockGrid, {
+            props: { blocks, blockContext: defaultContext },
+        });
+        expect(wrapper.find('[data-testid="block-image-wrapper"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="block-image"]').exists()).toBe(true);
+    });
+
+    it('renders LinkStripBlock for type "link_strip"', () => {
+        const blocks = [
+            {
+                id: 12,
+                type: 'link_strip',
+                title: 'Quick Links',
+                content: '',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: 3,
+                row_span: 1,
+                is_active: true,
+                settings: { links: [{ label: 'Home', url: 'https://example.com' }] },
+            },
+        ];
+        const wrapper = mount(BlockGrid, {
+            props: { blocks, blockContext: defaultContext },
+        });
+        expect(wrapper.find('[data-testid="block-link_strip-wrapper"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="block-link-strip"]').exists()).toBe(true);
+    });
 });

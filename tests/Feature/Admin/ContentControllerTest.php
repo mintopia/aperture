@@ -127,4 +127,21 @@ class ContentControllerTest extends TestCase
         $this->assertContains('bandwidth', ContentBlock::SINGLETON_TYPES);
         $this->assertContains('dns_filter', ContentBlock::SINGLETON_TYPES);
     }
+
+    public function test_store_returns_col_span_and_row_span_as_integers(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->postJson('/admin/content', [
+            'type' => 'custom_markdown',
+            'title' => 'New Block',
+            'content' => 'Some content',
+            'is_active' => true,
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('col_span', 1);
+        $response->assertJsonPath('row_span', 1);
+    }
 }

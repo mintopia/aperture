@@ -77,6 +77,10 @@ class ContentBlock extends Model
         return [
             'settings' => 'array',
             'is_active' => 'boolean',
+            'grid_col' => 'integer',
+            'grid_row' => 'integer',
+            'col_span' => 'integer',
+            'row_span' => 'integer',
         ];
     }
 

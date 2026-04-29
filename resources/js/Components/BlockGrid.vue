@@ -4,6 +4,9 @@ import ConnectionStripBlock from './Blocks/ConnectionStripBlock.vue';
 import BandwidthBlock from './Blocks/BandwidthBlock.vue';
 import DnsFilterBlock from './Blocks/DnsFilterBlock.vue';
 import CustomMarkdownBlock from './Blocks/CustomMarkdownBlock.vue';
+import MapBlock from './Blocks/MapBlock.vue';
+import ImageBlock from './Blocks/ImageBlock.vue';
+import LinkStripBlock from './Blocks/LinkStripBlock.vue';
 import { renderTemplate } from '@/utils/contentTemplating.js';
 
 const blockComponents = {
@@ -11,6 +14,9 @@ const blockComponents = {
     bandwidth: BandwidthBlock,
     dns_filter: DnsFilterBlock,
     custom_markdown: CustomMarkdownBlock,
+    map: MapBlock,
+    image: ImageBlock,
+    link_strip: LinkStripBlock,
 };
 
 const props = defineProps({
@@ -28,7 +34,7 @@ const maxRow = computed(() => {
     if (!props.blocks.length) {
         return 0;
     }
-    return Math.max(...props.blocks.map((b) => b.grid_row + b.row_span - 1));
+    return Math.max(...props.blocks.map((b) => Number(b.grid_row) + Number(b.row_span) - 1));
 });
 
 const gridStyle = computed(() => {

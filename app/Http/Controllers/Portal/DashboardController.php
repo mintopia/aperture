@@ -35,8 +35,11 @@ class DashboardController extends Controller
         $macString = $currentMac?->mac_address;
         $ipv6 = $ip !== null ? $this->resolveIpv6ForMac($macString) : null;
 
+        $coverImage = Setting::get('dashboard.cover_image');
+
         return Inertia::render('Portal/Dashboard', [
             'blocks' => $blocks,
+            'coverImage' => $coverImage ?: null,
             'blockContext' => [
                 'currentIpv4' => $clientIp,
                 'currentIpv6' => $ipv6,

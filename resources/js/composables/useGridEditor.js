@@ -4,8 +4,12 @@ export function useGridEditor(blocks) {
     const occupiedMap = computed(() => {
         const map = {};
         for (const block of blocks.value) {
-            for (let c = block.grid_col; c < block.grid_col + block.col_span; c++) {
-                for (let r = block.grid_row; r < block.grid_row + block.row_span; r++) {
+            const col = Number(block.grid_col);
+            const row = Number(block.grid_row);
+            const cs = Number(block.col_span);
+            const rs = Number(block.row_span);
+            for (let c = col; c < col + cs; c++) {
+                for (let r = row; r < row + rs; r++) {
                     map[`${c},${r}`] = block.id;
                 }
             }
@@ -42,7 +46,7 @@ export function useGridEditor(blocks) {
     const totalRows = computed(() => {
         let max = 1;
         for (const block of blocks.value) {
-            const end = block.grid_row + block.row_span - 1;
+            const end = Number(block.grid_row) + Number(block.row_span) - 1;
             if (end > max) {
                 max = end;
             }
@@ -92,10 +96,10 @@ export function useGridEditor(blocks) {
                 positions[block.id] = { col: targetCol, row: targetRow, colSpan, rowSpan };
             } else {
                 positions[block.id] = {
-                    col: block.grid_col,
-                    row: block.grid_row,
-                    colSpan: block.col_span,
-                    rowSpan: block.row_span,
+                    col: Number(block.grid_col),
+                    row: Number(block.grid_row),
+                    colSpan: Number(block.col_span),
+                    rowSpan: Number(block.row_span),
                 };
             }
         }

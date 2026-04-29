@@ -54,4 +54,26 @@ class ContentBlockModelTest extends TestCase
         $this->assertNotEmpty($block->title);
         $this->assertIsBool($block->is_active);
     }
+
+    public function test_col_span_and_row_span_are_declared_as_integer_casts(): void
+    {
+        $block = new ContentBlock;
+        $casts = $block->getCasts();
+
+        $this->assertArrayHasKey('col_span', $casts, 'col_span must be declared in casts to ensure MySQL returns integers');
+        $this->assertSame('integer', $casts['col_span']);
+        $this->assertArrayHasKey('row_span', $casts, 'row_span must be declared in casts to ensure MySQL returns integers');
+        $this->assertSame('integer', $casts['row_span']);
+    }
+
+    public function test_grid_col_and_grid_row_are_declared_as_integer_casts(): void
+    {
+        $block = new ContentBlock;
+        $casts = $block->getCasts();
+
+        $this->assertArrayHasKey('grid_col', $casts, 'grid_col must be declared in casts to ensure MySQL returns integers');
+        $this->assertSame('integer', $casts['grid_col']);
+        $this->assertArrayHasKey('grid_row', $casts, 'grid_row must be declared in casts to ensure MySQL returns integers');
+        $this->assertSame('integer', $casts['grid_row']);
+    }
 }

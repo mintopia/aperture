@@ -108,8 +108,8 @@ function onResizeStart(block, event) {
     resizeStartPos.value = {
         x: event.clientX,
         y: event.clientY,
-        colSpan: block.col_span,
-        rowSpan: block.row_span,
+        colSpan: Number(block.col_span),
+        rowSpan: Number(block.row_span),
     };
     positionSnapshot.value = localBlocks.value.map((b) => ({
         id: b.id,
@@ -254,6 +254,9 @@ const blockTypes = [
     { type: 'connection_strip', label: 'Connection Strip', description: 'Network status display' },
     { type: 'bandwidth', label: 'Bandwidth', description: 'Bandwidth usage chart' },
     { type: 'dns_filter', label: 'DNS Filter', description: 'DNS filtering toggle' },
+    { type: 'map', label: 'Map', description: 'OpenStreetMap location pin' },
+    { type: 'image', label: 'Image', description: 'Full-bleed image display' },
+    { type: 'link_strip', label: 'Link Strip', description: 'Horizontal links bar' },
 ];
 
 const availableBlockTypes = computed(() =>
@@ -298,6 +301,9 @@ const blockTypeColors = {
     connection_strip: 'rgba(99,102,241,0.4)',
     bandwidth: 'rgba(59,130,246,0.3)',
     dns_filter: 'rgba(236,72,153,0.3)',
+    map: 'rgba(245,158,11,0.3)',
+    image: 'rgba(168,85,247,0.3)',
+    link_strip: 'rgba(14,165,233,0.3)',
 };
 
 function onClickOutside(event) {

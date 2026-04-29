@@ -151,4 +151,36 @@ describe('Portal Dashboard', () => {
         expect(wrapper.text()).not.toContain('IPv4');
         expect(wrapper.text()).not.toContain('IPv6');
     });
+
+    it('shows cover image when coverImage prop is provided', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps({ coverImage: 'https://example.com/cover.jpg' }),
+            global: defaultGlobal,
+        });
+
+        const cover = wrapper.find('[data-testid="dashboard-cover"]');
+        expect(cover.exists()).toBe(true);
+    });
+
+    it('does not show cover element when coverImage is null', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps({ coverImage: null }),
+            global: defaultGlobal,
+        });
+
+        expect(wrapper.find('[data-testid="dashboard-cover"]').exists()).toBe(false);
+    });
+
+    it('cover image uses the provided URL', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps({ coverImage: 'https://example.com/event-banner.jpg' }),
+            global: defaultGlobal,
+        });
+
+        const cover = wrapper.find('[data-testid="dashboard-cover"]');
+        expect(cover.exists()).toBe(true);
+        // The URL should appear in the element's style (as background-image) or as an img src
+        const html = cover.html();
+        expect(html).toContain('https://example.com/event-banner.jpg');
+    });
 });

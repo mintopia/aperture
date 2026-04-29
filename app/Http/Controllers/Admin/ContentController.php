@@ -58,6 +58,7 @@ class ContentController extends Controller
         $validated['grid_row'] = $position['row'];
 
         $block = ContentBlock::create($validated);
+        $block->refresh();
 
         return response()->json($block, 201);
     }
@@ -161,7 +162,7 @@ class ContentController extends Controller
         foreach ($blocks as $block) {
             for ($c = $block->grid_col; $c < $block->grid_col + $block->col_span; $c++) {
                 for ($r = $block->grid_row; $r < $block->grid_row + $block->row_span; $r++) {
-                    $occupied[sprintf('%s,%s', $c, $r)] = true;
+                    $occupied[sprintf('%d,%d', $c, $r)] = true;
                 }
             }
         }
