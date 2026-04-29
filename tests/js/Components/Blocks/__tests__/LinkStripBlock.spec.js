@@ -66,4 +66,79 @@ describe('LinkStripBlock', () => {
             expect(link.attributes('target')).toBe('_blank');
         });
     });
+
+    describe('link strip container testid', () => {
+        it('has data-testid="link-strip-list" on the links container', () => {
+            const wrapper = mount(LinkStripBlock, {
+                props: { title: 'Links', settings: { links: sampleLinks } },
+            });
+            expect(wrapper.find('[data-testid="link-strip-list"]').exists()).toBe(true);
+        });
+    });
+
+    describe('vertical layout', () => {
+        it('uses flex-col class when layout is vertical', () => {
+            const wrapper = mount(LinkStripBlock, {
+                props: {
+                    title: 'Links',
+                    settings: { links: sampleLinks, layout: 'vertical' },
+                },
+            });
+            const list = wrapper.find('[data-testid="link-strip-list"]');
+            expect(list.exists()).toBe(true);
+            expect(list.classes()).toContain('flex-col');
+        });
+
+        it('uses flex and items-center classes when layout is horizontal (default)', () => {
+            const wrapper = mount(LinkStripBlock, {
+                props: {
+                    title: 'Links',
+                    settings: { links: sampleLinks },
+                },
+            });
+            const list = wrapper.find('[data-testid="link-strip-list"]');
+            expect(list.exists()).toBe(true);
+            expect(list.classes()).toContain('flex');
+            expect(list.classes()).toContain('items-center');
+        });
+
+        it('uses flex and items-center classes when layout is explicitly horizontal', () => {
+            const wrapper = mount(LinkStripBlock, {
+                props: {
+                    title: 'Links',
+                    settings: { links: sampleLinks, layout: 'horizontal' },
+                },
+            });
+            const list = wrapper.find('[data-testid="link-strip-list"]');
+            expect(list.exists()).toBe(true);
+            expect(list.classes()).toContain('flex');
+            expect(list.classes()).toContain('items-center');
+        });
+
+        it('links use border-b in vertical mode instead of border-r', () => {
+            const wrapper = mount(LinkStripBlock, {
+                props: {
+                    title: 'Links',
+                    settings: { links: sampleLinks, layout: 'vertical' },
+                },
+            });
+            const linkItems = wrapper.findAll('a');
+            // First link (not last) should have border-b, not border-r
+            expect(linkItems[0].classes()).toContain('border-b');
+            expect(linkItems[0].classes()).not.toContain('border-r');
+        });
+
+        it('links use border-r in horizontal mode', () => {
+            const wrapper = mount(LinkStripBlock, {
+                props: {
+                    title: 'Links',
+                    settings: { links: sampleLinks, layout: 'horizontal' },
+                },
+            });
+            const linkItems = wrapper.findAll('a');
+            // First link (not last) should have border-r
+            expect(linkItems[0].classes()).toContain('border-r');
+            expect(linkItems[0].classes()).not.toContain('border-b');
+        });
+    });
 });

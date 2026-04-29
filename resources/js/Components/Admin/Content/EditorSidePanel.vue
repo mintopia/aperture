@@ -23,7 +23,20 @@ const fields = ref(
 
 // DNS filter settings
 const settingsLabel = ref(props.block.settings?.label ?? '');
-const settingsDescription = ref(props.block.settings?.description ?? '');
+
+// Map settings
+const mapLat = ref(props.block.type === 'map' ? (props.block.settings?.lat ?? 51.5074) : 51.5074);
+const mapLng = ref(props.block.type === 'map' ? (props.block.settings?.lng ?? -0.1278) : -0.1278);
+const mapZoom = ref(props.block.type === 'map' ? (props.block.settings?.zoom ?? 13) : 13);
+const mapShowTitle = ref(props.block.type === 'map' ? (props.block.settings?.showTitle ?? true) : true);
+
+// Link strip settings
+const links = ref(
+    props.block.type === 'link_strip' ? JSON.parse(JSON.stringify(props.block.settings?.links ?? [])) : [],
+);
+const linkStripLayout = ref(
+    props.block.type === 'link_strip' ? (props.block.settings?.layout ?? 'horizontal') : 'horizontal',
+);
 
 // Template variables
 const variablesExpanded = ref(false);
@@ -96,7 +109,12 @@ watch(
         isActive.value = b.is_active;
         fields.value = b.type === 'connection_strip' ? JSON.parse(JSON.stringify(b.settings?.fields ?? [])) : [];
         settingsLabel.value = b.settings?.label ?? '';
-        settingsDescription.value = b.settings?.description ?? '';
+        mapLat.value = b.type === 'map' ? (b.settings?.lat ?? 51.5074) : 51.5074;
+        mapLng.value = b.type === 'map' ? (b.settings?.lng ?? -0.1278) : -0.1278;
+        mapZoom.value = b.type === 'map' ? (b.settings?.zoom ?? 13) : 13;
+        mapShowTitle.value = b.type === 'map' ? (b.settings?.showTitle ?? true) : true;
+        links.value = b.type === 'link_strip' ? JSON.parse(JSON.stringify(b.settings?.links ?? [])) : [];
+        linkStripLayout.value = b.type === 'link_strip' ? (b.settings?.layout ?? 'horizontal') : 'horizontal';
     },
 );
 
@@ -108,12 +126,34 @@ function removeField(index) {
     fields.value.splice(index, 1);
 }
 
+function addLink() {
+    links.value.push({ label: '', url: '' });
+}
+
+function removeLink(index) {
+    links.value.splice(index, 1);
+}
+
 function buildSettings() {
     if (props.block.type === 'connection_strip') {
         return { fields: fields.value };
     }
     if (props.block.type === 'dns_filter') {
         return { label: settingsLabel.value };
+    }
+    if (props.block.type === 'map') {
+        const lat = Number(mapLat.value);
+        const lng = Number(mapLng.value);
+        const zm = Number(mapZoom.value);
+        return {
+            lat: Number.isFinite(lat) ? lat : 51.5074,
+            lng: Number.isFinite(lng) ? lng : -0.1278,
+            zoom: Number.isFinite(zm) ? Math.round(zm) : 13,
+            showTitle: mapShowTitle.value,
+        };
+    }
+    if (props.block.type === 'link_strip') {
+        return { links: links.value, layout: linkStripLayout.value };
     }
     return props.block.settings;
 }
@@ -225,6 +265,130 @@ function save() {
             />
         </div>
 
+        <div v-if="block.type === 'map'" class="mb-4" data-testid="panel-map-settings">
+            <label class="mb-2 block text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
+                Map Settings
+            </label>
+            <div class="space-y-2">
+                <div>
+                    <label class="mb-1 block text-[11px] text-[var(--color-text-muted)]">Latitude</label>
+                    <input
+                        v-model.number="mapLat"
+                        type="number"
+                        step="any"
+                        data-testid="panel-map-lat"
+                        class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-text)]"
+                    />
+                </div>
+                <div>
+                    <label class="mb-1 block text-[11px] text-[var(--color-text-muted)]">Longitude</label>
+                    <input
+                        v-model.number="mapLng"
+                        type="number"
+                        step="any"
+                        data-testid="panel-map-lng"
+                        class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-text)]"
+                    />
+                </div>
+                <div>
+                    <label class="mb-1 block text-[11px] text-[var(--color-text-muted)]">Zoom</label>
+                    <input
+                        v-model.number="mapZoom"
+                        type="number"
+                        min="1"
+                        max="19"
+                        data-testid="panel-map-zoom"
+                        class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-[var(--color-text)]"
+                    />
+                </div>
+                <div class="flex items-center justify-between">
+                    <label class="text-[11px] text-[var(--color-text-muted)]">Show Title</label>
+                    <button
+                        data-testid="panel-map-show-title"
+                        role="switch"
+                        :aria-checked="mapShowTitle"
+                        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200"
+                        :class="mapShowTitle ? 'bg-[var(--color-success)]' : 'bg-[var(--color-surface-alt)]'"
+                        @click="mapShowTitle = !mapShowTitle"
+                    >
+                        <span
+                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200"
+                            :class="mapShowTitle ? 'translate-x-5' : 'translate-x-0'"
+                        />
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="block.type === 'link_strip'" class="mb-4" data-testid="panel-links-editor">
+            <label class="mb-2 block text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
+                Links
+            </label>
+            <div v-for="(link, index) in links" :key="index" class="mb-2 space-y-1">
+                <div class="flex items-center gap-2">
+                    <input
+                        v-model="links[index].label"
+                        placeholder="Label"
+                        :data-testid="'panel-link-label-' + index"
+                        class="flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+                    />
+                    <button
+                        :data-testid="'panel-link-remove-' + index"
+                        class="text-[var(--color-danger)] hover:text-[var(--color-danger)]/80"
+                        @click="removeLink(index)"
+                    >
+                        &#x2715;
+                    </button>
+                </div>
+                <input
+                    v-model="links[index].url"
+                    placeholder="https://..."
+                    :data-testid="'panel-link-url-' + index"
+                    class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+                />
+            </div>
+            <button
+                data-testid="panel-add-link"
+                class="text-sm text-[var(--color-accent)] hover:underline"
+                @click="addLink"
+            >
+                + Add Link
+            </button>
+            <div class="mt-3" data-testid="panel-link-strip-layout">
+                <label
+                    class="mb-1 block text-[11px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase"
+                >
+                    Layout
+                </label>
+                <div class="flex gap-1">
+                    <button
+                        data-testid="panel-layout-horizontal"
+                        class="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                        :class="
+                            linkStripLayout === 'horizontal'
+                                ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                                : 'bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]'
+                        "
+                        @click="linkStripLayout = 'horizontal'"
+                    >
+                        Horizontal
+                    </button>
+                    <button
+                        data-testid="panel-layout-vertical"
+                        class="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                        :class="
+                            linkStripLayout === 'vertical'
+                                ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                                : 'bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]'
+                        "
+                        @click="linkStripLayout = 'vertical'"
+                    >
+                        Vertical
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="showTemplateVariables" class="mb-4" data-testid="panel-template-variables">
             <button
                 data-testid="panel-variables-toggle"
@@ -268,6 +432,8 @@ function save() {
             </label>
             <button
                 data-testid="panel-active-toggle"
+                role="switch"
+                :aria-checked="isActive"
                 class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200"
                 :class="isActive ? 'bg-[var(--color-success)]' : 'bg-[var(--color-surface-alt)]'"
                 @click="isActive = !isActive"

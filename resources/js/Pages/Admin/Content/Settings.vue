@@ -51,6 +51,31 @@ function removeLogo() {
     });
 }
 
+const coverImageError = ref(null);
+
+function onCoverImageSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    coverImageError.value = null;
+
+    const formData = new FormData();
+    formData.append('cover_image', file);
+
+    router.post(route('admin.content.settings.cover-image.update'), formData, {
+        preserveScroll: true,
+        onError: (errors) => {
+            coverImageError.value = errors.cover_image || 'Upload failed';
+        },
+    });
+}
+
+function removeCoverImage() {
+    router.delete(route('admin.content.settings.cover-image.delete'), {
+        preserveScroll: true,
+    });
+}
+
 const { previewMode, cancelPreview } = useTheme();
 
 const originalHue = ref(props.settings?.accent_hue ?? 55);
@@ -177,6 +202,45 @@ onBeforeUnmount(() => {
                         @click="removeLogo"
                     >
                         Remove logo
+                    </button>
+                </div>
+            </FormField>
+
+            <FormField label="Dashboard Cover Image" name="cover_image" :error="coverImageError">
+                <div class="space-y-3">
+                    <div
+                        v-if="props.settings?.cover_image_url"
+                        class="overflow-hidden rounded-md border border-[var(--color-border)]"
+                    >
+                        <img
+                            :src="props.settings.cover_image_url"
+                            alt="Current cover image"
+                            class="h-32 w-full object-cover"
+                            data-testid="cover-image-preview"
+                        />
+                    </div>
+                    <div class="space-y-2">
+                        <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            data-testid="input-cover-image"
+                            class="text-[13px] text-[var(--color-text-secondary)]"
+                            @change="onCoverImageSelected"
+                        />
+                        <p class="text-[11px] text-[var(--color-text-muted)]">
+                            Landscape image, min 600px wide, max 5 MB. Displayed as a background banner on the portal
+                            dashboard.
+                        </p>
+                    </div>
+                </div>
+                <div v-if="props.settings?.cover_image_url" class="mt-2">
+                    <button
+                        type="button"
+                        data-testid="action-remove-cover-image"
+                        class="text-[13px] text-[var(--color-danger)] hover:underline"
+                        @click="removeCoverImage"
+                    >
+                        Remove cover image
                     </button>
                 </div>
             </FormField>

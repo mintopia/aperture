@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateGeneralSettingsRequest;
 use App\Models\Page;
 use App\Models\Setting;
+use App\Services\CoverImageService;
 use App\Services\LogoService;
 use Closure;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +22,7 @@ class GeneralSettingsController extends Controller
 {
     public function __construct(
         private readonly LogoService $logoService,
+        private readonly CoverImageService $coverImageService,
     ) {}
 
     public function show(): Response
@@ -38,6 +40,7 @@ class GeneralSettingsController extends Controller
                 'accent_lightness' => (int) Setting::get('theme.accent_lightness', config('aperture.theme.accent_lightness')),
                 'custom_css' => Setting::get('theme.custom_css'),
                 'site_logo_url' => $this->logoService->url(),
+                'cover_image_url' => $this->coverImageService->url(),
             ],
             'pages' => Page::orderBy('title')->get(),
             'breadcrumbs' => [
@@ -107,5 +110,43 @@ class GeneralSettingsController extends Controller
         $this->logoService->delete();
 
         return back()->with('success', 'Logo removed.');
+    }
+
+    public function updateCoverImage(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'cover_image' => [
+                'required',
+                File::image()->types(['png', 'jpg', 'jpeg', 'webp'])->max(5120),
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (! $value instanceof UploadedFile) {
+                        return;
+                    }
+
+                    $size = @getimagesize($value->getRealPath());
+                    if ($size === false) {
+                        $fail('The cover image must be a valid image.');
+
+                        return;
+                    }
+
+                    [$width] = $size;
+                    if ($width < 600) {
+                        $fail('The cover image must be at least 600 pixels wide.');
+                    }
+                },
+            ],
+        ]);
+
+        $this->coverImageService->store($request->file('cover_image'));
+
+        return back()->with('success', 'Cover image uploaded.');
+    }
+
+    public function deleteCoverImage(): RedirectResponse
+    {
+        $this->coverImageService->delete();
+
+        return back()->with('success', 'Cover image removed.');
     }
 }

@@ -140,6 +140,45 @@ export function useGridEditor(blocks) {
         return displacement;
     }
 
+    function cellFromPointer(gridEl, clientX, clientY) {
+        const rect = gridEl.getBoundingClientRect();
+        const gap = parseFloat(getComputedStyle(gridEl).gap) || 12;
+        const cols = 3;
+        const totalGapX = gap * (cols - 1);
+        const cellWidth = (rect.width - totalGapX) / cols;
+        const relX = clientX - rect.left;
+        const relY = clientY - rect.top;
+
+        let col = 1;
+        let accX = 0;
+        for (let c = 1; c <= cols; c++) {
+            const nextBound = accX + cellWidth + (c < cols ? gap : 0);
+            if (relX < nextBound || c === cols) {
+                col = c;
+                break;
+            }
+            accX = nextBound;
+        }
+
+        const rows = gridEl.querySelectorAll(':scope > [style*="grid-row"]');
+        let maxRow = 1;
+        rows.forEach((el) => {
+            const s = el.style.gridRow;
+            const match = s.match(/(\d+)/);
+            if (match) {
+                const r = parseInt(match[1], 10);
+                const spanMatch = s.match(/span\s+(\d+)/);
+                const span = spanMatch ? parseInt(spanMatch[1], 10) : 1;
+                maxRow = Math.max(maxRow, r + span - 1);
+            }
+        });
+
+        const rowHeight = maxRow > 0 ? rect.height / maxRow : 80;
+        const row = Math.max(1, Math.ceil(relY / rowHeight));
+
+        return { col, row };
+    }
+
     return {
         isOccupied,
         canPlace,
@@ -150,5 +189,6 @@ export function useGridEditor(blocks) {
         getBlockAt,
         occupiedMap,
         computeDisplacement,
+        cellFromPointer,
     };
 }

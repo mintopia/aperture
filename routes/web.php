@@ -130,6 +130,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/content/settings', [GeneralSettingsController::class, 'update'])->name('content.settings.update');
         Route::post('/content/settings/logo', [GeneralSettingsController::class, 'updateLogo'])->name('content.settings.logo.update');
         Route::delete('/content/settings/logo', [GeneralSettingsController::class, 'deleteLogo'])->name('content.settings.logo.delete');
+        Route::post('/content/settings/cover-image', [GeneralSettingsController::class, 'updateCoverImage'])->name('content.settings.cover-image.update');
+        Route::delete('/content/settings/cover-image', [GeneralSettingsController::class, 'deleteCoverImage'])->name('content.settings.cover-image.delete');
 
         Route::resource('content', ContentController::class)->except(['create', 'edit', 'show']);
 

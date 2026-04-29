@@ -12,6 +12,9 @@ const links = computed(() => {
     const configured = props.settings?.links;
     return Array.isArray(configured) ? configured : [];
 });
+
+const layout = computed(() => props.settings?.layout ?? 'horizontal');
+const isVertical = computed(() => layout.value === 'vertical');
 </script>
 
 <template>
@@ -19,7 +22,12 @@ const links = computed(() => {
         <h3 class="font-heading mb-3 text-xs font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
             {{ title }}
         </h3>
-        <div v-if="links.length" class="flex items-center">
+        <div
+            v-if="links.length"
+            data-testid="link-strip-list"
+            class="flex"
+            :class="isVertical ? 'flex-col' : 'items-center'"
+        >
             <a
                 v-for="(link, index) in links"
                 :key="index"
@@ -28,8 +36,20 @@ const links = computed(() => {
                 rel="noopener noreferrer"
                 :data-testid="'link-strip-item-' + index"
                 class="flex flex-1 items-center gap-1.5 text-[13px] font-medium text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
-                :class="index < links.length - 1 ? 'border-r border-[var(--color-border)] pr-5' : ''"
-                :style="index > 0 ? 'padding-left: 1.25rem' : ''"
+                :class="[
+                    index < links.length - 1
+                        ? isVertical
+                            ? 'border-b border-[var(--color-border)] pb-3'
+                            : 'border-r border-[var(--color-border)] pr-5'
+                        : '',
+                ]"
+                :style="
+                    !isVertical && index > 0
+                        ? 'padding-left: 1.25rem'
+                        : isVertical && index > 0
+                          ? 'padding-top: 0.75rem'
+                          : ''
+                "
             >
                 {{ link.label }}
                 <svg

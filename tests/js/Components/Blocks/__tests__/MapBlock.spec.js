@@ -53,4 +53,40 @@ describe('MapBlock', () => {
         });
         expect(wrapper.text()).toContain('My Location');
     });
+
+    describe('showTitle setting', () => {
+        it('renders title with data-testid="map-title" when showTitle is true', () => {
+            const wrapper = mount(MapBlock, {
+                props: { title: 'My Location', settings: { showTitle: true } },
+            });
+            const titleEl = wrapper.find('[data-testid="map-title"]');
+            expect(titleEl.exists()).toBe(true);
+            expect(titleEl.text()).toBe('My Location');
+        });
+
+        it('renders title when showTitle is undefined (defaults to true)', () => {
+            const wrapper = mount(MapBlock, {
+                props: { title: 'My Location', settings: {} },
+            });
+            const titleEl = wrapper.find('[data-testid="map-title"]');
+            expect(titleEl.exists()).toBe(true);
+            expect(titleEl.text()).toBe('My Location');
+        });
+
+        it('does not render title when showTitle is false', () => {
+            const wrapper = mount(MapBlock, {
+                props: { title: 'My Location', settings: { showTitle: false } },
+            });
+            const titleEl = wrapper.find('[data-testid="map-title"]');
+            expect(titleEl.exists()).toBe(false);
+        });
+
+        it('title element is an h3 tag', () => {
+            const wrapper = mount(MapBlock, {
+                props: { title: 'My Location', settings: { showTitle: true } },
+            });
+            const titleEl = wrapper.find('[data-testid="map-title"]');
+            expect(titleEl.element.tagName).toBe('H3');
+        });
+    });
 });

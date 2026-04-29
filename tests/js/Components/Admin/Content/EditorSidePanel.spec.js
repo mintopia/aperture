@@ -248,6 +248,231 @@ describe('EditorSidePanel', () => {
         wrapper.unmount();
     });
 
+    describe('map block settings', () => {
+        const mapBlock = {
+            id: 10,
+            type: 'map',
+            title: 'Office Location',
+            content: '',
+            col_span: 2,
+            row_span: 1,
+            is_active: true,
+            settings: { lat: 48.8566, lng: 2.3522, zoom: 10, showTitle: false },
+        };
+
+        it('shows map settings section for map blocks', () => {
+            const wrapper = mountPanel({ props: { block: mapBlock } });
+            expect(wrapper.find('[data-testid="panel-map-settings"]').exists()).toBe(true);
+        });
+
+        it('does not show map settings for non-map blocks', () => {
+            const wrapper = mountPanel({ props: { block } });
+            expect(wrapper.find('[data-testid="panel-map-settings"]').exists()).toBe(false);
+        });
+
+        it('shows latitude input initialized from settings.lat', () => {
+            const wrapper = mountPanel({ props: { block: mapBlock } });
+            const input = wrapper.find('[data-testid="panel-map-lat"]');
+            expect(input.exists()).toBe(true);
+            expect(parseFloat(input.element.value)).toBe(48.8566);
+        });
+
+        it('shows longitude input initialized from settings.lng', () => {
+            const wrapper = mountPanel({ props: { block: mapBlock } });
+            const input = wrapper.find('[data-testid="panel-map-lng"]');
+            expect(input.exists()).toBe(true);
+            expect(parseFloat(input.element.value)).toBe(2.3522);
+        });
+
+        it('shows zoom input initialized from settings.zoom', () => {
+            const wrapper = mountPanel({ props: { block: mapBlock } });
+            const input = wrapper.find('[data-testid="panel-map-zoom"]');
+            expect(input.exists()).toBe(true);
+            expect(parseFloat(input.element.value)).toBe(10);
+        });
+
+        it('shows show title toggle initialized from settings.showTitle', () => {
+            const wrapper = mountPanel({ props: { block: mapBlock } });
+            const toggle = wrapper.find('[data-testid="panel-map-show-title"]');
+            expect(toggle.exists()).toBe(true);
+        });
+
+        it('defaults latitude to 51.5074 when not in settings', () => {
+            const blockNoSettings = { ...mapBlock, settings: {} };
+            const wrapper = mountPanel({ props: { block: blockNoSettings } });
+            const input = wrapper.find('[data-testid="panel-map-lat"]');
+            expect(parseFloat(input.element.value)).toBe(51.5074);
+        });
+
+        it('defaults longitude to -0.1278 when not in settings', () => {
+            const blockNoSettings = { ...mapBlock, settings: {} };
+            const wrapper = mountPanel({ props: { block: blockNoSettings } });
+            const input = wrapper.find('[data-testid="panel-map-lng"]');
+            expect(parseFloat(input.element.value)).toBe(-0.1278);
+        });
+
+        it('defaults zoom to 13 when not in settings', () => {
+            const blockNoSettings = { ...mapBlock, settings: {} };
+            const wrapper = mountPanel({ props: { block: blockNoSettings } });
+            const input = wrapper.find('[data-testid="panel-map-zoom"]');
+            expect(parseFloat(input.element.value)).toBe(13);
+        });
+
+        it('defaults showTitle to true when not in settings', () => {
+            const blockNoSettings = { ...mapBlock, settings: {} };
+            const wrapper = mountPanel({ props: { block: blockNoSettings } });
+            const toggle = wrapper.find('[data-testid="panel-map-show-title"]');
+            expect(toggle.exists()).toBe(true);
+        });
+
+        it('emits save with map settings in settings object', async () => {
+            const wrapper = mountPanel({ props: { block: mapBlock } });
+            await wrapper.find('[data-testid="panel-map-lat"]').setValue('40.7128');
+            await wrapper.find('[data-testid="panel-map-lng"]').setValue('-74.006');
+            await wrapper.find('[data-testid="panel-map-zoom"]').setValue('15');
+            await wrapper.find('[data-testid="panel-save"]').trigger('click');
+            const emitted = wrapper.emitted('save')[0][0];
+            expect(emitted).toHaveProperty('settings');
+            expect(emitted.settings).toHaveProperty('lat');
+            expect(emitted.settings).toHaveProperty('lng');
+            expect(emitted.settings).toHaveProperty('zoom');
+            expect(emitted.settings).toHaveProperty('showTitle');
+        });
+    });
+
+    describe('link strip block settings', () => {
+        const linkStripBlock = {
+            id: 20,
+            type: 'link_strip',
+            title: 'Quick Links',
+            content: '',
+            col_span: 2,
+            row_span: 1,
+            is_active: true,
+            settings: {
+                links: [
+                    { label: 'Home', url: 'https://example.com' },
+                    { label: 'Docs', url: 'https://docs.example.com' },
+                ],
+                layout: 'horizontal',
+            },
+        };
+
+        it('shows links editor for link_strip blocks', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-links-editor"]').exists()).toBe(true);
+        });
+
+        it('does not show links editor for non-link_strip blocks', () => {
+            const wrapper = mountPanel({ props: { block } });
+            expect(wrapper.find('[data-testid="panel-links-editor"]').exists()).toBe(false);
+        });
+
+        it('shows link label inputs for each link', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-link-label-0"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="panel-link-label-1"]').exists()).toBe(true);
+        });
+
+        it('shows link url inputs for each link', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-link-url-0"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="panel-link-url-1"]').exists()).toBe(true);
+        });
+
+        it('link label inputs are initialized with correct values', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-link-label-0"]').element.value).toBe('Home');
+            expect(wrapper.find('[data-testid="panel-link-label-1"]').element.value).toBe('Docs');
+        });
+
+        it('link url inputs are initialized with correct values', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-link-url-0"]').element.value).toBe('https://example.com');
+            expect(wrapper.find('[data-testid="panel-link-url-1"]').element.value).toBe('https://docs.example.com');
+        });
+
+        it('shows remove button for each link', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-link-remove-0"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="panel-link-remove-1"]').exists()).toBe(true);
+        });
+
+        it('shows add link button', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-add-link"]').exists()).toBe(true);
+        });
+
+        it('adds a new empty link when add link is clicked', async () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            await wrapper.find('[data-testid="panel-add-link"]').trigger('click');
+            expect(wrapper.find('[data-testid="panel-link-label-2"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="panel-link-url-2"]').exists()).toBe(true);
+        });
+
+        it('removes a link when remove button is clicked', async () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            await wrapper.find('[data-testid="panel-link-remove-0"]').trigger('click');
+            // After removing index 0, the old index 1 ("Docs") becomes index 0
+            expect(wrapper.find('[data-testid="panel-link-label-0"]').element.value).toBe('Docs');
+            // There should no longer be a second link
+            expect(wrapper.find('[data-testid="panel-link-label-1"]').exists()).toBe(false);
+        });
+
+        it('shows layout toggle section', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-link-strip-layout"]').exists()).toBe(true);
+        });
+
+        it('shows horizontal layout button', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-layout-horizontal"]').exists()).toBe(true);
+        });
+
+        it('shows vertical layout button', () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            expect(wrapper.find('[data-testid="panel-layout-vertical"]').exists()).toBe(true);
+        });
+
+        it('defaults layout to horizontal when not set', () => {
+            const blockNoLayout = {
+                ...linkStripBlock,
+                settings: { links: linkStripBlock.settings.links },
+            };
+            const wrapper = mountPanel({ props: { block: blockNoLayout } });
+            expect(wrapper.find('[data-testid="panel-link-strip-layout"]').exists()).toBe(true);
+        });
+
+        it('emits save with links and layout in settings', async () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            await wrapper.find('[data-testid="panel-save"]').trigger('click');
+            const emitted = wrapper.emitted('save')[0][0];
+            expect(emitted).toHaveProperty('settings');
+            expect(emitted.settings).toHaveProperty('links');
+            expect(emitted.settings).toHaveProperty('layout');
+            expect(emitted.settings.links).toHaveLength(2);
+            expect(emitted.settings.layout).toBe('horizontal');
+        });
+
+        it('emits save with updated link data after editing', async () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            await wrapper.find('[data-testid="panel-link-label-0"]').setValue('Updated');
+            await wrapper.find('[data-testid="panel-link-url-0"]').setValue('https://updated.com');
+            await wrapper.find('[data-testid="panel-save"]').trigger('click');
+            const emitted = wrapper.emitted('save')[0][0];
+            expect(emitted.settings.links[0].label).toBe('Updated');
+            expect(emitted.settings.links[0].url).toBe('https://updated.com');
+        });
+
+        it('emits save with vertical layout when selected', async () => {
+            const wrapper = mountPanel({ props: { block: linkStripBlock } });
+            await wrapper.find('[data-testid="panel-layout-vertical"]').trigger('click');
+            await wrapper.find('[data-testid="panel-save"]').trigger('click');
+            const emitted = wrapper.emitted('save')[0][0];
+            expect(emitted.settings.layout).toBe('vertical');
+        });
+    });
+
     describe('template variable chip click-to-insert', () => {
         beforeEach(() => {
             Object.assign(navigator, {

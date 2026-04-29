@@ -19,11 +19,11 @@ const saving = ref(false);
 const showAddMenu = ref(false);
 const addingBlock = ref(false);
 
-const { totalRows, moveBlock, computeDisplacement } = useGridEditor(localBlocks);
+const { totalRows, moveBlock, computeDisplacement, cellFromPointer } = useGridEditor(localBlocks);
 
 // Drag state
 const dragging = ref(null);
-const dragOver = ref(null);
+const dragGhostPos = ref(null);
 const positionSnapshot = ref(null);
 const previewDisplacement = ref({});
 
@@ -40,27 +40,47 @@ function getBlock(id) {
 }
 
 function onDragStart(block, event) {
+    event.preventDefault();
     dragging.value = block.id;
-    event.dataTransfer.effectAllowed = 'move';
     positionSnapshot.value = localBlocks.value.map((b) => ({
         id: b.id,
         grid_col: b.grid_col,
         grid_row: b.grid_row,
     }));
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
 }
 
-function onDragOver(col, row, event) {
-    event.preventDefault();
+function onDragMove(event) {
     if (!dragging.value) return;
+    const gridEl = gridRef.value;
+    if (!gridEl) return;
     const block = getBlock(dragging.value);
-    dragOver.value = `${col},${row}`;
-    event.dataTransfer.dropEffect = 'move';
-    previewDisplacement.value = computeDisplacement(dragging.value, col, row, block.col_span, block.row_span);
+    if (!block) return;
+
+    const { col, row } = cellFromPointer(gridEl, event.clientX, event.clientY);
+    const clampedCol = Math.max(1, Math.min(col, 4 - block.col_span));
+
+    dragGhostPos.value = { col: clampedCol, row, colSpan: block.col_span, rowSpan: block.row_span };
+    previewDisplacement.value = computeDisplacement(dragging.value, clampedCol, row, block.col_span, block.row_span);
 }
 
-function onDrop(col, row) {
-    if (!dragging.value) return;
+function onDragEnd() {
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+
+    if (!dragging.value || !dragGhostPos.value) {
+        cancelDrag();
+        return;
+    }
+
     const block = getBlock(dragging.value);
+    if (!block) {
+        cancelDrag();
+        return;
+    }
+
+    const { col, row } = dragGhostPos.value;
     const displacement = computeDisplacement(dragging.value, col, row, block.col_span, block.row_span);
     moveBlock(dragging.value, col, row);
     for (const [id, newRow] of Object.entries(displacement)) {
@@ -69,7 +89,7 @@ function onDrop(col, row) {
     }
     hasChanges.value = true;
     dragging.value = null;
-    dragOver.value = null;
+    dragGhostPos.value = null;
     previewDisplacement.value = {};
     positionSnapshot.value = null;
 }
@@ -87,19 +107,15 @@ function cancelDrag() {
         }
     }
     dragging.value = null;
-    dragOver.value = null;
+    dragGhostPos.value = null;
     resizing.value = null;
     resizeStartPos.value = null;
     previewDisplacement.value = {};
     positionSnapshot.value = null;
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
     document.removeEventListener('mousemove', onResizeMove);
     document.removeEventListener('mouseup', onResizeEnd);
-}
-
-function onDragEnd() {
-    if (dragging.value) {
-        cancelDrag();
-    }
 }
 
 function onResizeStart(block, event) {
@@ -320,6 +336,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
     document.removeEventListener('mousemove', onResizeMove);
     document.removeEventListener('mouseup', onResizeEnd);
     document.removeEventListener('click', onClickOutside, true);
@@ -387,28 +405,37 @@ onBeforeUnmount(() => {
             }"
             @keydown.escape="cancelDrag"
         >
+            <!-- Ghost outline during drag -->
+            <div
+                v-if="dragGhostPos"
+                data-testid="drag-ghost"
+                class="pointer-events-none rounded-md border-2 border-dashed border-[var(--color-accent)]"
+                :style="{
+                    gridColumn: `${dragGhostPos.col} / span ${dragGhostPos.colSpan}`,
+                    gridRow: `${dragGhostPos.row} / span ${dragGhostPos.rowSpan}`,
+                    background: 'oklch(var(--color-accent-l) var(--color-accent-c) var(--color-accent-h) / 0.1)',
+                }"
+            />
+
             <!-- Rendered blocks -->
             <div
                 v-for="block in localBlocks"
                 :key="block.id"
                 :data-testid="'editor-block-' + block.id"
-                class="relative cursor-pointer rounded-md border-2 p-3"
+                class="relative cursor-pointer rounded-md border-2 p-3 transition-opacity duration-150"
                 :style="{
                     ...blockStyle(block),
                     borderColor: blockTypeColors[block.type] ?? 'rgba(255,255,255,0.2)',
                     background: (blockTypeColors[block.type] ?? 'rgba(255,255,255,0.05)').replace(/[\d.]+\)$/, '0.08)'),
+                    opacity: dragging === block.id ? 0.3 : 1,
                 }"
-                draggable="true"
-                @dragstart="onDragStart(block, $event)"
-                @dragend="onDragEnd"
-                @dragover="onDragOver(block.grid_col, block.grid_row, $event)"
-                @drop="onDrop(block.grid_col, block.grid_row)"
                 @click="selectBlock(block)"
             >
                 <!-- Drag handle bar -->
                 <div
                     :data-testid="'drag-handle-' + block.id"
                     class="absolute inset-x-0 top-0 flex h-6 cursor-grab items-center justify-center rounded-t-md opacity-30 transition-opacity hover:opacity-60"
+                    @mousedown.stop="onDragStart(block, $event)"
                 >
                     <svg class="h-3 w-5 text-[var(--color-text-muted)]" viewBox="0 0 20 12" fill="currentColor">
                         <rect y="0" width="20" height="2" rx="1" />
@@ -457,11 +484,7 @@ onBeforeUnmount(() => {
                         "
                         class="flex items-center justify-center rounded-md border-2 border-dashed border-[var(--color-border)]/30"
                         :style="{ gridColumn: col, gridRow: row }"
-                        @dragover="onDragOver(col, row, $event)"
-                        @drop="onDrop(col, row)"
-                    >
-                        <span class="text-[11px] text-[var(--color-text-muted)]/40">Drop here</span>
-                    </div>
+                    />
                 </template>
             </template>
         </div>

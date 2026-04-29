@@ -25,7 +25,8 @@ class ContentController extends Controller
             'existingTypes' => ContentBlock::pluck('type')->unique()->values(),
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
-                ['label' => 'Content'],
+                ['label' => 'Content', 'href' => route('admin.content.index')],
+                ['label' => 'Dashboard Editor'],
             ],
         ]);
     }
