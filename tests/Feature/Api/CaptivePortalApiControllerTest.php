@@ -108,6 +108,7 @@ class CaptivePortalApiControllerTest extends TestCase
         $response = $this->get('/api/captive-portal');
 
         $response->assertOk();
+
         $data = $response->json();
         $this->assertArrayHasKey('captive', $data);
         $this->assertArrayNotHasKey('user-portal-url', $data);

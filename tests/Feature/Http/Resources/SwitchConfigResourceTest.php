@@ -92,6 +92,7 @@ class SwitchConfigResourceTest extends TestCase
         ]);
 
         $switchConfig->load('latestSyncRun');
+
         $resource = new SwitchConfigResource($switchConfig);
         $result = $resource->toArray(Request::create('/'));
 
@@ -104,6 +105,7 @@ class SwitchConfigResourceTest extends TestCase
         $switchConfig = SwitchConfig::factory()->create();
 
         $switchConfig->load('latestSyncRun');
+
         $resource = new SwitchConfigResource($switchConfig);
         $result = $resource->toArray(Request::create('/'));
 
