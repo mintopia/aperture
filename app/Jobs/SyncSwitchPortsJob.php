@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Events\SwitchSyncCompleted;
+use App\Events\PortStateChanged;
 use App\Models\SwitchConfig;
 use App\Models\SwitchSyncRun;
 use App\Services\NetworkSwitch\CircuitBreaker;
@@ -52,14 +52,16 @@ class SyncSwitchPortsJob implements ShouldBeUnique, ShouldQueue
         }
 
         try {
-            $syncRun = $syncService->syncSwitch($this->switchConfig);
+            $result = $syncService->syncSwitch($this->switchConfig);
             $circuitBreaker->recordSuccess($this->switchConfig);
 
-            SwitchSyncCompleted::dispatch(
-                $this->switchConfig,
-                $syncRun->ports_updated ?? 0,
-                [],
-            );
+            foreach ($result->portStateChanges as $change) {
+                PortStateChanged::dispatch(
+                    $change['switchPort'],
+                    $change['oldStatus'],
+                    $change['newStatus'],
+                );
+            }
         } catch (Throwable $throwable) {
             $circuitBreaker->recordFailure($this->switchConfig);
 

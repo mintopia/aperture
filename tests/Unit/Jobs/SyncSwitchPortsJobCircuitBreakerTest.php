@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Jobs;
 
-use App\Events\SwitchSyncCompleted;
+use App\Events\PortStateChanged;
 use App\Events\SwitchUnreachable;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use App\Models\SwitchSyncRun;
 use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\PortSyncService;
+use App\Services\NetworkSwitch\SyncResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Mockery;
@@ -52,12 +53,13 @@ class SyncSwitchPortsJobCircuitBreakerTest extends TestCase
 
     public function test_job_records_success_on_circuit_breaker_after_sync(): void
     {
-        Event::fake([SwitchSyncCompleted::class]);
+        Event::fake([PortStateChanged::class]);
 
         $switchConfig = SwitchConfig::factory()->create();
         $syncRun = SwitchSyncRun::factory()->completed()->create([
             'switch_config_id' => $switchConfig->id,
         ]);
+        $syncResult = new SyncResult(syncRun: $syncRun, portStateChanges: []);
 
         /** @var MockInterface&CircuitBreaker $circuitBreaker */
         $circuitBreaker = Mockery::mock(CircuitBreaker::class);
@@ -76,7 +78,7 @@ class SyncSwitchPortsJobCircuitBreakerTest extends TestCase
         $service->shouldReceive('syncSwitch')
             ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($switchConfig)))
             ->once()
-            ->andReturn($syncRun);
+            ->andReturn($syncResult);
 
         $job = new SyncSwitchPortsJob($switchConfig);
         $job->handle($service, $circuitBreaker);

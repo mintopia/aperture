@@ -24,7 +24,7 @@ class PortSyncService
         protected SwitchServiceFactory $factory,
     ) {}
 
-    public function syncSwitch(SwitchConfig $switchConfig): SwitchSyncRun
+    public function syncSwitch(SwitchConfig $switchConfig): SyncResult
     {
         $this->cleanStaleRuns($switchConfig);
 
@@ -36,6 +36,9 @@ class PortSyncService
             'started_at' => $syncStartedAt,
         ]);
 
+        /** @var array<int, array{switchPort: SwitchPort, oldStatus: ?string, newStatus: string}> $portStateChanges */
+        $portStateChanges = [];
+
         try {
             $adapter = $this->factory->make($switchConfig);
 
@@ -44,8 +47,8 @@ class PortSyncService
             $macsCreated = 0;
             $macsUpdated = 0;
 
-            DB::transaction(function () use ($adapter, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated): void {
-                $this->syncPortStatuses($adapter, $switchConfig, $syncStartedAt, $portsCreated, $portsUpdated);
+            DB::transaction(function () use ($adapter, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
+                $portStateChanges = $this->syncPortStatuses($adapter, $switchConfig, $syncStartedAt, $portsCreated, $portsUpdated);
                 $this->syncPortConfigs($adapter, $switchConfig, $syncStartedAt);
                 $syncedMacIds = $this->syncPortMacs($adapter, $switchConfig, $syncStartedAt, $macsCreated, $macsUpdated);
                 $this->cleanStaleMacs($switchConfig, $syncedMacIds);
@@ -79,7 +82,7 @@ class PortSyncService
             }
         }
 
-        return $syncRun;
+        return new SyncResult(syncRun: $syncRun, portStateChanges: $portStateChanges);
     }
 
     /**
@@ -99,6 +102,8 @@ class PortSyncService
 
     /**
      * Fetch port statuses from the switch adapter and upsert them into the database.
+     *
+     * @return array<int, array{switchPort: SwitchPort, oldStatus: ?string, newStatus: string}>
      */
     private function syncPortStatuses(
         NetworkSwitchInterface $adapter,
@@ -106,8 +111,11 @@ class PortSyncService
         Carbon $syncStartedAt,
         int &$portsCreated,
         int &$portsUpdated,
-    ): void {
+    ): array {
         $portStatuses = $adapter->getAllPorts();
+
+        /** @var array<int, array{switchPort: SwitchPort, oldStatus: ?string, newStatus: string}> $stateChanges */
+        $stateChanges = [];
 
         foreach ($portStatuses as $portStatus) {
             $accessVlan = $portStatus->vlan !== '' ? (int) $portStatus->vlan : null;
@@ -119,6 +127,8 @@ class PortSyncService
                 ->first();
 
             if ($existingPort instanceof SwitchPort) {
+                $oldStatus = $existingPort->status;
+
                 $existingPort->update([
                     'status' => $portStatus->status,
                     'admin_status' => $portStatus->adminStatus,
@@ -130,6 +140,14 @@ class PortSyncService
                     'last_synced_at' => $syncStartedAt,
                 ]);
                 $portsUpdated++;
+
+                if ($oldStatus !== $portStatus->status) {
+                    $stateChanges[] = [
+                        'switchPort' => $existingPort,
+                        'oldStatus' => $oldStatus,
+                        'newStatus' => $portStatus->status,
+                    ];
+                }
             } else {
                 SwitchPort::create([
                     'switch_config_id' => $switchConfig->id,
@@ -147,6 +165,8 @@ class PortSyncService
                 $portsCreated++;
             }
         }
+
+        return $stateChanges;
     }
 
     /**

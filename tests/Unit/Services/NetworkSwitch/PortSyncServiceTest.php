@@ -17,6 +17,7 @@ use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NetworkSwitch\PortSyncService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\NetworkSwitch\SyncResult;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -61,7 +62,8 @@ class PortSyncServiceTest extends TestCase
         $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect());
         $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $result = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $result->syncRun;
 
         $this->assertInstanceOf(SwitchSyncRun::class, $syncRun);
         $this->assertSame('completed', $syncRun->status);
@@ -297,7 +299,7 @@ class PortSyncServiceTest extends TestCase
             ->andReturn($configText = "!\ninterface Gi1/0/2\n description OK\n end");
         $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         $failedPort = SwitchPort::where('switch_config_id', $this->switchConfig->id)
             ->where('port_name', 'Gi1/0/1')
@@ -328,7 +330,7 @@ class PortSyncServiceTest extends TestCase
             ->andReturn("% Invalid input detected at '^' marker.\nshow running-config interface Gi1/0/24");
         $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
             ->where('port_name', 'Gi1/0/24')
@@ -844,7 +846,7 @@ class PortSyncServiceTest extends TestCase
         $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn($ports);
         $this->switchAdapter->shouldReceive('getForwardingDatabase')->once()->andReturn($macs);
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         $this->assertSame(1, $syncRun->ports_created);
         $this->assertSame(1, $syncRun->ports_updated);
@@ -976,7 +978,7 @@ class PortSyncServiceTest extends TestCase
         $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect());
         $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         $this->assertSame('completed', $syncRun->status);
         $this->assertSame(0, $syncRun->ports_created);
@@ -1005,7 +1007,7 @@ class PortSyncServiceTest extends TestCase
         ]));
         $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         $this->assertSame('completed', $syncRun->status);
 
@@ -1092,7 +1094,7 @@ class PortSyncServiceTest extends TestCase
         $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn($ports);
         $this->switchAdapter->shouldReceive('getForwardingDatabase')->once()->andReturn($macs);
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         // Only the valid MAC should be stored
         $this->assertDatabaseCount('switch_port_macs', 1);
@@ -1136,7 +1138,7 @@ class PortSyncServiceTest extends TestCase
 
         $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         $this->assertSame('completed', $syncRun->status);
 
@@ -1190,7 +1192,7 @@ class PortSyncServiceTest extends TestCase
 
         $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         $this->assertSame('completed', $syncRun->status);
 
@@ -1266,7 +1268,7 @@ class PortSyncServiceTest extends TestCase
         $bulkAdapter->shouldReceive('getAllPortInterfaceOutputs')->once()->andReturn([]);
         $bulkAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
         $this->assertSame('completed', $syncRun->status);
 
         $port = SwitchPort::where('switch_config_id', $this->switchConfig->id)
@@ -1416,10 +1418,117 @@ class PortSyncServiceTest extends TestCase
             ->once()
             ->andReturn($adapter);
 
-        $syncRun = $this->service->syncSwitch($this->switchConfig);
+        $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
         $this->assertSame('completed', $syncRun->status);
         $this->assertSame(2, $syncRun->ports_created);
         $this->assertDatabaseCount('switch_port_configs', 2);
+    }
+
+    // -------------------------------------------------------------------------
+    // SyncResult DTO: syncSwitch returns SyncResult with port state changes
+    // -------------------------------------------------------------------------
+
+    public function test_sync_returns_sync_result_dto(): void
+    {
+        $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect());
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertInstanceOf(SyncResult::class, $result);
+        $this->assertInstanceOf(SwitchSyncRun::class, $result->syncRun);
+        $this->assertIsArray($result->portStateChanges);
+    }
+
+    public function test_sync_detects_port_status_change(): void
+    {
+        $existingPort = SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/1',
+            'status' => 'notconnect',
+        ]);
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertCount(1, $result->portStateChanges);
+        $change = $result->portStateChanges[0];
+        $this->assertInstanceOf(SwitchPort::class, $change['switchPort']);
+        $this->assertTrue($change['switchPort']->is($existingPort));
+        $this->assertSame('notconnect', $change['oldStatus']);
+        $this->assertSame('connected', $change['newStatus']);
+    }
+
+    public function test_sync_does_not_report_new_port_as_state_change(): void
+    {
+        $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertEmpty($result->portStateChanges);
+    }
+
+    public function test_sync_no_state_change_when_status_unchanged(): void
+    {
+        SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/1',
+            'status' => 'connected',
+        ]);
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+        ]));
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertEmpty($result->portStateChanges);
+    }
+
+    public function test_sync_detects_multiple_port_state_changes(): void
+    {
+        SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/1',
+            'status' => 'notconnect',
+        ]);
+        SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/2',
+            'status' => 'connected',
+        ]);
+        SwitchPort::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'port_name' => 'Gi1/0/3',
+            'status' => 'notconnect',
+        ]);
+
+        $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect([
+            new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
+            new PortStatus(interface: 'Gi1/0/2', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '200'),
+            new PortStatus(interface: 'Gi1/0/3', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '300'),
+        ]));
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect());
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertCount(2, $result->portStateChanges);
+
+        $changedPortNames = array_map(
+            static fn (array $change): string => $change['switchPort']->port_name,
+            $result->portStateChanges,
+        );
+        $this->assertContains('Gi1/0/1', $changedPortNames);
+        $this->assertContains('Gi1/0/3', $changedPortNames);
+        $this->assertNotContains('Gi1/0/2', $changedPortNames);
     }
 }
