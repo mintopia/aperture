@@ -190,7 +190,7 @@ class GeneralSettingsControllerCoverImageTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->has('settings.cover_image_url')
-            ->where('settings.cover_image_url', fn ($value) => str_contains($value, 'branding/cover.png'))
+            ->where('settings.cover_image_url', fn ($value): bool => str_contains($value, 'branding/cover.png'))
         );
     }
 
