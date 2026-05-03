@@ -58,7 +58,7 @@ class DashboardController extends Controller
 
     private function resolveIpv6ForMac(?MacAddress $mac): ?string
     {
-        if (!$mac instanceof MacAddress) {
+        if (! $mac instanceof MacAddress) {
             return null;
         }
 
