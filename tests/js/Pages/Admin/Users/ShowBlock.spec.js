@@ -6,11 +6,22 @@ import Show from '@/Pages/Admin/Users/Show.vue';
 vi.mock('@inertiajs/vue3', () => ({
     router: {
         post: vi.fn(),
+        put: vi.fn(),
+        delete: vi.fn(),
         visit: vi.fn(),
     },
     Link: {
         template: '<a><slot /></a>',
     },
+    useForm: vi.fn((initial) => ({
+        ...initial,
+        processing: false,
+        errors: {},
+        clearErrors: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        delete: vi.fn(),
+    })),
     usePage: vi.fn(() => ({
         props: {},
     })),
@@ -42,6 +53,7 @@ describe('Admin User Show block confirmation modal integration', () => {
         allRateLimited: false,
         ipCount: 2,
         auditLogs: [],
+        parameters: [],
         downloaded: 1024,
         uploaded: 512,
     };
@@ -65,6 +77,7 @@ describe('Admin User Show block confirmation modal integration', () => {
                     MetadataStrip: { template: '<div data-testid="metadata-strip" />' },
                     SectionHeader: { template: '<div><slot /></div>' },
                     DataTable: { template: '<div data-testid="data-table" />' },
+                    FormField: { template: '<div><slot /></div>', props: ['label', 'name', 'required', 'error'] },
                     teleport: true,
                 },
             },

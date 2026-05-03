@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BandwidthRequest;
+use App\Http\Requests\Admin\StoreUserParameterRequest;
+use App\Http\Requests\Admin\UpdateUserParameterRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Http\Requests\Admin\UserBlockRequest;
 use App\Http\Requests\Admin\UserIndexRequest;
@@ -14,6 +16,7 @@ use App\Http\Requests\Admin\UserLimitRequest;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserParameter;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\UserShowDataService;
 use App\Services\ValueObjects\IpBandwidthResult;
@@ -224,5 +227,36 @@ class UserController extends Controller
             'totalReceived' => $bandwidth->received,
             'totalSent' => $bandwidth->sent,
         ]);
+    }
+
+    public function storeParameter(StoreUserParameterRequest $request, User $user): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $user->parameters()->create([
+            'key' => $validated['key'],
+            'value' => $validated['value'],
+        ]);
+
+        return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', 'Parameter created successfully.');
+    }
+
+    public function updateParameter(UpdateUserParameterRequest $request, User $user, UserParameter $parameter): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $parameter->update([
+            'key' => $validated['key'],
+            'value' => $validated['value'],
+        ]);
+
+        return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', 'Parameter updated successfully.');
+    }
+
+    public function destroyParameter(User $user, UserParameter $parameter): RedirectResponse
+    {
+        $parameter->delete();
+
+        return response()->redirectToRoute('admin.users.show', ['user' => $user->id])->with('success', 'Parameter deleted successfully.');
     }
 }

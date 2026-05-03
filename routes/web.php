@@ -100,6 +100,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('users/{user}/internet', [UserController::class, 'internet'])->name('users.internet');
         Route::post('users/{user}/limit', [UserController::class, 'limit'])->name('users.limit');
         Route::get('users/{user}/bandwidth', [UserController::class, 'bandwidth'])->name('users.bandwidth');
+        Route::post('users/{user}/parameters', [UserController::class, 'storeParameter'])->name('users.parameters.store');
+        Route::put('users/{user}/parameters/{parameter}', [UserController::class, 'updateParameter'])->name('users.parameters.update');
+        Route::delete('users/{user}/parameters/{parameter}', [UserController::class, 'destroyParameter'])->name('users.parameters.destroy');
 
         // IP Addresses
         Route::resource('ips', IpAddressController::class)->only('index', 'show', 'store', 'create');

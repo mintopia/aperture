@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { router, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
+import FormField from '@/Components/UI/FormField.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelative } from '@/utils/dates';
@@ -19,6 +20,7 @@ const props = defineProps({
     allInternetEnabled: { type: Boolean, default: false },
     allRateLimited: { type: Boolean, default: false },
     ipCount: { type: Number, default: 0 },
+    parameters: { type: Array, default: () => [] },
     auditLogs: { type: Array, default: () => [] },
 });
 
@@ -84,6 +86,77 @@ function confirmToggleRateLimit() {
             },
         },
     );
+}
+
+const showParameterModal = ref(false);
+const editingParameter = ref(null);
+const showDeleteParameterModal = ref(false);
+const deletingParameterId = ref(null);
+
+const parameterForm = useForm({
+    key: '',
+    value: '',
+});
+
+const parameterColumns = [
+    { key: 'key', label: 'Key' },
+    { key: 'value', label: 'Value' },
+    { key: 'actions', label: 'Actions' },
+];
+
+function openAddParameter() {
+    editingParameter.value = null;
+    parameterForm.key = '';
+    parameterForm.value = '';
+    parameterForm.clearErrors();
+    showParameterModal.value = true;
+}
+
+function openEditParameter(param) {
+    editingParameter.value = param;
+    parameterForm.key = param.key;
+    parameterForm.value = typeof param.value === 'string' ? param.value : JSON.stringify(param.value);
+    parameterForm.clearErrors();
+    showParameterModal.value = true;
+}
+
+function submitParameter() {
+    if (editingParameter.value) {
+        parameterForm.put(route('admin.users.parameters.update', [props.user.id, editingParameter.value.id]), {
+            preserveScroll: true,
+            onSuccess: () => {
+                showParameterModal.value = false;
+            },
+        });
+    } else {
+        parameterForm.post(route('admin.users.parameters.store', props.user.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                showParameterModal.value = false;
+            },
+        });
+    }
+}
+
+function confirmDeleteParameter(id) {
+    deletingParameterId.value = id;
+    showDeleteParameterModal.value = true;
+}
+
+function deleteParameter() {
+    router.delete(route('admin.users.parameters.destroy', [props.user.id, deletingParameterId.value]), {
+        preserveScroll: true,
+        onFinish: () => {
+            showDeleteParameterModal.value = false;
+            deletingParameterId.value = null;
+        },
+    });
+}
+
+function formatParameterValue(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    return JSON.stringify(value);
 }
 
 const deviceColumns = [
@@ -424,6 +497,89 @@ onUnmounted(() => {
                 </template>
             </DataTable>
         </section>
+
+        <section data-testid="user-data-section">
+            <div class="flex items-baseline justify-between">
+                <SectionHeader title="Data" class="mt-5" />
+                <button
+                    data-testid="parameter-add-btn"
+                    class="rounded-md border border-[var(--color-border-hover)] bg-transparent px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                    @click="openAddParameter"
+                >
+                    Add
+                </button>
+            </div>
+
+            <DataTable :columns="parameterColumns" :rows="parameters" empty-message="No parameters defined.">
+                <template #row="{ row }">
+                    <td data-testid="parameter-key" class="font-mono text-[13px] text-[var(--color-text)]">
+                        {{ row.key }}
+                    </td>
+                    <td data-testid="parameter-value" class="text-[13px] text-[var(--color-text-secondary)]">
+                        {{ formatParameterValue(row.value) }}
+                    </td>
+                    <td data-testid="parameter-actions">
+                        <div class="flex items-center gap-2">
+                            <button
+                                data-testid="parameter-edit-btn"
+                                class="text-[12px] font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
+                                @click="openEditParameter(row)"
+                            >
+                                Edit
+                            </button>
+                            <button
+                                data-testid="parameter-delete-btn"
+                                class="text-[12px] font-semibold text-[var(--color-danger)] hover:opacity-80"
+                                @click="confirmDeleteParameter(row.id)"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </template>
+            </DataTable>
+        </section>
+
+        <ConfirmModal
+            :show="showParameterModal"
+            :title="editingParameter ? 'Edit Parameter' : 'Add Parameter'"
+            :confirm-label="editingParameter ? 'Update' : 'Create'"
+            variant="primary"
+            :loading="parameterForm.processing"
+            @confirm="submitParameter"
+            @cancel="showParameterModal = false"
+        >
+            <div class="space-y-4">
+                <FormField label="Key" name="parameter-key" :required="true" :error="parameterForm.errors.key">
+                    <input
+                        id="parameter-key"
+                        v-model="parameterForm.key"
+                        data-testid="parameter-key-input"
+                        type="text"
+                        class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+                    />
+                </FormField>
+                <FormField label="Value" name="parameter-value" :required="true" :error="parameterForm.errors.value">
+                    <input
+                        id="parameter-value"
+                        v-model="parameterForm.value"
+                        data-testid="parameter-value-input"
+                        type="text"
+                        class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+                    />
+                </FormField>
+            </div>
+        </ConfirmModal>
+
+        <ConfirmModal
+            :show="showDeleteParameterModal"
+            title="Delete Parameter?"
+            message="This will permanently remove this parameter."
+            confirm-label="Delete"
+            variant="danger"
+            @confirm="deleteParameter"
+            @cancel="showDeleteParameterModal = false"
+        />
 
         <section data-testid="user-audit-section">
             <SectionHeader title="Audit Log" class="mt-5" />

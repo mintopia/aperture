@@ -22,6 +22,7 @@ class UserShowDataService
      *     allInternetEnabled: bool,
      *     allRateLimited: bool,
      *     ipCount: int,
+     *     parameters: Collection<int, mixed>,
      *     auditLogs: Collection<int, mixed>,
      * }
      */
@@ -39,6 +40,13 @@ class UserShowDataService
 
         $auditLogs = $this->getAuditLogs($user);
 
+        $parameters = $user->parameters()->orderBy('key')->get()
+            ->map(fn ($param): array => [
+                'id' => $param->id,
+                'key' => $param->key,
+                'value' => $param->value,
+            ]);
+
         return [
             'user' => $user,
             'roles' => $roles,
@@ -46,6 +54,7 @@ class UserShowDataService
             'allInternetEnabled' => $allInternetEnabled,
             'allRateLimited' => $allRateLimited,
             'ipCount' => $ipModels->count(),
+            'parameters' => $parameters,
             'auditLogs' => $auditLogs,
         ];
     }

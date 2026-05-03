@@ -5,12 +5,23 @@ import Show from '@/Pages/Admin/Users/Show.vue';
 vi.mock('@inertiajs/vue3', () => ({
     router: {
         post: vi.fn(),
+        put: vi.fn(),
+        delete: vi.fn(),
         visit: vi.fn(),
     },
     Link: {
         template: '<a :href="href"><slot /></a>',
         props: ['href'],
     },
+    useForm: vi.fn((initial) => ({
+        ...initial,
+        processing: false,
+        errors: {},
+        clearErrors: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        delete: vi.fn(),
+    })),
     usePage: vi.fn(() => ({
         props: {},
     })),
@@ -32,8 +43,7 @@ global.fetch = vi.fn(() =>
     }),
 );
 
-const routeMock = (name, ...params) =>
-    params.length ? `/mocked/${name}/${params.join('/')}` : `/mocked/${name}`;
+const routeMock = (name, ...params) => (params.length ? `/mocked/${name}/${params.join('/')}` : `/mocked/${name}`);
 
 const defaultGlobal = {
     stubs: {
@@ -43,6 +53,10 @@ const defaultGlobal = {
         ConfirmModal: {
             template: '<div v-if="show" data-testid="confirm-modal"><slot /></div>',
             props: ['show', 'title', 'message', 'confirmLabel', 'variant', 'loading'],
+        },
+        FormField: {
+            template: '<div><slot /></div>',
+            props: ['label', 'name', 'required', 'error'],
         },
         teleport: true,
     },
@@ -89,6 +103,7 @@ describe('Users Show', () => {
         allRateLimited: false,
         ipCount: 2,
         auditLogs: [],
+        parameters: [],
         ...Object.fromEntries(Object.entries(overrides).filter(([k]) => k !== 'user')),
     });
 
