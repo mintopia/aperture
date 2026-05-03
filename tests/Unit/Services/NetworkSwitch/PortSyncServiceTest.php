@@ -747,12 +747,12 @@ class PortSyncServiceTest extends TestCase
 
         $this->assertDatabaseHas('switch_port_macs', [
             'switch_port_id' => $port1->id,
-            'mac_address' => 'aabb.ccdd.ee01',
+            'mac_address' => 'AA:BB:CC:DD:EE:01',
             'vlan' => 100,
         ]);
         $this->assertDatabaseHas('switch_port_macs', [
             'switch_port_id' => $port2->id,
-            'mac_address' => 'aabb.ccdd.ee02',
+            'mac_address' => 'AA:BB:CC:DD:EE:02',
             'vlan' => 200,
         ]);
     }
@@ -810,7 +810,7 @@ class PortSyncServiceTest extends TestCase
         $this->service->syncSwitch($this->switchConfig);
 
         $this->assertDatabaseMissing('switch_port_macs', ['id' => $staleMac->id]);
-        $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'aabb.ccdd.ee01']);
+        $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
     }
 
     public function test_sync_tracks_created_and_updated_counts(): void
@@ -1098,8 +1098,8 @@ class PortSyncServiceTest extends TestCase
 
         // Only the valid MAC should be stored
         $this->assertDatabaseCount('switch_port_macs', 1);
-        $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'aabb.ccdd.ee01']);
-        $this->assertDatabaseMissing('switch_port_macs', ['mac_address' => 'aabb.ccdd.ee02']);
+        $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
+        $this->assertDatabaseMissing('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:02']);
         $this->assertSame('completed', $syncRun->status);
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\NormalizeMacAddress;
 use Database\Factories\SwitchPortMacFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -58,6 +59,7 @@ class SwitchPortMac extends Model
     protected function casts(): array
     {
         return [
+            'mac_address' => NormalizeMacAddress::class,
             'last_seen_at' => 'datetime',
             'vlan' => 'integer',
         ];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\NetworkSwitch;
 
+use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Models\SwitchPortConfig;
@@ -418,19 +419,30 @@ class PortSyncService
                 continue;
             }
 
+            $normalizedMac = MacAddress::normalize($entry->mac);
+
+            $macRecord = MacAddress::firstOrCreate(
+                ['mac_address' => $normalizedMac],
+                ['source' => 'switch'],
+            );
+
             $existingMac = SwitchPortMac::where('switch_port_id', $port->id)
-                ->where('mac_address', $entry->mac)
+                ->where('mac_address', $normalizedMac)
                 ->where('vlan', $entry->vlan)
                 ->first();
 
             if ($existingMac instanceof SwitchPortMac) {
-                $existingMac->update(['last_seen_at' => $syncStartedAt]);
+                $existingMac->update([
+                    'last_seen_at' => $syncStartedAt,
+                    'mac_address_id' => $macRecord->id,
+                ]);
                 $syncedMacIds[] = (int) $existingMac->id;
                 $macsUpdated++;
             } else {
                 $newMac = SwitchPortMac::create([
                     'switch_port_id' => $port->id,
-                    'mac_address' => $entry->mac,
+                    'mac_address' => $normalizedMac,
+                    'mac_address_id' => $macRecord->id,
                     'vlan' => $entry->vlan,
                     'last_seen_at' => $syncStartedAt,
                 ]);
