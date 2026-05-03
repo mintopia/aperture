@@ -8,6 +8,9 @@ use App\Models\AuditLog;
 use App\Models\DhcpLease;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Models\SwitchConfig;
+use App\Models\SwitchPort;
+use App\Models\SwitchPortMac;
 use App\Models\User;
 use App\Services\Interfaces\PortBandwidthInterface;
 use App\Services\Interfaces\PortErrorsInterface;
@@ -314,5 +317,97 @@ class IpAddressShowDataServiceTest extends TestCase
         $first = $result['dhcpLeases']->first();
         $this->assertNotNull($first['mac_address']);
         $this->assertSame($mac->id, $first['mac_address']['id']);
+    }
+
+    public function test_resolve_port_info_uses_database_before_librenms(): void
+    {
+        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'sw1.local']);
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switchConfig->id,
+            'port_name' => 'Gi1/0/5',
+            'status' => 'connected',
+            'admin_status' => 'up',
+            'speed' => '1000',
+        ]);
+        $mac = MacAddress::factory()->create();
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => $mac->mac_address,
+            'mac_address_id' => $mac->id,
+            'vlan' => 100,
+            'last_seen_at' => now(),
+        ]);
+        $ip = IpAddress::factory()->create();
+        $ip->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        $this->libreNms->shouldNotReceive('resolveIpToPort');
+
+        $result = $this->service->resolvePortInfo($ip);
+
+        $this->assertInstanceOf(PortDetail::class, $result);
+        $this->assertSame('sw1.local', $result->hostname);
+        $this->assertSame('Gi1/0/5', $result->interface);
+        $this->assertSame('connected', $result->status);
+        $this->assertSame(1000, $result->speed);
+    }
+
+    public function test_resolve_port_info_falls_back_to_librenms_when_no_database_match(): void
+    {
+        $ip = IpAddress::factory()->create();
+
+        $resolved = new ResolvedPort(ip: '10.0.0.1', mac: 'AA:BB:CC:DD:EE:FF', port: '42', switch: 'sw2.local');
+        $port = new PortDetail(hostname: 'sw2.local', interface: 'Gi0/1', status: 'up', adminStatus: 'up', speed: 1000);
+
+        $this->libreNms->shouldReceive('resolveIpToPort')->once()->andReturn($resolved);
+        $this->libreNms->shouldReceive('getPortDetail')->with('42')->once()->andReturn($port);
+
+        $result = $this->service->resolvePortInfo($ip);
+
+        $this->assertInstanceOf(PortDetail::class, $result);
+        $this->assertSame('sw2.local', $result->hostname);
+    }
+
+    public function test_resolve_port_info_database_path_returns_null_when_mac_has_no_switch_port(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $mac = MacAddress::factory()->create();
+        $ip->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        $this->libreNms->shouldReceive('resolveIpToPort')->andReturn(null);
+
+        $result = $this->service->resolvePortInfo($ip);
+
+        $this->assertNull($result);
+    }
+
+    public function test_assemble_resolves_switch_info_from_database(): void
+    {
+        $switchConfig = SwitchConfig::factory()->create(['hostname' => 'core-sw.local']);
+        $port = SwitchPort::factory()->create([
+            'switch_config_id' => $switchConfig->id,
+            'port_name' => 'Gi2/0/1',
+            'status' => 'connected',
+            'admin_status' => 'up',
+            'speed' => '10000',
+        ]);
+        $mac = MacAddress::factory()->create();
+        SwitchPortMac::factory()->create([
+            'switch_port_id' => $port->id,
+            'mac_address' => $mac->mac_address,
+            'mac_address_id' => $mac->id,
+            'vlan' => 200,
+            'last_seen_at' => now(),
+        ]);
+        $ip = IpAddress::factory()->create();
+        $ip->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        $this->portBandwidth->shouldReceive('isAvailable')->andReturn(false);
+
+        $result = $this->service->assemble($ip);
+
+        $this->assertNotNull($result['switchInfo']);
+        $this->assertSame($switchConfig->id, $result['switchInfo']['switchId']);
+        $this->assertSame('core-sw.local', $result['switchInfo']['switchName']);
+        $this->assertSame('Gi2/0/1', $result['switchInfo']['portId']);
     }
 }

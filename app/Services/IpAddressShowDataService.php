@@ -155,6 +155,11 @@ class IpAddressShowDataService
 
     public function resolvePortInfo(IpAddress $ip): ?PortDetail
     {
+        $dbPort = $this->resolvePortFromDatabase($ip);
+        if ($dbPort instanceof PortDetail) {
+            return $dbPort;
+        }
+
         try {
             $resolved = $this->libreNms->resolveIpToPort($ip->address);
             if (! $resolved instanceof ResolvedPort) {
@@ -165,6 +170,31 @@ class IpAddressShowDataService
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function resolvePortFromDatabase(IpAddress $ip): ?PortDetail
+    {
+        $mac = $ip->currentMac();
+        if (! $mac instanceof MacAddress) {
+            return null;
+        }
+
+        $switchPort = $mac->switchPorts()
+            ->orderByPivot('last_seen_at', 'desc')
+            ->with('switchConfig')
+            ->first();
+
+        if ($switchPort === null) {
+            return null;
+        }
+
+        return new PortDetail(
+            hostname: $switchPort->switchConfig->hostname,
+            interface: $switchPort->port_name,
+            status: $switchPort->status,
+            adminStatus: $switchPort->admin_status,
+            speed: $switchPort->speed !== null ? (int) $switchPort->speed : 0,
+        );
     }
 
     public function resolveSwitchConfig(PortDetail $port): SwitchConfig
