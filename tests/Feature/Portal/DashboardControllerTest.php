@@ -8,8 +8,6 @@ use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserParameter;
-use App\Services\LibreNms\LibreNmsService;
-use App\Services\ValueObjects\ArpEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -17,17 +15,6 @@ use Tests\TestCase;
 class DashboardControllerTest extends TestCase
 {
     use LazilyRefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        // Default mock for LibreNmsService — returns no IPv6 neighbors.
-        // Individual tests can override by re-binding.
-        $stub = $this->createStub(LibreNmsService::class);
-        $stub->method('getIpv6Neighbors')->willReturn(collect());
-        $this->app->instance(LibreNmsService::class, $stub);
-    }
 
     public function test_authenticated_user_sees_dashboard(): void
     {
@@ -178,22 +165,19 @@ class DashboardControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create(['nickname' => 'Player1', 'internet_enabled' => true]);
 
-        // Pre-create an IP with a known address, and associate a MAC via pivot
+        // Pre-create an IPv4 with a known address, and associate a MAC via pivot
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
         $ip = IpAddress::factory()->create([
             'address' => '10.0.0.1',
         ]);
         $ip->macAddresses()->attach($mac, ['source' => 'auth', 'last_seen_at' => now()]);
 
+        // Create an IPv6 address linked to the same MAC
+        $ipv6 = IpAddress::factory()->create(['address' => 'fe80::1']);
+        $ipv6->macAddresses()->attach($mac, ['source' => 'ndp', 'last_seen_at' => now()]);
+
         // Create a user parameter
         UserParameter::factory()->create(['user_id' => $user->id, 'key' => 'seat', 'value' => 'A42']);
-
-        // Mock LibreNmsService to return an IPv6 neighbor matching the MAC
-        $stubInventory = $this->createStub(LibreNmsService::class);
-        $stubInventory->method('getIpv6Neighbors')->willReturn(collect([
-            new ArpEntry(ip: 'fe80::1', mac: 'AA:BB:CC:DD:EE:FF'),
-        ]));
-        $this->app->instance(LibreNmsService::class, $stubInventory);
 
         $response = $this->actingAs($user)
             ->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
@@ -225,7 +209,7 @@ class DashboardControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->has('blockContext')
             ->where('blockContext.macAddress', null)
-            ->where('blockContext.currentIpv6', '')
+            ->where('blockContext.currentIpv6', null)
             ->has('blockContext.currentIpv4')
             ->has('blockContext.internetEnabled')
             ->has('blockContext.internetBlocked')

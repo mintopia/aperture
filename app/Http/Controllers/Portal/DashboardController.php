@@ -6,20 +6,16 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
+use App\Models\IpAddress;
+use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
-use App\Services\LibreNms\LibreNmsService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 class DashboardController extends Controller
 {
-    public function __construct(
-        private readonly LibreNmsService $networkInventory,
-    ) {}
-
     public function index(Request $request): Response
     {
         /** @var User $user */
@@ -33,7 +29,7 @@ class DashboardController extends Controller
 
         $currentMac = $ip?->currentMac();
         $macString = $currentMac?->mac_address;
-        $ipv6 = $ip !== null ? $this->resolveIpv6ForMac($macString) : null;
+        $ipv6 = $this->resolveIpv6ForMac($currentMac);
 
         $coverImage = Setting::get('dashboard.cover_image');
 
@@ -60,22 +56,17 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function resolveIpv6ForMac(?string $mac): string
+    private function resolveIpv6ForMac(?MacAddress $mac): ?string
     {
-        if ($mac === null || $mac === '') {
-            return '';
+        if ($mac === null) {
+            return null;
         }
 
-        try {
-            $neighbors = $this->networkInventory->getIpv6Neighbors();
+        $ipv6 = $mac->ipAddresses()
+            ->orderByPivot('last_seen_at', 'desc')
+            ->get()
+            ->first(fn (IpAddress $ip): bool => filter_var($ip->address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false);
 
-            $match = $neighbors->first(
-                fn ($entry): bool => strcasecmp($entry->mac, $mac) === 0
-            );
-
-            return $match->ip ?? '';
-        } catch (Throwable) {
-            return '';
-        }
+        return $ipv6?->address;
     }
 }
