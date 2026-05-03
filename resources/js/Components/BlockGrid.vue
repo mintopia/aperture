@@ -66,12 +66,13 @@ function templateContent(block) {
         <template v-for="block in blocks" :key="block.id">
             <div
                 v-if="blockComponents[block.type]"
-                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
+                class="flex flex-col rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition-colors hover:border-[var(--color-border-hover)]"
                 :data-testid="'block-' + block.type + '-wrapper'"
                 :style="blockStyle(block)"
             >
                 <component
                     :is="blockComponents[block.type]"
+                    class="min-h-0 flex-1"
                     :title="block.title"
                     :content="templateContent(block)"
                     :settings="block.settings"

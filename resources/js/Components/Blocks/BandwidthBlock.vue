@@ -102,7 +102,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div data-testid="block-bandwidth">
+    <div data-testid="block-bandwidth" class="flex flex-col">
         <div class="mb-3 flex items-baseline justify-between">
             <div class="flex items-baseline gap-4">
                 <div data-testid="bandwidth-download">
@@ -141,10 +141,11 @@ onUnmounted(() => {
             </div>
         </div>
         <TimeSeriesChart
+            class="min-h-0 flex-1"
             :series="chartSeries"
             :loading="loading"
             y-axis-label="bps"
-            height="180px"
+            height="100%"
             empty-message="No bandwidth data available"
             data-testid="bandwidth-chart"
         />

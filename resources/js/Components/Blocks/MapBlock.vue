@@ -23,7 +23,7 @@ const embedUrl = computed(
 </script>
 
 <template>
-    <div data-testid="block-map">
+    <div data-testid="block-map" class="flex flex-col">
         <h3
             v-if="showTitle"
             data-testid="map-title"
@@ -33,12 +33,12 @@ const embedUrl = computed(
         </h3>
         <div
             data-testid="map-container"
-            class="overflow-hidden"
+            class="min-h-0 flex-1 overflow-hidden"
             :class="showTitle ? '-mx-5 -mb-5 rounded-b-md' : '-m-5 rounded-md'"
         >
             <iframe
                 :src="embedUrl"
-                class="h-48 w-full border-0"
+                class="h-full min-h-48 w-full border-0"
                 sandbox="allow-scripts allow-same-origin"
                 loading="lazy"
                 referrerpolicy="no-referrer"
