@@ -200,6 +200,40 @@ return [
             'scope' => 'nullable|string|max:255',
         ],
     ],
+    'seatpicker' => [
+        'name' => 'Seatpicker',
+        'description' => 'Integrate with Control seatpicker for seat assignment synchronisation.',
+        'capabilities' => ['seat-sync'],
+        'fields' => [
+            'endpoint' => [
+                'type' => 'url',
+                'label' => 'API Endpoint',
+                'placeholder' => 'https://control.example.com',
+                'help' => 'Base URL of the Control application.',
+            ],
+            'api_token' => [
+                'type' => 'password',
+                'label' => 'API Token',
+                'help' => 'Sanctum API token for authentication.',
+            ],
+            'event_code' => [
+                'type' => 'text',
+                'label' => 'Event Code',
+                'help' => 'The event code to fetch tickets from.',
+            ],
+            'enabled' => [
+                'type' => 'toggle',
+                'label' => 'Enabled',
+                'help' => 'Enable or disable seat synchronisation.',
+            ],
+        ],
+        'validation' => [
+            'endpoint' => 'nullable|url|max:500',
+            'api_token' => 'nullable|string|max:500',
+            'event_code' => 'nullable|string|max:100',
+            'enabled' => 'nullable|string|in:0,1',
+        ],
+    ],
     'prometheus' => [
         'name' => 'Prometheus',
         'description' => 'Time-series metrics database for network bandwidth and device monitoring.',

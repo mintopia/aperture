@@ -45,7 +45,7 @@ class IntegrationConfig extends Model
      *
      * @var list<string>
      */
-    public const ENCRYPTED_KEYS = ['api_key', 'password', 'secret', 'key', 'client_secret'];
+    public const ENCRYPTED_KEYS = ['api_key', 'api_token', 'password', 'secret', 'key', 'client_secret'];
 
     /**
      * Get all field keys that should be encrypted, derived from config/integrations.php.
