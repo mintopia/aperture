@@ -17,7 +17,7 @@ export function renderTemplate(content, context) {
 
     return content
         .replace(/\{user\.params\.([^}]+)\}/g, (_, key) => context.user?.params?.[key] ?? '')
-        .replace(/\{user\.([^}]+)\}/g, (_, key) => context.user?.[key] ?? '')
+        .replace(/\{user\.([^}]+)\}/g, (_, key) => context.user?.[key] ?? context.user?.params?.[key] ?? '')
         .replace(/\{ipv4\}/g, context.currentIpv4 ?? '')
         .replace(/\{ipv6\}/g, context.currentIpv6 ?? '')
         .replace(/\{mac\}/g, context.macAddress ?? '');

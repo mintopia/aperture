@@ -46,8 +46,12 @@ describe('renderTemplate', () => {
         expect(renderTemplate('{user.params.seat}', ctx)).toBe('');
     });
 
-    it('renders empty string for missing user property', () => {
+    it('renders empty string for missing user property and param', () => {
         expect(renderTemplate('{user.missing}', context)).toBe('');
+    });
+
+    it('{user.seat} falls through to user.params.seat', () => {
+        expect(renderTemplate('{user.seat}', context)).toBe('A42');
     });
 
     it('renders empty string for null MAC', () => {
