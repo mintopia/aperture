@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed, onBeforeUnmount } from 'vue';
 import { TEMPLATE_VARIABLES, TEMPLATE_VARIABLE_GROUPS } from '@/utils/templateVariables.js';
+import { DEFAULT_FIELDS } from '@/utils/connectionStripDefaults.js';
 import MarkdownEditor from '@/Components/UI/MarkdownEditor.vue';
 
 const props = defineProps({
@@ -18,7 +19,11 @@ const isActive = ref(props.block.is_active);
 
 // Connection strip fields
 const fields = ref(
-    props.block.type === 'connection_strip' ? JSON.parse(JSON.stringify(props.block.settings?.fields ?? [])) : [],
+    props.block.type === 'connection_strip'
+        ? JSON.parse(
+              JSON.stringify(props.block.settings?.fields?.length ? props.block.settings.fields : DEFAULT_FIELDS),
+          )
+        : [],
 );
 
 // DNS filter settings
@@ -107,7 +112,10 @@ watch(
         title.value = b.title;
         content.value = b.content ?? '';
         isActive.value = b.is_active;
-        fields.value = b.type === 'connection_strip' ? JSON.parse(JSON.stringify(b.settings?.fields ?? [])) : [];
+        fields.value =
+            b.type === 'connection_strip'
+                ? JSON.parse(JSON.stringify(b.settings?.fields?.length ? b.settings.fields : DEFAULT_FIELDS))
+                : [];
         settingsLabel.value = b.settings?.label ?? '';
         mapLat.value = b.type === 'map' ? (b.settings?.lat ?? 51.5074) : 51.5074;
         mapLng.value = b.type === 'map' ? (b.settings?.lng ?? -0.1278) : -0.1278;

@@ -42,7 +42,7 @@ const gridStyle = computed(() => {
         return {};
     }
     return {
-        gridTemplateRows: `repeat(${maxRow.value}, minmax(0, auto))`,
+        gridTemplateRows: `repeat(${maxRow.value}, minmax(80px, auto))`,
     };
 });
 

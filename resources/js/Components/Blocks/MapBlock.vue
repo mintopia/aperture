@@ -31,7 +31,11 @@ const embedUrl = computed(
         >
             {{ title }}
         </h3>
-        <div data-testid="map-container" class="-mx-5 -mb-5 overflow-hidden rounded-b-md">
+        <div
+            data-testid="map-container"
+            class="overflow-hidden"
+            :class="showTitle ? '-mx-5 -mb-5 rounded-b-md' : '-m-5 rounded-md'"
+        >
             <iframe
                 :src="embedUrl"
                 class="h-48 w-full border-0"

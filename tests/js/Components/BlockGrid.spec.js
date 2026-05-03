@@ -164,7 +164,7 @@ describe('BlockGrid', () => {
         });
         const grid = wrapper.find('[data-testid="block-grid"]');
         // max row = 2 + 5 - 1 = 6
-        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(6, minmax(0, auto))');
+        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(6, minmax(80px, auto))');
     });
 
     it('does not set gridTemplateRows when blocks array is empty', () => {
@@ -194,7 +194,31 @@ describe('BlockGrid', () => {
             props: { blocks, blockContext: defaultContext },
         });
         const grid = wrapper.find('[data-testid="block-grid"]');
-        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(1, minmax(0, auto))');
+        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(1, minmax(80px, auto))');
+    });
+
+    it('uses minmax(80px, auto) for gridTemplateRows to ensure minimum row height', () => {
+        const blocks = [
+            {
+                id: 1,
+                type: 'custom_markdown',
+                title: 'Tall',
+                content: 'Hello',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: 1,
+                row_span: 3,
+                is_active: true,
+                settings: null,
+            },
+        ];
+        const wrapper = mount(BlockGrid, {
+            props: { blocks, blockContext: defaultContext },
+        });
+        const grid = wrapper.find('[data-testid="block-grid"]');
+        // The portal grid should use minmax(80px, auto) to match the editor
+        // so that blocks spanning multiple rows get proportionally taller
+        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(3, minmax(80px, auto))');
     });
 
     it('renders MapBlock for type "map"', () => {

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { renderTemplate } from '@/utils/contentTemplating.js';
+import { DEFAULT_FIELDS } from '@/utils/connectionStripDefaults.js';
 
 const props = defineProps({
     title: { type: String, default: 'Connection Status' },
@@ -10,13 +11,6 @@ const props = defineProps({
 });
 
 const internetOverride = ref(null);
-
-const DEFAULT_FIELDS = [
-    { label: 'IPv4', value: '{ipv4}' },
-    { label: 'IPv6', value: '{ipv6}' },
-    { label: 'MAC Address', value: '{mac}' },
-    { label: 'Status', value: '{status}' },
-];
 
 const fields = computed(() => {
     const configuredFields = props.settings?.fields;

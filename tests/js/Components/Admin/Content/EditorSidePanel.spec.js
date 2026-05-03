@@ -85,6 +85,63 @@ describe('EditorSidePanel', () => {
         expect(wrapper.emitted('close')).toBeTruthy();
     });
 
+    it('pre-populates default fields for connection_strip when settings.fields is empty', () => {
+        const wrapper = mountPanel({
+            props: {
+                block: {
+                    ...block,
+                    type: 'connection_strip',
+                    settings: {},
+                },
+            },
+        });
+        // When settings.fields is undefined/empty, the EditorSidePanel should seed
+        // the fields ref with the DEFAULT_FIELDS from ConnectionStripBlock so that
+        // adding a new field doesn't wipe the defaults
+        const fieldLabels = wrapper.findAll('[data-testid^="panel-field-label-"]');
+        expect(fieldLabels.length).toBe(4);
+        expect(fieldLabels[0].element.value).toBe('IPv4');
+        expect(fieldLabels[1].element.value).toBe('IPv6');
+        expect(fieldLabels[2].element.value).toBe('MAC Address');
+        expect(fieldLabels[3].element.value).toBe('Status');
+
+        const fieldValues = wrapper.findAll('[data-testid^="panel-field-value-"]');
+        expect(fieldValues[0].element.value).toBe('{ipv4}');
+        expect(fieldValues[1].element.value).toBe('{ipv6}');
+        expect(fieldValues[2].element.value).toBe('{mac}');
+        expect(fieldValues[3].element.value).toBe('{status}');
+    });
+
+    it('pre-populates default fields for connection_strip when settings.fields is undefined', () => {
+        const wrapper = mountPanel({
+            props: {
+                block: {
+                    ...block,
+                    type: 'connection_strip',
+                    settings: { fields: undefined },
+                },
+            },
+        });
+        const fieldLabels = wrapper.findAll('[data-testid^="panel-field-label-"]');
+        expect(fieldLabels.length).toBe(4);
+        expect(fieldLabels[0].element.value).toBe('IPv4');
+    });
+
+    it('preserves custom fields for connection_strip when settings.fields is non-empty', () => {
+        const wrapper = mountPanel({
+            props: {
+                block: {
+                    ...block,
+                    type: 'connection_strip',
+                    settings: { fields: [{ label: 'Custom', value: '{ipv4}' }] },
+                },
+            },
+        });
+        const fieldLabels = wrapper.findAll('[data-testid^="panel-field-label-"]');
+        expect(fieldLabels.length).toBe(1);
+        expect(fieldLabels[0].element.value).toBe('Custom');
+    });
+
     it('shows connection strip field editor for connection_strip blocks', () => {
         const wrapper = mountPanel({
             props: {
