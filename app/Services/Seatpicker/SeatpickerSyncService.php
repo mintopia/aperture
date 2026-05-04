@@ -61,7 +61,7 @@ class SeatpickerSyncService
     }
 
     /**
-     * @return array{endpoint: string, api_token: string, event_code: string}|null
+     * @return array{endpoint: string, api_key: string, event_code: string}|null
      */
     private function getConfig(): ?array
     {
@@ -71,27 +71,27 @@ class SeatpickerSyncService
         }
 
         $endpoint = IntegrationConfig::getValue('seatpicker', 'endpoint');
-        $apiToken = IntegrationConfig::getValue('seatpicker', 'api_token');
+        $apiKey = IntegrationConfig::getValue('seatpicker', 'api_key');
         $eventCode = IntegrationConfig::getValue('seatpicker', 'event_code');
 
-        if (! $endpoint || ! $apiToken || ! $eventCode) {
+        if (! $endpoint || ! $apiKey || ! $eventCode) {
             return null;
         }
 
         return [
             'endpoint' => $endpoint,
-            'api_token' => $apiToken,
+            'api_key' => $apiKey,
             'event_code' => $eventCode,
         ];
     }
 
     /**
-     * @param  array{endpoint: string, api_token: string, event_code: string}  $config
+     * @param  array{endpoint: string, api_key: string, event_code: string}  $config
      */
     private function buildClient(array $config): PendingRequest
     {
         return Http::baseUrl($config['endpoint'])
-            ->withToken($config['api_token'])
+            ->withToken($config['api_key'])
             ->acceptJson()
             ->timeout(30);
     }

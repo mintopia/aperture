@@ -14,6 +14,7 @@ use App\Services\Integration\LibreNmsTester;
 use App\Services\Integration\OpnSenseTester;
 use App\Services\Integration\PiHoleTester;
 use App\Services\Integration\PrometheusTester;
+use App\Services\Integration\SeatpickerTester;
 use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsFilteringInterface;
@@ -74,6 +75,7 @@ class IntegrationServiceProvider extends ServiceProvider
             $registry->register('librenms', new LibreNmsTester);
             $registry->register('borealis', new BorealisTester);
             $registry->register('prometheus', new PrometheusTester);
+            $registry->register('seatpicker', new SeatpickerTester);
 
             return $registry;
         });

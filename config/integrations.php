@@ -203,7 +203,7 @@ return [
     'seatpicker' => [
         'name' => 'Seatpicker',
         'description' => 'Integrate with Control seatpicker for seat assignment synchronisation.',
-        'capabilities' => ['seat-sync'],
+        'capabilities' => ['seat-picker'],
         'fields' => [
             'endpoint' => [
                 'type' => 'url',
@@ -211,10 +211,10 @@ return [
                 'placeholder' => 'https://control.example.com',
                 'help' => 'Base URL of the Control application.',
             ],
-            'api_token' => [
+            'api_key' => [
                 'type' => 'password',
-                'label' => 'API Token',
-                'help' => 'Sanctum API token for authentication.',
+                'label' => 'API Key',
+                'help' => 'API key for authentication.',
             ],
             'event_code' => [
                 'type' => 'text',
@@ -229,7 +229,7 @@ return [
         ],
         'validation' => [
             'endpoint' => 'nullable|url|max:500',
-            'api_token' => 'nullable|string|max:500',
+            'api_key' => 'nullable|string|max:500',
             'event_code' => 'nullable|string|max:100',
             'enabled' => 'nullable|string|in:0,1',
         ],
