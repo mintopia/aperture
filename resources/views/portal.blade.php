@@ -123,6 +123,9 @@
 
         if (internetEnabled) {
             checkDns();
+            setTimeout(function() {
+                window.location.href = @json(route('portal.dashboard'));
+            }, 3000);
         }
 
         @if(!$ip?->internet_enabled && !Auth::user()->internet_blocked)
