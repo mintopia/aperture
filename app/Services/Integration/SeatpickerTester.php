@@ -17,11 +17,14 @@ class SeatpickerTester implements TestableIntegration
     {
         $endpoint = rtrim($config['endpoint'] ?? '', '/');
         $url = $endpoint.'/api/v1';
+        $verifySsl = (bool) ($config['verify_ssl'] ?? true);
 
         return ConnectionTester::test(
             'GET',
             $url,
-            fn () => Http::withToken($config['api_key'] ?? '')
+            fn () => Http::withOptions(['verify' => $verifySsl])
+                ->withToken($config['api_key'] ?? '')
+                ->acceptJson()
                 ->timeout(10)
                 ->get($url),
         );

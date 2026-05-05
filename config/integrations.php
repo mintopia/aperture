@@ -216,10 +216,19 @@ return [
                 'label' => 'API Key',
                 'help' => 'API key for authentication.',
             ],
+            'verify_ssl' => [
+                'type' => 'toggle',
+                'label' => 'Verify SSL',
+                'help' => 'Verify the SSL certificate when connecting.',
+            ],
             'event_code' => [
-                'type' => 'text',
-                'label' => 'Event Code',
-                'help' => 'The event code to fetch tickets from.',
+                'type' => 'select-remote',
+                'label' => 'Event',
+                'placeholder' => 'Select an event…',
+                'help' => 'The event to fetch ticket seat assignments from.',
+                'remote_url' => '/admin/settings/integrations/seatpicker/events',
+                'remote_label' => 'name',
+                'remote_value' => 'code',
             ],
             'enabled' => [
                 'type' => 'toggle',
@@ -230,6 +239,7 @@ return [
         'validation' => [
             'endpoint' => 'nullable|url|max:500',
             'api_key' => 'nullable|string|max:500',
+            'verify_ssl' => 'nullable|string|in:0,1',
             'event_code' => 'nullable|string|max:100',
             'enabled' => 'nullable|string|in:0,1',
         ],

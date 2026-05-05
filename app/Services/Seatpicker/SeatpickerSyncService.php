@@ -61,7 +61,7 @@ class SeatpickerSyncService
     }
 
     /**
-     * @return array{endpoint: string, api_key: string, event_code: string}|null
+     * @return array{endpoint: string, api_key: string, event_code: string, verify_ssl: bool}|null
      */
     private function getConfig(): ?array
     {
@@ -82,15 +82,17 @@ class SeatpickerSyncService
             'endpoint' => $endpoint,
             'api_key' => $apiKey,
             'event_code' => $eventCode,
+            'verify_ssl' => (bool) (IntegrationConfig::getValue('seatpicker', 'verify_ssl') ?? true),
         ];
     }
 
     /**
-     * @param  array{endpoint: string, api_key: string, event_code: string}  $config
+     * @param  array{endpoint: string, api_key: string, event_code: string, verify_ssl: bool}  $config
      */
     private function buildClient(array $config): PendingRequest
     {
-        return Http::baseUrl($config['endpoint'])
+        return Http::withOptions(['verify' => $config['verify_ssl']])
+            ->baseUrl($config['endpoint'])
             ->withToken($config['api_key'])
             ->acceptJson()
             ->timeout(30);

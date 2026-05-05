@@ -12,6 +12,7 @@ use App\Models\IntegrationConfig;
 use App\Services\Firewalls\OpnSenseApiService;
 use App\Services\Integration\IntegrationConfigMerger;
 use App\Services\PiHole\PiHoleApiService;
+use App\Services\Seatpicker\SeatpickerApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -227,5 +228,10 @@ class IntegrationController extends Controller
     public function piholeGroups(Request $request): JsonResponse
     {
         return response()->json(PiHoleApiService::getGroups($this->configMerger->merge('pihole', $request)));
+    }
+
+    public function seatpickerEvents(Request $request): JsonResponse
+    {
+        return response()->json(SeatpickerApiService::getEvents($this->configMerger->merge('seatpicker', $request)));
     }
 }

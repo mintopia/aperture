@@ -66,4 +66,43 @@ class SeatpickerSyncServiceTest extends TestCase
         $this->assertArrayHasKey('api_key', $validation);
         $this->assertArrayNotHasKey('api_token', $validation);
     }
+
+    // -------------------------------------------------------
+    // verify_ssl support
+    // -------------------------------------------------------
+
+    public function test_syncs_with_verify_ssl_disabled(): void
+    {
+        IntegrationConfig::setValue('seatpicker', 'enabled', '1');
+        IntegrationConfig::setValue('seatpicker', 'endpoint', 'https://control.example.com');
+        IntegrationConfig::setValue('seatpicker', 'api_key', 'test-api-key', true);
+        IntegrationConfig::setValue('seatpicker', 'event_code', 'test-event');
+        IntegrationConfig::setValue('seatpicker', 'verify_ssl', '0');
+
+        Http::fake(['*' => Http::response([
+            'data' => [],
+            'meta' => ['last_page' => 1],
+        ], 200)]);
+
+        $result = $this->service->sync();
+
+        $this->assertTrue($result->success);
+    }
+
+    public function test_syncs_with_verify_ssl_defaulting_to_true(): void
+    {
+        IntegrationConfig::setValue('seatpicker', 'enabled', '1');
+        IntegrationConfig::setValue('seatpicker', 'endpoint', 'https://control.example.com');
+        IntegrationConfig::setValue('seatpicker', 'api_key', 'test-api-key', true);
+        IntegrationConfig::setValue('seatpicker', 'event_code', 'test-event');
+
+        Http::fake(['*' => Http::response([
+            'data' => [],
+            'meta' => ['last_page' => 1],
+        ], 200)]);
+
+        $result = $this->service->sync();
+
+        $this->assertTrue($result->success);
+    }
 }

@@ -179,6 +179,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/settings/integrations/pihole/groups', [IntegrationController::class, 'piholeGroups'])->name('settings.integrations.pihole.groups');
         Route::post('/settings/integrations/opnsense/shaper-rules', [IntegrationController::class, 'opnsenseShaperRules'])->name('settings.integrations.opnsense.shaper-rules');
         Route::post('/settings/integrations/opnsense/zones', [IntegrationController::class, 'opnsenseZones'])->name('settings.integrations.opnsense.zones');
+        Route::post('/settings/integrations/seatpicker/events', [IntegrationController::class, 'seatpickerEvents'])->name('settings.integrations.seatpicker.events');
         Route::get('/settings/integrations/{service}', [IntegrationController::class, 'show'])->name('settings.integrations.show');
         Route::put('/settings/integrations/{service}', [IntegrationController::class, 'update'])->name('settings.integrations.service.update');
         Route::put('/settings/capabilities', [IntegrationController::class, 'toggleCapability'])->name('settings.capabilities.update');
