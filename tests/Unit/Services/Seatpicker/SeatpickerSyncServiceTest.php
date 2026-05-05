@@ -89,6 +89,43 @@ class SeatpickerSyncServiceTest extends TestCase
         $this->assertTrue($result->success);
     }
 
+    // -------------------------------------------------------
+    // Error message detail
+    // -------------------------------------------------------
+
+    public function test_error_message_includes_url_and_response_body(): void
+    {
+        IntegrationConfig::setValue('seatpicker', 'enabled', '1');
+        IntegrationConfig::setValue('seatpicker', 'endpoint', 'https://control.example.com');
+        IntegrationConfig::setValue('seatpicker', 'api_key', 'test-api-key', true);
+        IntegrationConfig::setValue('seatpicker', 'event_code', 'test-event');
+
+        Http::fake(['*' => Http::response('{"message":"Not Found"}', 404)]);
+
+        $result = $this->service->sync();
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('404', $result->message);
+        $this->assertStringContainsString('/api/v1/events/test-event/tickets', $result->message);
+        $this->assertStringContainsString('Not Found', $result->message);
+    }
+
+    public function test_error_message_includes_url_on_server_error(): void
+    {
+        IntegrationConfig::setValue('seatpicker', 'enabled', '1');
+        IntegrationConfig::setValue('seatpicker', 'endpoint', 'https://control.example.com');
+        IntegrationConfig::setValue('seatpicker', 'api_key', 'test-api-key', true);
+        IntegrationConfig::setValue('seatpicker', 'event_code', 'my-lan');
+
+        Http::fake(['*' => Http::response('Internal Server Error', 500)]);
+
+        $result = $this->service->sync();
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('500', $result->message);
+        $this->assertStringContainsString('/api/v1/events/my-lan/tickets', $result->message);
+    }
+
     public function test_syncs_with_verify_ssl_defaulting_to_true(): void
     {
         IntegrationConfig::setValue('seatpicker', 'enabled', '1');

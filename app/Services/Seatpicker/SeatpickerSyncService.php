@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserParameter;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SeatpickerSyncService
 {
@@ -24,10 +25,17 @@ class SeatpickerSyncService
         $page = 1;
 
         do {
-            $response = $client->get(sprintf('/api/v1/events/%s/tickets', $config['event_code']), ['page' => $page]);
+            $url = sprintf('/api/v1/events/%s/tickets', $config['event_code']);
+            $response = $client->get($url, ['page' => $page]);
 
             if (! $response->successful()) {
-                return new SyncResult(success: false, message: 'API request failed with status '.$response->status());
+                $fullUrl = $config['endpoint'].$url;
+                $body = $response->body();
+                $message = sprintf('API request failed: %s returned HTTP %d — %s', $fullUrl, $response->status(), $body);
+
+                Log::warning('[Seatpicker] '.$message);
+
+                return new SyncResult(success: false, message: $message);
             }
 
             $data = $response->json();
