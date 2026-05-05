@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Console\Commands;
 
 use App\Models\IntegrationConfig;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -59,7 +60,7 @@ class SyncSeatpickerCommandTest extends TestCase
 
     public function test_command_is_scheduled(): void
     {
-        $schedule = $this->app->make(\Illuminate\Console\Scheduling\Schedule::class);
+        $schedule = $this->app->make(Schedule::class);
         $events = collect($schedule->events());
 
         $found = $events->contains(fn ($event) => str_contains($event->command ?? '', 'aperture:sync-seatpicker'));
