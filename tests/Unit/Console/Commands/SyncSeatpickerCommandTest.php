@@ -63,7 +63,7 @@ class SyncSeatpickerCommandTest extends TestCase
         $schedule = $this->app->make(Schedule::class);
         $events = collect($schedule->events());
 
-        $found = $events->contains(fn ($event) => str_contains($event->command ?? '', 'aperture:sync-seatpicker'));
+        $found = $events->contains(fn ($event): bool => str_contains($event->command ?? '', 'aperture:sync-seatpicker'));
 
         $this->assertTrue($found, 'aperture:sync-seatpicker should be registered in the scheduler');
     }
