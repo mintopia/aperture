@@ -31,17 +31,16 @@ class ErrorPageTest extends TestCase
 
     public function test_403_error_renders_inertia_error_page(): void
     {
-        // Access an admin route without authentication or admin privileges
-        // The /admin prefix requires auth + can:admin middleware
+        // Access an admin route without authentication via an Inertia request.
+        // The middleware returns a 409 with X-Inertia-Location to force a full
+        // page visit to the login route instead of embedding it in the layout.
         $response = $this->get('/admin', [
             'X-Inertia' => 'true',
             'X-Inertia-Version' => '1',
         ]);
 
-        // Without auth, this redirects to login rather than 403
-        // So we verify the redirect behavior exists (the 403 rendering
-        // is tested via the exception handler rendering path)
-        $response->assertStatus(302);
+        $response->assertStatus(409);
+        $response->assertHeader('X-Inertia-Location', route('login'));
     }
 
     public function test_error_page_works_without_authentication(): void
