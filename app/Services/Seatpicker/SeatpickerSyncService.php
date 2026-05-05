@@ -42,8 +42,8 @@ class SeatpickerSyncService
             $tickets = $data['data'] ?? [];
 
             foreach ($tickets as $ticket) {
-                $email = $ticket['user']['email'] ?? null;
-                $seatLabel = $ticket['seat']['label'] ?? null;
+                $email = $ticket['user']['data']['email'] ?? null;
+                $seatLabel = $ticket['seat']['data']['label'] ?? null;
 
                 if ($email === null || $seatLabel === null) {
                     continue;
@@ -62,7 +62,7 @@ class SeatpickerSyncService
             }
 
             $page++;
-            $lastPage = $data['meta']['last_page'] ?? $data['last_page'] ?? 1;
+            $lastPage = $data['meta']['pagination']['total_pages'] ?? 1;
         } while ($page <= $lastPage);
 
         return new SyncResult(success: true, message: sprintf('Synced %d seat assignments.', $synced));
