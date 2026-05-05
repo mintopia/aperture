@@ -16,7 +16,7 @@ class SeatpickerTester implements TestableIntegration
     public function connect(array $config): TestConnectionResult
     {
         $endpoint = rtrim($config['endpoint'] ?? '', '/');
-        $url = $endpoint.'/api/v1';
+        $url = $endpoint.'/api/v1/events';
         $verifySsl = (bool) ($config['verify_ssl'] ?? true);
 
         return ConnectionTester::test(

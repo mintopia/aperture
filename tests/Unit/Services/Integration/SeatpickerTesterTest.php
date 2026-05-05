@@ -31,7 +31,7 @@ class SeatpickerTesterTest extends TestCase
         $this->assertTrue($result->success);
         $this->assertSame('Connected successfully', $result->message);
         $this->assertSame('GET', $result->requestMethod);
-        $this->assertStringContainsString('/api/v1', $result->requestUrl);
+        $this->assertStringContainsString('/api/v1/events', $result->requestUrl);
         $this->assertSame(200, $result->responseStatus);
     }
 
@@ -73,7 +73,7 @@ class SeatpickerTesterTest extends TestCase
             'api_key' => 'test-key',
         ]);
 
-        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'https://control.example.com/api/v1'));
+        Http::assertSent(fn ($req): bool => str_contains($req->url(), 'https://control.example.com/api/v1/events'));
     }
 
     public function test_uses_endpoint_from_config(): void

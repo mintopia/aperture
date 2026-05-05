@@ -32,6 +32,7 @@ class Kernel extends ConsoleKernel
             });
         })->cron(sprintf('*/%d * * * *', $interval))->name('sync-switch-ports')->onOneServer();
 
+        $schedule->command('aperture:sync-seatpicker')->everyFiveMinutes()->onOneServer();
         $schedule->command('events:prune')->daily()->onOneServer();
     }
 
