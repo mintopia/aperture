@@ -25,8 +25,8 @@ class SeatpickerSyncService
         $page = 1;
 
         do {
-            $url = sprintf('/api/v1/events/%s/tickets', $config['event_code']);
-            $response = $client->get($url, ['page' => $page]);
+            $url = '/api/v1/tickets';
+            $response = $client->get($url, ['event' => $config['event_code'], 'page' => $page]);
 
             if (! $response->successful()) {
                 $fullUrl = $config['endpoint'].$url;

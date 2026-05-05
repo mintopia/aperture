@@ -106,7 +106,7 @@ class SeatpickerSyncServiceTest extends TestCase
 
         $this->assertFalse($result->success);
         $this->assertStringContainsString('404', $result->message);
-        $this->assertStringContainsString('/api/v1/events/test-event/tickets', $result->message);
+        $this->assertStringContainsString('/api/v1/tickets', $result->message);
         $this->assertStringContainsString('Not Found', $result->message);
     }
 
@@ -123,7 +123,25 @@ class SeatpickerSyncServiceTest extends TestCase
 
         $this->assertFalse($result->success);
         $this->assertStringContainsString('500', $result->message);
-        $this->assertStringContainsString('/api/v1/events/my-lan/tickets', $result->message);
+        $this->assertStringContainsString('/api/v1/tickets', $result->message);
+    }
+
+    public function test_sends_event_code_as_query_parameter(): void
+    {
+        IntegrationConfig::setValue('seatpicker', 'enabled', '1');
+        IntegrationConfig::setValue('seatpicker', 'endpoint', 'https://control.example.com');
+        IntegrationConfig::setValue('seatpicker', 'api_key', 'test-api-key', true);
+        IntegrationConfig::setValue('seatpicker', 'event_code', 'my-lan');
+
+        Http::fake(['*' => Http::response([
+            'data' => [],
+            'meta' => ['last_page' => 1],
+        ], 200)]);
+
+        $this->service->sync();
+
+        Http::assertSent(fn ($request): bool => str_contains($request->url(), '/api/v1/tickets')
+            && str_contains($request->url(), 'event=my-lan'));
     }
 
     public function test_syncs_with_verify_ssl_defaulting_to_true(): void
