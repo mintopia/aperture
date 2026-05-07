@@ -292,6 +292,41 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('400', $ports[0]->vlan);
     }
 
+    public function test_parse_interface_status_table_handles_single_space_before_status(): void
+    {
+        $output = implode("\r\n", [
+            'Port         Name               Status       Vlan       Duplex  Speed Type',
+            'Gi1/0/1      *** WAN ***        notconnect   200          auto   auto 10/100/1000BaseTX',
+            'Gi1/0/5      *** Customer (VLAN notconnect   440          auto   auto 10/100/1000BaseTX',
+            'Te1/0/46     *** Access Point * connected    400        a-full a-1000 100/1000/2.5G/5G/10GBaseTX',
+            'Te1/0/48     *** Uplink ***     connected    trunk      a-full  a-10G 100/1000/2.5G/5G/10GBaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertCount(4, $ports);
+
+        $this->assertEquals('Gi1/0/1', $ports[0]->interface);
+        $this->assertEquals('*** WAN ***', $ports[0]->description);
+        $this->assertEquals('notconnect', $ports[0]->status);
+        $this->assertEquals('200', $ports[0]->vlan);
+
+        $this->assertEquals('Gi1/0/5', $ports[1]->interface);
+        $this->assertEquals('*** Customer (VLAN', $ports[1]->description);
+        $this->assertEquals('notconnect', $ports[1]->status);
+        $this->assertEquals('440', $ports[1]->vlan);
+
+        $this->assertEquals('Te1/0/46', $ports[2]->interface);
+        $this->assertEquals('*** Access Point *', $ports[2]->description);
+        $this->assertEquals('connected', $ports[2]->status);
+        $this->assertEquals('400', $ports[2]->vlan);
+
+        $this->assertEquals('Te1/0/48', $ports[3]->interface);
+        $this->assertEquals('*** Uplink ***', $ports[3]->description);
+        $this->assertEquals('connected', $ports[3]->status);
+        $this->assertEquals('trunk', $ports[3]->switchportMode);
+    }
+
     public function test_parse_interface_status_table_empty_output(): void
     {
         $output = 'Port      Name               Status       Vlan       Duplex  Speed Type';
