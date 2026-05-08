@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\IntegrationConfig;
-use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
@@ -510,7 +509,7 @@ class PortalControllerTest extends TestCase
         $this->assertTrue($pivot->pivot->last_seen_at->isAfter(now()->subMinute()));
         $this->assertDatabaseMissing('audit_logs', [
             'action' => 'ip_mac.linked',
-            'subject_type' => \App\Models\IpAddress::class,
+            'subject_type' => IpAddress::class,
             'subject_id' => $ipv6Record->id,
             'process' => 'ipv6_detection',
         ]);
@@ -535,6 +534,7 @@ class PortalControllerTest extends TestCase
         $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
 
         $ipv6Record = IpAddress::whereAddress('2001:db8::5')->first();
+        $this->assertNotNull($ipv6Record);
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'ip_mac.linked',
             'subject_type' => IpAddress::class,
