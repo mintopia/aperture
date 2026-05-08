@@ -6,6 +6,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Traits\ToString;
+use App\Services\IpAddressActionService;
 use App\Services\IpPolicyService;
 use App\Services\NetworkRangeService;
 use Database\Factories\UserFactory;
@@ -25,6 +26,7 @@ use Laragear\WebAuthn\WebAuthnAuthentication;
 use Laragear\WebAuthn\WebAuthnData;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\PersonalAccessToken;
+use Throwable;
 
 /**
  * App\Models\User
@@ -210,6 +212,14 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
         $userIp->save();
 
         app(IpPolicyService::class)->applyUserPolicy($this, $ip);
+
+        if ($ip->internet_enabled) {
+            try {
+                app(IpAddressActionService::class)->enableInternet($ip);
+            } catch (Throwable) {
+                // Firewall sync is best-effort
+            }
+        }
 
         if ($cascade) {
             $this->cascadeMacOwnership($ip);

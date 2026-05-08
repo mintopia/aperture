@@ -9,8 +9,10 @@ use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserIpAddress;
+use App\Services\Interfaces\CaptivePortalInterface;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Mockery;
 use Tests\TestCase;
 
 class UserLoginCascadeTest extends TestCase
@@ -167,5 +169,43 @@ class UserLoginCascadeTest extends TestCase
         $this->assertFalse(
             UserIpAddress::where('user_id', $user->id)->where('ip_address_id', $ipUnmanaged->id)->exists()
         );
+    }
+
+    public function test_login_cascade_calls_firewall_for_sibling_ips(): void
+    {
+        $user = User::factory()->create(['internet_enabled' => true]);
+        $primaryIp = IpAddress::factory()->create(['address' => '10.0.0.1', 'internet_enabled' => true]);
+        $siblingIp = IpAddress::factory()->create(['address' => '10.0.0.2']);
+
+        $mac = MacAddress::factory()->create(['user_id' => null]);
+        $primaryIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+        $siblingIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
+        $captivePortal->shouldReceive('addIp')->with('10.0.0.1', Mockery::any())->once();
+        $captivePortal->shouldReceive('addIp')->with('10.0.0.2', Mockery::any())->once();
+        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
+
+        $user->addIp('10.0.0.1');
+    }
+
+    public function test_login_cascade_does_not_call_firewall_when_user_blocked(): void
+    {
+        $user = User::factory()->create([
+            'internet_enabled' => true,
+            'internet_blocked' => true,
+        ]);
+        $primaryIp = IpAddress::factory()->create(['address' => '10.0.0.1']);
+        $siblingIp = IpAddress::factory()->create(['address' => '10.0.0.2']);
+
+        $mac = MacAddress::factory()->create(['user_id' => null]);
+        $primaryIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+        $siblingIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
+        $captivePortal->shouldNotReceive('addIp');
+        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
+
+        $user->addIp('10.0.0.1');
     }
 }

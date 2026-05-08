@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\IntegrationConfig;
-use App\Models\IpAddress;
 use App\Services\Auth\AuthResult;
 use App\Services\Auth\DeviceFlowUserService;
 use App\Services\Interfaces\AuthProviderInterface;
-use App\Services\IpAddressActionService;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Http\JsonResponse;
@@ -70,7 +68,6 @@ class CaptivePortalController extends Controller
         string $deviceCode,
         AuthProviderInterface $authProvider,
         DeviceFlowUserService $userService,
-        IpAddressActionService $actionService,
     ): JsonResponse {
         /** @var array{status: string, ip: string|null}|null $flowData */
         $flowData = Cache::get('device_flow:'.$deviceCode);
@@ -95,10 +92,7 @@ class CaptivePortalController extends Controller
             $user->save();
         }
 
-        $ip = $user->addIp($flowData['ip'] ?? $request->getClientIp() ?? '0.0.0.0');
-        if ($ip instanceof IpAddress && ! $user->internet_blocked) {
-            $actionService->enableInternet($ip);
-        }
+        $user->addIp($flowData['ip'] ?? $request->getClientIp() ?? '0.0.0.0');
 
         Auth::login($user);
 
