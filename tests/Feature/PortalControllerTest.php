@@ -380,4 +380,27 @@ class PortalControllerTest extends TestCase
 
         $this->actingAs($user)->postJson('/ipv6', ['token' => 'test-jwt-token']);
     }
+
+    public function test_portal_passes_ipv6_endpoint_regardless_of_internet_status(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_enabled' => true]);
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertViewHas('ipv6DetectionEndpoint', 'https://{random}.ipv6.example.com');
+    }
+
+    public function test_portal_renders_ipv6_detection_for_enabled_user(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_enabled' => true]);
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertSee('attemptIpv6Detection', false);
+        $response->assertSee('ipv6.example.com', false);
+    }
 }

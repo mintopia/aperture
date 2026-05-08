@@ -61,6 +61,7 @@
     document.addEventListener("DOMContentLoaded", function() {
         var statusOK = document.getElementById('status-ok');
         var statusWaiting = document.getElementById('status-waiting');
+        var ipv6Endpoint = @json($ipv6DetectionEndpoint ?? '');
 
         function uuid() {
             if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -72,8 +73,49 @@
             });
         }
 
+        function attemptIpv6Detection(remaining, callback) {
+            if (remaining <= 0 || !ipv6Endpoint) {
+                callback();
+                return;
+            }
+
+            var endpoint = ipv6Endpoint.replace('{random}', uuid());
+            fetch(endpoint)
+                .then(function(response) { return response.ok ? response.text() : null; })
+                .then(function(token) {
+                    if (token && token.trim().length > 0) {
+                        return fetch("/ipv6", {
+                            method: "POST",
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 'token': token.trim() }),
+                        });
+                    }
+                })
+                .then(function() {
+                    setTimeout(function() {
+                        attemptIpv6Detection(remaining - 1, callback);
+                    }, 1000);
+                })
+                .catch(function() {
+                    setTimeout(function() {
+                        attemptIpv6Detection(remaining - 1, callback);
+                    }, 1000);
+                });
+        }
+
+        function redirectToDashboard() {
+            window.location.href = @json(route('portal.dashboard'));
+        }
+
         var checks = 0;
         var internetEnabled = {{ $ip?->internet_enabled ? 'true' : 'false' }};
+
+        function onInternetEnabled() {
+            if (statusWaiting) statusWaiting.classList.add('hidden');
+            if (statusOK) statusOK.classList.remove('hidden');
+            checkDns();
+            attemptIpv6Detection(3, redirectToDashboard);
+        }
 
         function checkStatus() {
             checks++;
@@ -88,14 +130,9 @@
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.internetEnabled === true) {
-                        if (statusWaiting) statusWaiting.classList.add('hidden');
-                        if (statusOK) statusOK.classList.remove('hidden');
                         if (!internetEnabled) {
                             internetEnabled = true;
-                            checkDns();
-                            setTimeout(function() {
-                                window.location.href = @json(route('portal.dashboard'));
-                            }, 1500);
+                            onInternetEnabled();
                         }
                     } else {
                         setTimeout(checkStatus, timeout);
@@ -122,33 +159,11 @@
         }
 
         if (internetEnabled) {
-            checkDns();
-            setTimeout(function() {
-                window.location.href = @json(route('portal.dashboard'));
-            }, 3000);
+            onInternetEnabled();
         }
 
         @if(!$ip?->internet_enabled && !Auth::user()->internet_blocked)
-        @if($ipv6DetectionEndpoint)
-        var ipv6Endpoint = @json($ipv6DetectionEndpoint).replace('{random}', uuid());
-        fetch(ipv6Endpoint)
-            .then(function(response) { return response.ok ? response.text() : null; })
-            .then(function(token) {
-                if (token && token.trim().length > 0) {
-                    fetch("/ipv6", {
-                        method: "POST",
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 'token': token.trim() }),
-                    }).then(function() { setTimeout(checkStatus, 2000); })
-                      .catch(function() { setTimeout(checkStatus, 2000); });
-                } else {
-                    setTimeout(checkStatus, 2000);
-                }
-            })
-            .catch(function() { setTimeout(checkStatus, 2000); });
-        @else
         setTimeout(checkStatus, 2000);
-        @endif
         @endif
     });
     </script>
