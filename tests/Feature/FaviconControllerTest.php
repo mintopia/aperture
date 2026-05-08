@@ -78,6 +78,7 @@ class FaviconControllerTest extends TestCase
         $response = $this->get('/favicon.svg');
 
         $response->assertHeader('Cache-Control');
+
         $cacheControl = $response->headers->get('Cache-Control');
         $this->assertStringContainsString('public', $cacheControl);
     }

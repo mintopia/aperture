@@ -26,7 +26,6 @@ class OklchToHexTest extends TestCase
         $hex = FaviconController::oklchToHex(72, 0.14, 230);
 
         $r = hexdec(substr($hex, 1, 2));
-        $g = hexdec(substr($hex, 3, 2));
         $b = hexdec(substr($hex, 5, 2));
         $this->assertGreaterThan($r, $b);
     }
@@ -37,7 +36,6 @@ class OklchToHexTest extends TestCase
 
         $r = hexdec(substr($hex, 1, 2));
         $g = hexdec(substr($hex, 3, 2));
-        $b = hexdec(substr($hex, 5, 2));
         $this->assertGreaterThan($g, $r);
     }
 
@@ -76,7 +74,7 @@ class OklchToHexTest extends TestCase
 
         foreach ($presets as $preset) {
             $hex = FaviconController::oklchToHex($preset['l'], $preset['c'], $preset['h']);
-            $this->assertMatchesRegularExpression('/^#[0-9a-f]{6}$/', $hex, "Invalid hex for hue {$preset['h']}");
+            $this->assertMatchesRegularExpression('/^#[0-9a-f]{6}$/', $hex, 'Invalid hex for hue '.$preset['h']);
         }
     }
 }
