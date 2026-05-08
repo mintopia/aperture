@@ -33,7 +33,12 @@ const coverStyle = computed(() => {
 
 const liveContext = reactive({ ...props.blockContext });
 
-useIpv6Detection(props.ipv6Detection?.endpoint);
+useIpv6Detection(props.ipv6Detection?.endpoint, {
+    onDetected(data) {
+        liveContext.currentIpv6 = data.ip;
+        liveContext.internetEnabled = data.internetEnabled;
+    },
+});
 
 let channelCleanup = null;
 
