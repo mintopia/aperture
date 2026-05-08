@@ -342,6 +342,7 @@ class PortalControllerTest extends TestCase
 
         $captivePortal = Mockery::mock(CaptivePortalInterface::class);
         $captivePortal->shouldNotReceive('addIp');
+
         $this->app->instance(CaptivePortalInterface::class, $captivePortal);
 
         $this->actingAs($user)->get('/status');

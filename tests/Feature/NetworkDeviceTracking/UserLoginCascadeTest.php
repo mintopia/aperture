@@ -204,6 +204,7 @@ class UserLoginCascadeTest extends TestCase
 
         $captivePortal = Mockery::mock(CaptivePortalInterface::class);
         $captivePortal->shouldNotReceive('addIp');
+
         $this->app->instance(CaptivePortalInterface::class, $captivePortal);
 
         $user->addIp('10.0.0.1');
