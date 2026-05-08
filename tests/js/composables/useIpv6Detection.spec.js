@@ -33,7 +33,7 @@ describe('useIpv6Detection', () => {
     });
 
     it('fetches IPv6 endpoint immediately on mount', async () => {
-        fetchMock.mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('jwt-token') });
+        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: 'jwt-token' }) });
         fetchMock.mockResolvedValueOnce({ ok: true });
 
         useIpv6Detection('https://{uuid}.ipv6.example.com');
@@ -48,8 +48,8 @@ describe('useIpv6Detection', () => {
         expect(fetchMock.mock.calls[1][1].method).toBe('POST');
     });
 
-    it('submits token to /ipv6 endpoint', async () => {
-        fetchMock.mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('my-jwt') });
+    it('submits token from JSON response to /ipv6 endpoint', async () => {
+        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: 'my-jwt' }) });
         fetchMock.mockResolvedValueOnce({ ok: true });
 
         useIpv6Detection('https://{uuid}.ipv6.example.com');
@@ -72,8 +72,18 @@ describe('useIpv6Detection', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not POST when token is empty', async () => {
-        fetchMock.mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('') });
+    it('does not POST when token is missing from JSON response', async () => {
+        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
+
+        useIpv6Detection('https://{uuid}.ipv6.example.com');
+
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not POST when token is empty string in JSON response', async () => {
+        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: '' }) });
 
         useIpv6Detection('https://{uuid}.ipv6.example.com');
 
@@ -83,7 +93,7 @@ describe('useIpv6Detection', () => {
     });
 
     it('repeats detection at configured interval', async () => {
-        fetchMock.mockResolvedValue({ ok: true, text: () => Promise.resolve('jwt') });
+        fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({ token: 'jwt' }) });
 
         useIpv6Detection('https://{uuid}.ipv6.example.com', 5000);
 

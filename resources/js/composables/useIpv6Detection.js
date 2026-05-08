@@ -15,12 +15,12 @@ async function detectAndSubmitIpv6(endpointTemplate) {
     try {
         const response = await fetch(endpoint);
         if (!response.ok) return;
-        const token = await response.text();
-        if (!token || !token.trim()) return;
+        const data = await response.json();
+        if (!data.token || !data.token.trim()) return;
         await fetch('/ipv6', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token.trim() }),
+            body: JSON.stringify({ token: data.token.trim() }),
         });
     } catch {
         // IPv6 detection is best-effort
