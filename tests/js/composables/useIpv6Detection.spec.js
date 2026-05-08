@@ -6,7 +6,7 @@ vi.mock('vue', () => ({
 }));
 
 import { useIpv6Detection } from '@/composables/useIpv6Detection.js';
-import { onMounted, onUnmounted } from 'vue';
+import { onUnmounted } from 'vue';
 
 describe('useIpv6Detection', () => {
     let fetchMock;
@@ -102,7 +102,10 @@ describe('useIpv6Detection', () => {
 
     it('works without onDetected callback', async () => {
         fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: 'jwt' }) });
-        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ip: '::1', internetEnabled: true }) });
+        fetchMock.mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ ip: '::1', internetEnabled: true }),
+        });
 
         useIpv6Detection('https://{uuid}.ipv6.example.com');
 
