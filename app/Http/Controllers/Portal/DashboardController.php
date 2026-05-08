@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContentBlock;
+use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
@@ -34,6 +35,9 @@ class DashboardController extends Controller
 
         $coverImage = Setting::get('dashboard.cover_image');
 
+        $ipv6Config = IntegrationConfig::getAll('ipv6');
+        $ipv6Endpoint = $ipv6Config['detection_endpoint'] ?? '';
+
         return Inertia::render('Portal/Dashboard', [
             'blocks' => $blocks,
             'coverImage' => $coverImage ?: null,
@@ -53,6 +57,9 @@ class DashboardController extends Controller
             'dnsDetection' => $checkUrl ? [
                 'checkUrl' => $checkUrl,
                 'warningMessage' => $warningMessage ?? 'Your device is not using the event DNS servers. Please update your DNS settings.',
+            ] : null,
+            'ipv6Detection' => $ipv6Endpoint !== '' ? [
+                'endpoint' => $ipv6Endpoint,
             ] : null,
         ]);
     }

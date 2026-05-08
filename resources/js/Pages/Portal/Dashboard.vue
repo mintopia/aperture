@@ -5,6 +5,7 @@ import PortalLayout from '@/Layouts/PortalLayout.vue';
 import BlockGrid from '@/Components/BlockGrid.vue';
 import DnsWarningBlock from '@/Components/Blocks/DnsWarningBlock.vue';
 import { useUserChannel } from '@/composables/useUserChannel.js';
+import { useIpv6Detection } from '@/composables/useIpv6Detection.js';
 
 defineOptions({ layout: PortalLayout });
 
@@ -19,6 +20,7 @@ const props = defineProps({
     },
     dnsDetection: { type: Object, default: null },
     coverImage: { type: String, default: null },
+    ipv6Detection: { type: Object, default: null },
 });
 
 const user = usePage().props.auth?.user;
@@ -30,6 +32,8 @@ const coverStyle = computed(() => {
 });
 
 const liveContext = reactive({ ...props.blockContext });
+
+useIpv6Detection(props.ipv6Detection?.endpoint);
 
 let channelCleanup = null;
 

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Portal;
 
 use App\Models\ContentBlock;
+use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
@@ -355,5 +356,31 @@ class DashboardControllerTest extends TestCase
         $this->app->instance(CaptivePortalInterface::class, $captivePortal);
 
         $this->actingAs($user)->get('/portal');
+    }
+
+    public function test_dashboard_passes_ipv6_detection_endpoint_when_configured(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertInertia(fn ($page) => $page
+            ->has('ipv6Detection')
+            ->where('ipv6Detection.endpoint', 'https://{random}.ipv6.example.com')
+        );
+    }
+
+    public function test_dashboard_passes_null_ipv6_detection_when_not_configured(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/portal');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('ipv6Detection', null)
+        );
     }
 }
