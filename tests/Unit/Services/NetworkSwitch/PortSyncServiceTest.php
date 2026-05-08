@@ -1531,4 +1531,62 @@ class PortSyncServiceTest extends TestCase
         $this->assertContains('Gi1/0/3', $changedPortNames);
         $this->assertNotContains('Gi1/0/2', $changedPortNames);
     }
+
+    public function test_sync_skips_mac_entries_on_trunk_ports(): void
+    {
+        $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect([
+            new PortStatus(
+                interface: 'Gi1/0/1',
+                status: 'connected',
+                speed: 'a-1000',
+                duplex: 'a-full',
+                vlan: '100',
+                switchportMode: 'access',
+            ),
+            new PortStatus(
+                interface: 'Gi1/0/48',
+                status: 'connected',
+                speed: 'a-1000',
+                duplex: 'a-full',
+                vlan: '',
+                switchportMode: 'trunk',
+            ),
+        ]));
+
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect([
+            new ForwardingEntry(mac: 'AA:BB:CC:DD:EE:01', port: 'Gi1/0/1', vlan: 100),
+            new ForwardingEntry(mac: 'AA:BB:CC:DD:EE:02', port: 'Gi1/0/48', vlan: 100),
+            new ForwardingEntry(mac: 'AA:BB:CC:DD:EE:03', port: 'Gi1/0/48', vlan: 200),
+        ]));
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertSame(1, $result->syncRun->macs_created);
+        $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
+        $this->assertDatabaseMissing('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:02']);
+        $this->assertDatabaseMissing('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:03']);
+    }
+
+    public function test_sync_includes_mac_entries_on_ports_with_null_switchport_mode(): void
+    {
+        $this->switchAdapter->shouldReceive('getAllPorts')->andReturn(collect([
+            new PortStatus(
+                interface: 'Gi1/0/1',
+                status: 'connected',
+                speed: 'a-1000',
+                duplex: 'a-full',
+                vlan: '100',
+                switchportMode: '',
+            ),
+        ]));
+
+        $this->switchAdapter->shouldReceive('getForwardingDatabase')->andReturn(collect([
+            new ForwardingEntry(mac: 'AA:BB:CC:DD:EE:01', port: 'Gi1/0/1', vlan: 100),
+        ]));
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertSame(1, $result->syncRun->macs_created);
+        $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
+    }
 }

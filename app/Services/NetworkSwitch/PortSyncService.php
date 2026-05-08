@@ -419,6 +419,10 @@ class PortSyncService
                 continue;
             }
 
+            if ($port->switchport_mode === 'trunk') {
+                continue;
+            }
+
             $normalizedMac = MacAddress::normalize($entry->mac);
 
             $macRecord = MacAddress::firstOrCreate(
