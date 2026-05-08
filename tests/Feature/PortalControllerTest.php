@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\IntegrationConfig;
+use App\Models\IpAddress;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\Ipv6JwtService;
 use Firebase\JWT\SignatureInvalidException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -313,5 +315,69 @@ class PortalControllerTest extends TestCase
             'ip' => '2001:db8::1',
             'internetEnabled' => false,
         ]);
+    }
+
+    public function test_status_calls_firewall_enable_when_user_has_internet(): void
+    {
+        // Pre-create IP so internet_enabled is already true in DB — simulates firewall losing state
+        $ip = IpAddress::factory()->internetEnabled()->create(['address' => '127.0.0.1']);
+        $user = User::factory()->create(['internet_enabled' => true]);
+        $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);
+
+        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
+        $captivePortal->shouldReceive('addIp')->once();
+        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
+
+        $this->actingAs($user)->get('/status');
+    }
+
+    public function test_status_does_not_call_firewall_when_user_is_blocked(): void
+    {
+        $ip = IpAddress::factory()->create(['address' => '127.0.0.1', 'internet_enabled' => false]);
+        $user = User::factory()->create([
+            'internet_enabled' => true,
+            'internet_blocked' => true,
+        ]);
+        $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);
+
+        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
+        $captivePortal->shouldNotReceive('addIp');
+        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
+
+        $this->actingAs($user)->get('/status');
+    }
+
+    public function test_index_calls_firewall_enable_when_user_has_internet(): void
+    {
+        // Pre-create IP so internet_enabled is already true in DB — simulates firewall losing state
+        $ip = IpAddress::factory()->internetEnabled()->create(['address' => '127.0.0.1']);
+        $user = User::factory()->create(['internet_enabled' => true]);
+        $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);
+
+        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
+        $captivePortal->shouldReceive('addIp')->once();
+        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
+
+        $this->actingAs($user)->get('/');
+    }
+
+    public function test_ipv6_calls_firewall_enable_when_user_has_internet(): void
+    {
+        // Pre-create IPv6 so internet_enabled is already true in DB — simulates firewall losing state
+        $ip = IpAddress::factory()->internetEnabled()->create(['address' => '2001:db8::1']);
+        $user = User::factory()->create(['internet_enabled' => true]);
+        $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://example.com/.well-known/jwks.json');
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')->andReturn('2001:db8::1');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
+        $captivePortal->shouldReceive('addIp')->once();
+        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
+
+        $this->actingAs($user)->postJson('/ipv6', ['token' => 'test-jwt-token']);
     }
 }

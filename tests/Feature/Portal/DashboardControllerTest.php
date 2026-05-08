@@ -8,8 +8,10 @@ use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserParameter;
+use App\Services\Interfaces\CaptivePortalInterface;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Mockery;
 use Tests\TestCase;
 
 class DashboardControllerTest extends TestCase
@@ -339,5 +341,19 @@ class DashboardControllerTest extends TestCase
             ->where('blockContext.internetEnabled', false)
             ->where('blockContext.macAddress', null)
         );
+    }
+
+    public function test_dashboard_calls_firewall_enable_when_user_has_internet(): void
+    {
+        // Pre-create IP so internet_enabled is already true in DB — simulates firewall losing state
+        $ip = IpAddress::factory()->internetEnabled()->create(['address' => '127.0.0.1']);
+        $user = User::factory()->create(['internet_enabled' => true]);
+        $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);
+
+        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
+        $captivePortal->shouldReceive('addIp')->once();
+        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
+
+        $this->actingAs($user)->get('/portal');
     }
 }

@@ -10,18 +10,29 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\IpAddressActionService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, IpAddressActionService $actionService): Response
     {
         /** @var User $user */
         $user = $request->user();
         $clientIp = (string) $request->getClientIp();
         $ip = $user->addIp($clientIp);
+
+        if ($ip instanceof IpAddress && $ip->internet_enabled) {
+            try {
+                $actionService->enableInternet($ip);
+            } catch (Throwable) {
+                // Firewall sync is best-effort
+            }
+        }
+
         $blocks = ContentBlock::active()->get();
 
         $checkUrl = Setting::get('dns.check_url');

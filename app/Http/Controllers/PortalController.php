@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\IntegrationConfig;
+use App\Models\IpAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\IpAddressActionService;
@@ -16,12 +17,20 @@ use Throwable;
 
 class PortalController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, IpAddressActionService $actionService): View
     {
         $clientIp = (string) $request->getClientIp();
         /** @var User $user */
         $user = $request->user();
         $ip = $user->addIp($clientIp);
+
+        if ($ip instanceof IpAddress && $ip->internet_enabled) {
+            try {
+                $actionService->enableInternet($ip);
+            } catch (Throwable) {
+                // Firewall sync is best-effort
+            }
+        }
 
         $dbConfig = IntegrationConfig::getAll('ipv6');
         $ipv6DetectionEndpoint = $dbConfig['detection_endpoint'] ?? '';
@@ -43,13 +52,21 @@ class PortalController extends Controller
         $this->ensureInternetEnabled($user);
         $ip = $user->addIp($clientIp);
 
+        if ($ip instanceof IpAddress && $ip->internet_enabled) {
+            try {
+                $actionService->enableInternet($ip);
+            } catch (Throwable) {
+                // Firewall sync is best-effort
+            }
+        }
+
         return response()->json((object) [
             'ip' => $clientIp,
             'internetEnabled' => $ip !== null && (bool) $ip->internet_enabled,
         ]);
     }
 
-    public function ipv6(Request $request, Ipv6JwtService $jwtService): JsonResponse
+    public function ipv6(Request $request, Ipv6JwtService $jwtService, IpAddressActionService $actionService): JsonResponse
     {
         $request->validate(['token' => 'required|string']);
 
@@ -69,6 +86,14 @@ class PortalController extends Controller
         /** @var User $user */
         $user = $request->user();
         $ip = $user->addIp($ipv6);
+
+        if ($ip instanceof IpAddress && $ip->internet_enabled) {
+            try {
+                $actionService->enableInternet($ip);
+            } catch (Throwable) {
+                // Firewall sync is best-effort
+            }
+        }
 
         return response()->json((object) [
             'ip' => $ipv6,
