@@ -59,14 +59,14 @@ describe('Ipv6Detection.vue', () => {
 
     it('populates form with existing settings', () => {
         const wrapper = mountComponent({
-            detection_endpoint: 'https://{random}.ipv6.test.com',
+            detection_endpoint: 'https://{uuid}.ipv6.test.com',
             jwks_url: 'https://ipv6.test.com/.well-known/jwks.json',
         });
 
         const endpointInput = wrapper.get('[data-testid="detection-endpoint-input"]');
         const jwksInput = wrapper.get('[data-testid="jwks-url-input"]');
 
-        expect(endpointInput.element.value).toBe('https://{random}.ipv6.test.com');
+        expect(endpointInput.element.value).toBe('https://{uuid}.ipv6.test.com');
         expect(jwksInput.element.value).toBe('https://ipv6.test.com/.well-known/jwks.json');
     });
 

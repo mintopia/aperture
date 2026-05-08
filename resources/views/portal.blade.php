@@ -79,7 +79,7 @@
                 return;
             }
 
-            var endpoint = ipv6Endpoint.replace('{random}', uuid());
+            var endpoint = ipv6Endpoint.replace('{uuid}', uuid());
             fetch(endpoint)
                 .then(function(response) { return response.ok ? response.text() : null; })
                 .then(function(token) {

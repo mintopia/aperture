@@ -10,7 +10,7 @@
         <link rel="icon" type="image/png" sizes="16x16" href="{{ $faviconUrls['16'] }}">
         <link rel="apple-touch-icon" sizes="180x180" href="{{ $faviconUrls['180'] }}">
     @else
-        <link rel="icon" type="image/svg+xml" href="/img/aperture-icon.svg">
+        <link rel="icon" type="image/svg+xml" href="{{ route('favicon') }}">
     @endif
     @vite(['resources/css/app.css'])
     @php

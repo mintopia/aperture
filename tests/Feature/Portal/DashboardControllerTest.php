@@ -362,13 +362,13 @@ class DashboardControllerTest extends TestCase
     {
         Queue::fake();
         $user = User::factory()->create();
-        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{uuid}.ipv6.example.com');
 
         $response = $this->actingAs($user)->get('/portal');
 
         $response->assertInertia(fn ($page) => $page
             ->has('ipv6Detection')
-            ->where('ipv6Detection.endpoint', 'https://{random}.ipv6.example.com')
+            ->where('ipv6Detection.endpoint', 'https://{uuid}.ipv6.example.com')
         );
     }
 

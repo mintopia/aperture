@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Traits\ToString;
+use App\Services\NetworkRangeService;
 use Database\Factories\IpAddressFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -96,6 +97,25 @@ class IpAddress extends Model
     public function getRouteKeyName(): string
     {
         return 'address';
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        $field ??= $this->getRouteKeyName();
+
+        $existing = static::where($field, $value)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        if (! app(NetworkRangeService::class)->isManaged((string) $value)) {
+            return null;
+        }
+
+        return static::create([
+            'address' => $value,
+            'last_seen_at' => now(),
+        ]);
     }
 
     /** @return HasMany<UserIpAddress, $this> */

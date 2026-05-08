@@ -36,7 +36,7 @@ describe('useIpv6Detection', () => {
         fetchMock.mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('jwt-token') });
         fetchMock.mockResolvedValueOnce({ ok: true });
 
-        useIpv6Detection('https://{random}.ipv6.example.com');
+        useIpv6Detection('https://{uuid}.ipv6.example.com');
 
         await vi.advanceTimersByTimeAsync(0);
 
@@ -52,7 +52,7 @@ describe('useIpv6Detection', () => {
         fetchMock.mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('my-jwt') });
         fetchMock.mockResolvedValueOnce({ ok: true });
 
-        useIpv6Detection('https://{random}.ipv6.example.com');
+        useIpv6Detection('https://{uuid}.ipv6.example.com');
 
         await vi.advanceTimersByTimeAsync(0);
 
@@ -65,7 +65,7 @@ describe('useIpv6Detection', () => {
     it('does not POST when detection response is not ok', async () => {
         fetchMock.mockResolvedValueOnce({ ok: false });
 
-        useIpv6Detection('https://{random}.ipv6.example.com');
+        useIpv6Detection('https://{uuid}.ipv6.example.com');
 
         await vi.advanceTimersByTimeAsync(0);
 
@@ -75,7 +75,7 @@ describe('useIpv6Detection', () => {
     it('does not POST when token is empty', async () => {
         fetchMock.mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('') });
 
-        useIpv6Detection('https://{random}.ipv6.example.com');
+        useIpv6Detection('https://{uuid}.ipv6.example.com');
 
         await vi.advanceTimersByTimeAsync(0);
 
@@ -85,7 +85,7 @@ describe('useIpv6Detection', () => {
     it('repeats detection at configured interval', async () => {
         fetchMock.mockResolvedValue({ ok: true, text: () => Promise.resolve('jwt') });
 
-        useIpv6Detection('https://{random}.ipv6.example.com', 5000);
+        useIpv6Detection('https://{uuid}.ipv6.example.com', 5000);
 
         await vi.advanceTimersByTimeAsync(0);
         fetchMock.mockClear();
@@ -98,7 +98,7 @@ describe('useIpv6Detection', () => {
     it('registers cleanup on unmount', () => {
         fetchMock.mockResolvedValue({ ok: false });
 
-        useIpv6Detection('https://{random}.ipv6.example.com');
+        useIpv6Detection('https://{uuid}.ipv6.example.com');
 
         expect(onUnmounted).toHaveBeenCalled();
     });
@@ -106,7 +106,7 @@ describe('useIpv6Detection', () => {
     it('silently handles fetch errors', async () => {
         fetchMock.mockRejectedValueOnce(new Error('network error'));
 
-        useIpv6Detection('https://{random}.ipv6.example.com');
+        useIpv6Detection('https://{uuid}.ipv6.example.com');
 
         await expect(vi.advanceTimersByTimeAsync(0)).resolves.not.toThrow();
     });

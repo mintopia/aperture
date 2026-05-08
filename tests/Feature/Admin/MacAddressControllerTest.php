@@ -204,4 +204,21 @@ class MacAddressControllerTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_show_auto_creates_mac_that_does_not_exist(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $this->assertNull(MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:FF')->first());
+
+        $response = $this->actingAs($admin)->get('/admin/macs/AA:BB:CC:DD:EE:FF');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->component('Admin/Macs/Show'));
+
+        $mac = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:FF')->first();
+        $this->assertNotNull($mac);
+        $this->assertSame('discovery', $mac->source);
+    }
 }

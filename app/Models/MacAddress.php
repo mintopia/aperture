@@ -67,6 +67,17 @@ class MacAddress extends Model
         return 'mac_address';
     }
 
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        $field ??= $this->getRouteKeyName();
+
+        return static::where($field, self::normalize((string) $value))->first()
+            ?? static::create([
+                'mac_address' => self::normalize((string) $value),
+                'source' => 'discovery',
+            ]);
+    }
+
     /**
      * @return array<string, mixed>
      */

@@ -11,7 +11,7 @@ function generateUuid() {
 }
 
 async function detectAndSubmitIpv6(endpointTemplate) {
-    const endpoint = endpointTemplate.replace('{random}', generateUuid());
+    const endpoint = endpointTemplate.replace('{uuid}', generateUuid());
     try {
         const response = await fetch(endpoint);
         if (!response.ok) return;

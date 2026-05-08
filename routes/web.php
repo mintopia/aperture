@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\TestConnectionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaptivePortalController;
+use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PageViewController;
 use App\Http\Controllers\PasskeyController;
@@ -33,6 +34,8 @@ use App\Http\Controllers\PortalController;
 use App\Http\Middleware\EnsureAccountSecurityVerified;
 use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/favicon.svg', FaviconController::class)->name('favicon');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 

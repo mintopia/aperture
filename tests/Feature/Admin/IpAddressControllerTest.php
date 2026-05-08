@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Interfaces\IpBandwidthInterface;
@@ -681,5 +682,37 @@ class IpAddressControllerTest extends TestCase
         $log = AuditLog::where('action', 'ip.dns_filter_toggled')->first();
         $this->assertNotNull($log);
         $this->assertTrue($log->metadata['enabled']);
+    }
+
+    public function test_show_auto_creates_ip_within_managed_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['10.0.0.0/24']));
+
+        $this->assertNull(IpAddress::where('address', '10.0.0.99')->first());
+
+        $response = $this->actingAs($admin)->get('/admin/ips/10.0.0.99');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->component('Admin/Ips/Show'));
+
+        $ip = IpAddress::where('address', '10.0.0.99')->first();
+        $this->assertNotNull($ip);
+        $this->assertNotNull($ip->last_seen_at);
+    }
+
+    public function test_show_returns_404_for_ip_outside_managed_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['10.0.0.0/24']));
+
+        $response = $this->actingAs($admin)->get('/admin/ips/192.168.1.50');
+
+        $response->assertNotFound();
+        $this->assertNull(IpAddress::where('address', '192.168.1.50')->first());
     }
 }

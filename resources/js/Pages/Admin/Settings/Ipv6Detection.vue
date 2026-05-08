@@ -36,7 +36,7 @@ function submit() {
                     v-model="form.detection_endpoint"
                     data-testid="detection-endpoint-input"
                     type="url"
-                    placeholder="https://{random}.ipv6.example.com"
+                    placeholder="https://{uuid}.ipv6.example.com"
                     class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                 />
             </FormField>
