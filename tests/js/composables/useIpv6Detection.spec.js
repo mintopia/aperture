@@ -62,6 +62,53 @@ describe('useIpv6Detection', () => {
         expect(body.token).toBe('my-jwt');
     });
 
+    it('calls onDetected with ip and internetEnabled from POST response', async () => {
+        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: 'jwt-token' }) });
+        fetchMock.mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ ip: '2001:db8::1', internetEnabled: true }),
+        });
+
+        const onDetected = vi.fn();
+        useIpv6Detection('https://{uuid}.ipv6.example.com', { onDetected });
+
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(onDetected).toHaveBeenCalledWith({ ip: '2001:db8::1', internetEnabled: true });
+    });
+
+    it('does not call onDetected when detection response is not ok', async () => {
+        fetchMock.mockResolvedValueOnce({ ok: false });
+
+        const onDetected = vi.fn();
+        useIpv6Detection('https://{uuid}.ipv6.example.com', { onDetected });
+
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(onDetected).not.toHaveBeenCalled();
+    });
+
+    it('does not call onDetected when POST response is not ok', async () => {
+        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: 'jwt' }) });
+        fetchMock.mockResolvedValueOnce({ ok: false });
+
+        const onDetected = vi.fn();
+        useIpv6Detection('https://{uuid}.ipv6.example.com', { onDetected });
+
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(onDetected).not.toHaveBeenCalled();
+    });
+
+    it('works without onDetected callback', async () => {
+        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: 'jwt' }) });
+        fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ip: '::1', internetEnabled: true }) });
+
+        useIpv6Detection('https://{uuid}.ipv6.example.com');
+
+        await expect(vi.advanceTimersByTimeAsync(0)).resolves.not.toThrow();
+    });
+
     it('does not POST when detection response is not ok', async () => {
         fetchMock.mockResolvedValueOnce({ ok: false });
 
@@ -95,7 +142,7 @@ describe('useIpv6Detection', () => {
     it('repeats detection at configured interval', async () => {
         fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({ token: 'jwt' }) });
 
-        useIpv6Detection('https://{uuid}.ipv6.example.com', 5000);
+        useIpv6Detection('https://{uuid}.ipv6.example.com', { intervalMs: 5000 });
 
         await vi.advanceTimersByTimeAsync(0);
         fetchMock.mockClear();
