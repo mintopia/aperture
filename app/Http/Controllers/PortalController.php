@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\IntegrationConfig;
+use App\Models\IpAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Ipv6JwtService;
@@ -68,6 +70,34 @@ class PortalController extends Controller
         /** @var User $user */
         $user = $request->user();
         $ip = $user->addIp($ipv6);
+
+        if ($ip instanceof IpAddress) {
+            $clientIpRecord = IpAddress::whereAddress((string) $request->getClientIp())->first();
+            $mac = $clientIpRecord?->currentMac();
+
+            if ($mac !== null) {
+                $existing = $ip->macAddresses()->where('mac_addresses.id', $mac->id)->first();
+
+                if ($existing !== null) {
+                    $ip->macAddresses()->updateExistingPivot($mac->id, [
+                        'last_seen_at' => now(),
+                    ]);
+                } else {
+                    $ip->macAddresses()->attach($mac, [
+                        'source' => 'ipv6_detection',
+                        'last_seen_at' => now(),
+                    ]);
+
+                    AuditLog::record(
+                        action: 'ip_mac.linked',
+                        subject: $ip,
+                        related: $mac,
+                        process: 'ipv6_detection',
+                        metadata: ['client_ip' => (string) $request->getClientIp()],
+                    );
+                }
+            }
+        }
 
         return response()->json((object) [
             'ip' => $ipv6,

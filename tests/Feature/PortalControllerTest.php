@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\IntegrationConfig;
+use App\Models\AuditLog;
 use App\Models\IpAddress;
+use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Interfaces\CaptivePortalInterface;
@@ -403,5 +405,141 @@ class PortalControllerTest extends TestCase
 
         $response->assertSee('attemptIpv6Detection', false);
         $response->assertSee('ipv6.example.com', false);
+    }
+
+    public function test_ipv6_links_mac_from_client_ipv4(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        // Set up client IPv4 with a known MAC
+        $clientIp = IpAddress::factory()->create(['address' => '127.0.0.1']);
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $clientIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json')
+            ->andReturn('2001:db8::1');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
+
+        $ipv6Record = IpAddress::whereAddress('2001:db8::1')->first();
+        $this->assertNotNull($ipv6Record);
+        $this->assertDatabaseHas('ip_address_mac_address', [
+            'ip_address_id' => $ipv6Record->id,
+            'mac_address_id' => $mac->id,
+            'source' => 'ipv6_detection',
+        ]);
+    }
+
+    public function test_ipv6_does_not_link_mac_when_client_ip_has_no_mac(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        IpAddress::factory()->create(['address' => '127.0.0.1']);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->andReturn('2001:db8::2');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
+
+        $ipv6Record = IpAddress::whereAddress('2001:db8::2')->first();
+        $this->assertNotNull($ipv6Record);
+        $this->assertDatabaseMissing('ip_address_mac_address', [
+            'ip_address_id' => $ipv6Record->id,
+        ]);
+    }
+
+    public function test_ipv6_does_not_link_mac_when_client_ip_not_in_database(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->andReturn('2001:db8::3');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
+
+        $ipv6Record = IpAddress::whereAddress('2001:db8::3')->first();
+        $this->assertNotNull($ipv6Record);
+        $this->assertDatabaseMissing('ip_address_mac_address', [
+            'ip_address_id' => $ipv6Record->id,
+        ]);
+    }
+
+    public function test_ipv6_updates_last_seen_when_mac_already_linked(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $clientIp = IpAddress::factory()->create(['address' => '127.0.0.1']);
+        $ipv6Record = IpAddress::factory()->create(['address' => '2001:db8::4']);
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+
+        $clientIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+        $ipv6Record->macAddresses()->attach($mac, [
+            'source' => 'ipv6_detection',
+            'last_seen_at' => now()->subHour(),
+        ]);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->andReturn('2001:db8::4');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        $this->travel(1)->hours();
+        $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
+
+        $pivot = $ipv6Record->macAddresses()->where('mac_addresses.id', $mac->id)->first();
+        $this->assertNotNull($pivot);
+        $this->assertTrue($pivot->pivot->last_seen_at->isAfter(now()->subMinute()));
+        $this->assertDatabaseMissing('audit_logs', [
+            'action' => 'ip_mac.linked',
+            'subject_type' => \App\Models\IpAddress::class,
+            'subject_id' => $ipv6Record->id,
+            'process' => 'ipv6_detection',
+        ]);
+    }
+
+    public function test_ipv6_mac_linkage_creates_audit_log(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $clientIp = IpAddress::factory()->create(['address' => '127.0.0.1']);
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $clientIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->andReturn('2001:db8::5');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
+
+        $ipv6Record = IpAddress::whereAddress('2001:db8::5')->first();
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'ip_mac.linked',
+            'subject_type' => IpAddress::class,
+            'subject_id' => $ipv6Record->id,
+            'process' => 'ipv6_detection',
+        ]);
     }
 }
