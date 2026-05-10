@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BandwidthRequest;
+use App\Http\Resources\BandwidthResource;
 use App\Jobs\ResetAperture;
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\SystemEvent;
 use App\Models\User;
@@ -16,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,27 +53,40 @@ class HomeController extends Controller
         ]);
     }
 
-    public function bandwidth(Request $request, IpBandwidthInterface $ipBandwidth): JsonResponse
+    public function bandwidth(BandwidthRequest $request, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
-        $validated = $request->validate([
-            'range' => 'nullable|string|in:1h,24h,4d',
-        ]);
-
-        $range = $validated['range'] ?? '24h';
+        $range = $request->validated()['range'] ?? '24h';
 
         $bandwidth = $ipBandwidth->getTotalBandwidth($range);
 
-        return response()->json([
-            'timestamps' => $bandwidth->timestamps,
-            'download' => $bandwidth->download,
-            'upload' => $bandwidth->upload,
-            'totalReceived' => $bandwidth->received,
-            'totalSent' => $bandwidth->sent,
-        ]);
+        return BandwidthResource::make($bandwidth)->response();
     }
 
-    public function reset(): RedirectResponse
+    public function reset(Request $request): RedirectResponse
     {
+        $request->validate([
+            'password' => ['required', 'string'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        if ($user->password === null) {
+            return back()->withErrors(['password' => 'Password required for destructive operations.']);
+        }
+
+        if (! Hash::check($request->string('password')->value(), $user->password)) {
+            return back()->withErrors(['password' => 'The provided password is incorrect.']);
+        }
+
+        AuditLog::record(
+            action: 'portal.reset',
+            subject: $user,
+            actor: $user,
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp()],
+        );
+
         ResetAperture::dispatch();
 
         return redirect()->route('admin.home')->with('success', 'Portal reset initiated.');

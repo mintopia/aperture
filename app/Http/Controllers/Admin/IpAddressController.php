@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BandwidthRequest;
 use App\Http\Requests\IpAddressStoreRequest;
+use App\Http\Resources\BandwidthResource;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\IpAddressShowDataService;
+use App\Support\SearchHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,7 +41,7 @@ class IpAddressController extends Controller
 
         if ($filters->nickname) {
             $query = $query->whereHas('users.user', function ($query) use ($filters): void {
-                $query->where('nickname', 'LIKE', sprintf('%%%s%%', $filters->nickname));
+                $query->where('nickname', 'LIKE', SearchHelper::toLikePattern($filters->nickname));
             });
         }
 
@@ -126,7 +129,7 @@ class IpAddressController extends Controller
             action: 'ip.internet_toggled',
             subject: $ip,
             process: 'admin',
-            metadata: ['enabled' => $ip->internet_enabled],
+            metadata: ['ip' => $request->getClientIp(), 'enabled' => $ip->internet_enabled],
         );
 
         $message = $ip->internet_enabled ? 'Internet will be enabled for this IP' : 'Internet will be disabled for this IP';
@@ -177,22 +180,12 @@ class IpAddressController extends Controller
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', 'The IP address has been added');
     }
 
-    public function bandwidth(Request $request, IpAddress $ip, IpBandwidthInterface $ipBandwidth): JsonResponse
+    public function bandwidth(BandwidthRequest $request, IpAddress $ip, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
-        $validated = $request->validate([
-            'range' => 'nullable|string|in:1h,24h,4d',
-        ]);
-
-        $range = $validated['range'] ?? '24h';
+        $range = $request->validated()['range'] ?? '24h';
 
         $bandwidth = $ipBandwidth->getIpBandwidth($ip->address, $range);
 
-        return response()->json([
-            'timestamps' => $bandwidth->timestamps,
-            'download' => $bandwidth->download,
-            'upload' => $bandwidth->upload,
-            'totalReceived' => $bandwidth->received,
-            'totalSent' => $bandwidth->sent,
-        ]);
+        return BandwidthResource::make($bandwidth)->response();
     }
 }

@@ -13,6 +13,7 @@ use App\Http\Requests\Admin\UserBlockRequest;
 use App\Http\Requests\Admin\UserIndexRequest;
 use App\Http\Requests\Admin\UserInternetRequest;
 use App\Http\Requests\Admin\UserLimitRequest;
+use App\Http\Resources\BandwidthResource;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
@@ -116,8 +117,23 @@ class UserController extends Controller
         $user->save();
 
         if ($request->has('roles')) {
+            $oldRoles = $user->roles->pluck('code')->sort()->values()->all();
             $roleIds = Role::whereIn('code', $validated['roles'] ?? [])->pluck('id');
             $user->roles()->sync($roleIds);
+            $newRoles = ($validated['roles'] ?? []);
+            sort($newRoles);
+
+            if ($oldRoles !== $newRoles) {
+                AuditLog::record(
+                    action: 'user.role_changed',
+                    subject: $user,
+                    process: 'admin',
+                    metadata: [
+                        'ip' => $request->getClientIp(),
+                        'roles' => $newRoles,
+                    ],
+                );
+            }
         }
 
         return redirect()->route('admin.users.show', $user)->with('success', 'User updated successfully.');
@@ -163,6 +179,13 @@ class UserController extends Controller
                 );
             });
 
+        AuditLog::record(
+            action: 'user.internet_toggled',
+            subject: $user,
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp(), 'enabled' => $enable],
+        );
+
         $message = $enable
             ? 'Internet has been enabled for all user IPs'
             : 'Internet has been disabled for all user IPs';
@@ -198,9 +221,7 @@ class UserController extends Controller
 
     public function bandwidth(BandwidthRequest $request, User $user, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
-        $validated = $request->validated();
-
-        $range = $validated['range'] ?? '24h';
+        $range = $request->validated()['range'] ?? '24h';
 
         $ipAddresses = $user->ips()->with('ip')->get()
             ->map(fn ($userIp) => $userIp->ip->address)
@@ -220,13 +241,7 @@ class UserController extends Controller
             $bandwidth = $ipBandwidth->getIpBandwidth($ipAddresses, $range);
         }
 
-        return response()->json([
-            'timestamps' => $bandwidth->timestamps,
-            'download' => $bandwidth->download,
-            'upload' => $bandwidth->upload,
-            'totalReceived' => $bandwidth->received,
-            'totalSent' => $bandwidth->sent,
-        ]);
+        return BandwidthResource::make($bandwidth)->response();
     }
 
     public function storeParameter(StoreUserParameterRequest $request, User $user): RedirectResponse
