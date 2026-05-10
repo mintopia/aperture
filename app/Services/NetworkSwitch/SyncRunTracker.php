@@ -43,4 +43,19 @@ class SyncRunTracker
             'error' => $error,
         ]);
     }
+
+    /**
+     * Clean up stale sync runs that have been stuck in 'running' state for more than 5 minutes.
+     */
+    public function cleanStale(SwitchConfig $switchConfig): void
+    {
+        SwitchSyncRun::where('switch_config_id', $switchConfig->id)
+            ->where('status', 'running')
+            ->where('started_at', '<', now()->subMinutes(5))
+            ->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'error' => 'Sync timed out (stale run cleanup)',
+            ]);
+    }
 }
