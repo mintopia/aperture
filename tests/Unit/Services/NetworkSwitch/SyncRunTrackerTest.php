@@ -17,7 +17,7 @@ class SyncRunTrackerTest extends TestCase
     public function test_start_creates_running_sync_run(): void
     {
         $switchConfig = SwitchConfig::factory()->create();
-        $tracker = new SyncRunTracker();
+        $tracker = new SyncRunTracker;
 
         $run = $tracker->start($switchConfig);
 
@@ -29,7 +29,7 @@ class SyncRunTrackerTest extends TestCase
     public function test_complete_updates_status_and_counters(): void
     {
         $switchConfig = SwitchConfig::factory()->create();
-        $tracker = new SyncRunTracker();
+        $tracker = new SyncRunTracker;
         $run = $tracker->start($switchConfig);
 
         $tracker->complete($run, portsCreated: 2, portsUpdated: 5, macsCreated: 10, macsUpdated: 3);
@@ -44,7 +44,7 @@ class SyncRunTrackerTest extends TestCase
     public function test_fail_updates_status_and_records_error(): void
     {
         $switchConfig = SwitchConfig::factory()->create();
-        $tracker = new SyncRunTracker();
+        $tracker = new SyncRunTracker;
         $run = $tracker->start($switchConfig);
 
         $tracker->fail($run, 'Connection refused');

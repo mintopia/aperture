@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\NetworkSwitch;
 
-use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Models\SwitchPortMac;
@@ -27,7 +26,7 @@ class PortMacSyncTest extends TestCase
             'switchport_mode' => 'access',
         ]);
 
-        $sync = new PortMacSync();
+        $sync = new PortMacSync;
         $macEntries = collect([
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
         ]);
@@ -62,7 +61,7 @@ class PortMacSyncTest extends TestCase
 
         $originalLastSeen = $existingMac->last_seen_at;
 
-        $sync = new PortMacSync();
+        $sync = new PortMacSync;
         $macEntries = collect([
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
         ]);
@@ -84,7 +83,7 @@ class PortMacSyncTest extends TestCase
             'switchport_mode' => 'trunk',
         ]);
 
-        $sync = new PortMacSync();
+        $sync = new PortMacSync;
         $macEntries = collect([
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
         ]);
@@ -99,7 +98,7 @@ class PortMacSyncTest extends TestCase
     {
         $switchConfig = SwitchConfig::factory()->create();
 
-        $sync = new PortMacSync();
+        $sync = new PortMacSync;
         $macEntries = collect([
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/99', vlan: 100),
         ]);
@@ -125,7 +124,7 @@ class PortMacSyncTest extends TestCase
             'vlan' => 100,
         ]);
 
-        $sync = new PortMacSync();
+        $sync = new PortMacSync;
         $sync->cleanStaleMacs($switchConfig, []);
 
         $this->assertDatabaseMissing('switch_port_macs', ['id' => $staleMac->id]);
@@ -146,7 +145,7 @@ class PortMacSyncTest extends TestCase
             'vlan' => 100,
         ]);
 
-        $sync = new PortMacSync();
+        $sync = new PortMacSync;
         $sync->cleanStaleMacs($switchConfig, [(int) $keptMac->id]);
 
         $this->assertDatabaseHas('switch_port_macs', ['id' => $keptMac->id]);
@@ -161,7 +160,7 @@ class PortMacSyncTest extends TestCase
             'switchport_mode' => 'access',
         ]);
 
-        $sync = new PortMacSync();
+        $sync = new PortMacSync;
         $macEntries = collect([
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
         ]);

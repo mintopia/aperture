@@ -19,7 +19,7 @@ class PortStatusSyncTest extends TestCase
     public function test_creates_new_port_when_not_existing(): void
     {
         $switchConfig = SwitchConfig::factory()->create();
-        $sync = new PortStatusSync();
+        $sync = new PortStatusSync;
 
         $portStatus = new PortStatus(
             interface: 'Gi1/0/1',
@@ -52,7 +52,7 @@ class PortStatusSyncTest extends TestCase
             'status' => 'notconnect',
         ]);
 
-        $sync = new PortStatusSync();
+        $sync = new PortStatusSync;
 
         $portStatus = new PortStatus(
             interface: 'Gi1/0/1',
@@ -82,7 +82,7 @@ class PortStatusSyncTest extends TestCase
             'status' => 'notconnect',
         ]);
 
-        $sync = new PortStatusSync();
+        $sync = new PortStatusSync;
 
         $portStatus = new PortStatus(
             interface: 'Gi1/0/2',
@@ -107,7 +107,7 @@ class PortStatusSyncTest extends TestCase
             'status' => 'connected',
         ]);
 
-        $sync = new PortStatusSync();
+        $sync = new PortStatusSync;
 
         $portStatus = new PortStatus(
             interface: 'Gi1/0/3',
