@@ -204,37 +204,52 @@ function closePanel() {
 }
 
 async function saveBlock(data) {
-    await put(`/admin/content/${data.id}`, data);
-    const block = getBlock(data.id);
-    if (block) {
-        Object.assign(block, data);
+    try {
+        await put(`/admin/content/${data.id}`, data);
+        const block = getBlock(data.id);
+        if (block) {
+            Object.assign(block, data);
+        }
+    } catch (_e) {
+        // error is surfaced via useApi's error ref
+    } finally {
+        selectedBlock.value = null;
     }
-    selectedBlock.value = null;
 }
 
 async function deleteBlock(id) {
     if (!confirm('Delete this block?')) {
         return;
     }
-    await del(`/admin/content/${id}`);
-    localBlocks.value = localBlocks.value.filter((b) => b.id !== id);
-    selectedBlock.value = null;
-    hasChanges.value = true;
+    try {
+        await del(`/admin/content/${id}`);
+        localBlocks.value = localBlocks.value.filter((b) => b.id !== id);
+        hasChanges.value = true;
+    } catch (_e) {
+        // error is surfaced via useApi's error ref
+    } finally {
+        selectedBlock.value = null;
+    }
 }
 
 async function saveLayout() {
     saving.value = true;
-    await put(route('admin.content.layout.update'), {
-        blocks: localBlocks.value.map((b) => ({
-            id: b.id,
-            grid_col: b.grid_col,
-            grid_row: b.grid_row,
-            col_span: b.col_span,
-            row_span: b.row_span,
-        })),
-    });
-    saving.value = false;
-    hasChanges.value = false;
+    try {
+        await put(route('admin.content.layout.update'), {
+            blocks: localBlocks.value.map((b) => ({
+                id: b.id,
+                grid_col: b.grid_col,
+                grid_row: b.grid_row,
+                col_span: b.col_span,
+                row_span: b.row_span,
+            })),
+        });
+        hasChanges.value = false;
+    } catch (_e) {
+        // error is surfaced via useApi's error ref
+    } finally {
+        saving.value = false;
+    }
 }
 
 function blockStyle(block) {

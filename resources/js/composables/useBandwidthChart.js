@@ -45,12 +45,9 @@ export function useBandwidthChart(endpoint, defaultRange = '24h', pollInterval =
         bandwidthLoading.value = true;
         bandwidthError.value = false;
         try {
-            const response = await fetch(`${endpoint}?range=${selectedRange.value}`);
-            if (response.ok) {
-                bandwidthData.value = await response.json();
-            } else {
-                bandwidthError.value = true;
-            }
+            const response = await window.axios.get(`${endpoint}?range=${selectedRange.value}`);
+            const data = response.data;
+            bandwidthData.value = data;
         } catch (_e) {
             bandwidthError.value = true;
         } finally {
@@ -60,7 +57,7 @@ export function useBandwidthChart(endpoint, defaultRange = '24h', pollInterval =
 
     function selectRange(range) {
         selectedRange.value = range;
-        fetchBandwidth();
+        if (enabled) fetchBandwidth();
     }
 
     let pollTimer = null;

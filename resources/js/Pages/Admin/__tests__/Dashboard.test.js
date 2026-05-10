@@ -71,34 +71,34 @@ const globalConfig = {
 
 describe('Dashboard Echo integration', () => {
     let originalEcho;
-    let originalFetch;
+    let originalAxios;
     let originalRoute;
 
     beforeEach(() => {
         originalEcho = window.Echo;
-        originalFetch = window.fetch;
+        originalAxios = window.axios;
         originalRoute = window.route;
         window.route = routeMock;
         vi.useFakeTimers();
-        window.fetch = vi.fn(() =>
-            Promise.resolve({
-                ok: true,
-                json: () =>
-                    Promise.resolve({
+        window.axios = {
+            get: vi.fn(() =>
+                Promise.resolve({
+                    data: {
                         timestamps: [],
                         download: [],
                         upload: [],
                         totalReceived: 0,
                         totalSent: 0,
-                    }),
-            }),
-        );
+                    },
+                }),
+            ),
+        };
         vi.spyOn(router, 'reload').mockImplementation(() => {});
     });
 
     afterEach(() => {
         window.Echo = originalEcho;
-        window.fetch = originalFetch;
+        window.axios = originalAxios;
         window.route = originalRoute;
         vi.useRealTimers();
         vi.restoreAllMocks();
@@ -189,13 +189,13 @@ describe('Dashboard Echo integration', () => {
         });
 
         // Clear initial fetch call from onMounted
-        window.fetch.mockClear();
+        window.axios.get.mockClear();
 
         // Advance to trigger fallback poll
         vi.advanceTimersByTime(30000);
 
         // The poll callback (fetchBandwidth) should have been called
-        expect(window.fetch).toHaveBeenCalled();
+        expect(window.axios.get).toHaveBeenCalled();
     });
 
     it('does not poll when WebSocket is connected', async () => {
@@ -210,13 +210,13 @@ describe('Dashboard Echo integration', () => {
 
         // Clear initial fetch call
         await vi.advanceTimersByTimeAsync(0);
-        window.fetch.mockClear();
+        window.axios.get.mockClear();
 
         // Advance well past poll interval
         await vi.advanceTimersByTimeAsync(60000);
 
         // Fetch should NOT have been called via polling (only initial + any health checks)
         // No polling calls expected since WebSocket is connected
-        expect(window.fetch).not.toHaveBeenCalled();
+        expect(window.axios.get).not.toHaveBeenCalled();
     });
 });

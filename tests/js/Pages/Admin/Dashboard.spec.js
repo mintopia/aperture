@@ -46,19 +46,19 @@ vi.stubGlobal(
     (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`),
 );
 
-global.fetch = vi.fn(() =>
-    Promise.resolve({
-        ok: true,
-        json: () =>
-            Promise.resolve({
+window.axios = {
+    get: vi.fn(() =>
+        Promise.resolve({
+            data: {
                 timestamps: [],
                 download: [],
                 upload: [],
                 totalReceived: 0,
                 totalSent: 0,
-            }),
-    }),
-);
+            },
+        }),
+    ),
+};
 
 const routeMock = (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`);
 
@@ -125,7 +125,7 @@ describe('Dashboard', () => {
         deferredReady = true;
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-04-17T12:00:00.000Z'));
-        vi.mocked(global.fetch).mockClear();
+        vi.mocked(window.axios.get).mockClear();
     });
 
     afterEach(() => {
@@ -339,7 +339,7 @@ describe('Dashboard', () => {
             global: defaultGlobal,
         });
 
-        expect(global.fetch).toHaveBeenCalled();
-        expect(global.fetch.mock.calls[0][0]).toContain('admin.dashboard.bandwidth');
+        expect(window.axios.get).toHaveBeenCalled();
+        expect(window.axios.get.mock.calls[0][0]).toContain('admin.dashboard.bandwidth');
     });
 });

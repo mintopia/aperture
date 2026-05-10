@@ -63,7 +63,7 @@ const ranges = [
     { value: '4d', label: '72H' },
 ];
 
-const { selectedRange, bandwidthData, bandwidthLoading, chartSeries, selectRange, fetchBandwidth } =
+const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSeries, selectRange, fetchBandwidth } =
     useBandwidthChart(route('admin.dashboard.bandwidth'), '1h', 0);
 
 function refreshDashboard() {
@@ -297,6 +297,13 @@ function confirmReset() {
                     empty-message="No bandwidth data available"
                     data-testid="bandwidth-chart"
                 />
+                <p
+                    v-if="bandwidthError"
+                    class="mt-2 text-[12px] text-[var(--color-danger)]"
+                    data-testid="bandwidth-error"
+                >
+                    Failed to load bandwidth data
+                </p>
             </div>
         </div>
 

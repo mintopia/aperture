@@ -24,10 +24,7 @@ function createWrapper(endpoint = '/api/bandwidth', defaultRange = '24h', pollIn
 describe('useBandwidthChart', () => {
     beforeEach(() => {
         vi.useFakeTimers();
-        global.fetch = vi.fn().mockResolvedValue({
-            ok: true,
-            json: () => Promise.resolve(mockData),
-        });
+        window.axios = { get: vi.fn().mockResolvedValue({ data: mockData }) };
     });
 
     afterEach(() => {
@@ -45,7 +42,7 @@ describe('useBandwidthChart', () => {
     it('fetches bandwidth data on mount', async () => {
         createWrapper('/api/bandwidth');
         await flushPromises();
-        expect(global.fetch).toHaveBeenCalledWith('/api/bandwidth?range=24h');
+        expect(window.axios.get).toHaveBeenCalledWith('/api/bandwidth?range=24h');
     });
 
     it('updates bandwidthData on successful fetch', async () => {
@@ -56,7 +53,7 @@ describe('useBandwidthChart', () => {
     });
 
     it('sets bandwidthError on fetch failure', async () => {
-        global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+        window.axios.get.mockRejectedValue(new Error('Network error'));
         const wrapper = createWrapper('/api/bandwidth');
         await flushPromises();
         expect(wrapper.vm.bandwidthError).toBe(true);
@@ -66,19 +63,19 @@ describe('useBandwidthChart', () => {
     it('polls at specified interval', async () => {
         createWrapper('/api/bandwidth', '24h', 5000);
         await flushPromises();
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.axios.get).toHaveBeenCalledTimes(1);
         vi.advanceTimersByTime(5000);
         await flushPromises();
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(window.axios.get).toHaveBeenCalledTimes(2);
     });
 
     it('does not poll when pollInterval is 0', async () => {
         createWrapper('/api/bandwidth', '24h', 0);
         await flushPromises();
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.axios.get).toHaveBeenCalledTimes(1);
         vi.advanceTimersByTime(60000);
         await flushPromises();
-        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(window.axios.get).toHaveBeenCalledTimes(1);
     });
 
     it('returns chart series in correct format', async () => {
@@ -92,9 +89,8 @@ describe('useBandwidthChart', () => {
     });
 
     it('returns empty chartSeries when timestamps are empty', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
-            ok: true,
-            json: () => Promise.resolve({ timestamps: [], download: [], upload: [], totalReceived: 0, totalSent: 0 }),
+        window.axios.get.mockResolvedValue({
+            data: { timestamps: [], download: [], upload: [], totalReceived: 0, totalSent: 0 },
         });
         const wrapper = createWrapper('/api/bandwidth');
         await flushPromises();
@@ -107,7 +103,7 @@ describe('useBandwidthChart', () => {
         wrapper.vm.selectRange('1h');
         expect(wrapper.vm.selectedRange).toBe('1h');
         await flushPromises();
-        expect(global.fetch).toHaveBeenLastCalledWith('/api/bandwidth?range=1h');
+        expect(window.axios.get).toHaveBeenLastCalledWith('/api/bandwidth?range=1h');
     });
 
     it('clears poll interval on unmount', async () => {
@@ -121,7 +117,7 @@ describe('useBandwidthChart', () => {
     it('does not fetch when enabled is false', async () => {
         const wrapper = createWrapper('/api/bandwidth', '24h', 30000, false);
         await flushPromises();
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.axios.get).not.toHaveBeenCalled();
         expect(wrapper.vm.bandwidthLoading).toBe(false);
     });
 
@@ -130,6 +126,22 @@ describe('useBandwidthChart', () => {
         await flushPromises();
         vi.advanceTimersByTime(60000);
         await flushPromises();
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.axios.get).not.toHaveBeenCalled();
+    });
+
+    it('handles sparse data arrays with null holes', async () => {
+        window.axios.get.mockResolvedValueOnce({
+            data: {
+                timestamps: ['1000', '2000'],
+                download: [100, null],
+                upload: [null, 75],
+                totalReceived: 1024,
+                totalSent: 512,
+            },
+        });
+        const wrapper = createWrapper('/api/bandwidth');
+        await flushPromises();
+        expect(wrapper.vm.chartSeries[0].data[1].value).toBe(0);
+        expect(wrapper.vm.chartSeries[1].data[0].value).toBe(0);
     });
 });

@@ -40,21 +40,15 @@ const TimeSeriesChartStub = {
 };
 
 function mockFetchSuccess(response = defaultBandwidthResponse) {
-    vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({
-            ok: true,
-            json: vi.fn().mockResolvedValue(response),
-        }),
-    );
+    window.axios = { get: vi.fn().mockResolvedValue({ data: response }) };
 }
 
 function mockFetchError() {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
+    window.axios = { get: vi.fn().mockRejectedValue(new Error('Network error')) };
 }
 
 function mockFetchNonOk() {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: vi.fn() }));
+    window.axios = { get: vi.fn().mockRejectedValue(new Error('Request failed with status 400')) };
 }
 
 function mountPage(overrides = {}) {
@@ -86,21 +80,15 @@ describe('Admin IP Show bandwidth chart', () => {
         mountPage();
         await flushPromises();
 
-        expect(fetch).toHaveBeenCalledWith(expect.stringContaining('?range=24h'));
+        expect(window.axios.get).toHaveBeenCalledWith(expect.stringContaining('?range=24h'));
     });
 
     it('shows loading state during fetch', async () => {
-        let resolveJson;
-        const jsonPromise = new Promise((resolve) => {
-            resolveJson = resolve;
+        let resolveGet;
+        const getPromise = new Promise((resolve) => {
+            resolveGet = resolve;
         });
-        vi.stubGlobal(
-            'fetch',
-            vi.fn().mockResolvedValue({
-                ok: true,
-                json: vi.fn().mockReturnValue(jsonPromise),
-            }),
-        );
+        window.axios = { get: vi.fn().mockReturnValue(getPromise) };
 
         const wrapper = mountPage();
 
@@ -108,7 +96,7 @@ describe('Admin IP Show bandwidth chart', () => {
         const chart = wrapper.findComponent(TimeSeriesChartStub);
         expect(chart.props('loading')).toBe(true);
 
-        resolveJson(defaultBandwidthResponse);
+        resolveGet({ data: defaultBandwidthResponse });
         await flushPromises();
 
         expect(chart.props('loading')).toBe(false);
@@ -118,13 +106,13 @@ describe('Admin IP Show bandwidth chart', () => {
         const wrapper = mountPage();
         await flushPromises();
 
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(window.axios.get).toHaveBeenCalledTimes(1);
 
         await wrapper.find('[data-testid="range-1h"]').trigger('click');
         await flushPromises();
 
-        expect(fetch).toHaveBeenCalledTimes(2);
-        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('?range=1h'));
+        expect(window.axios.get).toHaveBeenCalledTimes(2);
+        expect(window.axios.get).toHaveBeenLastCalledWith(expect.stringContaining('?range=1h'));
     });
 
     it('re-fetches bandwidth when 4d range is selected', async () => {
@@ -134,7 +122,7 @@ describe('Admin IP Show bandwidth chart', () => {
         await wrapper.find('[data-testid="range-4d"]').trigger('click');
         await flushPromises();
 
-        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('?range=4d'));
+        expect(window.axios.get).toHaveBeenLastCalledWith(expect.stringContaining('?range=4d'));
     });
 
     it('chartSeries computed maps timestamps and data correctly', async () => {

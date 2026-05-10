@@ -29,19 +29,19 @@ vi.mock('@inertiajs/vue3', () => ({
 
 vi.stubGlobal('route', (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`));
 
-global.fetch = vi.fn(() =>
-    Promise.resolve({
-        ok: true,
-        json: () =>
-            Promise.resolve({
+window.axios = {
+    get: vi.fn(() =>
+        Promise.resolve({
+            data: {
                 timestamps: [],
                 download: [],
                 upload: [],
                 totalReceived: 0,
                 totalSent: 0,
-            }),
-    }),
-);
+            },
+        }),
+    ),
+};
 
 const routeMock = (name, ...params) => (params.length ? `/mocked/${name}/${params.join('/')}` : `/mocked/${name}`);
 
@@ -110,7 +110,7 @@ describe('Users Show', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-04-17T12:00:00.000Z'));
-        vi.mocked(global.fetch).mockClear();
+        vi.mocked(window.axios.get).mockClear();
     });
 
     afterEach(() => {
@@ -232,8 +232,8 @@ describe('Users Show', () => {
             global: defaultGlobal,
         });
 
-        expect(global.fetch).toHaveBeenCalled();
-        expect(global.fetch.mock.calls[0][0]).toContain('admin.users.bandwidth');
+        expect(window.axios.get).toHaveBeenCalled();
+        expect(window.axios.get.mock.calls[0][0]).toContain('admin.users.bandwidth');
     });
 
     it('does not call fetch for bandwidth when ipCount is 0', () => {
@@ -242,6 +242,6 @@ describe('Users Show', () => {
             global: defaultGlobal,
         });
 
-        expect(global.fetch).not.toHaveBeenCalled();
+        expect(window.axios.get).not.toHaveBeenCalled();
     });
 });
