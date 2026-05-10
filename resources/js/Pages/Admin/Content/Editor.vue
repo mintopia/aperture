@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import EditorSidePanel from '@/Components/Admin/Content/EditorSidePanel.vue';
 import { useGridEditor } from '@/composables/useGridEditor.js';
+import { useApi } from '@/composables/useApi.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -20,6 +21,7 @@ const showAddMenu = ref(false);
 const addingBlock = ref(false);
 
 const { totalRows, moveBlock, computeDisplacement, cellFromPointer } = useGridEditor(localBlocks);
+const { post, put, delete: del } = useApi();
 
 // Drag state
 const dragging = ref(null);
@@ -202,14 +204,7 @@ function closePanel() {
 }
 
 async function saveBlock(data) {
-    await fetch(`/admin/content/${data.id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-        },
-        body: JSON.stringify(data),
-    });
+    await put(`/admin/content/${data.id}`, data);
     const block = getBlock(data.id);
     if (block) {
         Object.assign(block, data);
@@ -221,12 +216,7 @@ async function deleteBlock(id) {
     if (!confirm('Delete this block?')) {
         return;
     }
-    await fetch(`/admin/content/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-        },
-    });
+    await del(`/admin/content/${id}`);
     localBlocks.value = localBlocks.value.filter((b) => b.id !== id);
     selectedBlock.value = null;
     hasChanges.value = true;
@@ -234,21 +224,14 @@ async function deleteBlock(id) {
 
 async function saveLayout() {
     saving.value = true;
-    await fetch(route('admin.content.layout.update'), {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-        },
-        body: JSON.stringify({
-            blocks: localBlocks.value.map((b) => ({
-                id: b.id,
-                grid_col: b.grid_col,
-                grid_row: b.grid_row,
-                col_span: b.col_span,
-                row_span: b.row_span,
-            })),
-        }),
+    await put(route('admin.content.layout.update'), {
+        blocks: localBlocks.value.map((b) => ({
+            id: b.id,
+            grid_col: b.grid_col,
+            grid_row: b.grid_row,
+            col_span: b.col_span,
+            row_span: b.row_span,
+        })),
     });
     saving.value = false;
     hasChanges.value = false;
@@ -288,25 +271,15 @@ async function addBlock(type) {
     addingBlock.value = true;
     showAddMenu.value = false;
     try {
-        const response = await fetch(route('admin.content.store'), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-            },
-            body: JSON.stringify({
-                type,
-                title: blockTypes.find((bt) => bt.type === type)?.label ?? type,
-                content: '',
-                is_active: true,
-            }),
+        const block = await post(route('admin.content.store'), {
+            type,
+            title: blockTypes.find((bt) => bt.type === type)?.label ?? type,
+            content: '',
+            is_active: true,
         });
-        if (response.ok) {
-            const block = await response.json();
-            localBlocks.value.push(block);
-            hasChanges.value = false;
-            selectedBlock.value = block;
-        }
+        localBlocks.value.push(block);
+        hasChanges.value = false;
+        selectedBlock.value = block;
     } finally {
         addingBlock.value = false;
     }

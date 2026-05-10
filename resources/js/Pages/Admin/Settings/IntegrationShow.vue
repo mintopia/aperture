@@ -4,7 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { ref, onMounted } from 'vue';
 import { formatRelative } from '@/utils/dates';
-import { getCsrfToken } from '@/utils/webauthn';
+import { useApi } from '@/composables/useApi.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -21,6 +21,8 @@ const form = useForm({
     config: initialConfig,
 });
 
+const { post, put } = useApi();
+
 const testingConnection = ref(false);
 const testResult = ref(null);
 const expandedLogIds = ref(new Set());
@@ -34,15 +36,7 @@ async function fetchRemoteOptions(field) {
     };
 
     try {
-        const response = await fetch(field.remote_url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken(),
-            },
-            body: JSON.stringify(form.config),
-        });
-        const data = await response.json();
+        const data = await post(field.remote_url, form.config);
 
         if (data.error) {
             remoteOptions.value[field.key] = { loading: false, options: [], error: data.error };
@@ -80,15 +74,7 @@ async function testConnection() {
     testResult.value = null;
 
     try {
-        const response = await fetch(route('admin.settings.test', { service: props.service.id }), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken(),
-            },
-            body: JSON.stringify(form.config),
-        });
-        testResult.value = await response.json();
+        testResult.value = await post(route('admin.settings.test', { service: props.service.id }), form.config);
     } catch {
         testResult.value = { success: false, message: 'Request failed' };
     } finally {
@@ -98,17 +84,10 @@ async function testConnection() {
 
 async function toggleCapability(capability, currentActive) {
     try {
-        await fetch(route('admin.settings.capabilities.update'), {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken(),
-            },
-            body: JSON.stringify({
-                capability,
-                integration: props.service.id,
-                active: !currentActive,
-            }),
+        await put(route('admin.settings.capabilities.update'), {
+            capability,
+            integration: props.service.id,
+            active: !currentActive,
         });
         router.reload({ only: ['service'] });
     } catch {
