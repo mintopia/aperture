@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Enums\Capability;
+use App\Enums\Integration;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
@@ -70,12 +72,12 @@ class IntegrationServiceProvider extends ServiceProvider
     {
         $this->app->singleton(function (): IntegrationTesterRegistry {
             $registry = new IntegrationTesterRegistry;
-            $registry->register('opnsense', new OpnSenseTester);
-            $registry->register('pihole', new PiHoleTester);
-            $registry->register('librenms', new LibreNmsTester);
-            $registry->register('borealis', new BorealisTester);
-            $registry->register('prometheus', new PrometheusTester);
-            $registry->register('seatpicker', new SeatpickerTester);
+            $registry->register(Integration::OpnSense->value, new OpnSenseTester);
+            $registry->register(Integration::PiHole->value, new PiHoleTester);
+            $registry->register(Integration::LibreNms->value, new LibreNmsTester);
+            $registry->register(Integration::Borealis->value, new BorealisTester);
+            $registry->register(Integration::Prometheus->value, new PrometheusTester);
+            $registry->register(Integration::Seatpicker->value, new SeatpickerTester);
 
             return $registry;
         });
@@ -87,7 +89,7 @@ class IntegrationServiceProvider extends ServiceProvider
     protected function registerSharedSingletons(): void
     {
         $this->app->singleton(function (): OpnSenseClient {
-            $dbConfig = $this->getIntegrationDbConfig('opnsense');
+            $dbConfig = $this->getIntegrationDbConfig(Integration::OpnSense->value);
 
             $client = new Client([
                 'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
@@ -99,7 +101,7 @@ class IntegrationServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (): PrometheusService {
-            $config = $this->getIntegrationDbConfig('prometheus');
+            $config = $this->getIntegrationDbConfig(Integration::Prometheus->value);
 
             return new PrometheusService(
                 endpoint: (string) ($config['endpoint'] ?? ''),
@@ -110,7 +112,7 @@ class IntegrationServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (): LibreNmsService {
-            $dbConfig = $this->getIntegrationDbConfig('librenms');
+            $dbConfig = $this->getIntegrationDbConfig(Integration::LibreNms->value);
 
             return new LibreNmsService(
                 endpoint: (string) ($dbConfig['endpoint'] ?? ''),
@@ -126,10 +128,10 @@ class IntegrationServiceProvider extends ServiceProvider
     {
         // 1. captive-portal / opnsense
         $this->app->bind(function (Application $app): CaptivePortalInterface {
-            if ($this->isActive('opnsense', 'captive-portal')) {
+            if ($this->isActive(Integration::OpnSense->value, Capability::CaptivePortal->value)) {
                 return new OpnSenseCaptivePortal(
                     $app->make(OpnSenseClient::class),
-                    (int) IntegrationConfig::getValue('opnsense', 'zone_id', '0'),
+                    (int) IntegrationConfig::getValue(Integration::OpnSense->value, 'zone_id', '0'),
                 );
             }
 
@@ -138,11 +140,11 @@ class IntegrationServiceProvider extends ServiceProvider
 
         // 2. rate-limiting / opnsense
         $this->app->bind(function (Application $app): RateLimitingInterface {
-            if ($this->isActive('opnsense', 'rate-limiting')) {
+            if ($this->isActive(Integration::OpnSense->value, Capability::RateLimiting->value)) {
                 return new OpnSenseRateLimiter(
                     $app->make(OpnSenseClient::class),
-                    (string) IntegrationConfig::getValue('opnsense', 'ratelimit_up_uuid', ''),
-                    (string) IntegrationConfig::getValue('opnsense', 'ratelimit_down_uuid', ''),
+                    (string) IntegrationConfig::getValue(Integration::OpnSense->value, 'ratelimit_up_uuid', ''),
+                    (string) IntegrationConfig::getValue(Integration::OpnSense->value, 'ratelimit_down_uuid', ''),
                 );
             }
 
@@ -151,7 +153,7 @@ class IntegrationServiceProvider extends ServiceProvider
 
         // 3. dhcp / opnsense
         $this->app->bind(function (Application $app): DhcpInterface {
-            if ($this->isActive('opnsense', 'dhcp')) {
+            if ($this->isActive(Integration::OpnSense->value, Capability::Dhcp->value)) {
                 return $this->buildDhcpService($app);
             }
 
@@ -160,8 +162,8 @@ class IntegrationServiceProvider extends ServiceProvider
 
         // 4. dns-filtering / pihole
         $this->app->bind(function (): DnsFilteringInterface {
-            if ($this->isActive('pihole', 'dns-filtering')) {
-                $dbConfig = $this->getIntegrationDbConfig('pihole');
+            if ($this->isActive(Integration::PiHole->value, Capability::DnsFiltering->value)) {
+                $dbConfig = $this->getIntegrationDbConfig(Integration::PiHole->value);
                 $client = new Client([
                     'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
                     'base_uri' => $dbConfig['endpoint'] ?? '',
@@ -179,8 +181,8 @@ class IntegrationServiceProvider extends ServiceProvider
 
         // 5. ip-bandwidth / prometheus
         $this->app->bind(function (Application $app): IpBandwidthInterface {
-            if ($this->isActive('prometheus', 'ip-bandwidth')) {
-                $config = $this->getIntegrationDbConfig('prometheus');
+            if ($this->isActive(Integration::Prometheus->value, Capability::IpBandwidth->value)) {
+                $config = $this->getIntegrationDbConfig(Integration::Prometheus->value);
 
                 return new PrometheusIpBandwidth(
                     $app->make(PrometheusService::class),
@@ -195,7 +197,7 @@ class IntegrationServiceProvider extends ServiceProvider
 
         // 6. port-bandwidth / prometheus
         $this->app->bind(function (Application $app): PortBandwidthInterface {
-            if ($this->isActive('prometheus', 'port-bandwidth')) {
+            if ($this->isActive(Integration::Prometheus->value, Capability::PortBandwidth->value)) {
                 return new PrometheusPortBandwidth(
                     $app->make(PrometheusService::class),
                 );
@@ -206,7 +208,7 @@ class IntegrationServiceProvider extends ServiceProvider
 
         // 7. port-errors / prometheus
         $this->app->bind(function (Application $app): PortErrorsInterface {
-            if ($this->isActive('prometheus', 'port-errors')) {
+            if ($this->isActive(Integration::Prometheus->value, Capability::PortErrors->value)) {
                 return new PrometheusPortErrors(
                     $app->make(PrometheusService::class),
                 );
@@ -217,7 +219,7 @@ class IntegrationServiceProvider extends ServiceProvider
 
         // 8. ip-mac / librenms
         $this->app->bind(function (Application $app): IpMacResolverInterface {
-            if ($this->isActive('librenms', 'ip-mac')) {
+            if ($this->isActive(Integration::LibreNms->value, Capability::IpMac->value)) {
                 return new LibreNmsIpMacResolver(
                     $app->make(LibreNmsService::class),
                 );
@@ -228,7 +230,7 @@ class IntegrationServiceProvider extends ServiceProvider
 
         // 9. port-mac / librenms
         $this->app->bind(function (Application $app): PortMacInterface {
-            if ($this->isActive('librenms', 'port-mac')) {
+            if ($this->isActive(Integration::LibreNms->value, Capability::PortMac->value)) {
                 return new LibreNmsPortMac(
                     $app->make(LibreNmsService::class),
                 );
@@ -244,11 +246,11 @@ class IntegrationServiceProvider extends ServiceProvider
     protected function registerNonCapabilityBindings(): void
     {
         $this->app->singleton(function (): OpnSenseApiService {
-            return new OpnSenseApiService($this->getIntegrationDbConfig('opnsense'));
+            return new OpnSenseApiService($this->getIntegrationDbConfig(Integration::OpnSense->value));
         });
 
         $this->app->singleton(function (): BorealisService {
-            $dbConfig = $this->getIntegrationDbConfig('borealis');
+            $dbConfig = $this->getIntegrationDbConfig(Integration::Borealis->value);
 
             return new BorealisService(
                 clientId: (string) ($dbConfig['client_id'] ?? ''),
@@ -275,7 +277,7 @@ class IntegrationServiceProvider extends ServiceProvider
      */
     protected function buildDhcpService(Application $app): OpnSenseDhcpService
     {
-        $opnsenseConfig = $this->getIntegrationDbConfig('opnsense');
+        $opnsenseConfig = $this->getIntegrationDbConfig(Integration::OpnSense->value);
         $dhcpServer = (string) ($opnsenseConfig['dhcp_server'] ?? 'isc');
 
         $paths = match ($dhcpServer) {

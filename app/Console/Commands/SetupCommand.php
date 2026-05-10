@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Enums\Capability;
+use App\Enums\Integration;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\Role;
@@ -91,15 +93,15 @@ class SetupCommand extends Command
         }
 
         if ($provided !== []) {
-            IntegrationConfig::setValue('borealis', 'endpoint', $endpoint);
-            IntegrationConfig::setValue('borealis', 'client_id', $clientId);
-            IntegrationConfig::setValue('borealis', 'client_secret', $clientSecret, true);
+            IntegrationConfig::setValue(Integration::Borealis->value, 'endpoint', $endpoint);
+            IntegrationConfig::setValue(Integration::Borealis->value, 'client_id', $clientId);
+            IntegrationConfig::setValue(Integration::Borealis->value, 'client_secret', $clientSecret, true);
             IntegrationConfig::setValue(
-                'borealis',
+                Integration::Borealis->value,
                 'scope',
-                (string) IntegrationConfig::getWithFallback('borealis', 'scope', 'discord')
+                (string) IntegrationConfig::getWithFallback(Integration::Borealis->value, 'scope', 'discord')
             );
-            CapabilityAssignment::assign('authentication', 'borealis');
+            CapabilityAssignment::assign(Capability::Authentication->value, Integration::Borealis->value);
             $this->info('Saved Borealis OAuth settings.');
         } else {
             $this->warn('Borealis OAuth settings were not provided. Captive portal device auth will stay unavailable.');
