@@ -23,6 +23,8 @@ describe('StatusPill', () => {
             danger: '\u2717',
             warning: '\u25B2',
             info: '\u2713',
+            neutral: '–',
+            muted: '·',
         };
         Object.entries(symbolMap).forEach(([status, symbol]) => {
             const wrapper = mount(StatusPill, {
@@ -34,18 +36,24 @@ describe('StatusPill', () => {
         });
     });
 
-    it('does not render symbol for neutral status', () => {
+    it('renders a symbol for neutral status (WCAG 1.4.1 — not colour alone)', () => {
         const wrapper = mount(StatusPill, {
             props: { status: 'neutral', label: 'Unknown' },
         });
-        expect(wrapper.find('[data-testid="status-symbol"]').exists()).toBe(false);
+        const symbol = wrapper.find('[data-testid="status-symbol"]');
+        expect(symbol.exists()).toBe(true);
+        expect(symbol.text().trim().length).toBeGreaterThan(0);
+        expect(symbol.text()).toBe('–');
     });
 
-    it('does not render symbol for muted status', () => {
+    it('renders a symbol for muted status (WCAG 1.4.1 — not colour alone)', () => {
         const wrapper = mount(StatusPill, {
             props: { status: 'muted', label: 'Muted' },
         });
-        expect(wrapper.find('[data-testid="status-symbol"]').exists()).toBe(false);
+        const symbol = wrapper.find('[data-testid="status-symbol"]');
+        expect(symbol.exists()).toBe(true);
+        expect(symbol.text().trim().length).toBeGreaterThan(0);
+        expect(symbol.text()).toBe('·');
     });
 
     it('renders label text for each status', () => {
@@ -103,6 +111,22 @@ describe('StatusPill', () => {
     it('hides symbol from assistive technology with aria-hidden', () => {
         const wrapper = mount(StatusPill, {
             props: { status: 'success', label: 'Active' },
+        });
+        const sym = wrapper.find('[data-testid="status-symbol"]');
+        expect(sym.attributes('aria-hidden')).toBe('true');
+    });
+
+    it('neutral symbol has aria-hidden="true"', () => {
+        const wrapper = mount(StatusPill, {
+            props: { status: 'neutral', label: 'Active' },
+        });
+        const sym = wrapper.find('[data-testid="status-symbol"]');
+        expect(sym.attributes('aria-hidden')).toBe('true');
+    });
+
+    it('muted symbol has aria-hidden="true"', () => {
+        const wrapper = mount(StatusPill, {
+            props: { status: 'muted', label: 'Inactive' },
         });
         const sym = wrapper.find('[data-testid="status-symbol"]');
         expect(sym.attributes('aria-hidden')).toBe('true');

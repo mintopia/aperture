@@ -39,13 +39,13 @@ const config = {
         bg: 'bg-[var(--color-text-muted)]/14',
         text: 'text-[var(--color-text-muted)]',
         border: 'border-[var(--color-text-muted)]/14',
-        symbol: '',
+        symbol: '–',
     },
     muted: {
         bg: 'bg-[var(--color-text-muted)]/10',
         text: 'text-[var(--color-text-muted)]',
         border: 'border-[var(--color-text-muted)]/10',
-        symbol: '',
+        symbol: '·',
     },
 };
 
