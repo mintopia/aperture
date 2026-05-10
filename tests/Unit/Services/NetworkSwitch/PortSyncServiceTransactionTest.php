@@ -6,8 +6,11 @@ namespace Tests\Unit\Services\NetworkSwitch;
 
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\NetworkSwitch\PortMacSync;
+use App\Services\NetworkSwitch\PortStatusSync;
 use App\Services\NetworkSwitch\PortSyncService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\NetworkSwitch\SyncRunTracker;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -45,7 +48,7 @@ class PortSyncServiceTransactionTest extends TestCase
         $factory = $this->createMock(SwitchServiceFactory::class);
         $factory->method('make')->willReturn($adapter);
 
-        $service = new PortSyncService($factory);
+        $service = new PortSyncService($factory, new SyncRunTracker, new PortStatusSync, new PortMacSync);
         $service->syncSwitch($switchConfig);
 
         $transactionIndex = array_search('transaction_open', $callOrder);
