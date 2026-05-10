@@ -82,6 +82,6 @@ class PortStatusSync
             }
         }
 
-        return compact('created', 'updated', 'stateChanges');
+        return ['created' => $created, 'updated' => $updated, 'stateChanges' => $stateChanges];
     }
 }

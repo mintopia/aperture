@@ -6,6 +6,7 @@ namespace Tests\Feature\Middleware;
 
 use App\Http\Kernel;
 use App\Http\Middleware\TrustHosts;
+use ReflectionClass;
 use Tests\TestCase;
 
 class TrustHostsKernelTest extends TestCase
@@ -14,7 +15,7 @@ class TrustHostsKernelTest extends TestCase
     {
         $kernel = $this->app->make(Kernel::class);
 
-        $reflection = new \ReflectionClass($kernel);
+        $reflection = new ReflectionClass($kernel);
         $property = $reflection->getProperty('middleware');
         $property->setAccessible(true);
 

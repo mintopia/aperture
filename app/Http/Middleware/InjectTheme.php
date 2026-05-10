@@ -36,6 +36,7 @@ class InjectTheme
             Log::warning('Blocked rendering of custom CSS containing dangerous patterns.');
             $customCss = null;
         }
+
         View::share('customCss', $customCss);
         View::share('siteLogoUrl', $theme['site_logo_url']);
         View::share('hasSiteLogo', $theme['has_site_logo']);

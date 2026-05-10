@@ -178,8 +178,12 @@ const auditColumns = [
 
 const ranges = ['1h', '24h', '4d'];
 
-const { selectedRange, bandwidthData, bandwidthLoading, chartSeries, selectRange } =
-    useBandwidthChart(route('admin.users.bandwidth', props.user.id), '24h', 30000, props.ipCount > 0);
+const { selectedRange, bandwidthData, bandwidthLoading, chartSeries, selectRange } = useBandwidthChart(
+    route('admin.users.bandwidth', props.user.id),
+    '24h',
+    30000,
+    props.ipCount > 0,
+);
 </script>
 
 <template>

@@ -33,7 +33,7 @@ class UserParameterAuthorizationTest extends TestCase
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
 
-        $user1Param = UserParameter::factory()->create([
+        UserParameter::factory()->create([
             'user_id' => $user1->id,
             'key' => 'user1-key',
             'value' => ['original' => 'value1'],

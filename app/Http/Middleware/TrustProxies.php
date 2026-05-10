@@ -32,10 +32,6 @@ class TrustProxies extends Middleware
     {
         $trustedProxyIps = $_SERVER['TRUSTED_PROXY_IPS'] ?? $_ENV['TRUSTED_PROXY_IPS'] ?? '*';
 
-        if ($trustedProxyIps === '*') {
-            $this->proxies = '*';
-        } else {
-            $this->proxies = array_map('trim', explode(',', (string) $trustedProxyIps));
-        }
+        $this->proxies = $trustedProxyIps === '*' ? '*' : array_map('trim', explode(',', (string) $trustedProxyIps));
     }
 }

@@ -17,9 +17,7 @@ export function useApi() {
         error.value = null;
         try {
             const response =
-                data !== null
-                    ? await window.axios[method](url, data, config)
-                    : await window.axios[method](url, config);
+                data !== null ? await window.axios[method](url, data, config) : await window.axios[method](url, config);
             return response.data;
         } catch (err) {
             error.value = err?.response?.data?.message ?? err?.message ?? 'Request failed';

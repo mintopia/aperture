@@ -76,7 +76,7 @@ class PortMacSync
             }
         }
 
-        return compact('created', 'updated', 'syncedMacIds');
+        return ['created' => $created, 'updated' => $updated, 'syncedMacIds' => $syncedMacIds];
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class EnsureSetupComplete
 {
@@ -44,7 +45,7 @@ class EnsureSetupComplete
     {
         try {
             return User::query()->doesntExist();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // If the database isn't available (e.g. no migrations run), skip the check
             return false;
         }

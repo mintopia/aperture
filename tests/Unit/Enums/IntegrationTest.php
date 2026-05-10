@@ -14,7 +14,7 @@ class IntegrationTest extends TestCase
     public function test_integration_enum_has_all_six_integrations(): void
     {
         $cases = Integration::cases();
-        $values = array_map(fn ($c) => $c->value, $cases);
+        $values = array_map(fn (Integration $c) => $c->value, $cases);
         $this->assertContains('opnsense', $values);
         $this->assertContains('pihole', $values);
         $this->assertContains('librenms', $values);
@@ -25,9 +25,9 @@ class IntegrationTest extends TestCase
 
     public function test_capability_enum_has_known_capabilities(): void
     {
-        $values = array_map(fn ($c) => $c->value, Capability::cases());
+        $values = array_map(fn (Capability $c) => $c->value, Capability::cases());
         foreach (['captive-portal', 'rate-limiting', 'dhcp', 'dns-filtering', 'ip-bandwidth', 'port-bandwidth', 'port-errors', 'ip-mac', 'port-mac', 'authentication'] as $cap) {
-            $this->assertContains($cap, $values, "Missing capability: $cap");
+            $this->assertContains($cap, $values, 'Missing capability: '.$cap);
         }
     }
 

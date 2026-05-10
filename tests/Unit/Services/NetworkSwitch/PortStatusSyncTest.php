@@ -24,12 +24,12 @@ class PortStatusSyncTest extends TestCase
         $portStatus = new PortStatus(
             interface: 'Gi1/0/1',
             status: 'connected',
-            adminStatus: 'enabled',
             speed: '1000',
             duplex: 'full',
-            description: 'Test port',
             vlan: '10',
+            description: 'Test port',
             switchportMode: 'access',
+            adminStatus: 'enabled',
         );
 
         $result = $sync->sync(collect([$portStatus]), $switchConfig, Carbon::now());

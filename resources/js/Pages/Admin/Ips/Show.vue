@@ -93,8 +93,11 @@ const auditColumns = [
 
 const ranges = ['1h', '24h', '4d'];
 
-const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSeries, selectRange } =
-    useBandwidthChart(route('admin.ips.bandwidth', props.ip.address), '24h', 30000);
+const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSeries, selectRange } = useBandwidthChart(
+    route('admin.ips.bandwidth', props.ip.address),
+    '24h',
+    30000,
+);
 
 function getThemeColor(variableName, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback;

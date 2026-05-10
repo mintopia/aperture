@@ -22,6 +22,7 @@ class HomeControllerResetTest extends TestCase
         if ($password !== null) {
             $factory = $factory->withPassword($password);
         }
+
         $user = $factory->create();
         $role = new Role;
         $role->code = 'admin';

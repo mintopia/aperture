@@ -7,6 +7,7 @@ namespace Tests\Feature\Middleware;
 use App\Http\Middleware\TrustProxies;
 use App\Providers\AppServiceProvider;
 use Illuminate\Support\Facades\Log;
+use ReflectionClass;
 use Tests\TestCase;
 
 class TrustProxiesTest extends TestCase
@@ -17,7 +18,7 @@ class TrustProxiesTest extends TestCase
 
         $middleware = new TrustProxies;
 
-        $reflection = new \ReflectionClass($middleware);
+        $reflection = new ReflectionClass($middleware);
         $property = $reflection->getProperty('proxies');
         $property->setAccessible(true);
 
@@ -28,7 +29,7 @@ class TrustProxiesTest extends TestCase
     {
         $middleware = $this->createMiddlewareWithEnv('*');
 
-        $reflection = new \ReflectionClass($middleware);
+        $reflection = new ReflectionClass($middleware);
         $property = $reflection->getProperty('proxies');
         $property->setAccessible(true);
 
@@ -39,7 +40,7 @@ class TrustProxiesTest extends TestCase
     {
         $middleware = $this->createMiddlewareWithEnv('192.168.1.1,10.0.0.1');
 
-        $reflection = new \ReflectionClass($middleware);
+        $reflection = new ReflectionClass($middleware);
         $property = $reflection->getProperty('proxies');
         $property->setAccessible(true);
 
@@ -54,7 +55,7 @@ class TrustProxiesTest extends TestCase
     {
         $middleware = $this->createMiddlewareWithEnv(' 192.168.1.1 , 10.0.0.1 ');
 
-        $reflection = new \ReflectionClass($middleware);
+        $reflection = new ReflectionClass($middleware);
         $property = $reflection->getProperty('proxies');
         $property->setAccessible(true);
 
@@ -151,7 +152,7 @@ class TrustProxiesTest extends TestCase
      */
     private function createMiddlewareWithEnv(string $envValue): TrustProxies
     {
-        putenv("TRUSTED_PROXY_IPS={$envValue}");
+        putenv('TRUSTED_PROXY_IPS='.$envValue);
         $_ENV['TRUSTED_PROXY_IPS'] = $envValue;
         $_SERVER['TRUSTED_PROXY_IPS'] = $envValue;
 

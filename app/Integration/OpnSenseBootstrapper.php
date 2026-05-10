@@ -54,7 +54,7 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
         // dhcp
         $app->bind(function (Application $app): DhcpInterface {
             if ($this->isActive(Capability::Dhcp->value)) {
-                return $this->buildDhcpService($app);
+                return $this->buildDhcpService();
             }
 
             return new NullDhcpService;
@@ -70,11 +70,10 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
         }
     }
 
-    private function buildDhcpService(Application $app): OpnSenseDhcpService
+    private function buildDhcpService(): OpnSenseDhcpService
     {
         $opnsenseConfig = $this->getIntegrationDbConfig();
         $dhcpServer = (string) ($opnsenseConfig['dhcp_server'] ?? 'isc');
-
         $paths = match ($dhcpServer) {
             'kea' => [
                 'leases' => '/api/kea/leases/search',
@@ -92,7 +91,6 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
                 'ipv6_ranges' => '/api/dhcpv6/leases/search_lease',
             ],
         };
-
         $leaseFieldMap = match ($dhcpServer) {
             'kea' => [
                 'ip' => 'address',
@@ -116,7 +114,6 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
                 'status' => 'status',
             ],
         };
-
         $rangeFieldMap = match ($dhcpServer) {
             'kea' => [
                 'interface' => 'interface',
@@ -148,7 +145,6 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
                 'prefix' => 'prefix',
             ],
         };
-
         $client = new Client([
             'verify' => (bool) ($opnsenseConfig['verify_ssl'] ?? true),
             'base_uri' => $opnsenseConfig['endpoint'] ?? '',

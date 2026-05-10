@@ -13,6 +13,7 @@ use App\Services\NetworkSwitch\PortSyncService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NetworkSwitch\SyncRunTracker;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -26,12 +27,12 @@ class PortSyncServiceTransactionTest extends TestCase
         $callOrder = [];
 
         $adapter = $this->createMock(NetworkSwitchInterface::class);
-        $adapter->method('getAllPorts')->willReturnCallback(function () use (&$callOrder) {
+        $adapter->method('getAllPorts')->willReturnCallback(function () use (&$callOrder): Collection {
             $callOrder[] = 'getAllPorts';
 
             return collect();
         });
-        $adapter->method('getForwardingDatabase')->willReturnCallback(function () use (&$callOrder) {
+        $adapter->method('getForwardingDatabase')->willReturnCallback(function () use (&$callOrder): Collection {
             $callOrder[] = 'getForwardingDatabase';
 
             return collect();
@@ -52,9 +53,9 @@ class PortSyncServiceTransactionTest extends TestCase
         $service = new PortSyncService($factory, new SyncRunTracker, new PortStatusSync, new PortMacSync, new PortConfigSync);
         $service->syncSwitch($switchConfig);
 
-        $transactionIndex = array_search('transaction_open', $callOrder);
-        $portsIndex = array_search('getAllPorts', $callOrder);
-        $macsIndex = array_search('getForwardingDatabase', $callOrder);
+        $transactionIndex = array_search('transaction_open', $callOrder, true);
+        $portsIndex = array_search('getAllPorts', $callOrder, true);
+        $macsIndex = array_search('getForwardingDatabase', $callOrder, true);
 
         $this->assertNotFalse($portsIndex, 'getAllPorts() was not called');
         $this->assertNotFalse($macsIndex, 'getForwardingDatabase() was not called');

@@ -87,4 +87,3 @@ export function useBandwidthChart(endpoint, defaultRange = '24h', pollInterval =
         fetchBandwidth,
     };
 }
-

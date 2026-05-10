@@ -41,7 +41,7 @@ class SetupControllerTest extends TestCase
 
     public function test_setup_creates_admin_user(): void
     {
-        $response = $this->post('/setup', [
+        $this->post('/setup', [
             'email' => 'admin@test.com',
             'password' => 'supersecret12',
             'password_confirmation' => 'supersecret12',
