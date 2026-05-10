@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Deferred, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
@@ -15,6 +15,7 @@ import { formatBytes } from '@/helpers.js';
 import { formatRelativeTime } from '@/utils/dates';
 import { useAdminChannel } from '@/composables/useAdminChannel';
 import { useCountUp } from '@/composables/useCountUp';
+import { useBandwidthChart } from '@/composables/useBandwidthChart.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -62,58 +63,8 @@ const ranges = [
     { value: '4d', label: '72H' },
 ];
 
-const selectedRange = ref('1h');
-
-const bandwidthData = ref({
-    timestamps: [],
-    download: [],
-    upload: [],
-    totalReceived: 0,
-    totalSent: 0,
-});
-
-const bandwidthLoading = ref(true);
-
-const chartSeries = computed(() => {
-    const { timestamps, download, upload } = bandwidthData.value;
-    if (!timestamps.length) return [];
-
-    return [
-        {
-            label: 'Download',
-            color: 'var(--color-success)',
-            fill: true,
-            data: timestamps.map((ts, i) => ({
-                timestamp: Number(ts),
-                value: download[i] ?? 0,
-            })),
-        },
-        {
-            label: 'Upload',
-            color: 'var(--color-info)',
-            fill: true,
-            data: timestamps.map((ts, i) => ({
-                timestamp: Number(ts),
-                value: upload[i] ?? 0,
-            })),
-        },
-    ];
-});
-
-async function fetchBandwidth() {
-    try {
-        const response = await fetch(
-            route('admin.dashboard.bandwidth') + '?range=' + selectedRange.value + '&_t=' + Date.now(),
-        );
-        if (response.ok) {
-            bandwidthData.value = await response.json();
-        }
-    } catch (_e) {
-        // Silently fail — data will refresh next interval
-    } finally {
-        bandwidthLoading.value = false;
-    }
-}
+const { selectedRange, bandwidthData, bandwidthLoading, chartSeries, selectRange, fetchBandwidth } =
+    useBandwidthChart(route('admin.dashboard.bandwidth'), '1h', 0);
 
 function refreshDashboard() {
     fetchBandwidth();
@@ -166,12 +117,6 @@ function handleBroadcastEvent(eventType) {
     };
 }
 
-function selectRange(range) {
-    selectedRange.value = range;
-    bandwidthLoading.value = true;
-    fetchBandwidth();
-}
-
 useAdminChannel({
     events: {
         UserConnected: handleBroadcastEvent('UserConnected'),
@@ -199,10 +144,6 @@ watch(
     },
     { immediate: true },
 );
-
-onMounted(() => {
-    fetchBandwidth();
-});
 
 const showResetModal = ref(false);
 const resetForm = useForm({ password: '' });

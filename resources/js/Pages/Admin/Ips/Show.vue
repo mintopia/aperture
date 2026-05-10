@@ -9,6 +9,7 @@ import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatRelative } from '@/utils/dates';
 import { formatBytes, formatBytesComponents } from '@/helpers.js';
+import { useBandwidthChart } from '@/composables/useBandwidthChart.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -90,30 +91,10 @@ const auditColumns = [
     { key: 'created_at', label: 'Timestamp' },
 ];
 
-const selectedRange = ref('24h');
-const bandwidthData = ref({ timestamps: [], download: [], upload: [], totalReceived: 0, totalSent: 0 });
-const bandwidthLoading = ref(true);
-const bandwidthError = ref(false);
 const ranges = ['1h', '24h', '4d'];
 
-const chartSeries = computed(() => {
-    const { timestamps, download, upload } = bandwidthData.value;
-    if (!timestamps.length) return [];
-    return [
-        {
-            label: 'Download',
-            color: 'var(--color-success)',
-            fill: true,
-            data: timestamps.map((ts, i) => ({ timestamp: Number(ts), value: download[i] ?? 0 })),
-        },
-        {
-            label: 'Upload',
-            color: 'var(--color-info)',
-            fill: true,
-            data: timestamps.map((ts, i) => ({ timestamp: Number(ts), value: upload[i] ?? 0 })),
-        },
-    ];
-});
+const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSeries, selectRange } =
+    useBandwidthChart(route('admin.ips.bandwidth', props.ip.address), '24h', 30000);
 
 function getThemeColor(variableName, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback;
@@ -159,29 +140,6 @@ const portErrorSeries = computed(() => {
     return series;
 });
 
-async function fetchBandwidth() {
-    bandwidthLoading.value = true;
-    bandwidthError.value = false;
-    try {
-        const response = await fetch(route('admin.ips.bandwidth', props.ip.address) + '?range=' + selectedRange.value);
-        if (response.ok) {
-            bandwidthData.value = await response.json();
-        } else {
-            bandwidthError.value = true;
-        }
-    } catch (_e) {
-        bandwidthError.value = true;
-    } finally {
-        bandwidthLoading.value = false;
-    }
-}
-
-function selectRange(range) {
-    selectedRange.value = range;
-    fetchBandwidth();
-}
-
-let bandwidthPoll = null;
 let portMetricsPoll = null;
 
 function refreshPortMetrics() {
@@ -192,15 +150,12 @@ function refreshPortMetrics() {
 }
 
 onMounted(() => {
-    fetchBandwidth();
-    bandwidthPoll = setInterval(fetchBandwidth, 30000);
     if (props.switchInfo) {
         portMetricsPoll = setInterval(refreshPortMetrics, 30000);
     }
 });
 
 onBeforeUnmount(() => {
-    if (bandwidthPoll) clearInterval(bandwidthPoll);
     if (portMetricsPoll) clearInterval(portMetricsPoll);
 });
 </script>

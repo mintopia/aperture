@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref } from 'vue';
 import { router, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
@@ -10,6 +10,7 @@ import FormField from '@/Components/UI/FormField.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import { formatBytes } from '@/helpers.js';
 import { formatRelative } from '@/utils/dates';
+import { useBandwidthChart } from '@/composables/useBandwidthChart.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -175,67 +176,10 @@ const auditColumns = [
     { key: 'timestamp', label: 'Timestamp' },
 ];
 
-const selectedRange = ref('24h');
-const bandwidthData = ref({ timestamps: [], download: [], upload: [], totalReceived: 0, totalSent: 0 });
-const bandwidthLoading = ref(true);
-const bandwidthError = ref(false);
 const ranges = ['1h', '24h', '4d'];
 
-const chartSeries = computed(() => {
-    const { timestamps, download, upload } = bandwidthData.value;
-    if (!timestamps.length) return [];
-    return [
-        {
-            label: 'Download',
-            color: 'var(--color-success)',
-            fill: true,
-            data: timestamps.map((ts, i) => ({ timestamp: Number(ts), value: download[i] ?? 0 })),
-        },
-        {
-            label: 'Upload',
-            color: 'var(--color-info)',
-            fill: true,
-            data: timestamps.map((ts, i) => ({ timestamp: Number(ts), value: upload[i] ?? 0 })),
-        },
-    ];
-});
-
-async function fetchBandwidth() {
-    bandwidthLoading.value = true;
-    bandwidthError.value = false;
-    try {
-        const response = await fetch(route('admin.users.bandwidth', props.user.id) + '?range=' + selectedRange.value);
-        if (response.ok) {
-            bandwidthData.value = await response.json();
-        } else {
-            bandwidthError.value = true;
-        }
-    } catch (_e) {
-        bandwidthError.value = true;
-    } finally {
-        bandwidthLoading.value = false;
-    }
-}
-
-function selectRange(range) {
-    selectedRange.value = range;
-    fetchBandwidth();
-}
-
-let bandwidthPoll = null;
-
-onMounted(() => {
-    if (props.ipCount > 0) {
-        fetchBandwidth();
-        bandwidthPoll = setInterval(fetchBandwidth, 30000);
-    } else {
-        bandwidthLoading.value = false;
-    }
-});
-
-onUnmounted(() => {
-    if (bandwidthPoll) clearInterval(bandwidthPoll);
-});
+const { selectedRange, bandwidthData, bandwidthLoading, chartSeries, selectRange } =
+    useBandwidthChart(route('admin.users.bandwidth', props.user.id), '24h', 30000, props.ipCount > 0);
 </script>
 
 <template>
