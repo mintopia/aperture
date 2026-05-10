@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StorePageRequest;
+use App\Http\Requests\Admin\UpdatePageRequest;
 use App\Models\Page;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -39,13 +40,9 @@ class PageController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StorePageRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|alpha_dash|unique:pages,slug',
-            'content' => 'nullable|string|max:65535',
-        ]);
+        $validated = $request->validated();
 
         Page::create($validated);
 
@@ -65,13 +62,9 @@ class PageController extends Controller
         ]);
     }
 
-    public function update(Request $request, Page $page): RedirectResponse
+    public function update(UpdatePageRequest $request, Page $page): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|alpha_dash|unique:pages,slug,'.$page->id,
-            'content' => 'nullable|string|max:65535',
-        ]);
+        $validated = $request->validated();
 
         $page->update($validated);
 

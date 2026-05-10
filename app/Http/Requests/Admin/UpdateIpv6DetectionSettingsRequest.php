@@ -27,6 +27,8 @@ class UpdateIpv6DetectionSettingsRequest extends FormRequest
         return [
             'detection_endpoint' => ['nullable', 'string', 'max:500', 'regex:/^https:\/\/.+/'],
             'jwks_url' => 'nullable|url:https|max:500',
+            'jwt_audience' => 'nullable|string|max:255',
+            'jwt_issuer' => 'nullable|string|max:255',
         ];
     }
 }

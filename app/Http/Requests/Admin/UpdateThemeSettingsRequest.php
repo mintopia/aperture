@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
-use Closure;
+use App\Rules\SafeCss;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -30,11 +30,7 @@ class UpdateThemeSettingsRequest extends FormRequest
             'accent_hue' => 'required|integer|min:0|max:360',
             'accent_chroma' => 'nullable|numeric|min:0.01|max:0.37',
             'accent_lightness' => 'nullable|integer|min:40|max:95',
-            'custom_css' => ['nullable', 'string', 'max:10000', function (string $attribute, mixed $value, Closure $fail): void {
-                if (is_string($value) && stripos($value, '<script') !== false) {
-                    $fail('The custom CSS must not contain script tags.');
-                }
-            }],
+            'custom_css' => ['nullable', 'string', 'max:10000', new SafeCss],
         ];
     }
 }

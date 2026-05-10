@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreContentRequest;
+use App\Http\Requests\Admin\UpdateContentRequest;
 use App\Models\ContentBlock;
-use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,27 +32,9 @@ class ContentController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreContentRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'type' => [
-                'required',
-                'string',
-                'max:50',
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    if (
-                        in_array($value, ContentBlock::SINGLETON_TYPES, true)
-                        && ContentBlock::where('type', $value)->exists()
-                    ) {
-                        $fail('A block of this type already exists.');
-                    }
-                },
-            ],
-            'title' => 'required|string|max:255',
-            'content' => 'nullable|string',
-            'is_active' => 'boolean',
-            'settings' => 'nullable|array',
-        ]);
+        $validated = $request->validated();
 
         // Find first available grid position
         $position = $this->findFirstAvailablePosition();
@@ -64,15 +47,9 @@ class ContentController extends Controller
         return response()->json($block, 201);
     }
 
-    public function update(Request $request, ContentBlock $content): JsonResponse
+    public function update(UpdateContentRequest $request, ContentBlock $content): JsonResponse
     {
-        $validated = $request->validate([
-            'type' => 'sometimes|string|max:50',
-            'title' => 'sometimes|string|max:255',
-            'content' => 'nullable|string',
-            'is_active' => 'sometimes|boolean',
-            'settings' => 'nullable|array',
-        ]);
+        $validated = $request->validated();
 
         $content->update($validated);
 
