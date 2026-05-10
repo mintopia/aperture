@@ -14,7 +14,7 @@ class DeviceFlowUserService
         return DB::transaction(function () use ($userInfo, $result): User {
             $user = User::whereExternalId($userInfo->id)->first();
 
-            if (! $user && $userInfo->email) {
+            if (! $user && $userInfo->email && config('auth.linkemails', true)) {
                 $user = User::whereEmail($userInfo->email)->first();
             }
 

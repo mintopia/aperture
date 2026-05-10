@@ -46,6 +46,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Link Accounts by Email
+    |--------------------------------------------------------------------------
+    |
+    | This option controls whether the device flow authentication should
+    | automatically link accounts by email address when no external_id match
+    | is found. Set to false to require explicit external_id matches only.
+    |
+    */
+
+    'linkemails' => env('AUTH_LINK_EMAILS', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | User Providers
     |--------------------------------------------------------------------------
     |
