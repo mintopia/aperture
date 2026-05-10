@@ -1,10 +1,13 @@
 <script setup>
-defineProps({
+const props = defineProps({
     label: { type: String, required: true },
     name: { type: String, required: true },
     required: { type: Boolean, default: false },
     error: { type: String, default: '' },
 });
+
+const errorId = `${props.name}-error`;
+const hasError = !!props.error;
 </script>
 
 <template>
@@ -17,8 +20,14 @@ defineProps({
             <span v-if="required" class="text-[var(--color-danger)]" aria-label="required">*</span>
             <span v-else class="ml-1 text-xs font-normal text-[var(--color-text-muted)]">(optional)</span>
         </label>
-        <slot />
-        <p v-if="error" class="text-xs text-[var(--color-danger)]">
+        <slot :error-id="errorId" :has-error="hasError" />
+        <p
+            v-if="error"
+            :id="errorId"
+            data-testid="form-field-error"
+            class="text-xs text-[var(--color-danger)]"
+            role="alert"
+        >
             {{ error }}
         </p>
     </div>

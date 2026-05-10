@@ -70,4 +70,70 @@ describe('FormField', () => {
         });
         expect(wrapper.find('input[type="email"]').exists()).toBe(true);
     });
+
+    // --- Accessibility: error association (WCAG 1.3.1 / 3.3.1) ---
+    it('error element has data-testid="form-field-error"', () => {
+        const wrapper = mount(FormField, {
+            props: { label: 'Email', name: 'email', error: 'Required field' },
+            slots: { default: '<input id="email" type="text" />' },
+        });
+        expect(wrapper.find('[data-testid="form-field-error"]').exists()).toBe(true);
+    });
+
+    it('error element has id equal to name + "-error"', () => {
+        const wrapper = mount(FormField, {
+            props: { label: 'Email', name: 'email', error: 'Required field' },
+            slots: { default: '<input id="email" type="text" />' },
+        });
+        const error = wrapper.find('[data-testid="form-field-error"]');
+        expect(error.attributes('id')).toBe('email-error');
+    });
+
+    it('error element has role="alert"', () => {
+        const wrapper = mount(FormField, {
+            props: { label: 'Email', name: 'email', error: 'Required field' },
+            slots: { default: '<input id="email" type="text" />' },
+        });
+        const error = wrapper.find('[data-testid="form-field-error"]');
+        expect(error.attributes('role')).toBe('alert');
+    });
+
+    it('does not render error element when no error prop', () => {
+        const wrapper = mount(FormField, {
+            props: { label: 'Email', name: 'email' },
+            slots: { default: '<input id="email" type="text" />' },
+        });
+        expect(wrapper.find('[data-testid="form-field-error"]').exists()).toBe(false);
+    });
+
+    it('exposes errorId and hasError as scoped slot props', () => {
+        let capturedErrorId = null;
+        let capturedHasError = null;
+        mount(FormField, {
+            props: { label: 'Email', name: 'email', error: 'Required field' },
+            slots: {
+                default: (slotProps) => {
+                    capturedErrorId = slotProps.errorId;
+                    capturedHasError = slotProps.hasError;
+                    return '<input id="email" type="text" />';
+                },
+            },
+        });
+        expect(capturedErrorId).toBe('email-error');
+        expect(capturedHasError).toBe(true);
+    });
+
+    it('exposes hasError as false when no error', () => {
+        let capturedHasError = null;
+        mount(FormField, {
+            props: { label: 'Email', name: 'email' },
+            slots: {
+                default: (slotProps) => {
+                    capturedHasError = slotProps.hasError;
+                    return '<input id="email" type="text" />';
+                },
+            },
+        });
+        expect(capturedHasError).toBe(false);
+    });
 });
