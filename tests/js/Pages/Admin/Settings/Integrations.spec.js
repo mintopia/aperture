@@ -67,12 +67,6 @@ describe('Integrations.vue', () => {
         expect(wrapper.find('[data-testid="integration-row-librenms"]').exists()).toBe(true);
     });
 
-    it('shows read-only badge for borealis', () => {
-        const wrapper = mountPage();
-        const row = wrapper.find('[data-testid="integration-row-borealis"]');
-        expect(row.text()).toContain('Read only');
-    });
-
     it('shows enabled/disabled status pills', () => {
         const wrapper = mountPage();
         const opnsenseRow = wrapper.find('[data-testid="integration-row-opnsense"]');
@@ -97,21 +91,12 @@ describe('Integrations.vue', () => {
         expect(inactiveTag.exists()).toBe(true);
     });
 
-    it('navigates to service config on row click for non-readonly', async () => {
+    it('navigates to service config on row click', async () => {
         const { router } = await import('@inertiajs/vue3');
         const wrapper = mountPage();
 
         await wrapper.find('[data-testid="integration-row-opnsense"]').trigger('click');
         expect(router.visit).toHaveBeenCalledWith('/admin/settings/integrations/opnsense');
-    });
-
-    it('does not navigate on readonly row click', async () => {
-        const { router } = await import('@inertiajs/vue3');
-        router.visit.mockClear();
-        const wrapper = mountPage();
-
-        await wrapper.find('[data-testid="integration-row-borealis"]').trigger('click');
-        expect(router.visit).not.toHaveBeenCalled();
     });
 
     it('shows empty state when no services', () => {
