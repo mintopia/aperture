@@ -84,6 +84,8 @@ class IntegrationControllerEncryptionTest extends TestCase
             ->where('key', 'secret')
             ->first();
 
+        $this->assertNotNull($keyConfig, 'opnsense key config record not found');
+        $this->assertNotNull($secretConfig, 'opnsense secret config record not found');
         $this->assertTrue($keyConfig->encrypted);
         $this->assertTrue($secretConfig->encrypted);
         $this->assertEquals('my-api-key', $keyConfig->value);
