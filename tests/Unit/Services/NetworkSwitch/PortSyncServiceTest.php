@@ -15,6 +15,7 @@ use App\Services\Interfaces\SupportsInterfaceOutputCapture;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
+use App\Services\NetworkSwitch\PortConfigSync;
 use App\Services\NetworkSwitch\PortMacSync;
 use App\Services\NetworkSwitch\PortStatusSync;
 use App\Services\NetworkSwitch\PortSyncService;
@@ -57,7 +58,7 @@ class PortSyncServiceTest extends TestCase
             ->andReturnUsing(static fn (string $portId): string => "!\ninterface {$portId}\n end")
             ->byDefault();
 
-        $this->service = new PortSyncService($this->factory, new SyncRunTracker, new PortStatusSync, new PortMacSync);
+        $this->service = new PortSyncService($this->factory, new SyncRunTracker, new PortStatusSync, new PortMacSync, new PortConfigSync);
     }
 
     public function test_sync_creates_sync_run_record(): void
