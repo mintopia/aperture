@@ -514,5 +514,66 @@ describe('DataTable', () => {
             const indicator = sortButton.find('span');
             expect(indicator.classes()).toContain('ml-0.5');
         });
+
+        // --- Accessibility: focus indicator (WCAG 2.4.7) ---
+        it('sort button does not have bare outline-none without a focus ring replacement', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns: sortableColumns, rows },
+                global: { stubs },
+            });
+            const sortBtn = wrapper.find('[data-testid="sort-name"]');
+            expect(sortBtn.exists()).toBe(true);
+            // Should not use bare outline-none that kills focus visibility
+            expect(sortBtn.classes()).not.toContain('outline-none');
+        });
+
+        it('sort button has focus-visible ring classes for keyboard navigation', () => {
+            const wrapper = mount(DataTable, {
+                props: { columns: sortableColumns, rows },
+                global: { stubs },
+            });
+            const sortBtn = wrapper.find('[data-testid="sort-name"]');
+            const cls = sortBtn.classes().join(' ');
+            expect(cls).toContain('focus-visible:ring-2');
+        });
+    });
+
+    describe('Accessibility: focus indicators on clickable rows (WCAG 2.4.7)', () => {
+        it('clickable row does not have bare focus-visible:outline-none without a ring', () => {
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns,
+                    rows,
+                    clickable: true,
+                    rowHref: (row) => `/users/${row.id}`,
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td>`,
+                },
+            });
+            const row = wrapper.find('[data-testid="data-table-row"]');
+            const cls = row.classes().join(' ');
+            // The row should NOT have bare focus-visible:outline-none (without a ring companion)
+            expect(cls).not.toContain('focus-visible:outline-none');
+        });
+
+        it('clickable row has focus-visible ring for keyboard visibility', () => {
+            const wrapper = mount(DataTable, {
+                props: {
+                    columns,
+                    rows,
+                    clickable: true,
+                    rowHref: (row) => `/users/${row.id}`,
+                },
+                global: { stubs },
+                slots: {
+                    row: ({ row }) => `<td>${row.name}</td>`,
+                },
+            });
+            const row = wrapper.find('[data-testid="data-table-row"]');
+            const cls = row.classes().join(' ');
+            expect(cls).toContain('focus-visible:ring-2');
+        });
     });
 });

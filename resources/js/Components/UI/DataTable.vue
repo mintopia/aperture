@@ -66,7 +66,7 @@ function getRowAriaLabel(row, index) {
                             v-if="col.sortable"
                             type="button"
                             :data-testid="'sort-' + col.key"
-                            class="flex w-full cursor-pointer items-center gap-1 text-left hover:text-[var(--color-text)] focus-visible:outline-none"
+                            class="flex w-full cursor-pointer items-center gap-1 text-left hover:text-[var(--color-text)] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1"
                             @click="toggleSort(col.key)"
                         >
                             {{ col.label }}
@@ -94,7 +94,7 @@ function getRowAriaLabel(row, index) {
                     :class="[
                         'transition-colors',
                         props.clickable
-                            ? 'cursor-pointer hover:bg-[var(--color-surface-hover)] focus-visible:bg-[var(--color-surface-hover)] focus-visible:outline-none'
+                            ? 'cursor-pointer hover:bg-[var(--color-surface-hover)] focus-visible:bg-[var(--color-surface-hover)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]'
                             : '',
                         props.rowClass ? props.rowClass(row) : '',
                     ]"
