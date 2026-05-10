@@ -3,6 +3,7 @@
 package server
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -38,7 +39,7 @@ func authMiddleware(apiKey string, logger *slog.Logger, next http.HandlerFunc) h
 		authHeader := r.Header.Get("Authorization")
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		if token == "" || token == authHeader || token != apiKey {
+		if token == "" || token == authHeader || subtle.ConstantTimeCompare([]byte(token), []byte(apiKey)) != 1 {
 			requestID := handler.RequestIDFromContext(r.Context())
 			logger.Warn("unauthorized request",
 				"method", r.Method,

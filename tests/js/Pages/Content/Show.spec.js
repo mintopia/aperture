@@ -18,6 +18,16 @@ vi.mock('marked', () => ({
     },
 }));
 
+const { sanitizeMock } = vi.hoisted(() => ({
+    sanitizeMock: vi.fn((html) => html),
+}));
+
+vi.mock('dompurify', () => ({
+    default: {
+        sanitize: sanitizeMock,
+    },
+}));
+
 describe('Public Page View', () => {
     function mountShow(page = { title: 'Terms', slug: 'terms', content: '# Terms' }) {
         return mount(Show, {
@@ -43,5 +53,17 @@ describe('Public Page View', () => {
     it('uses prose class for content', () => {
         const wrapper = mountShow({ title: 'Terms', slug: 'terms', content: 'Hello' });
         expect(wrapper.find('.prose').exists()).toBe(true);
+    });
+
+    it('sanitizes rendered markdown with DOMPurify', () => {
+        sanitizeMock.mockClear();
+        mountShow({ title: 'Terms', slug: 'terms', content: '<script>alert(1)</script>' });
+        expect(sanitizeMock).toHaveBeenCalled();
+    });
+
+    it('passes marked output to DOMPurify.sanitize', () => {
+        sanitizeMock.mockClear();
+        mountShow({ title: 'Terms', slug: 'terms', content: 'hello' });
+        expect(sanitizeMock).toHaveBeenCalledWith('<p>hello</p>');
     });
 });

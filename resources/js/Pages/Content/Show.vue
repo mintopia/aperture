@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 defineOptions({ layout: PortalLayout });
 
@@ -13,7 +14,8 @@ const props = defineProps({
 });
 
 const renderedContent = computed(() => {
-    return marked.parse(props.page.content || '', { breaks: true });
+    const html = marked.parse(props.page.content || '', { breaks: true });
+    return DOMPurify.sanitize(html);
 });
 </script>
 

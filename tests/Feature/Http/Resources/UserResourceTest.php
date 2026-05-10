@@ -15,6 +15,8 @@ class UserResourceTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    protected bool $seedSetupUser = false;
+
     public function test_to_array_returns_expected_keys(): void
     {
         $user = User::factory()->create();

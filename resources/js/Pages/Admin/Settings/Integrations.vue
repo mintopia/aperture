@@ -27,10 +27,6 @@ function healthLabel(health) {
 }
 
 function visitService(service) {
-    if (service.readonly) {
-        return;
-    }
-
     router.visit(`/admin/settings/integrations/${service.id}`);
 }
 </script>
@@ -73,13 +69,11 @@ function visitService(service) {
                         v-for="service in services"
                         :key="service.id"
                         :data-testid="`integration-row-${service.id}`"
-                        :tabindex="service.readonly ? undefined : 0"
-                        :role="service.readonly ? undefined : 'link'"
+                        tabindex="0"
+                        role="link"
                         :class="[
                             'border-b border-[var(--color-border)] last:border-b-0',
-                            service.readonly
-                                ? 'bg-[var(--color-surface)]'
-                                : 'cursor-pointer transition-colors hover:bg-[var(--color-surface-hover)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none',
+                            'cursor-pointer transition-colors hover:bg-[var(--color-surface-hover)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none',
                         ]"
                         @click="visitService(service)"
                         @keydown.enter="visitService(service)"
@@ -87,12 +81,6 @@ function visitService(service) {
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
                                 <span class="font-medium text-[var(--color-text)]">{{ service.name }}</span>
-                                <span
-                                    v-if="service.readonly"
-                                    class="rounded-[3px] border border-[var(--color-border-hover)] px-1.5 py-px text-[10px] font-semibold tracking-[0.05em] text-[var(--color-text-muted)] uppercase"
-                                >
-                                    Read only
-                                </span>
                             </div>
                         </td>
                         <td class="px-4 py-3">

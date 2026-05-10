@@ -6,7 +6,7 @@ import Dashboard from '@/Pages/Admin/Dashboard.vue';
 let deferredReady = true;
 
 vi.mock('@inertiajs/vue3', async () => {
-    const { defineComponent, h } = await import('vue');
+    const { defineComponent, h, reactive } = await import('vue');
 
     return {
         Link: defineComponent({
@@ -30,6 +30,14 @@ vi.mock('@inertiajs/vue3', async () => {
                 return () => (deferredReady ? slots.default?.() : slots.fallback?.());
             },
         }),
+        useForm: (defaults) =>
+            reactive({
+                ...defaults,
+                processing: false,
+                errors: {},
+                post: vi.fn(),
+                reset: vi.fn(),
+            }),
     };
 });
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Traits\ToString;
 use App\Services\IpAddressActionService;
 use App\Services\IpPolicyService;
@@ -112,9 +111,6 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
         'rate_limit_enabled',
         'dns_filtering_enabled',
         'external_id',
-        'access_token',
-        'refresh_token',
-        'token_expires_at',
         'avatar_url',
     ];
 

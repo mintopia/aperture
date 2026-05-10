@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\IntegrationConfig;
 use App\Services\Auth\AuthResult;
 use App\Services\Auth\DeviceFlowUserService;
@@ -75,6 +76,13 @@ class CaptivePortalController extends Controller
             return response()->json(['status' => 'expired'], 410);
         }
 
+        if ($request->getClientIp() !== ($flowData['ip'] ?? null)) {
+            return response()->json([
+                'error' => 'authorization_pending',
+                'message' => 'IP address mismatch',
+            ], 403);
+        }
+
         if ($flowData['status'] === 'complete') {
             return response()->json(['status' => 'complete', 'redirect' => route('home')]);
         }
@@ -95,6 +103,13 @@ class CaptivePortalController extends Controller
         $user->addIp($flowData['ip'] ?? $request->getClientIp() ?? '0.0.0.0');
 
         Auth::login($user);
+
+        AuditLog::record(
+            action: 'user.captive_login',
+            subject: $user,
+            process: 'captive',
+            metadata: ['ip' => $request->getClientIp()],
+        );
 
         Cache::put('device_flow:'.$deviceCode, array_merge($flowData, [
             'status' => 'complete',

@@ -15,6 +15,8 @@ class DeviceFlowUserServiceTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    protected bool $seedSetupUser = false;
+
     private DeviceFlowUserService $service;
 
     protected function setUp(): void

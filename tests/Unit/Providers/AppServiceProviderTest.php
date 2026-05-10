@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Providers;
 
 use App\Models\SwitchConfig;
+use App\Providers\AppServiceProvider;
 use App\Providers\NetworkServiceProvider;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use ReflectionClass;
 use RuntimeException;
 use Tests\TestCase;
@@ -73,6 +75,55 @@ class AppServiceProviderTest extends TestCase
         $this->assertSame('testing', app()->environment());
         $this->assertFalse(app()->isProduction());
         $this->assertTrue(Model::preventsLazyLoading());
+    }
+
+    public function test_critical_log_emitted_when_debug_enabled_in_production(): void
+    {
+        Log::spy();
+
+        $this->app['env'] = 'production';
+        config(['app.debug' => true]);
+
+        $provider = new AppServiceProvider($this->app);
+        $provider->boot();
+
+        Log::shouldHaveReceived('critical')
+            ->once()
+            ->with('APP_DEBUG is enabled in production. Disable it to prevent information disclosure.');
+
+        $this->app['env'] = 'testing';
+        config(['app.debug' => false]);
+    }
+
+    public function test_no_critical_log_when_debug_disabled_in_production(): void
+    {
+        Log::spy();
+
+        $this->app['env'] = 'production';
+        config(['app.debug' => false]);
+
+        $provider = new AppServiceProvider($this->app);
+        $provider->boot();
+
+        Log::shouldNotHaveReceived('critical');
+
+        $this->app['env'] = 'testing';
+    }
+
+    public function test_no_critical_log_when_debug_enabled_in_non_production(): void
+    {
+        Log::spy();
+
+        $this->app['env'] = 'local';
+        config(['app.debug' => true]);
+
+        $provider = new AppServiceProvider($this->app);
+        $provider->boot();
+
+        Log::shouldNotHaveReceived('critical');
+
+        $this->app['env'] = 'testing';
+        config(['app.debug' => false]);
     }
 
     public function test_get_default_switch_config_returns_fallback_when_db_throws(): void

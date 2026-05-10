@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue';
-import { Deferred, Link, router } from '@inertiajs/vue3';
+import { Deferred, Link, router, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import DhcpPoolsCard from '@/Components/Admin/DhcpPoolsCard.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import EmptyState from '@/Components/UI/EmptyState.vue';
@@ -202,6 +203,31 @@ watch(
 onMounted(() => {
     fetchBandwidth();
 });
+
+const showResetModal = ref(false);
+const resetForm = useForm({ password: '' });
+
+function openResetModal() {
+    resetForm.reset();
+    resetForm.clearErrors();
+    showResetModal.value = true;
+}
+
+function cancelReset() {
+    showResetModal.value = false;
+    resetForm.reset();
+    resetForm.clearErrors();
+}
+
+function confirmReset() {
+    resetForm.post(route('admin.reset'), {
+        onSuccess: () => {
+            showResetModal.value = false;
+            resetForm.reset();
+        },
+        preserveScroll: true,
+    });
+}
 </script>
 
 <template>
@@ -214,6 +240,14 @@ onMounted(() => {
             >
                 Dashboard
             </h1>
+            <button
+                data-testid="reset-portal-button"
+                type="button"
+                class="rounded-md border border-[var(--color-danger)]/40 px-4 py-2 text-[13px] font-semibold text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/12"
+                @click="openResetModal"
+            >
+                Reset Portal
+            </button>
         </div>
 
         <!-- Stat Strip -->
@@ -421,5 +455,39 @@ onMounted(() => {
         <div class="mt-10">
             <EventFeed :events="eventFeedItems" data-testid="event-feed" />
         </div>
+
+        <!-- Reset Portal Confirmation Modal -->
+        <ConfirmModal
+            :show="showResetModal"
+            title="Reset Portal"
+            message="This will wipe all portal data including users, IP addresses, and bandwidth records. This action cannot be undone. Enter your password to confirm."
+            confirm-label="Reset Portal"
+            variant="danger"
+            :loading="resetForm.processing"
+            @cancel="cancelReset"
+            @confirm="confirmReset"
+        >
+            <div class="mt-4">
+                <label for="reset-password" class="block text-[12px] font-semibold text-[var(--color-text-secondary)]">
+                    Password
+                </label>
+                <input
+                    id="reset-password"
+                    v-model="resetForm.password"
+                    data-testid="reset-password-input"
+                    type="password"
+                    placeholder="Enter your password"
+                    class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+                    @keydown.enter="confirmReset"
+                />
+                <p
+                    v-if="resetForm.errors.password"
+                    data-testid="reset-password-error"
+                    class="mt-1 text-[12px] text-[var(--color-danger)]"
+                >
+                    {{ resetForm.errors.password }}
+                </p>
+            </div>
+        </ConfirmModal>
     </div>
 </template>

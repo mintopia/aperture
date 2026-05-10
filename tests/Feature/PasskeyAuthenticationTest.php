@@ -78,4 +78,49 @@ class PasskeyAuthenticationTest extends TestCase
         // or the null-user guard returns 403 — either way it's not a success
         $this->assertContains($response->getStatusCode(), [401, 403]);
     }
+
+    public function test_passkey_login_routes_have_throttle_middleware(): void
+    {
+        $routes = app('router')->getRoutes();
+
+        $loginOptions = $routes->getByName('passkeys.login.options');
+        $this->assertNotNull($loginOptions, 'passkeys.login.options route should exist');
+        $this->assertTrue(
+            collect($loginOptions->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
+            'passkeys.login.options should have throttle middleware'
+        );
+
+        $login = $routes->getByName('passkeys.login');
+        $this->assertNotNull($login, 'passkeys.login route should exist');
+        $this->assertTrue(
+            collect($login->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
+            'passkeys.login should have throttle middleware'
+        );
+    }
+
+    public function test_passkey_registration_routes_have_throttle_middleware(): void
+    {
+        $routes = app('router')->getRoutes();
+
+        $registerOptions = $routes->getByName('passkeys.register.options');
+        $this->assertNotNull($registerOptions, 'passkeys.register.options route should exist');
+        $this->assertTrue(
+            collect($registerOptions->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
+            'passkeys.register.options should have throttle middleware'
+        );
+
+        $register = $routes->getByName('passkeys.register');
+        $this->assertNotNull($register, 'passkeys.register route should exist');
+        $this->assertTrue(
+            collect($register->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
+            'passkeys.register should have throttle middleware'
+        );
+
+        $destroy = $routes->getByName('passkeys.destroy');
+        $this->assertNotNull($destroy, 'passkeys.destroy route should exist');
+        $this->assertTrue(
+            collect($destroy->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
+            'passkeys.destroy should have throttle middleware'
+        );
+    }
 }

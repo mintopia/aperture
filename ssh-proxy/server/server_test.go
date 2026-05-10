@@ -105,6 +105,42 @@ func TestAuth_NoBearerPrefix(t *testing.T) {
 	}
 }
 
+func TestAuth_ConstantTimeComparison(t *testing.T) {
+	// Verifies that authentication uses constant-time comparison:
+	// a token differing by one byte must be rejected, and the exact key accepted.
+	apiKey := "correct-horse-battery-staple"
+	srv := testServer(apiKey)
+
+	// Exact match must be accepted.
+	req := httptest.NewRequest(http.MethodGet, "/status", nil)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	w := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("constant-time: expected 200 for correct key, got %d", w.Code)
+	}
+
+	// Token with one byte different must be rejected.
+	badKey := "correct-horse-battery-Staple" // capital S differs at index 22
+	req2 := httptest.NewRequest(http.MethodGet, "/status", nil)
+	req2.Header.Set("Authorization", "Bearer "+badKey)
+	w2 := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusUnauthorized {
+		t.Errorf("constant-time: expected 401 for near-match key, got %d", w2.Code)
+	}
+
+	// Token longer than key by one byte must be rejected.
+	longKey := apiKey + "x"
+	req3 := httptest.NewRequest(http.MethodGet, "/status", nil)
+	req3.Header.Set("Authorization", "Bearer "+longKey)
+	w3 := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(w3, req3)
+	if w3.Code != http.StatusUnauthorized {
+		t.Errorf("constant-time: expected 401 for longer key, got %d", w3.Code)
+	}
+}
+
 // --- Routing tests ---
 
 func TestRouting_Health_NoAuth(t *testing.T) {

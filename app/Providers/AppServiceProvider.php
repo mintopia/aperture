@@ -16,6 +16,7 @@ use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\NetworkRangeService;
 use App\Services\ThemeService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -37,6 +38,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment('production') && config('app.debug')) {
+            Log::critical('APP_DEBUG is enabled in production. Disable it to prevent information disclosure.');
+        }
+
+        $trustedProxyIps = $_SERVER['TRUSTED_PROXY_IPS'] ?? $_ENV['TRUSTED_PROXY_IPS'] ?? '*';
+        if ($trustedProxyIps === '*' && ! $this->app->environment('local', 'testing')) {
+            Log::warning("TRUSTED_PROXY_IPS is set to '*' — all X-Forwarded-For headers are trusted. Configure specific proxy IPs for production.");
+        }
+
         Model::preventLazyLoading(! $this->app->isProduction());
 
         User::observe(UserObserver::class);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\IntegrationConfig;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
@@ -33,12 +34,47 @@ class Ipv6JwtService
         $keys = JWK::parseKeySet($jwksData);
         $decoded = JWT::decode($jwt, $keys);
 
+        $this->validateAudience($decoded);
+        $this->validateIssuer($decoded);
+
         $ipv6 = $decoded->sub ?? '';
         if (! filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
             throw new InvalidArgumentException('JWT sub claim is not a valid IPv6 address: '.$ipv6);
         }
 
         return $ipv6;
+    }
+
+    private function validateAudience(object $decoded): void
+    {
+        /** @var string|null $expectedAudience */
+        $expectedAudience = IntegrationConfig::getValue('ipv6', 'jwt_audience');
+        if ($expectedAudience === null || $expectedAudience === '') {
+            return;
+        }
+
+        $actualAudience = $decoded->aud ?? null;
+        if ($actualAudience !== $expectedAudience) {
+            throw new InvalidArgumentException(
+                sprintf('JWT audience mismatch: expected "%s", got "%s"', $expectedAudience, (string) ($actualAudience ?? ''))
+            );
+        }
+    }
+
+    private function validateIssuer(object $decoded): void
+    {
+        /** @var string|null $expectedIssuer */
+        $expectedIssuer = IntegrationConfig::getValue('ipv6', 'jwt_issuer');
+        if ($expectedIssuer === null || $expectedIssuer === '') {
+            return;
+        }
+
+        $actualIssuer = $decoded->iss ?? null;
+        if ($actualIssuer !== $expectedIssuer) {
+            throw new InvalidArgumentException(
+                sprintf('JWT issuer mismatch: expected "%s", got "%s"', $expectedIssuer, (string) ($actualIssuer ?? ''))
+            );
+        }
     }
 
     /**

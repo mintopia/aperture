@@ -45,6 +45,8 @@ class PasskeyControllerUnitTest extends TestCase
 
         $attestedRequest = Mockery::mock(AttestedRequest::class);
         $attestedRequest->shouldReceive('save')->once()->andReturn('credential-id-123');
+        $attestedRequest->shouldReceive('user')->andReturn(null);
+        $attestedRequest->shouldReceive('getClientIp')->andReturn('127.0.0.1');
 
         $response = $controller->register($attestedRequest);
 

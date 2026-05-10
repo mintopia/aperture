@@ -40,7 +40,8 @@ class CaptivePortalPollTest extends TestCase
             ->with('test-code')
             ->andReturn(null);
 
-        $response = $this->getJson('/captive/poll/test-code');
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.100'])
+            ->getJson('/captive/poll/test-code');
 
         $response->assertOk();
         $response->assertJson(['status' => 'pending']);
@@ -54,7 +55,8 @@ class CaptivePortalPollTest extends TestCase
             'user_id' => 1,
         ], now()->addMinutes(10));
 
-        $response = $this->getJson('/captive/poll/test-code');
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.100'])
+            ->getJson('/captive/poll/test-code');
 
         $response->assertOk();
         $response->assertJson(['status' => 'complete']);
@@ -90,7 +92,8 @@ class CaptivePortalPollTest extends TestCase
                 avatarUrl: 'https://example.com/avatar.png',
             ));
 
-        $response = $this->getJson('/captive/poll/test-code');
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.100'])
+            ->getJson('/captive/poll/test-code');
 
         $response->assertOk();
         $response->assertJson(['status' => 'complete']);
@@ -129,7 +132,8 @@ class CaptivePortalPollTest extends TestCase
                 nickname: 'LoggedInUser',
             ));
 
-        $this->getJson('/captive/poll/test-code');
+        $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.100'])
+            ->getJson('/captive/poll/test-code');
 
         $this->assertAuthenticated();
     }
@@ -161,7 +165,8 @@ class CaptivePortalPollTest extends TestCase
                 nickname: 'IpTestUser',
             ));
 
-        $this->getJson('/captive/poll/test-code');
+        $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.100'])
+            ->getJson('/captive/poll/test-code');
 
         $this->assertDatabaseHas('ip_addresses', [
             'address' => '192.168.1.100',
@@ -199,7 +204,8 @@ class CaptivePortalPollTest extends TestCase
                 nickname: 'BlockedUser',
             ));
 
-        $this->getJson('/captive/poll/test-code');
+        $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.200'])
+            ->getJson('/captive/poll/test-code');
 
         $user->refresh();
         $this->assertTrue((bool) $user->internet_blocked);
@@ -234,7 +240,8 @@ class CaptivePortalPollTest extends TestCase
                 nickname: 'UnmanagedUser',
             ));
 
-        $response = $this->getJson('/captive/poll/test-code');
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
+            ->getJson('/captive/poll/test-code');
 
         $response->assertOk();
         $response->assertJson(['status' => 'complete']);
@@ -244,5 +251,58 @@ class CaptivePortalPollTest extends TestCase
         $cached = Cache::get('device_flow:test-code');
         $this->assertSame('complete', $cached['status']);
         $this->assertArrayHasKey('user_id', $cached);
+    }
+
+    public function test_poll_returns_403_when_ip_does_not_match(): void
+    {
+        Cache::put('device_flow:test-code', [
+            'status' => 'pending',
+            'ip' => '192.168.1.100',
+        ], now()->addMinutes(10));
+
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.50'])
+            ->getJson('/captive/poll/test-code');
+
+        $response->assertStatus(403);
+        $response->assertJson([
+            'error' => 'authorization_pending',
+            'message' => 'IP address mismatch',
+        ]);
+    }
+
+    public function test_poll_succeeds_when_ip_matches(): void
+    {
+        Cache::put('device_flow:test-code', [
+            'status' => 'pending',
+            'ip' => '127.0.0.1',
+        ], now()->addMinutes(10));
+
+        $mock = $this->mock(AuthProviderInterface::class);
+        $mock->shouldReceive('pollDeviceFlow')
+            ->with('test-code')
+            ->andReturn(null);
+
+        $response = $this->getJson('/captive/poll/test-code');
+
+        $response->assertOk();
+        $response->assertJson(['status' => 'pending']);
+    }
+
+    public function test_poll_returns_403_with_correct_error_format(): void
+    {
+        Cache::put('device_flow:test-code', [
+            'status' => 'pending',
+            'ip' => '192.168.1.100',
+        ], now()->addMinutes(10));
+
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.50'])
+            ->getJson('/captive/poll/test-code');
+
+        $response->assertStatus(403);
+        $response->assertJsonStructure(['error', 'message']);
+        $response->assertJson([
+            'error' => 'authorization_pending',
+            'message' => 'IP address mismatch',
+        ]);
     }
 }

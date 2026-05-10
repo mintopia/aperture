@@ -11,6 +11,7 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Models\User;
+use App\Support\SearchHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,8 +23,7 @@ class SearchController extends Controller
             'q' => 'required|string|min:2|max:100',
         ]);
 
-        $escaped = str_replace(['%', '_'], ['\%', '\_'], $request->input('q'));
-        $pattern = sprintf('%%%s%%', $escaped);
+        $pattern = SearchHelper::toLikePattern($request->input('q'));
 
         $users = User::where('nickname', 'like', $pattern)
             ->orWhere('email', 'like', $pattern)

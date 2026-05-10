@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateGeneralSettingsRequest;
 use App\Http\Requests\Admin\UpdateIpv6DetectionSettingsRequest;
 use App\Http\Requests\Admin\UpdateNetworkSettingsRequest;
 use App\Http\Requests\Admin\UpdateThemeSettingsRequest;
+use App\Rules\SafeCss;
 use Closure;
 use Tests\TestCase;
 
@@ -55,6 +56,8 @@ class SettingsFormRequestTest extends TestCase
 
         $this->assertArrayHasKey('detection_endpoint', $rules);
         $this->assertArrayHasKey('jwks_url', $rules);
+        $this->assertArrayHasKey('jwt_audience', $rules);
+        $this->assertArrayHasKey('jwt_issuer', $rules);
         $this->assertIsArray($rules['detection_endpoint']);
         $this->assertContains('nullable', $rules['detection_endpoint']);
         $this->assertContains('string', $rules['detection_endpoint']);
@@ -118,14 +121,14 @@ class SettingsFormRequestTest extends TestCase
         $this->assertArrayHasKey('custom_css', $rules);
     }
 
-    public function test_general_settings_request_has_custom_css_closure_rule(): void
+    public function test_general_settings_request_has_safe_css_rule(): void
     {
         $request = new UpdateGeneralSettingsRequest;
         $rules = $request->rules();
 
         $this->assertIsArray($rules['custom_css']);
-        $closures = array_filter($rules['custom_css'], fn ($rule): bool => $rule instanceof Closure);
-        $this->assertCount(1, $closures);
+        $safeCssRules = array_filter($rules['custom_css'], fn ($rule): bool => $rule instanceof SafeCss);
+        $this->assertCount(1, $safeCssRules);
     }
 
     public function test_theme_settings_request_authorizes(): void
@@ -146,13 +149,13 @@ class SettingsFormRequestTest extends TestCase
         $this->assertArrayHasKey('custom_css', $rules);
     }
 
-    public function test_theme_settings_request_has_custom_css_closure_rule(): void
+    public function test_theme_settings_request_has_safe_css_rule(): void
     {
         $request = new UpdateThemeSettingsRequest;
         $rules = $request->rules();
 
         $this->assertIsArray($rules['custom_css']);
-        $closures = array_filter($rules['custom_css'], fn ($rule): bool => $rule instanceof Closure);
-        $this->assertCount(1, $closures);
+        $safeCssRules = array_filter($rules['custom_css'], fn ($rule): bool => $rule instanceof SafeCss);
+        $this->assertCount(1, $safeCssRules);
     }
 }

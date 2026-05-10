@@ -8,6 +8,7 @@ use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Tests\TestCase;
 
@@ -135,6 +136,71 @@ class InjectThemeMiddlewareTest extends TestCase
             $this->assertArrayHasKey('accentHue', $shared);
             $this->assertArrayHasKey('customCss', $shared);
             $this->assertEquals(55, $shared['accentHue']);
+            $this->assertNull($shared['customCss']);
+
+            return response('OK');
+        });
+    }
+
+    public function test_strips_dangerous_custom_css_and_logs_warning(): void
+    {
+        $setting = Setting::whereCode('theme.custom_css')->first() ?? new Setting;
+        $setting->code = 'theme.custom_css';
+        $setting->name = 'Custom CSS';
+        $setting->value = 'body { width: expression(document.body.clientWidth); }';
+        $setting->save();
+
+        Log::shouldReceive('warning')
+            ->once()
+            ->with('Blocked rendering of custom CSS containing dangerous patterns.');
+
+        $middleware = $this->makeMiddleware();
+        $request = Request::create('/');
+
+        $middleware->handle($request, function ($req): ResponseFactory|Response {
+            $shared = View::getShared();
+            $this->assertNull($shared['customCss']);
+
+            return response('OK');
+        });
+    }
+
+    public function test_allows_safe_custom_css_through(): void
+    {
+        $setting = Setting::whereCode('theme.custom_css')->first() ?? new Setting;
+        $setting->code = 'theme.custom_css';
+        $setting->name = 'Custom CSS';
+        $setting->value = 'body { color: #333; font-size: 14px; }';
+        $setting->save();
+
+        $middleware = $this->makeMiddleware();
+        $request = Request::create('/');
+
+        $middleware->handle($request, function ($req): ResponseFactory|Response {
+            $shared = View::getShared();
+            $this->assertEquals('body { color: #333; font-size: 14px; }', $shared['customCss']);
+
+            return response('OK');
+        });
+    }
+
+    public function test_strips_css_with_import(): void
+    {
+        $setting = Setting::whereCode('theme.custom_css')->first() ?? new Setting;
+        $setting->code = 'theme.custom_css';
+        $setting->name = 'Custom CSS';
+        $setting->value = '@import url("https://evil.com/hack.css");';
+        $setting->save();
+
+        Log::shouldReceive('warning')
+            ->once()
+            ->with('Blocked rendering of custom CSS containing dangerous patterns.');
+
+        $middleware = $this->makeMiddleware();
+        $request = Request::create('/');
+
+        $middleware->handle($request, function ($req): ResponseFactory|Response {
+            $shared = View::getShared();
             $this->assertNull($shared['customCss']);
 
             return response('OK');

@@ -18,6 +18,7 @@
     @routes
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
+    @if($customCss ?? null)<style>{!! $customCss !!}</style>@endif
 </head>
 <body class="bg-[var(--color-bg)] text-[var(--color-text)]">
     @inertia

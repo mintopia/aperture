@@ -469,4 +469,52 @@ class UserControllerTest extends TestCase
         ]);
         $this->assertCount(2, AuditLog::where('action', 'ip.rate_limit_toggled')->get());
     }
+
+    public function test_user_internet_toggle_creates_user_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $ip = IpAddress::factory()->create(['internet_enabled' => false]);
+        $user->addIp($ip->address);
+
+        $this->actingAs($admin)->post(route('admin.users.internet', $user), ['enable' => 1]);
+
+        $this->assertTrue(AuditLog::where('action', 'user.internet_toggled')->exists());
+        $log = AuditLog::where('action', 'user.internet_toggled')->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('admin', $log->process);
+        $this->assertEquals($user->getMorphClass(), $log->subject_type);
+        $this->assertEquals($user->id, $log->subject_id);
+        $this->assertTrue($log->metadata['enabled']);
+        $this->assertArrayHasKey('ip', $log->metadata);
+    }
+
+    public function test_user_role_change_creates_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $moderator = new Role;
+        $moderator->code = 'moderator';
+        $moderator->name = 'Moderator';
+        $moderator->save();
+
+        $this->actingAs($admin)->put(route('admin.users.update', $user), [
+            'nickname' => $user->nickname,
+            'email' => $user->email,
+            'roles' => ['admin', 'moderator'],
+        ]);
+
+        $this->assertTrue(AuditLog::where('action', 'user.role_changed')->exists());
+        $log = AuditLog::where('action', 'user.role_changed')->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('admin', $log->process);
+        $this->assertEquals($user->id, $log->subject_id);
+        $this->assertArrayHasKey('roles', $log->metadata);
+        $this->assertContains('admin', $log->metadata['roles']);
+        $this->assertContains('moderator', $log->metadata['roles']);
+    }
 }

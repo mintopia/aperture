@@ -10,6 +10,7 @@ use App\Http\Requests\Admin\UpdateSwitchRequest;
 use App\Http\Resources\SwitchConfigResource;
 use App\Http\Resources\SwitchPortResource;
 use App\Jobs\SyncSwitchPortsJob;
+use App\Models\AuditLog;
 use App\Models\SwitchConfig;
 use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
@@ -57,6 +58,13 @@ class SwitchManagementController extends Controller
     public function store(StoreSwitchRequest $request): RedirectResponse
     {
         $switchConfig = SwitchConfig::create($request->validated());
+
+        AuditLog::record(
+            action: 'switch.created',
+            subject: $switchConfig,
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp()],
+        );
 
         return redirect()->route('admin.switches.show', $switchConfig)
             ->with('success', 'Switch created successfully.');
@@ -110,11 +118,25 @@ class SwitchManagementController extends Controller
 
         $switchConfig->update($validated);
 
+        AuditLog::record(
+            action: 'switch.updated',
+            subject: $switchConfig,
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp()],
+        );
+
         return back()->with('success', 'Switch updated successfully.');
     }
 
-    public function destroy(SwitchConfig $switchConfig): RedirectResponse
+    public function destroy(Request $request, SwitchConfig $switchConfig): RedirectResponse
     {
+        AuditLog::record(
+            action: 'switch.deleted',
+            subject: $switchConfig,
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp()],
+        );
+
         $switchConfig->delete();
 
         return redirect()->route('admin.switches.index')

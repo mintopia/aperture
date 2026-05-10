@@ -138,10 +138,11 @@ describe('Account/Settings', () => {
         expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(false);
     });
 
-    it('shows settings directly when user has neither password nor passkeys', () => {
+    it('shows create password section when user has neither password nor passkeys', () => {
         const wrapper = mountComponent(userWithNeither, false);
         expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(false);
-        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="create-password-section"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(false);
     });
 
     it('shows verify password input in verification form', () => {
@@ -206,20 +207,20 @@ describe('Account/Settings', () => {
         expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(true);
     });
 
-    it('shows passkey section for fresh user with no credentials', () => {
+    it('hides passkey section when user has neither password nor passkeys', () => {
         const wrapper = mountComponent(userWithNeither, false);
-        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(false);
     });
 
     // ── Passkey register button ─────────────────────────────────────────────
 
-    it('renders passkey register button', () => {
-        const wrapper = mountComponent(userWithNeither, false);
+    it('renders passkey register button when verified', () => {
+        const wrapper = mountComponent(userWithPassword, true);
         expect(wrapper.find('[data-testid="passkey-register"]').exists()).toBe(true);
     });
 
     it('passkey register button is enabled by default', () => {
-        const wrapper = mountComponent(userWithNeither, false);
+        const wrapper = mountComponent(userWithPassword, true);
         const btn = wrapper.find('[data-testid="passkey-register"]');
         expect(btn.attributes('disabled')).toBeUndefined();
     });
@@ -259,12 +260,12 @@ describe('Account/Settings', () => {
     // ── Error state ─────────────────────────────────────────────────────────
 
     it('does not show passkey-error by default', () => {
-        const wrapper = mountComponent(userWithNeither, false);
+        const wrapper = mountComponent(userWithPassword, true);
         expect(wrapper.find('[data-testid="passkey-error"]').exists()).toBe(false);
     });
 
     it('shows passkey-error when passkeyError is set', async () => {
-        const wrapper = mountComponent(userWithNeither, false);
+        const wrapper = mountComponent(userWithPassword, true);
 
         // Simulate error by triggering register with a failing fetch
         globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
@@ -276,7 +277,7 @@ describe('Account/Settings', () => {
     });
 
     it('shows friendly error when passkey register response is not valid JSON', async () => {
-        const wrapper = mountComponent(userWithNeither, false);
+        const wrapper = mountComponent(userWithPassword, true);
 
         globalThis.fetch = vi
             .fn()
@@ -327,10 +328,11 @@ describe('Account/Settings', () => {
 
     // ── Both sections present for fresh user ───────────────────────────────
 
-    it('shows both sections when user has neither password nor passkeys', () => {
+    it('hides both sections when user has neither password nor passkeys', () => {
         const wrapper = mountComponent(userWithNeither, false);
-        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="create-password-section"]').exists()).toBe(true);
     });
 
     // ── Clear password confirm modal ────────────────────────────────────────

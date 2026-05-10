@@ -21,6 +21,8 @@ class Ipv6DetectionSettingsController extends Controller
             'settings' => [
                 'detection_endpoint' => $config['detection_endpoint'] ?? '',
                 'jwks_url' => $config['jwks_url'] ?? '',
+                'jwt_audience' => $config['jwt_audience'] ?? '',
+                'jwt_issuer' => $config['jwt_issuer'] ?? '',
             ],
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
@@ -36,6 +38,8 @@ class Ipv6DetectionSettingsController extends Controller
 
         IntegrationConfig::setValue('ipv6', 'detection_endpoint', $validated['detection_endpoint'] ?? '');
         IntegrationConfig::setValue('ipv6', 'jwks_url', $validated['jwks_url'] ?? '');
+        IntegrationConfig::setValue('ipv6', 'jwt_audience', $validated['jwt_audience'] ?? '');
+        IntegrationConfig::setValue('ipv6', 'jwt_issuer', $validated['jwt_issuer'] ?? '');
 
         return back()->with('success', 'IPv6 detection settings updated.');
     }

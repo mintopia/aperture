@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -12,6 +13,8 @@ class LoginControllerTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    protected bool $seedSetupUser = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -20,6 +23,8 @@ class LoginControllerTest extends TestCase
 
     public function test_login_page_renders(): void
     {
+        User::factory()->create();
+
         $response = $this->get('/login');
 
         $response->assertOk();
@@ -64,31 +69,19 @@ class LoginControllerTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_first_login_bootstraps_admin_user_when_no_users_exist(): void
+    public function test_authenticate_does_not_create_user_when_none_exist(): void
     {
-        $adminRole = new Role;
-        $adminRole->code = 'admin';
-        $adminRole->name = 'Admin';
-        $adminRole->save();
-
-        $userRole = new Role;
-        $userRole->code = 'user';
-        $userRole->name = 'User';
-        $userRole->save();
-
         $response = $this->post('/login', [
             'email' => 'first-admin@test.com',
             'password' => 'secret123',
         ]);
 
-        $response->assertRedirect(route('admin.home'));
-
-        $createdUser = User::query()->where('email', 'first-admin@test.com')->first();
-
-        $this->assertNotNull($createdUser);
-        $this->assertTrue($createdUser->hasRole('admin'));
-        $this->assertTrue($createdUser->hasRole('user'));
-        $this->assertAuthenticatedAs($createdUser);
+        // With no users, the middleware redirects to /setup, so login never fires
+        $response->assertRedirect('/setup');
+        $this->assertDatabaseMissing('users', [
+            'email' => 'first-admin@test.com',
+        ]);
+        $this->assertGuest();
     }
 
     public function test_admin_user_is_redirected_to_admin_dashboard_after_login(): void
@@ -160,6 +153,8 @@ class LoginControllerTest extends TestCase
 
     public function test_login_validates_required_fields(): void
     {
+        User::factory()->create();
+
         $response = $this->post('/login', []);
 
         $response->assertSessionHasErrors(['email', 'password']);
@@ -223,7 +218,49 @@ class LoginControllerTest extends TestCase
 
     public function test_authenticate_middleware_still_redirects_to_captive(): void
     {
+        User::factory()->create();
+
         $response = $this->get('/');
         $response->assertRedirect(route('captive.index'));
+    }
+
+    public function test_successful_login_creates_audit_log(): void
+    {
+        User::factory()->withPassword('secret123')->create([
+            'email' => 'audit@test.com',
+        ]);
+
+        $this->post('/login', [
+            'email' => 'audit@test.com',
+            'password' => 'secret123',
+        ]);
+
+        $this->assertTrue(AuditLog::where('action', 'user.login')->exists());
+        $log = AuditLog::where('action', 'user.login')->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('auth', $log->process);
+        $this->assertEquals('audit@test.com', $log->metadata['email']);
+        $this->assertArrayHasKey('ip', $log->metadata);
+    }
+
+    public function test_failed_login_creates_audit_log(): void
+    {
+        User::factory()->withPassword('secret123')->create([
+            'email' => 'audit@test.com',
+        ]);
+
+        $this->post('/login', [
+            'email' => 'audit@test.com',
+            'password' => 'wrongpassword',
+        ]);
+
+        $this->assertTrue(AuditLog::where('action', 'user.login_failed')->exists());
+        $log = AuditLog::where('action', 'user.login_failed')->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('auth', $log->process);
+        $this->assertNull($log->subject_type);
+        $this->assertNull($log->subject_id);
+        $this->assertEquals('audit@test.com', $log->metadata['email']);
+        $this->assertArrayHasKey('ip', $log->metadata);
     }
 }

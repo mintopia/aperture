@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -31,7 +32,7 @@ class AccountController extends Controller
                     'created_at' => $cred->created_at->toIso8601String(),
                 ]),
             ],
-            'verified' => $request->session()->get('account_verified', $user->password === null),
+            'verified' => (bool) $request->session()->get('account_verified', false),
         ]);
     }
 
@@ -53,6 +54,35 @@ class AccountController extends Controller
         return back();
     }
 
+    public function createPassword(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(403); // Required for PHPStan level 8 null-safety
+        }
+
+        if ($user->password !== null) {
+            abort(403);
+        }
+
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user->update(['password' => Hash::make($request->string('password')->value())]);
+
+        AuditLog::record(
+            action: 'user.password_created',
+            subject: $user,
+            process: 'account',
+            metadata: ['ip' => $request->getClientIp()],
+        );
+
+        $request->session()->put('account_verified', true);
+
+        return back()->with('success', 'Password created.');
+    }
+
     public function updatePassword(Request $request): RedirectResponse
     {
         $user = $request->user();
@@ -67,6 +97,13 @@ class AccountController extends Controller
         $user->password = $request->password;
         $user->save();
 
+        AuditLog::record(
+            action: 'user.password_changed',
+            subject: $user,
+            process: 'account',
+            metadata: ['ip' => $request->getClientIp()],
+        );
+
         return back()->with('success', 'Password updated.');
     }
 
@@ -79,6 +116,13 @@ class AccountController extends Controller
 
         $user->password = null;
         $user->save();
+
+        AuditLog::record(
+            action: 'user.password_cleared',
+            subject: $user,
+            process: 'account',
+            metadata: ['ip' => $request->getClientIp()],
+        );
 
         $request->session()->forget('account_verified');
 

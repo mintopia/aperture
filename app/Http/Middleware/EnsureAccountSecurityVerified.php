@@ -21,9 +21,20 @@ class EnsureAccountSecurityVerified
         }
 
         $hasSecurityMethod = $user->password !== null || $user->webAuthnCredentials()->exists();
-        $isVerified = (bool) $request->session()->get('account_verified', $user->password === null);
 
-        if ($hasSecurityMethod && ! $isVerified) {
+        if (! $hasSecurityMethod) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Please create a password to manage passkeys.'], 403);
+            }
+
+            return redirect()
+                ->route('account.settings')
+                ->with('error', 'Please create a password to manage passkeys.');
+        }
+
+        $isVerified = (bool) $request->session()->get('account_verified', false);
+
+        if (! $isVerified) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Please verify your account before managing passkeys.'], 403);
             }

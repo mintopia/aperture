@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Services;
 
+use App\Models\IntegrationConfig;
 use App\Services\Ipv6JwtService;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\SignatureInvalidException;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
@@ -17,6 +19,8 @@ use Tests\TestCase;
 
 class Ipv6JwtServiceTest extends TestCase
 {
+    use LazilyRefreshDatabase;
+
     private string $jwksUrl = 'https://ipv6.example.com/.well-known/jwks.json';
 
     private OpenSSLAsymmetricKey $privateKey;
@@ -61,10 +65,18 @@ class Ipv6JwtServiceTest extends TestCase
         ];
     }
 
-    private function makeJwt(string $sub, ?string $kid = null): string
+    /**
+     * @param  array<string, mixed>  $extraClaims
+     */
+    private function makeJwt(string $sub, ?string $kid = null, array $extraClaims = []): string
     {
-        return JWT::encode(
+        $payload = array_merge(
             ['sub' => $sub, 'iat' => time(), 'exp' => time() + 300],
+            $extraClaims,
+        );
+
+        return JWT::encode(
+            $payload,
             $this->privateKey,
             'RS256',
             $kid ?? $this->kid,
@@ -162,6 +174,124 @@ class Ipv6JwtServiceTest extends TestCase
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Failed to fetch JWKS');
+
+        $service->verifyAndExtract($jwt, $this->jwksUrl);
+    }
+
+    public function test_accepts_jwt_with_correct_audience_when_configured(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+        IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'aperture']);
+
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+
+        $this->assertSame('2001:db8::1', $result);
+    }
+
+    public function test_rejects_jwt_with_wrong_audience_when_configured(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+        IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'wrong-audience']);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $service->verifyAndExtract($jwt, $this->jwksUrl);
+    }
+
+    public function test_rejects_jwt_with_missing_audience_when_configured(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+        IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1');
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $service->verifyAndExtract($jwt, $this->jwksUrl);
+    }
+
+    public function test_accepts_jwt_with_correct_issuer_when_configured(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+        IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['iss' => 'borealis']);
+
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+
+        $this->assertSame('2001:db8::1', $result);
+    }
+
+    public function test_rejects_jwt_with_wrong_issuer_when_configured(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+        IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['iss' => 'wrong-issuer']);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $service->verifyAndExtract($jwt, $this->jwksUrl);
+    }
+
+    public function test_rejects_jwt_with_missing_issuer_when_configured(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+        IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1');
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $service->verifyAndExtract($jwt, $this->jwksUrl);
+    }
+
+    public function test_accepts_jwt_without_aud_iss_when_not_configured(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1');
+
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+
+        $this->assertSame('2001:db8::1', $result);
+    }
+
+    public function test_accepts_jwt_with_both_correct_audience_and_issuer(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+        IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
+        IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'aperture', 'iss' => 'borealis']);
+
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+
+        $this->assertSame('2001:db8::1', $result);
+    }
+
+    public function test_rejects_jwt_with_correct_audience_but_wrong_issuer(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+        IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
+        IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
+
+        $service = app(Ipv6JwtService::class);
+        $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'aperture', 'iss' => 'wrong']);
+
+        $this->expectException(InvalidArgumentException::class);
 
         $service->verifyAndExtract($jwt, $this->jwksUrl);
     }

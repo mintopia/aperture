@@ -54,6 +54,17 @@ class AccountControllerUnitTest extends TestCase
         ]));
     }
 
+    public function test_create_password_aborts_403_when_user_is_null(): void
+    {
+        $this->expectException(HttpException::class);
+
+        $controller = new AccountController;
+        $controller->createPassword($this->makeNullUserRequest('/account/password/create', 'POST', [
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]));
+    }
+
     public function test_clear_password_aborts_403_when_user_is_null(): void
     {
         $this->expectException(HttpException::class);

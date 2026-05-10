@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use App\Models\User;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -14,6 +19,8 @@ abstract class TestCase extends BaseTestCase
     protected static $mockServerProcess;
 
     protected static bool $mockServerStarted = false;
+
+    protected bool $seedSetupUser = true;
 
     public static function startMockOpnSenseServer(): void
     {
@@ -66,5 +73,23 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         static::startMockOpnSenseServer();
+
+        if ($this->seedSetupUser && $this->usesDatabase()) {
+            User::factory()->create(['email' => 'setup-seed@test.com']);
+        }
+    }
+
+    private function usesDatabase(): bool
+    {
+        return in_array(
+            true,
+            [
+                in_array(RefreshDatabase::class, class_uses_recursive($this), true),
+                in_array(LazilyRefreshDatabase::class, class_uses_recursive($this), true),
+                in_array(DatabaseMigrations::class, class_uses_recursive($this), true),
+                in_array(DatabaseTransactions::class, class_uses_recursive($this), true),
+            ],
+            true,
+        );
     }
 }

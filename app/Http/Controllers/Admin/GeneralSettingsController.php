@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateGeneralSettingsRequest;
+use App\Models\AuditLog;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Services\CoverImageService;
@@ -67,6 +68,12 @@ class GeneralSettingsController extends Controller
         Setting::set('theme.accent_lightness', 'Accent Lightness', (string) ($validated['accent_lightness'] ?? config('aperture.theme.accent_lightness')));
         Setting::set('theme.custom_css', 'Custom CSS', $validated['custom_css'] ?? null);
 
+        AuditLog::record(
+            action: 'settings.updated',
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp(), 'setting_group' => 'general'],
+        );
+
         return back()->with('success', 'Settings updated.');
     }
 
@@ -101,6 +108,12 @@ class GeneralSettingsController extends Controller
         ]);
 
         $this->logoService->store($request->file('logo'));
+
+        AuditLog::record(
+            action: 'settings.updated',
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp(), 'setting_group' => 'logo'],
+        );
 
         return back()->with('success', 'Logo uploaded.');
     }
@@ -139,6 +152,12 @@ class GeneralSettingsController extends Controller
         ]);
 
         $this->coverImageService->store($request->file('cover_image'));
+
+        AuditLog::record(
+            action: 'settings.updated',
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp(), 'setting_group' => 'cover_image'],
+        );
 
         return back()->with('success', 'Cover image uploaded.');
     }

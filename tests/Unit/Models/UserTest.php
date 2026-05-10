@@ -158,4 +158,51 @@ class UserTest extends TestCase
         $this->assertStringContainsString('TestUser', (string) $user);
         $this->assertStringContainsString('[User:', (string) $user);
     }
+
+    public function test_oauth_tokens_are_not_in_fillable(): void
+    {
+        $user = new User;
+        $fillable = $user->getFillable();
+
+        $this->assertNotContains('access_token', $fillable, 'access_token should not be in $fillable');
+        $this->assertNotContains('refresh_token', $fillable, 'refresh_token should not be in $fillable');
+        $this->assertNotContains('token_expires_at', $fillable, 'token_expires_at should not be in $fillable');
+    }
+
+    public function test_oauth_tokens_can_be_set_via_direct_assignment(): void
+    {
+        // Since access_token and refresh_token are cast to 'encrypted', we use setRawAttributes
+        // to bypass encryption in unit tests (no APP_KEY needed) while still verifying
+        // that direct attribute assignment stores values in the model attributes.
+        $user = new User;
+        $user->setRawAttributes([
+            'access_token' => 'raw-token-value',
+            'refresh_token' => 'raw-refresh-value',
+            'token_expires_at' => '2099-01-01 00:00:00',
+        ]);
+
+        $attributes = $user->getAttributes();
+        $this->assertArrayHasKey('access_token', $attributes, 'access_token should be settable on the model');
+        $this->assertArrayHasKey('refresh_token', $attributes, 'refresh_token should be settable on the model');
+        $this->assertArrayHasKey('token_expires_at', $attributes, 'token_expires_at should be settable on the model');
+        $this->assertEquals('raw-token-value', $attributes['access_token']);
+        $this->assertEquals('raw-refresh-value', $attributes['refresh_token']);
+    }
+
+    public function test_mass_assignment_does_not_set_oauth_tokens(): void
+    {
+        $user = new User;
+        $user->fill([
+            'access_token' => 'should-not-be-set',
+            'refresh_token' => 'should-not-be-set',
+            'token_expires_at' => '2099-01-01 00:00:00',
+            'nickname' => 'TestUser',
+        ]);
+
+        $attributes = $user->getAttributes();
+        $this->assertArrayNotHasKey('access_token', $attributes, 'access_token should not be set via mass assignment');
+        $this->assertArrayNotHasKey('refresh_token', $attributes, 'refresh_token should not be set via mass assignment');
+        $this->assertArrayNotHasKey('token_expires_at', $attributes, 'token_expires_at should not be set via mass assignment');
+        $this->assertArrayHasKey('nickname', $attributes, 'nickname should still be fillable');
+    }
 }

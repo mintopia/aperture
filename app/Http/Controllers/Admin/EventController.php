@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemEvent;
+use App\Support\SearchHelper;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,9 +21,10 @@ class EventController extends Controller
         $query = SystemEvent::query()->orderByDesc('created_at');
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search): void {
-                $q->where('type', 'like', sprintf('%%%s%%', $search))
-                    ->orWhere('message', 'like', sprintf('%%%s%%', $search));
+            $pattern = SearchHelper::toLikePattern($search);
+            $query->where(function ($q) use ($pattern): void {
+                $q->where('type', 'like', $pattern)
+                    ->orWhere('message', 'like', $pattern);
             });
         }
 

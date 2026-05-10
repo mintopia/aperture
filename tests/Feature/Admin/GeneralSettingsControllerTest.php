@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Models\AuditLog;
 use App\Models\Page;
 use App\Models\Role;
 use App\Models\Setting;
@@ -349,6 +350,25 @@ class GeneralSettingsControllerTest extends TestCase
 
         $response->assertRedirect();
         $this->assertNull(Setting::get('theme.custom_css'));
+    }
+
+    public function test_settings_update_creates_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
+            'site_title' => 'Audit Test Portal',
+        ]));
+
+        $this->assertTrue(AuditLog::where('action', 'settings.updated')->exists());
+        $log = AuditLog::where('action', 'settings.updated')->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('admin', $log->process);
+        $this->assertNull($log->subject_type);
+        $this->assertNull($log->subject_id);
+        $this->assertEquals('general', $log->metadata['setting_group']);
+        $this->assertArrayHasKey('ip', $log->metadata);
     }
 
     protected function saveSetting(string $code, string $name, mixed $value): void

@@ -12,6 +12,8 @@ const props = defineProps({
 const form = useForm({
     detection_endpoint: props.settings?.detection_endpoint ?? '',
     jwks_url: props.settings?.jwks_url ?? '',
+    jwt_audience: props.settings?.jwt_audience ?? '',
+    jwt_issuer: props.settings?.jwt_issuer ?? '',
 });
 
 function submit() {
@@ -48,6 +50,28 @@ function submit() {
                     data-testid="jwks-url-input"
                     type="url"
                     placeholder="https://ipv6.example.com/.well-known/jwks.json"
+                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                />
+            </FormField>
+
+            <FormField label="JWT Audience" name="jwt_audience" :error="form.errors.jwt_audience">
+                <input
+                    id="jwt_audience"
+                    v-model="form.jwt_audience"
+                    data-testid="jwt-audience-input"
+                    type="text"
+                    placeholder="Optional — leave blank to skip audience validation"
+                    class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                />
+            </FormField>
+
+            <FormField label="JWT Issuer" name="jwt_issuer" :error="form.errors.jwt_issuer">
+                <input
+                    id="jwt_issuer"
+                    v-model="form.jwt_issuer"
+                    data-testid="jwt-issuer-input"
+                    type="text"
+                    placeholder="Optional — leave blank to skip issuer validation"
                     class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                 />
             </FormField>

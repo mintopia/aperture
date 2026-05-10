@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +25,18 @@ class PasskeyController extends Controller
     public function register(AttestedRequest $request): JsonResponse
     {
         $request->save();
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if ($user) {
+            AuditLog::record(
+                action: 'user.passkey_registered',
+                subject: $user,
+                process: 'account',
+                metadata: ['ip' => $request->getClientIp()],
+            );
+        }
 
         return response()->json(['success' => true]);
     }
@@ -54,6 +68,16 @@ class PasskeyController extends Controller
         }
 
         $deleted = $user->webAuthnCredentials()->where('id', $credentialId)->delete();
+
+        if ($deleted > 0) {
+            /** @var User $user */
+            AuditLog::record(
+                action: 'user.passkey_deleted',
+                subject: $user,
+                process: 'account',
+                metadata: ['ip' => $request->getClientIp()],
+            );
+        }
 
         return response()->json(['success' => $deleted > 0]);
     }

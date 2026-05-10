@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\SwitchPortMac;
+use App\Support\SearchHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -31,24 +32,24 @@ class MacAddressController extends Controller
         $query = MacAddress::query()->with(['user', 'dhcpLeases', 'ipAddresses']);
 
         if ($filters->mac !== '') {
-            $query->where('mac_address', 'LIKE', sprintf('%%%s%%', $filters->mac));
+            $query->where('mac_address', 'LIKE', SearchHelper::toLikePattern($filters->mac));
         }
 
         if ($filters->hostname !== '') {
             $query->whereHas('dhcpLeases', function ($q) use ($filters): void {
-                $q->where('hostname', 'LIKE', sprintf('%%%s%%', $filters->hostname));
+                $q->where('hostname', 'LIKE', SearchHelper::toLikePattern($filters->hostname));
             });
         }
 
         if ($filters->nickname !== '') {
             $query->whereHas('user', function ($q) use ($filters): void {
-                $q->where('nickname', 'LIKE', sprintf('%%%s%%', $filters->nickname));
+                $q->where('nickname', 'LIKE', SearchHelper::toLikePattern($filters->nickname));
             });
         }
 
         if ($filters->ip !== '') {
             $query->whereHas('ipAddresses', function ($q) use ($filters): void {
-                $q->where('address', 'LIKE', sprintf('%%%s%%', $filters->ip));
+                $q->where('address', 'LIKE', SearchHelper::toLikePattern($filters->ip));
             });
         }
 

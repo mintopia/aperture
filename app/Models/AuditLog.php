@@ -13,8 +13,8 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $action
- * @property string $subject_type
- * @property int $subject_id
+ * @property string|null $subject_type
+ * @property int|null $subject_id
  * @property string|null $related_type
  * @property int|null $related_id
  * @property string|null $actor_type
@@ -76,7 +76,7 @@ class AuditLog extends Model
      */
     public static function record(
         string $action,
-        Model $subject,
+        ?Model $subject = null,
         ?Model $related = null,
         ?Model $actor = null,
         string $process = 'system',
@@ -84,8 +84,8 @@ class AuditLog extends Model
     ): self {
         return self::create([
             'action' => $action,
-            'subject_type' => $subject->getMorphClass(),
-            'subject_id' => $subject->getKey(),
+            'subject_type' => $subject?->getMorphClass(),
+            'subject_id' => $subject?->getKey(),
             'related_type' => $related?->getMorphClass(),
             'related_id' => $related?->getKey(),
             'actor_type' => $actor?->getMorphClass(),

@@ -127,4 +127,77 @@ class Ipv6DetectionSettingsTest extends TestCase
         $this->actingAs($user)->get('/admin/settings/ipv6-detection')->assertForbidden();
         $this->actingAs($user)->put('/admin/settings/ipv6-detection', [])->assertForbidden();
     }
+
+    public function test_show_returns_jwt_audience_and_issuer_settings(): void
+    {
+        IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
+        IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
+
+        $response = $this->actingAs($this->admin)->get('/admin/settings/ipv6-detection');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->where('settings.jwt_audience', 'aperture')
+            ->where('settings.jwt_issuer', 'borealis')
+        );
+    }
+
+    public function test_show_returns_empty_jwt_audience_and_issuer_when_not_set(): void
+    {
+        $response = $this->actingAs($this->admin)->get('/admin/settings/ipv6-detection');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->where('settings.jwt_audience', '')
+            ->where('settings.jwt_issuer', '')
+        );
+    }
+
+    public function test_update_saves_jwt_audience_and_issuer(): void
+    {
+        $response = $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
+            'detection_endpoint' => 'https://{uuid}.ipv6.test.com',
+            'jwks_url' => 'https://ipv6.test.com/.well-known/jwks.json',
+            'jwt_audience' => 'aperture',
+            'jwt_issuer' => 'borealis',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $config = IntegrationConfig::getAll('ipv6');
+        $this->assertSame('aperture', $config['jwt_audience']);
+        $this->assertSame('borealis', $config['jwt_issuer']);
+    }
+
+    public function test_update_allows_empty_jwt_audience_and_issuer(): void
+    {
+        $response = $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
+            'detection_endpoint' => 'https://{uuid}.ipv6.test.com',
+            'jwks_url' => 'https://ipv6.test.com/.well-known/jwks.json',
+            'jwt_audience' => '',
+            'jwt_issuer' => '',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+    }
+
+    public function test_update_validates_jwt_audience_max_length(): void
+    {
+        $response = $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
+            'jwt_audience' => str_repeat('a', 256),
+        ]);
+
+        $response->assertSessionHasErrors('jwt_audience');
+    }
+
+    public function test_update_validates_jwt_issuer_max_length(): void
+    {
+        $response = $this->actingAs($this->admin)->put('/admin/settings/ipv6-detection', [
+            'jwt_issuer' => str_repeat('a', 256),
+        ]);
+
+        $response->assertSessionHasErrors('jwt_issuer');
+    }
 }

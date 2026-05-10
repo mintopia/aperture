@@ -54,6 +54,8 @@ describe('Ipv6Detection.vue', () => {
         expect(wrapper.find('[data-testid="detection-enabled-toggle"]').exists()).toBe(false);
         expect(wrapper.find('[data-testid="detection-endpoint-input"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="jwks-url-input"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="jwt-audience-input"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="jwt-issuer-input"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="action-save"]').exists()).toBe(true);
     });
 
@@ -61,13 +63,19 @@ describe('Ipv6Detection.vue', () => {
         const wrapper = mountComponent({
             detection_endpoint: 'https://{uuid}.ipv6.test.com',
             jwks_url: 'https://ipv6.test.com/.well-known/jwks.json',
+            jwt_audience: 'aperture',
+            jwt_issuer: 'borealis',
         });
 
         const endpointInput = wrapper.get('[data-testid="detection-endpoint-input"]');
         const jwksInput = wrapper.get('[data-testid="jwks-url-input"]');
+        const audInput = wrapper.get('[data-testid="jwt-audience-input"]');
+        const issInput = wrapper.get('[data-testid="jwt-issuer-input"]');
 
         expect(endpointInput.element.value).toBe('https://{uuid}.ipv6.test.com');
         expect(jwksInput.element.value).toBe('https://ipv6.test.com/.well-known/jwks.json');
+        expect(audInput.element.value).toBe('aperture');
+        expect(issInput.element.value).toBe('borealis');
     });
 
     it('submits form via PUT', async () => {

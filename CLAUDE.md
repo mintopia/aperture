@@ -173,3 +173,31 @@ If problems were encountered, e.g. code review, linting, tests, they are added t
   - User interface should match wireframes/mockups where provided.
 
 </quality-guidelines>
+
+## Decision memory
+
+Before proposing architecture, tooling, style, testing, repo structure, or workflow changes:
+
+1. Search `docs/decisions/`.
+2. Treat accepted ADRs as binding unless explicitly overridden.
+3. If a decision is outdated, create a new ADR that supersedes it.
+4. Do not re-litigate accepted decisions unless new constraints are introduced.
+5. ADRs must follow the adr-template below.
+
+<adr-template>
+# ADR ###: Title of ADR
+Status: Accepted
+Date: 2026-05-09
+
+## Context
+The context for the ADR.
+
+## Decision
+The decision that was made.
+
+## Consequences
+Description of consequences from this ADR.
+
+## Supersedes
+N/A or ADR ###
+</adr-template>

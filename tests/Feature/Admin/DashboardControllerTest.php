@@ -19,6 +19,8 @@ class DashboardControllerTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    protected bool $seedSetupUser = false;
+
     protected function createAdminUser(): User
     {
         $user = User::factory()->create();
@@ -68,6 +70,8 @@ class DashboardControllerTest extends TestCase
 
     public function test_unauthenticated_user_redirected(): void
     {
+        User::factory()->create();
+
         $response = $this->get('/admin');
 
         $response->assertRedirect('/captive');

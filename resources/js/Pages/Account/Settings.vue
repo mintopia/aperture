@@ -20,8 +20,11 @@ const needsVerification = computed(
     () => (props.user.has_password || props.user.passkeys.length > 0) && !props.verified,
 );
 
+const needsPasswordCreation = computed(() => !props.user.has_password && props.user.passkeys.length === 0);
+
 const verifyForm = useForm({ password: '' });
 const passwordForm = useForm({ password: '', password_confirmation: '' });
+const createPasswordForm = useForm({ password: '', password_confirmation: '' });
 
 const passkeyLoading = ref(false);
 const passkeyError = ref('');
@@ -42,6 +45,13 @@ async function parseJsonResponse(response) {
 
 function verify() {
     verifyForm.post(route('account.verify'), { preserveScroll: true });
+}
+
+function createPassword() {
+    createPasswordForm.post(route('account.password.create'), {
+        preserveScroll: true,
+        onSuccess: () => createPasswordForm.reset(),
+    });
 }
 
 function updatePassword() {
@@ -191,9 +201,70 @@ async function doDeletePasskey() {
                 <p class="mt-1 text-[13px] text-[var(--color-text-secondary)]">Manage your password and passkeys.</p>
             </div>
 
+            <!-- ── Create password gate (OAuth users with no security method) ──── -->
+            <section
+                v-if="needsPasswordCreation"
+                data-testid="create-password-section"
+                class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
+            >
+                <h2
+                    class="font-heading mb-1 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                >
+                    Create a Password
+                </h2>
+                <p class="mb-4 text-[13px] text-[var(--color-text-secondary)]">
+                    Please create a password to manage passkeys and secure your account.
+                </p>
+
+                <form class="space-y-4" @submit.prevent="createPassword">
+                    <FormField
+                        label="Password"
+                        name="create-password"
+                        :required="true"
+                        :error="createPasswordForm.errors.password"
+                    >
+                        <input
+                            id="create-password"
+                            v-model="createPasswordForm.password"
+                            type="password"
+                            data-testid="create-password"
+                            class="w-full rounded-md border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                            placeholder="Minimum 8 characters"
+                            autocomplete="new-password"
+                        />
+                    </FormField>
+
+                    <FormField
+                        label="Confirm Password"
+                        name="create-password-confirm"
+                        :required="true"
+                        :error="createPasswordForm.errors.password_confirmation"
+                    >
+                        <input
+                            id="create-password-confirm"
+                            v-model="createPasswordForm.password_confirmation"
+                            type="password"
+                            data-testid="create-password-confirm"
+                            class="w-full rounded-md border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                            placeholder="Repeat your password"
+                            autocomplete="new-password"
+                        />
+                    </FormField>
+
+                    <button
+                        type="submit"
+                        data-testid="create-password-submit"
+                        class="rounded-md border border-[var(--color-primary)] bg-[var(--color-primary)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+                        :disabled="createPasswordForm.processing"
+                    >
+                        {{ createPasswordForm.processing ? 'Creating…' : 'Create Password' }}
+                    </button>
+                </form>
+            </section>
+
             <!-- ── Re-verification gate (password section only) ─────────────────── -->
             <div
-                v-if="needsVerification"
+                v-else-if="needsVerification"
                 data-testid="verify-form"
                 class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
             >
@@ -321,7 +392,7 @@ async function doDeletePasskey() {
 
             <!-- ── Passkey section ──────────────────────────────────────────────── -->
             <section
-                v-if="!needsVerification"
+                v-if="!needsVerification && !needsPasswordCreation"
                 data-testid="passkey-section"
                 class="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-6"
             >

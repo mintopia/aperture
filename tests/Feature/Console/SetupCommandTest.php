@@ -14,6 +14,8 @@ class SetupCommandTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    protected bool $seedSetupUser = false;
+
     public function test_setup_command_creates_first_admin_and_borealis_config(): void
     {
         $result = $this->artisan('aperture:setup', [
