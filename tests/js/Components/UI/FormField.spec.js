@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, it, expect } from 'vitest';
+import { h } from 'vue';
 import FormField from '@/Components/UI/FormField.vue';
 
 describe('FormField', () => {
@@ -135,5 +136,38 @@ describe('FormField', () => {
             },
         });
         expect(capturedHasError).toBe(false);
+    });
+
+    it('hasError slot prop updates reactively when error prop changes', async () => {
+        let capturedHasError = null;
+        const wrapper = mount(FormField, {
+            props: { label: 'Email', name: 'email', error: '' },
+            slots: {
+                default: (slotProps) => {
+                    capturedHasError = slotProps.hasError;
+                    return h('input', { id: 'email', type: 'text' });
+                },
+            },
+        });
+        expect(capturedHasError).toBe(false);
+        await wrapper.setProps({ error: 'Required field' });
+        expect(capturedHasError).toBe(true);
+    });
+
+    it('slot consumer can wire aria-describedby and aria-invalid from slot props', () => {
+        const wrapper = mount(FormField, {
+            props: { label: 'Email', name: 'email', error: 'Required field' },
+            slots: {
+                default: ({ errorId, hasError }) =>
+                    h('input', {
+                        id: 'email',
+                        'aria-describedby': errorId,
+                        'aria-invalid': String(hasError),
+                    }),
+            },
+        });
+        const input = wrapper.find('input');
+        expect(input.attributes('aria-describedby')).toBe('email-error');
+        expect(input.attributes('aria-invalid')).toBe('true');
     });
 });

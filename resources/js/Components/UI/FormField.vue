@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue';
+
 const props = defineProps({
     label: { type: String, required: true },
     name: { type: String, required: true },
@@ -6,8 +8,8 @@ const props = defineProps({
     error: { type: String, default: '' },
 });
 
-const errorId = `${props.name}-error`;
-const hasError = !!props.error;
+const errorId = computed(() => `${props.name}-error`);
+const hasError = computed(() => !!props.error);
 </script>
 
 <template>
