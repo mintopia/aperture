@@ -66,7 +66,11 @@ class UserShowDataService
     public function buildNetworkDevices(User $user, Collection $ipModels): array
     {
         $macs = $user->macAddresses()
-            ->with(['switchPorts.switchConfig'])
+            ->with([
+                'switchPorts' => fn ($q) => $q->with('switchConfig')->orderByPivot('last_seen_at', 'desc'),
+                'ipAddresses' => fn ($q) => $q->orderByPivot('last_seen_at', 'desc'),
+                'dhcpLeases' => fn ($q) => $q->whereNotNull('hostname')->latest(),
+            ])
             ->get();
 
         $ipAddressSet = $ipModels->pluck('address')->flip();
@@ -74,14 +78,10 @@ class UserShowDataService
         $coveredIps = [];
 
         foreach ($macs as $mac) {
-            $macIps = $mac->ipAddresses()
-                ->orderByPivot('last_seen_at', 'desc')
-                ->get();
+            // Already eager-loaded — no extra queries
+            $macIps = $mac->ipAddresses->sortByDesc(fn ($ip) => $ip->pivot->last_seen_at);
 
-            $switchPort = $mac->switchPorts()
-                ->orderByPivot('last_seen_at', 'desc')
-                ->with('switchConfig')
-                ->first();
+            $switchPort = $mac->switchPorts->first(); // ordered by eager load
 
             $switchInfo = $switchPort !== null ? [
                 'switch_name' => $switchPort->switchConfig->name ?? $switchPort->switchConfig->hostname,
@@ -89,7 +89,7 @@ class UserShowDataService
                 'port_name' => $switchPort->port_name,
             ] : ['switch_name' => null, 'switch_id' => null, 'port_name' => null];
 
-            $hostname = $mac->currentHostname();
+            $hostname = $mac->dhcpLeases->first()?->hostname;
 
             $relevantIps = $macIps->filter(fn (IpAddress $ip) => $ipAddressSet->has($ip->address));
 

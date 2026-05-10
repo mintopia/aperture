@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\UserShowDataService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -267,5 +268,25 @@ class UserShowDataServiceTest extends TestCase
         $result = $this->service->assemble($user);
 
         $this->assertCount(20, $result['auditLogs']);
+    }
+
+    public function test_build_network_devices_does_not_n_plus_one(): void
+    {
+        $user = User::factory()->create();
+        MacAddress::factory()->count(3)->create(['user_id' => $user->id]);
+
+        DB::enableQueryLog();
+
+        $service = new UserShowDataService;
+        $ipModels = collect();
+        $service->buildNetworkDevices($user, $ipModels);
+
+        $queryCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        // ≤4 queries: macs, switchPorts eager load, ipAddresses eager load, dhcpLeases eager load
+        // (not N queries per MAC — original code issued 11 queries for 3 MACs)
+        $this->assertLessThanOrEqual(4, $queryCount,
+            "Expected ≤4 queries, got {$queryCount}. N+1 detected.");
     }
 }
