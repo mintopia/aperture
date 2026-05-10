@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ToggleCapabilityRequest;
+use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
@@ -135,6 +136,8 @@ class IntegrationController extends Controller
 
         $validated = $request->validate($rules);
 
+        /** @var IntegrationConfig|null $lastConfig */
+        $lastConfig = null;
         foreach ($validated['config'] as $key => $value) {
             if (! array_key_exists($key, $validationRules)) {
                 continue;
@@ -142,8 +145,18 @@ class IntegrationController extends Controller
 
             $value = $this->castConfigValue($value, $validationRules[$key]);
 
-            $encrypted = in_array($key, IntegrationConfig::ENCRYPTED_KEYS, true);
+            $encrypted = in_array($key, IntegrationConfig::encryptedKeys(), true);
             IntegrationConfig::setValue($service, $key, $value, $encrypted);
+            $lastConfig = IntegrationConfig::where('integration', $service)->where('key', $key)->first();
+        }
+
+        if ($lastConfig) {
+            AuditLog::record(
+                action: 'integration.updated',
+                subject: $lastConfig,
+                process: 'admin',
+                metadata: ['ip' => $request->getClientIp(), 'service' => $service],
+            );
         }
 
         return back()->with('success', 'Integration settings updated.');
