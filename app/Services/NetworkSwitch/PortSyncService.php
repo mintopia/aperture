@@ -13,7 +13,10 @@ use App\Models\SwitchSyncRun;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SupportsBulkOperations;
 use App\Services\Interfaces\SupportsInterfaceOutputCapture;
+use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\PortStatus;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -43,15 +46,22 @@ class PortSyncService
         try {
             $adapter = $this->factory->make($switchConfig);
 
+            // ── Fetch all network data BEFORE opening a DB transaction ──────
+            // This prevents long-held DB locks during slow SSH operations.
+            $portStatuses = $adapter->getAllPorts();
+            $portConfigData = $this->fetchPortConfigsFromNetwork($adapter, $switchConfig, $portStatuses);
+            $macEntries = $adapter->getForwardingDatabase();
+            // ────────────────────────────────────────────────────────────────
+
             $portsCreated = 0;
             $portsUpdated = 0;
             $macsCreated = 0;
             $macsUpdated = 0;
 
-            DB::transaction(function () use ($adapter, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
-                $portStateChanges = $this->syncPortStatuses($adapter, $switchConfig, $syncStartedAt, $portsCreated, $portsUpdated);
-                $this->syncPortConfigs($adapter, $switchConfig, $syncStartedAt);
-                $syncedMacIds = $this->syncPortMacs($adapter, $switchConfig, $syncStartedAt, $macsCreated, $macsUpdated);
+            DB::transaction(function () use ($portStatuses, $portConfigData, $macEntries, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
+                $portStateChanges = $this->syncPortStatuses($portStatuses, $switchConfig, $syncStartedAt, $portsCreated, $portsUpdated);
+                $this->syncPortConfigsFromData($portConfigData, $switchConfig, $syncStartedAt);
+                $syncedMacIds = $this->syncPortMacs($macEntries, $switchConfig, $syncStartedAt, $macsCreated, $macsUpdated);
                 $this->cleanStaleMacs($switchConfig, $syncedMacIds);
             });
 
@@ -102,18 +112,25 @@ class PortSyncService
     }
 
     /**
-     * Fetch port statuses from the switch adapter and upsert them into the database.
+     * Upsert pre-fetched port statuses into the database.
      *
+     * Pre-loads all existing ports in one query (fixes N+1) and matches
+     * against the pre-fetched $portStatuses collection.
+     *
+     * @param  Collection<int, PortStatus>  $portStatuses
      * @return array<int, array{switchPort: SwitchPort, oldStatus: ?string, newStatus: string}>
      */
     private function syncPortStatuses(
-        NetworkSwitchInterface $adapter,
+        Collection $portStatuses,
         SwitchConfig $switchConfig,
         Carbon $syncStartedAt,
         int &$portsCreated,
         int &$portsUpdated,
     ): array {
-        $portStatuses = $adapter->getAllPorts();
+        // Pre-load all existing ports keyed by port_name to avoid N+1 queries.
+        $existingPorts = SwitchPort::where('switch_config_id', $switchConfig->id)
+            ->get()
+            ->keyBy('port_name');
 
         /** @var array<int, array{switchPort: SwitchPort, oldStatus: ?string, newStatus: string}> $stateChanges */
         $stateChanges = [];
@@ -123,9 +140,8 @@ class PortSyncService
             $switchportMode = $portStatus->switchportMode !== '' ? $portStatus->switchportMode : null;
             $description = $portStatus->description !== '' ? $portStatus->description : null;
 
-            $existingPort = SwitchPort::where('switch_config_id', $switchConfig->id)
-                ->where('port_name', $portStatus->interface)
-                ->first();
+            /** @var SwitchPort|null $existingPort */
+            $existingPort = $existingPorts->get($portStatus->interface);
 
             if ($existingPort instanceof SwitchPort) {
                 $oldStatus = $existingPort->status;
@@ -171,34 +187,37 @@ class PortSyncService
     }
 
     /**
-     * Fetch and store per-port running configuration and interface output.
+     * Fetch all port running configs and interface outputs from the network adapter
+     * BEFORE opening any DB transaction, so SSH calls never hold a DB lock.
      *
      * Uses bulk commands when the adapter supports SupportsBulkOperations,
      * reducing 96+ individual SSH commands to just 2 bulk commands for a
      * 48-port switch.
+     *
+     * @param  Collection<int, PortStatus>  $portStatuses
+     * @return array<string, array{rawConfig: string|null, rawInterfaceOutput: string|null}>
      */
-    private function syncPortConfigs(
+    private function fetchPortConfigsFromNetwork(
         NetworkSwitchInterface $adapter,
         SwitchConfig $switchConfig,
-        Carbon $syncStartedAt,
-    ): void {
+        Collection $portStatuses,
+    ): array {
         if ($adapter instanceof SupportsBulkOperations) {
-            $this->syncPortConfigsBulk($adapter, $switchConfig, $syncStartedAt);
-
-            return;
+            return $this->fetchBulkPortConfigs($adapter, $switchConfig);
         }
 
-        $this->syncPortConfigsPerPort($adapter, $switchConfig, $syncStartedAt);
+        return $this->fetchPerPortConfigs($adapter, $switchConfig, $portStatuses);
     }
 
     /**
-     * Sync port configs using bulk commands (2 SSH commands total).
+     * Fetch all port configs in two bulk SSH commands.
+     *
+     * @return array<string, array{rawConfig: string|null, rawInterfaceOutput: string|null}>
      */
-    private function syncPortConfigsBulk(
+    private function fetchBulkPortConfigs(
         NetworkSwitchInterface&SupportsBulkOperations $adapter,
         SwitchConfig $switchConfig,
-        Carbon $syncStartedAt,
-    ): void {
+    ): array {
         $bulkConfigs = $adapter->getAllPortRunningConfigs();
         $bulkInterfaceOutputs = $adapter instanceof SupportsInterfaceOutputCapture
             ? $adapter->getAllPortInterfaceOutputs()
@@ -210,19 +229,117 @@ class PortSyncService
             'interface_outputs_fetched' => count($bulkInterfaceOutputs),
         ]);
 
+        // Collect all unique port names from both bulk responses.
+        $portNames = array_keys($bulkConfigs + $bulkInterfaceOutputs);
+
+        $result = [];
+
+        foreach ($portNames as $portName) {
+            $result[$portName] = [
+                'rawConfig' => $bulkConfigs[$portName] ?? null,
+                'rawInterfaceOutput' => $bulkInterfaceOutputs[$portName] ?? null,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Fetch port configs individually (per-port SSH commands, legacy fallback).
+     *
+     * @param  Collection<int, PortStatus>  $portStatuses
+     * @return array<string, array{rawConfig: string|null, rawInterfaceOutput: string|null}>
+     */
+    private function fetchPerPortConfigs(
+        NetworkSwitchInterface $adapter,
+        SwitchConfig $switchConfig,
+        Collection $portStatuses,
+    ): array {
+        $result = [];
+
+        foreach ($portStatuses as $portStatus) {
+            try {
+                Log::debug('PortSyncService: fetching running config for port', [
+                    'switch' => $switchConfig->hostname,
+                    'port' => $portStatus->interface,
+                ]);
+
+                $rawConfig = $adapter->getPortRunningConfig($portStatus->interface);
+                $rawInterfaceOutput = null;
+
+                try {
+                    if ($adapter instanceof SupportsInterfaceOutputCapture) {
+                        $output = $adapter->getPortInterfaceOutput($portStatus->interface);
+                        $rawInterfaceOutput = $output !== '' ? $output : null;
+                    } else {
+                        $portStatusDetail = $adapter->getPortStatus($portStatus->interface);
+                        $rawInterfaceOutput = $portStatusDetail->description !== '' ? $portStatusDetail->description : null;
+                    }
+                } catch (Throwable $throwable) {
+                    Log::debug('PortSyncService: interface output fetch failed for port', [
+                        'switch' => $switchConfig->hostname,
+                        'port' => $portStatus->interface,
+                        'error' => $throwable->getMessage(),
+                    ]);
+                }
+
+                $result[$portStatus->interface] = [
+                    'rawConfig' => $rawConfig,
+                    'rawInterfaceOutput' => $rawInterfaceOutput,
+                ];
+
+                Log::debug('PortSyncService: config fetch succeeded for port', [
+                    'switch' => $switchConfig->hostname,
+                    'port' => $portStatus->interface,
+                ]);
+            } catch (Throwable $e) {
+                Log::debug('PortSyncService: config fetch failed for port', [
+                    'switch' => $switchConfig->hostname,
+                    'port' => $portStatus->interface,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Persist pre-fetched port configs to the database (DB-only, no network I/O).
+     *
+     * @param  array<string, array{rawConfig: string|null, rawInterfaceOutput: string|null}>  $portConfigData
+     */
+    private function syncPortConfigsFromData(
+        array $portConfigData,
+        SwitchConfig $switchConfig,
+        Carbon $syncStartedAt,
+    ): void {
+        if ($portConfigData === []) {
+            return;
+        }
+
+        // Load all ports from DB keyed by port_name (eager-load config relationship).
         $switchPorts = SwitchPort::where('switch_config_id', $switchConfig->id)
             ->with('config')
-            ->get();
+            ->get()
+            ->keyBy('port_name');
 
-        foreach ($switchPorts as $port) {
+        foreach ($portConfigData as $portName => $data) {
+            /** @var SwitchPort|null $port */
+            $port = $switchPorts->get($portName);
+
+            if (! $port instanceof SwitchPort) {
+                continue;
+            }
+
+            $rawConfigText = $data['rawConfig'];
+            $rawInterfaceOutput = $data['rawInterfaceOutput'];
+
             try {
-                $rawConfigText = $bulkConfigs[$port->port_name] ?? null;
-                $rawInterfaceOutput = $bulkInterfaceOutputs[$port->port_name] ?? null;
-
                 if ($rawConfigText === null && $rawInterfaceOutput === null) {
                     Log::debug('PortSyncService: port not found in bulk output, skipping', [
                         'switch' => $switchConfig->hostname,
-                        'port' => $port->port_name,
+                        'port' => $portName,
                     ]);
 
                     continue;
@@ -262,95 +379,14 @@ class PortSyncService
 
                 Log::debug('PortSyncService: config sync succeeded for port', [
                     'switch' => $switchConfig->hostname,
-                    'port' => $port->port_name,
+                    'port' => $portName,
                 ]);
             } catch (Throwable $e) {
                 Log::debug('PortSyncService: config sync failed for port', [
                     'switch' => $switchConfig->hostname,
-                    'port' => $port->port_name,
+                    'port' => $portName,
                     'error' => $e->getMessage(),
                 ]);
-
-                continue;
-            }
-        }
-    }
-
-    /**
-     * Sync port configs using per-port commands (legacy fallback).
-     */
-    private function syncPortConfigsPerPort(
-        NetworkSwitchInterface $adapter,
-        SwitchConfig $switchConfig,
-        Carbon $syncStartedAt,
-    ): void {
-        $switchPorts = SwitchPort::where('switch_config_id', $switchConfig->id)
-            ->with('config')
-            ->get();
-
-        foreach ($switchPorts as $port) {
-            try {
-                Log::debug('PortSyncService: fetching running config for port', [
-                    'switch' => $switchConfig->hostname,
-                    'port' => $port->port_name,
-                ]);
-
-                $existingConfig = $port->config;
-                $configText = $this->trimRunningConfigPreamble(
-                    $adapter->getPortRunningConfig($port->port_name),
-                );
-                $interfaceOutput = null;
-
-                try {
-                    if ($adapter instanceof SupportsInterfaceOutputCapture) {
-                        $rawInterfaceOutput = $adapter->getPortInterfaceOutput($port->port_name);
-                        $interfaceOutput = $rawInterfaceOutput !== '' ? $rawInterfaceOutput : null;
-                    } else {
-                        $portStatus = $adapter->getPortStatus($port->port_name);
-                        $interfaceOutput = $portStatus->description !== '' ? $portStatus->description : null;
-                    }
-                } catch (Throwable $throwable) {
-                    Log::debug('PortSyncService: interface output fetch failed for port', [
-                        'switch' => $switchConfig->hostname,
-                        'port' => $port->port_name,
-                        'error' => $throwable->getMessage(),
-                    ]);
-                }
-
-                $hasUsableRunningConfig = ! $this->isCiscoCliErrorOutput($configText) && ! $this->isSwitchportOutput($configText);
-
-                if (! $hasUsableRunningConfig && ! is_string($interfaceOutput)) {
-                    if ($existingConfig instanceof SwitchPortConfig && $this->isCiscoCliErrorOutput($existingConfig->config_text)) {
-                        $existingConfig->delete();
-                    }
-
-                    throw new RuntimeException('Cisco CLI returned error output while fetching running config.');
-                }
-
-                $persistedConfigText = $hasUsableRunningConfig ? $configText : '';
-
-                if (
-                    ! $hasUsableRunningConfig
-                    && $existingConfig instanceof SwitchPortConfig
-                    && $existingConfig->config_text !== ''
-                ) {
-                    $persistedConfigText = $existingConfig->config_text;
-                }
-
-                $this->persistPortConfig($port, $existingConfig, $persistedConfigText, $interfaceOutput, $syncStartedAt);
-
-                Log::debug('PortSyncService: config fetch succeeded for port', [
-                    'switch' => $switchConfig->hostname,
-                    'port' => $port->port_name,
-                ]);
-            } catch (Throwable $e) {
-                Log::debug('PortSyncService: config fetch failed for port', [
-                    'switch' => $switchConfig->hostname,
-                    'port' => $port->port_name,
-                    'error' => $e->getMessage(),
-                ]);
-
-                continue;
             }
         }
     }
@@ -391,19 +427,18 @@ class PortSyncService
     }
 
     /**
-     * Fetch MAC address forwarding table from the switch adapter and upsert entries.
+     * Upsert pre-fetched MAC address forwarding table entries into the database.
      *
+     * @param  Collection<int, ForwardingEntry>  $macEntries
      * @return list<int> The IDs of all MAC entries that were synced in this run.
      */
     private function syncPortMacs(
-        NetworkSwitchInterface $adapter,
+        Collection $macEntries,
         SwitchConfig $switchConfig,
         Carbon $syncStartedAt,
         int &$macsCreated,
         int &$macsUpdated,
     ): array {
-        $forwardingEntries = $adapter->getForwardingDatabase();
-
         $switchPorts = SwitchPort::where('switch_config_id', $switchConfig->id)
             ->get()
             ->keyBy('port_name');
@@ -411,7 +446,7 @@ class PortSyncService
         /** @var list<int> $syncedMacIds */
         $syncedMacIds = [];
 
-        foreach ($forwardingEntries as $entry) {
+        foreach ($macEntries as $entry) {
             /** @var SwitchPort|null $port */
             $port = $switchPorts->get($entry->port);
 
