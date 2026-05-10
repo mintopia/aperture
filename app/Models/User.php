@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Traits\ToString;
-use App\Services\IpAddressActionService;
-use App\Services\IpPolicyService;
-use App\Services\NetworkRangeService;
+use App\Services\UserNetworkAssociationService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -25,7 +23,6 @@ use Laragear\WebAuthn\WebAuthnAuthentication;
 use Laragear\WebAuthn\WebAuthnData;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\PersonalAccessToken;
-use Throwable;
 
 /**
  * App\Models\User
@@ -185,98 +182,6 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
 
     public function addIp(string $clientIp, bool $cascade = true): ?IpAddress
     {
-        if (! app(NetworkRangeService::class)->isManaged($clientIp)) {
-            return null;
-        }
-
-        $ip = IpAddress::whereAddress($clientIp)->first();
-        if (! $ip) {
-            $ip = new IpAddress;
-            $ip->address = $clientIp;
-            $ip->last_seen_at = now();
-            $ip->save();
-        }
-
-        $userIp = $this->ips()->whereIpAddressId($ip->id)->first();
-        if (! $userIp) {
-            $userIp = new UserIpAddress;
-            $userIp->user()->associate($this);
-            $userIp->ip()->associate($ip);
-        }
-
-        $userIp->last_seen_at = now();
-        $userIp->save();
-
-        app(IpPolicyService::class)->applyUserPolicy($this, $ip);
-
-        if ($ip->internet_enabled) {
-            try {
-                app(IpAddressActionService::class)->enableInternet($ip);
-            } catch (Throwable) {
-                // Firewall sync is best-effort
-            }
-        }
-
-        if ($cascade) {
-            $this->cascadeMacOwnership($ip);
-        }
-
-        return $ip;
-    }
-
-    /**
-     * Assign MAC ownership and cascade IP associations via shared MACs.
-     * Depth-limited to one hop (IP -> MAC -> sibling IPs).
-     */
-    private function cascadeMacOwnership(IpAddress $ip): void
-    {
-        $macs = $ip->macAddresses()->get();
-
-        foreach ($macs as $mac) {
-            // Assign MAC ownership if unowned
-            if ($mac->user_id === null) {
-                $mac->user_id = $this->id;
-                $mac->save();
-
-                AuditLog::record(
-                    action: 'mac.user_assigned',
-                    subject: $mac,
-                    related: $ip,
-                    actor: $this,
-                    process: 'portal_login',
-                    metadata: ['user_id' => $this->id],
-                );
-            }
-
-            // Only cascade sibling IPs for MACs we own
-            if ((int) $mac->user_id !== (int) $this->id) {
-                continue;
-            }
-
-            // Find sibling IPs on this MAC (one hop)
-            $siblingIps = $mac->ipAddresses()->where('ip_addresses.id', '!=', $ip->id)->get();
-
-            foreach ($siblingIps as $siblingIp) {
-                // Skip if another user already owns this IP
-                $existingOwner = UserIpAddress::where('ip_address_id', $siblingIp->id)->first();
-                if ($existingOwner !== null && (int) $existingOwner->user_id !== (int) $this->id) {
-                    continue;
-                }
-
-                // Use addIp with cascade=false to prevent recursion
-                $cascaded = $this->addIp($siblingIp->address, cascade: false);
-
-                if ($cascaded instanceof IpAddress) {
-                    AuditLog::record(
-                        action: 'ip.user_cascaded',
-                        subject: $siblingIp,
-                        related: $mac,
-                        actor: $this,
-                        process: 'portal_login',
-                        metadata: ['source_ip' => $ip->address],
-                    );
-                }
-            }
-        }
+        return app(UserNetworkAssociationService::class)->addIp($this, $clientIp, $cascade);
     }
 }
