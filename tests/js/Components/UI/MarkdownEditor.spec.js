@@ -140,4 +140,32 @@ describe('MarkdownEditor', () => {
             expect(textarea.exists()).toBe(true);
         });
     });
+
+    // --- Accessibility: aria-label on toolbar buttons (WCAG 4.1.2) ---
+    describe('toolbar button aria-labels', () => {
+        const toolbarButtons = [
+            { testid: 'toolbar-bold', label: 'Bold' },
+            { testid: 'toolbar-italic', label: 'Italic' },
+            { testid: 'toolbar-underline', label: 'Underline' },
+            { testid: 'toolbar-strike', label: 'Strikethrough' },
+            { testid: 'toolbar-h1', label: 'Heading 1' },
+            { testid: 'toolbar-h2', label: 'Heading 2' },
+            { testid: 'toolbar-h3', label: 'Heading 3' },
+            { testid: 'toolbar-bullet-list', label: 'Bullet List' },
+            { testid: 'toolbar-ordered-list', label: 'Ordered List' },
+            { testid: 'toolbar-blockquote', label: 'Blockquote' },
+            { testid: 'toolbar-link', label: 'Link' },
+            { testid: 'toolbar-code', label: 'Code' },
+            { testid: 'toolbar-hr', label: 'Horizontal Rule' },
+        ];
+
+        it.each(toolbarButtons)('$testid has aria-label="$label"', ({ testid, label }) => {
+            const wrapper = mount(MarkdownEditor, {
+                props: { modelValue: '' },
+            });
+            const btn = wrapper.find(`[data-testid="${testid}"]`);
+            expect(btn.exists()).toBe(true);
+            expect(btn.attributes('aria-label')).toBe(label);
+        });
+    });
 });

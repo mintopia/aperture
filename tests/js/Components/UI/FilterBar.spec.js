@@ -221,4 +221,33 @@ describe('FilterBar', () => {
         expect(wrapper.find('[data-testid="filter-pill-type"]').text()).toContain('Type: Cisco IOS');
         expect(wrapper.find('[data-testid="filter-pill-status"]').text()).toContain('Status: Enabled');
     });
+
+    // --- Accessibility: aria-label on remove buttons (WCAG 4.1.2) ---
+    it('filter pill remove button has aria-label matching "Remove {label} filter"', () => {
+        const wrapper = mountFilterBar({
+            filterValues: { type: 'cisco' },
+        });
+        const removeBtn = wrapper.find('[data-testid="filter-pill-remove-type"]');
+        expect(removeBtn.exists()).toBe(true);
+        expect(removeBtn.attributes('aria-label')).toBe('Remove Type filter');
+    });
+
+    it('filter pill remove button × icon has aria-hidden="true"', () => {
+        const wrapper = mountFilterBar({
+            filterValues: { type: 'cisco' },
+        });
+        const removeBtn = wrapper.find('[data-testid="filter-pill-remove-type"]');
+        const icon = removeBtn.find('span');
+        expect(icon.attributes('aria-hidden')).toBe('true');
+    });
+
+    it('each active filter pill has its own correct aria-label on the remove button', () => {
+        const wrapper = mountFilterBar({
+            filterValues: { type: 'cisco', status: 'enabled' },
+        });
+        const typeRemove = wrapper.find('[data-testid="filter-pill-remove-type"]');
+        const statusRemove = wrapper.find('[data-testid="filter-pill-remove-status"]');
+        expect(typeRemove.attributes('aria-label')).toBe('Remove Type filter');
+        expect(statusRemove.attributes('aria-label')).toBe('Remove Status filter');
+    });
 });

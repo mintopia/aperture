@@ -157,6 +157,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-bold"
                     type="button"
                     title="Bold"
+                    aria-label="Bold"
                     class="rounded px-1.5 py-0.5 text-[13px] font-bold transition-colors"
                     :class="
                         editor?.isActive('bold')
@@ -171,6 +172,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-italic"
                     type="button"
                     title="Italic"
+                    aria-label="Italic"
                     class="rounded px-1.5 py-0.5 text-[13px] italic transition-colors"
                     :class="
                         editor?.isActive('italic')
@@ -185,6 +187,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-underline"
                     type="button"
                     title="Underline"
+                    aria-label="Underline"
                     class="rounded px-1.5 py-0.5 text-[13px] underline transition-colors"
                     :class="
                         editor?.isActive('underline')
@@ -199,6 +202,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-strike"
                     type="button"
                     title="Strikethrough"
+                    aria-label="Strikethrough"
                     class="rounded px-1.5 py-0.5 text-[13px] line-through transition-colors"
                     :class="
                         editor?.isActive('strike')
@@ -216,6 +220,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-h1"
                     type="button"
                     title="Heading 1"
+                    aria-label="Heading 1"
                     class="rounded px-1.5 py-0.5 text-[11px] font-bold transition-colors"
                     :class="
                         editor?.isActive('heading', { level: 1 })
@@ -230,6 +235,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-h2"
                     type="button"
                     title="Heading 2"
+                    aria-label="Heading 2"
                     class="rounded px-1.5 py-0.5 text-[11px] font-bold transition-colors"
                     :class="
                         editor?.isActive('heading', { level: 2 })
@@ -244,6 +250,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-h3"
                     type="button"
                     title="Heading 3"
+                    aria-label="Heading 3"
                     class="rounded px-1.5 py-0.5 text-[11px] font-bold transition-colors"
                     :class="
                         editor?.isActive('heading', { level: 3 })
@@ -261,6 +268,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-bullet-list"
                     type="button"
                     title="Bullet List"
+                    aria-label="Bullet List"
                     class="rounded px-1.5 py-0.5 text-[13px] transition-colors"
                     :class="
                         editor?.isActive('bulletList')
@@ -275,6 +283,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-ordered-list"
                     type="button"
                     title="Ordered List"
+                    aria-label="Ordered List"
                     class="rounded px-1.5 py-0.5 text-[11px] transition-colors"
                     :class="
                         editor?.isActive('orderedList')
@@ -289,6 +298,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-blockquote"
                     type="button"
                     title="Blockquote"
+                    aria-label="Blockquote"
                     class="rounded px-1.5 py-0.5 text-[13px] transition-colors"
                     :class="
                         editor?.isActive('blockquote')
@@ -307,6 +317,7 @@ onBeforeUnmount(() => {
                         data-testid="toolbar-link"
                         type="button"
                         title="Link"
+                        aria-label="Link"
                         class="rounded px-1.5 py-0.5 text-[13px] transition-colors"
                         :class="
                             editor?.isActive('link')
@@ -357,6 +368,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-code"
                     type="button"
                     title="Code"
+                    aria-label="Code"
                     class="rounded px-1.5 py-0.5 font-mono text-[13px] transition-colors"
                     :class="
                         editor?.isActive('code')
@@ -371,6 +383,7 @@ onBeforeUnmount(() => {
                     data-testid="toolbar-hr"
                     type="button"
                     title="Horizontal Rule"
+                    aria-label="Horizontal Rule"
                     class="rounded px-1.5 py-0.5 text-[13px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
                     @click="editor?.chain().focus().setHorizontalRule().run()"
                 >

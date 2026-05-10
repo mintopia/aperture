@@ -105,10 +105,11 @@ function filterDisplayLabel(filter) {
                 type="button"
                 :data-testid="`filter-pill-remove-${af.key}`"
                 :title="`Remove ${af.label} filter`"
+                :aria-label="`Remove ${af.label} filter`"
                 class="inline-flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-xs leading-none text-[var(--color-primary)] transition-colors duration-100 hover:bg-[var(--color-primary)]/25"
                 @click="removeFilter(af.key)"
             >
-                &times;
+                <span aria-hidden="true">&times;</span>
             </button>
         </span>
 
