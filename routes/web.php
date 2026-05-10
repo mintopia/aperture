@@ -31,11 +31,15 @@ use App\Http\Controllers\Portal\DashboardController;
 use App\Http\Controllers\Portal\DnsFilterController;
 use App\Http\Controllers\Portal\StatsController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\SetupController;
 use App\Http\Middleware\EnsureAccountSecurityVerified;
 use App\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/favicon.svg', FaviconController::class)->name('favicon');
+
+Route::get('/setup', [SetupController::class, 'index'])->name('setup');
+Route::post('/setup', [SetupController::class, 'store']);
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -55,14 +59,14 @@ Route::middleware(['guest'])->group(function () {
 });
 
 // Passkey registration (requires auth)
-Route::middleware(['auth', EnsureAccountSecurityVerified::class])->prefix('passkeys')->group(function () {
+Route::middleware(['auth', EnsureAccountSecurityVerified::class, 'throttle:10,1'])->prefix('passkeys')->group(function () {
     Route::post('/register/options', [PasskeyController::class, 'registerOptions'])->name('passkeys.register.options');
     Route::post('/register', [PasskeyController::class, 'register'])->name('passkeys.register');
     Route::delete('/{credentialId}', [PasskeyController::class, 'destroy'])->name('passkeys.destroy');
 });
 
 // Passkey authentication (guest)
-Route::middleware(['guest'])->prefix('passkeys')->group(function () {
+Route::middleware(['guest', 'throttle:login'])->prefix('passkeys')->group(function () {
     Route::post('/login/options', [PasskeyController::class, 'loginOptions'])->name('passkeys.login.options');
     Route::post('/login', [PasskeyController::class, 'login'])->name('passkeys.login');
 });
@@ -76,6 +80,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('account')->group(function () {
         Route::get('/settings', [AccountController::class, 'show'])->name('account.settings');
         Route::post('/settings/verify', [AccountController::class, 'verify'])->name('account.verify');
+        Route::post('/password/create', [AccountController::class, 'createPassword'])->name('account.password.create');
         Route::middleware(EnsureAccountSecurityVerified::class)->group(function (): void {
             Route::put('/settings/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
             Route::delete('/settings/password', [AccountController::class, 'clearPassword'])->name('account.password.clear');
@@ -104,8 +109,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('users/{user}/limit', [UserController::class, 'limit'])->name('users.limit');
         Route::get('users/{user}/bandwidth', [UserController::class, 'bandwidth'])->name('users.bandwidth');
         Route::post('users/{user}/parameters', [UserController::class, 'storeParameter'])->name('users.parameters.store');
-        Route::put('users/{user}/parameters/{parameter}', [UserController::class, 'updateParameter'])->name('users.parameters.update');
-        Route::delete('users/{user}/parameters/{parameter}', [UserController::class, 'destroyParameter'])->name('users.parameters.destroy');
+        Route::put('users/{user}/parameters/{parameter}', [UserController::class, 'updateParameter'])->name('users.parameters.update')->scopeBindings();
+        Route::delete('users/{user}/parameters/{parameter}', [UserController::class, 'destroyParameter'])->name('users.parameters.destroy')->scopeBindings();
 
         // IP Addresses
         Route::resource('ips', IpAddressController::class)->only('index', 'show', 'store', 'create');
