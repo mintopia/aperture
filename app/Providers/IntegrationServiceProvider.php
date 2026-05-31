@@ -9,6 +9,7 @@ use App\Integration\LibreNmsBootstrapper;
 use App\Integration\OpnSenseBootstrapper;
 use App\Integration\PiHoleBootstrapper;
 use App\Integration\PrometheusBootstrapper;
+use App\Integration\VyOsBootstrapper;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
 use App\Services\Firewalls\OpnSenseApiService;
@@ -19,9 +20,11 @@ use App\Services\Integration\OpnSenseTester;
 use App\Services\Integration\PiHoleTester;
 use App\Services\Integration\PrometheusTester;
 use App\Services\Integration\SeatpickerTester;
+use App\Services\Integration\VyOsTester;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\Prometheus\PrometheusService;
+use App\Services\VyOs\VyOsClient;
 use GuzzleHttp\Client;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -52,6 +55,7 @@ class IntegrationServiceProvider extends ServiceProvider
             $registry->register(Integration::Borealis->value, new BorealisTester);
             $registry->register(Integration::Prometheus->value, new PrometheusTester);
             $registry->register(Integration::Seatpicker->value, new SeatpickerTester);
+            $registry->register(Integration::VyOs->value, new VyOsTester);
 
             return $registry;
         });
@@ -93,6 +97,16 @@ class IntegrationServiceProvider extends ServiceProvider
                 apiToken: (string) ($dbConfig['api_key'] ?? ''),
             );
         });
+
+        $this->app->singleton(function (): VyOsClient {
+            $dbConfig = $this->getIntegrationDbConfig(Integration::VyOs->value);
+
+            return new VyOsClient(
+                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
+                apiKey: (string) ($dbConfig['api_key'] ?? ''),
+                verifySsl: (bool) ($dbConfig['verify_ssl'] ?? true),
+            );
+        });
     }
 
     /**
@@ -104,6 +118,7 @@ class IntegrationServiceProvider extends ServiceProvider
         (new PrometheusBootstrapper)->register($this->app);
         (new LibreNmsBootstrapper)->register($this->app);
         (new PiHoleBootstrapper)->register($this->app);
+        (new VyOsBootstrapper)->register($this->app);
     }
 
     /**
