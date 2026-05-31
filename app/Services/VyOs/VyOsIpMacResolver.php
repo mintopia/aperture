@@ -37,8 +37,8 @@ class VyOsIpMacResolver implements IpMacResolverInterface
                 ip: (string) ($entry['ip'] ?? ''),
                 mac: (string) ($entry['mac'] ?? ''),
             ))->values();
-        } catch (Throwable $e) {
-            Log::warning('Failed to fetch VyOS IPv4 neighbors', ['error' => $e->getMessage()]);
+        } catch (Throwable $throwable) {
+            Log::warning('Failed to fetch VyOS IPv4 neighbors', ['error' => $throwable->getMessage()]);
 
             return collect();
         }
@@ -54,8 +54,8 @@ class VyOsIpMacResolver implements IpMacResolverInterface
                 ip: (string) ($entry['ip'] ?? ''),
                 mac: (string) ($entry['mac'] ?? ''),
             ))->values();
-        } catch (Throwable $e) {
-            Log::warning('Failed to fetch VyOS IPv6 neighbors', ['error' => $e->getMessage()]);
+        } catch (Throwable $throwable) {
+            Log::warning('Failed to fetch VyOS IPv6 neighbors', ['error' => $throwable->getMessage()]);
 
             return collect();
         }

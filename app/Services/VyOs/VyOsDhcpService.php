@@ -76,8 +76,8 @@ class VyOsDhcpService implements DhcpInterface
                 hostname: (string) ($entry['hostname'] ?? ''),
                 expires: (string) ($entry['expires'] ?? ''),
             ))->values();
-        } catch (Throwable $e) {
-            Log::warning('Failed to fetch VyOS DHCPv4 leases', ['error' => $e->getMessage()]);
+        } catch (Throwable $throwable) {
+            Log::warning('Failed to fetch VyOS DHCPv4 leases', ['error' => $throwable->getMessage()]);
 
             return collect();
         }
@@ -95,8 +95,8 @@ class VyOsDhcpService implements DhcpInterface
                 hostname: '',
                 expires: (string) ($entry['expires'] ?? ''),
             ))->values();
-        } catch (Throwable $e) {
-            Log::warning('Failed to fetch VyOS DHCPv6 leases', ['error' => $e->getMessage()]);
+        } catch (Throwable $throwable) {
+            Log::warning('Failed to fetch VyOS DHCPv6 leases', ['error' => $throwable->getMessage()]);
 
             return collect();
         }
@@ -109,8 +109,8 @@ class VyOsDhcpService implements DhcpInterface
             $data = $this->client->retrieve(['service', 'dhcp-server', 'shared-network-name']);
 
             return $this->parseRangesFromConfig($data, 'ipv4');
-        } catch (Throwable $e) {
-            Log::warning('Failed to fetch VyOS DHCPv4 ranges', ['error' => $e->getMessage()]);
+        } catch (Throwable $throwable) {
+            Log::warning('Failed to fetch VyOS DHCPv4 ranges', ['error' => $throwable->getMessage()]);
 
             return collect();
         }
@@ -123,8 +123,8 @@ class VyOsDhcpService implements DhcpInterface
             $data = $this->client->retrieve(['service', 'dhcpv6-server', 'shared-network-name']);
 
             return $this->parseRangesFromConfig($data, 'ipv6');
-        } catch (Throwable $e) {
-            Log::warning('Failed to fetch VyOS DHCPv6 ranges', ['error' => $e->getMessage()]);
+        } catch (Throwable $throwable) {
+            Log::warning('Failed to fetch VyOS DHCPv6 ranges', ['error' => $throwable->getMessage()]);
 
             return collect();
         }
@@ -170,7 +170,7 @@ class VyOsDhcpService implements DhcpInterface
             return;
         }
 
-        foreach ($rangeData as $rangeName => $range) {
+        foreach ($rangeData as $range) {
             if (! is_array($range) || ! isset($range['start'], $range['stop'])) {
                 continue;
             }
