@@ -306,4 +306,39 @@ return [
             'bandwidth_ip_label' => 'nullable|string|max:100',
         ],
     ],
+    'vyos' => [
+        'name' => 'VyOS',
+        'description' => 'VyOS router providing DHCP, DHCPv6, and IP-MAC resolution.',
+        'capabilities' => ['dhcp', 'ip-mac'],
+        'fields' => [
+            'endpoint' => [
+                'type' => 'url',
+                'label' => 'API Endpoint',
+                'placeholder' => 'https://vyos.local',
+                'help' => 'Base URL of your VyOS router HTTP API.',
+            ],
+            'api_key' => [
+                'type' => 'password',
+                'label' => 'API Key',
+                'help' => 'VyOS HTTP API key for authentication.',
+            ],
+            'verify_ssl' => [
+                'type' => 'toggle',
+                'label' => 'Verify SSL',
+                'help' => 'Verify the SSL certificate when connecting.',
+            ],
+            'pool_size' => [
+                'type' => 'text',
+                'label' => 'DHCP Pool Size',
+                'placeholder' => '254',
+                'help' => 'Total number of addresses in the DHCP pool for utilisation calculation.',
+            ],
+        ],
+        'validation' => [
+            'endpoint' => 'nullable|url|max:500',
+            'api_key' => 'nullable|string|max:500',
+            'verify_ssl' => 'nullable|string|in:0,1',
+            'pool_size' => 'nullable|integer|min:0|max:1000000',
+        ],
+    ],
 ];
