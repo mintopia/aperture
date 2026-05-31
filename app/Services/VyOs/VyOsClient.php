@@ -7,7 +7,7 @@ namespace App\Services\VyOs;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-final class VyOsClient
+class VyOsClient
 {
     public function __construct(
         private string $endpoint,
