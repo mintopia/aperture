@@ -81,6 +81,19 @@ class VyOsTesterTest extends TestCase
         Http::assertSent(fn ($req): bool => str_contains($req->url(), 'https://vyos.local/show'));
     }
 
+    public function test_returns_failure_when_api_returns_success_false(): void
+    {
+        Http::fake(['*' => Http::response(['success' => false, 'data' => null, 'error' => 'Authentication failed'], 200)]);
+
+        $result = $this->tester->connect([
+            'endpoint' => 'https://vyos.local',
+            'api_key' => 'invalid-key',
+        ]);
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('Authentication failed', $result->message);
+    }
+
     public function test_returns_failure_on_connection_exception(): void
     {
         Http::fake(['*' => Http::failedConnection()]);

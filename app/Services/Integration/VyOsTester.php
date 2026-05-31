@@ -21,13 +21,21 @@ class VyOsTester implements TestableIntegration
         return ConnectionTester::test(
             'POST',
             $url,
-            fn () => Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
-                ->asForm()
-                ->timeout(10)
-                ->post($url, [
-                    'data' => (string) json_encode(['op' => 'show', 'path' => ['version']]),
-                    'key' => $config['api_key'] ?? '',
-                ]),
+            function () use ($url, $config) {
+                $response = Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
+                    ->asForm()
+                    ->timeout(10)
+                    ->post($url, [
+                        'data' => (string) json_encode(['op' => 'show', 'path' => ['version']]),
+                        'key' => $config['api_key'] ?? '',
+                    ]);
+
+                if ($response->successful() && $response->json('success') === false) {
+                    throw new \RuntimeException('VyOS API error: '.($response->json('error') ?? 'Authentication failed'));
+                }
+
+                return $response;
+            },
             'Connected and authenticated successfully',
         );
     }
