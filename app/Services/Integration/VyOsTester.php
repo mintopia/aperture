@@ -7,6 +7,7 @@ namespace App\Services\Integration;
 use App\Services\Interfaces\TestableIntegration;
 use App\Services\ValueObjects\TestConnectionResult;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 class VyOsTester implements TestableIntegration
 {
@@ -31,7 +32,7 @@ class VyOsTester implements TestableIntegration
                     ]);
 
                 if ($response->successful() && $response->json('success') === false) {
-                    throw new \RuntimeException('VyOS API error: '.($response->json('error') ?? 'Authentication failed'));
+                    throw new RuntimeException('VyOS API error: '.($response->json('error') ?? 'Authentication failed'));
                 }
 
                 return $response;

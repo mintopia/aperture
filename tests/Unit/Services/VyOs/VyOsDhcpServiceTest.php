@@ -8,6 +8,7 @@ use App\Services\VyOs\VyOsClient;
 use App\Services\VyOs\VyOsDhcpService;
 use Mockery;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class VyOsDhcpServiceTest extends TestCase
@@ -141,7 +142,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->client->shouldReceive('show')
             ->with(['dhcp', 'server', 'leases'])
             ->once()
-            ->andThrow(new \RuntimeException('Connection refused'));
+            ->andThrow(new RuntimeException('Connection refused'));
 
         $this->client->shouldReceive('show')
             ->with(['dhcpv6', 'server', 'leases'])
@@ -375,7 +376,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->client->shouldReceive('retrieve')
             ->with(['service', 'dhcp-server', 'shared-network-name'])
             ->once()
-            ->andThrow(new \RuntimeException('Connection refused'));
+            ->andThrow(new RuntimeException('Connection refused'));
 
         $this->client->shouldReceive('retrieve')
             ->with(['service', 'dhcpv6-server', 'shared-network-name'])
@@ -483,7 +484,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->client->shouldReceive('show')
             ->with(['dhcpv6', 'server', 'leases'])
             ->once()
-            ->andThrow(new \RuntimeException('DHCPv6 connection refused'));
+            ->andThrow(new RuntimeException('DHCPv6 connection refused'));
 
         $service = $this->createService();
         $leases = $service->getLeases();
@@ -503,7 +504,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->client->shouldReceive('retrieve')
             ->with(['service', 'dhcpv6-server', 'shared-network-name'])
             ->once()
-            ->andThrow(new \RuntimeException('DHCPv6 connection refused'));
+            ->andThrow(new RuntimeException('DHCPv6 connection refused'));
 
         $service = $this->createService();
         $ranges = $service->getRanges();

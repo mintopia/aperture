@@ -8,6 +8,7 @@ use App\Services\VyOs\VyOsClient;
 use App\Services\VyOs\VyOsIpMacResolver;
 use Mockery;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class VyOsIpMacResolverTest extends TestCase
@@ -145,12 +146,12 @@ class VyOsIpMacResolverTest extends TestCase
         $this->assertCount(0, $result);
     }
 
-    public function test_get_arp_table_handles_api_exception_gracefully(): void
+    public function test_get_arp_table_handles_ipv4_exception_gracefully(): void
     {
         $this->client->shouldReceive('show')
             ->with(['ip', 'neighbors'])
             ->once()
-            ->andThrow(new \RuntimeException('Connection refused'));
+            ->andThrow(new RuntimeException('Connection refused'));
 
         $this->client->shouldReceive('show')
             ->with(['ipv6', 'neighbors'])
@@ -163,5 +164,25 @@ class VyOsIpMacResolverTest extends TestCase
 
         $this->assertCount(1, $result);
         $this->assertSame('fe80::1', $result->first()->ip);
+    }
+
+    public function test_get_arp_table_handles_ipv6_exception_gracefully(): void
+    {
+        $this->client->shouldReceive('show')
+            ->with(['ip', 'neighbors'])
+            ->once()
+            ->andReturn([
+                ['ip' => '192.168.1.1', 'mac' => 'aa:bb:cc:dd:ee:01', 'interface' => 'eth0', 'state' => 'reachable'],
+            ]);
+
+        $this->client->shouldReceive('show')
+            ->with(['ipv6', 'neighbors'])
+            ->once()
+            ->andThrow(new RuntimeException('Connection refused'));
+
+        $result = $this->resolver->getArpTable();
+
+        $this->assertCount(1, $result);
+        $this->assertSame('192.168.1.1', $result->first()->ip);
     }
 }

@@ -10,8 +10,6 @@ use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
-use App\Services\Null\NullDhcpService;
-use App\Services\Null\NullIpMacResolver;
 use App\Services\VyOs\VyOsClient;
 use App\Services\VyOs\VyOsDhcpService;
 use App\Services\VyOs\VyOsIpMacResolver;
@@ -22,8 +20,7 @@ final class VyOsBootstrapper implements IntegrationBootstrapper
 {
     public function register(Application $app): void
     {
-        // dhcp
-        $app->bind(function (Application $app): DhcpInterface {
+        $app->extend(DhcpInterface::class, function (DhcpInterface $service, Application $app): DhcpInterface {
             if ($this->isActive(Capability::Dhcp->value)) {
                 return new VyOsDhcpService(
                     $app->make(VyOsClient::class),
@@ -31,18 +28,17 @@ final class VyOsBootstrapper implements IntegrationBootstrapper
                 );
             }
 
-            return new NullDhcpService;
+            return $service;
         });
 
-        // ip-mac
-        $app->bind(function (Application $app): IpMacResolverInterface {
+        $app->extend(IpMacResolverInterface::class, function (IpMacResolverInterface $service, Application $app): IpMacResolverInterface {
             if ($this->isActive(Capability::IpMac->value)) {
                 return new VyOsIpMacResolver(
                     $app->make(VyOsClient::class),
                 );
             }
 
-            return new NullIpMacResolver;
+            return $service;
         });
     }
 
