@@ -317,7 +317,7 @@ class VyOsDhcpService implements DhcpInterface
                 preg_match_all('/(-+)/', $line, $matches, PREG_OFFSET_CAPTURE);
 
                 foreach ($matches[1] as $match) {
-                    $columnBounds[] = ['start' => (int) $match[1], 'length' => strlen((string) $match[0])];
+                    $columnBounds[] = ['start' => $match[1], 'length' => strlen($match[0])];
                 }
 
                 if (isset($lines[$i - 1])) {
@@ -347,7 +347,7 @@ class VyOsDhcpService implements DhcpInterface
                     ? substr($line, $col['start'])
                     : substr($line, $col['start'], $col['length']);
 
-                $row[$headers[$j] ?? (string) $j] = trim((string) $raw);
+                $row[$headers[$j] ?? (string) $j] = trim($raw);
             }
 
             $rows[] = $row;
