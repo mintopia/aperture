@@ -25,25 +25,34 @@ class VyOsClient
      */
     public function retrieve(array $path): array
     {
-        return $this->request('/retrieve', 'showConfig', $path);
+        return (array) $this->requestData('/retrieve', 'showConfig', $path);
     }
 
     /**
-     * Run an operational show command on VyOS.
+     * Run an operational show command expecting structured JSON data.
      *
      * @param  list<string>  $path
      * @return array<string, mixed>
      */
     public function show(array $path): array
     {
-        return $this->request('/show', 'show', $path);
+        return (array) $this->requestData('/show', 'show', $path);
+    }
+
+    /**
+     * Run an operational show command expecting text output.
+     *
+     * @param  list<string>  $path
+     */
+    public function showText(array $path): string
+    {
+        return (string) $this->requestData('/show', 'show', $path);
     }
 
     /**
      * @param  list<string>  $path
-     * @return array<string, mixed>
      */
-    private function request(string $uri, string $op, array $path): array
+    private function requestData(string $uri, string $op, array $path): mixed
     {
         $response = Http::withOptions(['verify' => $this->verifySsl])
             ->asForm()
@@ -64,6 +73,6 @@ class VyOsClient
             throw new RuntimeException('VyOS API error: '.($body['error'] ?? 'Unknown error'));
         }
 
-        return (array) $body['data'];
+        return $body['data'];
     }
 }

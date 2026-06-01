@@ -739,6 +739,24 @@ class VyOsDhcpServiceTest extends TestCase
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
     }
 
+    public function test_get_leases_handles_text_response_gracefully(): void
+    {
+        $this->client->shouldReceive('show')
+            ->with(['dhcp', 'server', 'leases'])
+            ->once()
+            ->andReturn(['IP Address      Hardware Address   State    Pool   Hostname']);
+
+        $this->client->shouldReceive('show')
+            ->with(['dhcpv6', 'server', 'leases'])
+            ->once()
+            ->andReturn(['IPv6 address    State    Last communication']);
+
+        $service = $this->createService();
+        $leases = $service->getLeases();
+
+        $this->assertCount(0, $leases);
+    }
+
     public function test_get_ranges_ipv6_range_without_stop_is_skipped(): void
     {
         $this->client->shouldReceive('retrieve')

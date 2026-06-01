@@ -31,12 +31,9 @@ class VyOsIpMacResolver implements IpMacResolverInterface
     private function fetchIpv4Neighbors(): Collection
     {
         try {
-            $data = $this->client->show(['ip', 'neighbors']);
+            $text = $this->client->showText(['ip', 'neighbors']);
 
-            return collect($data)->map(fn (array $entry): ArpEntry => new ArpEntry(
-                ip: (string) ($entry['ip'] ?? ''),
-                mac: (string) ($entry['mac'] ?? ''),
-            ))->values();
+            return $this->parseNeighborText($text);
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch VyOS IPv4 neighbors', ['error' => $throwable->getMessage()]);
 
@@ -48,16 +45,30 @@ class VyOsIpMacResolver implements IpMacResolverInterface
     private function fetchIpv6Neighbors(): Collection
     {
         try {
-            $data = $this->client->show(['ipv6', 'neighbors']);
+            $text = $this->client->showText(['ipv6', 'neighbors']);
 
-            return collect($data)->map(fn (array $entry): ArpEntry => new ArpEntry(
-                ip: (string) ($entry['ip'] ?? ''),
-                mac: (string) ($entry['mac'] ?? ''),
-            ))->values();
+            return $this->parseNeighborText($text);
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch VyOS IPv6 neighbors', ['error' => $throwable->getMessage()]);
 
             return collect();
         }
+    }
+
+    /** @return Collection<int, ArpEntry> */
+    private function parseNeighborText(string $text): Collection
+    {
+        $entries = collect();
+
+        foreach (explode("\n", $text) as $line) {
+            if (preg_match('/^(\S+)\s+dev\s+\S+\s+lladdr\s+([\da-f:]+)/i', trim($line), $matches)) {
+                $entries->push(new ArpEntry(
+                    ip: $matches[1],
+                    mac: strtolower($matches[2]),
+                ));
+            }
+        }
+
+        return $entries;
     }
 }

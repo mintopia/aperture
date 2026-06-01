@@ -161,6 +161,37 @@ class VyOsClientTest extends TestCase
         $this->assertSame([], $result);
     }
 
+    public function test_show_text_returns_string_data(): void
+    {
+        Http::fake([
+            'vyos.local/show' => Http::response([
+                'success' => true,
+                'data' => "192.168.1.1 dev eth0 lladdr aa:bb:cc:dd:ee:ff REACHABLE\n10.0.0.1 dev eth1 lladdr 11:22:33:44:55:66 STALE\n",
+                'error' => null,
+            ]),
+        ]);
+
+        $result = $this->client->showText(['ip', 'neighbors']);
+
+        $this->assertStringContainsString('192.168.1.1', $result);
+        $this->assertStringContainsString('aa:bb:cc:dd:ee:ff', $result);
+    }
+
+    public function test_show_returns_empty_array_when_data_is_string(): void
+    {
+        Http::fake([
+            'vyos.local/show' => Http::response([
+                'success' => true,
+                'data' => 'some text output',
+                'error' => null,
+            ]),
+        ]);
+
+        $result = $this->client->show(['version']);
+
+        $this->assertSame(['some text output'], $result);
+    }
+
     public function test_verify_ssl_is_passed_to_http_client(): void
     {
         $client = new VyOsClient(

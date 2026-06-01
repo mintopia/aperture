@@ -70,12 +70,14 @@ class VyOsDhcpService implements DhcpInterface
         try {
             $data = $this->client->show(['dhcp', 'server', 'leases']);
 
-            return collect($data)->map(fn (array $entry, string $ip): DhcpLease => new DhcpLease(
-                ip: $ip,
-                mac: (string) ($entry['hardware_address'] ?? ''),
-                hostname: (string) ($entry['hostname'] ?? ''),
-                expires: (string) ($entry['expires'] ?? ''),
-            ))->values();
+            return collect($data)
+                ->filter(fn (mixed $entry): bool => is_array($entry))
+                ->map(fn (array $entry, string|int $ip): DhcpLease => new DhcpLease(
+                    ip: $ip,
+                    mac: (string) ($entry['hardware_address'] ?? ''),
+                    hostname: (string) ($entry['hostname'] ?? ''),
+                    expires: (string) ($entry['expires'] ?? ''),
+                ))->values();
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch VyOS DHCPv4 leases', ['error' => $throwable->getMessage()]);
 
@@ -89,12 +91,14 @@ class VyOsDhcpService implements DhcpInterface
         try {
             $data = $this->client->show(['dhcpv6', 'server', 'leases']);
 
-            return collect($data)->map(fn (array $entry, string $ip): DhcpLease => new DhcpLease(
-                ip: $ip,
-                mac: '',
-                hostname: '',
-                expires: (string) ($entry['expires'] ?? ''),
-            ))->values();
+            return collect($data)
+                ->filter(fn (mixed $entry): bool => is_array($entry))
+                ->map(fn (array $entry, string|int $ip): DhcpLease => new DhcpLease(
+                    ip: $ip,
+                    mac: '',
+                    hostname: '',
+                    expires: (string) ($entry['expires'] ?? ''),
+                ))->values();
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch VyOS DHCPv6 leases', ['error' => $throwable->getMessage()]);
 
