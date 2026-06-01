@@ -61,7 +61,14 @@ class VyOsIpMacResolver implements IpMacResolverInterface
         $entries = collect();
 
         foreach (explode("\n", $text) as $line) {
-            if (preg_match('/^(\S+)\s+dev\s+\S+\s+lladdr\s+([\da-f:]+)/i', trim($line), $matches)) {
+            $line = trim($line);
+
+            if ($line === '' || preg_match('/^[-\s]+$/', $line) || preg_match('/^Address\b/i', $line)) {
+                continue;
+            }
+
+            // VyOS tabular: Address  Interface  Link-layer-address  State
+            if (preg_match('/^(\S+)\s+\S+\s+([\da-f]{2}(?::[\da-f]{2}){5})\s+/i', $line, $matches)) {
                 $entries->push(new ArpEntry(
                     ip: $matches[1],
                     mac: strtolower($matches[2]),

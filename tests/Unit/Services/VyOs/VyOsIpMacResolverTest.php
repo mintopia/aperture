@@ -24,15 +24,48 @@ class VyOsIpMacResolverTest extends TestCase
         $this->resolver = new VyOsIpMacResolver($this->client);
     }
 
+    private function neighborTableText(array $rows = []): string
+    {
+        $columns = ['Address', 'Interface', 'Link layer address', 'State'];
+        $dataRows = [];
+
+        foreach ($rows as $row) {
+            $dataRows[] = [
+                $row['ip'],
+                $row['iface'] ?? 'eth0',
+                $row['mac'] ?? '',
+                $row['state'] ?? 'STALE',
+            ];
+        }
+
+        $widths = array_map('strlen', $columns);
+
+        foreach ($dataRows as $row) {
+            foreach ($row as $i => $value) {
+                $widths[$i] = max($widths[$i], strlen($value));
+            }
+        }
+
+        $lines = [];
+        $lines[] = implode('  ', array_map(fn (string $col, int $w): string => str_pad($col, $w), $columns, $widths));
+        $lines[] = implode('  ', array_map(fn (int $w): string => str_repeat('-', $w), $widths));
+
+        foreach ($dataRows as $row) {
+            $lines[] = implode('  ', array_map(fn (string $val, int $w): string => str_pad($val, $w), $row, $widths));
+        }
+
+        return implode("\n", $lines)."\n";
+    }
+
     public function test_get_arp_table_returns_ipv4_neighbors(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
             ->once()
-            ->andReturn(
-                "192.168.1.100 dev eth0 lladdr aa:bb:cc:dd:ee:ff REACHABLE\n".
-                "192.168.1.101 dev eth0 lladdr 11:22:33:44:55:66 STALE\n"
-            );
+            ->andReturn($this->neighborTableText([
+                ['ip' => '192.168.1.100', 'mac' => 'aa:bb:cc:dd:ee:ff', 'state' => 'REACHABLE'],
+                ['ip' => '192.168.1.101', 'mac' => '11:22:33:44:55:66', 'state' => 'STALE'],
+            ]));
 
         $this->client->shouldReceive('showText')
             ->with(['ipv6', 'neighbors'])
@@ -57,7 +90,9 @@ class VyOsIpMacResolverTest extends TestCase
         $this->client->shouldReceive('showText')
             ->with(['ipv6', 'neighbors'])
             ->once()
-            ->andReturn("fe80::1 dev eth0 lladdr aa:bb:cc:dd:ee:03 router REACHABLE\n");
+            ->andReturn($this->neighborTableText([
+                ['ip' => 'fe80::1', 'mac' => 'aa:bb:cc:dd:ee:03', 'state' => 'REACHABLE'],
+            ]));
 
         $result = $this->resolver->getArpTable();
 
@@ -71,12 +106,16 @@ class VyOsIpMacResolverTest extends TestCase
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
             ->once()
-            ->andReturn("192.168.1.1 dev eth0 lladdr aa:bb:cc:dd:ee:01 REACHABLE\n");
+            ->andReturn($this->neighborTableText([
+                ['ip' => '192.168.1.1', 'mac' => 'aa:bb:cc:dd:ee:01', 'state' => 'REACHABLE'],
+            ]));
 
         $this->client->shouldReceive('showText')
             ->with(['ipv6', 'neighbors'])
             ->once()
-            ->andReturn("fe80::1 dev eth0 lladdr aa:bb:cc:dd:ee:02 REACHABLE\n");
+            ->andReturn($this->neighborTableText([
+                ['ip' => 'fe80::1', 'mac' => 'aa:bb:cc:dd:ee:02', 'state' => 'REACHABLE'],
+            ]));
 
         $result = $this->resolver->getArpTable();
 
@@ -91,15 +130,17 @@ class VyOsIpMacResolverTest extends TestCase
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
             ->once()
-            ->andReturn("192.168.1.1 dev eth0 lladdr aa:bb:cc:dd:ee:01 REACHABLE\n");
+            ->andReturn($this->neighborTableText([
+                ['ip' => '192.168.1.1', 'mac' => 'aa:bb:cc:dd:ee:01', 'state' => 'REACHABLE'],
+            ]));
 
         $this->client->shouldReceive('showText')
             ->with(['ipv6', 'neighbors'])
             ->once()
-            ->andReturn(
-                "192.168.1.1 dev eth1 lladdr aa:bb:cc:dd:ee:01 REACHABLE\n".
-                "fe80::1 dev eth0 lladdr aa:bb:cc:dd:ee:02 REACHABLE\n"
-            );
+            ->andReturn($this->neighborTableText([
+                ['ip' => '192.168.1.1', 'iface' => 'eth1', 'mac' => 'aa:bb:cc:dd:ee:01', 'state' => 'REACHABLE'],
+                ['ip' => 'fe80::1', 'mac' => 'aa:bb:cc:dd:ee:02', 'state' => 'REACHABLE'],
+            ]));
 
         $result = $this->resolver->getArpTable();
 
@@ -133,7 +174,9 @@ class VyOsIpMacResolverTest extends TestCase
         $this->client->shouldReceive('showText')
             ->with(['ipv6', 'neighbors'])
             ->once()
-            ->andReturn("fe80::1 dev eth0 lladdr aa:bb:cc:dd:ee:01 REACHABLE\n");
+            ->andReturn($this->neighborTableText([
+                ['ip' => 'fe80::1', 'mac' => 'aa:bb:cc:dd:ee:01', 'state' => 'REACHABLE'],
+            ]));
 
         $result = $this->resolver->getArpTable();
 
@@ -146,7 +189,9 @@ class VyOsIpMacResolverTest extends TestCase
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
             ->once()
-            ->andReturn("192.168.1.1 dev eth0 lladdr aa:bb:cc:dd:ee:01 REACHABLE\n");
+            ->andReturn($this->neighborTableText([
+                ['ip' => '192.168.1.1', 'mac' => 'aa:bb:cc:dd:ee:01', 'state' => 'REACHABLE'],
+            ]));
 
         $this->client->shouldReceive('showText')
             ->with(['ipv6', 'neighbors'])
@@ -159,16 +204,16 @@ class VyOsIpMacResolverTest extends TestCase
         $this->assertSame('192.168.1.1', $result->first()->ip);
     }
 
-    public function test_get_arp_table_skips_entries_without_lladdr(): void
+    public function test_get_arp_table_skips_entries_without_mac(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
             ->once()
-            ->andReturn(
-                "192.168.1.1 dev eth0 lladdr aa:bb:cc:dd:ee:01 REACHABLE\n".
-                "192.168.1.2 dev eth0 FAILED\n".
-                "192.168.1.3 dev eth0 INCOMPLETE\n"
-            );
+            ->andReturn($this->neighborTableText([
+                ['ip' => '192.168.1.1', 'mac' => 'aa:bb:cc:dd:ee:01', 'state' => 'REACHABLE'],
+                ['ip' => '192.168.1.2', 'mac' => '', 'state' => 'FAILED'],
+                ['ip' => '192.168.1.3', 'mac' => '', 'state' => 'FAILED'],
+            ]));
 
         $this->client->shouldReceive('showText')
             ->with(['ipv6', 'neighbors'])
@@ -186,7 +231,9 @@ class VyOsIpMacResolverTest extends TestCase
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
             ->once()
-            ->andReturn("192.168.1.1 dev eth0 lladdr AA:BB:CC:DD:EE:FF REACHABLE\n");
+            ->andReturn($this->neighborTableText([
+                ['ip' => '192.168.1.1', 'mac' => 'AA:BB:CC:DD:EE:FF', 'state' => 'REACHABLE'],
+            ]));
 
         $this->client->shouldReceive('showText')
             ->with(['ipv6', 'neighbors'])

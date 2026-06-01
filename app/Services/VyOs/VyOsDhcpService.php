@@ -68,15 +68,16 @@ class VyOsDhcpService implements DhcpInterface
     private function fetchDhcpv4Leases(): Collection
     {
         try {
-            $data = $this->client->show(['dhcp', 'server', 'leases']);
+            $text = $this->client->showText(['dhcp', 'server', 'leases']);
+            $rows = $this->parseTextTable($text);
 
-            return collect($data)
-                ->filter(fn (mixed $entry): bool => is_array($entry))
-                ->map(fn (array $entry, string|int $ip): DhcpLease => new DhcpLease(
-                    ip: $ip,
-                    mac: (string) ($entry['hardware_address'] ?? ''),
-                    hostname: (string) ($entry['hostname'] ?? ''),
-                    expires: (string) ($entry['expires'] ?? ''),
+            return collect($rows)
+                ->filter(fn (array $row): bool => ($row['ip address'] ?? '') !== '')
+                ->map(fn (array $row): DhcpLease => new DhcpLease(
+                    ip: $row['ip address'],
+                    mac: $row['mac address'] ?? '',
+                    hostname: $row['hostname'] ?? '',
+                    expires: $row['lease expiration'] ?? '',
                 ))->values();
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch VyOS DHCPv4 leases', ['error' => $throwable->getMessage()]);
@@ -89,15 +90,16 @@ class VyOsDhcpService implements DhcpInterface
     private function fetchDhcpv6Leases(): Collection
     {
         try {
-            $data = $this->client->show(['dhcpv6', 'server', 'leases']);
+            $text = $this->client->showText(['dhcpv6', 'server', 'leases']);
+            $rows = $this->parseTextTable($text);
 
-            return collect($data)
-                ->filter(fn (mixed $entry): bool => is_array($entry))
-                ->map(fn (array $entry, string|int $ip): DhcpLease => new DhcpLease(
-                    ip: $ip,
-                    mac: '',
-                    hostname: '',
-                    expires: (string) ($entry['expires'] ?? ''),
+            return collect($rows)
+                ->filter(fn (array $row): bool => ($row['ipv6 address'] ?? '') !== '')
+                ->map(fn (array $row): DhcpLease => new DhcpLease(
+                    ip: $row['ipv6 address'],
+                    mac: $row['mac address'] ?? '',
+                    hostname: $row['hostname'] ?? '',
+                    expires: $row['lease expiration'] ?? '',
                 ))->values();
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch VyOS DHCPv6 leases', ['error' => $throwable->getMessage()]);
@@ -111,8 +113,9 @@ class VyOsDhcpService implements DhcpInterface
     {
         try {
             $data = $this->client->retrieve(['service', 'dhcp-server', 'shared-network-name']);
+            $networks = $data['shared-network-name'] ?? $data;
 
-            return $this->parseRangesFromConfig($data, 'ipv4');
+            return $this->parseRangesFromConfig($networks, 'ipv4');
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch VyOS DHCPv4 ranges', ['error' => $throwable->getMessage()]);
 
@@ -125,8 +128,9 @@ class VyOsDhcpService implements DhcpInterface
     {
         try {
             $data = $this->client->retrieve(['service', 'dhcpv6-server', 'shared-network-name']);
+            $networks = $data['shared-network-name'] ?? $data;
 
-            return $this->parseRangesFromConfig($data, 'ipv6');
+            return $this->parseRangesFromConfig($networks, 'ipv6');
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch VyOS DHCPv6 ranges', ['error' => $throwable->getMessage()]);
 
@@ -152,11 +156,7 @@ class VyOsDhcpService implements DhcpInterface
                     continue;
                 }
 
-                if ($type === 'ipv4') {
-                    $this->extractIpv4Ranges($ranges, (string) $networkName, (string) $subnetCidr, $subnetConfig);
-                } else {
-                    $this->extractIpv6Ranges($ranges, (string) $networkName, (string) $subnetCidr, $subnetConfig);
-                }
+                $this->extractRanges($ranges, (string) $networkName, (string) $subnetCidr, $subnetConfig, $type);
             }
         }
 
@@ -167,7 +167,7 @@ class VyOsDhcpService implements DhcpInterface
      * @param  Collection<int, DhcpRange>  $ranges
      * @param  array<string, mixed>  $subnetConfig
      */
-    private function extractIpv4Ranges(Collection $ranges, string $networkName, string $subnetCidr, array $subnetConfig): void
+    private function extractRanges(Collection $ranges, string $networkName, string $subnetCidr, array $subnetConfig, string $type): void
     {
         $rangeData = $subnetConfig['range'] ?? [];
         if (! is_array($rangeData)) {
@@ -179,43 +179,18 @@ class VyOsDhcpService implements DhcpInterface
                 continue;
             }
 
+            $gateway = $type === 'ipv4'
+                ? ($subnetConfig['option']['default-router'] ?? null)
+                : null;
+
             $ranges->push(new DhcpRange(
                 interface: $networkName,
-                type: 'ipv4',
+                type: $type,
                 subnet: $subnetCidr,
                 rangeFrom: (string) $range['start'],
                 rangeTo: (string) $range['stop'],
-                prefix: null,
-                gateway: isset($subnetConfig['default-router']) ? (string) $subnetConfig['default-router'] : null,
-                description: $networkName,
-            ));
-        }
-    }
-
-    /**
-     * @param  Collection<int, DhcpRange>  $ranges
-     * @param  array<string, mixed>  $subnetConfig
-     */
-    private function extractIpv6Ranges(Collection $ranges, string $networkName, string $subnetCidr, array $subnetConfig): void
-    {
-        $addressRange = $subnetConfig['address-range'] ?? [];
-        if (! is_array($addressRange) || ! isset($addressRange['start'])) {
-            return;
-        }
-
-        foreach ($addressRange['start'] as $startAddr => $rangeConfig) {
-            if (! is_array($rangeConfig) || ! isset($rangeConfig['stop'])) {
-                continue;
-            }
-
-            $ranges->push(new DhcpRange(
-                interface: $networkName,
-                type: 'ipv6',
-                subnet: $subnetCidr,
-                rangeFrom: (string) $startAddr,
-                rangeTo: (string) $rangeConfig['stop'],
-                prefix: $subnetCidr,
-                gateway: null,
+                prefix: $type === 'ipv6' ? $subnetCidr : null,
+                gateway: $gateway !== null ? (string) $gateway : null,
                 description: $networkName,
             ));
         }
@@ -321,5 +296,63 @@ class VyOsDhcpService implements DhcpInterface
         }
 
         return max(0, $result);
+    }
+
+    /**
+     * @return list<array<string, string>>
+     */
+    private function parseTextTable(string $text): array
+    {
+        $lines = explode("\n", $text);
+        /** @var list<string> $headers */
+        $headers = [];
+        /** @var list<array{start: int, length: int}> $columnBounds */
+        $columnBounds = [];
+        $rows = [];
+        $separatorFound = false;
+
+        foreach ($lines as $i => $line) {
+            if (! $separatorFound && preg_match('/^[-\s]+$/', $line) && trim($line) !== '') {
+                $separatorFound = true;
+                preg_match_all('/(-+)/', $line, $matches, PREG_OFFSET_CAPTURE);
+
+                foreach ($matches[1] as $match) {
+                    $columnBounds[] = ['start' => (int) $match[1], 'length' => strlen((string) $match[0])];
+                }
+
+                if (isset($lines[$i - 1])) {
+                    foreach ($columnBounds as $col) {
+                        $headers[] = strtolower(trim(substr($lines[$i - 1], $col['start'], $col['length'])));
+                    }
+                }
+
+                continue;
+            }
+
+            if (! $separatorFound || $columnBounds === [] || trim($line) === '') {
+                continue;
+            }
+
+            $row = [];
+            $lastIdx = count($columnBounds) - 1;
+
+            foreach ($columnBounds as $j => $col) {
+                if ($col['start'] >= strlen($line)) {
+                    $row[$headers[$j] ?? (string) $j] = '';
+
+                    continue;
+                }
+
+                $raw = $j === $lastIdx
+                    ? substr($line, $col['start'])
+                    : substr($line, $col['start'], $col['length']);
+
+                $row[$headers[$j] ?? (string) $j] = trim((string) $raw);
+            }
+
+            $rows[] = $row;
+        }
+
+        return $rows;
     }
 }
