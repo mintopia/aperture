@@ -24,6 +24,10 @@ final class PersistMacsStep
         $allMacs = collect();
 
         foreach ($leases as $lease) {
+            if ($lease->mac === null) {
+                continue;
+            }
+
             $normalized = MacAddress::normalize($lease->mac);
             if ($normalized !== '') {
                 $allMacs->put($normalized, 'dhcp');

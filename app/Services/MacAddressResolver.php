@@ -19,7 +19,7 @@ class MacAddressResolver implements MacAddressResolverInterface
     public function resolveIpToMac(string $ipAddress): ?string
     {
         $lease = $this->dhcp->getLease($ipAddress);
-        if ($lease instanceof DhcpLease && ($lease->mac !== '' && $lease->mac !== '0')) {
+        if ($lease instanceof DhcpLease && $lease->mac !== null && ($lease->mac !== '' && $lease->mac !== '0')) {
             return $this->normalizeMac($lease->mac);
         }
 
@@ -37,7 +37,7 @@ class MacAddressResolver implements MacAddressResolverInterface
         $normalized = $this->normalizeMac($macAddress);
 
         return $this->dhcp->getLeases()
-            ->filter(fn (DhcpLease $lease): bool => $this->normalizeMac($lease->mac) === $normalized)
+            ->filter(fn (DhcpLease $lease): bool => $lease->mac !== null && $this->normalizeMac($lease->mac) === $normalized)
             ->map(fn (DhcpLease $lease): array => [
                 'ip' => $lease->ip,
                 'hostname' => $lease->hostname,

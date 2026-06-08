@@ -8,7 +8,7 @@ readonly class DhcpLease
 {
     public function __construct(
         public string $ip,
-        public string $mac,
+        public ?string $mac,
         public string $hostname,
         public string $expires,
     ) {}
