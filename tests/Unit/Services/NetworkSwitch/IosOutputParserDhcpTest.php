@@ -220,4 +220,290 @@ class IosOutputParserDhcpTest extends TestCase
     {
         $this->assertFalse($this->parser->isErrorOutput(''));
     }
+
+    // -------------------------------------------------------------------------
+    // parseDhcpPoolStats
+    // -------------------------------------------------------------------------
+
+    public function test_parse_dhcp_pool_stats_single_pool(): void
+    {
+        $output = implode("\n", [
+            'Pool LAN :',
+            ' Utilization mark (high/low)    : 100 / 0',
+            ' Subnet size (first/next)       : 0 / 0',
+            ' Total addresses                : 254',
+            ' Leased addresses               : 50',
+            ' Pending event                  : none',
+            ' 1 subnet is currently in the pool :',
+            ' Current index        IP address range                    Leased addresses',
+            ' 10.0.0.1             10.0.0.1     - 10.0.0.254           50',
+        ]);
+
+        $result = $this->parser->parseDhcpPoolStats($output);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('LAN', $result[0]['name']);
+        $this->assertSame('254', $result[0]['total']);
+        $this->assertSame('50', $result[0]['leased']);
+    }
+
+    public function test_parse_dhcp_pool_stats_multiple_pools(): void
+    {
+        $output = implode("\n", [
+            'Pool LAN :',
+            ' Utilization mark (high/low)    : 100 / 0',
+            ' Subnet size (first/next)       : 0 / 0',
+            ' Total addresses                : 254',
+            ' Leased addresses               : 50',
+            ' Pending event                  : none',
+            ' 1 subnet is currently in the pool :',
+            ' Current index        IP address range                    Leased addresses',
+            ' 10.0.0.1             10.0.0.1     - 10.0.0.254           50',
+            '',
+            'Pool GUESTS :',
+            ' Utilization mark (high/low)    : 100 / 0',
+            ' Subnet size (first/next)       : 0 / 0',
+            ' Total addresses                : 126',
+            ' Leased addresses               : 30',
+            ' Pending event                  : none',
+            ' 1 subnet is currently in the pool :',
+            ' Current index        IP address range                    Leased addresses',
+            ' 10.1.0.1             10.1.0.1     - 10.1.0.126           30',
+        ]);
+
+        $result = $this->parser->parseDhcpPoolStats($output);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('LAN', $result[0]['name']);
+        $this->assertSame('254', $result[0]['total']);
+        $this->assertSame('50', $result[0]['leased']);
+        $this->assertSame('GUESTS', $result[1]['name']);
+        $this->assertSame('126', $result[1]['total']);
+        $this->assertSame('30', $result[1]['leased']);
+    }
+
+    public function test_parse_dhcp_pool_stats_empty_output(): void
+    {
+        $result = $this->parser->parseDhcpPoolStats('');
+        $this->assertSame([], $result);
+    }
+
+    public function test_parse_dhcp_pool_stats_error_output(): void
+    {
+        $output = "% Invalid input detected at '^' marker.";
+        $result = $this->parser->parseDhcpPoolStats($output);
+        $this->assertSame([], $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // parseDhcpPoolConfig
+    // -------------------------------------------------------------------------
+
+    public function test_parse_dhcp_pool_config_with_range_and_single_exclusions(): void
+    {
+        $output = implode("\n", [
+            'ip dhcp excluded-address 10.0.0.1 10.0.0.9',
+            'ip dhcp excluded-address 10.0.0.250 10.0.0.254',
+            'ip dhcp excluded-address 10.1.0.1',
+            '!',
+            'ip dhcp pool LAN',
+            ' network 10.0.0.0 255.255.255.0',
+            ' default-router 10.0.0.1',
+            ' dns-server 8.8.8.8',
+            '!',
+            'ip dhcp pool GUESTS',
+            ' network 10.1.0.0 255.255.128.0',
+            ' default-router 10.1.0.1',
+        ]);
+
+        $result = $this->parser->parseDhcpPoolConfig($output);
+
+        $this->assertCount(2, $result['pools']);
+        $this->assertSame('LAN', $result['pools'][0]['name']);
+        $this->assertSame('10.0.0.0', $result['pools'][0]['network']);
+        $this->assertSame('255.255.255.0', $result['pools'][0]['mask']);
+        $this->assertSame('10.0.0.1', $result['pools'][0]['gateway']);
+        $this->assertSame('GUESTS', $result['pools'][1]['name']);
+        $this->assertSame('10.1.0.0', $result['pools'][1]['network']);
+        $this->assertSame('255.255.128.0', $result['pools'][1]['mask']);
+        $this->assertSame('10.1.0.1', $result['pools'][1]['gateway']);
+
+        $this->assertCount(3, $result['excluded']);
+        $this->assertSame('10.0.0.1', $result['excluded'][0]['start']);
+        $this->assertSame('10.0.0.9', $result['excluded'][0]['end']);
+        $this->assertSame('10.0.0.250', $result['excluded'][1]['start']);
+        $this->assertSame('10.0.0.254', $result['excluded'][1]['end']);
+        $this->assertSame('10.1.0.1', $result['excluded'][2]['start']);
+        $this->assertSame('10.1.0.1', $result['excluded'][2]['end']);
+    }
+
+    public function test_parse_dhcp_pool_config_no_exclusions(): void
+    {
+        $output = implode("\n", [
+            'ip dhcp pool LAN',
+            ' network 10.0.0.0 255.255.255.0',
+            ' default-router 10.0.0.1',
+        ]);
+
+        $result = $this->parser->parseDhcpPoolConfig($output);
+
+        $this->assertCount(1, $result['pools']);
+        $this->assertSame([], $result['excluded']);
+    }
+
+    public function test_parse_dhcp_pool_config_error_output(): void
+    {
+        $output = "% Invalid input detected at '^' marker.";
+        $result = $this->parser->parseDhcpPoolConfig($output);
+        $this->assertSame(['pools' => [], 'excluded' => []], $result);
+    }
+
+    public function test_parse_dhcp_pool_config_single_address_exclusion_has_same_start_and_end(): void
+    {
+        $output = implode("\n", [
+            'ip dhcp excluded-address 192.168.1.1',
+            'ip dhcp pool TEST',
+            ' network 192.168.1.0 255.255.255.0',
+            ' default-router 192.168.1.1',
+        ]);
+
+        $result = $this->parser->parseDhcpPoolConfig($output);
+
+        $this->assertCount(1, $result['excluded']);
+        $this->assertSame('192.168.1.1', $result['excluded'][0]['start']);
+        $this->assertSame('192.168.1.1', $result['excluded'][0]['end']);
+    }
+
+    // -------------------------------------------------------------------------
+    // computeEffectiveRanges
+    // -------------------------------------------------------------------------
+
+    public function test_compute_effective_ranges_exclusions_at_start_and_end(): void
+    {
+        $config = [
+            'pools' => [
+                ['name' => 'LAN', 'network' => '10.0.0.0', 'mask' => '255.255.255.0', 'gateway' => '10.0.0.1'],
+            ],
+            'excluded' => [
+                ['start' => '10.0.0.1', 'end' => '10.0.0.9'],
+                ['start' => '10.0.0.250', 'end' => '10.0.0.254'],
+            ],
+        ];
+
+        $result = $this->parser->computeEffectiveRanges($config);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('LAN', $result[0]['name']);
+        $this->assertSame('10.0.0.0/24', $result[0]['subnet']);
+        $this->assertSame('10.0.0.10', $result[0]['range_from']);
+        $this->assertSame('10.0.0.249', $result[0]['range_to']);
+        $this->assertSame('240', $result[0]['total_addresses']);
+        $this->assertSame('10.0.0.1', $result[0]['gateway']);
+    }
+
+    public function test_compute_effective_ranges_no_exclusions(): void
+    {
+        $config = [
+            'pools' => [
+                ['name' => 'LAN', 'network' => '10.0.0.0', 'mask' => '255.255.255.0', 'gateway' => '10.0.0.1'],
+            ],
+            'excluded' => [],
+        ];
+
+        $result = $this->parser->computeEffectiveRanges($config);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('10.0.0.1', $result[0]['range_from']);
+        $this->assertSame('10.0.0.254', $result[0]['range_to']);
+        $this->assertSame('254', $result[0]['total_addresses']);
+    }
+
+    public function test_compute_effective_ranges_single_address_exclusion(): void
+    {
+        $config = [
+            'pools' => [
+                ['name' => 'LAN', 'network' => '10.0.0.0', 'mask' => '255.255.255.0', 'gateway' => '10.0.0.1'],
+            ],
+            'excluded' => [
+                ['start' => '10.0.0.1', 'end' => '10.0.0.1'],
+            ],
+        ];
+
+        $result = $this->parser->computeEffectiveRanges($config);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('10.0.0.2', $result[0]['range_from']);
+        $this->assertSame('10.0.0.254', $result[0]['range_to']);
+        $this->assertSame('253', $result[0]['total_addresses']);
+    }
+
+    public function test_compute_effective_ranges_exclusion_splits_pool(): void
+    {
+        $config = [
+            'pools' => [
+                ['name' => 'LAN', 'network' => '10.0.0.0', 'mask' => '255.255.255.0', 'gateway' => '10.0.0.1'],
+            ],
+            'excluded' => [
+                ['start' => '10.0.0.100', 'end' => '10.0.0.149'],
+            ],
+        ];
+
+        $result = $this->parser->computeEffectiveRanges($config);
+
+        // Exclusion in the middle splits into two ranges; method returns the first (lowest) contiguous range
+        $this->assertGreaterThanOrEqual(1, count($result));
+        // First range: 10.0.0.1 - 10.0.0.99
+        $this->assertSame('10.0.0.1', $result[0]['range_from']);
+        $this->assertSame('10.0.0.99', $result[0]['range_to']);
+        $this->assertSame('99', $result[0]['total_addresses']);
+        // Second range: 10.0.0.150 - 10.0.0.254
+        $this->assertSame('10.0.0.150', $result[1]['range_from']);
+        $this->assertSame('10.0.0.254', $result[1]['range_to']);
+        $this->assertSame('105', $result[1]['total_addresses']);
+    }
+
+    public function test_compute_effective_ranges_out_of_range_exclusions_ignored(): void
+    {
+        $config = [
+            'pools' => [
+                ['name' => 'LAN', 'network' => '10.0.0.0', 'mask' => '255.255.255.0', 'gateway' => '10.0.0.1'],
+            ],
+            'excluded' => [
+                ['start' => '192.168.1.1', 'end' => '192.168.1.10'],
+            ],
+        ];
+
+        $result = $this->parser->computeEffectiveRanges($config);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('10.0.0.1', $result[0]['range_from']);
+        $this->assertSame('10.0.0.254', $result[0]['range_to']);
+        $this->assertSame('254', $result[0]['total_addresses']);
+    }
+
+    public function test_compute_effective_ranges_multiple_pools(): void
+    {
+        $config = [
+            'pools' => [
+                ['name' => 'LAN', 'network' => '10.0.0.0', 'mask' => '255.255.255.0', 'gateway' => '10.0.0.1'],
+                ['name' => 'GUESTS', 'network' => '10.1.0.0', 'mask' => '255.255.128.0', 'gateway' => '10.1.0.1'],
+            ],
+            'excluded' => [
+                ['start' => '10.0.0.1', 'end' => '10.0.0.9'],
+                ['start' => '10.1.0.1', 'end' => '10.1.0.1'],
+            ],
+        ];
+
+        $result = $this->parser->computeEffectiveRanges($config);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('LAN', $result[0]['name']);
+        $this->assertSame('10.0.0.10', $result[0]['range_from']);
+        $this->assertSame('10.0.0.254', $result[0]['range_to']);
+        $this->assertSame('245', $result[0]['total_addresses']);
+
+        $this->assertSame('GUESTS', $result[1]['name']);
+        $this->assertSame('10.1.0.2', $result[1]['range_from']);
+        $this->assertSame('10.1.127.254', $result[1]['range_to']);
+    }
 }

@@ -327,4 +327,200 @@ class IosOutputParser
 
         return $result;
     }
+
+    /**
+     * Parse `show ip dhcp pool` output into pool statistics.
+     *
+     * @return array<int, array{name: string, total: string, leased: string}>
+     */
+    public function parseDhcpPoolStats(string $output): array
+    {
+        if ($this->isErrorOutput($output)) {
+            return [];
+        }
+
+        $lines = preg_split('/\r?\n/', $output) ?: [];
+        $pools = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            if (preg_match('/^Pool\s+(\S+)\s*:/', $line, $m)) {
+                if ($current !== null) {
+                    $pools[] = $current;
+                }
+                $current = ['name' => $m[1], 'total' => '0', 'leased' => '0'];
+
+                continue;
+            }
+
+            if ($current === null) {
+                continue;
+            }
+
+            if (preg_match('/Total addresses\s*:\s*(\d+)/', $line, $m)) {
+                $current['total'] = $m[1];
+            } elseif (preg_match('/Leased addresses\s*:\s*(\d+)/', $line, $m)) {
+                $current['leased'] = $m[1];
+            }
+        }
+
+        if ($current !== null) {
+            $pools[] = $current;
+        }
+
+        return $pools;
+    }
+
+    /**
+     * Parse `show running-config | section ip dhcp` output into pool configuration and exclusions.
+     *
+     * @return array{pools: array<int, array{name: string, network: string, mask: string, gateway: string}>, excluded: array<int, array{start: string, end: string}>}
+     */
+    public function parseDhcpPoolConfig(string $output): array
+    {
+        if ($this->isErrorOutput($output)) {
+            return ['pools' => [], 'excluded' => []];
+        }
+
+        $lines = preg_split('/\r?\n/', $output) ?: [];
+        $pools = [];
+        $excluded = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            // Exclusion line: ip dhcp excluded-address <start> [end]
+            if (preg_match('/^ip dhcp excluded-address\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s+(\d{1,3}(?:\.\d{1,3}){3}))?/', $line, $m)) {
+                $start = $m[1];
+                $end = isset($m[2]) && $m[2] !== '' ? $m[2] : $start;
+                $excluded[] = ['start' => $start, 'end' => $end];
+
+                continue;
+            }
+
+            // Pool header: ip dhcp pool <name>
+            if (preg_match('/^ip dhcp pool\s+(\S+)/', $line, $m)) {
+                if ($current !== null) {
+                    $pools[] = $current;
+                }
+                $current = ['name' => $m[1], 'network' => '', 'mask' => '', 'gateway' => ''];
+
+                continue;
+            }
+
+            if ($current === null) {
+                continue;
+            }
+
+            // End of pool block
+            if (trim($line) === '!') {
+                $pools[] = $current;
+                $current = null;
+
+                continue;
+            }
+
+            if (preg_match('/^\s+network\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(\d{1,3}(?:\.\d{1,3}){3})/', $line, $m)) {
+                $current['network'] = $m[1];
+                $current['mask'] = $m[2];
+            } elseif (preg_match('/^\s+default-router\s+(\d{1,3}(?:\.\d{1,3}){3})/', $line, $m)) {
+                $current['gateway'] = $m[1];
+            }
+        }
+
+        if ($current !== null) {
+            $pools[] = $current;
+        }
+
+        return ['pools' => $pools, 'excluded' => $excluded];
+    }
+
+    /**
+     * Compute effective DHCP ranges by subtracting excluded addresses from each pool's usable range.
+     *
+     * Takes the output of parseDhcpPoolConfig() and returns the resulting address ranges per pool.
+     * An exclusion in the middle of a range splits it into multiple entries (all carry the pool name).
+     *
+     * @param  array{pools: array<int, array{name: string, network: string, mask: string, gateway: string}>, excluded: array<int, array{start: string, end: string}>}  $poolConfig
+     * @return array<int, array{name: string, subnet: string, range_from: string, range_to: string, total_addresses: string, gateway: string}>
+     */
+    public function computeEffectiveRanges(array $poolConfig): array
+    {
+        $results = [];
+
+        foreach ($poolConfig['pools'] as $pool) {
+            $networkLong = ip2long($pool['network']);
+            $maskLong = ip2long($pool['mask']);
+
+            if ($networkLong === false || $maskLong === false) {
+                continue;
+            }
+
+            // CIDR prefix length: count the number of set bits in the mask
+            $prefix = substr_count(sprintf('%032b', $maskLong & 0xFFFFFFFF), '1');
+
+            $hostMin = $networkLong + 1;        // first usable (skip network address)
+            $hostMax = ($networkLong | (~$maskLong & 0xFFFFFFFF)) - 1; // last usable (skip broadcast)
+
+            $subnet = $pool['network'].'/'.$prefix;
+
+            // Collect exclusion ranges that overlap this pool's usable space
+            $excl = [];
+            foreach ($poolConfig['excluded'] as $ex) {
+                $exStart = ip2long($ex['start']);
+                $exEnd = ip2long($ex['end']);
+                if ($exStart === false || $exEnd === false) {
+                    continue;
+                }
+                // Only keep exclusions that overlap [hostMin, hostMax]
+                if ($exEnd < $hostMin || $exStart > $hostMax) {
+                    continue;
+                }
+                // Clamp to usable range
+                $excl[] = [max($exStart, $hostMin), min($exEnd, $hostMax)];
+            }
+
+            // Sort exclusions by start address
+            usort($excl, fn ($a, $b) => $a[0] <=> $b[0]);
+
+            // Walk through the usable range, subtracting exclusions
+            $cursor = $hostMin;
+            foreach ($excl as [$exStart, $exEnd]) {
+                if ($cursor > $hostMax) {
+                    break;
+                }
+                if ($exStart > $cursor) {
+                    // There is a usable segment before this exclusion
+                    $from = long2ip($cursor);
+                    $to = long2ip($exStart - 1);
+                    $count = bcadd((string) ($exStart - 1 - $cursor), '1');
+                    $results[] = [
+                        'name' => $pool['name'],
+                        'subnet' => $subnet,
+                        'range_from' => $from,
+                        'range_to' => $to,
+                        'total_addresses' => $count,
+                        'gateway' => $pool['gateway'],
+                    ];
+                }
+                $cursor = $exEnd + 1;
+            }
+
+            // Remaining segment after all exclusions
+            if ($cursor <= $hostMax) {
+                $from = long2ip($cursor);
+                $to = long2ip($hostMax);
+                $count = bcadd((string) ($hostMax - $cursor), '1');
+                $results[] = [
+                    'name' => $pool['name'],
+                    'subnet' => $subnet,
+                    'range_from' => $from,
+                    'range_to' => $to,
+                    'total_addresses' => $count,
+                    'gateway' => $pool['gateway'],
+                ];
+            }
+        }
+
+        return $results;
+    }
 }
