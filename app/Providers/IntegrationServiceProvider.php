@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\Integration;
+use App\Integration\CiscoBootstrapper;
 use App\Integration\LibreNmsBootstrapper;
 use App\Integration\OpnSenseBootstrapper;
 use App\Integration\PiHoleBootstrapper;
@@ -119,6 +120,7 @@ class IntegrationServiceProvider extends ServiceProvider
         (new LibreNmsBootstrapper)->register($this->app);
         (new PiHoleBootstrapper)->register($this->app);
         (new VyOsBootstrapper)->register($this->app);
+        (new CiscoBootstrapper)->register($this->app);
     }
 
     /**
