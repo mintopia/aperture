@@ -28,7 +28,7 @@ class SwitchServiceFactory
         };
     }
 
-    private function createTransport(SwitchConfig $switchConfig): SwitchCommandTransportInterface
+    public function createTransport(SwitchConfig $switchConfig): SwitchCommandTransportInterface
     {
         if ($this->proxyEnabled) {
             if (! $this->proxyClient instanceof SshProxyClientInterface) {

@@ -42,7 +42,7 @@ final class CiscoBootstrapper implements IntegrationBootstrapper
         }
 
         $factory = $app->make(SwitchServiceFactory::class);
-        $transport = $factory->createTransportForConfig($switchConfig);
+        $transport = $factory->createTransport($switchConfig);
 
         return new CiscoDhcpService(
             transport: $transport,
