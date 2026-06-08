@@ -6,6 +6,7 @@ namespace App\Console;
 
 use App\Jobs\ReapplyAccessRules;
 use App\Jobs\ScanNetworkDevices;
+use App\Jobs\SyncDhcpData;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use Illuminate\Console\Scheduling\Schedule;
@@ -32,6 +33,7 @@ class Kernel extends ConsoleKernel
             });
         })->cron(sprintf('*/%d * * * *', $interval))->name('sync-switch-ports')->onOneServer();
 
+        $schedule->job(new SyncDhcpData)->everyMinute()->onOneServer()->withoutOverlapping();
         $schedule->command('aperture:sync-seatpicker')->everyFiveMinutes()->onOneServer();
         $schedule->command('events:prune')->daily()->onOneServer();
     }
