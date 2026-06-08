@@ -40,4 +40,16 @@ class DhcpPoolThresholdReachedTest extends TestCase
         $traits = class_uses_recursive(DhcpPoolThresholdReached::class);
         $this->assertNotContains(SerializesModels::class, $traits);
     }
+
+    public function test_event_includes_address_family(): void
+    {
+        $event = new DhcpPoolThresholdReached('LAN', 0.9, 0.8, 'ipv4');
+        $this->assertSame('ipv4', $event->addressFamily);
+    }
+
+    public function test_event_address_family_defaults_to_ipv4(): void
+    {
+        $event = new DhcpPoolThresholdReached('LAN', 0.9, 0.8);
+        $this->assertSame('ipv4', $event->addressFamily);
+    }
 }

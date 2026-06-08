@@ -21,6 +21,7 @@ class DhcpPoolThresholdReached implements ShouldBroadcast
         public string $pool,
         public float $usage,
         public float $threshold,
+        public string $addressFamily = 'ipv4',
     ) {}
 
     /**
@@ -46,6 +47,7 @@ class DhcpPoolThresholdReached implements ShouldBroadcast
             'pool' => $this->pool,
             'usage' => $this->usage,
             'threshold' => $this->threshold,
+            'address_family' => $this->addressFamily,
         ];
     }
 }
