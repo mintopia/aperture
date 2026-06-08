@@ -341,4 +341,33 @@ return [
             'pool_size' => 'nullable|integer|min:0|max:1000000',
         ],
     ],
+    'cisco' => [
+        'name' => 'Cisco',
+        'description' => 'Cisco IOS switch providing DHCP server capabilities.',
+        'capabilities' => ['dhcp'],
+        'fields' => [
+            'switch_id' => [
+                'type' => 'select',
+                'label' => 'DHCP Switch',
+                'options' => 'switch_configs',
+                'help' => 'Select the switch running the DHCP server.',
+            ],
+            'pool_size' => [
+                'type' => 'text',
+                'label' => 'Pool Size Override',
+                'placeholder' => '0',
+                'help' => 'Optional total pool size override. When empty, derived from switch.',
+            ],
+            'ipv6_enabled' => [
+                'type' => 'toggle',
+                'label' => 'DHCPv6 Enabled',
+                'help' => 'Enable DHCPv6 data collection. Disable for older IOS without IPv6 DHCP.',
+            ],
+        ],
+        'validation' => [
+            'switch_id' => 'nullable|integer|exists:switch_configs,id',
+            'pool_size' => 'nullable|integer|min:0',
+            'ipv6_enabled' => 'nullable|string|in:0,1',
+        ],
+    ],
 ];

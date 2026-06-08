@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 class IntegrationTest extends TestCase
 {
-    public function test_integration_enum_has_all_six_integrations(): void
+    public function test_integration_enum_has_all_integrations(): void
     {
         $cases = Integration::cases();
         $values = array_map(fn (Integration $c) => $c->value, $cases);
@@ -21,6 +21,13 @@ class IntegrationTest extends TestCase
         $this->assertContains('borealis', $values);
         $this->assertContains('prometheus', $values);
         $this->assertContains('seatpicker', $values);
+        $this->assertContains('vyos', $values);
+        $this->assertContains('cisco', $values);
+    }
+
+    public function test_cisco_integration_exists(): void
+    {
+        $this->assertSame('cisco', Integration::Cisco->value);
     }
 
     public function test_capability_enum_has_known_capabilities(): void
