@@ -12,6 +12,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
+ * @property string|null $integration
  * @property int $ip_address_id
  * @property int $mac_address_id
  * @property string|null $hostname
@@ -26,6 +27,7 @@ class DhcpLease extends Model
 
     /** @var list<string> */
     protected $fillable = [
+        'integration',
         'ip_address_id',
         'mac_address_id',
         'hostname',
