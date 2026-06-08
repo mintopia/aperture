@@ -506,4 +506,358 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('10.1.0.2', $result[1]['range_from']);
         $this->assertSame('10.1.127.254', $result[1]['range_to']);
     }
+
+    // -------------------------------------------------------------------------
+    // parseDhcpv6BindingTable
+    // -------------------------------------------------------------------------
+
+    public function test_parse_dhcpv6_binding_table_with_duid_ll(): void
+    {
+        $output = implode("\n", [
+            'Client: FE80::1',
+            '  DUID: 00030001AABBCCDDEEFF',
+            '  Username : unassigned',
+            '  VRF : default',
+            '  IA NA: IA ID 0x00000001, T1 43200, T2 69120',
+            '    Address: 2001:DB8::100',
+            '            preferred lifetime 86400, valid lifetime 172800',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+        ]);
+
+        $result = $this->parser->parseDhcpv6BindingTable($output);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('2001:DB8::100', $result[0]['ip']);
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $result[0]['mac']);
+        $this->assertSame('00030001AABBCCDDEEFF', $result[0]['duid']);
+        $this->assertSame('0x00000001', $result[0]['iaid']);
+        $this->assertSame('Jun 09 2026 12:00 AM', $result[0]['expires']);
+    }
+
+    public function test_parse_dhcpv6_binding_table_with_duid_llt(): void
+    {
+        // DUID-LLT format: 0001 (type) + 0001 (hw-type) + AABBCCDD (time, 4B) + EEFF0011AABB (MAC, 6B)
+        $output = implode("\n", [
+            'Client: FE80::2',
+            '  DUID: 00010001AABBCCDDEEFF0011AABB',
+            '  Username : unassigned',
+            '  VRF : default',
+            '  IA NA: IA ID 0x00000002, T1 43200, T2 69120',
+            '    Address: 2001:DB8::101',
+            '            preferred lifetime 86400, valid lifetime 172800',
+            '            expires at Jun 09 2026 01:00 AM (172800 seconds)',
+        ]);
+
+        $result = $this->parser->parseDhcpv6BindingTable($output);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('2001:DB8::101', $result[0]['ip']);
+        $this->assertSame('EE:FF:00:11:AA:BB', $result[0]['mac']);
+    }
+
+    public function test_parse_dhcpv6_binding_table_duid_en_yields_null_mac(): void
+    {
+        $output = implode("\n", [
+            'Client: FE80::3',
+            '  DUID: 00020000000AABBCCDD',
+            '  Username : unassigned',
+            '  VRF : default',
+            '  IA NA: IA ID 0x00000003, T1 43200, T2 69120',
+            '    Address: 2001:DB8::102',
+            '            preferred lifetime 86400, valid lifetime 172800',
+            '            expires at Jun 09 2026 02:00 AM (172800 seconds)',
+        ]);
+
+        $result = $this->parser->parseDhcpv6BindingTable($output);
+
+        $this->assertCount(1, $result);
+        $this->assertNull($result[0]['mac']);
+    }
+
+    public function test_parse_dhcpv6_binding_table_duid_uuid_yields_null_mac(): void
+    {
+        $output = implode("\n", [
+            'Client: FE80::4',
+            '  DUID: 000400000000000000000000000000000001',
+            '  Username : unassigned',
+            '  VRF : default',
+            '  IA NA: IA ID 0x00000004, T1 43200, T2 69120',
+            '    Address: 2001:DB8::103',
+            '            preferred lifetime 86400, valid lifetime 172800',
+            '            expires at Jun 09 2026 03:00 AM (172800 seconds)',
+        ]);
+
+        $result = $this->parser->parseDhcpv6BindingTable($output);
+
+        $this->assertCount(1, $result);
+        $this->assertNull($result[0]['mac']);
+    }
+
+    public function test_parse_dhcpv6_binding_table_multiple_clients(): void
+    {
+        $output = implode("\n", [
+            'Client: FE80::1',
+            '  DUID: 00030001AABBCCDDEEFF',
+            '  Username : unassigned',
+            '  VRF : default',
+            '  IA NA: IA ID 0x00000001, T1 43200, T2 69120',
+            '    Address: 2001:DB8::100',
+            '            preferred lifetime 86400, valid lifetime 172800',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+            '',
+            'Client: FE80::2',
+            '  DUID: 00030001FFEEDDCCBBAA',
+            '  Username : unassigned',
+            '  VRF : default',
+            '  IA NA: IA ID 0x00000002, T1 43200, T2 69120',
+            '    Address: 2001:DB8::101',
+            '            preferred lifetime 86400, valid lifetime 172800',
+            '            expires at Jun 09 2026 01:00 AM (172800 seconds)',
+        ]);
+
+        $result = $this->parser->parseDhcpv6BindingTable($output);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('2001:DB8::100', $result[0]['ip']);
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $result[0]['mac']);
+        $this->assertSame('2001:DB8::101', $result[1]['ip']);
+        $this->assertSame('FF:EE:DD:CC:BB:AA', $result[1]['mac']);
+    }
+
+    public function test_parse_dhcpv6_binding_table_skips_ia_pd(): void
+    {
+        $output = implode("\n", [
+            'Client: FE80::1',
+            '  DUID: 00030001AABBCCDDEEFF',
+            '  Username : unassigned',
+            '  VRF : default',
+            '  IA PD: IA ID 0x00000001, T1 43200, T2 69120',
+            '    Prefix: 2001:DB8::/48',
+            '            preferred lifetime 86400, valid lifetime 172800',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+            '  IA NA: IA ID 0x00000002, T1 43200, T2 69120',
+            '    Address: 2001:DB8::100',
+            '            preferred lifetime 86400, valid lifetime 172800',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+        ]);
+
+        $result = $this->parser->parseDhcpv6BindingTable($output);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('2001:DB8::100', $result[0]['ip']);
+    }
+
+    public function test_parse_dhcpv6_binding_table_empty_output(): void
+    {
+        $result = $this->parser->parseDhcpv6BindingTable('');
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_parse_dhcpv6_binding_table_error_output(): void
+    {
+        $result = $this->parser->parseDhcpv6BindingTable('% Invalid input detected');
+
+        $this->assertSame([], $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // parseDhcpv6PoolStats
+    // -------------------------------------------------------------------------
+
+    public function test_parse_dhcpv6_pool_stats_single_pool(): void
+    {
+        $output = implode("\n", [
+            'DHCPv6 pool: LAN6',
+            '  Address allocation prefix: 2001:DB8::/64',
+            '  DNS server: 2001:4860:4860::8888',
+            '  Active clients: 15',
+        ]);
+
+        $result = $this->parser->parseDhcpv6PoolStats($output);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('LAN6', $result[0]['name']);
+        $this->assertSame('2001:DB8::/64', $result[0]['prefix']);
+        $this->assertSame('15', $result[0]['active_clients']);
+    }
+
+    public function test_parse_dhcpv6_pool_stats_multiple_pools(): void
+    {
+        $output = implode("\n", [
+            'DHCPv6 pool: LAN6',
+            '  Address allocation prefix: 2001:DB8::/64',
+            '  DNS server: 2001:4860:4860::8888',
+            '  Active clients: 15',
+            'DHCPv6 pool: GUESTS6',
+            '  Address allocation prefix: 2001:DB8:1::/64',
+            '  DNS server: 2001:4860:4860::8844',
+            '  Active clients: 3',
+        ]);
+
+        $result = $this->parser->parseDhcpv6PoolStats($output);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('LAN6', $result[0]['name']);
+        $this->assertSame('2001:DB8::/64', $result[0]['prefix']);
+        $this->assertSame('15', $result[0]['active_clients']);
+        $this->assertSame('GUESTS6', $result[1]['name']);
+        $this->assertSame('2001:DB8:1::/64', $result[1]['prefix']);
+        $this->assertSame('3', $result[1]['active_clients']);
+    }
+
+    public function test_parse_dhcpv6_pool_stats_empty_output(): void
+    {
+        $result = $this->parser->parseDhcpv6PoolStats('');
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_parse_dhcpv6_pool_stats_error_output(): void
+    {
+        $result = $this->parser->parseDhcpv6PoolStats('% Invalid input detected');
+
+        $this->assertSame([], $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // parseDhcpv6PoolConfig
+    // -------------------------------------------------------------------------
+
+    public function test_parse_dhcpv6_pool_config_single_pool(): void
+    {
+        $output = implode("\n", [
+            'ipv6 dhcp pool LAN6',
+            ' address prefix 2001:DB8::/64',
+            ' dns-server 2001:4860:4860::8888',
+        ]);
+
+        $result = $this->parser->parseDhcpv6PoolConfig($output);
+
+        $this->assertArrayHasKey('pools', $result);
+        $this->assertCount(1, $result['pools']);
+        $this->assertSame('LAN6', $result['pools'][0]['name']);
+        $this->assertSame('2001:DB8::/64', $result['pools'][0]['prefix']);
+    }
+
+    public function test_parse_dhcpv6_pool_config_multiple_pools(): void
+    {
+        $output = implode("\n", [
+            'ipv6 dhcp pool LAN6',
+            ' address prefix 2001:DB8::/64',
+            ' dns-server 2001:4860:4860::8888',
+            '!',
+            'ipv6 dhcp pool GUESTS6',
+            ' address prefix 2001:DB8:1::/64',
+            ' dns-server 2001:4860:4860::8844',
+        ]);
+
+        $result = $this->parser->parseDhcpv6PoolConfig($output);
+
+        $this->assertCount(2, $result['pools']);
+        $this->assertSame('LAN6', $result['pools'][0]['name']);
+        $this->assertSame('2001:DB8::/64', $result['pools'][0]['prefix']);
+        $this->assertSame('GUESTS6', $result['pools'][1]['name']);
+        $this->assertSame('2001:DB8:1::/64', $result['pools'][1]['prefix']);
+    }
+
+    public function test_parse_dhcpv6_pool_config_empty_output(): void
+    {
+        $result = $this->parser->parseDhcpv6PoolConfig('');
+
+        $this->assertSame(['pools' => []], $result);
+    }
+
+    public function test_parse_dhcpv6_pool_config_error_output(): void
+    {
+        $result = $this->parser->parseDhcpv6PoolConfig('% Invalid input detected');
+
+        $this->assertSame(['pools' => []], $result);
+    }
+
+    // -------------------------------------------------------------------------
+    // parseDhcpSnoopingTable
+    // -------------------------------------------------------------------------
+
+    public function test_parse_dhcp_snooping_table_multiple_entries(): void
+    {
+        $output = implode("\n", [
+            'MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface',
+            '-----------------   ---------------  ----------  -------------  ----  --------------------',
+            '00:11:22:33:44:55   10.0.0.50        86400       dhcp-snooping   100   GigabitEthernet1/0/1',
+            'AA:BB:CC:DD:EE:FF   10.0.0.51        86400       dhcp-snooping   100   GigabitEthernet1/0/2',
+            'Total number of bindings: 2',
+        ]);
+
+        $result = $this->parser->parseDhcpSnoopingTable($output);
+
+        $this->assertCount(2, $result);
+
+        $this->assertSame('10.0.0.50', $result[0]['ip']);
+        $this->assertSame('00:11:22:33:44:55', $result[0]['mac']);
+        $this->assertSame(100, $result[0]['vlan']);
+        $this->assertSame('GigabitEthernet1/0/1', $result[0]['interface']);
+        $this->assertSame(86400, $result[0]['lease_seconds']);
+
+        $this->assertSame('10.0.0.51', $result[1]['ip']);
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $result[1]['mac']);
+        $this->assertSame(100, $result[1]['vlan']);
+        $this->assertSame('GigabitEthernet1/0/2', $result[1]['interface']);
+    }
+
+    public function test_parse_dhcp_snooping_table_normalises_mac_to_uppercase(): void
+    {
+        $output = implode("\n", [
+            'MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface',
+            '-----------------   ---------------  ----------  -------------  ----  --------------------',
+            'aa:bb:cc:dd:ee:ff   10.0.0.50        3600        dhcp-snooping   200   Gi1/0/5',
+        ]);
+
+        $result = $this->parser->parseDhcpSnoopingTable($output);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $result[0]['mac']);
+    }
+
+    public function test_parse_dhcp_snooping_table_vlan_is_integer(): void
+    {
+        $output = implode("\n", [
+            'MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface',
+            '-----------------   ---------------  ----------  -------------  ----  --------------------',
+            '00:11:22:33:44:55   10.0.0.50        86400       dhcp-snooping   42   GigabitEthernet1/0/1',
+        ]);
+
+        $result = $this->parser->parseDhcpSnoopingTable($output);
+
+        $this->assertCount(1, $result);
+        $this->assertSame(42, $result[0]['vlan']);
+        $this->assertIsInt($result[0]['vlan']);
+    }
+
+    public function test_parse_dhcp_snooping_table_empty_output(): void
+    {
+        $result = $this->parser->parseDhcpSnoopingTable('');
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_parse_dhcp_snooping_table_error_output(): void
+    {
+        $result = $this->parser->parseDhcpSnoopingTable('% Invalid input detected');
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_parse_dhcp_snooping_table_only_header_returns_empty(): void
+    {
+        $output = implode("\n", [
+            'MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface',
+            '-----------------   ---------------  ----------  -------------  ----  --------------------',
+            'Total number of bindings: 0',
+        ]);
+
+        $result = $this->parser->parseDhcpSnoopingTable($output);
+
+        $this->assertSame([], $result);
+    }
 }

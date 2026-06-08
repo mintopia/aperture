@@ -435,6 +435,233 @@ class IosOutputParser
     }
 
     /**
+     * Parse `show ipv6 dhcp binding` output into structured records.
+     *
+     * Only IA_NA (address) bindings are returned; IA_PD (prefix delegation) entries are skipped.
+     * MAC addresses are extracted from the DUID where possible.
+     *
+     * @return array<int, array{ip: string, mac: string|null, expires: string, duid: string, iaid: string}>
+     */
+    public function parseDhcpv6BindingTable(string $output): array
+    {
+        if ($this->isErrorOutput($output)) {
+            return [];
+        }
+
+        $lines = preg_split('/\r?\n/', $output) ?: [];
+        $entries = [];
+        $duid = '';
+        $iaid = '';
+        $inIaNa = false;
+        $inIaPd = false;
+
+        foreach ($lines as $line) {
+            if (preg_match('/^\s*DUID:\s*(\S+)/', $line, $m)) {
+                $duid = $m[1];
+                $iaid = '';
+                $inIaNa = false;
+                $inIaPd = false;
+
+                continue;
+            }
+
+            if (preg_match('/^\s+IA NA:\s+IA ID\s+(0x[0-9a-fA-F]+)/', $line, $m)) {
+                $iaid = $m[1];
+                $inIaNa = true;
+                $inIaPd = false;
+
+                continue;
+            }
+
+            if (preg_match('/^\s+IA PD:/', $line)) {
+                $inIaNa = false;
+                $inIaPd = true;
+
+                continue;
+            }
+
+            if (! $inIaNa) {
+                continue;
+            }
+
+            if (preg_match('/^\s+Address:\s+(\S+)/', $line, $m)) {
+                $ip = $m[1];
+                $expires = '';
+                $entries[] = [
+                    'ip' => $ip,
+                    'mac' => $this->extractMacFromDuid($duid),
+                    'expires' => $expires,
+                    'duid' => $duid,
+                    'iaid' => $iaid,
+                ];
+
+                continue;
+            }
+
+            if (preg_match('/^\s+expires at (.+?)\s+\(\d+ seconds\)/', $line, $m) && $entries !== []) {
+                $entries[count($entries) - 1]['expires'] = trim($m[1]);
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Parse `show ipv6 dhcp pool` output into pool statistics.
+     *
+     * @return array<int, array{name: string, prefix: string, active_clients: string}>
+     */
+    public function parseDhcpv6PoolStats(string $output): array
+    {
+        if ($this->isErrorOutput($output)) {
+            return [];
+        }
+
+        $lines = preg_split('/\r?\n/', $output) ?: [];
+        $pools = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            if (preg_match('/^DHCPv6 pool:\s+(\S+)/', $line, $m)) {
+                if ($current !== null) {
+                    $pools[] = $current;
+                }
+                $current = ['name' => $m[1], 'prefix' => '', 'active_clients' => '0'];
+
+                continue;
+            }
+
+            if ($current === null) {
+                continue;
+            }
+
+            if (preg_match('/^\s+Address allocation prefix:\s+(\S+)/', $line, $m)) {
+                $current['prefix'] = $m[1];
+            } elseif (preg_match('/^\s+Active clients:\s+(\d+)/', $line, $m)) {
+                $current['active_clients'] = $m[1];
+            }
+        }
+
+        if ($current !== null) {
+            $pools[] = $current;
+        }
+
+        return $pools;
+    }
+
+    /**
+     * Parse `show running-config | section ipv6 dhcp pool` output.
+     *
+     * @return array{pools: array<int, array{name: string, prefix: string}>}
+     */
+    public function parseDhcpv6PoolConfig(string $output): array
+    {
+        if ($this->isErrorOutput($output)) {
+            return ['pools' => []];
+        }
+
+        $lines = preg_split('/\r?\n/', $output) ?: [];
+        $pools = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            if (preg_match('/^ipv6 dhcp pool\s+(\S+)/', $line, $m)) {
+                if ($current !== null) {
+                    $pools[] = $current;
+                }
+                $current = ['name' => $m[1], 'prefix' => ''];
+
+                continue;
+            }
+
+            if ($current === null) {
+                continue;
+            }
+
+            if (trim($line) === '!') {
+                $pools[] = $current;
+                $current = null;
+
+                continue;
+            }
+
+            if (preg_match('/^\s+address prefix\s+(\S+)/', $line, $m)) {
+                $current['prefix'] = $m[1];
+            }
+        }
+
+        if ($current !== null) {
+            $pools[] = $current;
+        }
+
+        return ['pools' => $pools];
+    }
+
+    /**
+     * Parse `show ip dhcp snooping binding` output into structured records.
+     *
+     * MAC addresses are normalised to uppercase colon-separated format.
+     * VLAN is returned as an integer.
+     *
+     * @return array<int, array{ip: string, mac: string, vlan: int, interface: string, lease_seconds: int}>
+     */
+    public function parseDhcpSnoopingTable(string $output): array
+    {
+        if ($this->isErrorOutput($output)) {
+            return [];
+        }
+
+        $lines = preg_split('/\r?\n/', $output) ?: [];
+        $entries = [];
+
+        foreach ($lines as $line) {
+            if (! preg_match('/^([0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5})\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(\d+)\s+\S+\s+(\d+)\s+(\S+)/', $line, $m)) {
+                continue;
+            }
+
+            $entries[] = [
+                'ip' => $m[2],
+                'mac' => strtoupper($m[1]),
+                'vlan' => (int) $m[4],
+                'interface' => $m[5],
+                'lease_seconds' => (int) $m[3],
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Extract and normalise a MAC address from a DHCPv6 DUID hex string.
+     *
+     * Supported DUID types:
+     *  - DUID-LL  (type 0003): 0003 0001 XX:XX:XX:XX:XX:XX — last 6 bytes are MAC
+     *  - DUID-LLT (type 0001): 0001 0001 TTTTTTTT XX:XX:XX:XX:XX:XX — last 6 bytes are MAC
+     *
+     * Returns null for DUID-EN (0002), DUID-UUID (0004), or unrecognised formats.
+     */
+    private function extractMacFromDuid(string $duid): ?string
+    {
+        $hex = strtoupper($duid);
+
+        // DUID-LL: type 0003 + hardware type 0001 + 6-byte MAC = 20 hex chars
+        if (str_starts_with($hex, '0003') && strlen($hex) >= 20) {
+            $mac = substr($hex, 8, 12);
+
+            return implode(':', str_split($mac, 2));
+        }
+
+        // DUID-LLT: type 0001 + hardware type 0001 + 4-byte time + 6-byte MAC = 28 hex chars
+        if (str_starts_with($hex, '0001') && strlen($hex) >= 28) {
+            $mac = substr($hex, 16, 12);
+
+            return implode(':', str_split($mac, 2));
+        }
+
+        return null;
+    }
+
+    /**
      * Compute effective DHCP ranges by subtracting excluded addresses from each pool's usable range.
      *
      * Takes the output of parseDhcpPoolConfig() and returns the resulting address ranges per pool.
