@@ -210,6 +210,83 @@ class IosOutputParser
     }
 
     /**
+     * Parse `show ip dhcp binding` output into structured records.
+     *
+     * @return array<int, array{ip: string, mac: string|null, expires: string, type: string, state: string, interface: string}>
+     */
+    public function parseDhcpBindingTable(string $output): array
+    {
+        if ($this->isErrorOutput($output)) {
+            return [];
+        }
+
+        $lines = preg_split('/\r?\n/', $output) ?: [];
+        $entries = [];
+
+        foreach ($lines as $line) {
+            // Match data lines: starts with an IP address
+            if (! preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)\s+(.+?)\s{2,}(\S+)\s+(\S+)\s+(\S+)\s*$/', $line, $matches)) {
+                continue;
+            }
+
+            $entries[] = [
+                'ip' => $matches[1],
+                'mac' => $this->extractMacFromClientId($matches[2]),
+                'expires' => trim($matches[3]),
+                'type' => $matches[4],
+                'state' => $matches[5],
+                'interface' => $matches[6],
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Extract and normalise a MAC address from a Cisco DHCP client-ID string.
+     *
+     * Handles two formats:
+     *  - 7-group dotted hex with hardware-type prefix: 0100.1122.3344.55
+     *    (strip leading 01 byte, remaining 6 bytes are the MAC)
+     *  - Standard 3-group dotted hex MAC: aabb.ccdd.eeff
+     *
+     * Returns the MAC in uppercase colon-separated format (AA:BB:CC:DD:EE:FF),
+     * or null if the string is not a recognised format.
+     */
+    public function extractMacFromClientId(string $clientId): ?string
+    {
+        if ($clientId === '') {
+            return null;
+        }
+
+        // Format with hardware-type prefix: 01XX.XXXX.XXXX.XX (7 hex groups of 2)
+        if (preg_match('/^01([0-9a-fA-F]{2})\.([0-9a-fA-F]{4})\.([0-9a-fA-F]{4})\.([0-9a-fA-F]{2})$/', $clientId, $m)) {
+            $hex = $m[1].$m[2].$m[3].$m[4];
+
+            return implode(':', str_split(strtoupper($hex), 2));
+        }
+
+        // Raw 3-group dotted hex MAC: XXXX.XXXX.XXXX
+        if (preg_match('/^([0-9a-fA-F]{4})\.([0-9a-fA-F]{4})\.([0-9a-fA-F]{4})$/', $clientId, $m)) {
+            $hex = $m[1].$m[2].$m[3];
+
+            return implode(':', str_split(strtoupper($hex), 2));
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect whether output is a Cisco IOS error response.
+     *
+     * IOS error lines begin with '%' followed by one of the known error keywords.
+     */
+    public function isErrorOutput(string $output): bool
+    {
+        return (bool) preg_match('/^%\s*(Invalid|Incomplete|Ambiguous)/m', $output);
+    }
+
+    /**
      * Split bulk `show running-config | section ^interface` output into per-interface blocks.
      *
      * @return array<string, string> interface name => config block
