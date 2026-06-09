@@ -11,9 +11,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('dhcp_leases', function (Blueprint $table): void {
-            $table->string('integration')->nullable()->after('id');
-        });
+        if (! Schema::hasColumn('dhcp_leases', 'integration')) {
+            Schema::table('dhcp_leases', function (Blueprint $table): void {
+                $table->string('integration')->nullable()->after('id');
+            });
+        }
 
         $activeProvider = null;
         try {
@@ -31,11 +33,18 @@ return new class extends Migration
                 ->update(['integration' => $activeProvider]);
         }
 
-        Schema::table('dhcp_leases', function (Blueprint $table): void {
-            $table->dropForeign(['mac_address_id']);
-            $table->dropUnique(['ip_address_id', 'mac_address_id']);
-            $table->unique(['integration', 'ip_address_id'], 'dhcp_leases_integration_ip_unique');
-            $table->foreign('mac_address_id')->references('id')->on('mac_addresses')->cascadeOnDelete();
+        $indexes = Schema::getIndexListing('dhcp_leases');
+
+        Schema::table('dhcp_leases', function (Blueprint $table) use ($indexes): void {
+            if (in_array('dhcp_leases_ip_address_id_mac_address_id_unique', $indexes, true)) {
+                $table->dropForeign(['mac_address_id']);
+                $table->dropUnique(['ip_address_id', 'mac_address_id']);
+                $table->foreign('mac_address_id')->references('id')->on('mac_addresses')->cascadeOnDelete();
+            }
+
+            if (! in_array('dhcp_leases_integration_ip_unique', $indexes, true)) {
+                $table->unique(['integration', 'ip_address_id'], 'dhcp_leases_integration_ip_unique');
+            }
         });
     }
 
