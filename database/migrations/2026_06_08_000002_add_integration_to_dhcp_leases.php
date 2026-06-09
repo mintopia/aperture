@@ -161,7 +161,7 @@ return new class extends Migration
     private function foreignKeyExistsSqlite(string $table, string $foreignKey): bool
     {
         // Extract the column name from Laravel's FK naming convention: {table}_{column}_foreign
-        $prefix = $table . '_';
+        $prefix = $table.'_';
         $suffix = '_foreign';
 
         if (str_starts_with($foreignKey, $prefix) && str_ends_with($foreignKey, $suffix)) {
