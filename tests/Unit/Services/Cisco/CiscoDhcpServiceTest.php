@@ -243,7 +243,81 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertSame(2, $ipv4Range->usedAddresses);
         $this->assertNotNull($ipv4Range->totalAddresses);
         $this->assertSame(245, $ipv4Range->totalAddresses);
-        $this->assertEqualsWithDelta(round(2 / 245, 4), $ipv4Range->utilisation, 0.0001);
+        $this->assertEqualsWithDelta(0.0082, $ipv4Range->utilisation, 0.0001);
+    }
+
+    // -------------------------------------------------------------------------
+    // getRanges() — unparsable IPv4 range bounds → used count defaults to 0
+    // -------------------------------------------------------------------------
+
+    public function test_get_ranges_counts_zero_used_when_range_bounds_unparsable(): void
+    {
+        // The real parser can never emit unparsable bounds (computeEffectiveRanges
+        // builds them via long2ip), so stub the injected parser to exercise the
+        // defensive branch in countBindingsInRange().
+        $parser = Mockery::mock(IosOutputParser::class)->makePartial();
+        $parser->shouldReceive('computeEffectiveRanges')->andReturn([
+            [
+                'name' => 'BROKEN',
+                'subnet' => '10.0.0.0/24',
+                'range_from' => 'not-an-ip',
+                'range_to' => 'also-not-an-ip',
+                'total_addresses' => '245',
+                'gateway' => '10.0.0.1',
+            ],
+        ]);
+
+        $this->transport
+            ->shouldReceive('executeMultiple')
+            ->once()
+            ->andReturn($this->defaultCommandOutputs(ipv6: false));
+
+        $this->transport
+            ->shouldReceive('disconnect')
+            ->once();
+
+        $service = new CiscoDhcpService($this->transport, $parser, '0', false);
+        $ranges = $service->getRanges();
+
+        $broken = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'BROKEN');
+        $this->assertInstanceOf(DhcpRange::class, $broken);
+        $this->assertSame(245, $broken->totalAddresses);
+        $this->assertSame(0, $broken->usedAddresses);
+        $this->assertSame(0.0, $broken->utilisation);
+    }
+
+    // -------------------------------------------------------------------------
+    // getRanges() — IPv6 pools with missing or malformed prefix → null totals
+    // -------------------------------------------------------------------------
+
+    public function test_get_ranges_ipv6_total_addresses_null_for_missing_or_malformed_prefix(): void
+    {
+        $outputs = $this->defaultCommandOutputs();
+        $outputs['show running-config | section ipv6 dhcp pool'] = implode("\n", [
+            'ipv6 dhcp pool NOPREFIX6',
+            ' dns-server 2001:4860:4860::8888',
+            '!',
+            'ipv6 dhcp pool BADPREFIX6',
+            ' address prefix 2001:DB8::',
+            '!',
+        ]);
+
+        $this->expectTransportCall(outputs: $outputs);
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        // Pool without an "address prefix" line → prefix null → totalAddresses null
+        $noPrefix = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'NOPREFIX6');
+        $this->assertInstanceOf(DhcpRange::class, $noPrefix);
+        $this->assertNull($noPrefix->prefix);
+        $this->assertNull($noPrefix->totalAddresses);
+
+        // Prefix without a /length suffix → unparsable → totalAddresses null
+        $badPrefix = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'BADPREFIX6');
+        $this->assertInstanceOf(DhcpRange::class, $badPrefix);
+        $this->assertSame('2001:DB8::', $badPrefix->prefix);
+        $this->assertNull($badPrefix->totalAddresses);
     }
 
     // -------------------------------------------------------------------------
