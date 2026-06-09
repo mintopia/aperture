@@ -18,12 +18,8 @@ const content = ref(props.block.content ?? '');
 const isActive = ref(props.block.is_active);
 
 // Connection strip fields
-const initialFields =
-    props.block.type === 'connection_strip'
-        ? JSON.parse(
-              JSON.stringify(props.block.settings?.fields?.length ? props.block.settings.fields : DEFAULT_FIELDS),
-          )
-        : [];
+const storedFields = props.block.settings?.fields?.length ? props.block.settings.fields : DEFAULT_FIELDS;
+const initialFields = props.block.type === 'connection_strip' ? JSON.parse(JSON.stringify(storedFields)) : [];
 const fields = ref(initialFields);
 
 // DNS filter settings

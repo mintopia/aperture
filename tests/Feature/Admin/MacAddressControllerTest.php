@@ -114,6 +114,60 @@ class MacAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('macs.data', 1));
     }
 
+    public function test_index_sortable_by_mac_address(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        MacAddress::factory()->create(['mac_address' => 'BB:BB:BB:BB:BB:BB']);
+        MacAddress::factory()->create(['mac_address' => 'AA:AA:AA:AA:AA:AA']);
+
+        $response = $this->actingAs($admin)->get('/admin/macs?order=mac_address&direction=asc');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('macs.data.0.mac_address', 'AA:AA:AA:AA:AA:AA')
+            ->where('macs.data.1.mac_address', 'BB:BB:BB:BB:BB:BB')
+            ->where('filters.order', 'mac_address')
+            ->where('filters.direction', 'asc')
+        );
+    }
+
+    public function test_index_sortable_descending(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        MacAddress::factory()->create(['mac_address' => 'AA:AA:AA:AA:AA:AA']);
+        MacAddress::factory()->create(['mac_address' => 'BB:BB:BB:BB:BB:BB']);
+
+        $response = $this->actingAs($admin)->get('/admin/macs?order=mac_address&direction=desc');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('macs.data.0.mac_address', 'BB:BB:BB:BB:BB:BB')
+            ->where('macs.data.1.mac_address', 'AA:AA:AA:AA:AA:AA')
+            ->where('filters.order', 'mac_address')
+            ->where('filters.direction', 'desc')
+        );
+    }
+
+    public function test_index_ignores_invalid_order_and_direction(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        MacAddress::factory()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/macs?order=invalid&direction=sideways');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('filters.order', 'created_at')
+            ->where('filters.direction', 'desc')
+        );
+    }
+
     public function test_index_pagination_works(): void
     {
         Queue::fake();

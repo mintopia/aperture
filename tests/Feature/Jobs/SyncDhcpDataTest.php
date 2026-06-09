@@ -7,6 +7,7 @@ namespace Tests\Feature\Jobs;
 use App\Events\DhcpPoolThresholdReached;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
+use App\Models\DhcpPoolStatusRecord;
 use App\Models\DhcpSyncState;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
@@ -63,6 +64,18 @@ class SyncDhcpDataTest extends TestCase
 
     public function test_does_nothing_when_no_dhcp_capability_assigned(): void
     {
+        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
+
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_leases', 0);
+        $this->assertDatabaseCount('dhcp_range_records', 0);
+        $this->assertDatabaseCount('dhcp_pool_statuses', 0);
+    }
+
+    public function test_does_nothing_when_provider_is_null_service(): void
+    {
+        $this->assignDhcpProvider('cisco');
         $this->app->bind(DhcpInterface::class, NullDhcpService::class);
 
         $this->dispatchSyncJob();
@@ -352,6 +365,74 @@ class SyncDhcpDataTest extends TestCase
         ])->first();
         $this->assertNotNull($syncState);
         $this->assertSame(0, $syncState->empty_count);
+    }
+
+    public function test_empty_range_guard_deletes_after_three_consecutive_empties(): void
+    {
+        $this->assignDhcpProvider('cisco');
+
+        // First sync with data
+        $this->mockDhcpService(
+            ranges: [
+                new DhcpRange(
+                    interface: 'Vlan100',
+                    type: 'ipv4',
+                    subnet: '10.0.0.0/24',
+                    rangeFrom: '10.0.0.10',
+                    rangeTo: '10.0.0.200',
+                    prefix: null,
+                    gateway: '10.0.0.1',
+                    description: 'Main LAN',
+                ),
+            ],
+        );
+        $this->dispatchSyncJob();
+        $this->assertDatabaseCount('dhcp_range_records', 1);
+
+        // Run 3 empty syncs
+        for ($i = 0; $i < 3; $i++) {
+            $this->mockDhcpService(ranges: []);
+            $this->dispatchSyncJob();
+        }
+
+        // After 3 consecutive empties, ranges should be deleted
+        $this->assertDatabaseCount('dhcp_range_records', 0);
+
+        $syncState = DhcpSyncState::where([
+            'integration' => 'cisco',
+            'dataset' => 'ranges',
+            'address_family' => 'ipv4',
+        ])->first();
+        $this->assertNotNull($syncState);
+        $this->assertSame(0, $syncState->empty_count);
+    }
+
+    public function test_pool_status_clamps_when_used_exceeds_total(): void
+    {
+        $this->assignDhcpProvider('cisco');
+        $this->mockDhcpService(
+            poolStatus: new DhcpPoolStatus(total: 100, used: 150, available: 0, utilisation: 1.5),
+        );
+
+        $this->dispatchSyncJob();
+
+        $record = DhcpPoolStatusRecord::firstOrFail();
+        $this->assertSame(0.0, (float) $record->available);
+        $this->assertSame(1.0, (float) $record->utilisation);
+    }
+
+    public function test_pool_status_clamps_negative_utilisation_to_zero(): void
+    {
+        $this->assignDhcpProvider('cisco');
+        $this->mockDhcpService(
+            poolStatus: new DhcpPoolStatus(total: 100, used: -50, available: 150, utilisation: -0.5),
+        );
+
+        $this->dispatchSyncJob();
+
+        $record = DhcpPoolStatusRecord::firstOrFail();
+        $this->assertSame(150.0, (float) $record->available);
+        $this->assertSame(0.0, (float) $record->utilisation);
     }
 
     public function test_sync_state_timestamps_updated_correctly(): void

@@ -13,6 +13,7 @@ use App\Models\MacAddress;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class DhcpControllerTest extends TestCase
@@ -227,6 +228,22 @@ class DhcpControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Dhcp/Index')
             ->where('lastSyncedAt', $syncedAt->toIso8601String())
+        );
+    }
+
+    public function test_index_renders_when_capability_lookup_fails(): void
+    {
+        $admin = $this->createAdminUser();
+
+        // Simulate a failing capability lookup (e.g. migration not yet run)
+        Schema::drop('capability_assignments');
+
+        $response = $this->actingAs($admin)->get('/admin/dhcp');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Dhcp/Index')
+            ->has('ranges', 0)
         );
     }
 
