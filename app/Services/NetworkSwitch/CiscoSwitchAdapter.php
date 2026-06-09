@@ -7,6 +7,7 @@ namespace App\Services\NetworkSwitch;
 use App\Exceptions\InvalidPortIdentifierException;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SupportsBulkOperations;
+use App\Services\Interfaces\SupportsDhcpSnooping;
 use App\Services\Interfaces\SupportsInterfaceOutputCapture;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\ValueObjects\ForwardingEntry;
@@ -14,7 +15,7 @@ use App\Services\ValueObjects\PortStatistics;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Support\Collection;
 
-class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperations, SupportsInterfaceOutputCapture
+class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperations, SupportsDhcpSnooping, SupportsInterfaceOutputCapture
 {
     /**
      * Regex matching valid Cisco IOS interface identifiers.
@@ -191,5 +192,13 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperatio
         $output = $this->transport->execute('show mac address-table');
 
         return collect($this->parser->parseMacAddressTable($output));
+    }
+
+    /** @return Collection<int, array{ip: string, mac: string, vlan: int, interface: string, lease_seconds: int}> */
+    public function getDhcpSnoopingBindings(): Collection
+    {
+        $output = $this->transport->execute('show ip dhcp snooping binding');
+
+        return collect($this->parser->parseDhcpSnoopingTable($output));
     }
 }
