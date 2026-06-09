@@ -11,6 +11,7 @@ use App\Models\DhcpRangeRecord;
 use App\Models\DhcpSyncState;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class DhcpController extends Controller
 {
@@ -53,8 +54,8 @@ class DhcpController extends Controller
             ->with(['ipAddress', 'macAddress'])
             ->get()
             ->map(fn (DhcpLease $lease): array => [
-                'ip' => $lease->ipAddress?->address ?? '',
-                'mac' => $lease->macAddress?->mac_address ?? '',
+                'ip' => $lease->ipAddress->address ?? '',
+                'mac' => $lease->macAddress->mac_address ?? '',
                 'hostname' => $lease->hostname ?? '',
                 'expires' => $lease->expires_at?->toIso8601String() ?? '',
             ])
@@ -77,7 +78,7 @@ class DhcpController extends Controller
             $assignment = CapabilityAssignment::where('capability', 'dhcp')->first();
 
             return $assignment?->integration;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

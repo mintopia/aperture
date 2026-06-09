@@ -348,6 +348,7 @@ class IosOutputParser
                 if ($current !== null) {
                     $pools[] = $current;
                 }
+
                 $current = ['name' => $m[1], 'total' => '0', 'leased' => '0'];
 
                 continue;
@@ -391,7 +392,7 @@ class IosOutputParser
             // Exclusion line: ip dhcp excluded-address <start> [end]
             if (preg_match('/^ip dhcp excluded-address\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s+(\d{1,3}(?:\.\d{1,3}){3}))?/', $line, $m)) {
                 $start = $m[1];
-                $end = isset($m[2]) && $m[2] !== '' ? $m[2] : $start;
+                $end = isset($m[2]) ? $m[2] : $start;
                 $excluded[] = ['start' => $start, 'end' => $end];
 
                 continue;
@@ -402,6 +403,7 @@ class IosOutputParser
                 if ($current !== null) {
                     $pools[] = $current;
                 }
+
                 $current = ['name' => $m[1], 'network' => '', 'mask' => '', 'gateway' => ''];
 
                 continue;
@@ -453,29 +455,45 @@ class IosOutputParser
         $duid = '';
         $iaid = '';
         $inIaNa = false;
-        $inIaPd = false;
+        $pendingIp = '';
+        $pendingMac = null;
+        $pendingDuid = '';
+        $pendingIaid = '';
+        $hasPending = false;
 
         foreach ($lines as $line) {
             if (preg_match('/^\s*DUID:\s*(\S+)/', $line, $m)) {
+                if ($hasPending) {
+                    $entries[] = $this->buildDhcpv6Entry($pendingIp, $pendingMac, '', $pendingDuid, $pendingIaid);
+                    $hasPending = false;
+                }
+
                 $duid = $m[1];
                 $iaid = '';
                 $inIaNa = false;
-                $inIaPd = false;
 
                 continue;
             }
 
             if (preg_match('/^\s+IA NA:\s+IA ID\s+(0x[0-9a-fA-F]+)/', $line, $m)) {
+                if ($hasPending) {
+                    $entries[] = $this->buildDhcpv6Entry($pendingIp, $pendingMac, '', $pendingDuid, $pendingIaid);
+                    $hasPending = false;
+                }
+
                 $iaid = $m[1];
                 $inIaNa = true;
-                $inIaPd = false;
 
                 continue;
             }
 
             if (preg_match('/^\s+IA PD:/', $line)) {
+                if ($hasPending) {
+                    $entries[] = $this->buildDhcpv6Entry($pendingIp, $pendingMac, '', $pendingDuid, $pendingIaid);
+                    $hasPending = false;
+                }
+
                 $inIaNa = false;
-                $inIaPd = true;
 
                 continue;
             }
@@ -485,22 +503,27 @@ class IosOutputParser
             }
 
             if (preg_match('/^\s+Address:\s+(\S+)/', $line, $m)) {
-                $ip = $m[1];
-                $expires = '';
-                $entries[] = [
-                    'ip' => $ip,
-                    'mac' => $this->extractMacFromDuid($duid),
-                    'expires' => $expires,
-                    'duid' => $duid,
-                    'iaid' => $iaid,
-                ];
+                if ($hasPending) {
+                    $entries[] = $this->buildDhcpv6Entry($pendingIp, $pendingMac, '', $pendingDuid, $pendingIaid);
+                }
+
+                $pendingIp = $m[1];
+                $pendingMac = $this->extractMacFromDuid($duid);
+                $pendingDuid = $duid;
+                $pendingIaid = $iaid;
+                $hasPending = true;
 
                 continue;
             }
 
-            if (preg_match('/^\s+expires at (.+?)\s+\(\d+ seconds\)/', $line, $m) && $entries !== []) {
-                $entries[count($entries) - 1]['expires'] = trim($m[1]);
+            if ($hasPending && preg_match('/^\s+expires at (.+?)\s+\(\d+ seconds\)/', $line, $m)) {
+                $entries[] = $this->buildDhcpv6Entry($pendingIp, $pendingMac, trim($m[1]), $pendingDuid, $pendingIaid);
+                $hasPending = false;
             }
+        }
+
+        if ($hasPending) {
+            $entries[] = $this->buildDhcpv6Entry($pendingIp, $pendingMac, '', $pendingDuid, $pendingIaid);
         }
 
         return $entries;
@@ -526,6 +549,7 @@ class IosOutputParser
                 if ($current !== null) {
                     $pools[] = $current;
                 }
+
                 $current = ['name' => $m[1], 'prefix' => '', 'active_clients' => '0'];
 
                 continue;
@@ -569,6 +593,7 @@ class IosOutputParser
                 if ($current !== null) {
                     $pools[] = $current;
                 }
+
                 $current = ['name' => $m[1], 'prefix' => ''];
 
                 continue;
@@ -640,6 +665,22 @@ class IosOutputParser
      *
      * Returns null for DUID-EN (0002), DUID-UUID (0004), or unrecognised formats.
      */
+    /**
+     * Build a DHCPv6 binding entry with proper shape typing.
+     *
+     * @return array{ip: string, mac: string|null, expires: string, duid: string, iaid: string}
+     */
+    private function buildDhcpv6Entry(string $ip, ?string $mac, string $expires, string $duid, string $iaid): array
+    {
+        return [
+            'ip' => $ip,
+            'mac' => $mac,
+            'expires' => $expires,
+            'duid' => $duid,
+            'iaid' => $iaid,
+        ];
+    }
+
     private function extractMacFromDuid(string $duid): ?string
     {
         $hex = strtoupper($duid);
@@ -698,16 +739,18 @@ class IosOutputParser
                 if ($exStart === false || $exEnd === false) {
                     continue;
                 }
+
                 // Only keep exclusions that overlap [hostMin, hostMax]
                 if ($exEnd < $hostMin || $exStart > $hostMax) {
                     continue;
                 }
+
                 // Clamp to usable range
                 $excl[] = [max($exStart, $hostMin), min($exEnd, $hostMax)];
             }
 
             // Sort exclusions by start address
-            usort($excl, fn ($a, $b) => $a[0] <=> $b[0]);
+            usort($excl, fn (array $a, array $b): int => $a[0] <=> $b[0]);
 
             // Walk through the usable range, subtracting exclusions
             $cursor = $hostMin;
@@ -715,6 +758,7 @@ class IosOutputParser
                 if ($cursor > $hostMax) {
                     break;
                 }
+
                 if ($exStart > $cursor) {
                     // There is a usable segment before this exclusion
                     $from = long2ip($cursor);
@@ -729,6 +773,7 @@ class IosOutputParser
                         'gateway' => $pool['gateway'],
                     ];
                 }
+
                 $cursor = $exEnd + 1;
             }
 
