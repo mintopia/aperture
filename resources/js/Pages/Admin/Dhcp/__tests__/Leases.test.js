@@ -64,6 +64,15 @@ describe('isIpInPrefix', () => {
         expect(isIpInPrefix('2001:db8:2::5', '2001:db8:1::/64')).toBe(false);
     });
 
+    it('rejects an address sharing only a partial hextet with the prefix', () => {
+        expect(isIpInPrefix('2001:db8:10::5', '2001:db8:1::/64')).toBe(false);
+        expect(isIpInPrefix('2001:db8:1f00::5', '2001:db8:1::/64')).toBe(false);
+    });
+
+    it('matches an address exactly at the hextet boundary', () => {
+        expect(isIpInPrefix('2001:db8:1::5', '2001:db8:1::/64')).toBe(true);
+    });
+
     it('returns false for null or empty inputs', () => {
         expect(isIpInPrefix(null, '2001:db8:1::/64')).toBe(false);
         expect(isIpInPrefix('2001:db8:1::5', null)).toBe(false);
