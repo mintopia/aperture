@@ -82,6 +82,41 @@ describe('isIpInPrefix', () => {
     it('returns false when the prefix has no network portion', () => {
         expect(isIpInPrefix('2001:db8:1::5', '::/0')).toBe(false);
     });
+
+    it('rejects addresses outside a zero-compressed prefix', () => {
+        expect(isIpInPrefix('2001:db8:1::5', '2001:db8::/64')).toBe(false);
+        expect(isIpInPrefix('fd00:1::5', 'fd00::/64')).toBe(false);
+    });
+
+    it('matches addresses inside a zero-compressed prefix', () => {
+        expect(isIpInPrefix('2001:db8::5', '2001:db8::/64')).toBe(true);
+        expect(isIpInPrefix('fd00::1:5', 'fd00::/64')).toBe(true);
+    });
+
+    it('returns false for a prefix without a length', () => {
+        expect(isIpInPrefix('2001:db8:1::5', '2001:db8:1::')).toBe(false);
+    });
+
+    it('returns false for an invalid prefix length', () => {
+        expect(isIpInPrefix('2001:db8:1::5', '2001:db8:1::/129')).toBe(false);
+    });
+
+    it('returns false for malformed addresses', () => {
+        expect(isIpInPrefix('2001:db8:zz::5', '2001:db8:1::/64')).toBe(false);
+        expect(isIpInPrefix('1:2:3:4:5:6:7:8:9', '2001:db8:1::/64')).toBe(false);
+        expect(isIpInPrefix('2001:db8:1::5', 'not-a-prefix/64')).toBe(false);
+    });
+
+    it('returns false for IPv4 inputs', () => {
+        expect(isIpInPrefix('10.0.0.5', '2001:db8:1::/64')).toBe(false);
+        expect(isIpInPrefix('2001:db8:1::5', '10.0.0.0/24')).toBe(false);
+    });
+
+    it('handles non-hextet-aligned prefix lengths', () => {
+        expect(isIpInPrefix('2001:db8:1:8000::5', '2001:db8:1:8000::/63')).toBe(true);
+        expect(isIpInPrefix('2001:db8:1:8001::5', '2001:db8:1:8000::/63')).toBe(true);
+        expect(isIpInPrefix('2001:db8:1:8002::5', '2001:db8:1:8000::/63')).toBe(false);
+    });
 });
 
 describe('Dhcp/Leases', () => {
