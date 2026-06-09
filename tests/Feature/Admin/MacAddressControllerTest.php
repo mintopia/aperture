@@ -127,14 +127,16 @@ class MacAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('macs.data', 10));
     }
 
-    public function test_index_page_2_without_filter_params(): void
+    public function test_index_page_2_with_empty_filter_params(): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
         MacAddress::factory()->count(25)->create();
 
-        $response = $this->actingAs($admin)->get('/admin/macs?page=2');
+        // Pagination links generated via appends() include present-but-empty
+        // filter params, which ConvertEmptyStringsToNull converts to null.
+        $response = $this->actingAs($admin)->get('/admin/macs?page=2&mac=&hostname=&nickname=&ip=');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
