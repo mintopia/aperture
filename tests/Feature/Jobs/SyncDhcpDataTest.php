@@ -223,6 +223,57 @@ class SyncDhcpDataTest extends TestCase
         ]);
     }
 
+    public function test_syncs_multiple_ipv6_ranges_with_null_subnet_and_bounds(): void
+    {
+        $this->assignDhcpProvider('cisco');
+
+        $ranges = [
+            new DhcpRange(
+                interface: 'VLAN440_DHCPV6',
+                type: 'ipv6',
+                subnet: null,
+                rangeFrom: null,
+                rangeTo: null,
+                prefix: '2A0F:85C1:D91:2100::/64',
+                gateway: null,
+                description: null,
+            ),
+            new DhcpRange(
+                interface: 'VLAN400_DHCPV6',
+                type: 'ipv6',
+                subnet: null,
+                rangeFrom: null,
+                rangeTo: null,
+                prefix: '2A0F:85C1:D91:2000::/64',
+                gateway: null,
+                description: null,
+            ),
+        ];
+
+        $this->mockDhcpService(ranges: $ranges);
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_range_records', 2);
+        $this->assertDatabaseHas('dhcp_range_records', [
+            'integration' => 'cisco',
+            'type' => 'ipv6',
+            'interface' => 'VLAN440_DHCPV6',
+            'prefix' => '2A0F:85C1:D91:2100::/64',
+        ]);
+        $this->assertDatabaseHas('dhcp_range_records', [
+            'integration' => 'cisco',
+            'type' => 'ipv6',
+            'interface' => 'VLAN400_DHCPV6',
+            'prefix' => '2A0F:85C1:D91:2000::/64',
+        ]);
+
+        // Re-running the sync must be idempotent — no duplicate rows
+        $this->mockDhcpService(ranges: $ranges);
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_range_records', 2);
+    }
+
     public function test_handles_nullable_mac_for_dhcpv6(): void
     {
         $this->assignDhcpProvider('cisco');

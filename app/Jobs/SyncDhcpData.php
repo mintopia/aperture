@@ -230,12 +230,12 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
                 [
                     'integration' => $integration,
                     'type' => $range->type,
+                    'interface' => $range->interface,
                     'subnet' => $range->subnet ?? '',
                     'range_from' => $range->rangeFrom ?? '',
                     'range_to' => $range->rangeTo ?? '',
                 ],
                 [
-                    'interface' => $range->interface,
                     'prefix' => $range->prefix,
                     'gateway' => $range->gateway,
                     'description' => $range->description,
