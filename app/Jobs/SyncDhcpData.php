@@ -158,7 +158,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
         foreach ($leases as $lease) {
             $ip = IpAddress::firstOrCreate(
-                ['address' => $lease->ip],
+                ['address' => IpAddress::normalize($lease->ip)],
                 ['last_seen_at' => now()],
             );
 

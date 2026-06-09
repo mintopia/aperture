@@ -103,8 +103,17 @@ class IpAddress extends Model
     protected function address(): Attribute
     {
         return Attribute::make(
-            set: fn (string $value): string => str_contains($value, ':') ? strtolower($value) : $value,
+            set: fn (string $value): string => self::normalize($value),
         );
+    }
+
+    /**
+     * Normalize an IP address for storage and lookups: IPv6 addresses are
+     * lowercased, IPv4 addresses are returned unchanged.
+     */
+    public static function normalize(string $address): string
+    {
+        return str_contains($address, ':') ? strtolower($address) : $address;
     }
 
     public function getRouteKeyName(): string
@@ -115,6 +124,10 @@ class IpAddress extends Model
     public function resolveRouteBinding($value, $field = null): ?self
     {
         $field ??= $this->getRouteKeyName();
+
+        if ($field === 'address') {
+            $value = self::normalize((string) $value);
+        }
 
         $existing = static::where($field, $value)->first();
         if ($existing !== null) {

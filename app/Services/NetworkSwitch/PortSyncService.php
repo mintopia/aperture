@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\NetworkSwitch;
 
 use App\Models\DhcpSnoopingObservation;
+use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
@@ -132,7 +133,7 @@ class PortSyncService
 
         foreach ($bindings as $binding) {
             // Normalize IPv6 addresses to lowercase (observations bypass the IpAddress model)
-            $ip = str_contains($binding['ip'], ':') ? strtolower($binding['ip']) : $binding['ip'];
+            $ip = IpAddress::normalize($binding['ip']);
 
             $observation = DhcpSnoopingObservation::updateOrCreate(
                 [

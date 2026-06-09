@@ -374,15 +374,10 @@ class CiscoDhcpIntegrationTest extends TestCase
 
         // IPv6 lease still present (unchanged in updated fixtures); stored
         // lowercase by the IpAddress::address mutator despite uppercase input.
-        //
-        // KNOWN BUG: SyncDhcpData uses IpAddress::firstOrCreate(['address' => $lease->ip])
-        // with the raw uppercase switch output. The lookup misses the
-        // lowercase-normalised row on re-sync (SQLite '=' is case-sensitive),
-        // so a duplicate ip_addresses row is created and the lease re-attaches
-        // to the newest duplicate. Once SyncDhcpData normalises the address
-        // before the lookup, tighten the count below to assertSame(1, ...).
+        // SyncDhcpData normalises the address before the lookup, so re-syncing
+        // the same uppercase switch output must not create a duplicate row.
         $ipv6IpIds = IpAddress::where('address', '2001:db8::100')->pluck('id');
-        $this->assertGreaterThanOrEqual(1, $ipv6IpIds->count());
+        $this->assertSame(1, $ipv6IpIds->count());
         $this->assertTrue(
             DhcpLease::where('integration', 'cisco')
                 ->whereIn('ip_address_id', $ipv6IpIds)

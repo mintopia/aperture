@@ -92,6 +92,16 @@ class IpAddressTest extends TestCase
         $this->assertEquals('10.30.0.1', $ip->address);
     }
 
+    public function test_normalize_lowercases_ipv6_addresses(): void
+    {
+        $this->assertSame('2001:db8::abcd:1', IpAddress::normalize('2001:DB8::ABCD:1'));
+    }
+
+    public function test_normalize_leaves_ipv4_addresses_unchanged(): void
+    {
+        $this->assertSame('10.30.0.1', IpAddress::normalize('10.30.0.1'));
+    }
+
     public function test_enabling_rate_limit_dispatches_sync_rate_limit_job(): void
     {
         Queue::fake();
