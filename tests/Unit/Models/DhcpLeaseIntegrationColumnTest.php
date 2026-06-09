@@ -54,7 +54,7 @@ class DhcpLeaseIntegrationColumnTest extends TestCase
             'ip_address_id' => $ip->id,
         ]);
 
-        $lease2 = DhcpLease::factory()->create([
+        DhcpLease::factory()->create([
             'integration' => 'vyos',
             'ip_address_id' => $ip->id,
         ]);

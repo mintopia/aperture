@@ -154,7 +154,7 @@ class CiscoDhcpServiceTest extends TestCase
         $leases = $service->getLeases();
 
         $this->assertCount(3, $leases); // 2 IPv4 + 1 IPv6
-        $ipv4Leases = $leases->filter(fn (DhcpLease $l) => str_contains($l->ip, '.'));
+        $ipv4Leases = $leases->filter(fn (DhcpLease $l): bool => str_contains($l->ip, '.'));
 
         $this->assertCount(2, $ipv4Leases);
 
@@ -177,7 +177,7 @@ class CiscoDhcpServiceTest extends TestCase
         $service = $this->createService(ipv6Enabled: true);
         $leases = $service->getLeases();
 
-        $ipv6Leases = $leases->filter(fn (DhcpLease $l) => str_contains($l->ip, ':'));
+        $ipv6Leases = $leases->filter(fn (DhcpLease $l): bool => str_contains($l->ip, ':'));
 
         $this->assertCount(1, $ipv6Leases);
         $this->assertSame('2001:DB8::100', $ipv6Leases->first()->ip);
