@@ -40,9 +40,18 @@ class LoginController extends Controller
                 metadata: ['email' => $user->email, 'ip' => $request->getClientIp()],
             );
 
-            $defaultUrl = $user->hasRole('admin') ? route('admin.home') : '/';
+            if ($user->hasRole('admin')) {
+                $intended = $request->session()->pull('url.intended');
+                $intendedPath = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
 
-            return redirect()->intended($defaultUrl);
+                if (is_string($intended) && is_string($intendedPath) && ($intendedPath === '/admin' || str_starts_with($intendedPath, '/admin/'))) {
+                    return redirect($intended);
+                }
+
+                return redirect()->route('admin.home');
+            }
+
+            return redirect()->intended('/');
         }
 
         AuditLog::record(

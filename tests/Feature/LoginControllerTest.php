@@ -105,6 +105,48 @@ class LoginControllerTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_admin_login_ignores_non_admin_intended_url(): void
+    {
+        $adminRole = new Role;
+        $adminRole->code = 'admin';
+        $adminRole->name = 'Admin';
+        $adminRole->save();
+
+        $user = User::factory()->withPassword('secret123')->create([
+            'email' => 'admin@test.com',
+        ]);
+        $user->roles()->attach($adminRole);
+
+        // Simulate a stored captive portal intended URL
+        $response = $this->withSession(['url.intended' => '/'])->post('/login', [
+            'email' => 'admin@test.com',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertRedirect(route('admin.home'));
+    }
+
+    public function test_admin_login_follows_admin_intended_url(): void
+    {
+        $adminRole = new Role;
+        $adminRole->code = 'admin';
+        $adminRole->name = 'Admin';
+        $adminRole->save();
+
+        $user = User::factory()->withPassword('secret123')->create([
+            'email' => 'admin@test.com',
+        ]);
+        $user->roles()->attach($adminRole);
+
+        // Simulate a stored admin intended URL
+        $response = $this->withSession(['url.intended' => route('admin.switches.index')])->post('/login', [
+            'email' => 'admin@test.com',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertRedirect(route('admin.switches.index'));
+    }
+
     public function test_login_fails_with_wrong_password(): void
     {
         User::factory()->withPassword('secret123')->create([
