@@ -32,16 +32,20 @@ return new class extends Migration
         }
 
         Schema::table('dhcp_leases', function (Blueprint $table): void {
+            $table->dropForeign(['mac_address_id']);
             $table->dropUnique(['ip_address_id', 'mac_address_id']);
             $table->unique(['integration', 'ip_address_id'], 'dhcp_leases_integration_ip_unique');
+            $table->foreign('mac_address_id')->references('id')->on('mac_addresses')->cascadeOnDelete();
         });
     }
 
     public function down(): void
     {
         Schema::table('dhcp_leases', function (Blueprint $table): void {
+            $table->dropForeign(['mac_address_id']);
             $table->dropUnique('dhcp_leases_integration_ip_unique');
             $table->unique(['ip_address_id', 'mac_address_id']);
+            $table->foreign('mac_address_id')->references('id')->on('mac_addresses')->cascadeOnDelete();
             $table->dropColumn('integration');
         });
     }
