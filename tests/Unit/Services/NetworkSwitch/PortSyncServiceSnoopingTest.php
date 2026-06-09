@@ -17,6 +17,7 @@ use App\Services\NetworkSwitch\SyncRunTracker;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;
+use RuntimeException;
 use Tests\TestCase;
 
 class PortSyncServiceSnoopingTest extends TestCase
@@ -143,6 +144,17 @@ class PortSyncServiceSnoopingTest extends TestCase
             'switch_config_id' => $this->switchConfig->id,
             'ip' => '10.0.0.50',
         ]);
+    }
+
+    public function test_sync_succeeds_when_snooping_throws(): void
+    {
+        $this->snoopingAdapter->shouldReceive('getDhcpSnoopingBindings')
+            ->once()
+            ->andThrow(new RuntimeException('DHCP snooping table not found'));
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertSame('completed', $result->syncRun->status);
     }
 
     public function test_normalizes_mac_addresses(): void

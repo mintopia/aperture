@@ -11,6 +11,7 @@ use App\Models\SwitchPort;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SupportsDhcpSnooping;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class PortSyncService
@@ -62,7 +63,14 @@ class PortSyncService
 
                 $this->portMacSync->cleanStaleMacs($switchConfig, $macResult['syncedMacIds']);
 
-                $this->processSnoopingBindings($adapter, $switchConfig);
+                try {
+                    $this->processSnoopingBindings($adapter, $switchConfig);
+                } catch (Throwable $throwable) {
+                    Log::warning('DHCP snooping sync failed, continuing with port sync', [
+                        'switch' => $switchConfig->hostname,
+                        'error' => $throwable->getMessage(),
+                    ]);
+                }
             });
 
             $this->runTracker->complete($syncRun, $portsCreated, $portsUpdated, $macsCreated, $macsUpdated);
