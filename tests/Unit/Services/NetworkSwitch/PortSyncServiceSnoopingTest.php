@@ -15,6 +15,7 @@ use App\Services\NetworkSwitch\PortSyncService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NetworkSwitch\SyncRunTracker;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
@@ -148,6 +149,8 @@ class PortSyncServiceSnoopingTest extends TestCase
 
     public function test_sync_succeeds_when_snooping_throws(): void
     {
+        Log::spy();
+
         $this->snoopingAdapter->shouldReceive('getDhcpSnoopingBindings')
             ->once()
             ->andThrow(new RuntimeException('DHCP snooping table not found'));
@@ -155,6 +158,44 @@ class PortSyncServiceSnoopingTest extends TestCase
         $result = $this->service->syncSwitch($this->switchConfig);
 
         $this->assertSame('completed', $result->syncRun->status);
+
+        Log::shouldHaveReceived('warning')
+            ->once()
+            ->withArgs(fn (string $message, array $context): bool => $message === 'DHCP snooping sync failed, continuing with port sync'
+                && $context['switch'] === $this->switchConfig->hostname
+                && $context['error'] === 'DHCP snooping table not found'
+                && $context['exception'] instanceof RuntimeException);
+    }
+
+    public function test_preexisting_observations_survive_failed_snooping_fetch(): void
+    {
+        Log::spy();
+
+        $existing1 = DhcpSnoopingObservation::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'ip' => '10.0.0.99',
+            'mac' => 'DE:AD:BE:EF:00:01',
+            'vlan' => 100,
+        ]);
+        $existing2 = DhcpSnoopingObservation::factory()->create([
+            'switch_config_id' => $this->switchConfig->id,
+            'ip' => '10.0.0.100',
+            'mac' => 'DE:AD:BE:EF:00:02',
+            'vlan' => 100,
+        ]);
+
+        $this->snoopingAdapter->shouldReceive('getDhcpSnoopingBindings')
+            ->once()
+            ->andThrow(new RuntimeException('SSH channel closed'));
+
+        $result = $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertSame('completed', $result->syncRun->status);
+
+        // Stale-delete must NOT run when the fetch fails
+        $this->assertDatabaseHas('dhcp_snooping_observations', ['id' => $existing1->id]);
+        $this->assertDatabaseHas('dhcp_snooping_observations', ['id' => $existing2->id]);
+        $this->assertSame(2, DhcpSnoopingObservation::where('switch_config_id', $this->switchConfig->id)->count());
     }
 
     public function test_normalizes_mac_addresses(): void

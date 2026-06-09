@@ -10,6 +10,7 @@ use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SupportsDhcpSnooping;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -42,6 +43,7 @@ class PortSyncService
             $portStatuses = $adapter->getAllPorts();
             $portConfigData = $this->portConfigSync->fetchFromNetwork($adapter, $switchConfig, $portStatuses);
             $macEntries = $adapter->getForwardingDatabase();
+            $snoopingBindings = $this->fetchSnoopingBindings($adapter, $switchConfig);
             // ────────────────────────────────────────────────────────────────
 
             $portsCreated = 0;
@@ -49,7 +51,7 @@ class PortSyncService
             $macsCreated = 0;
             $macsUpdated = 0;
 
-            DB::transaction(function () use ($adapter, $portStatuses, $portConfigData, $macEntries, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
+            DB::transaction(function () use ($portStatuses, $portConfigData, $macEntries, $snoopingBindings, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
                 $statusResult = $this->portStatusSync->sync($portStatuses, $switchConfig, $syncStartedAt);
                 $portsCreated = $statusResult['created'];
                 $portsUpdated = $statusResult['updated'];
@@ -63,13 +65,8 @@ class PortSyncService
 
                 $this->portMacSync->cleanStaleMacs($switchConfig, $macResult['syncedMacIds']);
 
-                try {
-                    $this->processSnoopingBindings($adapter, $switchConfig);
-                } catch (Throwable $throwable) {
-                    Log::warning('DHCP snooping sync failed, continuing with port sync', [
-                        'switch' => $switchConfig->hostname,
-                        'error' => $throwable->getMessage(),
-                    ]);
+                if ($snoopingBindings instanceof Collection) {
+                    $this->persistSnoopingBindings($snoopingBindings, $switchConfig);
                 }
             });
 
@@ -93,13 +90,44 @@ class PortSyncService
         return new SyncResult(syncRun: $syncRun, portStateChanges: $portStateChanges);
     }
 
-    private function processSnoopingBindings(NetworkSwitchInterface $adapter, SwitchConfig $switchConfig): void
+    /**
+     * Fetch DHCP snooping bindings over SSH before the DB transaction opens.
+     *
+     * Returns null when the adapter does not support snooping or the fetch
+     * fails. A failed fetch must not abort the wider port sync and must not
+     * trigger the stale-observation delete, so the caller skips persistence
+     * entirely when null is returned. DB write errors during persistence are
+     * deliberately NOT caught here — they must roll back the transaction.
+     *
+     * @return Collection<int, array{ip: string, mac: string, vlan: int, interface: string, lease_seconds: int}>|null
+     */
+    private function fetchSnoopingBindings(NetworkSwitchInterface $adapter, SwitchConfig $switchConfig): ?Collection
     {
         if (! $adapter instanceof SupportsDhcpSnooping) {
-            return;
+            return null;
         }
 
-        $bindings = $adapter->getDhcpSnoopingBindings();
+        try {
+            return $adapter->getDhcpSnoopingBindings();
+        } catch (Throwable $throwable) {
+            Log::warning('DHCP snooping sync failed, continuing with port sync', [
+                'switch' => $switchConfig->hostname,
+                'error' => $throwable->getMessage(),
+                'exception' => $throwable,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Persist pre-fetched snooping bindings and remove stale observations.
+     * Must run inside the sync DB transaction.
+     *
+     * @param  Collection<int, array{ip: string, mac: string, vlan: int, interface: string, lease_seconds: int}>  $bindings
+     */
+    private function persistSnoopingBindings(Collection $bindings, SwitchConfig $switchConfig): void
+    {
         $upsertedIds = [];
 
         foreach ($bindings as $binding) {
