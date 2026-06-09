@@ -71,6 +71,27 @@ class IpAddressTest extends TestCase
         $this->assertEquals('10.0.0.1', $ip->address);
     }
 
+    public function test_ipv6_address_is_normalized_to_lowercase(): void
+    {
+        $ip = IpAddress::create([
+            'address' => '2001:DB8::ABCD:1',
+            'last_seen_at' => now(),
+        ]);
+
+        $this->assertEquals('2001:db8::abcd:1', $ip->address);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::abcd:1']);
+    }
+
+    public function test_ipv4_address_is_not_affected(): void
+    {
+        $ip = IpAddress::create([
+            'address' => '10.30.0.1',
+            'last_seen_at' => now(),
+        ]);
+
+        $this->assertEquals('10.30.0.1', $ip->address);
+    }
+
     public function test_enabling_rate_limit_dispatches_sync_rate_limit_job(): void
     {
         Queue::fake();

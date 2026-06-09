@@ -131,11 +131,14 @@ class PortSyncService
         $upsertedIds = [];
 
         foreach ($bindings as $binding) {
+            // Normalize IPv6 addresses to lowercase (observations bypass the IpAddress model)
+            $ip = str_contains($binding['ip'], ':') ? strtolower($binding['ip']) : $binding['ip'];
+
             $observation = DhcpSnoopingObservation::updateOrCreate(
                 [
                     'switch_config_id' => $switchConfig->id,
                     'vlan' => $binding['vlan'],
-                    'ip' => $binding['ip'],
+                    'ip' => $ip,
                     'mac' => MacAddress::normalize($binding['mac']),
                 ],
                 [

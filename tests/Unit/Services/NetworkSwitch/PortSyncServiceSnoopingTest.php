@@ -198,6 +198,24 @@ class PortSyncServiceSnoopingTest extends TestCase
         $this->assertSame(2, DhcpSnoopingObservation::where('switch_config_id', $this->switchConfig->id)->count());
     }
 
+    public function test_normalizes_ipv6_binding_addresses_to_lowercase(): void
+    {
+        $bindings = collect([
+            ['ip' => '2001:DB8::ABCD:1', 'mac' => '00:11:22:33:44:55', 'vlan' => 10, 'interface' => 'Gi1/0/1', 'lease_seconds' => 3600],
+        ]);
+
+        $this->snoopingAdapter->shouldReceive('getDhcpSnoopingBindings')
+            ->once()
+            ->andReturn($bindings);
+
+        $this->service->syncSwitch($this->switchConfig);
+
+        $this->assertDatabaseHas('dhcp_snooping_observations', [
+            'switch_config_id' => $this->switchConfig->id,
+            'ip' => '2001:db8::abcd:1',
+        ]);
+    }
+
     public function test_normalizes_mac_addresses(): void
     {
         // Raw/non-normalized MAC formats

@@ -8,6 +8,7 @@ use App\Models\Traits\ToString;
 use App\Services\NetworkRangeService;
 use Database\Factories\IpAddressFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -92,6 +93,18 @@ class IpAddress extends Model
             'expires_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Normalize IPv6 addresses to lowercase on storage.
+     *
+     * @return Attribute<string, string>
+     */
+    protected function address(): Attribute
+    {
+        return Attribute::make(
+            set: fn (string $value): string => str_contains($value, ':') ? strtolower($value) : $value,
+        );
     }
 
     public function getRouteKeyName(): string
