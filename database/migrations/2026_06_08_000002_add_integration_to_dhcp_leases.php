@@ -35,25 +35,39 @@ return new class extends Migration
 
         $indexes = Schema::getIndexListing('dhcp_leases');
 
-        Schema::table('dhcp_leases', function (Blueprint $table) use ($indexes): void {
-            if (in_array('dhcp_leases_ip_address_id_mac_address_id_unique', $indexes, true)) {
+        if (in_array('dhcp_leases_ip_address_id_mac_address_id_unique', $indexes, true)) {
+            Schema::table('dhcp_leases', function (Blueprint $table): void {
                 $table->dropForeign(['mac_address_id']);
-                $table->dropUnique(['ip_address_id', 'mac_address_id']);
-                $table->foreign('mac_address_id')->references('id')->on('mac_addresses')->cascadeOnDelete();
-            }
+            });
 
-            if (! in_array('dhcp_leases_integration_ip_unique', $indexes, true)) {
+            Schema::table('dhcp_leases', function (Blueprint $table): void {
+                $table->dropUnique(['ip_address_id', 'mac_address_id']);
+            });
+
+            Schema::table('dhcp_leases', function (Blueprint $table): void {
+                $table->foreign('mac_address_id')->references('id')->on('mac_addresses')->cascadeOnDelete();
+            });
+        }
+
+        if (! in_array('dhcp_leases_integration_ip_unique', $indexes, true)) {
+            Schema::table('dhcp_leases', function (Blueprint $table): void {
                 $table->unique(['integration', 'ip_address_id'], 'dhcp_leases_integration_ip_unique');
-            }
-        });
+            });
+        }
     }
 
     public function down(): void
     {
         Schema::table('dhcp_leases', function (Blueprint $table): void {
             $table->dropForeign(['mac_address_id']);
+        });
+
+        Schema::table('dhcp_leases', function (Blueprint $table): void {
             $table->dropUnique('dhcp_leases_integration_ip_unique');
             $table->unique(['ip_address_id', 'mac_address_id']);
+        });
+
+        Schema::table('dhcp_leases', function (Blueprint $table): void {
             $table->foreign('mac_address_id')->references('id')->on('mac_addresses')->cascadeOnDelete();
             $table->dropColumn('integration');
         });
