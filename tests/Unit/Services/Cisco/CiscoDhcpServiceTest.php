@@ -226,6 +226,61 @@ class CiscoDhcpServiceTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // getRanges() — IPv4 ranges enriched with used address counts
+    // -------------------------------------------------------------------------
+
+    public function test_get_ranges_includes_used_address_counts(): void
+    {
+        $this->expectTransportCall();
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $ipv4Range = $ranges->first(fn (DhcpRange $r): bool => $r->type === 'ipv4');
+
+        $this->assertInstanceOf(DhcpRange::class, $ipv4Range);
+        // Bindings 10.0.0.50 and 10.0.0.51 fall within 10.0.0.10–10.0.0.254
+        $this->assertSame(2, $ipv4Range->usedAddresses);
+        $this->assertNotNull($ipv4Range->totalAddresses);
+        $this->assertSame(245, $ipv4Range->totalAddresses);
+        $this->assertEqualsWithDelta(round(2 / 245, 4), $ipv4Range->utilisation, 0.0001);
+    }
+
+    // -------------------------------------------------------------------------
+    // getRanges() — IPv6 ranges include total addresses from prefix length
+    // -------------------------------------------------------------------------
+
+    public function test_get_ranges_ipv6_includes_total_addresses(): void
+    {
+        $outputs = $this->defaultCommandOutputs();
+        $outputs['show running-config | section ipv6 dhcp pool'] = implode("\n", [
+            'ipv6 dhcp pool LAN6',
+            ' address prefix 2001:DB8::/64',
+            '!',
+            'ipv6 dhcp pool SMALL6',
+            ' address prefix 2001:DB8:0:1::/120',
+            '!',
+        ]);
+
+        $this->expectTransportCall(outputs: $outputs);
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $small = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'SMALL6');
+        $this->assertInstanceOf(DhcpRange::class, $small);
+        $this->assertSame('ipv6', $small->type);
+        // /120 → 2^8 = 256 addresses
+        $this->assertSame(256, $small->totalAddresses);
+
+        // /64 → 2^64 addresses, too large to display sensibly → null
+        $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
+        $this->assertInstanceOf(DhcpRange::class, $lan6);
+        $this->assertSame('ipv6', $lan6->type);
+        $this->assertNull($lan6->totalAddresses);
+    }
+
+    // -------------------------------------------------------------------------
     // getPoolStatus() — aggregated from pool stats
     // -------------------------------------------------------------------------
 

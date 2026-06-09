@@ -117,39 +117,93 @@ class CiscoDhcpService implements DhcpInterface
 
         $effectiveRanges = $this->parser->computeEffectiveRanges($poolConfig);
 
+        /** @var array<int, array{ip: string, mac: string|null, expires: string}> $ipv4Bindings */
+        $ipv4Bindings = $this->snapshot['ipv4_bindings'] ?? [];
+
         $ranges = collect($effectiveRanges)
-            ->map(fn (array $range): DhcpRange => new DhcpRange(
-                interface: $range['name'],
-                type: 'ipv4',
-                subnet: $range['subnet'],
-                rangeFrom: $range['range_from'],
-                rangeTo: $range['range_to'],
-                prefix: null,
-                gateway: $range['gateway'] !== '' ? $range['gateway'] : null,
-                description: null,
-                totalAddresses: (int) $range['total_addresses'],
-            ));
+            ->map(function (array $range) use ($ipv4Bindings): DhcpRange {
+                $total = (int) $range['total_addresses'];
+                $used = $this->countBindingsInRange($ipv4Bindings, $range['range_from'], $range['range_to']);
+                $utilisation = $total > 0 ? round($used / $total, 4) : 0.0;
+
+                return new DhcpRange(
+                    interface: $range['name'],
+                    type: 'ipv4',
+                    subnet: $range['subnet'],
+                    rangeFrom: $range['range_from'],
+                    rangeTo: $range['range_to'],
+                    prefix: null,
+                    gateway: $range['gateway'] !== '' ? $range['gateway'] : null,
+                    description: null,
+                    totalAddresses: $total,
+                    usedAddresses: $used,
+                    utilisation: $utilisation,
+                );
+            });
 
         if ($this->ipv6Enabled && $this->fetchStatus['ipv6']) {
             /** @var array{pools: array<int, array{name: string, prefix: string}>} $ipv6Config */
             $ipv6Config = $this->snapshot['ipv6_pool_config'] ?? ['pools' => []];
 
             $ipv6Ranges = collect($ipv6Config['pools'])
-                ->map(fn (array $pool): DhcpRange => new DhcpRange(
-                    interface: $pool['name'],
-                    type: 'ipv6',
-                    subnet: null,
-                    rangeFrom: null,
-                    rangeTo: null,
-                    prefix: $pool['prefix'] !== '' ? $pool['prefix'] : null,
-                    gateway: null,
-                    description: null,
-                ));
+                ->map(function (array $pool): DhcpRange {
+                    $prefix = $pool['prefix'] !== '' ? $pool['prefix'] : null;
+
+                    return new DhcpRange(
+                        interface: $pool['name'],
+                        type: 'ipv6',
+                        subnet: null,
+                        rangeFrom: null,
+                        rangeTo: null,
+                        prefix: $prefix,
+                        gateway: null,
+                        description: null,
+                        totalAddresses: $this->ipv6TotalAddresses($prefix),
+                    );
+                });
 
             $ranges = $ranges->concat($ipv6Ranges);
         }
 
         return $ranges->values();
+    }
+
+    /**
+     * Count IPv4 bindings whose address falls within the given range (inclusive).
+     *
+     * @param  array<int, array{ip: string, mac: string|null, expires: string}>  $bindings
+     */
+    private function countBindingsInRange(array $bindings, string $rangeFrom, string $rangeTo): int
+    {
+        $start = ip2long($rangeFrom);
+        $end = ip2long($rangeTo);
+
+        if ($start === false || $end === false) {
+            return 0;
+        }
+
+        return count(array_filter($bindings, function (array $binding) use ($start, $end): bool {
+            $ip = ip2long($binding['ip']);
+
+            return $ip !== false && $ip >= $start && $ip <= $end;
+        }));
+    }
+
+    /**
+     * Compute the total address count of an IPv6 pool from its prefix length.
+     *
+     * Returns null when the prefix is missing, unparsable, or yields more than
+     * 2^32 addresses (e.g. a /64) — counts that large are not sensible to display.
+     */
+    private function ipv6TotalAddresses(?string $prefix): ?int
+    {
+        if ($prefix === null || preg_match('#/(\d+)$#', $prefix, $matches) !== 1) {
+            return null;
+        }
+
+        $bits = 128 - (int) $matches[1];
+
+        return $bits >= 0 && $bits <= 32 ? (1 << $bits) : null;
     }
 
     /**
