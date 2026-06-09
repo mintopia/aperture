@@ -63,10 +63,10 @@ class CiscoTester implements TestableIntegration
                 responseBody: $output,
                 output: $output,
             );
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return new TestConnectionResult(
                 success: false,
-                message: 'Connection failed: '.$e->getMessage(),
+                message: 'Connection failed: '.$throwable->getMessage(),
                 requestMethod: 'SSH',
                 requestUrl: $switchConfig->hostname ?? 'unknown',
             );
