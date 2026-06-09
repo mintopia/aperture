@@ -103,7 +103,7 @@ class PortSyncService
                     'mac' => MacAddress::normalize($binding['mac']),
                 ],
                 [
-                    'interface' => $binding['interface'] ?? null,
+                    'interface' => $binding['interface'],
                     'expires_at' => $binding['lease_seconds'] > 0
                         ? now()->addSeconds($binding['lease_seconds'])
                         : null,
