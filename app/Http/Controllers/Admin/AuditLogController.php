@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Services\AuditLog\AuditLogDescriptionGenerator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -68,6 +69,7 @@ class AuditLogController extends Controller
         $logs->getCollection()->transform(fn (AuditLog $log): array => [
             'id' => $log->id,
             'action' => $log->action,
+            'description' => AuditLogDescriptionGenerator::generate($log),
             'subject_type' => $log->subject_type ? class_basename($log->subject_type) : null,
             'subject_id' => $log->subject_id,
             'subject_url' => $this->resolveEntityUrl($log->subject_type, $log->subject),

@@ -47,6 +47,7 @@ const filterDefinitions = computed(() => [
 const columns = [
     { key: 'created_at', label: 'Timestamp', sortable: true },
     { key: 'action', label: 'Action', sortable: true },
+    { key: 'description', label: 'Description' },
     { key: 'subject', label: 'Subject' },
     { key: 'related', label: 'Related' },
     { key: 'actor', label: 'Actor' },
@@ -165,6 +166,9 @@ function formatTimestamp(iso) {
                     </td>
                     <td data-testid="audit-log-action" class="font-mono text-[13px] text-[var(--color-primary)]">
                         {{ row.action }}
+                    </td>
+                    <td data-testid="audit-log-description" class="text-[13px] text-[var(--color-text)]">
+                        {{ row.description ?? '—' }}
                     </td>
                     <td data-testid="audit-log-subject" class="text-[13px] text-[var(--color-text-secondary)]">
                         <Link

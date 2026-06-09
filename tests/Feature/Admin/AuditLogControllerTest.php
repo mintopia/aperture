@@ -44,6 +44,22 @@ class AuditLogControllerTest extends TestCase
         );
     }
 
+    public function test_index_includes_human_readable_description(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create(['address' => '10.30.0.1']);
+        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network', metadata: ['source' => 'dhcp']);
+
+        $response = $this->actingAs($admin)->get('/admin/audit-log');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/AuditLog/Index')
+            ->where('logs.data.0.description', 'Discovered new IP 10.30.0.1 via dhcp')
+        );
+    }
+
     public function test_filterable_by_action(): void
     {
         Queue::fake();

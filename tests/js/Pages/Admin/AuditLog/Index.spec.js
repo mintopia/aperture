@@ -76,6 +76,78 @@ describe('AuditLog/Index', () => {
         expect(wrapper.find('[data-testid="audit-log-table-section"]').exists()).toBe(true);
     });
 
+    it('renders the human-readable description column', () => {
+        const wrapper = mount(Index, {
+            props: {
+                logs: {
+                    data: [
+                        {
+                            id: 1,
+                            action: 'ip_mac.linked',
+                            description: 'Linked AA:BB:CC:DD:EE:FF to 10.30.0.1 via dhcp',
+                            subject_type: 'IpAddress',
+                            subject_id: 1,
+                            related_type: 'MacAddress',
+                            related_id: 1,
+                            actor_type: null,
+                            actor_id: null,
+                            process: 'dhcp',
+                            metadata: null,
+                            created_at: '2026-04-23T00:00:00+00:00',
+                        },
+                    ],
+                    total: 1,
+                },
+                filters: {},
+                actionOptions: ['ip_mac.linked'],
+                processOptions: ['dhcp'],
+                subjectTypeOptions: [],
+            },
+            global: {
+                ...globalConfig,
+                stubs: ['AdminLayout', 'FilterBar', 'Pagination', 'SectionHeader', 'Link'],
+            },
+        });
+        const cell = wrapper.find('[data-testid="audit-log-description"]');
+        expect(cell.exists()).toBe(true);
+        expect(cell.text()).toBe('Linked AA:BB:CC:DD:EE:FF to 10.30.0.1 via dhcp');
+    });
+
+    it('renders a dash when description is missing', () => {
+        const wrapper = mount(Index, {
+            props: {
+                logs: {
+                    data: [
+                        {
+                            id: 1,
+                            action: 'ip.created',
+                            description: null,
+                            subject_type: 'IpAddress',
+                            subject_id: 1,
+                            related_type: null,
+                            related_id: null,
+                            actor_type: null,
+                            actor_id: null,
+                            process: 'scan_network',
+                            metadata: null,
+                            created_at: '2026-04-23T00:00:00+00:00',
+                        },
+                    ],
+                    total: 1,
+                },
+                filters: {},
+                actionOptions: ['ip.created'],
+                processOptions: ['scan_network'],
+                subjectTypeOptions: [],
+            },
+            global: {
+                ...globalConfig,
+                stubs: ['AdminLayout', 'FilterBar', 'Pagination', 'SectionHeader', 'Link'],
+            },
+        });
+        expect(wrapper.find('[data-testid="audit-log-description"]').text()).toBe('—');
+    });
+
     it('renders filter bar', () => {
         const wrapper = mount(Index, {
             props: {
