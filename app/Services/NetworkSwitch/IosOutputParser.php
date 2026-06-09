@@ -221,10 +221,20 @@ class IosOutputParser
         }
 
         $lines = preg_split('/\r?\n/', $output) ?: [];
+
+        // Join continuation lines (indented lines that continue a multi-line client-ID)
+        $merged = [];
+        foreach ($lines as $line) {
+            if ($line !== '' && $line[0] === ' ' && $merged !== []) {
+                $merged[count($merged) - 1] .= trim($line);
+            } else {
+                $merged[] = $line;
+            }
+        }
+
         $entries = [];
 
-        foreach ($lines as $line) {
-            // Match data lines: starts with an IP address
+        foreach ($merged as $line) {
             if (! preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)\s+(.+?)\s{2,}(\S+)\s+(\S+)\s+(\S+)\s*$/', $line, $matches)) {
                 continue;
             }

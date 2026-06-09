@@ -62,8 +62,19 @@ class DhcpController extends Controller
             ->values()
             ->all();
 
+        $ranges = DhcpRangeRecord::where('integration', $integration)
+            ->get()
+            ->map(fn (DhcpRangeRecord $range): array => [
+                'network' => $range->subnet ?: $range->prefix,
+                'start' => $range->range_from,
+                'end' => $range->range_to,
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('Admin/Dhcp/Leases', [
             'leases' => $leases,
+            'ranges' => $ranges,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],
                 ['label' => 'DHCP', 'href' => route('admin.dhcp.index')],

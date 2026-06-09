@@ -15,6 +15,7 @@ use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
 use App\Services\Firewalls\OpnSenseApiService;
 use App\Services\Integration\BorealisTester;
+use App\Services\Integration\CiscoTester;
 use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\Integration\LibreNmsTester;
 use App\Services\Integration\OpnSenseTester;
@@ -57,6 +58,7 @@ class IntegrationServiceProvider extends ServiceProvider
             $registry->register(Integration::Prometheus->value, new PrometheusTester);
             $registry->register(Integration::Seatpicker->value, new SeatpickerTester);
             $registry->register(Integration::VyOs->value, new VyOsTester);
+            $registry->register(Integration::Cisco->value, $this->app->make(CiscoTester::class));
 
             return $registry;
         });
