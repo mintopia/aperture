@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import { normalizeMac } from '@/helpers.js';
+import { isIpInPrefix } from '@/utils/dhcp.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -44,16 +45,26 @@ const rangeFilterDef = computed(() => {
     ];
 });
 
-const totalFilteredCount = computed(() => {
-    let filtered = props.leases;
-
+function applyRangeFilter(leases) {
     const selectedRange = filterValues.value.range;
-    if (selectedRange) {
-        const range = props.ranges.find((r) => r.network === selectedRange);
-        if (range && range.start && range.end) {
-            filtered = filtered.filter((lease) => isIpInRange(lease.ip, range.start, range.end));
-        }
+    if (!selectedRange) return leases;
+
+    const range = props.ranges.find((r) => r.network === selectedRange);
+    if (!range) return leases;
+
+    if (range.start && range.end) {
+        return leases.filter((lease) => isIpInRange(lease.ip, range.start, range.end));
     }
+
+    if (range.prefix) {
+        return leases.filter((lease) => isIpInPrefix(lease.ip, range.prefix));
+    }
+
+    return leases;
+}
+
+const totalFilteredCount = computed(() => {
+    let filtered = applyRangeFilter(props.leases);
 
     const term = search.value.toLowerCase().trim();
     if (term) {
@@ -69,16 +80,8 @@ const totalFilteredCount = computed(() => {
 });
 
 const filteredLeases = computed(() => {
-    let filtered = props.leases;
-
     // Filter by range
-    const selectedRange = filterValues.value.range;
-    if (selectedRange) {
-        const range = props.ranges.find((r) => r.network === selectedRange);
-        if (range && range.start && range.end) {
-            filtered = filtered.filter((lease) => isIpInRange(lease.ip, range.start, range.end));
-        }
-    }
+    let filtered = applyRangeFilter(props.leases);
 
     // Filter by search
     const term = search.value.toLowerCase().trim();

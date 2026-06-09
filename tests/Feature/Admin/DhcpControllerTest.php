@@ -129,6 +129,52 @@ class DhcpControllerTest extends TestCase
         );
     }
 
+    public function test_leases_ranges_include_prefix_and_type(): void
+    {
+        CapabilityAssignment::factory()->create([
+            'capability' => 'dhcp',
+            'integration' => 'cisco',
+        ]);
+
+        DhcpRangeRecord::factory()->create([
+            'integration' => 'cisco',
+            'type' => 'ipv4',
+            'subnet' => '10.0.0.0/24',
+            'range_from' => '10.0.0.10',
+            'range_to' => '10.0.0.200',
+            'prefix' => null,
+        ]);
+
+        DhcpRangeRecord::factory()->create([
+            'integration' => 'cisco',
+            'interface' => 'Vlan200',
+            'type' => 'ipv6',
+            'subnet' => '',
+            'range_from' => '',
+            'range_to' => '',
+            'prefix' => '2001:db8:1::/64',
+        ]);
+
+        $admin = $this->createAdminUser();
+        $response = $this->actingAs($admin)->get('/admin/dhcp/leases');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Dhcp/Leases')
+            ->has('ranges', 2)
+            ->where('ranges.0.network', '10.0.0.0/24')
+            ->where('ranges.0.start', '10.0.0.10')
+            ->where('ranges.0.end', '10.0.0.200')
+            ->where('ranges.0.prefix', null)
+            ->where('ranges.0.type', 'ipv4')
+            ->where('ranges.1.network', '2001:db8:1::/64')
+            ->where('ranges.1.start', null)
+            ->where('ranges.1.end', null)
+            ->where('ranges.1.prefix', '2001:db8:1::/64')
+            ->where('ranges.1.type', 'ipv6')
+        );
+    }
+
     public function test_only_active_integration_data_shown(): void
     {
         CapabilityAssignment::factory()->create([

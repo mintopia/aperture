@@ -68,8 +68,10 @@ class DhcpController extends Controller
             ->get()
             ->map(fn (DhcpRangeRecord $range): array => [
                 'network' => $range->subnet ?: $range->prefix,
-                'start' => $range->range_from,
-                'end' => $range->range_to,
+                'start' => $range->range_from ?: null,
+                'end' => $range->range_to ?: null,
+                'prefix' => $range->prefix,
+                'type' => $range->type,
             ])
             ->values()
             ->all();
