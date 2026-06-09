@@ -71,6 +71,27 @@ class SettingsControllerIntegrationExpansionTest extends TestCase
         );
     }
 
+    public function test_cisco_integration_shows_enabled_when_switch_id_configured(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        // Cisco has no endpoint config key; a configured switch_id should mark it enabled
+        IntegrationConfig::setValue('cisco', 'switch_id', '1');
+
+        $response = $this->actingAs($admin)->get('/admin/settings/integrations');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Settings/Integrations')
+            ->where('services', function ($services): bool {
+                $cisco = collect($services)->firstWhere('id', 'cisco');
+
+                return $cisco !== null && $cisco['enabled'] === true;
+            })
+        );
+    }
+
     public function test_integrations_page_uses_explicit_enabled_false_when_set_to_zero(): void
     {
         Queue::fake();

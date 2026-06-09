@@ -59,7 +59,7 @@ class SettingsController extends Controller
 
     /**
      * Determine if an integration is enabled.
-     * Checks explicit enabled flag first, falls back to endpoint presence.
+     * Checks explicit enabled flag first, falls back to endpoint or switch_id presence.
      *
      * @param  array<string, mixed>  $config
      */
@@ -69,6 +69,7 @@ class SettingsController extends Controller
             return (bool) $config['enabled'];
         }
 
-        return ! empty($config['endpoint'] ?? null);
+        return ! empty($config['endpoint'] ?? null)
+            || ! empty($config['switch_id'] ?? null);
     }
 }
