@@ -10,6 +10,7 @@ use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
+use App\Models\SwitchConfig;
 use App\Services\Firewalls\OpnSenseApiService;
 use App\Services\Integration\IntegrationConfigMerger;
 use App\Services\PiHole\PiHoleApiService;
@@ -106,7 +107,7 @@ class IntegrationController extends Controller
                     'remote_url' => $field['remote_url'] ?? null,
                     'remote_label' => $field['remote_label'] ?? null,
                     'remote_value' => $field['remote_value'] ?? null,
-                    'options' => $field['options'] ?? null,
+                    'options' => $this->resolveFieldOptions($field['options'] ?? null),
                 ], fn (mixed $v): bool => $v !== null))->values()->all(),
                 'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
                     'name' => $cap,
@@ -185,6 +186,26 @@ class IntegrationController extends Controller
         }
 
         return $value;
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function resolveFieldOptions(mixed $options): ?array
+    {
+        if (is_array($options) || $options === null) {
+            return $options;
+        }
+
+        if ($options === 'switch_configs') {
+            return ['' => 'None'] + SwitchConfig::query()
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->map(fn (string $name): string => $name)
+                ->all();
+        }
+
+        return null;
     }
 
     public function toggleCapability(ToggleCapabilityRequest $request): JsonResponse
