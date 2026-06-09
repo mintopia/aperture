@@ -471,6 +471,11 @@ class PortSyncServiceTest extends TestCase
             ->once()
             ->andReturn('');
 
+        $transport->shouldReceive('execute')
+            ->with('show ip dhcp snooping binding')
+            ->once()
+            ->andReturn('');
+
         $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
         $this->factory->shouldReceive('make')
             ->with(Mockery::on(fn (SwitchConfig $config): bool => $config->is($this->switchConfig)))
@@ -1373,7 +1378,7 @@ class PortSyncServiceTest extends TestCase
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
 
-        // These are the only 3 bulk commands that should be executed for the entire sync
+        // These are the only bulk commands that should be executed for the entire sync
         $transport->shouldReceive('execute')
             ->with('show interface status')
             ->once()
@@ -1409,6 +1414,11 @@ class PortSyncServiceTest extends TestCase
 
         $transport->shouldReceive('execute')
             ->with('show mac address-table')
+            ->once()
+            ->andReturn('');
+
+        $transport->shouldReceive('execute')
+            ->with('show ip dhcp snooping binding')
             ->once()
             ->andReturn('');
 

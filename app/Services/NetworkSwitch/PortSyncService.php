@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\NetworkSwitch;
 
+use App\Models\DhcpSnoopingObservation;
+use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
+use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\SupportsDhcpSnooping;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -44,7 +48,7 @@ class PortSyncService
             $macsCreated = 0;
             $macsUpdated = 0;
 
-            DB::transaction(function () use ($portStatuses, $portConfigData, $macEntries, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
+            DB::transaction(function () use ($adapter, $portStatuses, $portConfigData, $macEntries, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
                 $statusResult = $this->portStatusSync->sync($portStatuses, $switchConfig, $syncStartedAt);
                 $portsCreated = $statusResult['created'];
                 $portsUpdated = $statusResult['updated'];
@@ -57,6 +61,8 @@ class PortSyncService
                 $macsUpdated = $macResult['updated'];
 
                 $this->portMacSync->cleanStaleMacs($switchConfig, $macResult['syncedMacIds']);
+
+                $this->processSnoopingBindings($adapter, $switchConfig);
             });
 
             $this->runTracker->complete($syncRun, $portsCreated, $portsUpdated, $macsCreated, $macsUpdated);
@@ -77,5 +83,39 @@ class PortSyncService
         }
 
         return new SyncResult(syncRun: $syncRun, portStateChanges: $portStateChanges);
+    }
+
+    private function processSnoopingBindings(NetworkSwitchInterface $adapter, SwitchConfig $switchConfig): void
+    {
+        if (! $adapter instanceof SupportsDhcpSnooping) {
+            return;
+        }
+
+        $bindings = $adapter->getDhcpSnoopingBindings();
+        $upsertedIds = [];
+
+        foreach ($bindings as $binding) {
+            $observation = DhcpSnoopingObservation::updateOrCreate(
+                [
+                    'switch_config_id' => $switchConfig->id,
+                    'vlan' => $binding['vlan'],
+                    'ip' => $binding['ip'],
+                    'mac' => MacAddress::normalize($binding['mac']),
+                ],
+                [
+                    'interface' => $binding['interface'] ?? null,
+                    'expires_at' => $binding['lease_seconds'] > 0
+                        ? now()->addSeconds($binding['lease_seconds'])
+                        : null,
+                    'observed_at' => now(),
+                ],
+            );
+            $upsertedIds[] = $observation->id;
+        }
+
+        // Delete stale observations for this switch
+        DhcpSnoopingObservation::where('switch_config_id', $switchConfig->id)
+            ->whereNotIn('id', $upsertedIds)
+            ->delete();
     }
 }
