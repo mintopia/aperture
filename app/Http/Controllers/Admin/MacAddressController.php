@@ -21,10 +21,10 @@ class MacAddressController extends Controller
     {
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
-            'mac' => $request->input('mac', ''),
-            'hostname' => $request->input('hostname', ''),
-            'nickname' => $request->input('nickname', ''),
-            'ip' => $request->input('ip', ''),
+            'mac' => (string) $request->input('mac', ''),
+            'hostname' => (string) $request->input('hostname', ''),
+            'nickname' => (string) $request->input('nickname', ''),
+            'ip' => (string) $request->input('ip', ''),
             'order' => 'created_at',
             'direction' => 'desc',
         ];

@@ -127,6 +127,22 @@ class MacAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('macs.data', 10));
     }
 
+    public function test_index_page_2_without_filter_params(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        MacAddress::factory()->count(25)->create();
+
+        $response = $this->actingAs($admin)->get('/admin/macs?page=2');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Macs/Index')
+            ->has('macs.data', 5)
+        );
+    }
+
     public function test_show_page_loads_with_all_sections(): void
     {
         Queue::fake();
