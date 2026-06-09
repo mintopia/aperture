@@ -650,6 +650,29 @@ class SwitchManagementControllerTest extends TestCase
         $this->assertEquals($originalRaw, $updatedRaw);
     }
 
+    public function test_update_switch_keeps_existing_username_when_blank(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create(['username' => 'originaluser']);
+
+        $response = $this->actingAs($admin)->put('/admin/switches/'.$switch->id, [
+            'name' => $switch->name,
+            'hostname' => $switch->hostname,
+            'type' => $switch->type,
+            'username' => '',
+            'password' => '',
+            'port' => $switch->port,
+            'timeout' => $switch->timeout,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('switch_configs', [
+            'id' => $switch->id,
+            'username' => 'originaluser',
+        ]);
+    }
+
     public function test_update_allows_same_hostname_for_same_switch(): void
     {
         $admin = $this->createAdminUser();

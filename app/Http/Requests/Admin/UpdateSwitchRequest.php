@@ -35,7 +35,7 @@ class UpdateSwitchRequest extends FormRequest
             'name' => 'required|string|max:255',
             'hostname' => 'required|string|max:255|unique:switch_configs,hostname,'.$switchConfig->id,
             'type' => 'required|string|in:cisco',
-            'username' => 'required|string|max:255',
+            'username' => 'nullable|string|max:255',
             'password' => 'nullable|string|max:500',
             'enable_password' => 'nullable|string|max:500',
             'enabled' => 'sometimes|boolean',

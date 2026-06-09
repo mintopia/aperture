@@ -108,6 +108,10 @@ class SwitchManagementController extends Controller
     {
         $validated = $request->validated();
 
+        if (empty($validated['username'])) {
+            unset($validated['username']);
+        }
+
         if (empty($validated['password'])) {
             unset($validated['password']);
         }
