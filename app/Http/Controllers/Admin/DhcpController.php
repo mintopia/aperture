@@ -51,11 +51,13 @@ class DhcpController extends Controller
         $integration = $this->activeIntegration();
 
         $leases = DhcpLease::where('integration', $integration)
-            ->with(['ipAddress', 'macAddress'])
+            ->with(['ipAddress.macAddresses', 'macAddress'])
             ->get()
             ->map(fn (DhcpLease $lease): array => [
                 'ip' => $lease->ipAddress->address ?? '',
-                'mac' => $lease->macAddress->mac_address ?? '',
+                'mac' => $lease->macAddress->mac_address
+                    ?? $lease->ipAddress?->macAddresses->sortByDesc('pivot.last_seen_at')->first()->mac_address
+                    ?? '',
                 'hostname' => $lease->hostname ?? '',
                 'expires' => $lease->expires_at?->toIso8601String() ?? '',
             ])

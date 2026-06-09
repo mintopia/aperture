@@ -97,6 +97,38 @@ class DhcpControllerTest extends TestCase
         );
     }
 
+    public function test_leases_shows_mac_from_ip_association_when_lease_has_no_mac(): void
+    {
+        CapabilityAssignment::factory()->create([
+            'capability' => 'dhcp',
+            'integration' => 'cisco',
+        ]);
+
+        $ip = IpAddress::factory()->create(['address' => '10.30.0.101']);
+        $olderMac = MacAddress::factory()->create(['mac_address' => '11:22:33:44:55:66']);
+        $newerMac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $ip->macAddresses()->attach($olderMac->id, ['source' => 'arp', 'last_seen_at' => now()->subDay()]);
+        $ip->macAddresses()->attach($newerMac->id, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        DhcpLease::factory()->create([
+            'integration' => 'cisco',
+            'ip_address_id' => $ip->id,
+            'mac_address_id' => null,
+            'hostname' => 'test-host',
+        ]);
+
+        $admin = $this->createAdminUser();
+        $response = $this->actingAs($admin)->get('/admin/dhcp/leases');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Dhcp/Leases')
+            ->has('leases', 1)
+            ->where('leases.0.ip', '10.30.0.101')
+            ->where('leases.0.mac', 'AA:BB:CC:DD:EE:FF')
+        );
+    }
+
     public function test_only_active_integration_data_shown(): void
     {
         CapabilityAssignment::factory()->create([
