@@ -91,8 +91,8 @@ describe('Switches/Edit', () => {
         it('renders delete button in danger zone', () => {
             const wrapper = mountEdit();
             expect(wrapper.find('[data-testid="danger-zone-switch"]').exists()).toBe(true);
-            expect(wrapper.find('[data-testid="action-delete"]').exists()).toBe(true);
-            expect(wrapper.find('[data-testid="action-delete"]').attributes('title')).toBe(
+            expect(wrapper.find('[data-testid="switch-delete"]').exists()).toBe(true);
+            expect(wrapper.find('[data-testid="switch-delete"]').attributes('title')).toBe(
                 'Remove this switch and all its data',
             );
         });
@@ -100,7 +100,7 @@ describe('Switches/Edit', () => {
         it('opens ConfirmModal when delete is clicked', async () => {
             const wrapper = mountEdit();
 
-            await wrapper.find('[data-testid="action-delete"]').trigger('click');
+            await wrapper.find('[data-testid="switch-delete"]').trigger('click');
             await flushPromises();
 
             expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
@@ -109,7 +109,7 @@ describe('Switches/Edit', () => {
         it('delete confirm triggers router.delete', async () => {
             const wrapper = mountEdit();
 
-            await wrapper.find('[data-testid="action-delete"]').trigger('click');
+            await wrapper.find('[data-testid="switch-delete"]').trigger('click');
             await flushPromises();
 
             await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
@@ -126,7 +126,7 @@ describe('Switches/Edit', () => {
         it('cancel closes the modal without deleting', async () => {
             const wrapper = mountEdit();
 
-            await wrapper.find('[data-testid="action-delete"]').trigger('click');
+            await wrapper.find('[data-testid="switch-delete"]').trigger('click');
             await flushPromises();
 
             expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
@@ -145,7 +145,7 @@ describe('Switches/Edit', () => {
 
             const wrapper = mountEdit();
 
-            await wrapper.find('[data-testid="action-delete"]').trigger('click');
+            await wrapper.find('[data-testid="switch-delete"]').trigger('click');
             await flushPromises();
 
             await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');

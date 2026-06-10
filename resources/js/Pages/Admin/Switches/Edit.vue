@@ -288,7 +288,7 @@ function confirmDelete() {
                 Deleting this switch removes it and all associated port data.
             </p>
             <button
-                data-testid="action-delete"
+                data-testid="switch-delete"
                 title="Remove this switch and all its data"
                 class="mt-3 rounded-md border border-[var(--color-danger)]/40 px-4 py-[7px] text-[13px] font-semibold text-[var(--color-danger)] transition-colors hover:border-[var(--color-danger)] hover:bg-[var(--color-danger)]/12"
                 @click="showDeleteModal = true"

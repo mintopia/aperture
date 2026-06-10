@@ -761,8 +761,23 @@ class SwitchManagementControllerTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
-    // Destroy — data-testid: switches-delete-action
+    // Destroy — data-testid: switch-delete
     // -------------------------------------------------------------------------
+
+    public function test_delete_records_audit_log_entry(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create();
+
+        $this->actingAs($admin)->delete('/admin/switches/'.$switch->id);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'switch.deleted',
+            'subject_type' => $switch->getMorphClass(),
+            'subject_id' => $switch->id,
+            'process' => 'admin',
+        ]);
+    }
 
     public function test_admin_can_delete_switch(): void
     {
