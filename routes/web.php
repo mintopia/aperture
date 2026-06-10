@@ -177,6 +177,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/settings/dns-detection', [DnsDetectionSettingsController::class, 'update'])->name('settings.dns-detection.update');
         Route::get('/settings/network', [NetworkSettingsController::class, 'show'])->name('settings.network');
         Route::put('/settings/network', [NetworkSettingsController::class, 'update'])->name('settings.network.update');
+        Route::post('/settings/network/ip-mac-mappings/clear', [NetworkSettingsController::class, 'clearIpMacMappings'])->name('settings.network.ip-mac.clear');
         Route::get('/settings/captive-portal-api', [CaptivePortalApiSettingsController::class, 'show'])->name('settings.captive-portal-api');
         Route::put('/settings/captive-portal-api', [CaptivePortalApiSettingsController::class, 'update'])->name('settings.captive-portal-api.update');
 

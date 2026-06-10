@@ -1,25 +1,44 @@
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Network from '@/Pages/Admin/Settings/Network.vue';
 
 const mockPut = vi.fn();
+const mockPost = vi.fn();
+let forms = [];
 
-vi.mock('@inertiajs/vue3', () => ({
-    useForm: vi.fn((data) => ({
-        ...data,
-        put: mockPut,
-        processing: false,
-        errors: {},
-    })),
-    Link: { template: '<a><slot /></a>' },
-    usePage: () => ({ url: '/admin/settings/network' }),
-}));
+vi.mock('@inertiajs/vue3', async () => {
+    const { reactive } = await import('vue');
+
+    return {
+        useForm: vi.fn((data) => {
+            const form = reactive({
+                ...data,
+                put: mockPut,
+                post: mockPost,
+                reset: vi.fn(),
+                clearErrors: vi.fn(),
+                processing: false,
+                errors: {},
+            });
+            forms.push(form);
+            return form;
+        }),
+        Link: { template: '<a><slot /></a>' },
+        usePage: () => ({ url: '/admin/settings/network' }),
+    };
+});
 
 window.route = vi.fn((name) => `/mocked/${name}`);
 
 const FormFieldStub = {
     template: '<div><slot /></div>',
-    props: ['label', 'name', 'error', 'required'],
+    props: {
+        label: { type: String, default: '' },
+        name: { type: String, default: '' },
+        error: { type: String, default: '' },
+        required: { type: Boolean, default: false },
+    },
 };
 
 function mountPage(settings = {}) {
@@ -36,14 +55,20 @@ function mountPage(settings = {}) {
             stubs: {
                 FormField: FormFieldStub,
                 AdminLayout: { template: '<div><slot /></div>' },
+                teleport: true,
             },
         },
     });
 }
 
+// The second useForm() call in Network.vue creates the clear-mappings form.
+const clearForm = () => forms[1];
+
 describe('Network settings page', () => {
     beforeEach(() => {
+        forms = [];
         mockPut.mockReset();
+        mockPost.mockReset();
     });
 
     it('renders page title', () => {
@@ -105,5 +130,66 @@ describe('Network settings page', () => {
         await wrapper.find('[data-testid="network-settings-form"]').trigger('submit');
 
         expect(mockPut).toHaveBeenCalledWith('/mocked/admin.settings.network.update');
+    });
+
+    describe('maintenance: clear stale IP to MAC mappings', () => {
+        async function openModal(wrapper) {
+            await wrapper.find('[data-testid="clear-ip-mac-button"]').trigger('click');
+        }
+
+        it('marks the days field as required', () => {
+            const wrapper = mountPage();
+            const daysField = wrapper.findAllComponents(FormFieldStub).find((field) => field.props('name') === 'days');
+
+            expect(daysField).toBeDefined();
+            expect(daysField.props('required')).toBe(true);
+        });
+
+        it('does not set aria-invalid or aria-describedby on the password input without an error', async () => {
+            const wrapper = mountPage();
+            await openModal(wrapper);
+
+            const input = wrapper.find('[data-testid="clear-ip-mac-password-input"]');
+            expect(input.attributes('aria-invalid')).toBeUndefined();
+            expect(input.attributes('aria-describedby')).toBeUndefined();
+        });
+
+        it('announces the password error to screen readers', async () => {
+            const wrapper = mountPage();
+            await openModal(wrapper);
+
+            clearForm().errors = { password: 'The password is incorrect.' };
+            await nextTick();
+
+            const input = wrapper.find('[data-testid="clear-ip-mac-password-input"]');
+            expect(input.attributes('aria-invalid')).toBe('true');
+            expect(input.attributes('aria-describedby')).toBe('clear-ip-mac-password-error');
+
+            const error = wrapper.find('[data-testid="clear-ip-mac-password-error"]');
+            expect(error.attributes('id')).toBe('clear-ip-mac-password-error');
+            expect(error.attributes('role')).toBe('alert');
+            expect(error.text()).toBe('The password is incorrect.');
+        });
+
+        it('submits on Enter in the password input when not processing', async () => {
+            const wrapper = mountPage();
+            await openModal(wrapper);
+
+            await wrapper.find('[data-testid="clear-ip-mac-password-input"]').trigger('keydown.enter');
+
+            expect(mockPost).toHaveBeenCalledTimes(1);
+        });
+
+        it('ignores Enter in the password input while the clear request is processing', async () => {
+            const wrapper = mountPage();
+            await openModal(wrapper);
+
+            clearForm().processing = true;
+            await nextTick();
+
+            await wrapper.find('[data-testid="clear-ip-mac-password-input"]').trigger('keydown.enter');
+
+            expect(mockPost).not.toHaveBeenCalled();
+        });
     });
 });

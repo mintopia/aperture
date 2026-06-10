@@ -1,6 +1,8 @@
 <script setup>
+import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import FormField from '@/Components/UI/FormField.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -18,6 +20,44 @@ const form = useForm({
 
 function submit() {
     form.put(route('admin.settings.network.update'));
+}
+
+const showClearModal = ref(false);
+const clearForm = useForm({ days: 30, password: '' });
+
+const clearDaysValid = computed(
+    () => Number.isInteger(clearForm.days) && clearForm.days >= 1 && clearForm.days <= 3650,
+);
+
+const clearModalMessage = computed(
+    () =>
+        `This will permanently delete all IP to MAC address mappings not seen in the last ${clearForm.days} days. ` +
+        'This action cannot be undone. Enter your password to confirm.',
+);
+
+function openClearModal() {
+    if (!clearDaysValid.value) return;
+    clearForm.reset('password');
+    clearForm.clearErrors();
+    showClearModal.value = true;
+}
+
+function cancelClear() {
+    showClearModal.value = false;
+    clearForm.reset('password');
+    clearForm.clearErrors();
+}
+
+function confirmClear() {
+    if (clearForm.processing) return;
+
+    clearForm.post(route('admin.settings.network.ip-mac.clear'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showClearModal.value = false;
+            clearForm.reset('password');
+        },
+    });
 }
 </script>
 
@@ -127,5 +167,82 @@ function submit() {
                 Save Settings
             </button>
         </form>
+
+        <!-- Maintenance -->
+        <h2
+            data-testid="section-heading-maintenance"
+            class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+        >
+            Maintenance
+        </h2>
+
+        <p class="text-[13px] text-[var(--color-text-secondary)]">
+            Remove stale IP to MAC address mappings that have not been seen for a number of days. This permanently
+            deletes the historical device associations.
+        </p>
+
+        <div class="mt-4 flex flex-wrap items-end gap-4" data-testid="clear-ip-mac-section">
+            <FormField label="Older Than (Days)" name="days" required :error="clearForm.errors.days">
+                <input
+                    id="days"
+                    v-model.number="clearForm.days"
+                    type="number"
+                    min="1"
+                    max="3650"
+                    data-testid="clear-ip-mac-days-input"
+                    class="w-32 rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                />
+            </FormField>
+            <button
+                type="button"
+                data-testid="clear-ip-mac-button"
+                :disabled="!clearDaysValid"
+                class="rounded-md border border-[var(--color-danger)]/40 px-4 py-2 text-[13px] font-semibold text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/12 disabled:cursor-not-allowed disabled:opacity-50"
+                @click="openClearModal"
+            >
+                Clear Stale Mappings
+            </button>
+        </div>
+
+        <!-- Clear IP→MAC Mappings Confirmation Modal -->
+        <ConfirmModal
+            :show="showClearModal"
+            title="Clear Stale IP to MAC Mappings"
+            :message="clearModalMessage"
+            confirm-label="Clear Mappings"
+            variant="danger"
+            :loading="clearForm.processing"
+            @cancel="cancelClear"
+            @confirm="confirmClear"
+        >
+            <div class="mt-4">
+                <label
+                    for="clear-ip-mac-password"
+                    class="block text-[12px] font-semibold text-[var(--color-text-secondary)]"
+                >
+                    Password
+                </label>
+                <input
+                    id="clear-ip-mac-password"
+                    v-model="clearForm.password"
+                    data-testid="clear-ip-mac-password-input"
+                    type="password"
+                    placeholder="Enter your password"
+                    :aria-invalid="clearForm.errors.password ? 'true' : undefined"
+                    :aria-describedby="clearForm.errors.password ? 'clear-ip-mac-password-error' : undefined"
+                    class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
+                    @keydown.enter="confirmClear"
+                />
+                <p
+                    v-if="clearForm.errors.password"
+                    id="clear-ip-mac-password-error"
+                    data-testid="clear-ip-mac-password-error"
+                    role="alert"
+                    class="mt-1 text-[12px] text-[var(--color-danger)]"
+                >
+                    {{ clearForm.errors.password }}
+                </p>
+            </div>
+        </ConfirmModal>
     </div>
 </template>
