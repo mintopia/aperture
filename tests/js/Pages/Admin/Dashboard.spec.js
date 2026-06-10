@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Dashboard from '@/Pages/Admin/Dashboard.vue';
 
 let deferredReady = true;
+let resetFormMock = null;
 
 vi.mock('@inertiajs/vue3', async () => {
     const { defineComponent, h, reactive } = await import('vue');
@@ -30,21 +31,22 @@ vi.mock('@inertiajs/vue3', async () => {
                 return () => (deferredReady ? slots.default?.() : slots.fallback?.());
             },
         }),
-        useForm: (defaults) =>
-            reactive({
+        useForm: (defaults) => {
+            resetFormMock = reactive({
                 ...defaults,
                 processing: false,
                 errors: {},
                 post: vi.fn(),
                 reset: vi.fn(),
-            }),
+                clearErrors: vi.fn(),
+            });
+
+            return resetFormMock;
+        },
     };
 });
 
-vi.stubGlobal(
-    'route',
-    (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`),
-);
+vi.stubGlobal('route', (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`));
 
 window.axios = {
     get: vi.fn(() =>
@@ -66,6 +68,7 @@ const defaultGlobal = {
     stubs: {
         AdminLayout: { template: '<div><slot /></div>' },
         TimeSeriesChart: { template: '<div data-testid="bandwidth-chart"></div>' },
+        teleport: true,
     },
     mocks: {
         route: routeMock,
@@ -341,5 +344,61 @@ describe('Dashboard', () => {
 
         expect(window.axios.get).toHaveBeenCalled();
         expect(window.axios.get.mock.calls[0][0]).toContain('admin.dashboard.bandwidth');
+    });
+
+    describe('reset portal modal', () => {
+        async function mountAndOpenModal() {
+            const wrapper = mount(Dashboard, {
+                props: makeProps(),
+                global: defaultGlobal,
+            });
+
+            await wrapper.find('[data-testid="reset-portal-button"]').trigger('click');
+
+            return wrapper;
+        }
+
+        it('does not set aria-invalid or aria-describedby on the password input without an error', async () => {
+            const wrapper = await mountAndOpenModal();
+
+            const input = wrapper.find('[data-testid="reset-password-input"]');
+            expect(input.attributes('aria-invalid')).toBeUndefined();
+            expect(input.attributes('aria-describedby')).toBeUndefined();
+        });
+
+        it('announces the password error to screen readers', async () => {
+            const wrapper = await mountAndOpenModal();
+
+            resetFormMock.errors = { password: 'The password is incorrect.' };
+            await wrapper.vm.$nextTick();
+
+            const input = wrapper.find('[data-testid="reset-password-input"]');
+            expect(input.attributes('aria-invalid')).toBe('true');
+            expect(input.attributes('aria-describedby')).toBe('reset-password-error');
+
+            const error = wrapper.find('[data-testid="reset-password-error"]');
+            expect(error.attributes('id')).toBe('reset-password-error');
+            expect(error.attributes('role')).toBe('alert');
+            expect(error.text()).toBe('The password is incorrect.');
+        });
+
+        it('submits on Enter in the password input when not processing', async () => {
+            const wrapper = await mountAndOpenModal();
+
+            await wrapper.find('[data-testid="reset-password-input"]').trigger('keydown.enter');
+
+            expect(resetFormMock.post).toHaveBeenCalledTimes(1);
+        });
+
+        it('ignores Enter in the password input while the reset request is processing', async () => {
+            const wrapper = await mountAndOpenModal();
+
+            resetFormMock.processing = true;
+            await wrapper.vm.$nextTick();
+
+            await wrapper.find('[data-testid="reset-password-input"]').trigger('keydown.enter');
+
+            expect(resetFormMock.post).not.toHaveBeenCalled();
+        });
     });
 });

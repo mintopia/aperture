@@ -233,6 +233,110 @@ describe('ConfirmModal', () => {
         document.body.removeChild(btn);
     });
 
+    it('emits cancel on Escape at document level when focus is outside the modal', async () => {
+        const wrapper = mountComponent({ loading: true }, { attachTo: document.body });
+
+        await wrapper.setProps({ loading: false });
+
+        // Focus has dropped to <body> (e.g. confirm button was disabled while loading)
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+        expect(wrapper.emitted('cancel')).toHaveLength(1);
+
+        wrapper.unmount();
+    });
+
+    it('pulls focus back into the dialog when Tab is pressed while focus is outside', async () => {
+        const wrapper = mountComponent({}, { attachTo: document.body });
+
+        // Simulate focus being outside the dialog (on <body>)
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+
+        const dialog = wrapper.find('[role="dialog"]').element;
+        expect(dialog.contains(document.activeElement)).toBe(true);
+
+        wrapper.unmount();
+    });
+
+    it('restores focus into the dialog when loading completes while still open', async () => {
+        const wrapper = mountComponent({ loading: true }, { attachTo: document.body });
+
+        // While loading, focus has been dropped to <body>
+        expect(document.activeElement).toBe(document.body);
+
+        await wrapper.setProps({ loading: false });
+        await wrapper.vm.$nextTick();
+
+        const dialog = wrapper.find('[role="dialog"]').element;
+        expect(dialog.contains(document.activeElement)).toBe(true);
+
+        wrapper.unmount();
+    });
+
+    it('does not steal focus when loading completes and focus is already inside the dialog', async () => {
+        const wrapper = mountComponent({ loading: true }, { attachTo: document.body });
+
+        // Mock activeElement to always resolve to the (current) cancel button,
+        // i.e. focus is already inside the dialog when loading completes.
+        const activeElementDescriptor = Object.getOwnPropertyDescriptor(document, 'activeElement');
+        Object.defineProperty(document, 'activeElement', {
+            get: () => wrapper.find('[data-testid="confirm-modal-cancel"]').element,
+            configurable: true,
+        });
+        const focusSpy = vi.spyOn(window.HTMLElement.prototype, 'focus');
+
+        await wrapper.setProps({ loading: false });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(focusSpy).not.toHaveBeenCalled();
+
+        focusSpy.mockRestore();
+        if (activeElementDescriptor) {
+            Object.defineProperty(document, 'activeElement', activeElementDescriptor);
+        } else {
+            delete document.activeElement;
+        }
+
+        wrapper.unmount();
+    });
+
+    it('does not refocus the dialog when loading completes after the modal has closed', async () => {
+        const wrapper = mountComponent({ loading: true }, { attachTo: document.body });
+
+        await wrapper.setProps({ show: false, loading: false });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+        expect(document.activeElement).toBe(document.body);
+
+        wrapper.unmount();
+    });
+
+    it('ignores document-level keys when the modal is hidden', async () => {
+        const wrapper = mountComponent({ show: false }, { attachTo: document.body });
+
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+        expect(wrapper.emitted('cancel')).toBeUndefined();
+
+        wrapper.unmount();
+    });
+
+    it('does not double-handle Escape originating inside the overlay', async () => {
+        const wrapper = mountComponent({}, { attachTo: document.body });
+
+        // Dispatch a real bubbling Escape from the cancel button: the overlay
+        // handler must handle it once and the document handler must skip it.
+        wrapper
+            .find('[data-testid="confirm-modal-cancel"]')
+            .element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+        expect(wrapper.emitted('cancel')).toHaveLength(1);
+
+        wrapper.unmount();
+    });
+
     it('restores focus to previous element when show changes to false', async () => {
         const btn = document.createElement('button');
         document.body.appendChild(btn);

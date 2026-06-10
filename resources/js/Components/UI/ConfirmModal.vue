@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -45,9 +45,7 @@ function getFocusableElements() {
     ];
 }
 
-function onOverlayKeydown(event) {
-    if (!props.show) return;
-
+function handleModalKeydown(event) {
     if (event.key === 'Escape') {
         event.preventDefault();
         emit('cancel');
@@ -63,6 +61,14 @@ function onOverlayKeydown(event) {
     const last = focusable[focusable.length - 1];
     const active = document.activeElement;
 
+    // Focus escaped the dialog (e.g. the focused button was disabled while
+    // loading) — pull it back in instead of letting Tab reach the background.
+    if (!dialogRef.value?.contains(active)) {
+        event.preventDefault();
+        first.focus();
+        return;
+    }
+
     if (event.shiftKey && active === first) {
         event.preventDefault();
         last.focus();
@@ -70,6 +76,21 @@ function onOverlayKeydown(event) {
         event.preventDefault();
         first.focus();
     }
+}
+
+function onOverlayKeydown(event) {
+    if (!props.show) return;
+    handleModalKeydown(event);
+}
+
+// Safety net for when focus has dropped outside the modal (e.g. to <body>
+// after the focused confirm button was disabled during a request): the
+// overlay keydown handler no longer receives events, so Escape/Tab must be
+// caught at document level while the modal is open.
+function onDocumentKeydown(event) {
+    if (!props.show) return;
+    if (overlayRef.value && overlayRef.value.contains(event.target)) return;
+    handleModalKeydown(event);
 }
 
 watch(
@@ -89,7 +110,28 @@ watch(
     },
 );
 
+// When a request finishes while the modal stays open (e.g. wrong password),
+// the buttons were disabled and focus fell back to <body>; restore it into
+// the dialog so keyboard users are not stranded.
+watch(
+    () => props.loading,
+    async (loading, wasLoading) => {
+        if (loading || !wasLoading || !props.show) return;
+
+        await nextTick();
+        if (dialogRef.value?.contains(document.activeElement)) return;
+
+        getFocusableElements()[0]?.focus();
+    },
+);
+
+onMounted(() => {
+    document.addEventListener('keydown', onDocumentKeydown);
+});
+
 onBeforeUnmount(() => {
+    document.removeEventListener('keydown', onDocumentKeydown);
+
     const target = previousFocusedElement.value;
     if (target && typeof target.focus === 'function') {
         target.focus();

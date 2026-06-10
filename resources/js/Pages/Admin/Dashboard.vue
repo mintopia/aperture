@@ -161,6 +161,8 @@ function cancelReset() {
 }
 
 function confirmReset() {
+    if (resetForm.processing) return;
+
     resetForm.post(route('admin.reset'), {
         onSuccess: () => {
             showResetModal.value = false;
@@ -425,12 +427,16 @@ function confirmReset() {
                     data-testid="reset-password-input"
                     type="password"
                     placeholder="Enter your password"
+                    :aria-invalid="resetForm.errors.password ? 'true' : undefined"
+                    :aria-describedby="resetForm.errors.password ? 'reset-password-error' : undefined"
                     class="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] focus:outline-none"
                     @keydown.enter="confirmReset"
                 />
                 <p
                     v-if="resetForm.errors.password"
+                    id="reset-password-error"
                     data-testid="reset-password-error"
+                    role="alert"
                     class="mt-1 text-[12px] text-[var(--color-danger)]"
                 >
                     {{ resetForm.errors.password }}
