@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\OpnSense;
 
+use App\Models\IpAddress;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
@@ -163,6 +164,11 @@ class OpnSenseDhcpService implements DhcpInterface
             if (is_numeric($prefixLen)) {
                 $prefix = $rangeFrom.'/'.$prefixLen;
             }
+        }
+
+        // IPv6 prefixes are normalized to lowercase for consistent storage/display
+        if ($prefix !== null) {
+            $prefix = IpAddress::normalize($prefix);
         }
 
         return new DhcpRange(

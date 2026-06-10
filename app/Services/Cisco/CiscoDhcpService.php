@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Cisco;
 
+use App\Models\IpAddress;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\IosOutputParser;
@@ -150,7 +151,7 @@ class CiscoDhcpService implements DhcpInterface
 
             $ipv6Ranges = collect($ipv6Config['pools'])
                 ->map(function (array $pool) use ($ipv6Bindings): DhcpRange {
-                    $prefix = $pool['prefix'] !== '' ? $pool['prefix'] : null;
+                    $prefix = $pool['prefix'] !== '' ? IpAddress::normalize($pool['prefix']) : null;
                     $total = $this->ipv6TotalAddresses($prefix);
                     $used = $this->countIpv6BindingsInPrefix($ipv6Bindings, $prefix);
                     $utilisation = $total !== null && $total > 0 && $used !== null

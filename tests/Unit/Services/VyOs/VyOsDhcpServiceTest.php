@@ -338,6 +338,48 @@ class VyOsDhcpServiceTest extends TestCase
         $this->assertSame('MY_V6_NETWORK', $ranges[0]->description);
     }
 
+    public function test_get_ranges_normalizes_ipv6_prefix_to_lowercase(): void
+    {
+        $this->client->shouldReceive('retrieve')
+            ->with(['service', 'dhcp-server', 'shared-network-name'])
+            ->once()
+            ->andReturn([]);
+
+        $this->client->shouldReceive('retrieve')
+            ->with(['service', 'dhcpv6-server', 'shared-network-name'])
+            ->once()
+            ->andReturn([
+                'shared-network-name' => [
+                    'MY_V6_NETWORK' => [
+                        'subnet' => [
+                            '2A0F:85C1:D91:2100::/64' => [
+                                'range' => [
+                                    'clients' => [
+                                        'start' => '2A0F:85C1:D91:2100::100',
+                                        'stop' => '2A0F:85C1:D91:2100::200',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $this->client->shouldReceive('showText')
+            ->with(['dhcp', 'server', 'leases'])
+            ->once()
+            ->andReturn('');
+
+        $this->stubEmptyV6Leases();
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('ipv6', $ranges[0]->type);
+        $this->assertSame('2a0f:85c1:d91:2100::/64', $ranges[0]->prefix);
+    }
+
     public function test_get_ranges_returns_multiple_ranges_from_multiple_subnets(): void
     {
         $this->client->shouldReceive('retrieve')

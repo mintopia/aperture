@@ -315,9 +315,10 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertNull($noPrefix->usedAddresses);
 
         // Prefix without a /length suffix → unparsable → totalAddresses null
+        // (still normalized to lowercase)
         $badPrefix = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'BADPREFIX6');
         $this->assertInstanceOf(DhcpRange::class, $badPrefix);
-        $this->assertSame('2001:DB8::', $badPrefix->prefix);
+        $this->assertSame('2001:db8::', $badPrefix->prefix);
         $this->assertNull($badPrefix->totalAddresses);
         $this->assertNull($badPrefix->usedAddresses);
     }
@@ -526,6 +527,23 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertInstanceOf(DhcpRange::class, $lan6);
         $this->assertSame('ipv6', $lan6->type);
         $this->assertNull($lan6->totalAddresses);
+    }
+
+    // -------------------------------------------------------------------------
+    // getRanges() — IPv6 prefixes are normalized to lowercase
+    // -------------------------------------------------------------------------
+
+    public function test_get_ranges_normalizes_ipv6_prefix_to_lowercase(): void
+    {
+        // The default fixture emits the prefix as the switch does: 2001:DB8::/64
+        $this->expectTransportCall();
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
+        $this->assertInstanceOf(DhcpRange::class, $lan6);
+        $this->assertSame('2001:db8::/64', $lan6->prefix);
     }
 
     // -------------------------------------------------------------------------

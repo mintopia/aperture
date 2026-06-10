@@ -418,6 +418,39 @@ class OpnSenseDhcpServiceTest extends TestCase
         $this->assertEquals('fd00::1/64', $ranges[0]->prefix);
     }
 
+    public function test_get_ranges_normalizes_ipv6_prefix_to_lowercase(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], (string) json_encode([
+                'rows' => [
+                    [
+                        'interface' => 'em0',
+                        'subnet' => '',
+                        'range_from' => 'FD00:ABCD::1',
+                        'range_to' => 'FD00:ABCD::FF',
+                        'gateway' => '',
+                        'description' => 'IPv6 prefix',
+                        'prefix' => '64',
+                    ],
+                ],
+            ])),
+            new Response(200, [], (string) json_encode(['rows' => []])),
+        ]);
+        $handler = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handler]);
+
+        $service = new OpnSenseDhcpService(
+            client: $client,
+            poolSize: 0,
+            ipv6RangesPath: '/api/dhcpv6/ranges',
+        );
+
+        $ranges = $service->getRanges();
+        $this->assertCount(1, $ranges);
+        // Constructed from the raw (uppercase) start address, then normalized
+        $this->assertSame('fd00:abcd::1/64', $ranges[0]->prefix);
+    }
+
     public function test_calculate_subnet_returns_null_for_invalid_ip(): void
     {
         // Covers line 185-186 in calculateSubnet(): ip2long returns false for invalid IP

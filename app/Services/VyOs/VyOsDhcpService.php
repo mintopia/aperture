@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\VyOs;
 
+use App\Models\IpAddress;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
@@ -189,7 +190,7 @@ class VyOsDhcpService implements DhcpInterface
                 subnet: $subnetCidr,
                 rangeFrom: (string) $range['start'],
                 rangeTo: (string) $range['stop'],
-                prefix: $type === 'ipv6' ? $subnetCidr : null,
+                prefix: $type === 'ipv6' ? IpAddress::normalize($subnetCidr) : null,
                 gateway: $gateway !== null ? (string) $gateway : null,
                 description: $networkName,
             ));
