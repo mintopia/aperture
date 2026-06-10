@@ -58,7 +58,6 @@ class ApertureConfigTest extends TestCase
     public function test_ssh_proxy_config_has_defaults(): void
     {
         config()->set('aperture.ssh_proxy', [
-            'enabled' => false,
             'host' => '127.0.0.1',
             'port' => 8022,
             'api_key' => null,
@@ -71,7 +70,7 @@ class ApertureConfigTest extends TestCase
 
         $config = config('aperture.ssh_proxy');
         $this->assertIsArray($config);
-        $this->assertFalse($config['enabled']);
+        $this->assertArrayNotHasKey('enabled', $config);
         $this->assertSame('127.0.0.1', $config['host']);
         $this->assertSame(8022, $config['port']);
         $this->assertNull($config['api_key']);

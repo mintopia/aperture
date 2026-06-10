@@ -18,7 +18,6 @@
         "laravel/reverb": "^1.5",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
-        "phpseclib/phpseclib": "^3.0",
         "tightenco/ziggy": "^2.6"
     },
     "require-dev": {

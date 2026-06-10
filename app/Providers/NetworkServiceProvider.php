@@ -61,8 +61,7 @@ class NetworkServiceProvider extends ServiceProvider
 
         $this->app->singleton(function (Application $app): SwitchServiceFactory {
             return new SwitchServiceFactory(
-                proxyClient: config('aperture.ssh_proxy.enabled', false) ? $app->make(SshProxyClientInterface::class) : null,
-                proxyEnabled: (bool) config('aperture.ssh_proxy.enabled', false),
+                proxyClient: $app->make(SshProxyClientInterface::class),
             );
         });
 

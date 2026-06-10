@@ -5,7 +5,6 @@ return [
         'ttl' => env('APERTURE_SESSION_TTL', 7200),
     ],
     'ssh_proxy' => [
-        'enabled' => env('APERTURE_SSH_PROXY_ENABLED', false),
         'host' => env('APERTURE_SSH_PROXY_HOST', '127.0.0.1'),
         'port' => (int) env('APERTURE_SSH_PROXY_PORT', 8022),
         'listen_host' => env('APERTURE_SSH_PROXY_LISTEN_HOST', '0.0.0.0'),

@@ -8,7 +8,6 @@ use App\Models\SwitchConfig;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
-use App\Services\NetworkSwitch\Transport\DirectSshTransport;
 use App\Services\NetworkSwitch\Transport\SshProxyTransport;
 use InvalidArgumentException;
 use RuntimeException;
@@ -17,7 +16,6 @@ class SwitchServiceFactory
 {
     public function __construct(
         private ?SshProxyClientInterface $proxyClient,
-        private bool $proxyEnabled,
     ) {}
 
     public function make(SwitchConfig $switchConfig): NetworkSwitchInterface
@@ -30,21 +28,10 @@ class SwitchServiceFactory
 
     public function createTransport(SwitchConfig $switchConfig): SwitchCommandTransportInterface
     {
-        if ($this->proxyEnabled) {
-            if (! $this->proxyClient instanceof SshProxyClientInterface) {
-                throw new RuntimeException('SSH proxy is enabled but no proxy client is available.');
-            }
-
-            return new SshProxyTransport($this->proxyClient, $switchConfig);
+        if (! $this->proxyClient instanceof SshProxyClientInterface) {
+            throw new RuntimeException('SSH proxy client is not available. The SSH proxy is the only supported switch transport; configure aperture.ssh_proxy and run the ssh-proxy sidecar.');
         }
 
-        return new DirectSshTransport(
-            hostname: $switchConfig->hostname,
-            username: $switchConfig->username,
-            password: $switchConfig->password,
-            enablePassword: $switchConfig->enable_password ?? '',
-            port: $switchConfig->port ?? 22,
-            timeout: $switchConfig->timeout ?? 30,
-        );
+        return new SshProxyTransport($this->proxyClient, $switchConfig);
     }
 }

@@ -9,7 +9,6 @@ use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
-use App\Services\NetworkSwitch\Transport\DirectSshTransport;
 use App\Services\NetworkSwitch\Transport\SshProxyTransport;
 use InvalidArgumentException;
 use Mockery;
@@ -19,76 +18,59 @@ use Tests\TestCase;
 
 class SwitchServiceFactoryTest extends TestCase
 {
-    public function test_make_creates_direct_transport_when_proxy_is_disabled(): void
+    public function test_make_creates_proxy_transport_when_proxy_client_is_present(): void
     {
-        $switchConfig = SwitchConfig::factory()->make([
-            'hostname' => 'switch.local',
-            'username' => 'db-admin',
-            'password' => 'db-password',
-            'enable_password' => 'db-enable',
-            'port' => 2222,
-            'timeout' => 15,
-        ]);
+        $switchConfig = SwitchConfig::factory()->make();
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
 
-        $factory = new SwitchServiceFactory(null, false);
+        $factory = new SwitchServiceFactory($proxyClient);
 
         $service = $factory->make($switchConfig);
 
         $this->assertInstanceOf(NetworkSwitchInterface::class, $service);
         $this->assertInstanceOf(CiscoSwitchAdapter::class, $service);
-
-        $transport = $this->extractTransport($service);
-        $this->assertInstanceOf(DirectSshTransport::class, $transport);
-        $this->assertSame('switch.local', $this->readProperty($transport, 'hostname'));
-        $this->assertSame('db-admin', $this->readProperty($transport, 'username'));
-        $this->assertSame('db-password', $this->readProperty($transport, 'password'));
-        $this->assertSame('db-enable', $this->readProperty($transport, 'enablePassword'));
-        $this->assertSame(2222, $this->readProperty($transport, 'port'));
-        $this->assertSame(15, $this->readProperty($transport, 'timeout'));
+        $this->assertInstanceOf(SshProxyTransport::class, $this->extractTransport($service));
     }
 
-    public function test_make_creates_proxy_transport_when_proxy_is_enabled(): void
+    public function test_create_transport_returns_proxy_transport(): void
     {
         $switchConfig = SwitchConfig::factory()->make();
         $proxyClient = Mockery::mock(SshProxyClientInterface::class);
 
-        $factory = new SwitchServiceFactory($proxyClient, true);
+        $factory = new SwitchServiceFactory($proxyClient);
 
-        $service = $factory->make($switchConfig);
-
-        $this->assertInstanceOf(CiscoSwitchAdapter::class, $service);
-        $this->assertInstanceOf(SshProxyTransport::class, $this->extractTransport($service));
+        $this->assertInstanceOf(SshProxyTransport::class, $factory->createTransport($switchConfig));
     }
 
-    public function test_make_normalizes_missing_enable_password_for_direct_transport(): void
+    public function test_make_throws_when_proxy_client_is_missing(): void
     {
-        $switchConfig = SwitchConfig::factory()->make(['enable_password' => null]);
+        $factory = new SwitchServiceFactory(null);
 
-        $factory = new SwitchServiceFactory(null, false);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('SSH proxy client is not available. The SSH proxy is the only supported switch transport; configure aperture.ssh_proxy and run the ssh-proxy sidecar.');
 
-        $transport = $this->extractTransport($factory->make($switchConfig));
+        $factory->make(SwitchConfig::factory()->make());
+    }
 
-        $this->assertSame('', $this->readProperty($transport, 'enablePassword'));
+    public function test_create_transport_throws_when_proxy_client_is_missing(): void
+    {
+        $factory = new SwitchServiceFactory(null);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('SSH proxy client is not available. The SSH proxy is the only supported switch transport; configure aperture.ssh_proxy and run the ssh-proxy sidecar.');
+
+        $factory->createTransport(SwitchConfig::factory()->make());
     }
 
     public function test_make_throws_for_unsupported_switch_type(): void
     {
-        $factory = new SwitchServiceFactory(null, false);
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $factory = new SwitchServiceFactory($proxyClient);
         $switchConfig = SwitchConfig::factory()->make(['type' => 'juniper']);
 
         $this->expectException(InvalidArgumentException::class);
 
         $factory->make($switchConfig);
-    }
-
-    public function test_make_throws_when_proxy_is_enabled_without_proxy_client(): void
-    {
-        $factory = new SwitchServiceFactory(null, true);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('SSH proxy is enabled but no proxy client is available.');
-
-        $factory->make(SwitchConfig::factory()->make());
     }
 
     private function extractTransport(CiscoSwitchAdapter $service): object
