@@ -58,6 +58,14 @@ class CapabilityAssignment extends Model
     }
 
     /**
+     * Get the integration currently assigned as the active provider for a capability.
+     */
+    public static function activeIntegration(string $capability): ?string
+    {
+        return static::where('capability', $capability)->first()?->integration;
+    }
+
+    /**
      * Check if a given integration is the active provider for a capability.
      */
     public static function isActiveProvider(string $integration, string $capability): bool

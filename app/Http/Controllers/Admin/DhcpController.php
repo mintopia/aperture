@@ -90,9 +90,7 @@ class DhcpController extends Controller
     private function activeIntegration(): ?string
     {
         try {
-            $assignment = CapabilityAssignment::where('capability', 'dhcp')->first();
-
-            return $assignment?->integration;
+            return CapabilityAssignment::activeIntegration('dhcp');
         } catch (Throwable) {
             return null;
         }

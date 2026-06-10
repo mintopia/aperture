@@ -2,16 +2,14 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\CapabilityAssignment;
+use App\Models\DhcpRangeRecord;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\SystemEvent;
 use App\Models\User;
-use App\Services\Interfaces\DhcpInterface;
-use App\Services\Null\NullDhcpService;
-use App\Services\ValueObjects\DhcpRange;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -105,28 +103,25 @@ class DashboardControllerTest extends TestCase
         Queue::fake();
         $user = $this->createAdminUser();
 
-        $this->app->instance(DhcpInterface::class, new class extends NullDhcpService
-        {
-            /** @return Collection<int, DhcpRange> */
-            public function getRanges(): Collection
-            {
-                return collect([
-                    new DhcpRange(
-                        interface: 'lan',
-                        type: 'ipv4',
-                        subnet: '10.0.0.0/24',
-                        rangeFrom: '10.0.0.10',
-                        rangeTo: '10.0.0.200',
-                        prefix: null,
-                        gateway: '10.0.0.1',
-                        description: 'Main Pool',
-                        totalAddresses: 190,
-                        usedAddresses: 25,
-                        utilisation: 0.1316,
-                    ),
-                ]);
-            }
-        });
+        CapabilityAssignment::factory()->create([
+            'capability' => 'dhcp',
+            'integration' => 'cisco',
+        ]);
+
+        DhcpRangeRecord::factory()->create([
+            'integration' => 'cisco',
+            'interface' => 'lan',
+            'type' => 'ipv4',
+            'subnet' => '10.0.0.0/24',
+            'range_from' => '10.0.0.10',
+            'range_to' => '10.0.0.200',
+            'prefix' => null,
+            'gateway' => '10.0.0.1',
+            'description' => 'Main Pool',
+            'total_addresses' => '190',
+            'used_addresses' => '25',
+            'utilisation' => '0.1316',
+        ]);
 
         $response = $this->actingAs($user)->get('/admin');
 

@@ -9,12 +9,12 @@ use App\Http\Requests\Admin\BandwidthRequest;
 use App\Http\Resources\BandwidthResource;
 use App\Jobs\ResetAperture;
 use App\Models\AuditLog;
+use App\Models\CapabilityAssignment;
+use App\Models\DhcpRangeRecord;
 use App\Models\IpAddress;
 use App\Models\SystemEvent;
 use App\Models\User;
-use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpBandwidthInterface;
-use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,14 +25,14 @@ use Inertia\Response;
 
 class HomeController extends Controller
 {
-    public function index(DhcpInterface $dhcp): Response
+    public function index(): Response
     {
         return Inertia::render('Admin/Dashboard', [
             'totalUsers' => User::count(),
             'onlineUsers' => User::whereHas('ips', fn ($q) => $q->whereHas('ip', fn ($q2) => $q2->where('internet_enabled', true)))->count(), // @phpstan-ignore argument.templateType
             'activeIps' => IpAddress::where('internet_enabled', true)->count(),
             'blockedUsers' => User::where('internet_blocked', true)->count(),
-            'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools($dhcp)),
+            'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools()),
             'recentUsers' => Inertia::defer(fn (): LengthAwarePaginator => $this->getRecentUsers()),
             'recentEvents' => Inertia::defer(fn (): array => SystemEvent::query()
                 ->orderByDesc('created_at')
@@ -93,18 +93,20 @@ class HomeController extends Controller
     }
 
     /** @return list<array{name: string, network: string|null, used: int, total: int, utilisation: float}> */
-    private function getDhcpPools(DhcpInterface $dhcp): array
+    private function getDhcpPools(): array
     {
-        /** @var list<array{name: string, network: string|null, used: int, total: int, utilisation: float}> $pools */
-        $pools = array_values($dhcp->getRanges()->map(fn (DhcpRange $range): array => [
-            'name' => $range->description ?? $range->interface,
-            'network' => $range->subnet ?: $range->prefix,
-            'used' => $range->usedAddresses ?? 0,
-            'total' => $range->totalAddresses ?? 0,
-            'utilisation' => $range->utilisation ?? 0.0,
-        ])->all());
+        $integration = CapabilityAssignment::activeIntegration('dhcp');
 
-        return $pools;
+        return array_values(DhcpRangeRecord::where('integration', $integration)
+            ->get()
+            ->map(fn (DhcpRangeRecord $range): array => [
+                'name' => $range->description ?? $range->interface,
+                'network' => $range->subnet ?: $range->prefix,
+                'used' => $range->used_addresses !== null ? (int) $range->used_addresses : 0,
+                'total' => $range->total_addresses !== null ? (int) $range->total_addresses : 0,
+                'utilisation' => $range->utilisation !== null ? (float) $range->utilisation : 0.0,
+            ])
+            ->all());
     }
 
     /** @return LengthAwarePaginator<int, User> */
