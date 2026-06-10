@@ -15,6 +15,7 @@ use App\Http\Requests\Admin\UserInternetRequest;
 use App\Http\Requests\Admin\UserLimitRequest;
 use App\Http\Resources\BandwidthResource;
 use App\Models\AuditLog;
+use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserParameter;
@@ -46,8 +47,9 @@ class UserController extends Controller
         }
 
         if ($filters->ip) {
-            $query = $query->whereHas('ips.ip', function ($query) use ($filters) {
-                return $query->where('address', $filters->ip);
+            $ip = IpAddress::normalize((string) $filters->ip);
+            $query = $query->whereHas('ips.ip', function ($query) use ($ip) {
+                return $query->where('address', $ip);
             });
         }
 

@@ -24,7 +24,7 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
     {
         $payload = (object) [
             'user' => $description,
-            'ip' => $ip,
+            'ip' => IpAddress::normalize($ip),
         ];
         $query = [
             'zoneid' => $this->zoneId,
@@ -37,6 +37,7 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
      */
     public function removeIp(string $ip): void
     {
+        $ip = IpAddress::normalize($ip);
         $query = [
             'zoneid' => $this->zoneId,
         ];
@@ -47,7 +48,7 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
                 continue;
             }
 
-            if ($session->ipAddress !== $ip) {
+            if (IpAddress::normalize((string) $session->ipAddress) !== $ip) {
                 continue;
             }
 
@@ -113,7 +114,9 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
     public function reconcile(bool $dryRun = false): ReconcileResult
     {
         $currentIps = $this->fetchConnectedIps();
+        /** @var array<int, string> $desiredIps */
         $desiredIps = IpAddress::where('internet_enabled', true)->pluck('address')->all();
+        $desiredIps = array_map(IpAddress::normalize(...), $desiredIps);
 
         /** @var array<string, true> $currentIpLookup */
         $currentIpLookup = array_flip($currentIps);
@@ -186,7 +189,7 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
                 continue;
             }
 
-            $ips[] = $session->ipAddress;
+            $ips[] = IpAddress::normalize((string) $session->ipAddress);
         }
 
         return array_unique($ips);

@@ -14,7 +14,7 @@ class CaptivePortalApiController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $clientIp = (string) $request->getClientIp();
+        $clientIp = IpAddress::normalize((string) $request->getClientIp());
         $ip = IpAddress::where('address', $clientIp)->first();
 
         $captive = $ip === null || ! $ip->internet_enabled;

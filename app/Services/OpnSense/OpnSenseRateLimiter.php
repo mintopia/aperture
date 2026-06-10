@@ -36,7 +36,9 @@ class OpnSenseRateLimiter implements RateLimitingInterface
     public function reconcile(bool $dryRun = false): ReconcileResult
     {
         $currentIps = $this->fetchRateLimitedIps();
+        /** @var array<int, string> $desiredIps */
         $desiredIps = IpAddress::where('rate_limit_enabled', true)->pluck('address')->all();
+        $desiredIps = array_map(IpAddress::normalize(...), $desiredIps);
 
         /** @var array<string, true> $currentIpLookup */
         $currentIpLookup = array_flip($currentIps);
@@ -95,9 +97,9 @@ class OpnSenseRateLimiter implements RateLimitingInterface
     protected function addHostToRule(string $uuid, string $ip, string $propName): void
     {
         $rule = $this->getShaperRule($uuid);
-        $hosts = $this->filter($rule->rule->{$propName});
+        $hosts = array_map(IpAddress::normalize(...), $this->filter($rule->rule->{$propName}));
 
-        $hosts[] = $ip;
+        $hosts[] = IpAddress::normalize($ip);
         $hosts = array_unique($hosts);
 
         $this->updateShaperRule($uuid, $rule, $propName, $hosts);
@@ -105,8 +107,9 @@ class OpnSenseRateLimiter implements RateLimitingInterface
 
     protected function removeHostFromRule(string $uuid, string $ip, string $propName): void
     {
+        $ip = IpAddress::normalize($ip);
         $rule = $this->getShaperRule($uuid);
-        $hosts = $this->filter($rule->rule->{$propName});
+        $hosts = array_map(IpAddress::normalize(...), $this->filter($rule->rule->{$propName}));
 
         foreach ($hosts as $index => $value) {
             if ($value === $ip) {
@@ -190,6 +193,6 @@ class OpnSenseRateLimiter implements RateLimitingInterface
     {
         $rule = $this->getShaperRule($this->downloadRuleUuid);
 
-        return $this->filter($rule->rule->destination);
+        return array_map(IpAddress::normalize(...), $this->filter($rule->rule->destination));
     }
 }

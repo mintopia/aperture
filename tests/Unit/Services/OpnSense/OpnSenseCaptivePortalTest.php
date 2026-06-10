@@ -494,4 +494,103 @@ class OpnSenseCaptivePortalTest extends TestCase
         $this->assertSame([], $result->removed);
         $this->assertSame(['10.0.0.99'], $result->unchanged);
     }
+
+    // --- IPv6 normalization at the OPNsense boundary ---
+
+    public function test_add_ip_sends_uppercase_ipv6_lowercased(): void
+    {
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with(
+                '/api/captiveportal/session/connect',
+                ['zoneid' => 1],
+                (object) ['user' => 'Test User', 'ip' => '2001:db8::abcd'],
+            )
+            ->willReturn((object) ['status' => 'ok']);
+
+        $this->portal->addIp('2001:DB8::ABCD', 'Test User');
+    }
+
+    public function test_add_ip_passes_ipv4_through_byte_identical(): void
+    {
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with(
+                '/api/captiveportal/session/connect',
+                ['zoneid' => 1],
+                (object) ['user' => 'Test User', 'ip' => '192.0.2.10'],
+            )
+            ->willReturn((object) ['status' => 'ok']);
+
+        $this->portal->addIp('192.0.2.10', 'Test User');
+    }
+
+    public function test_remove_ip_uppercase_input_disconnects_lowercase_session(): void
+    {
+        $sessionList = (object) [
+            0 => (object) ['sessionId' => 'sess-v6', 'ipAddress' => '2001:db8::abcd'],
+        ];
+
+        $this->client->expects($this->once())
+            ->method('get')
+            ->with('/api/captiveportal/session/list', ['zoneid' => 1])
+            ->willReturn($sessionList);
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with(
+                '/api/captiveportal/session/disconnect',
+                ['zoneid' => 1],
+                ['sessionId' => 'sess-v6'],
+            )
+            ->willReturn((object) ['status' => 'ok']);
+
+        $this->portal->removeIp('2001:DB8::ABCD');
+    }
+
+    public function test_remove_ip_lowercase_input_disconnects_uppercase_session(): void
+    {
+        $sessionList = (object) [
+            0 => (object) ['sessionId' => 'sess-v6', 'ipAddress' => '2001:DB8::ABCD'],
+        ];
+
+        $this->client->expects($this->once())
+            ->method('get')
+            ->with('/api/captiveportal/session/list', ['zoneid' => 1])
+            ->willReturn($sessionList);
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with(
+                '/api/captiveportal/session/disconnect',
+                ['zoneid' => 1],
+                ['sessionId' => 'sess-v6'],
+            )
+            ->willReturn((object) ['status' => 'ok']);
+
+        $this->portal->removeIp('2001:db8::abcd');
+    }
+
+    public function test_reconcile_treats_case_mismatched_ipv6_as_unchanged(): void
+    {
+        IpAddress::factory()->create(['address' => '2001:db8::1', 'internet_enabled' => true]);
+
+        // Firewall reports the session IP in uppercase; DB stores lowercase.
+        $sessionList = (object) [
+            0 => (object) ['sessionId' => 'sess-1', 'ipAddress' => '2001:DB8::1'],
+        ];
+
+        $this->client->method('get')
+            ->willReturn($sessionList);
+
+        $this->client->expects($this->never())
+            ->method('post');
+
+        $result = $this->portal->reconcile();
+
+        $this->assertSame([], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertSame(['2001:db8::1'], $result->unchanged);
+        $this->assertSame([], $result->errors);
+    }
 }

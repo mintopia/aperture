@@ -61,6 +61,21 @@ class CaptivePortalApiControllerTest extends TestCase
     }
 
     #[Test]
+    public function finds_stored_ipv6_address_when_client_ip_presents_uppercase(): void
+    {
+        IpAddress::factory()->create([
+            'address' => '2001:db8::1',
+            'internet_enabled' => true,
+        ]);
+
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '2001:DB8::1'])
+            ->get('/api/captive-portal');
+
+        $response->assertOk();
+        $response->assertJson(['captive' => false]);
+    }
+
+    #[Test]
     public function includes_user_portal_url_when_configured(): void
     {
         Setting::set('captive_portal_api.user_portal_url', 'User Portal URL', 'https://portal.example.com');

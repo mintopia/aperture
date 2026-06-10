@@ -143,6 +143,25 @@ class UserControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('users.data', 1));
     }
 
+    public function test_admin_can_filter_users_by_ipv6_case_insensitively(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create(['nickname' => 'Ipv6User']);
+
+        $ip = new IpAddress;
+        $ip->address = '2001:db8::1';
+        $ip->last_seen_at = now();
+        $ip->save();
+
+        $user->addIp('2001:db8::1');
+
+        $response = $this->actingAs($admin)->get('/admin/users?ip='.urlencode('2001:DB8::1'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->has('users.data', 1));
+    }
+
     public function test_admin_can_enable_internet_for_all_user_ips(): void
     {
         Queue::fake();

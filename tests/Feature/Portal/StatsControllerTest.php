@@ -123,6 +123,54 @@ class StatsControllerTest extends TestCase
             ->assertJson(['totalReceived' => 5000000]);
     }
 
+    public function test_resolves_ipv6_client_ip_case_insensitively(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create();
+
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $ip1 = IpAddress::factory()->create(['address' => '2001:db8::10']);
+        $ip2 = IpAddress::factory()->create(['address' => '10.0.0.11']);
+
+        IpAddressMacAddress::factory()->create([
+            'ip_address_id' => $ip1->id,
+            'mac_address_id' => $mac->id,
+            'last_seen_at' => now(),
+        ]);
+        IpAddressMacAddress::factory()->create([
+            'ip_address_id' => $ip2->id,
+            'mac_address_id' => $mac->id,
+            'last_seen_at' => now()->subMinute(),
+        ]);
+
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
+                ->withArgs(function (string|array $ips, string $range): bool {
+                    if (! is_array($ips)) {
+                        return false;
+                    }
+
+                    sort($ips);
+
+                    return $ips === ['10.0.0.11', '2001:db8::10'] && $range === '24h';
+                })
+                ->once()
+                ->andReturn(new IpBandwidthResult(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($user)
+            ->withServerVariables(['REMOTE_ADDR' => '2001:DB8::10'])
+            ->getJson('/portal/stats/bandwidth');
+
+        $response->assertOk();
+    }
+
     public function test_falls_back_to_single_ip_when_only_one_ip_for_mac(): void
     {
         Queue::fake();

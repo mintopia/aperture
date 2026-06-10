@@ -14,7 +14,7 @@ class StatsController extends Controller
 {
     public function bandwidth(Request $request, IpBandwidthInterface $ipBandwidth): JsonResponse
     {
-        $clientIp = $request->ip() ?? '127.0.0.1';
+        $clientIp = IpAddress::normalize($request->ip() ?? '127.0.0.1');
         $range = $request->query('range', '24h');
 
         $ips = $this->resolveIpsForMac($clientIp);

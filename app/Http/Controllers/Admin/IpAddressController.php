@@ -36,7 +36,7 @@ class IpAddressController extends Controller
         $query = IpAddress::query()->with(['users.user']);
 
         if ($filters->address) {
-            $query = $query->where('address', $filters->address);
+            $query = $query->where('address', IpAddress::normalize((string) $filters->address));
         }
 
         if ($filters->nickname) {

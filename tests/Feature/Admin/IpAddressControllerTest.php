@@ -123,6 +123,27 @@ class IpAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('ips.data', 1));
     }
 
+    public function test_admin_can_filter_ips_by_ipv6_address_case_insensitively(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip1 = new IpAddress;
+        $ip1->address = '2001:db8::1';
+        $ip1->last_seen_at = Carbon::now();
+        $ip1->save();
+
+        $ip2 = new IpAddress;
+        $ip2->address = '10.0.0.1';
+        $ip2->last_seen_at = Carbon::now();
+        $ip2->save();
+
+        $response = $this->actingAs($admin)->get('/admin/ips?address='.urlencode('2001:DB8::1'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->has('ips.data', 1));
+    }
+
     public function test_admin_can_filter_ips_by_nickname(): void
     {
         Queue::fake();

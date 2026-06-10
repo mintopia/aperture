@@ -567,6 +567,199 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->assertSame([], $result->errors);
     }
 
+    // --- IPv6 normalization at the OPNsense boundary ---
+
+    public function test_limit_ip_sends_uppercase_ipv6_lowercased(): void
+    {
+        $downloadRule = $this->makeRuleResponse();
+        $uploadRule = $this->makeRuleResponse();
+
+        $this->client->expects($this->exactly(2))
+            ->method('get')
+            ->willReturnOnConsecutiveCalls($downloadRule, $uploadRule);
+
+        $postCallIndex = 0;
+        $this->client->expects($this->exactly(3))
+            ->method('post')
+            ->willReturnCallback(function (string $uri, array $query = [], array|stdClass|null $payload = []) use (&$postCallIndex): stdClass {
+                $postCallIndex++;
+                if ($postCallIndex === 1) {
+                    $this->assertInstanceOf(stdClass::class, $payload);
+                    $this->assertSame('2001:db8::abcd', $payload->rule->destination);
+
+                    return (object) ['result' => 'saved'];
+                }
+
+                if ($postCallIndex === 2) {
+                    $this->assertInstanceOf(stdClass::class, $payload);
+                    $this->assertSame('2001:db8::abcd', $payload->rule->source);
+
+                    return (object) ['result' => 'saved'];
+                }
+
+                return (object) ['status' => 'ok'];
+            });
+
+        $this->limiter->limitIp('2001:DB8::ABCD');
+    }
+
+    public function test_limit_ip_does_not_duplicate_case_mismatched_ipv6(): void
+    {
+        // The rule already contains the lowercase form; adding the uppercase
+        // form must not create a duplicate entry.
+        $downloadRule = $this->makeRuleResponse(['2001:db8::1']);
+        $uploadRule = $this->makeRuleResponse(['2001:db8::1']);
+
+        $this->client->expects($this->exactly(2))
+            ->method('get')
+            ->willReturnOnConsecutiveCalls($downloadRule, $uploadRule);
+
+        $postCallIndex = 0;
+        $this->client->expects($this->exactly(3))
+            ->method('post')
+            ->willReturnCallback(function (string $uri, array $query = [], array|stdClass|null $payload = []) use (&$postCallIndex): stdClass {
+                $postCallIndex++;
+                if (str_contains($uri, 'set_rule')) {
+                    $this->assertInstanceOf(stdClass::class, $payload);
+                    if ($postCallIndex === 1) {
+                        $this->assertSame('2001:db8::1', $payload->rule->destination);
+                    }
+
+                    if ($postCallIndex === 2) {
+                        $this->assertSame('2001:db8::1', $payload->rule->source);
+                    }
+
+                    return (object) ['result' => 'saved'];
+                }
+
+                return (object) ['status' => 'ok'];
+            });
+
+        $this->limiter->limitIp('2001:DB8::1');
+    }
+
+    public function test_limit_ip_ipv4_passes_through_and_existing_ipv6_hosts_are_normalized(): void
+    {
+        // A stale uppercase IPv6 entry on the firewall must be rewritten
+        // lowercase, while the IPv4 being added passes through byte-identical.
+        $downloadRule = $this->makeRuleResponse(['2001:DB8::1']);
+        $uploadRule = $this->makeRuleResponse(['2001:DB8::1']);
+
+        $this->client->expects($this->exactly(2))
+            ->method('get')
+            ->willReturnOnConsecutiveCalls($downloadRule, $uploadRule);
+
+        $postCallIndex = 0;
+        $this->client->expects($this->exactly(3))
+            ->method('post')
+            ->willReturnCallback(function (string $uri, array $query = [], array|stdClass|null $payload = []) use (&$postCallIndex): stdClass {
+                $postCallIndex++;
+                if (str_contains($uri, 'set_rule')) {
+                    $this->assertInstanceOf(stdClass::class, $payload);
+                    if ($postCallIndex === 1) {
+                        $this->assertSame('2001:db8::1,192.0.2.10', $payload->rule->destination);
+                    }
+
+                    if ($postCallIndex === 2) {
+                        $this->assertSame('2001:db8::1,192.0.2.10', $payload->rule->source);
+                    }
+
+                    return (object) ['result' => 'saved'];
+                }
+
+                return (object) ['status' => 'ok'];
+            });
+
+        $this->limiter->limitIp('192.0.2.10');
+    }
+
+    public function test_unlimit_ip_uppercase_input_removes_lowercase_host(): void
+    {
+        $downloadRule = $this->makeRuleResponse(['2001:db8::1']);
+        $uploadRule = $this->makeRuleResponse(['2001:db8::1']);
+
+        $this->client->expects($this->exactly(2))
+            ->method('get')
+            ->willReturnOnConsecutiveCalls($downloadRule, $uploadRule);
+
+        $postCallIndex = 0;
+        $this->client->expects($this->exactly(3))
+            ->method('post')
+            ->willReturnCallback(function (string $uri, array $query = [], array|stdClass|null $payload = []) use (&$postCallIndex): stdClass {
+                $postCallIndex++;
+                if (str_contains($uri, 'set_rule')) {
+                    $this->assertInstanceOf(stdClass::class, $payload);
+                    if ($postCallIndex === 1) {
+                        $this->assertSame('', $payload->rule->destination);
+                    }
+
+                    if ($postCallIndex === 2) {
+                        $this->assertSame('', $payload->rule->source);
+                    }
+
+                    return (object) ['result' => 'saved'];
+                }
+
+                return (object) ['status' => 'ok'];
+            });
+
+        $this->limiter->unlimitIp('2001:DB8::1');
+    }
+
+    public function test_unlimit_ip_removes_uppercase_host_reported_by_firewall(): void
+    {
+        $downloadRule = $this->makeRuleResponse(['2001:DB8::1']);
+        $uploadRule = $this->makeRuleResponse(['2001:DB8::1']);
+
+        $this->client->expects($this->exactly(2))
+            ->method('get')
+            ->willReturnOnConsecutiveCalls($downloadRule, $uploadRule);
+
+        $postCallIndex = 0;
+        $this->client->expects($this->exactly(3))
+            ->method('post')
+            ->willReturnCallback(function (string $uri, array $query = [], array|stdClass|null $payload = []) use (&$postCallIndex): stdClass {
+                $postCallIndex++;
+                if (str_contains($uri, 'set_rule')) {
+                    $this->assertInstanceOf(stdClass::class, $payload);
+                    if ($postCallIndex === 1) {
+                        $this->assertSame('', $payload->rule->destination);
+                    }
+
+                    if ($postCallIndex === 2) {
+                        $this->assertSame('', $payload->rule->source);
+                    }
+
+                    return (object) ['result' => 'saved'];
+                }
+
+                return (object) ['status' => 'ok'];
+            });
+
+        $this->limiter->unlimitIp('2001:db8::1');
+    }
+
+    public function test_reconcile_treats_case_mismatched_ipv6_as_unchanged(): void
+    {
+        IpAddress::factory()->create(['address' => '2001:db8::1', 'rate_limit_enabled' => true]);
+
+        // Firewall reports the rate-limited host in uppercase; DB stores lowercase.
+        $ruleWithUppercaseIp = $this->makeRuleResponse(['2001:DB8::1']);
+
+        $this->client->method('get')
+            ->willReturn($ruleWithUppercaseIp);
+
+        $this->client->expects($this->never())
+            ->method('post');
+
+        $result = $this->limiter->reconcile();
+
+        $this->assertSame([], $result->added);
+        $this->assertSame([], $result->removed);
+        $this->assertSame(['2001:db8::1'], $result->unchanged);
+        $this->assertSame([], $result->errors);
+    }
+
     // --- filter helper tests ---
 
     #[AllowMockObjectsWithoutExpectations]
