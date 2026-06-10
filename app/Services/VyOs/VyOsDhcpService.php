@@ -43,7 +43,9 @@ class VyOsDhcpService implements DhcpInterface
 
     public function getLease(string $ipAddress): ?DhcpLease
     {
-        return $this->getLeases()->first(fn (DhcpLease $lease): bool => $lease->ip === $ipAddress);
+        $needle = IpAddress::normalize($ipAddress);
+
+        return $this->getLeases()->first(fn (DhcpLease $lease): bool => IpAddress::normalize($lease->ip) === $needle);
     }
 
     /** @return Collection<int, DhcpRange> */

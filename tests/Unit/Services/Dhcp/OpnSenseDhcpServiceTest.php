@@ -145,6 +145,26 @@ class OpnSenseDhcpServiceTest extends TestCase
         $this->assertNull($lease);
     }
 
+    public function test_get_lease_matches_ipv6_address_case_insensitively(): void
+    {
+        $service = $this->createServiceWithMock([
+            new Response(200, [], (string) json_encode([
+                'rows' => [
+                    ['address' => '2001:DB8::100', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'v6device', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
+                ],
+                'rowCount' => 1,
+                'total' => 1,
+                'current' => 1,
+            ])),
+        ]);
+
+        $lease = $service->getLease('2001:db8::100');
+
+        $this->assertNotNull($lease);
+        $this->assertSame('2001:DB8::100', $lease->ip);
+        $this->assertSame('aa:bb:cc:dd:ee:ff', $lease->mac);
+    }
+
     public function test_fetch_leases_uses_post_when_leases_use_post_is_true(): void
     {
         // Covers lines 338-341: fetchLeases POST branch (leasesUsePost = true)

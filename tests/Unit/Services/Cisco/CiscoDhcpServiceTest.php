@@ -612,6 +612,21 @@ class CiscoDhcpServiceTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // getLease() — IPv6 case-insensitive match
+    // -------------------------------------------------------------------------
+
+    public function test_get_lease_matches_ipv6_address_case_insensitively(): void
+    {
+        $this->expectTransportCall();
+
+        $service = $this->createService();
+        $lease = $service->getLease('2001:db8::100');
+
+        $this->assertInstanceOf(DhcpLease::class, $lease);
+        $this->assertSame('2001:DB8::100', $lease->ip);
+    }
+
+    // -------------------------------------------------------------------------
     // resetSnapshot() — clears cached data and re-fetches
     // -------------------------------------------------------------------------
 

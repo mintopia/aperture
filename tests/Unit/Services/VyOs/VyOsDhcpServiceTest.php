@@ -242,6 +242,25 @@ class VyOsDhcpServiceTest extends TestCase
         $this->assertNull($lease);
     }
 
+    public function test_get_lease_matches_ipv6_address_case_insensitively(): void
+    {
+        $this->stubEmptyV4Leases();
+
+        $this->client->shouldReceive('showText')
+            ->with(['dhcpv6', 'server', 'leases'])
+            ->once()
+            ->andReturn($this->dhcpv6LeaseText([
+                ['ip' => '2001:DB8::100', 'hostname' => 'v6host'],
+            ]));
+
+        $service = $this->createService();
+        $lease = $service->getLease('2001:db8::100');
+
+        $this->assertNotNull($lease);
+        $this->assertSame('2001:DB8::100', $lease->ip);
+        $this->assertSame('v6host', $lease->hostname);
+    }
+
     public function test_get_ranges_returns_dhcpv4_ranges(): void
     {
         $this->client->shouldReceive('retrieve')

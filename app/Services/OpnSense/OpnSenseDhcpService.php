@@ -71,8 +71,10 @@ class OpnSenseDhcpService implements DhcpInterface
 
     public function getLease(string $ipAddress): ?DhcpLease
     {
+        $needle = IpAddress::normalize($ipAddress);
+
         $leases = $this->fetchLeases();
-        $match = $leases->firstWhere('address', $ipAddress);
+        $match = $leases->first(fn (array $row): bool => IpAddress::normalize($row['address']) === $needle);
 
         if ($match === null) {
             return null;
