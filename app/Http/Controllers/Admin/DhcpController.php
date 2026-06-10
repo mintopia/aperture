@@ -27,9 +27,9 @@ class DhcpController extends Controller
                 'network' => $range->subnet ?: $range->prefix,
                 'start' => $range->range_from,
                 'end' => $range->range_to,
-                'used' => (int) ($range->used_addresses ?? 0),
-                'total' => (int) ($range->total_addresses ?? 0),
-                'percentage' => $range->utilisation !== null ? round((float) $range->utilisation * 100, 1) : 0,
+                'used' => $range->used_addresses !== null ? (int) $range->used_addresses : null,
+                'total' => $range->total_addresses !== null ? (int) $range->total_addresses : null,
+                'percentage' => $range->utilisation !== null ? round((float) $range->utilisation * 100, 1) : null,
             ]);
 
         $syncState = DhcpSyncState::where('integration', $integration)

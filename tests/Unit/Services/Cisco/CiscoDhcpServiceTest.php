@@ -312,12 +312,186 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertInstanceOf(DhcpRange::class, $noPrefix);
         $this->assertNull($noPrefix->prefix);
         $this->assertNull($noPrefix->totalAddresses);
+        $this->assertNull($noPrefix->usedAddresses);
 
         // Prefix without a /length suffix → unparsable → totalAddresses null
         $badPrefix = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'BADPREFIX6');
         $this->assertInstanceOf(DhcpRange::class, $badPrefix);
         $this->assertSame('2001:DB8::', $badPrefix->prefix);
         $this->assertNull($badPrefix->totalAddresses);
+        $this->assertNull($badPrefix->usedAddresses);
+    }
+
+    // -------------------------------------------------------------------------
+    // getRanges() — IPv6 used addresses counted from bindings within the prefix
+    // -------------------------------------------------------------------------
+
+    public function test_get_ranges_ipv6_counts_used_addresses_from_bindings(): void
+    {
+        $this->expectTransportCall();
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
+        $this->assertInstanceOf(DhcpRange::class, $lan6);
+        // Binding 2001:DB8::100 falls within 2001:DB8::/64
+        $this->assertSame(1, $lan6->usedAddresses);
+        // /64 totals remain uncountable → null total and utilisation
+        $this->assertNull($lan6->totalAddresses);
+        $this->assertNull($lan6->utilisation);
+    }
+
+    public function test_get_ranges_ipv6_attributes_bindings_to_matching_pool_prefix(): void
+    {
+        $outputs = $this->defaultCommandOutputs();
+        $outputs['show ipv6 dhcp binding'] = implode("\n", [
+            'Client: FE80::1',
+            '  DUID: 00030001AABBCCDDEEFF',
+            '  IA NA: IA ID 0x00000001, T1 43200, T2 69120',
+            '    Address: 2001:DB8::100',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+            'Client: FE80::2',
+            '  DUID: 000300011122334455AA',
+            '  IA NA: IA ID 0x00000002, T1 43200, T2 69120',
+            '    Address: 2001:DB8::101',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+            'Client: FE80::3',
+            '  DUID: 00030001AABB11223344',
+            '  IA NA: IA ID 0x00000003, T1 43200, T2 69120',
+            '    Address: 2001:DB8:0:1::5',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+        ]);
+        $outputs['show running-config | section ipv6 dhcp pool'] = implode("\n", [
+            'ipv6 dhcp pool LAN6',
+            ' address prefix 2001:DB8::/64',
+            '!',
+            'ipv6 dhcp pool OTHER6',
+            ' address prefix 2001:DB8:0:1::/64',
+            '!',
+        ]);
+
+        $this->expectTransportCall(outputs: $outputs);
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
+        $this->assertInstanceOf(DhcpRange::class, $lan6);
+        $this->assertSame(2, $lan6->usedAddresses);
+
+        $other6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'OTHER6');
+        $this->assertInstanceOf(DhcpRange::class, $other6);
+        $this->assertSame(1, $other6->usedAddresses);
+    }
+
+    public function test_get_ranges_ipv6_used_zero_when_no_bindings_in_prefix(): void
+    {
+        $outputs = $this->defaultCommandOutputs();
+        $outputs['show running-config | section ipv6 dhcp pool'] = implode("\n", [
+            'ipv6 dhcp pool EMPTY6',
+            ' address prefix 2001:DB8:FF::/64',
+            '!',
+        ]);
+
+        $this->expectTransportCall(outputs: $outputs);
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $empty6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'EMPTY6');
+        $this->assertInstanceOf(DhcpRange::class, $empty6);
+        // Valid prefix but no bindings within it → a known count of zero
+        $this->assertSame(0, $empty6->usedAddresses);
+    }
+
+    public function test_get_ranges_ipv6_used_null_when_prefix_network_invalid(): void
+    {
+        $outputs = $this->defaultCommandOutputs();
+        $outputs['show running-config | section ipv6 dhcp pool'] = implode("\n", [
+            'ipv6 dhcp pool GARBAGE6',
+            ' address prefix nonsense/64',
+            '!',
+            'ipv6 dhcp pool V4PREFIX6',
+            ' address prefix 10.0.0.0/24',
+            '!',
+        ]);
+
+        $this->expectTransportCall(outputs: $outputs);
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        // Network part is not a valid IPv6 address → unknown usage
+        $garbage = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'GARBAGE6');
+        $this->assertInstanceOf(DhcpRange::class, $garbage);
+        $this->assertNull($garbage->usedAddresses);
+
+        // IPv4 network in an IPv6 pool prefix → unknown usage
+        $v4Prefix = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'V4PREFIX6');
+        $this->assertInstanceOf(DhcpRange::class, $v4Prefix);
+        $this->assertNull($v4Prefix->usedAddresses);
+    }
+
+    public function test_get_ranges_ipv6_ignores_unparsable_binding_addresses(): void
+    {
+        $outputs = $this->defaultCommandOutputs();
+        $outputs['show ipv6 dhcp binding'] = implode("\n", [
+            'Client: FE80::1',
+            '  DUID: 00030001AABBCCDDEEFF',
+            '  IA NA: IA ID 0x00000001, T1 43200, T2 69120',
+            '    Address: not-an-address',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+            'Client: FE80::2',
+            '  DUID: 000300011122334455AA',
+            '  IA NA: IA ID 0x00000002, T1 43200, T2 69120',
+            '    Address: 2001:DB8::101',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+        ]);
+
+        $this->expectTransportCall(outputs: $outputs);
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
+        $this->assertInstanceOf(DhcpRange::class, $lan6);
+        // The malformed address is skipped; only 2001:DB8::101 is counted
+        $this->assertSame(1, $lan6->usedAddresses);
+    }
+
+    public function test_get_ranges_ipv6_utilisation_computed_when_total_known(): void
+    {
+        $outputs = $this->defaultCommandOutputs();
+        $outputs['show ipv6 dhcp binding'] = implode("\n", [
+            'Client: FE80::1',
+            '  DUID: 00030001AABBCCDDEEFF',
+            '  IA NA: IA ID 0x00000001, T1 43200, T2 69120',
+            '    Address: 2001:DB8::101',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+            'Client: FE80::2',
+            '  DUID: 000300011122334455AA',
+            '  IA NA: IA ID 0x00000002, T1 43200, T2 69120',
+            '    Address: 2001:DB8::104',
+            '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
+        ]);
+        $outputs['show running-config | section ipv6 dhcp pool'] = implode("\n", [
+            'ipv6 dhcp pool TINY6',
+            ' address prefix 2001:DB8::100/126',
+            '!',
+        ]);
+
+        $this->expectTransportCall(outputs: $outputs);
+
+        $service = $this->createService();
+        $ranges = $service->getRanges();
+
+        $tiny6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'TINY6');
+        $this->assertInstanceOf(DhcpRange::class, $tiny6);
+        // /126 covers 2001:DB8::100–103: ::101 is inside, ::104 is outside
+        $this->assertSame(1, $tiny6->usedAddresses);
+        $this->assertSame(4, $tiny6->totalAddresses);
+        $this->assertEqualsWithDelta(0.25, $tiny6->utilisation, 0.0001);
     }
 
     // -------------------------------------------------------------------------

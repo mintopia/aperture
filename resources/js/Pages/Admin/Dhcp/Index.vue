@@ -46,14 +46,22 @@ const sortedRanges = computed(() => {
 
 const totalUsed = computed(() => props.ranges.reduce((sum, r) => sum + (r.used ?? 0), 0));
 const totalAddresses = computed(() => props.ranges.reduce((sum, r) => sum + (r.total ?? 0), 0));
-const overallUtilisation = computed(() =>
-    totalAddresses.value ? ((totalUsed.value / totalAddresses.value) * 100).toFixed(1) : '0.0',
-);
+const overallUtilisation = computed(() => {
+    if (!totalAddresses.value) return '—';
+    const knownUsed = props.ranges.filter((r) => r.total != null).reduce((sum, r) => sum + (r.used ?? 0), 0);
+    return `${((knownUsed / totalAddresses.value) * 100).toFixed(1)}%`;
+});
 
 function barColor(pct) {
     if (pct > 90) return 'var(--color-danger)';
     if (pct > 70) return 'var(--color-warning)';
     return 'var(--color-success)';
+}
+
+function usageLabel(row) {
+    if (row.total != null) return `${row.used ?? '—'} / ${row.total}`;
+    if (row.used != null) return `${row.used} used`;
+    return '—';
 }
 </script>
 
@@ -82,7 +90,7 @@ function barColor(pct) {
                 { label: 'Ranges', value: ranges.length },
                 { label: 'Used', value: totalUsed, mono: true },
                 { label: 'Total', value: totalAddresses, mono: true },
-                { label: 'Utilisation', value: overallUtilisation + '%' },
+                { label: 'Utilisation', value: overallUtilisation },
             ]"
         />
 
@@ -116,29 +124,41 @@ function barColor(pct) {
                 </td>
                 <td :data-testid="`range-row-${index}-usage`">
                     <div class="flex items-center gap-2">
-                        <div class="h-[6px] w-24 overflow-hidden rounded-[3px] bg-[var(--color-surface-hover)]">
-                            <div
-                                :data-testid="`range-usage-bar-${index}`"
-                                class="h-full rounded-[3px] transition-[width] duration-300"
-                                :style="{
-                                    width: `${(row.percentage ?? 0) > 0 ? Math.max(Math.min(row.percentage ?? 0, 100), 2) : 0}%`,
-                                    backgroundColor: barColor(row.percentage ?? 0),
-                                }"
-                            />
-                        </div>
+                        <template v-if="row.percentage != null">
+                            <div class="h-[6px] w-24 overflow-hidden rounded-[3px] bg-[var(--color-surface-hover)]">
+                                <div
+                                    :data-testid="`range-usage-bar-${index}`"
+                                    class="h-full rounded-[3px] transition-[width] duration-300"
+                                    :style="{
+                                        width: `${row.percentage > 0 ? Math.max(Math.min(row.percentage, 100), 2) : 0}%`,
+                                        backgroundColor: barColor(row.percentage),
+                                    }"
+                                />
+                            </div>
+                            <span
+                                :data-testid="`range-percentage-${index}`"
+                                class="min-w-[32px] text-right font-mono text-[11px]"
+                                :class="
+                                    row.percentage > 90
+                                        ? 'text-[var(--color-danger)]'
+                                        : 'text-[var(--color-text-secondary)]'
+                                "
+                            >
+                                {{ row.percentage.toFixed(1) }}%
+                            </span>
+                        </template>
                         <span
+                            v-else
                             :data-testid="`range-percentage-${index}`"
-                            class="min-w-[32px] text-right font-mono text-[11px]"
-                            :class="
-                                (row.percentage ?? 0) > 90
-                                    ? 'text-[var(--color-danger)]'
-                                    : 'text-[var(--color-text-secondary)]'
-                            "
+                            class="min-w-[32px] text-right font-mono text-[11px] text-[var(--color-text-muted)]"
                         >
-                            {{ (row.percentage ?? 0).toFixed(1) }}%
+                            &mdash;
                         </span>
-                        <span class="font-mono text-[11px] text-[var(--color-text-muted)]">
-                            {{ row.used }} / {{ row.total }}
+                        <span
+                            :data-testid="`range-count-${index}`"
+                            class="font-mono text-[11px] text-[var(--color-text-muted)]"
+                        >
+                            {{ usageLabel(row) }}
                         </span>
                     </div>
                 </td>

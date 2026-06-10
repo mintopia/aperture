@@ -68,6 +68,47 @@ class DhcpControllerTest extends TestCase
         );
     }
 
+    public function test_index_passes_null_usage_fields_when_unknown(): void
+    {
+        CapabilityAssignment::factory()->create([
+            'capability' => 'dhcp',
+            'integration' => 'cisco',
+        ]);
+
+        // IPv6 pool with a known used count but uncountable total (/64)
+        DhcpRangeRecord::factory()->ipv6()->create([
+            'integration' => 'cisco',
+            'interface' => 'VLAN400_DHCPV6',
+            'used_addresses' => '3',
+            'total_addresses' => null,
+            'utilisation' => null,
+        ]);
+
+        // IPv6 pool where usage is entirely unknown
+        DhcpRangeRecord::factory()->ipv6()->create([
+            'integration' => 'cisco',
+            'interface' => 'VLAN440_DHCPV6',
+            'used_addresses' => null,
+            'total_addresses' => null,
+            'utilisation' => null,
+        ]);
+
+        $admin = $this->createAdminUser();
+        $response = $this->actingAs($admin)->get('/admin/dhcp');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Dhcp/Index')
+            ->has('ranges', 2)
+            ->where('ranges.0.used', 3)
+            ->where('ranges.0.total', null)
+            ->where('ranges.0.percentage', null)
+            ->where('ranges.1.used', null)
+            ->where('ranges.1.total', null)
+            ->where('ranges.1.percentage', null)
+        );
+    }
+
     public function test_leases_page_renders_leases_from_database(): void
     {
         CapabilityAssignment::factory()->create([

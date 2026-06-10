@@ -145,9 +145,17 @@ class CiscoDhcpService implements DhcpInterface
             /** @var array{pools: array<int, array{name: string, prefix: string}>} $ipv6Config */
             $ipv6Config = $this->snapshot['ipv6_pool_config'] ?? ['pools' => []];
 
+            /** @var array<int, array{ip: string, mac: string|null, expires: string}> $ipv6Bindings */
+            $ipv6Bindings = $this->snapshot['ipv6_bindings'] ?? [];
+
             $ipv6Ranges = collect($ipv6Config['pools'])
-                ->map(function (array $pool): DhcpRange {
+                ->map(function (array $pool) use ($ipv6Bindings): DhcpRange {
                     $prefix = $pool['prefix'] !== '' ? $pool['prefix'] : null;
+                    $total = $this->ipv6TotalAddresses($prefix);
+                    $used = $this->countIpv6BindingsInPrefix($ipv6Bindings, $prefix);
+                    $utilisation = $total !== null && $total > 0 && $used !== null
+                        ? round($used / $total, 4)
+                        : null;
 
                     return new DhcpRange(
                         interface: $pool['name'],
@@ -158,7 +166,9 @@ class CiscoDhcpService implements DhcpInterface
                         prefix: $prefix,
                         gateway: null,
                         description: null,
-                        totalAddresses: $this->ipv6TotalAddresses($prefix),
+                        totalAddresses: $total,
+                        usedAddresses: $used,
+                        utilisation: $utilisation,
                     );
                 });
 
@@ -187,6 +197,74 @@ class CiscoDhcpService implements DhcpInterface
 
             return $ip !== false && $ip >= $start && $ip <= $end;
         }));
+    }
+
+    /**
+     * Count IPv6 bindings whose address falls within the given prefix.
+     *
+     * Comparison uses inet_pton with byte/bit masking on the prefix length —
+     * not string matching — so compressed and expanded notations agree.
+     * Returns null when the prefix is missing or unparsable (usage unknown);
+     * a valid prefix with no matching bindings yields a known count of 0.
+     *
+     * @param  array<int, array{ip: string, mac: string|null, expires: string}>  $bindings
+     */
+    private function countIpv6BindingsInPrefix(array $bindings, ?string $prefix): ?int
+    {
+        if ($prefix === null || preg_match('#^(.+)/(\d+)$#', $prefix, $matches) !== 1) {
+            return null;
+        }
+
+        $length = (int) $matches[2];
+        $network = $this->packIpv6($matches[1]);
+
+        if ($network === null || $length > 128) {
+            return null;
+        }
+
+        return count(array_filter(
+            $bindings,
+            function (array $binding) use ($network, $length): bool {
+                $packed = $this->packIpv6($binding['ip']);
+
+                return $packed !== null && $this->ipv6PrefixMatches($packed, $network, $length);
+            }
+        ));
+    }
+
+    /**
+     * Pack an IPv6 address into its 16-byte binary form, or null if invalid.
+     */
+    private function packIpv6(string $address): ?string
+    {
+        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            return null;
+        }
+
+        $packed = inet_pton($address);
+
+        return $packed !== false ? $packed : null;
+    }
+
+    /**
+     * Compare two packed IPv6 addresses on the first $length bits.
+     */
+    private function ipv6PrefixMatches(string $packed, string $network, int $length): bool
+    {
+        $fullBytes = intdiv($length, 8);
+        $remainingBits = $length % 8;
+
+        if ($fullBytes > 0 && substr($packed, 0, $fullBytes) !== substr($network, 0, $fullBytes)) {
+            return false;
+        }
+
+        if ($remainingBits === 0) {
+            return true;
+        }
+
+        $mask = (0xFF << (8 - $remainingBits)) & 0xFF;
+
+        return (ord($packed[$fullBytes]) & $mask) === (ord($network[$fullBytes]) & $mask);
     }
 
     /**

@@ -29,9 +29,9 @@ describe('Dhcp/Index', () => {
         network: 'fd00::/64',
         start: null,
         end: null,
-        used: 0,
-        total: 0,
-        percentage: 0,
+        used: 3,
+        total: null,
+        percentage: null,
     };
 
     const mountComponent = (props = {}) => {
@@ -155,5 +155,49 @@ describe('Dhcp/Index', () => {
     it('renders metadata strip with summary info', () => {
         const wrapper = mountComponent({ ranges: [ipv4Range, ipv6Range] });
         expect(wrapper.find('[data-testid="metadata-strip"]').exists()).toBe(true);
+    });
+
+    it('shows used count alone when total is unknown', () => {
+        const wrapper = mountComponent({ ranges: [ipv6Range] });
+        expect(wrapper.find('[data-testid="range-count-0"]').text()).toBe('3 used');
+        expect(wrapper.find('[data-testid="range-usage-bar-0"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="range-percentage-0"]').text()).toBe('—');
+    });
+
+    it('shows em dash when usage is entirely unknown', () => {
+        const unknownRange = { ...ipv6Range, used: null };
+        const wrapper = mountComponent({ ranges: [unknownRange] });
+        expect(wrapper.find('[data-testid="range-count-0"]').text()).toBe('—');
+        expect(wrapper.find('[data-testid="range-usage-bar-0"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="range-percentage-0"]').text()).toBe('—');
+    });
+
+    it('shows em dash for used count when only used is unknown', () => {
+        const partialRange = { ...ipv4Range, used: null };
+        const wrapper = mountComponent({ ranges: [partialRange] });
+        expect(wrapper.find('[data-testid="range-count-0"]').text()).toBe('— / 101');
+        expect(wrapper.find('[data-testid="range-percentage-0"]').text()).toBe('41.6%');
+    });
+
+    it('renders used and total counts for IPv4 range', () => {
+        const wrapper = mountComponent({ ranges: [ipv4Range] });
+        expect(wrapper.find('[data-testid="range-count-0"]').text()).toBe('42 / 101');
+    });
+
+    it('aggregates summary cards from known values only', () => {
+        const wrapper = mountComponent({ ranges: [ipv4Range, ipv6Range] });
+        const items = wrapper.getComponent('[data-testid="metadata-strip"]').props('items');
+        expect(items).toEqual([
+            { label: 'Ranges', value: 2 },
+            { label: 'Used', value: 45, mono: true },
+            { label: 'Total', value: 101, mono: true },
+            { label: 'Utilisation', value: '41.6%' },
+        ]);
+    });
+
+    it('shows em dash utilisation when no totals are known', () => {
+        const wrapper = mountComponent({ ranges: [ipv6Range] });
+        const items = wrapper.getComponent('[data-testid="metadata-strip"]').props('items');
+        expect(items[3]).toEqual({ label: 'Utilisation', value: '—' });
     });
 });
