@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Events\IpMacLinked;
 use App\Models\AuditLog;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
@@ -96,6 +97,10 @@ class PortalController extends Controller
                         metadata: ['client_ip' => (string) $request->getClientIp()],
                     );
                 }
+
+                // Dispatch on refresh too, so existing links can heal missing
+                // user associations (ADR-011).
+                IpMacLinked::dispatch($ip, $mac, 'ipv6_detection', 'ipv6_detection');
             }
         }
 

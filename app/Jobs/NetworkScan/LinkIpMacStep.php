@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs\NetworkScan;
 
+use App\Events\IpMacLinked;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
@@ -29,15 +30,17 @@ final class LinkIpMacStep
             }
 
             $normalized = MacAddress::normalize($lease->mac);
-            if ($lease->ip !== '' && $normalized !== '') {
-                $pairs[] = ['ip' => $lease->ip, 'mac' => $normalized, 'source' => 'dhcp'];
+            $address = IpAddress::normalize($lease->ip);
+            if ($address !== '' && $normalized !== '') {
+                $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'dhcp'];
             }
         }
 
         foreach ($arpEntries as $arp) {
             $normalized = MacAddress::normalize($arp->mac);
-            if ($arp->ip !== '' && $normalized !== '') {
-                $pairs[] = ['ip' => $arp->ip, 'mac' => $normalized, 'source' => 'arp'];
+            $address = IpAddress::normalize($arp->ip);
+            if ($address !== '' && $normalized !== '') {
+                $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'arp'];
             }
         }
 
@@ -77,6 +80,10 @@ final class LinkIpMacStep
                     metadata: ['source' => $pair['source']],
                 );
             }
+
+            // Dispatch on refresh too, so existing links that never received a
+            // user association can heal on the next scan (ADR-011).
+            IpMacLinked::dispatch($ip, $mac, $pair['source'], 'scan_network');
         }
     }
 }

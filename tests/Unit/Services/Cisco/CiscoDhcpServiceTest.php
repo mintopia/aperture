@@ -180,7 +180,7 @@ class CiscoDhcpServiceTest extends TestCase
         $ipv6Leases = $leases->filter(fn (DhcpLease $l): bool => str_contains($l->ip, ':'));
 
         $this->assertCount(1, $ipv6Leases);
-        $this->assertSame('2001:DB8::100', $ipv6Leases->first()->ip);
+        $this->assertSame('2001:db8::100', $ipv6Leases->first()->ip);
         $this->assertNull($ipv6Leases->first()->mac === 'AA:BB:CC:DD:EE:FF' ? null : false,
             'MAC should match DUID-derived value');
         $this->assertSame('AA:BB:CC:DD:EE:FF', $ipv6Leases->first()->mac);
@@ -623,7 +623,7 @@ class CiscoDhcpServiceTest extends TestCase
         $lease = $service->getLease('2001:db8::100');
 
         $this->assertInstanceOf(DhcpLease::class, $lease);
-        $this->assertSame('2001:DB8::100', $lease->ip);
+        $this->assertSame('2001:db8::100', $lease->ip);
     }
 
     // -------------------------------------------------------------------------

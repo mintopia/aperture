@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\IpMacLinked;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\UserIpAddress;
@@ -11,6 +12,7 @@ use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\RateLimitingInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class IpAddressActionService
@@ -37,7 +39,7 @@ class IpAddressActionService
             $mac = $this->macResolver->resolveIpToMac($ip->address);
             if ($mac !== null) {
                 $macAddress = MacAddress::firstOrCreate(
-                    ['mac_address' => $mac],
+                    ['mac_address' => MacAddress::normalize($mac)],
                     ['source' => 'auth'],
                 );
 
@@ -49,9 +51,18 @@ class IpAddressActionService
                     $macAddress->user_id = (int) $userIp->user->id;
                     $macAddress->save();
                 }
+
+                // Fires for both fresh links and refreshes, so links created
+                // here without a user association can heal later (ADR-011).
+                IpMacLinked::dispatch($ip, $macAddress, 'auth', 'auth');
             }
-        } catch (Throwable) {
-            // MAC resolution is best-effort
+        } catch (Throwable $throwable) {
+            // MAC resolution and ownership cascade are best-effort, but the
+            // failure should not be invisible.
+            Log::warning('MAC resolution/cascade failed during enableInternet', [
+                'ip' => $ip->address,
+                'exception' => $throwable,
+            ]);
         }
     }
 

@@ -18,7 +18,7 @@ final class PersistDhcpLeasesStep
      */
     public function __invoke(Collection $leases, NetworkRangeService $rangeService): void
     {
-        $ips = IpAddress::whereIn('address', $leases->map(fn ($l): string => $l->ip))->get()->keyBy('address');
+        $ips = IpAddress::whereIn('address', $leases->map(fn ($l): string => IpAddress::normalize($l->ip)))->get()->keyBy('address');
         $macs = MacAddress::whereIn('mac_address', $leases->filter(fn ($l): bool => $l->mac !== null)->map(fn ($l): string => MacAddress::normalize((string) $l->mac)))->get()->keyBy('mac_address');
 
         foreach ($leases as $lease) {
@@ -30,7 +30,7 @@ final class PersistDhcpLeasesStep
                 continue;
             }
 
-            $ip = $ips->get($lease->ip);
+            $ip = $ips->get(IpAddress::normalize($lease->ip));
             $mac = $macs->get(MacAddress::normalize($lease->mac));
 
             if ($ip === null || $mac === null) {

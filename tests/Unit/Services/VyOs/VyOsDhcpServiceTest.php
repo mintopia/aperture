@@ -257,7 +257,7 @@ class VyOsDhcpServiceTest extends TestCase
         $lease = $service->getLease('2001:db8::100');
 
         $this->assertNotNull($lease);
-        $this->assertSame('2001:DB8::100', $lease->ip);
+        $this->assertSame('2001:db8::100', $lease->ip);
         $this->assertSame('v6host', $lease->hostname);
     }
 

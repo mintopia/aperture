@@ -23,14 +23,16 @@ final class PersistIpsStep
         $allIps = collect();
 
         foreach ($leases as $lease) {
-            if ($lease->ip !== '' && ! $allIps->has($lease->ip)) {
-                $allIps->put($lease->ip, 'dhcp');
+            $address = IpAddress::normalize($lease->ip);
+            if ($address !== '' && ! $allIps->has($address)) {
+                $allIps->put($address, 'dhcp');
             }
         }
 
         foreach ($arpEntries as $arp) {
-            if ($arp->ip !== '' && ! $allIps->has($arp->ip)) {
-                $allIps->put($arp->ip, 'arp');
+            $address = IpAddress::normalize($arp->ip);
+            if ($address !== '' && ! $allIps->has($address)) {
+                $allIps->put($address, 'arp');
             }
         }
 

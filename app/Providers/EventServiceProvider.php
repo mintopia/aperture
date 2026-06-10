@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Events\IpMacLinked;
+use App\Listeners\CascadeMacOwnershipOnLink;
 use App\Listeners\RecordBroadcastEvent;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -19,6 +21,9 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         Registered::class => [
             SendEmailVerificationNotification::class,
+        ],
+        IpMacLinked::class => [
+            CascadeMacOwnershipOnLink::class,
         ],
     ];
 

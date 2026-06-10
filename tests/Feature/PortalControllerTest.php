@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Events\IpMacLinked;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
@@ -11,6 +12,7 @@ use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\Ipv6JwtService;
 use Firebase\JWT\SignatureInvalidException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
@@ -541,5 +543,66 @@ class PortalControllerTest extends TestCase
             'subject_id' => $ipv6Record->id,
             'process' => 'ipv6_detection',
         ]);
+    }
+
+    public function test_ipv6_mac_linkage_dispatches_ip_mac_linked_event(): void
+    {
+        Queue::fake();
+        Event::fake([IpMacLinked::class]);
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $clientIp = IpAddress::factory()->create(['address' => '127.0.0.1']);
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+        $clientIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->andReturn('2001:db8::6');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
+
+        $ipv6Record = IpAddress::whereAddress('2001:db8::6')->first();
+        $this->assertNotNull($ipv6Record);
+
+        Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ipv6Record)
+            && $event->mac->is($mac)
+            && $event->source === 'ipv6_detection'
+            && $event->process === 'ipv6_detection');
+    }
+
+    public function test_ipv6_dispatches_ip_mac_linked_event_when_mac_already_linked(): void
+    {
+        Queue::fake();
+        Event::fake([IpMacLinked::class]);
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $clientIp = IpAddress::factory()->create(['address' => '127.0.0.1']);
+        $ipv6Record = IpAddress::factory()->create(['address' => '2001:db8::7']);
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
+
+        $clientIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+        $ipv6Record->macAddresses()->attach($mac, [
+            'source' => 'ipv6_detection',
+            'last_seen_at' => now()->subHour(),
+        ]);
+
+        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
+
+        $jwtService = Mockery::mock(Ipv6JwtService::class);
+        $jwtService->shouldReceive('verifyAndExtract')
+            ->andReturn('2001:db8::7');
+        $this->app->instance(Ipv6JwtService::class, $jwtService);
+
+        $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
+
+        // The update-existing-pivot branch must also dispatch, so existing
+        // production links can heal user associations.
+        Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ipv6Record)
+            && $event->mac->is($mac)
+            && $event->source === 'ipv6_detection'
+            && $event->process === 'ipv6_detection');
     }
 }
