@@ -239,7 +239,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
                     'prefix' => $range->prefix,
                     'gateway' => $range->gateway,
                     'description' => $range->description,
-                    'total_addresses' => $range->totalAddresses !== null ? (string) $range->totalAddresses : null,
+                    'total_addresses' => $range->totalAddresses,
                     'used_addresses' => $range->usedAddresses !== null ? (string) $range->usedAddresses : null,
                     'utilisation' => $range->utilisation !== null ? (string) $range->utilisation : null,
                 ],

@@ -75,6 +75,39 @@ describe('DhcpPoolsCard', () => {
         expect(totalCell.classes()).toContain('font-mono');
     });
 
+    it('renders huge string totals in scientific notation with the exact value in the title', () => {
+        const wrapper = mount(DhcpPoolsCard, {
+            props: {
+                pools: [
+                    {
+                        name: 'V6 LAN',
+                        network: '2a0f:85c1:d91:2100::/64',
+                        used: 3,
+                        total: '18446744073709551616',
+                        utilisation: 0,
+                    },
+                ],
+            },
+        });
+
+        const totalCell = wrapper.find('[data-testid="dhcp-pool-total"]');
+
+        expect(totalCell.text()).toBe('1.8e19');
+        expect(totalCell.attributes('title')).toBe('18446744073709551616');
+    });
+
+    it('renders six-figure string totals with locale grouping', () => {
+        const wrapper = mount(DhcpPoolsCard, {
+            props: {
+                pools: [{ name: 'Big', network: '10.0.0.0/8', used: 12, total: '999999', utilisation: 0 }],
+            },
+        });
+
+        const totalCell = wrapper.find('[data-testid="dhcp-pool-total"]');
+
+        expect(totalCell.text()).toBe('999,999');
+    });
+
     it('shows em dash when network is null', () => {
         const wrapper = mount(DhcpPoolsCard, {
             props: {
@@ -115,6 +148,46 @@ describe('DhcpPoolsCard', () => {
         const bar = wrapper.find('[data-testid="dhcp-pool-bar"]');
 
         expect(bar.attributes('style')).toContain('width: 50%');
+    });
+
+    it('renders a zero-width bar for a zero-total pool while normal pools keep their width', () => {
+        const wrapper = mount(DhcpPoolsCard, {
+            props: {
+                pools: [
+                    {
+                        name: 'V6 Stateless',
+                        network: '2a0f:85c1:d91:2100::/64',
+                        used: 0,
+                        total: '0',
+                        utilisation: 0,
+                    },
+                    { name: 'Users', network: '10.0.0.0/24', used: 50, total: 100, utilisation: 0.5 },
+                ],
+            },
+        });
+
+        const bars = wrapper.findAll('[data-testid="dhcp-pool-bar"]');
+
+        expect(bars[0].attributes('style')).toContain('width: 0%');
+        expect(bars[1].attributes('style')).toContain('width: 50%');
+    });
+
+    it('renders a zero-width bar for invalid totals and non-positive usage', () => {
+        const wrapper = mount(DhcpPoolsCard, {
+            props: {
+                pools: [
+                    { name: 'Bad total', network: '10.0.4.0/24', used: 5, total: 'unknown', utilisation: 0 },
+                    { name: 'No used', network: '10.0.5.0/24', used: undefined, total: 100, utilisation: 0 },
+                    { name: 'Empty', network: '10.0.6.0/24', used: 0, total: 100, utilisation: 0 },
+                ],
+            },
+        });
+
+        const bars = wrapper.findAll('[data-testid="dhcp-pool-bar"]');
+
+        expect(bars[0].attributes('style')).toContain('width: 0%');
+        expect(bars[1].attributes('style')).toContain('width: 0%');
+        expect(bars[2].attributes('style')).toContain('width: 0%');
     });
 
     it('caps progress bar width at 100%', () => {

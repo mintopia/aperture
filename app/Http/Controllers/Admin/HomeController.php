@@ -92,7 +92,7 @@ class HomeController extends Controller
         return redirect()->route('admin.home')->with('success', 'Portal reset initiated.');
     }
 
-    /** @return list<array{name: string, network: string|null, used: int, total: int, utilisation: float}> */
+    /** @return list<array{name: string, network: string|null, used: int, total: string, utilisation: float}> */
     private function getDhcpPools(): array
     {
         $integration = CapabilityAssignment::activeIntegration('dhcp');
@@ -103,7 +103,9 @@ class HomeController extends Controller
                 'name' => $range->description ?? $range->interface,
                 'network' => $range->subnet ?: $range->prefix,
                 'used' => $range->used_addresses !== null ? (int) $range->used_addresses : 0,
-                'total' => $range->total_addresses !== null ? (int) $range->total_addresses : 0,
+                // Totals can exceed PHP_INT_MAX (IPv6 /64 → 2^64), so they stay
+                // exact decimal numeric strings end-to-end.
+                'total' => $range->total_addresses ?? '0',
                 'utilisation' => $range->utilisation !== null ? (float) $range->utilisation : 0.0,
             ])
             ->all());

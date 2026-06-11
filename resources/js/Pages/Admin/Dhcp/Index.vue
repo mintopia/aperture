@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
+import { formatPoolTotal } from '@/helpers.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -45,11 +46,13 @@ const sortedRanges = computed(() => {
 });
 
 const totalUsed = computed(() => props.ranges.reduce((sum, r) => sum + (r.used ?? 0), 0));
-const totalAddresses = computed(() => props.ranges.reduce((sum, r) => sum + (r.total ?? 0), 0));
+// Totals are exact decimal numeric strings that can exceed
+// Number.MAX_SAFE_INTEGER (e.g. 2^64 for an IPv6 /64), so sum with BigInt.
+const totalAddresses = computed(() => props.ranges.reduce((sum, r) => sum + BigInt(r.total ?? 0), 0n));
 const overallUtilisation = computed(() => {
-    if (!totalAddresses.value) return '—';
+    if (totalAddresses.value === 0n) return '—';
     const knownUsed = props.ranges.filter((r) => r.total != null).reduce((sum, r) => sum + (r.used ?? 0), 0);
-    return `${((knownUsed / totalAddresses.value) * 100).toFixed(1)}%`;
+    return `${((knownUsed / Number(totalAddresses.value)) * 100).toFixed(1)}%`;
 });
 
 function barColor(pct) {
@@ -59,7 +62,7 @@ function barColor(pct) {
 }
 
 function usageLabel(row) {
-    if (row.total != null) return `${row.used ?? '—'} / ${row.total}`;
+    if (row.total != null) return `${row.used ?? '—'} / ${formatPoolTotal(row.total)}`;
     if (row.used != null) return `${row.used} used`;
     return '—';
 }
@@ -89,7 +92,7 @@ function usageLabel(row) {
             :items="[
                 { label: 'Ranges', value: ranges.length },
                 { label: 'Used', value: totalUsed, mono: true },
-                { label: 'Total', value: totalAddresses, mono: true },
+                { label: 'Total', value: formatPoolTotal(totalAddresses), mono: true },
                 { label: 'Utilisation', value: overallUtilisation },
             ]"
         />
@@ -157,6 +160,7 @@ function usageLabel(row) {
                         <span
                             :data-testid="`range-count-${index}`"
                             class="font-mono text-[11px] text-[var(--color-text-muted)]"
+                            :title="row.total != null ? String(row.total) : undefined"
                         >
                             {{ usageLabel(row) }}
                         </span>

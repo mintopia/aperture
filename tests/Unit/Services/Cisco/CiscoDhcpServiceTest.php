@@ -242,7 +242,8 @@ class CiscoDhcpServiceTest extends TestCase
         // Bindings 10.0.0.50 and 10.0.0.51 fall within 10.0.0.10–10.0.0.254
         $this->assertSame(2, $ipv4Range->usedAddresses);
         $this->assertNotNull($ipv4Range->totalAddresses);
-        $this->assertSame(245, $ipv4Range->totalAddresses);
+        // Totals are exact decimal numeric strings on the DhcpRange VO
+        $this->assertSame('245', $ipv4Range->totalAddresses);
         $this->assertEqualsWithDelta(0.0082, $ipv4Range->utilisation, 0.0001);
     }
 
@@ -281,9 +282,49 @@ class CiscoDhcpServiceTest extends TestCase
 
         $broken = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'BROKEN');
         $this->assertInstanceOf(DhcpRange::class, $broken);
-        $this->assertSame(245, $broken->totalAddresses);
+        $this->assertSame('245', $broken->totalAddresses);
         $this->assertSame(0, $broken->usedAddresses);
         $this->assertSame(0.0, $broken->utilisation);
+    }
+
+    // -------------------------------------------------------------------------
+    // getRanges() — zero total addresses → utilisation falls back to 0.0
+    // -------------------------------------------------------------------------
+
+    public function test_get_ranges_utilisation_zero_when_total_addresses_zero(): void
+    {
+        // The real parser can never emit a zero total (computeEffectiveRanges
+        // only yields ranges with at least one address), so stub the injected
+        // parser to exercise the zero-total fallback branch of the utilisation
+        // calculation.
+        $parser = Mockery::mock(IosOutputParser::class)->makePartial();
+        $parser->shouldReceive('computeEffectiveRanges')->andReturn([
+            [
+                'name' => 'EMPTY',
+                'subnet' => '10.0.0.0/32',
+                'range_from' => '10.0.0.0',
+                'range_to' => '10.0.0.0',
+                'total_addresses' => '0',
+                'gateway' => '',
+            ],
+        ]);
+
+        $this->transport
+            ->shouldReceive('executeMultiple')
+            ->once()
+            ->andReturn($this->defaultCommandOutputs(ipv6: false));
+
+        $this->transport
+            ->shouldReceive('disconnect')
+            ->once();
+
+        $service = new CiscoDhcpService($this->transport, $parser, '0', false);
+        $ranges = $service->getRanges();
+
+        $empty = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'EMPTY');
+        $this->assertInstanceOf(DhcpRange::class, $empty);
+        $this->assertSame('0', $empty->totalAddresses);
+        $this->assertSame(0.0, $empty->utilisation);
     }
 
     // -------------------------------------------------------------------------
@@ -338,9 +379,11 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertInstanceOf(DhcpRange::class, $lan6);
         // Binding 2001:DB8::100 falls within 2001:DB8::/64
         $this->assertSame(1, $lan6->usedAddresses);
-        // /64 totals remain uncountable → null total and utilisation
-        $this->assertNull($lan6->totalAddresses);
-        $this->assertNull($lan6->utilisation);
+        // /64 totals are now exact via BCMath: 2^64 as a numeric string
+        $this->assertSame('18446744073709551616', $lan6->totalAddresses);
+        // Utilisation is bcdiv-derived: 1 / 2^64 ≈ 0.0 (a real float, not null)
+        $this->assertIsFloat($lan6->utilisation);
+        $this->assertEqualsWithDelta(0.0, $lan6->utilisation, 0.000001);
     }
 
     public function test_get_ranges_ipv6_attributes_bindings_to_matching_pool_prefix(): void
@@ -491,7 +534,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertInstanceOf(DhcpRange::class, $tiny6);
         // /126 covers 2001:DB8::100–103: ::101 is inside, ::104 is outside
         $this->assertSame(1, $tiny6->usedAddresses);
-        $this->assertSame(4, $tiny6->totalAddresses);
+        $this->assertSame('4', $tiny6->totalAddresses);
         $this->assertEqualsWithDelta(0.25, $tiny6->utilisation, 0.0001);
     }
 
@@ -509,6 +552,9 @@ class CiscoDhcpServiceTest extends TestCase
             'ipv6 dhcp pool SMALL6',
             ' address prefix 2001:DB8:0:1::/120',
             '!',
+            'ipv6 dhcp pool WIDE6',
+            ' address prefix 2001:DB8:0:2::/96',
+            '!',
         ]);
 
         $this->expectTransportCall(outputs: $outputs);
@@ -520,13 +566,19 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertInstanceOf(DhcpRange::class, $small);
         $this->assertSame('ipv6', $small->type);
         // /120 → 2^8 = 256 addresses
-        $this->assertSame(256, $small->totalAddresses);
+        $this->assertSame('256', $small->totalAddresses);
 
-        // /64 → 2^64 addresses, too large to display sensibly → null
+        // /96 → 2^32 addresses, exact via BCMath
+        $wide = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'WIDE6');
+        $this->assertInstanceOf(DhcpRange::class, $wide);
+        $this->assertSame('ipv6', $wide->type);
+        $this->assertSame('4294967296', $wide->totalAddresses);
+
+        // /64 → 2^64 addresses, exact via BCMath (the old null cap is gone)
         $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
         $this->assertInstanceOf(DhcpRange::class, $lan6);
         $this->assertSame('ipv6', $lan6->type);
-        $this->assertNull($lan6->totalAddresses);
+        $this->assertSame('18446744073709551616', $lan6->totalAddresses);
     }
 
     // -------------------------------------------------------------------------

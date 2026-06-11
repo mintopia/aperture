@@ -28,7 +28,9 @@ class DhcpController extends Controller
                 'start' => $range->range_from,
                 'end' => $range->range_to,
                 'used' => $range->used_addresses !== null ? (int) $range->used_addresses : null,
-                'total' => $range->total_addresses !== null ? (int) $range->total_addresses : null,
+                // Totals can exceed PHP_INT_MAX (IPv6 /64 → 2^64), so they stay
+                // exact decimal numeric strings end-to-end.
+                'total' => $range->total_addresses,
                 'percentage' => $range->utilisation !== null ? round((float) $range->utilisation * 100, 1) : null,
             ]);
 

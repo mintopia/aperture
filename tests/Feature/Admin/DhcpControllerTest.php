@@ -64,7 +64,37 @@ class DhcpControllerTest extends TestCase
             ->where('ranges.0.start', '192.168.1.100')
             ->where('ranges.0.end', '192.168.1.200')
             ->where('ranges.0.used', 30)
-            ->where('ranges.0.total', 101)
+            // total is an exact decimal numeric string end-to-end
+            ->where('ranges.0.total', '101')
+        );
+    }
+
+    public function test_index_passes_huge_ipv6_totals_as_exact_strings(): void
+    {
+        CapabilityAssignment::factory()->create([
+            'capability' => 'dhcp',
+            'integration' => 'cisco',
+        ]);
+
+        DhcpRangeRecord::factory()->ipv6()->create([
+            'integration' => 'cisco',
+            'interface' => 'VLAN400_DHCPV6',
+            'used_addresses' => '3',
+            // 2^64 — beyond PHP_INT_MAX; an (int) cast would corrupt it
+            'total_addresses' => '18446744073709551616',
+            'utilisation' => '0',
+        ]);
+
+        $admin = $this->createAdminUser();
+        $response = $this->actingAs($admin)->get('/admin/dhcp');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Admin/Dhcp/Index')
+            ->has('ranges', 1)
+            ->where('ranges.0.used', 3)
+            ->where('ranges.0.total', '18446744073709551616')
+            ->where('ranges.0.percentage', 0)
         );
     }
 

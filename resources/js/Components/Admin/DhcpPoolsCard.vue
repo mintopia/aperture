@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
+import { formatPoolTotal } from '@/helpers.js';
 
 defineProps({
     pools: {
@@ -37,6 +38,16 @@ onMounted(() => {
 onUnmounted(() => {
     observer?.disconnect();
 });
+
+function barWidth(used, total) {
+    const totalCount = Number(total);
+    if (!Number.isFinite(totalCount) || totalCount <= 0) return 0;
+
+    const pct = (Number(used) / totalCount) * 100;
+    if (!Number.isFinite(pct) || pct <= 0) return 0;
+
+    return Math.min(pct, 100);
+}
 
 function barColor(utilisation) {
     if (utilisation >= 0.9) return 'var(--color-danger)';
@@ -104,8 +115,9 @@ function pctClass(utilisation) {
                         <td
                             data-testid="dhcp-pool-total"
                             class="pl-6 font-mono text-[13px] text-[var(--color-text-secondary)]"
+                            :title="String(pool.total)"
                         >
-                            {{ pool.total }}
+                            {{ formatPoolTotal(pool.total) }}
                         </td>
                         <td class="pl-6">
                             <div class="flex items-center gap-2">
@@ -116,7 +128,7 @@ function pctClass(utilisation) {
                                         data-testid="dhcp-pool-bar"
                                         class="h-full rounded-[3px] transition-[width] duration-700"
                                         :style="{
-                                            width: entered ? `${Math.min((pool.used / pool.total) * 100, 100)}%` : '0%',
+                                            width: entered ? `${barWidth(pool.used, pool.total)}%` : '0%',
                                             backgroundColor: barColor(pool.utilisation),
                                             transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
                                             transitionDelay: `${100}ms`,

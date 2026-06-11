@@ -233,7 +233,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         $this->assertCount(1, $ranges);
         $this->assertEquals('ipv4', $ranges[0]->type);
         $this->assertEquals('10.0.0.1', $ranges[0]->rangeFrom);
-        $this->assertEquals(254, $ranges[0]->totalAddresses);
+        $this->assertSame('254', $ranges[0]->totalAddresses);
         $this->assertEquals(1, $ranges[0]->usedAddresses);
     }
 

@@ -84,8 +84,47 @@ class HomeControllerDhcpPoolsTest extends TestCase
                 ->where('dhcpPools.0.name', 'Main LAN')
                 ->where('dhcpPools.0.network', '10.0.0.0/24')
                 ->where('dhcpPools.0.used', 50)
-                ->where('dhcpPools.0.total', 191)
+                // total is an exact decimal numeric string end-to-end
+                ->where('dhcpPools.0.total', '191')
                 ->where('dhcpPools.0.utilisation', 0.2618)
+            )
+        );
+    }
+
+    public function test_dashboard_dhcp_pools_pass_huge_ipv6_totals_as_exact_strings(): void
+    {
+        $admin = $this->createAdminUser();
+
+        CapabilityAssignment::factory()->create([
+            'capability' => 'dhcp',
+            'integration' => 'cisco',
+        ]);
+
+        DhcpRangeRecord::factory()->create([
+            'integration' => 'cisco',
+            'interface' => 'VLAN400_DHCPV6',
+            'type' => 'ipv6',
+            'description' => 'V6 LAN',
+            'subnet' => '',
+            'prefix' => '2a0f:85c1:d91:2100::/64',
+            'range_from' => '',
+            'range_to' => '',
+            'gateway' => null,
+            // 2^64 — beyond PHP_INT_MAX; an (int) cast would corrupt it
+            'total_addresses' => '18446744073709551616',
+            'used_addresses' => '3',
+            'utilisation' => null,
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->loadDeferredProps(fn ($reload) => $reload
+                ->has('dhcpPools', 1)
+                ->where('dhcpPools.0.name', 'V6 LAN')
+                ->where('dhcpPools.0.used', 3)
+                ->where('dhcpPools.0.total', '18446744073709551616')
             )
         );
     }
@@ -155,7 +194,8 @@ class HomeControllerDhcpPoolsTest extends TestCase
                 ->where('dhcpPools.0.name', 'Vlan200')
                 ->where('dhcpPools.0.network', '2001:db8::/64')
                 ->where('dhcpPools.0.used', 0)
-                ->where('dhcpPools.0.total', 0)
+                // null totals are rendered as the string '0'
+                ->where('dhcpPools.0.total', '0')
                 // The controller falls back to float 0.0, but AssertableInertia
                 // re-encodes the page via json_encode() without
                 // JSON_PRESERVE_ZERO_FRACTION, so a zero-fraction float can only

@@ -302,7 +302,7 @@ class OpnSenseDhcpService implements DhcpInterface
             prefix: $range->prefix,
             gateway: $range->gateway,
             description: $range->description,
-            totalAddresses: $totalAddresses,
+            totalAddresses: (string) $totalAddresses,
             usedAddresses: $usedAddresses,
             utilisation: $utilisation,
         );

@@ -66,7 +66,8 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
         $ranges = $service->getRanges();
 
         $this->assertCount(1, $ranges);
-        $this->assertEquals(101, $ranges->first()->totalAddresses);
+        // Totals are exact decimal numeric strings on the DhcpRange VO
+        $this->assertSame('101', $ranges->first()->totalAddresses);
     }
 
     public function test_ipv4_range_counts_leases_within_range(): void
@@ -117,7 +118,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
 
         $ranges = $service->getRanges();
 
-        $this->assertEquals(10, $ranges->first()->totalAddresses);
+        $this->assertSame('10', $ranges->first()->totalAddresses);
         $this->assertEquals(3, $ranges->first()->usedAddresses);
         $this->assertEqualsWithDelta(0.3, $ranges->first()->utilisation, 0.001);
     }
@@ -170,11 +171,11 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
         $this->assertCount(2, $ranges);
 
         $lanRange = $ranges->first();
-        $this->assertEquals(101, $lanRange->totalAddresses);
+        $this->assertSame('101', $lanRange->totalAddresses);
         $this->assertEquals(2, $lanRange->usedAddresses);
 
         $guestRange = $ranges->last();
-        $this->assertEquals(41, $guestRange->totalAddresses);
+        $this->assertSame('41', $guestRange->totalAddresses);
         $this->assertEquals(1, $guestRange->usedAddresses);
     }
 
@@ -194,7 +195,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
 
         $ranges = $service->getRanges();
 
-        $this->assertEquals(101, $ranges->first()->totalAddresses);
+        $this->assertSame('101', $ranges->first()->totalAddresses);
         $this->assertEquals(0, $ranges->first()->usedAddresses);
         $this->assertEquals(0.0, $ranges->first()->utilisation);
     }
@@ -313,7 +314,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
         $ranges = $service->getRanges();
 
         $this->assertCount(1, $ranges);
-        $this->assertEquals(101, $ranges->first()->totalAddresses);
+        $this->assertSame('101', $ranges->first()->totalAddresses);
         $this->assertEquals(2, $ranges->first()->usedAddresses);
         $this->assertEqualsWithDelta(2 / 101, $ranges->first()->utilisation, 0.001);
     }
@@ -375,7 +376,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
 
         $ranges = $service->getRanges();
 
-        $this->assertEquals(1, $ranges->first()->totalAddresses);
+        $this->assertSame('1', $ranges->first()->totalAddresses);
         $this->assertEquals(1, $ranges->first()->usedAddresses);
         $this->assertEquals(1.0, $ranges->first()->utilisation);
     }
@@ -403,7 +404,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
         $ranges = $service->getRanges();
 
         $this->assertEquals('ipv6', $ranges->first()->type);
-        $this->assertEquals(17, $ranges->first()->totalAddresses);
+        $this->assertSame('17', $ranges->first()->totalAddresses);
         $this->assertEquals(2, $ranges->first()->usedAddresses);
     }
 }

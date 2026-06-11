@@ -127,7 +127,7 @@ class SyncDhcpDataTest extends TestCase
                     prefix: null,
                     gateway: '10.0.0.1',
                     description: 'Main LAN',
-                    totalAddresses: 191,
+                    totalAddresses: '191',
                     usedAddresses: 50,
                     utilisation: 0.2618,
                 ),
@@ -144,6 +144,43 @@ class SyncDhcpDataTest extends TestCase
             'subnet' => '10.0.0.0/24',
             'range_from' => '10.0.0.10',
             'range_to' => '10.0.0.200',
+            'total_addresses' => '191',
+        ]);
+    }
+
+    public function test_persists_huge_ipv6_range_totals_exactly(): void
+    {
+        $this->assignDhcpProvider('cisco');
+        $this->mockDhcpService(
+            ranges: [
+                new DhcpRange(
+                    interface: 'VLAN400_DHCPV6',
+                    type: 'ipv6',
+                    subnet: null,
+                    rangeFrom: null,
+                    rangeTo: null,
+                    prefix: '2a0f:85c1:d91:2100::/64',
+                    gateway: null,
+                    description: 'V6 LAN',
+                    // 2^64 — far beyond PHP_INT_MAX; must survive the round
+                    // trip into the string column without truncation.
+                    totalAddresses: '18446744073709551616',
+                    usedAddresses: 3,
+                    utilisation: 0.0,
+                ),
+            ],
+        );
+
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_range_records', 1);
+        $this->assertDatabaseHas('dhcp_range_records', [
+            'integration' => 'cisco',
+            'interface' => 'VLAN400_DHCPV6',
+            'type' => 'ipv6',
+            'prefix' => '2a0f:85c1:d91:2100::/64',
+            'total_addresses' => '18446744073709551616',
+            'used_addresses' => '3',
         ]);
     }
 

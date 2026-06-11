@@ -308,7 +308,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->assertSame('192.168.1.200', $ranges[0]->rangeTo);
         $this->assertSame('192.168.1.1', $ranges[0]->gateway);
         $this->assertSame('MY_NETWORK', $ranges[0]->description);
-        $this->assertSame(101, $ranges[0]->totalAddresses);
+        $this->assertSame('101', $ranges[0]->totalAddresses);
         $this->assertSame(1, $ranges[0]->usedAddresses);
     }
 

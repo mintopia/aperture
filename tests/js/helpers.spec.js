@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatBytes, formatBytesComponents, normalizeMac } from '@/helpers.js';
+import { formatBytes, formatBytesComponents, formatPoolTotal, normalizeMac } from '@/helpers.js';
 
 describe('formatBytes', () => {
     it('returns "0 B" for zero', () => {
@@ -78,6 +78,32 @@ describe('normalizeMac', () => {
 
     it('returns original string for MAC with non-hex characters', () => {
         expect(normalizeMac('ZZ:BB:CC:DD:EE:FF')).toBe('ZZ:BB:CC:DD:EE:FF');
+    });
+});
+
+describe('formatPoolTotal', () => {
+    it('returns "0" for the string "0"', () => {
+        expect(formatPoolTotal('0')).toBe('0');
+    });
+
+    it('passes small totals through unchanged', () => {
+        expect(formatPoolTotal('117')).toBe('117');
+    });
+
+    it('accepts numeric input for small totals', () => {
+        expect(formatPoolTotal(117)).toBe('117');
+    });
+
+    it('applies locale grouping below one million', () => {
+        expect(formatPoolTotal('999999')).toBe('999,999');
+    });
+
+    it('uses scientific notation with two significant digits for 2^32', () => {
+        expect(formatPoolTotal('4294967296')).toBe('4.3e9');
+    });
+
+    it('uses scientific notation with two significant digits for 2^64', () => {
+        expect(formatPoolTotal('18446744073709551616')).toBe('1.8e19');
     });
 });
 

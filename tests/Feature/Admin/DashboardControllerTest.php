@@ -132,7 +132,7 @@ class DashboardControllerTest extends TestCase
                 ->where('dhcpPools.0.name', 'Main Pool')
                 ->where('dhcpPools.0.network', '10.0.0.0/24')
                 ->where('dhcpPools.0.used', 25)
-                ->where('dhcpPools.0.total', 190)
+                ->where('dhcpPools.0.total', '190')
                 ->where('dhcpPools.0.utilisation', 0.1316)
             )
         );

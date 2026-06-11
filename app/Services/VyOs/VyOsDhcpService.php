@@ -244,7 +244,7 @@ class VyOsDhcpService implements DhcpInterface
             prefix: $range->prefix,
             gateway: $range->gateway,
             description: $range->description,
-            totalAddresses: $totalAddresses,
+            totalAddresses: (string) $totalAddresses,
             usedAddresses: $usedAddresses,
             utilisation: $totalAddresses > 0 ? round($usedAddresses / $totalAddresses, 4) : 0.0,
         );
@@ -279,7 +279,7 @@ class VyOsDhcpService implements DhcpInterface
             prefix: $range->prefix,
             gateway: $range->gateway,
             description: $range->description,
-            totalAddresses: $totalAddresses,
+            totalAddresses: (string) $totalAddresses,
             usedAddresses: $usedAddresses,
             utilisation: $totalAddresses > 0 ? round($usedAddresses / $totalAddresses, 4) : 0.0,
         );

@@ -6,6 +6,10 @@ namespace App\Services\ValueObjects;
 
 readonly class DhcpRange
 {
+    /**
+     * @param  numeric-string|null  $totalAddresses  exact decimal address count
+     *                                               (may exceed PHP_INT_MAX, e.g. 2^64 for an IPv6 /64)
+     */
     public function __construct(
         public string $interface,
         public string $type,
@@ -15,7 +19,7 @@ readonly class DhcpRange
         public ?string $prefix,
         public ?string $gateway,
         public ?string $description,
-        public ?int $totalAddresses = null,
+        public ?string $totalAddresses = null,
         public ?int $usedAddresses = null,
         public ?float $utilisation = null,
     ) {}

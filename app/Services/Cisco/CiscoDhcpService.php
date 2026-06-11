@@ -11,6 +11,7 @@ use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
+use App\Support\Ipv6Prefix;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -125,9 +126,12 @@ class CiscoDhcpService implements DhcpInterface
 
         $ranges = collect($effectiveRanges)
             ->map(function (array $range) use ($ipv4Bindings): DhcpRange {
-                $total = (int) $range['total_addresses'];
+                /** @var numeric-string $total */
+                $total = $range['total_addresses'];
                 $used = $this->countBindingsInRange($ipv4Bindings, $range['range_from'], $range['range_to']);
-                $utilisation = $total > 0 ? round($used / $total, 4) : 0.0;
+                $utilisation = bccomp($total, '0', 0) === 1
+                    ? (float) bcdiv((string) $used, $total, 6)
+                    : 0.0;
 
                 return new DhcpRange(
                     interface: $range['name'],
@@ -154,10 +158,10 @@ class CiscoDhcpService implements DhcpInterface
             $ipv6Ranges = collect($ipv6Config['pools'])
                 ->map(function (array $pool) use ($ipv6Bindings): DhcpRange {
                     $prefix = $pool['prefix'] !== '' ? IpAddress::normalize($pool['prefix']) : null;
-                    $total = $this->ipv6TotalAddresses($prefix);
+                    $total = $prefix !== null ? Ipv6Prefix::totalAddresses($prefix) : null;
                     $used = $this->countIpv6BindingsInPrefix($ipv6Bindings, $prefix);
-                    $utilisation = $total !== null && $total > 0 && $used !== null
-                        ? round($used / $total, 4)
+                    $utilisation = $total !== null && $used !== null && bccomp($total, '0', 0) === 1
+                        ? (float) bcdiv((string) $used, $total, 6)
                         : null;
 
                     return new DhcpRange(
@@ -268,23 +272,6 @@ class CiscoDhcpService implements DhcpInterface
         $mask = (0xFF << (8 - $remainingBits)) & 0xFF;
 
         return (ord($packed[$fullBytes]) & $mask) === (ord($network[$fullBytes]) & $mask);
-    }
-
-    /**
-     * Compute the total address count of an IPv6 pool from its prefix length.
-     *
-     * Returns null when the prefix is missing, unparsable, or yields more than
-     * 2^32 addresses (e.g. a /64) — counts that large are not sensible to display.
-     */
-    private function ipv6TotalAddresses(?string $prefix): ?int
-    {
-        if ($prefix === null || preg_match('#/(\d+)$#', $prefix, $matches) !== 1) {
-            return null;
-        }
-
-        $bits = 128 - (int) $matches[1];
-
-        return $bits >= 0 && $bits <= 32 ? (1 << $bits) : null;
     }
 
     /**

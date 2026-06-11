@@ -34,6 +34,16 @@ describe('Dhcp/Index', () => {
         percentage: null,
     };
 
+    const hugeIpv6Range = {
+        ip_version: 'IPv6',
+        network: '2a0f:85c1:d91:2100::/64',
+        start: null,
+        end: null,
+        used: 3,
+        total: '18446744073709551616',
+        percentage: 0,
+    };
+
     const mountComponent = (props = {}) => {
         return mount(Index, {
             props: {
@@ -190,9 +200,25 @@ describe('Dhcp/Index', () => {
         expect(items).toEqual([
             { label: 'Ranges', value: 2 },
             { label: 'Used', value: 45, mono: true },
-            { label: 'Total', value: 101, mono: true },
+            // Totals go through the shared pool-total formatter
+            { label: 'Total', value: '101', mono: true },
             { label: 'Utilisation', value: '41.6%' },
         ]);
+    });
+
+    it('formats huge string totals in the usage label with the exact value in the title', () => {
+        const wrapper = mountComponent({ ranges: [hugeIpv6Range] });
+        const count = wrapper.find('[data-testid="range-count-0"]');
+
+        expect(count.text()).toBe('3 / 1.8e19');
+        expect(count.attributes('title')).toBe('18446744073709551616');
+    });
+
+    it('formats huge string totals in the metadata strip total', () => {
+        const wrapper = mountComponent({ ranges: [hugeIpv6Range] });
+        const items = wrapper.getComponent('[data-testid="metadata-strip"]').props('items');
+
+        expect(items[2]).toEqual({ label: 'Total', value: '1.8e19', mono: true });
     });
 
     it('shows em dash utilisation when no totals are known', () => {
