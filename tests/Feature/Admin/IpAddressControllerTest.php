@@ -525,6 +525,42 @@ class IpAddressControllerTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_admin_bandwidth_accepts_7d_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
+
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
+                ->withArgs(fn (string $ipAddr, string $range): bool => $range === '7d')
+                ->once()
+                ->andReturn(new IpBandwidthResult(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($admin)->getJson('/admin/ips/'.$ip->address.'/bandwidth?range=7d');
+
+        $response->assertOk();
+    }
+
+    public function test_admin_bandwidth_rejects_72h_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
+
+        $response = $this->actingAs($admin)->getJson('/admin/ips/'.$ip->address.'/bandwidth?range=72h');
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['range']);
+    }
+
     public function test_non_admin_cannot_fetch_ip_bandwidth(): void
     {
         Queue::fake();

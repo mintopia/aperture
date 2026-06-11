@@ -125,6 +125,27 @@ describe('Admin IP Show bandwidth chart', () => {
         expect(window.axios.get).toHaveBeenLastCalledWith(expect.stringContaining('?range=4d'));
     });
 
+    it('renders range buttons for 1h, 24h, 4d and 7d', async () => {
+        const wrapper = mountPage();
+        await flushPromises();
+
+        const selector = wrapper.find('[data-testid="bandwidth-range-selector"]');
+        const buttons = selector.findAll('button');
+
+        expect(buttons.map((b) => b.text())).toEqual(['1h', '24h', '4d', '7d']);
+        expect(selector.find('[data-testid="range-7d"]').exists()).toBe(true);
+    });
+
+    it('re-fetches bandwidth when 7d range is selected', async () => {
+        const wrapper = mountPage();
+        await flushPromises();
+
+        await wrapper.find('[data-testid="range-7d"]').trigger('click');
+        await flushPromises();
+
+        expect(window.axios.get).toHaveBeenLastCalledWith(expect.stringContaining('?range=7d'));
+    });
+
     it('chartSeries computed maps timestamps and data correctly', async () => {
         const wrapper = mountPage();
         await flushPromises();

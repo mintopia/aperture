@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import Show from '@/Pages/Admin/Users/Show.vue';
 
@@ -189,7 +189,7 @@ describe('Users Show', () => {
         expect(wrapper.find('[data-testid="bandwidth-chart"]').exists()).toBe(true);
     });
 
-    it('renders bandwidth range selector buttons', () => {
+    it('renders bandwidth range selector buttons 1H, 24H, 4D and 7D', () => {
         const wrapper = mount(Show, {
             props: makeProps(),
             global: defaultGlobal,
@@ -199,10 +199,42 @@ describe('Users Show', () => {
         expect(rangeSelector.exists()).toBe(true);
 
         const buttons = rangeSelector.findAll('button');
-        expect(buttons).toHaveLength(3);
-        expect(buttons[0].text()).toBe('1H');
-        expect(buttons[1].text()).toBe('24H');
-        expect(buttons[2].text()).toBe('72H');
+        expect(buttons.map((b) => b.text())).toEqual(['1H', '24H', '4D', '7D']);
+    });
+
+    it('does not label any range button 72H', () => {
+        const wrapper = mount(Show, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+
+        const labels = wrapper.findAll('[data-testid="bandwidth-range-selector"] button').map((b) => b.text());
+        expect(labels).not.toContain('72H');
+    });
+
+    it('shows a bandwidth error when the fetch fails', async () => {
+        vi.mocked(window.axios.get).mockRejectedValueOnce(new Error('Network error'));
+
+        const wrapper = mount(Show, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+        await flushPromises();
+
+        const error = wrapper.find('[data-testid="bandwidth-error"]');
+        expect(error.exists()).toBe(true);
+        expect(error.text()).toContain('Failed to load bandwidth data');
+        expect(error.attributes('role')).toBe('status');
+    });
+
+    it('does not show a bandwidth error on successful fetch', async () => {
+        const wrapper = mount(Show, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="bandwidth-error"]').exists()).toBe(false);
     });
 
     it('renders bandwidth download and upload totals', () => {

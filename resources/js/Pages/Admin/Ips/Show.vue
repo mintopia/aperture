@@ -91,7 +91,7 @@ const auditColumns = [
     { key: 'created_at', label: 'Timestamp' },
 ];
 
-const ranges = ['1h', '24h', '4d'];
+const ranges = ['1h', '24h', '4d', '7d'];
 
 const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSeries, selectRange } = useBandwidthChart(
     route('admin.ips.bandwidth', props.ip.address),
@@ -321,6 +321,7 @@ onBeforeUnmount(() => {
                     />
                     <p
                         v-if="bandwidthError"
+                        role="status"
                         class="mt-2 text-[12px] text-[var(--color-danger)]"
                         data-testid="bandwidth-error"
                     >

@@ -176,9 +176,9 @@ const auditColumns = [
     { key: 'timestamp', label: 'Timestamp' },
 ];
 
-const ranges = ['1h', '24h', '4d'];
+const ranges = ['1h', '24h', '4d', '7d'];
 
-const { selectedRange, bandwidthData, bandwidthLoading, chartSeries, selectRange } = useBandwidthChart(
+const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSeries, selectRange } = useBandwidthChart(
     route('admin.users.bandwidth', props.user.id),
     '24h',
     30000,
@@ -344,7 +344,7 @@ const { selectedRange, bandwidthData, bandwidthLoading, chartSeries, selectRange
                             ]"
                             @click="selectRange(r)"
                         >
-                            {{ r === '4d' ? '72H' : r.toUpperCase() }}
+                            {{ r.toUpperCase() }}
                         </button>
                     </div>
                 </div>
@@ -357,6 +357,14 @@ const { selectedRange, bandwidthData, bandwidthLoading, chartSeries, selectRange
                 :empty-message="ipCount === 0 ? 'No IPs associated with this user' : 'No bandwidth data available'"
                 data-testid="bandwidth-chart"
             />
+            <p
+                v-if="bandwidthError"
+                role="status"
+                class="mt-2 text-[12px] text-[var(--color-danger)]"
+                data-testid="bandwidth-error"
+            >
+                Failed to load bandwidth data
+            </p>
         </section>
 
         <!-- Converged Network Devices Table -->

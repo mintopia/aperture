@@ -199,7 +199,7 @@ describe('Dashboard', () => {
         expect(wrapper.find('[data-testid="bandwidth-upload"]').exists()).toBe(true);
     });
 
-    it('renders bandwidth range selector with 1H, 24H, and 72H buttons', () => {
+    it('renders bandwidth range selector with 1H, 24H, 4D and 7D buttons', () => {
         const wrapper = mount(Dashboard, {
             props: makeProps(),
             global: defaultGlobal,
@@ -208,10 +208,18 @@ describe('Dashboard', () => {
         const rangeSelector = wrapper.find('[data-testid="bandwidth-range-selector"]');
         const buttons = rangeSelector.findAll('button');
 
-        expect(buttons).toHaveLength(3);
-        expect(buttons[0].text()).toBe('1H');
-        expect(buttons[1].text()).toBe('24H');
-        expect(buttons[2].text()).toBe('72H');
+        expect(buttons.map((b) => b.text())).toEqual(['1H', '24H', '4D', '7D']);
+        expect(rangeSelector.find('[data-testid="bandwidth-range-7d"]').exists()).toBe(true);
+    });
+
+    it('does not label any range button 72H', () => {
+        const wrapper = mount(Dashboard, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+
+        const labels = wrapper.findAll('[data-testid="bandwidth-range-selector"] button').map((b) => b.text());
+        expect(labels).not.toContain('72H');
     });
 
     it('renders DHCP pools with network/CIDR', () => {

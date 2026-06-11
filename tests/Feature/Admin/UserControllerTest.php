@@ -364,6 +364,45 @@ class UserControllerTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_admin_user_bandwidth_accepts_7d_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $ip = IpAddress::factory()->create();
+        $this->linkIpToUser($user, $ip);
+
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getIpBandwidth')
+                ->withArgs(fn (array $ips, string $range): bool => $range === '7d')
+                ->once()
+                ->andReturn(new IpBandwidthResult(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($admin)->getJson(route('admin.users.bandwidth', $user).'?range=7d');
+
+        $response->assertOk();
+    }
+
+    public function test_admin_user_bandwidth_rejects_72h_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($admin)->getJson(route('admin.users.bandwidth', $user).'?range=72h');
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['range']);
+    }
+
     public function test_user_bandwidth_returns_empty_when_no_ips(): void
     {
         Queue::fake();

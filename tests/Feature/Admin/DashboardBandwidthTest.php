@@ -106,6 +106,40 @@ class DashboardBandwidthTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_bandwidth_accepts_7d_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('getTotalBandwidth')
+                ->once()
+                ->with('7d')
+                ->andReturn(new IpBandwidthResult(
+                    received: 0,
+                    sent: 0,
+                    timestamps: [],
+                    download: [],
+                    upload: [],
+                ));
+        });
+
+        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range=7d');
+
+        $response->assertOk();
+    }
+
+    public function test_bandwidth_rejects_72h_range(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range=72h');
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['range']);
+    }
+
     public function test_bandwidth_rejects_invalid_range(): void
     {
         Queue::fake();

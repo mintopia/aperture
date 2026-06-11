@@ -60,7 +60,8 @@ function userHref(id) {
 const ranges = [
     { value: '1h', label: '1H' },
     { value: '24h', label: '24H' },
-    { value: '4d', label: '72H' },
+    { value: '4d', label: '4D' },
+    { value: '7d', label: '7D' },
 ];
 
 const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSeries, selectRange, fetchBandwidth } =
@@ -301,6 +302,7 @@ function confirmReset() {
                 />
                 <p
                     v-if="bandwidthError"
+                    role="status"
                     class="mt-2 text-[12px] text-[var(--color-danger)]"
                     data-testid="bandwidth-error"
                 >

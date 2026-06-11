@@ -25,7 +25,7 @@ class BandwidthRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'range' => 'nullable|string|in:1h,24h,4d',
+            'range' => 'nullable|string|in:1h,24h,4d,7d',
         ];
     }
 }
