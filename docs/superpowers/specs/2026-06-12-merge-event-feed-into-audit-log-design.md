@@ -60,11 +60,18 @@ lean and pre-rendered for the dashboard:
 - `action`
 - `description` (via `AuditLogDescriptionGenerator`)
 - `severity`
-- actor label + url (nullable)
 - `created_at` (ISO 8601)
 
 Every audit write — explicit controller calls and telemetry-sourced ones — now flows
 live to the dashboard through this one path. No separate broadcast wiring per call site.
+
+> **Implementation note (deferred):** the originally-planned standalone `actor label +
+> url` fields and per-entity deep-links were dropped from the payload. The
+> `AuditLogDescriptionGenerator` already embeds the actor's name in the rendered
+> `description` (e.g. "alice logged in", "John reset the portal"), so the widget reads
+> cleanly without them. Re-introducing structured actor/url fields (for clickable
+> deep-links in the dashboard row) is a future enhancement, not part of this change.
+> The same applies to section F below.
 
 ### C. Rewrite `RecordBroadcastEvent`
 
