@@ -191,6 +191,8 @@ class DashboardControllerTest extends TestCase
                 ->where('recentEvents.0.action', 'switch.unreachable')
                 ->where('recentEvents.0.severity', 'critical')
                 ->has('recentEvents.0.description')
+                ->has('recentEvents.0.id')
+                ->has('recentEvents.0.created_at')
             )
         );
     }

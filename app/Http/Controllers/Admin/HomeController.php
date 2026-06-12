@@ -35,7 +35,7 @@ class HomeController extends Controller
             'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools()),
             'recentUsers' => Inertia::defer(fn (): LengthAwarePaginator => $this->getRecentUsers()),
             'recentEvents' => Inertia::defer(fn (): array => AuditLog::query()
-                ->with(['subject', 'actor'])
+                ->with(['subject', 'actor', 'related'])
                 ->orderByDesc('created_at')
                 ->limit(10)
                 ->get()
