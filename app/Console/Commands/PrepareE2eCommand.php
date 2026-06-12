@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
@@ -114,6 +115,28 @@ class PrepareE2eCommand extends Command
         foreach (['127.0.0.1', '::1'] as $ip) {
             RateLimiter::clear('login-attempt:'.Str::lower($email).'|'.$ip);
         }
+
+        // Use create() directly to avoid the AuditLogRecorded broadcast which
+        // requires a running Pusher/Reverb connection (unavailable in E2E sandboxes).
+        AuditLog::create([
+            'action' => 'user.login',
+            'subject_type' => $admin->getMorphClass(),
+            'subject_id' => $admin->getKey(),
+            'actor_type' => $admin->getMorphClass(),
+            'actor_id' => $admin->getKey(),
+            'process' => 'e2e',
+            'severity' => 'info',
+        ]);
+
+        AuditLog::create([
+            'action' => 'switch.synced',
+            'subject_type' => $switch->getMorphClass(),
+            'subject_id' => $switch->getKey(),
+            'actor_type' => $admin->getMorphClass(),
+            'actor_id' => $admin->getKey(),
+            'process' => 'e2e',
+            'severity' => 'warning',
+        ]);
 
         $this->info(sprintf('Playwright fixtures prepared. Admin=%s, Switch=%s', $email, $switch->hostname));
 
