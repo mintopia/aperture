@@ -601,4 +601,25 @@ class UserControllerTest extends TestCase
         $this->assertContains('admin', $log->metadata['roles']);
         $this->assertContains('moderator', $log->metadata['roles']);
     }
+
+    public function test_store_parameter_creates_user_parameter(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create();
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.parameters.store', $user), [
+                'key' => 'some_key',
+                'value' => 'some_value',
+            ])
+            ->assertRedirect(route('admin.users.show', ['user' => $user->id]))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('user_parameters', [
+            'user_id' => $user->id,
+            'key' => 'some_key',
+            'value' => json_encode('some_value'),
+        ]);
+    }
 }
