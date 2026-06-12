@@ -72,4 +72,26 @@ describe('RecentActivity', () => {
         expect(link.exists()).toBe(true);
         expect(link.attributes('href')).toBe('/mocked/admin.audit-log.index');
     });
+
+    it('scroll region is keyboard-focusable and has accessible role/label', () => {
+        const wrapper = mountComponent();
+        const scroll = wrapper.find('[data-testid="recent-activity-scroll"]');
+        expect(scroll.attributes('tabindex')).toBe('0');
+        expect(scroll.attributes('role')).toBe('region');
+        expect(scroll.attributes('aria-label')).toContain('Recent activity');
+    });
+
+    it('scroll region aria-label reflects the event count', () => {
+        const wrapper = mountComponent();
+        const scroll = wrapper.find('[data-testid="recent-activity-scroll"]');
+        expect(scroll.attributes('aria-label')).toContain('2');
+    });
+
+    it('scroll region aria-label works with empty events', () => {
+        const wrapper = mountComponent({ events: [] });
+        const scroll = wrapper.find('[data-testid="recent-activity-scroll"]');
+        expect(scroll.attributes('tabindex')).toBe('0');
+        expect(scroll.attributes('role')).toBe('region');
+        expect(scroll.attributes('aria-label')).toContain('0');
+    });
 });

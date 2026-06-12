@@ -7,10 +7,14 @@ defineProps({
     events: { type: Array, default: () => [] },
 });
 
+// Severity dot colors — must achieve 3:1 non-text contrast (WCAG 1.4.11) against
+// both dark bg (oklch 13%) and light bg (oklch 97%).
+// --color-danger dark (L=65%) only reaches 2.40:1 on dark bg; boosted to L=72%.
+// --color-text-muted (L=55%) is used for info and achieves >4:1 in both themes.
 const SEVERITY_COLOR = {
     info: 'var(--color-text-muted)',
     warning: 'var(--color-warning)',
-    critical: 'var(--color-danger)',
+    critical: 'oklch(72% 0.22 25)',
 };
 
 function severityColor(severity) {
@@ -31,7 +35,14 @@ function severityColor(severity) {
             </Link>
         </div>
 
-        <div data-testid="recent-activity-scroll" class="max-h-[400px] overflow-y-auto">
+        <!-- tabindex="0" makes the clipped scroll region reachable by keyboard (WCAG 2.1.1) -->
+        <div
+            data-testid="recent-activity-scroll"
+            class="max-h-[400px] overflow-y-auto"
+            tabindex="0"
+            role="region"
+            :aria-label="'Recent activity, ' + events.length + ' events'"
+        >
             <div v-if="events.length === 0" data-testid="recent-activity-empty" class="py-6 text-center">
                 <p class="text-[11px] text-[var(--color-text-muted)]">No recent activity</p>
             </div>
@@ -54,11 +65,11 @@ function severityColor(severity) {
                     </span>
                     <span
                         data-testid="recent-activity-timestamp"
-                        class="shrink-0 font-mono text-[11px] text-[var(--color-text-muted)]"
+                        class="shrink-0 font-mono text-[11px] text-[var(--color-text-secondary)]"
                     >
                         {{ formatRelativeTime(event.created_at) }}
                     </span>
-                    <span class="text-[13px] text-[var(--color-text-secondary)]">
+                    <span class="text-[13px] text-[var(--color-text)]">
                         {{ event.description }}
                     </span>
                 </div>
