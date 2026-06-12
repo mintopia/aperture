@@ -20,7 +20,7 @@ export default defineConfig({
                 'resources/js/Pages/Admin/Macs/Index.vue',
                 'resources/js/Pages/Admin/Macs/Show.vue',
                 'resources/js/Pages/Admin/AuditLog/Index.vue',
-                'resources/js/Components/Admin/EventFeed.vue',
+                'resources/js/Components/Admin/RecentActivity.vue',
                 'resources/js/Components/Blocks/DnsWarningBlock.vue',
                 'resources/js/Components/Blocks/ConnectionStripBlock.vue',
                 'resources/js/Components/Blocks/BandwidthBlock.vue',
