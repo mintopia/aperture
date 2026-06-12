@@ -49,7 +49,7 @@ final class AuditLogDescriptionGenerator
             'portal.reset' => sprintf('%s reset the portal', self::actorLabel($log)),
             'switch.unreachable' => sprintf('Switch %s unreachable after %s failures', self::subjectLabel($log), self::metadataString($log, 'failure_count', '?')),
             'bandwidth.anomaly' => sprintf('Bandwidth anomaly detected on %s', self::metadataString($log, 'ip_address', 'unknown')),
-            'dhcp.threshold_reached' => sprintf('DHCP pool %s reached %d%% utilisation', self::metadataString($log, 'pool', 'unknown'), (int) ($log->metadata['usage'] ?? 0)),
+            'dhcp.threshold_reached' => sprintf('DHCP pool %s reached %d%% utilisation', self::metadataString($log, 'pool', 'unknown'), self::metadataInt($log, 'usage', 0)),
             default => self::fallback($log),
         };
     }
@@ -128,6 +128,13 @@ final class AuditLogDescriptionGenerator
         }
 
         return $default;
+    }
+
+    private static function metadataInt(AuditLog $log, string $key, int $default): int
+    {
+        $value = $log->metadata[$key] ?? null;
+
+        return is_numeric($value) ? (int) $value : $default;
     }
 
     private static function metadataList(AuditLog $log, string $key): string

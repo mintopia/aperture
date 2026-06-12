@@ -485,4 +485,26 @@ class AuditLogDescriptionGeneratorTest extends TestCase
 
         $this->assertSame('DHCP pool lan reached 92% utilisation', AuditLogDescriptionGenerator::generate($log));
     }
+
+    public function test_describes_switch_unreachable_without_failure_count(): void
+    {
+        $switch = SwitchConfig::factory()->create(['name' => 'core-sw']);
+        $log = $this->makeLog('switch.unreachable', subject: $switch);
+
+        $this->assertSame('Switch core-sw unreachable after ? failures', AuditLogDescriptionGenerator::generate($log));
+    }
+
+    public function test_describes_bandwidth_anomaly_without_ip_address(): void
+    {
+        $log = $this->makeLog('bandwidth.anomaly');
+
+        $this->assertSame('Bandwidth anomaly detected on unknown', AuditLogDescriptionGenerator::generate($log));
+    }
+
+    public function test_describes_dhcp_threshold_reached_without_metadata(): void
+    {
+        $log = $this->makeLog('dhcp.threshold_reached');
+
+        $this->assertSame('DHCP pool unknown reached 0% utilisation', AuditLogDescriptionGenerator::generate($log));
+    }
 }
