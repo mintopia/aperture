@@ -222,30 +222,50 @@ class IosOutputParser
 
         $lines = preg_split('/\r?\n/', $output) ?: [];
 
-        // Join continuation lines (indented lines that continue a multi-line client-ID)
-        $merged = [];
+        // First pass: collect each record's columns plus its (possibly wrapped)
+        // client-ID. The client-ID can span several indented continuation lines
+        // while the remaining columns stay on the first line of the record.
+        $records = [];
+        $current = null;
+
         foreach ($lines as $line) {
-            if ($line !== '' && $line[0] === ' ' && $merged !== []) {
-                $merged[count($merged) - 1] .= trim($line);
-            } else {
-                $merged[] = $line;
-            }
-        }
-
-        $entries = [];
-
-        foreach ($merged as $line) {
-            if (! preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)\s+(.+?)\s{2,}(\S+)\s+(\S+)\s+(\S+)\s*$/', $line, $matches)) {
+            if ($line === '') {
                 continue;
             }
 
-            $entries[] = [
+            if (($line[0] === ' ' || $line[0] === "\t") && $current !== null) {
+                $records[$current]['clientId'] .= trim($line);
+
+                continue;
+            }
+
+            if (! preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)\s+(.+?)\s{2,}(\S+)\s+(\S+)\s+(\S+)\s*$/', $line, $matches)) {
+                $current = null;
+
+                continue;
+            }
+
+            $records[] = [
                 'ip' => $matches[1],
-                'mac' => $this->extractMacFromClientId($matches[2]),
+                'clientId' => $matches[2],
                 'expires' => trim($matches[3]),
                 'type' => $matches[4],
                 'state' => $matches[5],
                 'interface' => $matches[6],
+            ];
+            $current = count($records) - 1;
+        }
+
+        $entries = [];
+
+        foreach ($records as $record) {
+            $entries[] = [
+                'ip' => $record['ip'],
+                'mac' => $this->extractMacFromClientId($record['clientId']),
+                'expires' => $record['expires'],
+                'type' => $record['type'],
+                'state' => $record['state'],
+                'interface' => $record['interface'],
             ];
         }
 
@@ -255,10 +275,13 @@ class IosOutputParser
     /**
      * Extract and normalise a MAC address from a Cisco DHCP client-ID string.
      *
-     * Handles two formats:
+     * Handles three formats:
      *  - 7-group dotted hex with hardware-type prefix: 0100.1122.3344.55
      *    (strip leading 01 byte, remaining 6 bytes are the MAC)
      *  - Standard 3-group dotted hex MAC: aabb.ccdd.eeff
+     *  - RFC 4361 client-ID: type ff + 4-byte IAID + embedded DUID, where the
+     *    DUID-LL/DUID-LLT carries the hardware MAC in its trailing 6 bytes
+     *    (e.g. ff11.98f7.4000.0100.0131.756f.acbc.2411.98f7.40)
      *
      * Returns the MAC in uppercase colon-separated format (AA:BB:CC:DD:EE:FF),
      * or null if the string is not a recognised format.
@@ -267,6 +290,18 @@ class IosOutputParser
     {
         if ($clientId === '') {
             return null;
+        }
+
+        // RFC 4361 client-ID: type byte ff, then a 4-byte IAID (5 bytes / 10 hex
+        // chars total), followed by the DUID. Delegate the DUID to the shared
+        // extractor; fall through if it is not a MAC-bearing DUID type.
+        $normalised = strtolower(str_replace('.', '', $clientId));
+        if (str_starts_with($normalised, 'ff') && ctype_xdigit($normalised)) {
+            $mac = $this->extractMacFromDuid(substr($normalised, 10));
+
+            if ($mac !== null) {
+                return $mac;
+            }
         }
 
         // Format with hardware-type prefix: 01XX.XXXX.XXXX.XX (7 hex groups of 2)

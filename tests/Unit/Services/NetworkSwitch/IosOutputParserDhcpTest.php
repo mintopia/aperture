@@ -65,6 +65,84 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('Vlan200', $result[0]['interface']);
     }
 
+    public function test_parse_dhcp_binding_with_wrapped_rfc4361_client_id(): void
+    {
+        // Real `show ip dhcp binding` output: an RFC 4361 client-ID (type ff +
+        // 4-byte IAID + embedded DUID-LLT) that wraps across three lines. The
+        // trailing 6 bytes of the DUID are the hardware MAC (BC:24:11:98:F7:40).
+        $output = implode("\r\n", [
+            'Bindings from all pools not associated with VRF:',
+            'IP address          Client-ID/              Lease expiration        Type       State      Interface',
+            '                    Hardware address/',
+            '                    User name',
+            '10.30.0.106         ff11.98f7.4000.0100.    Jun 13 2026 12:18 AM    Automatic  Active     Vlan400',
+            '                    0131.756f.acbc.2411.',
+            '                    98f7.40',
+        ]);
+
+        $result = $this->parser->parseDhcpBindingTable($output);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('10.30.0.106', $result[0]['ip']);
+        $this->assertSame('BC:24:11:98:F7:40', $result[0]['mac']);
+        $this->assertSame('Jun 13 2026 12:18 AM', $result[0]['expires']);
+        $this->assertSame('Automatic', $result[0]['type']);
+        $this->assertSame('Active', $result[0]['state']);
+        $this->assertSame('Vlan400', $result[0]['interface']);
+    }
+
+    public function test_parse_dhcp_binding_wrapped_record_followed_by_plain_record(): void
+    {
+        // A wrapped RFC 4361 record immediately followed by an ordinary record:
+        // the continuation must attach to the first record only, and the second
+        // record must parse independently (guards the record-reset path).
+        $output = implode("\r\n", [
+            'Bindings from all pools not associated with VRF:',
+            'IP address          Client-ID/              Lease expiration        Type       State      Interface',
+            '                    Hardware address/',
+            '                    User name',
+            '10.30.0.106         ff11.98f7.4000.0100.    Jun 13 2026 12:18 AM    Automatic  Active     Vlan400',
+            '                    0131.756f.acbc.2411.',
+            '                    98f7.40',
+            '10.30.0.100         01d0.21f9.b1c5.fc       Jun 13 2026 12:16 AM    Automatic  Active     Vlan400',
+        ]);
+
+        $result = $this->parser->parseDhcpBindingTable($output);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('10.30.0.106', $result[0]['ip']);
+        $this->assertSame('BC:24:11:98:F7:40', $result[0]['mac']);
+        $this->assertSame('Vlan400', $result[0]['interface']);
+        $this->assertSame('10.30.0.100', $result[1]['ip']);
+        $this->assertSame('D0:21:F9:B1:C5:FC', $result[1]['mac']);
+        $this->assertSame('Vlan400', $result[1]['interface']);
+    }
+
+    public function test_extract_mac_from_client_id_rfc4361_with_duid_llt(): void
+    {
+        // ff + IAID(1198f740) + DUID-LLT(0001 0001 31756fac) + MAC(bc241198f740)
+        $result = $this->parser->extractMacFromClientId('ff11.98f7.4000.0100.0131.756f.acbc.2411.98f7.40');
+
+        $this->assertSame('BC:24:11:98:F7:40', $result);
+    }
+
+    public function test_extract_mac_from_client_id_rfc4361_with_duid_ll(): void
+    {
+        // ff + IAID(11223344) + DUID-LL(0003 0001 aabbccddeeff) → MAC AA:BB:CC:DD:EE:FF
+        $result = $this->parser->extractMacFromClientId('ff11.2233.4400.0300.01aa.bbcc.ddee.ff');
+
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $result);
+    }
+
+    public function test_extract_mac_from_client_id_raw_mac_starting_with_ff(): void
+    {
+        // A genuine raw MAC that happens to start with ff must not be mistaken
+        // for an RFC 4361 client-ID; it falls through to the raw-MAC branch.
+        $result = $this->parser->extractMacFromClientId('ffaa.bbcc.ddee');
+
+        $this->assertSame('FF:AA:BB:CC:DD:EE', $result);
+    }
+
     public function test_parse_dhcp_binding_with_infinite_lease(): void
     {
         $output = implode("\r\n", [
