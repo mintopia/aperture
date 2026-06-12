@@ -65,4 +65,11 @@ describe('RecentActivity', () => {
         const wrapper = mountComponent({ events: [] });
         expect(wrapper.find('[data-testid="recent-activity-empty"]').exists()).toBe(true);
     });
+
+    it('links "View All" to the audit log', () => {
+        const wrapper = mountComponent();
+        const link = wrapper.find('[data-testid="recent-activity-view-all"]');
+        expect(link.exists()).toBe(true);
+        expect(link.attributes('href')).toBe('/mocked/admin.audit-log.index');
+    });
 });

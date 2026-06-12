@@ -49,7 +49,9 @@ function severityColor(severity) {
                         :data-severity="event.severity"
                         class="mt-[6px] h-[7px] w-[7px] shrink-0 rounded-full"
                         :style="{ backgroundColor: severityColor(event.severity) }"
-                    />
+                    >
+                        <span class="sr-only">{{ event.severity }}</span>
+                    </span>
                     <span
                         data-testid="recent-activity-timestamp"
                         class="shrink-0 font-mono text-[11px] text-[var(--color-text-muted)]"
