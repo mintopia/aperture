@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Listeners;
 
+use App\Events\AuditLogRecorded;
 use App\Events\BandwidthAnomalyDetected;
 use App\Events\DhcpPoolThresholdReached;
 use App\Events\InternetAccessChanged;
@@ -14,6 +15,7 @@ use App\Models\IpAddress;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use stdClass;
 use Tests\TestCase;
 
 class RecordBroadcastEventTest extends TestCase
@@ -74,5 +76,31 @@ class RecordBroadcastEventTest extends TestCase
 
         $this->assertDatabaseMissing('audit_logs', ['action' => 'internet_access_changed']);
         $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_wildcard_ignores_non_broadcast_payload(): void
+    {
+        $this->listener()->handleWildcard('SomeEvent', [new stdClass]);
+
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_wildcard_routes_broadcast_event_to_handler(): void
+    {
+        $switch = SwitchConfig::factory()->create(['name' => 'edge-sw']);
+
+        $this->listener()->handleWildcard('SwitchUnreachable', [new SwitchUnreachable($switch, 2)]);
+
+        $this->assertDatabaseHas('audit_logs', ['action' => 'switch.unreachable', 'severity' => 'critical']);
+    }
+
+    public function test_audit_log_recorded_event_is_ignored_to_prevent_recursion(): void
+    {
+        $log = AuditLog::record(action: 'user.login');
+        $countAfterRecord = AuditLog::count();
+
+        $this->listener()->handleBroadcastEvent(new AuditLogRecorded($log));
+
+        $this->assertSame($countAfterRecord, AuditLog::count());
     }
 }
