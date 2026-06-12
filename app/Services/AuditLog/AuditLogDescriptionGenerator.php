@@ -47,6 +47,9 @@ final class AuditLogDescriptionGenerator
             'settings.updated' => sprintf('Updated %s settings', self::metadataString($log, 'setting_group', 'application')),
             'integration.updated' => sprintf('Updated %s integration settings', self::metadataString($log, 'service', 'unknown')),
             'portal.reset' => sprintf('%s reset the portal', self::actorLabel($log)),
+            'switch.unreachable' => sprintf('Switch %s unreachable after %s failures', self::subjectLabel($log), self::metadataString($log, 'failure_count', '?')),
+            'bandwidth.anomaly' => sprintf('Bandwidth anomaly detected on %s', self::metadataString($log, 'ip_address', 'unknown')),
+            'dhcp.threshold_reached' => sprintf('DHCP pool %s reached %d%% utilisation', self::metadataString($log, 'pool', 'unknown'), (int) ($log->metadata['usage'] ?? 0)),
             default => self::fallback($log),
         };
     }
