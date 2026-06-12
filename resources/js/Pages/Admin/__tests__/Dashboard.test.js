@@ -117,7 +117,7 @@ describe('Dashboard Echo integration', () => {
         expect(echo.private).toHaveBeenCalledWith('admin.events');
     });
 
-    it('registers listeners for UserConnected, DeviceDiscovered, and DhcpPoolThresholdReached', () => {
+    it('registers listener for AuditLogRecorded', () => {
         const pusher = createMockPusher('connected');
         const echo = createMockEcho(pusher);
         window.Echo = echo;
@@ -128,9 +128,7 @@ describe('Dashboard Echo integration', () => {
         });
 
         const channel = echo._channels['admin.events'];
-        expect(channel.listen).toHaveBeenCalledWith('UserConnected', expect.any(Function));
-        expect(channel.listen).toHaveBeenCalledWith('DeviceDiscovered', expect.any(Function));
-        expect(channel.listen).toHaveBeenCalledWith('DhcpPoolThresholdReached', expect.any(Function));
+        expect(channel.listen).toHaveBeenCalledWith('AuditLogRecorded', expect.any(Function));
     });
 
     it('leaves channel on unmount', () => {
@@ -148,12 +146,12 @@ describe('Dashboard Echo integration', () => {
         expect(echo.leave).toHaveBeenCalledWith('admin.events');
     });
 
-    it('triggers refresh on UserConnected event', async () => {
+    it('prepends activity item and triggers refresh on AuditLogRecorded', async () => {
         const pusher = createMockPusher('connected');
         const echo = createMockEcho(pusher);
         window.Echo = echo;
 
-        mount(Dashboard, {
+        const wrapper = mount(Dashboard, {
             props: defaultProps,
             global: globalConfig,
         });
@@ -161,13 +159,12 @@ describe('Dashboard Echo integration', () => {
         router.reload.mockClear();
 
         const channel = echo._channels['admin.events'];
-        channel._listeners['UserConnected']({
-            user_id: 1,
-            user_name: 'Test User',
-            ip_address_id: 1,
-            ip_address: '10.0.0.1',
-            mac_address_id: 1,
-            mac_address: 'AA:BB:CC:DD:EE:FF',
+        channel._listeners['AuditLogRecorded']({
+            id: 42,
+            action: 'user.connected',
+            description: 'Test user connected',
+            severity: 'info',
+            created_at: '2026-06-12T10:00:00Z',
         });
 
         await nextTick();
@@ -178,6 +175,48 @@ describe('Dashboard Echo integration', () => {
                 preserveScroll: true,
             }),
         );
+
+        const activityWidget = wrapper.find('[data-testid="recent-activity"]');
+        expect(activityWidget.exists()).toBe(true);
+    });
+
+    it('seeds recent activity from recentEvents prop on mount', async () => {
+        const pusher = createMockPusher('connected');
+        const echo = createMockEcho(pusher);
+        window.Echo = echo;
+
+        const recentEvents = [
+            {
+                id: 1,
+                action: 'user.blocked',
+                description: 'Alice was blocked',
+                severity: 'warning',
+                created_at: '2026-06-12T09:00:00Z',
+            },
+            {
+                id: 2,
+                action: 'user.connected',
+                description: 'Bob connected',
+                severity: 'info',
+                created_at: '2026-06-12T09:30:00Z',
+            },
+        ];
+
+        const wrapper = mount(Dashboard, {
+            props: { ...defaultProps, recentEvents },
+            global: {
+                ...globalConfig,
+                stubs: globalConfig.stubs.filter((s) => s !== 'SectionHeader'),
+            },
+        });
+
+        await nextTick();
+
+        const activityWidget = wrapper.find('[data-testid="recent-activity"]');
+        expect(activityWidget.exists()).toBe(true);
+        const html = activityWidget.html();
+        expect(html).toContain('Alice was blocked');
+        expect(html).toContain('Bob connected');
     });
 
     it('falls back to polling when WebSocket is disconnected', () => {
