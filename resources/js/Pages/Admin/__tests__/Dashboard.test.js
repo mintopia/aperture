@@ -153,18 +153,21 @@ describe('Dashboard Echo integration', () => {
 
         const wrapper = mount(Dashboard, {
             props: defaultProps,
-            global: globalConfig,
+            global: {
+                ...globalConfig,
+                stubs: globalConfig.stubs.filter((s) => s !== 'SectionHeader'),
+            },
         });
 
         router.reload.mockClear();
 
         const channel = echo._channels['admin.events'];
         channel._listeners['AuditLogRecorded']({
-            id: 42,
-            action: 'user.connected',
-            description: 'Test user connected',
-            severity: 'info',
-            created_at: '2026-06-12T10:00:00Z',
+            id: 999,
+            action: 'switch.unreachable',
+            description: 'Switch edge-1 unreachable after 4 failures',
+            severity: 'critical',
+            created_at: '2026-06-12T10:00:00+00:00',
         });
 
         await nextTick();
@@ -178,6 +181,7 @@ describe('Dashboard Echo integration', () => {
 
         const activityWidget = wrapper.find('[data-testid="recent-activity"]');
         expect(activityWidget.exists()).toBe(true);
+        expect(activityWidget.html()).toContain('Switch edge-1 unreachable after 4 failures');
     });
 
     it('seeds recent activity from recentEvents prop on mount', async () => {
