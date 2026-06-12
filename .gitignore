@@ -26,6 +26,7 @@ frankenphp
 frankenphp-worker.php
 .DS_Store
 storage/coverage/
+/coverage_report/
 .superpowers/
 
 .worktrees/
