@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Events\AuditLogRecorded;
 use Database\Factories\AuditLogFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -85,7 +86,7 @@ class AuditLog extends Model
         ?array $metadata = null,
         string $severity = 'info',
     ): self {
-        return self::create([
+        $log = self::create([
             'action' => $action,
             'subject_type' => $subject?->getMorphClass(),
             'subject_id' => $subject?->getKey(),
@@ -97,5 +98,9 @@ class AuditLog extends Model
             'metadata' => $metadata,
             'severity' => $severity,
         ]);
+
+        AuditLogRecorded::dispatch($log);
+
+        return $log;
     }
 }
