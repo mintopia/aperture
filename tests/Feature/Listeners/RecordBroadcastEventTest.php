@@ -15,6 +15,7 @@ use App\Models\IpAddress;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use RuntimeException;
 use stdClass;
 use Tests\TestCase;
 
@@ -102,5 +103,23 @@ class RecordBroadcastEventTest extends TestCase
         $this->listener()->handleBroadcastEvent(new AuditLogRecorded($log));
 
         $this->assertSame($countAfterRecord, AuditLog::count());
+    }
+
+    public function test_throwable_during_record_is_caught_and_reported(): void
+    {
+        // Covers the catch(Throwable) block (lines 61–62) in handleBroadcastEvent.
+        // We register a 'creating' model event on AuditLog to throw a RuntimeException,
+        // which is caught by the try/catch in handleBroadcastEvent and silently reported.
+        AuditLog::creating(function (): bool {
+            throw new RuntimeException('Simulated failure for catch-block coverage');
+        });
+
+        $switch = SwitchConfig::factory()->create();
+
+        // Should not throw — the catch block swallows the exception via report().
+        $this->listener()->handleBroadcastEvent(new SwitchUnreachable($switch, 1));
+
+        // If we reach here, the catch block executed. Confirm no audit log row was persisted.
+        $this->assertSame(0, AuditLog::count());
     }
 }
