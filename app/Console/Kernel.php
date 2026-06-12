@@ -35,7 +35,6 @@ class Kernel extends ConsoleKernel
 
         $schedule->job(new SyncDhcpData)->everyMinute()->onOneServer()->withoutOverlapping();
         $schedule->command('aperture:sync-seatpicker')->everyFiveMinutes()->onOneServer();
-        $schedule->command('events:prune')->daily()->onOneServer();
     }
 
     /**
