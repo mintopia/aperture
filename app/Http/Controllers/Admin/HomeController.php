@@ -12,8 +12,8 @@ use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpRangeRecord;
 use App\Models\IpAddress;
-use App\Models\SystemEvent;
 use App\Models\User;
+use App\Services\AuditLog\AuditLogDescriptionGenerator;
 use App\Services\Interfaces\IpBandwidthInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -34,16 +34,17 @@ class HomeController extends Controller
             'blockedUsers' => User::where('internet_blocked', true)->count(),
             'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools()),
             'recentUsers' => Inertia::defer(fn (): LengthAwarePaginator => $this->getRecentUsers()),
-            'recentEvents' => Inertia::defer(fn (): array => SystemEvent::query()
+            'recentEvents' => Inertia::defer(fn (): array => AuditLog::query()
+                ->with(['subject', 'actor'])
                 ->orderByDesc('created_at')
                 ->limit(10)
                 ->get()
-                ->map(fn (SystemEvent $event): array => [
-                    'id' => $event->id,
-                    'type' => $event->type,
-                    'level' => $event->level,
-                    'message' => $event->message,
-                    'created_at' => $event->created_at->toIso8601String(),
+                ->map(fn (AuditLog $log): array => [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'description' => AuditLogDescriptionGenerator::generate($log),
+                    'severity' => $log->severity,
+                    'created_at' => $log->created_at->toIso8601String(),
                 ])
                 ->all()),
             'breadcrumbs' => [

@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpRangeRecord;
 use App\Models\IpAddress;
 use App\Models\Role;
-use App\Models\SystemEvent;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -159,7 +159,10 @@ class DashboardControllerTest extends TestCase
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        SystemEvent::factory()->count(15)->create();
+
+        for ($i = 0; $i < 15; $i++) {
+            AuditLog::record(action: 'switch.unreachable', metadata: ['failure_count' => $i], severity: 'critical');
+        }
 
         $response = $this->actingAs($admin)->get('/admin');
 
@@ -169,6 +172,25 @@ class DashboardControllerTest extends TestCase
             ->missing('recentEvents')
             ->loadDeferredProps(fn ($reload) => $reload
                 ->has('recentEvents', 10)
+            )
+        );
+    }
+
+    public function test_dashboard_recent_events_come_from_audit_logs(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        AuditLog::record(action: 'switch.unreachable', metadata: ['failure_count' => 2], severity: 'critical');
+
+        $response = $this->actingAs($admin)->get('/admin');
+
+        $response->assertInertia(fn ($page) => $page
+            ->missing('recentEvents')
+            ->loadDeferredProps(fn ($reload) => $reload
+                ->has('recentEvents', 1)
+                ->where('recentEvents.0.action', 'switch.unreachable')
+                ->where('recentEvents.0.severity', 'critical')
+                ->has('recentEvents.0.description')
             )
         );
     }
