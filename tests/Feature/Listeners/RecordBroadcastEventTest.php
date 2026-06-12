@@ -7,8 +7,11 @@ namespace Tests\Feature\Listeners;
 use App\Events\AuditLogRecorded;
 use App\Events\BandwidthAnomalyDetected;
 use App\Events\DhcpPoolThresholdReached;
+use App\Events\DnsFilterChanged;
 use App\Events\InternetAccessChanged;
+use App\Events\RateLimitChanged;
 use App\Events\SwitchUnreachable;
+use App\Events\UserBlocked;
 use App\Listeners\RecordBroadcastEvent;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
@@ -76,6 +79,36 @@ class RecordBroadcastEventTest extends TestCase
         $this->listener()->handleBroadcastEvent(new InternetAccessChanged($ip, true, $user));
 
         $this->assertDatabaseMissing('audit_logs', ['action' => 'internet_access_changed']);
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_rate_limit_changed_actor_event_is_not_recorded(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $user = User::factory()->create();
+
+        $this->listener()->handleBroadcastEvent(new RateLimitChanged($ip, 100, 200, $user));
+
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_dns_filter_changed_actor_event_is_not_recorded(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $user = User::factory()->create();
+
+        $this->listener()->handleBroadcastEvent(new DnsFilterChanged($ip, true, $user));
+
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_user_blocked_actor_event_is_not_recorded(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $user = User::factory()->create();
+
+        $this->listener()->handleBroadcastEvent(new UserBlocked($user, $ip, 'manual'));
+
         $this->assertSame(0, AuditLog::count());
     }
 

@@ -472,6 +472,32 @@ class UserControllerTest extends TestCase
         $this->assertTrue((bool) $log->metadata['blocked']);
     }
 
+    public function test_blocking_user_records_critical_severity_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $this->actingAs($admin)->post(route('admin.users.block', $user), ['block' => 1]);
+
+        $log = AuditLog::where('action', 'user.block_toggled')->first();
+        $this->assertNotNull($log);
+        $this->assertSame('critical', $log->severity);
+    }
+
+    public function test_unblocking_user_records_info_severity_audit_log(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $user = User::factory()->create(['internet_blocked' => true]);
+
+        $this->actingAs($admin)->post(route('admin.users.block', $user), ['block' => 0]);
+
+        $log = AuditLog::where('action', 'user.block_toggled')->first();
+        $this->assertNotNull($log);
+        $this->assertSame('info', $log->severity);
+    }
+
     public function test_user_internet_bulk_toggle_creates_audit_logs_per_ip(): void
     {
         Queue::fake();

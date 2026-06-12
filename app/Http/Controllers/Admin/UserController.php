@@ -151,6 +151,7 @@ class UserController extends Controller
             subject: $user,
             process: 'admin',
             metadata: ['blocked' => $user->internet_blocked],
+            severity: $user->internet_blocked ? 'critical' : 'info',
         );
 
         if ($user->internet_blocked) {
