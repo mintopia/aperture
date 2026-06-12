@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $actor_type
  * @property int|null $actor_id
  * @property string $process
+ * @property string $severity
  * @property array<string, mixed>|null $metadata
  * @property Carbon $created_at
  */
@@ -40,6 +41,7 @@ class AuditLog extends Model
         'actor_type',
         'actor_id',
         'process',
+        'severity',
         'metadata',
     ];
 
@@ -81,6 +83,7 @@ class AuditLog extends Model
         ?Model $actor = null,
         string $process = 'system',
         ?array $metadata = null,
+        string $severity = 'info',
     ): self {
         return self::create([
             'action' => $action,
@@ -92,6 +95,7 @@ class AuditLog extends Model
             'actor_id' => $actor?->getKey(),
             'process' => $process,
             'metadata' => $metadata,
+            'severity' => $severity,
         ]);
     }
 }

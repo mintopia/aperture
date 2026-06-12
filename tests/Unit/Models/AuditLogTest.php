@@ -74,4 +74,15 @@ class AuditLogTest extends TestCase
             'process' => 'auth',
         ]);
     }
+
+    public function test_record_persists_severity_and_defaults_to_info(): void
+    {
+        $explicit = AuditLog::record(action: 'switch.unreachable', severity: 'critical');
+        $defaulted = AuditLog::record(action: 'user.login');
+
+        $this->assertSame('critical', $explicit->severity);
+        $this->assertSame('info', $defaulted->severity);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'switch.unreachable', 'severity' => 'critical']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'user.login', 'severity' => 'info']);
+    }
 }
