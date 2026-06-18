@@ -26,7 +26,8 @@ const filterDefinitions = [
         label: 'Status',
         options: [
             { value: 'allowed', label: 'Allowed' },
-            { value: 'denied', label: 'Denied' },
+            { value: 'blocked', label: 'Blocked' },
+            { value: 'unassigned', label: 'Unassigned' },
         ],
     },
 ];
@@ -127,9 +128,9 @@ function onFilterUpdate(values) {
                 </td>
                 <td data-testid="ip-status">
                     <span class="inline-flex items-center gap-1.5">
-                        <span class="h-[7px] w-[7px] rounded-full" :class="ipStatusDotClass(row.allowed)" />
-                        <span class="text-[12px] font-semibold" :class="ipStatusTextClass(row.allowed)">
-                            {{ ipStatusLabel(row.allowed) }}
+                        <span class="h-[7px] w-[7px] rounded-full" :class="ipStatusDotClass(row.internet_enabled)" />
+                        <span class="text-[12px] font-semibold" :class="ipStatusTextClass(row.internet_enabled)">
+                            {{ ipStatusLabel(row.internet_enabled) }}
                         </span>
                     </span>
                 </td>

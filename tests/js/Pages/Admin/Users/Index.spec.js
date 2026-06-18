@@ -52,6 +52,7 @@ describe('Users Index', () => {
                 },
             ],
         },
+        summary: { total: 2, active: 1, blocked: 1 },
         filters: {},
         ...overrides,
     });
@@ -146,6 +147,7 @@ describe('Users Index', () => {
                     links: [],
                     data: [],
                 },
+                summary: { total: 0, active: 0, blocked: 0 },
             }),
             global: defaultGlobal,
         });

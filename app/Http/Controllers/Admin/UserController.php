@@ -22,6 +22,7 @@ use App\Models\UserParameter;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\UserShowDataService;
 use App\Services\ValueObjects\IpBandwidthResult;
+use App\Support\SearchHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -37,10 +38,24 @@ class UserController extends Controller
     {
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
+            'search' => $request->input('search', ''),
+            'status' => $request->input('status', ''),
             'nickname' => $request->input('nickname', ''),
             'ip' => $request->input('ip', ''),
         ];
         $query = User::query()->with('ips.ip')->with('roles');
+
+        if ($filters->search) {
+            $pattern = SearchHelper::toLikePattern((string) $filters->search);
+            $query = $query->where(function ($query) use ($pattern): void {
+                $query->where('nickname', 'LIKE', $pattern)
+                    ->orWhere('email', 'LIKE', $pattern);
+            });
+        }
+
+        if (in_array($filters->status, ['active', 'blocked'], true)) {
+            $query = $query->where('internet_blocked', $filters->status === 'blocked');
+        }
 
         if ($filters->nickname) {
             $query = $query->where('nickname', $filters->nickname);
@@ -55,8 +70,17 @@ class UserController extends Controller
 
         $users = $query->paginate($filters->perPage)->appends((array) $filters);
 
+        $total = User::query()->count();
+        $blocked = User::query()->where('internet_blocked', true)->count();
+        $summary = [
+            'total' => $total,
+            'active' => $total - $blocked,
+            'blocked' => $blocked,
+        ];
+
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
+            'summary' => $summary,
             'filters' => $filters,
             'breadcrumbs' => [
                 ['label' => 'Admin', 'href' => route('admin.home')],

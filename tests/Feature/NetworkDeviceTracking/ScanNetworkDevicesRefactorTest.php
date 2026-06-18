@@ -213,7 +213,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertFalse($ip->internet_enabled);
+        $this->assertNull($ip->internet_enabled);
     }
 
     public function test_oui_policy_skipped_when_no_prefixes_configured(): void
@@ -225,7 +225,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertFalse($ip->internet_enabled);
+        $this->assertNull($ip->internet_enabled);
     }
 
     public function test_discovery_creates_audit_logs(): void

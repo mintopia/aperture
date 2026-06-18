@@ -114,6 +114,67 @@ class MacAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('macs.data', 1));
     }
 
+    public function test_index_filterable_by_source(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        MacAddress::factory()->create(['mac_address' => 'AA:AA:AA:AA:AA:AA', 'source' => 'static']);
+        MacAddress::factory()->create(['mac_address' => 'BB:BB:BB:BB:BB:BB', 'source' => 'dhcp']);
+
+        $response = $this->actingAs($admin)->get('/admin/macs?source=static');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('macs.data', 1)
+            ->where('macs.data.0.source', 'static')
+            ->where('filters.source', 'static')
+        );
+    }
+
+    public function test_index_search_matches_mac_hostname_or_user(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $byMac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:00:00:01']);
+
+        $byHostMac = MacAddress::factory()->create(['mac_address' => '11:22:33:00:00:02']);
+        $ip = IpAddress::factory()->create();
+        DhcpLease::factory()->create([
+            'mac_address_id' => $byHostMac->id,
+            'ip_address_id' => $ip->id,
+            'hostname' => 'needle-host',
+        ]);
+
+        $user = User::factory()->create(['nickname' => 'NeedleUser']);
+        $byUserMac = MacAddress::factory()->create(['mac_address' => '99:88:77:00:00:03', 'user_id' => $user->id]);
+
+        MacAddress::factory()->create(['mac_address' => 'FF:FF:FF:00:00:09']);
+
+        $byMacResponse = $this->actingAs($admin)->get('/admin/macs?search=AA:BB:CC');
+        $byMacResponse->assertOk();
+        $byMacResponse->assertInertia(fn ($page) => $page
+            ->has('macs.data', 1)
+            ->where('macs.data.0.id', $byMac->id)
+            ->where('filters.search', 'AA:BB:CC')
+        );
+
+        $byHostResponse = $this->actingAs($admin)->get('/admin/macs?search=needle-host');
+        $byHostResponse->assertOk();
+        $byHostResponse->assertInertia(fn ($page) => $page
+            ->has('macs.data', 1)
+            ->where('macs.data.0.id', $byHostMac->id)
+        );
+
+        $byUserResponse = $this->actingAs($admin)->get('/admin/macs?search=NeedleUser');
+        $byUserResponse->assertOk();
+        $byUserResponse->assertInertia(fn ($page) => $page
+            ->has('macs.data', 1)
+            ->where('macs.data.0.id', $byUserMac->id)
+        );
+    }
+
     public function test_index_sortable_by_mac_address(): void
     {
         Queue::fake();

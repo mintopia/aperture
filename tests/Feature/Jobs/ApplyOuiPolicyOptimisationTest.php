@@ -90,10 +90,10 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $this->assertNotNull($ip1);
         $this->assertTrue($ip1->internet_enabled);
 
-        // Verify the non-matching MAC's IP was NOT enabled
+        // Verify the non-matching MAC's IP was NOT auto-allowed (no explicit decision)
         $ip2 = IpAddress::where('address', '127.0.0.2')->first();
         $this->assertNotNull($ip2);
-        $this->assertFalse($ip2->internet_enabled);
+        $this->assertNull($ip2->internet_enabled);
     }
 
     public function test_oui_policy_handles_multiple_prefixes(): void
@@ -119,7 +119,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip3 = IpAddress::where('address', '127.0.0.3')->first();
         $this->assertNotNull($ip3);
-        $this->assertFalse($ip3->internet_enabled);
+        $this->assertNull($ip3->internet_enabled);
     }
 
     public function test_oui_policy_creates_audit_log_for_enabled_ips(): void
@@ -186,7 +186,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertFalse($ip->internet_enabled);
+        $this->assertNull($ip->internet_enabled);
     }
 
     public function test_oui_policy_returns_early_when_prefixes_are_empty_array(): void
@@ -200,7 +200,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertFalse($ip->internet_enabled);
+        $this->assertNull($ip->internet_enabled);
     }
 
     public function test_oui_policy_enables_multiple_ips_for_same_mac(): void

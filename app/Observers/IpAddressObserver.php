@@ -14,7 +14,8 @@ class IpAddressObserver
     public function updated(IpAddress $ip): void
     {
         if ($ip->wasChanged('internet_enabled')) {
-            SyncInternetAccessJob::dispatch($ip, $ip->internet_enabled);
+            // null (no explicit decision) is enforced as blocked — deny-by-default.
+            SyncInternetAccessJob::dispatch($ip, (bool) $ip->internet_enabled);
         }
 
         if ($ip->wasChanged('rate_limit_enabled')) {

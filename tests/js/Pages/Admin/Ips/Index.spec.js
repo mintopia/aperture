@@ -20,18 +20,25 @@ const defaultIps = {
             id: 1,
             address: '10.0.0.1',
             mac: 'AA:BB:CC:DD:EE:FF',
-            allowed: true,
+            internet_enabled: true,
             users: [{ user: { id: 42, nickname: 'testuser' } }],
         },
         {
             id: 2,
             address: '10.0.0.2',
             mac: null,
-            allowed: false,
+            internet_enabled: false,
+            users: [],
+        },
+        {
+            id: 3,
+            address: '10.0.0.3',
+            mac: null,
+            internet_enabled: null,
             users: [],
         },
     ],
-    total: 2,
+    total: 3,
 };
 
 const defaultFilters = {
@@ -107,7 +114,7 @@ describe('Ips/Index', () => {
     it('renders correct number of rows', () => {
         const wrapper = mountComponent();
         const rows = wrapper.findAll('[data-testid="data-table-row"]');
-        expect(rows).toHaveLength(2);
+        expect(rows).toHaveLength(3);
     });
 
     it('renders address cell with mono font and primary color class', () => {
@@ -153,10 +160,16 @@ describe('Ips/Index', () => {
         expect(statusCells[0].text()).toContain('Allowed');
     });
 
-    it('renders "Denied" status text for denied IP', () => {
+    it('renders "Blocked" status text for blocked IP', () => {
         const wrapper = mountComponent();
         const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        expect(statusCells[1].text()).toContain('Denied');
+        expect(statusCells[1].text()).toContain('Blocked');
+    });
+
+    it('renders an em dash status for an IP with no explicit decision', () => {
+        const wrapper = mountComponent();
+        const statusCells = wrapper.findAll('[data-testid="ip-status"]');
+        expect(statusCells[2].text()).toContain('—');
     });
 
     it('renders status dot with success classes for allowed IP', () => {
@@ -208,12 +221,13 @@ describe('Ips/Index', () => {
         expect(wrapper.find('[data-testid="filter-select-status"]').exists()).toBe(true);
     });
 
-    it('status filter dropdown has Allowed and Denied options', () => {
+    it('status filter dropdown has Allowed, Blocked and Unassigned options', () => {
         const wrapper = mountComponent();
         const select = wrapper.find('[data-testid="filter-select-status"]');
         const options = select.findAll('option');
         const optionValues = options.map((o) => o.element.value);
         expect(optionValues).toContain('allowed');
-        expect(optionValues).toContain('denied');
+        expect(optionValues).toContain('blocked');
+        expect(optionValues).toContain('unassigned');
     });
 });

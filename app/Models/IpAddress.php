@@ -23,7 +23,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property string $address
- * @property bool $internet_enabled
+ * @property bool|null $internet_enabled
  * @property bool $rate_limit_enabled
  * @property bool $dns_filtering_enabled
  * @property string|null $comment

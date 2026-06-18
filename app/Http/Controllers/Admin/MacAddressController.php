@@ -21,6 +21,8 @@ class MacAddressController extends Controller
     {
         $filters = (object) [
             'perPage' => $request->input('perPage', 20),
+            'search' => (string) $request->input('search', ''),
+            'source' => (string) $request->input('source', ''),
             'mac' => (string) $request->input('mac', ''),
             'hostname' => (string) $request->input('hostname', ''),
             'nickname' => (string) $request->input('nickname', ''),
@@ -30,6 +32,19 @@ class MacAddressController extends Controller
         ];
 
         $query = MacAddress::query()->with(['user', 'dhcpLeases', 'ipAddresses']);
+
+        if ($filters->search !== '') {
+            $pattern = SearchHelper::toLikePattern($filters->search);
+            $query->where(function ($q) use ($pattern): void {
+                $q->where('mac_address', 'LIKE', $pattern)
+                    ->orWhereHas('dhcpLeases', fn ($lease) => $lease->where('hostname', 'LIKE', $pattern))
+                    ->orWhereHas('user', fn ($user) => $user->where('nickname', 'LIKE', $pattern));
+            });
+        }
+
+        if ($filters->source !== '') {
+            $query->where('source', $filters->source);
+        }
 
         if ($filters->mac !== '') {
             $query->where('mac_address', 'LIKE', SearchHelper::toLikePattern($filters->mac));

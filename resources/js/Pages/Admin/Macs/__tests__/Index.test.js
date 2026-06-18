@@ -1,8 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { router } from '@inertiajs/vue3';
 import Index from '../Index.vue';
 
-const routeMock = vi.fn(() => '#');
+vi.mock('@inertiajs/vue3', () => ({
+    Link: { template: '<a><slot /></a>' },
+    router: { get: vi.fn() },
+}));
+
+const routeMock = vi.fn((name) => name);
+vi.stubGlobal('route', routeMock);
 
 const globalConfig = {
     stubs: ['AdminLayout', 'DataTable', 'FilterBar', 'Pagination', 'SectionHeader', 'Link'],
@@ -61,5 +68,37 @@ describe('Macs/Index', () => {
             global: globalConfig,
         });
         expect(wrapper.find('[data-testid="page-title"]').text()).toBe('MAC Addresses');
+    });
+
+    it('drives a server-side request with the unified search term', () => {
+        router.get.mockClear();
+        const wrapper = mount(Index, {
+            props: { macs: mockMacs, filters: {} },
+            global: globalConfig,
+        });
+
+        wrapper.findComponent({ name: 'FilterBar' }).vm.$emit('update:search', 'needle');
+
+        expect(router.get).toHaveBeenCalledWith(
+            'admin.macs.index',
+            expect.objectContaining({ search: 'needle' }),
+            expect.objectContaining({ preserveState: true }),
+        );
+    });
+
+    it('drives a server-side request when the source filter changes', () => {
+        router.get.mockClear();
+        const wrapper = mount(Index, {
+            props: { macs: mockMacs, filters: {} },
+            global: globalConfig,
+        });
+
+        wrapper.findComponent({ name: 'FilterBar' }).vm.$emit('update:filter-values', { source: 'static' });
+
+        expect(router.get).toHaveBeenCalledWith(
+            'admin.macs.index',
+            expect.objectContaining({ source: 'static' }),
+            expect.objectContaining({ preserveState: true }),
+        );
     });
 });

@@ -1,6 +1,6 @@
 export function ipStatusLabel(allowed) {
     if (allowed === true) return 'Allowed';
-    if (allowed === false) return 'Denied';
+    if (allowed === false) return 'Blocked';
     return '—';
 }
 

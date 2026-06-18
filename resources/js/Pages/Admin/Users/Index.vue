@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
@@ -10,13 +11,35 @@ defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     users: { type: Object, default: () => ({}) },
+    summary: { type: Object, default: () => ({ total: 0, active: 0, blocked: 0 }) },
     filters: { type: Object, default: () => ({}) },
 });
 
-const searchQuery = ref(props.filters?.nickname ?? '');
+const searchQuery = ref(props.filters?.search ?? '');
 const filterValues = ref({
     status: props.filters?.status ?? '',
 });
+
+function applyFilters() {
+    router.get(
+        route('admin.users.index'),
+        {
+            search: searchQuery.value,
+            status: filterValues.value.status,
+        },
+        { preserveState: true },
+    );
+}
+
+function onSearchUpdate(value) {
+    searchQuery.value = value;
+    applyFilters();
+}
+
+function onFilterUpdate(values) {
+    filterValues.value = values;
+    applyFilters();
+}
 
 const filterDefinitions = computed(() => [
     {
@@ -39,27 +62,12 @@ const columns = [
 
 const allUsers = computed(() => props.users.data ?? []);
 
-const filteredUsers = computed(() => {
-    let result = allUsers.value;
-    const q = searchQuery.value.toLowerCase().trim();
-
-    if (q) {
-        result = result.filter((u) => u.nickname.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
-    }
-
-    if (filterValues.value.status === 'active') {
-        result = result.filter((u) => !u.internet_blocked);
-    } else if (filterValues.value.status === 'blocked') {
-        result = result.filter((u) => u.internet_blocked);
-    }
-
-    return result;
-});
+const hasActiveFilter = computed(() => searchQuery.value !== '' || filterValues.value.status !== '');
 
 const userSummary = computed(() => ({
-    total: allUsers.value.length,
-    active: allUsers.value.filter((u) => !u.internet_blocked).length,
-    blocked: allUsers.value.filter((u) => u.internet_blocked).length,
+    total: props.summary?.total ?? 0,
+    active: props.summary?.active ?? 0,
+    blocked: props.summary?.blocked ?? 0,
 }));
 </script>
 
@@ -81,7 +89,7 @@ const userSummary = computed(() => ({
 
         <!-- Summary strip -->
         <div
-            v-if="allUsers.length > 0"
+            v-if="userSummary.total > 0"
             data-testid="users-summary"
             class="mt-6 mb-7 flex flex-wrap gap-y-3 border-b border-[var(--color-border)] pb-5"
         >
@@ -134,21 +142,21 @@ const userSummary = computed(() => ({
         </div>
 
         <!-- Table section -->
-        <section v-if="allUsers.length > 0" data-testid="users-table-section" class="mb-8">
+        <section v-if="allUsers.length > 0 || hasActiveFilter" data-testid="users-table-section" class="mb-8">
             <FilterBar
                 :search="searchQuery"
                 search-placeholder="Search users…"
                 :filters="filterDefinitions"
                 :filter-values="filterValues"
-                :total-count="allUsers.length"
-                :filtered-count="filteredUsers.length"
-                @update:search="searchQuery = $event"
-                @update:filter-values="filterValues = $event"
+                :total-count="users.total ?? allUsers.length"
+                :filtered-count="allUsers.length"
+                @update:search="onSearchUpdate"
+                @update:filter-values="onFilterUpdate"
             />
 
             <DataTable
                 :columns="columns"
-                :rows="filteredUsers"
+                :rows="allUsers"
                 clickable
                 :row-href="(row) => route('admin.users.show', row.id)"
                 :row-aria-label="(row) => `Open user ${row.nickname}`"

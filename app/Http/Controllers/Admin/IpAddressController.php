@@ -32,11 +32,24 @@ class IpAddressController extends Controller
             'perPage' => $request->input('perPage', 20),
             'address' => $request->input('address', ''),
             'nickname' => $request->input('nickname', ''),
+            'status' => $request->input('status', ''),
         ];
         $query = IpAddress::query()->with(['users.user']);
 
         if ($filters->address) {
-            $query = $query->where('address', IpAddress::normalize((string) $filters->address));
+            $query = $query->where(
+                'address',
+                'LIKE',
+                SearchHelper::toLikePattern(IpAddress::normalize((string) $filters->address)),
+            );
+        }
+
+        if ($filters->status === 'allowed') {
+            $query = $query->where('internet_enabled', true);
+        } elseif ($filters->status === 'blocked') {
+            $query = $query->where('internet_enabled', false);
+        } elseif ($filters->status === 'unassigned') {
+            $query = $query->whereNull('internet_enabled');
         }
 
         if ($filters->nickname) {

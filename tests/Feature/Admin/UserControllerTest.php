@@ -124,6 +124,73 @@ class UserControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('users.data', 1));
     }
 
+    public function test_user_index_summary_counts_reflect_all_users_not_just_page(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        User::factory()->count(3)->create(['internet_blocked' => false]);
+        User::factory()->count(2)->create(['internet_blocked' => true]);
+
+        $expectedTotal = User::query()->count();
+        $expectedBlocked = User::query()->where('internet_blocked', true)->count();
+        $expectedActive = $expectedTotal - $expectedBlocked;
+
+        $response = $this->actingAs($admin)->get('/admin/users?perPage=1');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('users.data', 1)
+            ->where('summary.total', $expectedTotal)
+            ->where('summary.active', $expectedActive)
+            ->where('summary.blocked', $expectedBlocked)
+        );
+    }
+
+    public function test_admin_can_filter_users_by_search(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $alice = User::factory()->create(['nickname' => 'AliceNeedle', 'email' => 'alice@example.test']);
+        User::factory()->create(['nickname' => 'BobOther', 'email' => 'bob@example.test']);
+
+        $byNick = $this->actingAs($admin)->get('/admin/users?search=AliceNeedle');
+        $byNick->assertOk();
+        $byNick->assertInertia(fn ($page) => $page
+            ->has('users.data', 1)
+            ->where('users.data.0.id', $alice->id)
+            ->where('filters.search', 'AliceNeedle')
+        );
+
+        $byEmail = $this->actingAs($admin)->get('/admin/users?search=alice@example.test');
+        $byEmail->assertOk();
+        $byEmail->assertInertia(fn ($page) => $page
+            ->has('users.data', 1)
+            ->where('users.data.0.id', $alice->id)
+        );
+    }
+
+    public function test_admin_can_filter_users_by_status(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+        $blocked = User::factory()->create(['nickname' => 'BlockedUser', 'internet_blocked' => true]);
+        User::factory()->create(['nickname' => 'ActiveUser', 'internet_blocked' => false]);
+
+        $blockedResponse = $this->actingAs($admin)->get('/admin/users?status=blocked');
+        $blockedResponse->assertOk();
+        $blockedResponse->assertInertia(fn ($page) => $page
+            ->has('users.data', 1)
+            ->where('users.data.0.id', $blocked->id)
+            ->where('filters.status', 'blocked')
+        );
+
+        // Active returns exactly the non-blocked users (which excludes the blocked one).
+        $expectedActive = User::query()->where('internet_blocked', false)->count();
+        $activeResponse = $this->actingAs($admin)->get('/admin/users?status=active');
+        $activeResponse->assertOk();
+        $activeResponse->assertInertia(fn ($page) => $page->has('users.data', $expectedActive));
+    }
+
     public function test_admin_can_filter_users_by_ip(): void
     {
         Queue::fake();

@@ -35,7 +35,7 @@ class UserShowDataService
 
         $networkDevices = $this->buildNetworkDevices($user, $ipModels);
 
-        $allInternetEnabled = $ipModels->isNotEmpty() && $ipModels->every(fn (IpAddress $ip): bool => $ip->internet_enabled);
+        $allInternetEnabled = $ipModels->isNotEmpty() && $ipModels->every(fn (IpAddress $ip): bool => (bool) $ip->internet_enabled);
         $allRateLimited = $ipModels->isNotEmpty() && $ipModels->every(fn (IpAddress $ip): bool => $ip->rate_limit_enabled);
 
         $auditLogs = $this->getAuditLogs($user);

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
@@ -14,7 +14,7 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
 });
 
-const searchQuery = ref(props.filters?.mac ?? '');
+const searchQuery = ref(props.filters?.search ?? '');
 const filterValues = ref({
     source: props.filters?.source ?? '',
 });
@@ -39,36 +39,22 @@ const columns = [
     { key: 'source', label: 'Source' },
 ];
 
-const allMacs = computed(() => props.macs.data ?? []);
-
-const filteredMacs = computed(() => {
-    let result = allMacs.value;
-    const q = searchQuery.value.toLowerCase().trim();
-
-    if (q) {
-        result = result.filter(
-            (m) =>
-                m.mac_address.toLowerCase().includes(q) ||
-                (m.hostname ?? '').toLowerCase().includes(q) ||
-                (m.user?.nickname ?? '').toLowerCase().includes(q),
-        );
-    }
-
-    if (filterValues.value.source) {
-        result = result.filter((m) => m.source === filterValues.value.source);
-    }
-
-    return result;
-});
-
 function onSearchUpdate(value) {
     searchQuery.value = value;
-    router.get(route('admin.macs.index'), { mac: value, source: filterValues.value.source }, { preserveState: true });
+    router.get(
+        route('admin.macs.index'),
+        { search: value, source: filterValues.value.source },
+        { preserveState: true },
+    );
 }
 
 function onFilterUpdate(values) {
     filterValues.value = values;
-    router.get(route('admin.macs.index'), { mac: searchQuery.value, source: values.source }, { preserveState: true });
+    router.get(
+        route('admin.macs.index'),
+        { search: searchQuery.value, source: values.source },
+        { preserveState: true },
+    );
 }
 </script>
 
@@ -98,7 +84,7 @@ function onFilterUpdate(values) {
             :filters="filterDefinitions"
             :filter-values="filterValues"
             :total-count="macs.total ?? 0"
-            :filtered-count="filteredMacs.length"
+            :filtered-count="macs.data?.length ?? 0"
             data-testid="macs-filter-bar"
             @update:search="onSearchUpdate"
             @update:filter-values="onFilterUpdate"
@@ -106,7 +92,7 @@ function onFilterUpdate(values) {
 
         <DataTable
             :columns="columns"
-            :rows="filteredMacs"
+            :rows="macs.data"
             clickable
             :row-href="(row) => route('admin.macs.show', row.mac_address)"
             :row-aria-label="(row) => `Open MAC ${row.mac_address}`"

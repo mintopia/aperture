@@ -123,6 +123,89 @@ class IpAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('ips.data', 1));
     }
 
+    public function test_admin_can_filter_ips_by_partial_address(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip1 = new IpAddress;
+        $ip1->address = '10.0.0.1';
+        $ip1->last_seen_at = Carbon::now();
+        $ip1->save();
+
+        $ip2 = new IpAddress;
+        $ip2->address = '10.0.0.2';
+        $ip2->last_seen_at = Carbon::now();
+        $ip2->save();
+
+        $ip3 = new IpAddress;
+        $ip3->address = '192.168.1.1';
+        $ip3->last_seen_at = Carbon::now();
+        $ip3->save();
+
+        $response = $this->actingAs($admin)->get('/admin/ips?address=10.0.0');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->has('ips.data', 2));
+    }
+
+    public function test_admin_can_filter_ips_by_status(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $allowed = new IpAddress;
+        $allowed->address = '10.0.0.1';
+        $allowed->internet_enabled = true;
+        $allowed->last_seen_at = Carbon::now();
+        $allowed->save();
+
+        $blocked = new IpAddress;
+        $blocked->address = '10.0.0.2';
+        $blocked->internet_enabled = false;
+        $blocked->last_seen_at = Carbon::now();
+        $blocked->save();
+
+        $unassigned = new IpAddress;
+        $unassigned->address = '10.0.0.3';
+        $unassigned->internet_enabled = null;
+        $unassigned->last_seen_at = Carbon::now();
+        $unassigned->save();
+
+        $allowedResponse = $this->actingAs($admin)->get('/admin/ips?status=allowed');
+        $allowedResponse->assertOk();
+        $allowedResponse->assertInertia(fn ($page) => $page
+            ->has('ips.data', 1)
+            ->where('ips.data.0.address', '10.0.0.1')
+            ->where('filters.status', 'allowed')
+        );
+
+        $blockedResponse = $this->actingAs($admin)->get('/admin/ips?status=blocked');
+        $blockedResponse->assertOk();
+        $blockedResponse->assertInertia(fn ($page) => $page
+            ->has('ips.data', 1)
+            ->where('ips.data.0.address', '10.0.0.2')
+        );
+
+        $unassignedResponse = $this->actingAs($admin)->get('/admin/ips?status=unassigned');
+        $unassignedResponse->assertOk();
+        $unassignedResponse->assertInertia(fn ($page) => $page
+            ->has('ips.data', 1)
+            ->where('ips.data.0.address', '10.0.0.3')
+            ->where('ips.data.0.internet_enabled', null)
+        );
+    }
+
+    public function test_discovered_ip_defaults_to_null_internet_enabled(): void
+    {
+        $ip = new IpAddress;
+        $ip->address = '10.1.2.3';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $this->assertNull($ip->fresh()->internet_enabled);
+    }
+
     public function test_admin_can_filter_ips_by_ipv6_address_case_insensitively(): void
     {
         Queue::fake();
