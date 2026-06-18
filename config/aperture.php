@@ -20,6 +20,7 @@ return [
     'switch_sync_interval' => (int) env('APERTURE_SWITCH_SYNC_INTERVAL', 5),
     'circuit_breaker' => [
         'failure_threshold' => (int) env('APERTURE_CIRCUIT_BREAKER_THRESHOLD', 3),
+        'cooldown' => (int) env('APERTURE_CIRCUIT_BREAKER_COOLDOWN', 300),
     ],
     'bandwidth_anomaly' => [
         'threshold' => (float) env('APERTURE_BANDWIDTH_ANOMALY_THRESHOLD', 3.0),

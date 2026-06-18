@@ -12,9 +12,12 @@ class CircuitBreaker
 {
     private int $failureThreshold;
 
+    private int $cooldown;
+
     public function __construct()
     {
         $this->failureThreshold = (int) config('aperture.circuit_breaker.failure_threshold', 3);
+        $this->cooldown = (int) config('aperture.circuit_breaker.cooldown', 300);
     }
 
     /**
@@ -22,6 +25,11 @@ class CircuitBreaker
      *
      * When the failure count reaches the configured threshold, fires
      * SwitchUnreachable and marks the switch as circuit-broken.
+     *
+     * The circuit-open flag is stored with a cooldown TTL so the switch is
+     * automatically retried (half-open) by the next scheduled sync once the
+     * cooldown elapses. A failure at or beyond the threshold re-arms the
+     * cooldown, so a failed half-open trial re-opens the circuit.
      */
     public function recordFailure(SwitchConfig $switch): void
     {
@@ -30,9 +38,12 @@ class CircuitBreaker
 
         Cache::put($cacheKey, $count);
 
-        if ($count === $this->failureThreshold) {
-            Cache::put($this->openKey($switch), true);
-            SwitchUnreachable::dispatch($switch, $count);
+        if ($count >= $this->failureThreshold) {
+            Cache::put($this->openKey($switch), true, $this->cooldown);
+
+            if ($count === $this->failureThreshold) {
+                SwitchUnreachable::dispatch($switch, $count);
+            }
         }
     }
 

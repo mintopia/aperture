@@ -196,4 +196,71 @@ class CircuitBreakerTest extends TestCase
 
         $this->assertTrue($this->circuitBreaker->isAvailable($switch));
     }
+
+    public function test_circuit_recovers_automatically_after_cooldown(): void
+    {
+        Event::fake([SwitchUnreachable::class]);
+
+        config(['aperture.circuit_breaker.cooldown' => 300]);
+        $circuitBreaker = new CircuitBreaker;
+
+        $switch = SwitchConfig::factory()->create();
+
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+
+        $this->assertFalse($circuitBreaker->isAvailable($switch));
+
+        $this->travel(301)->seconds();
+
+        $this->assertTrue($circuitBreaker->isAvailable($switch));
+    }
+
+    public function test_circuit_reopens_when_trial_fails_after_cooldown(): void
+    {
+        Event::fake([SwitchUnreachable::class]);
+
+        config(['aperture.circuit_breaker.cooldown' => 300]);
+        $circuitBreaker = new CircuitBreaker;
+
+        $switch = SwitchConfig::factory()->create();
+
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+
+        $this->travel(301)->seconds();
+
+        $this->assertTrue($circuitBreaker->isAvailable($switch));
+
+        // Half-open trial fails: the circuit must re-open for another cooldown.
+        $circuitBreaker->recordFailure($switch);
+
+        $this->assertFalse($circuitBreaker->isAvailable($switch));
+
+        $this->travel(301)->seconds();
+
+        $this->assertTrue($circuitBreaker->isAvailable($switch));
+    }
+
+    public function test_default_cooldown_is_300_seconds(): void
+    {
+        Event::fake([SwitchUnreachable::class]);
+
+        config(['aperture.circuit_breaker' => ['failure_threshold' => 3]]);
+        $circuitBreaker = new CircuitBreaker;
+
+        $switch = SwitchConfig::factory()->create();
+
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+
+        $this->travel(299)->seconds();
+        $this->assertFalse($circuitBreaker->isAvailable($switch));
+
+        $this->travel(2)->seconds();
+        $this->assertTrue($circuitBreaker->isAvailable($switch));
+    }
 }
