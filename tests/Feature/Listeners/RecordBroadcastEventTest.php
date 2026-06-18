@@ -1,0 +1,158 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Listeners;
+
+use App\Events\AuditLogRecorded;
+use App\Events\BandwidthAnomalyDetected;
+use App\Events\DhcpPoolThresholdReached;
+use App\Events\DnsFilterChanged;
+use App\Events\InternetAccessChanged;
+use App\Events\RateLimitChanged;
+use App\Events\SwitchUnreachable;
+use App\Events\UserBlocked;
+use App\Listeners\RecordBroadcastEvent;
+use App\Models\AuditLog;
+use App\Models\IpAddress;
+use App\Models\SwitchConfig;
+use App\Models\User;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use RuntimeException;
+use stdClass;
+use Tests\TestCase;
+
+class RecordBroadcastEventTest extends TestCase
+{
+    use LazilyRefreshDatabase;
+
+    private function listener(): RecordBroadcastEvent
+    {
+        return new RecordBroadcastEvent;
+    }
+
+    public function test_switch_unreachable_records_critical_audit_with_subject(): void
+    {
+        $switch = SwitchConfig::factory()->create(['name' => 'core-sw']);
+
+        $this->listener()->handleBroadcastEvent(new SwitchUnreachable($switch, 3));
+
+        $log = AuditLog::where('action', 'switch.unreachable')->firstOrFail();
+        $this->assertSame('critical', $log->severity);
+        $this->assertSame('network', $log->process);
+        $this->assertSame($switch->getMorphClass(), $log->subject_type);
+        $this->assertSame($switch->id, $log->subject_id);
+        $this->assertNotNull($log->metadata);
+        $this->assertSame(3, $log->metadata['failure_count']);
+    }
+
+    public function test_bandwidth_anomaly_records_warning_audit(): void
+    {
+        $this->listener()->handleBroadcastEvent(
+            new BandwidthAnomalyDetected('10.0.0.5', 'alice', 1, 5000.0, 1000.0, 5.0, 3.0)
+        );
+
+        $log = AuditLog::where('action', 'bandwidth.anomaly')->firstOrFail();
+        $this->assertSame('warning', $log->severity);
+        $this->assertNull($log->subject_type);
+        $this->assertNotNull($log->metadata);
+        $this->assertSame('10.0.0.5', $log->metadata['ip_address']);
+    }
+
+    public function test_dhcp_threshold_records_warning_audit(): void
+    {
+        $this->listener()->handleBroadcastEvent(
+            new DhcpPoolThresholdReached(pool: 'lan', usage: 92.0, threshold: 90.0, addressFamily: 'ipv4')
+        );
+
+        $log = AuditLog::where('action', 'dhcp.threshold_reached')->firstOrFail();
+        $this->assertSame('warning', $log->severity);
+        $this->assertNotNull($log->metadata);
+        $this->assertSame('lan', $log->metadata['pool']);
+    }
+
+    public function test_already_audited_actor_event_is_not_recorded(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $user = User::factory()->create();
+
+        $this->listener()->handleBroadcastEvent(new InternetAccessChanged($ip, true, $user));
+
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'internet_access_changed']);
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_rate_limit_changed_actor_event_is_not_recorded(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $user = User::factory()->create();
+
+        $this->listener()->handleBroadcastEvent(new RateLimitChanged($ip, 100, 200, $user));
+
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_dns_filter_changed_actor_event_is_not_recorded(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $user = User::factory()->create();
+
+        $this->listener()->handleBroadcastEvent(new DnsFilterChanged($ip, true, $user));
+
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_user_blocked_actor_event_is_not_recorded(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $user = User::factory()->create();
+
+        $this->listener()->handleBroadcastEvent(new UserBlocked($user, $ip, 'manual'));
+
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_wildcard_ignores_non_broadcast_payload(): void
+    {
+        $this->listener()->handleWildcard('SomeEvent', [new stdClass]);
+
+        $this->assertSame(0, AuditLog::count());
+    }
+
+    public function test_wildcard_routes_broadcast_event_to_handler(): void
+    {
+        $switch = SwitchConfig::factory()->create(['name' => 'edge-sw']);
+
+        $this->listener()->handleWildcard('SwitchUnreachable', [new SwitchUnreachable($switch, 2)]);
+
+        $this->assertDatabaseHas('audit_logs', ['action' => 'switch.unreachable', 'severity' => 'critical']);
+    }
+
+    public function test_audit_log_recorded_event_is_ignored_to_prevent_recursion(): void
+    {
+        $log = AuditLog::record(action: 'user.login');
+        $countAfterRecord = AuditLog::count();
+
+        $this->listener()->handleBroadcastEvent(new AuditLogRecorded($log));
+
+        $this->assertSame($countAfterRecord, AuditLog::count());
+    }
+
+    public function test_throwable_during_record_is_caught_and_reported(): void
+    {
+        // Covers the catch(Throwable) block (lines 61–62) in handleBroadcastEvent.
+        // We register a 'creating' model event on AuditLog to throw a RuntimeException,
+        // which is caught by the try/catch in handleBroadcastEvent and silently reported.
+        AuditLog::creating(function (): bool {
+            throw new RuntimeException('Simulated failure for catch-block coverage');
+        });
+
+        $switch = SwitchConfig::factory()->create();
+
+        // Should not throw — the catch block swallows the exception via report().
+        $this->listener()->handleBroadcastEvent(new SwitchUnreachable($switch, 1));
+
+        // If we reach here, the catch block executed. Confirm no audit log row was persisted.
+        $this->assertSame(0, AuditLog::count());
+    }
+}

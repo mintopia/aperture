@@ -1,7 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console;
 
+use App\Jobs\ReapplyAccessRules;
+use App\Jobs\ScanNetworkDevices;
+use App\Jobs\SyncDhcpData;
+use App\Jobs\SyncSwitchPortsJob;
+use App\Models\SwitchConfig;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -12,8 +19,22 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('aperture:ntopng')->everyFiveMinutes();
-        $schedule->command('aperture:opnsense')->everyMinute();
+        $schedule->command('aperture:expire-sessions')->everyFiveMinutes()->onOneServer();
+        $schedule->command('aperture:detect-bandwidth-anomalies')->everyFiveMinutes()->onOneServer();
+        $schedule->command('aperture:sync-user-bandwidth')->everyFifteenMinutes()->onOneServer();
+        $schedule->job(new ReapplyAccessRules)->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
+        $schedule->job(new ScanNetworkDevices)->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+
+        $interval = (int) config('aperture.switch_sync_interval', 5);
+
+        $schedule->call(function (): void {
+            SwitchConfig::where('enabled', true)->each(function (SwitchConfig $switch): void {
+                SyncSwitchPortsJob::dispatch($switch);
+            });
+        })->cron(sprintf('*/%d * * * *', $interval))->name('sync-switch-ports')->onOneServer();
+
+        $schedule->job(new SyncDhcpData)->everyMinute()->onOneServer()->withoutOverlapping();
+        $schedule->command('aperture:sync-seatpicker')->everyFiveMinutes()->onOneServer();
     }
 
     /**

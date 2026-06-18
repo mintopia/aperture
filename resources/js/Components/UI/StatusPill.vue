@@ -1,0 +1,64 @@
+<script setup>
+import { computed } from 'vue';
+
+const props = defineProps({
+    status: {
+        type: String,
+        required: true,
+        validator: (v) => ['success', 'danger', 'warning', 'info', 'neutral', 'muted'].includes(v),
+    },
+    label: { type: String, required: true },
+});
+
+const config = {
+    success: {
+        bg: 'bg-[var(--color-success)]/14',
+        text: 'text-[var(--color-success)]',
+        border: 'border-[var(--color-success)]/14',
+        symbol: '✓',
+    },
+    danger: {
+        bg: 'bg-[var(--color-danger)]/14',
+        text: 'text-[var(--color-danger)]',
+        border: 'border-[var(--color-danger)]/14',
+        symbol: '✗',
+    },
+    warning: {
+        bg: 'bg-[var(--color-warning)]/14',
+        text: 'text-[var(--color-warning)]',
+        border: 'border-[var(--color-warning)]/14',
+        symbol: '▲',
+    },
+    info: {
+        bg: 'bg-[var(--color-info)]/14',
+        text: 'text-[var(--color-info)]',
+        border: 'border-[var(--color-info)]/14',
+        symbol: '✓',
+    },
+    neutral: {
+        bg: 'bg-[var(--color-text-muted)]/14',
+        text: 'text-[var(--color-text-muted)]',
+        border: 'border-[var(--color-text-muted)]/14',
+        symbol: '–',
+    },
+    muted: {
+        bg: 'bg-[var(--color-text-muted)]/10',
+        text: 'text-[var(--color-text-muted)]',
+        border: 'border-[var(--color-text-muted)]/10',
+        symbol: '·',
+    },
+};
+
+const c = computed(() => config[props.status]);
+</script>
+
+<template>
+    <span
+        :class="[c.bg, c.text, c.border]"
+        data-testid="status-pill"
+        class="inline-flex items-center gap-1 rounded border px-2.5 py-0.5 text-[11px] font-semibold"
+    >
+        <span v-if="c.symbol" aria-hidden="true" data-testid="status-symbol">{{ c.symbol }}</span>
+        {{ label }}
+    </span>
+</template>

@@ -1,11 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
-use App\Services\BorealisService;
-use App\Services\NtopNgService;
-use Illuminate\Foundation\Application;
+use App\Models\IpAddress;
+use App\Models\Setting;
+use App\Models\User;
+use App\Models\UserIpAddress;
+use App\Observers\IpAddressObserver;
+use App\Observers\UserIpAddressObserver;
+use App\Observers\UserObserver;
+use App\Services\Auth\BorealisDeviceFlowService;
+use App\Services\Interfaces\AuthProviderInterface;
+use App\Services\NetworkRangeService;
+use App\Services\ThemeService;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +28,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(AuthProviderInterface::class, BorealisDeviceFlowService::class);
+        $this->app->scoped(ThemeService::class);
+        $this->app->scoped(NetworkRangeService::class);
     }
 
     /**
@@ -22,21 +38,27 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->app->singleton(NtopNgService::class, function (Application $application) {
-            return new NtopNgService(
-                endpoint: config('aperture.ntopng.endpoint'),
-                username: config('aperture.ntopng.username'),
-                password: config('aperture.ntopng.password'),
-                interface: config('aperture.ntopng.interface'),
-            );
-        });
+        if ($this->app->environment('production') && config('app.debug')) {
+            Log::critical('APP_DEBUG is enabled in production. Disable it to prevent information disclosure.');
+        }
 
-        $this->app->singleton(BorealisService::class, function (Application $application) {
-            return new BorealisService(
-                clientId: config('aperture.borealis.client_id'),
-                clientSecret:  config('aperture.borealis.client_secret'),
-                endpoint: config('aperture.borealis.endpoint'),
-            );
-        });
+        $trustedProxyIps = $_SERVER['TRUSTED_PROXY_IPS'] ?? $_ENV['TRUSTED_PROXY_IPS'] ?? '*';
+        if ($trustedProxyIps === '*' && ! $this->app->environment('local', 'testing')) {
+            Log::warning("TRUSTED_PROXY_IPS is set to '*' — all X-Forwarded-For headers are trusted. Configure specific proxy IPs for production.");
+        }
+
+        Model::preventLazyLoading(! $this->app->isProduction());
+
+        User::observe(UserObserver::class);
+        IpAddress::observe(IpAddressObserver::class);
+        UserIpAddress::observe(UserIpAddressObserver::class);
+
+        try {
+            $siteTitle = (string) Setting::get('general.site_title', config('app.name', 'Aperture'));
+        } catch (Throwable) {
+            $siteTitle = (string) config('app.name', 'Aperture');
+        }
+
+        View::share('siteTitle', $siteTitle);
     }
 }

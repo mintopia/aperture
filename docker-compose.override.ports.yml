@@ -1,11 +1,10 @@
 services:
-  nginx:
+  aperture:
     ports:
       - 8000:80
-  websockets:
+  reverb:
     ports:
-      - 6001:6001
-
-networks:
-  frontend:
-    external: true
+      - 8080:8080
+  vite:
+    ports:
+      - 5173:5173

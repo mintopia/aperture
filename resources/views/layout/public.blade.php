@@ -23,7 +23,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>
-        {{ config('app.name', 'Aperture') }}
+        {{ $siteTitle }}
         @if (isset($title) && is_array($title))
             - {{ implode(' - ', $title) }}
         @elseif (isset($title))
@@ -37,8 +37,7 @@
         <div class="text-center mb-4">
             <h1>
                 <a href="{{ route('home') }}" class="navbar-brand navbar-brand-autodark">
-                    <i class="icon ti ti-aperture"></i>
-                    Aperture
+                    {{ $siteTitle }}
                 </a>
             </h1>
         </div>

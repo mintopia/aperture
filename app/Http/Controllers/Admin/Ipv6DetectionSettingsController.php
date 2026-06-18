@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateIpv6DetectionSettingsRequest;
+use App\Models\IntegrationConfig;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class Ipv6DetectionSettingsController extends Controller
+{
+    public function show(): Response
+    {
+        $config = IntegrationConfig::getAll('ipv6');
+
+        return Inertia::render('Admin/Settings/Ipv6Detection', [
+            'settings' => [
+                'detection_endpoint' => $config['detection_endpoint'] ?? '',
+                'jwks_url' => $config['jwks_url'] ?? '',
+                'jwt_audience' => $config['jwt_audience'] ?? '',
+                'jwt_issuer' => $config['jwt_issuer'] ?? '',
+            ],
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Services'],
+                ['label' => 'IPv6 Detection'],
+            ],
+        ]);
+    }
+
+    public function update(UpdateIpv6DetectionSettingsRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', $validated['detection_endpoint'] ?? '');
+        IntegrationConfig::setValue('ipv6', 'jwks_url', $validated['jwks_url'] ?? '');
+        IntegrationConfig::setValue('ipv6', 'jwt_audience', $validated['jwt_audience'] ?? '');
+        IntegrationConfig::setValue('ipv6', 'jwt_issuer', $validated['jwt_issuer'] ?? '');
+
+        return back()->with('success', 'IPv6 detection settings updated.');
+    }
+}

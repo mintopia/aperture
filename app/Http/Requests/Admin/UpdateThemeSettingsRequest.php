@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Admin;
+
+use App\Rules\SafeCss;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+
+class UpdateThemeSettingsRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorised to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'theme_mode' => 'required|string|in:light,dark',
+            'accent_hue' => 'required|integer|min:0|max:360',
+            'accent_chroma' => 'nullable|numeric|min:0.01|max:0.37',
+            'accent_lightness' => 'nullable|integer|min:40|max:95',
+            'custom_css' => ['nullable', 'string', 'max:10000', new SafeCss],
+        ];
+    }
+}

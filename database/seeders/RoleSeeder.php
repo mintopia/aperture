@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Log;
 
@@ -21,7 +20,7 @@ class RoleSeeder extends Seeder
         foreach ($roles as $code => $name) {
             $role = Role::whereCode($code)->first();
             $verb = 'Updated';
-            if (!$role) {
+            if (! $role) {
                 $verb = 'Created';
                 $role = new Role;
                 $role->code = $code;

@@ -12,15 +12,22 @@ services:
       - XDEBUG_MODE=debug
       - XDEBUG_SESSION=start
       - CADDY_SERVER_FRANKENPHP_OPTIONS=
+      - CADDY_TRUSTED_PROXIES=0.0.0.0/0 ::/0
       - APP_INDEX_FILE=index.php
+      - APP_URL=https://${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.ws.cloudagent.mintopia.net}
+      - DB_HOST=db
+      - REDIS_HOST=redis
+      - QUEUE_CONNECTION=redis
     volumes:
       - ./:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   db:
-    image: mariadb:10.5-focal
+    image: mariadb:11.4-noble
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
@@ -29,6 +36,12 @@ services:
       MYSQL_PASSWORD: "${DB_PASSWORD}"
     volumes:
       - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   horizon:
     build:
@@ -37,30 +50,40 @@ services:
     restart: unless-stopped
     entrypoint: [ "php", "artisan", "horizon" ]
     env_file: .env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
+      - QUEUE_CONNECTION=redis
     volumes:
       - ./:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       disable: true
 
-  ssh-daemon:
+  ssh-proxy:
     build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
+      context: ./ssh-proxy
+      dockerfile: Dockerfile
     restart: unless-stopped
-    entrypoint: [ "php", "artisan", "ssh-daemon:run" ]
-    env_file: .env
-    volumes:
-      - ./:/app
-    depends_on:
-      - db
-      - redis
+    environment:
+      - SSH_PROXY_API_KEY=${APERTURE_SSH_PROXY_API_KEY}
+      - SSH_PROXY_LISTEN_ADDR=0.0.0.0:8022
+      - SSH_PROXY_IDLE_TIMEOUT=600
+      - SSH_PROXY_SWEEP_INTERVAL=60
+      - SSH_PROXY_COMMAND_TIMEOUT=30
+      - SSH_PROXY_READ_TIMEOUT=5
+      - SSH_PROXY_CONNECT_TIMEOUT=10
     ports:
-      - "9022:9022"
+      - "8022:8022"
     healthcheck:
-      disable: true
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8022/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   scheduler:
     build:
@@ -69,17 +92,64 @@ services:
     restart: unless-stopped
     entrypoint: [ "php", "artisan", "schedule:work" ]
     env_file: .env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
+      - QUEUE_CONNECTION=redis
     volumes:
       - ./:/app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  reverb:
+    build:
+      context: .
+      dockerfile: docker/develop/Dockerfile
+    restart: unless-stopped
+    entrypoint: [ "php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080" ]
+    env_file: .env
+    environment:
+      - REDIS_HOST=redis
+      - REVERB_SERVER_HOST=0.0.0.0
+      - REVERB_SERVER_PORT=8080
+      - REVERB_HOST=${PUBLIC_REVERB_HOSTNAME:-reverb.hallowed-rincewind.ws.cloudagent.mintopia.net}
+      - REVERB_PORT=443
+      - REVERB_SCHEME=https
+    volumes:
+      - ./:/app
+    depends_on:
       - redis
     healthcheck:
       disable: true
 
-  redis:
-    image: redis:6.0
+  vite:
+    image: node:23
     restart: unless-stopped
+    working_dir: /app
+    command: [ "npm", "run", "dev", "--", "--host=0.0.0.0", "--port=5173", "--strictPort" ]
+    environment:
+      - APP_URL=https://${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.ws.cloudagent.mintopia.net}
+      - VITE_HMR_HOST=${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.ws.cloudagent.mintopia.net}
+      - VITE_HMR_PORT=443
+      - VITE_HMR_PROTOCOL=wss
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./:/app
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   composer:
     profiles: [ "composer" ]
@@ -122,8 +192,10 @@ services:
     volumes:
       - ./:/app/
     depends_on:
-      - redis
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       disable: true
 
@@ -158,8 +230,10 @@ services:
     volumes:
       - ./:/app/
     depends_on:
-      - redis
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       disable: true
 

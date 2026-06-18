@@ -1,34 +1,34 @@
 <?php
+
 return [
-    'cisco' => [
-        'username' => env('APERTURE_CISCO_USERNAME'),
-        'password' => env('APERTURE_CISCO_PASSWORD'),
-        'enablePassword' => env('APERTURE_CISCO_ENABLE_PASSWORD'),
-        'timeout' => env('APERTURE_CISCO_TIMEOUT', 5),
+    'session' => [
+        'ttl' => env('APERTURE_SESSION_TTL', 7200),
     ],
-    'opnsense' => [
-        'endpoint' => env('APERTURE_OPNSENSE_ENDPOINT'),
-        'key' => env('APERTURE_OPNSENSE_KEY'),
-        'secret' => env('APERTURE_OPNSENSE_SECRET'),
-        'zoneid' => env('APERTURE_OPNSENSE_ZONEID'),
-        'verify' => env('APERTURE_OPNSENSE_VERIFY', true),
-        'ratelimitUpUuid' => env('APERTURE_OPNSENSE_RATELIMIT_RULE_UP_UUID'),
-        'ratelimitDownUuid' => env('APERTURE_OPNSENSE_RATELIMIT_RULE_DOWN_UUID'),
+    'ssh_proxy' => [
+        'host' => env('APERTURE_SSH_PROXY_HOST', '127.0.0.1'),
+        'port' => (int) env('APERTURE_SSH_PROXY_PORT', 8022),
+        'listen_host' => env('APERTURE_SSH_PROXY_LISTEN_HOST', '0.0.0.0'),
+        'api_key' => env('APERTURE_SSH_PROXY_API_KEY'),
+        'keepalive_seconds' => (int) env('APERTURE_SSH_PROXY_KEEPALIVE', 300),
+        'idle_timeout_seconds' => (int) env('APERTURE_SSH_PROXY_IDLE_TIMEOUT', 600),
+        'sweep_interval_seconds' => (int) env('APERTURE_SSH_PROXY_SWEEP_INTERVAL', 60),
+        'command_timeout_seconds' => (int) env('APERTURE_SSH_PROXY_COMMAND_TIMEOUT', 30),
+        'read_timeout_seconds' => (int) env('APERTURE_SSH_PROXY_READ_TIMEOUT', 5),
+        'connect_timeout' => (int) env('APERTURE_SSH_PROXY_CONNECT_TIMEOUT', 5),
+        'request_timeout' => (int) env('APERTURE_SSH_PROXY_REQUEST_TIMEOUT', 60),
     ],
-    'lnms' => [
-        'enabled' => env('APERTURE_LNMS_ENABLED'),
+    'switch_sync_interval' => (int) env('APERTURE_SWITCH_SYNC_INTERVAL', 5),
+    'circuit_breaker' => [
+        'failure_threshold' => (int) env('APERTURE_CIRCUIT_BREAKER_THRESHOLD', 3),
+        'cooldown' => (int) env('APERTURE_CIRCUIT_BREAKER_COOLDOWN', 300),
     ],
-    'ntopng' => [
-        'enabled' => env('APERTURE_NTOPNG_ENABLED'),
-        'endpoint' => env('APERTURE_NTOPNG_ENDPOINT'),
-        'username' => env('APERTURE_NTOPNG_USERNAME'),
-        'password' => env('APERTURE_NTOPNG_PASSWORD'),
-        'interface' => env('APERTURE_NTOPNG_INTERFACE'),
+    'bandwidth_anomaly' => [
+        'threshold' => (float) env('APERTURE_BANDWIDTH_ANOMALY_THRESHOLD', 3.0),
     ],
-    'borealis' => [
-        'enabled' => env('BOREALIS_ENABLED', false),
-        'endpoint' => env('BOREALIS_ENDPOINT'),
-        'client_id' => env('BOREALIS_CLIENT_ID'),
-        'client_secret' => env('BOREALIS_CLIENT_SECRET'),
+    'theme' => [
+        'mode' => 'dark',
+        'accent_hue' => 55,
+        'accent_chroma' => 0.16,
+        'accent_lightness' => 76,
     ],
 ];
