@@ -8,12 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Models\ConnectionTestLog;
 use App\Models\SwitchConfig;
 use App\Services\Integration\IntegrationConfigMerger;
-use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\Interfaces\SshProxyClientInterface;
+use App\Services\Interfaces\TestableIntegration;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\ValueObjects\TestConnectionResult;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -22,18 +22,21 @@ use Throwable;
 class TestConnectionController extends Controller
 {
     public function __construct(
-        private IntegrationTesterRegistry $registry,
         private IntegrationConfigMerger $configMerger,
     ) {}
 
     public function test(Request $request, string $service): JsonResponse
     {
-        if (! $this->registry->has($service)) {
+        $testerClass = config('integrations.'.$service.'.tester');
+
+        if (! is_string($testerClass)) {
             return response()->json(['success' => false, 'message' => 'Unknown service: '.$service], 404);
         }
 
         $config = $this->configMerger->merge($service, $request);
-        $result = $this->registry->get($service)->connect($config);
+        $tester = app($testerClass);
+        assert($tester instanceof TestableIntegration);
+        $result = $tester->connect($config);
 
         $this->logResult($service, $result);
 
@@ -110,7 +113,7 @@ class TestConnectionController extends Controller
                 'request_url' => $requestUrl,
                 'output' => $result->output,
             ]);
-        } catch (ConnectException $connectException) {
+        } catch (ConnectionException $connectException) {
             Log::error('SSH proxy unreachable during switch test', [
                 'switch_id' => $switchConfig->id,
                 'hostname' => $switchConfig->hostname,
@@ -126,8 +129,7 @@ class TestConnectionController extends Controller
                 $requestUrl,
             );
         } catch (RequestException $requestException) {
-            $response = $requestException->getResponse();
-            $statusCode = $response?->getStatusCode();
+            $statusCode = $requestException->response->status();
 
             Log::error('SSH proxy request failed during switch test', [
                 'switch_id' => $switchConfig->id,

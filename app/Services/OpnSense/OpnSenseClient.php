@@ -6,17 +6,50 @@ namespace App\Services\OpnSense;
 
 use App\Services\Firewalls\Exceptions\BackendException;
 use Carbon\CarbonImmutable;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Psr\Http\Message\ResponseInterface;
 use stdClass;
+use Throwable;
 
 class OpnSenseClient
 {
     public function __construct(
-        protected Client $client,
+        protected string $endpoint,
+        protected string $key,
+        protected string $secret,
+        protected bool $verifySsl = true,
     ) {}
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public static function fromConfig(array $config): self
+    {
+        return new self(
+            rtrim((string) ($config['endpoint'] ?? ''), '/'),
+            (string) ($config['key'] ?? ''),
+            (string) ($config['secret'] ?? ''),
+            (bool) ($config['verify_ssl'] ?? true),
+        );
+    }
+
+    public function request(?int $timeout = null): PendingRequest
+    {
+        $request = Http::baseUrl($this->endpoint)
+            ->withOptions(['verify' => $this->verifySsl])
+            ->withBasicAuth($this->key, $this->secret)
+            ->throw();
+
+        if ($timeout !== null) {
+            $request->timeout($timeout);
+        }
+
+        return $request;
+    }
 
     /**
      * @param  array<string, mixed>  $query
@@ -25,14 +58,12 @@ class OpnSenseClient
      */
     public function get(string $uri, array $query = []): stdClass
     {
-        $options = $this->makeOptions($query);
         try {
             Log::debug('[OpnSense] GET '.$uri);
-            $response = $this->client->get($uri, $options);
 
-            return $this->decodeResponse($response);
-        } catch (GuzzleException $guzzleException) {
-            throw new BackendException('Error from Opnsense: '.$guzzleException->getMessage(), $guzzleException->getCode(), $guzzleException);
+            return $this->decodeResponse($this->request()->get($uri, $query));
+        } catch (ConnectionException|RequestException $exception) {
+            throw new BackendException('Error from Opnsense: '.$exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
@@ -44,14 +75,79 @@ class OpnSenseClient
      */
     public function post(string $uri, array $query = [], array|stdClass|null $payload = []): stdClass
     {
-        $options = $this->makeOptions($query, $payload);
         try {
             Log::debug('[OpnSense] POST '.$uri);
-            $response = $this->client->post($uri, $options);
+            $url = $query === [] ? $uri : $uri.'?'.http_build_query($query);
 
-            return $this->decodeResponse($response);
-        } catch (GuzzleException $guzzleException) {
-            throw new BackendException('Error from Opnsense: '.$guzzleException->getMessage(), $guzzleException->getCode(), $guzzleException);
+            return $this->decodeResponse(
+                $this->request()->withBody((string) json_encode($payload ?? []), 'application/json')->post($url)
+            );
+        } catch (ConnectionException|RequestException $exception) {
+            throw new BackendException('Error from Opnsense: '.$exception->getMessage(), $exception->getCode(), $exception);
+        }
+    }
+
+    /**
+     * @return array{rules: list<array{uuid: string, description: string}>, error?: string}
+     */
+    public function getShaperRules(): array
+    {
+        try {
+            $error = $this->validateConfig();
+            if ($error !== null) {
+                return ['rules' => [], 'error' => $error];
+            }
+
+            $data = $this->request(10)->post('/api/trafficshaper/settings/search_rules', [
+                'current' => 1,
+                'rowCount' => -1,
+                'searchPhrase' => '',
+            ])->json();
+
+            $rules = [['uuid' => '', 'description' => 'None (no rate limiting)']];
+
+            foreach ($data['rows'] ?? [] as $rule) {
+                $rules[] = [
+                    'uuid' => $rule['uuid'] ?? '',
+                    'description' => ($rule['description'] ?? 'Unnamed rule').' (seq: '.($rule['sequence'] ?? '?').')',
+                ];
+            }
+
+            return ['rules' => $rules];
+        } catch (Throwable $throwable) {
+            return ['rules' => [], 'error' => 'Failed to fetch shaper rules: '.$throwable->getMessage()];
+        }
+    }
+
+    /**
+     * @return array{zones: list<array{id: string, name: string}>, error?: string}
+     */
+    public function getZones(): array
+    {
+        try {
+            $error = $this->validateConfig();
+            if ($error !== null) {
+                return ['zones' => [], 'error' => $error];
+            }
+
+            $data = $this->request(10)->get('/api/captiveportal/settings/get')->json();
+
+            $zones = [];
+
+            foreach ($data['zone']['zones']['zone'] ?? [] as $zone) {
+                $zoneId = $zone['zoneid'] ?? '';
+                $description = $zone['description'] ?? 'Zone '.$zoneId;
+                $zones[] = [
+                    'id' => (string) $zoneId,
+                    'name' => $description.' (ID: '.$zoneId.')',
+                ];
+            }
+
+            usort($zones, fn (array $a, array $b): int => (int) $a['id'] <=> (int) $b['id']);
+
+            return ['zones' => $zones];
+        } catch (Throwable $throwable) {
+            return ['zones' => [], 'error' => 'Failed to fetch zones: '.$throwable->getMessage()];
         }
     }
 
@@ -71,9 +167,9 @@ class OpnSenseClient
     /**
      * @throws BackendException
      */
-    protected function decodeResponse(ResponseInterface $response): stdClass
+    protected function decodeResponse(Response $response): stdClass
     {
-        $json = json_decode((string) $response->getBody());
+        $json = json_decode($response->body());
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new BackendException('Unable to decode response');
         }
@@ -81,22 +177,16 @@ class OpnSenseClient
         return (object) $json;
     }
 
-    /**
-     * @param  array<string, mixed>  $query
-     * @param  array<string, mixed>|stdClass|null  $payload
-     * @return array<string, mixed>
-     */
-    protected function makeOptions(array $query = [], array|stdClass|null $payload = null): array
+    private function validateConfig(): ?string
     {
-        $options = [];
-        if ($query !== []) {
-            $options['query'] = $query;
+        if ($this->endpoint === '') {
+            return 'OPNsense endpoint is not configured.';
         }
 
-        if ($payload !== null) {
-            $options['json'] = $payload;
+        if ($this->key === '' || $this->secret === '') {
+            return 'OPNsense API credentials are not configured.';
         }
 
-        return $options;
+        return null;
     }
 }

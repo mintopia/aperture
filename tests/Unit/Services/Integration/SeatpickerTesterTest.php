@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Integration;
 
-use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\Integration\SeatpickerTester;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -227,17 +226,5 @@ class SeatpickerTesterTest extends TestCase
         $this->assertIsArray($fields);
         $this->assertArrayHasKey('event_code', $fields);
         $this->assertSame('/admin/settings/integrations/seatpicker/events', $fields['event_code']['remote_url']);
-    }
-
-    // -------------------------------------------------------
-    // Registry assertion
-    // -------------------------------------------------------
-
-    public function test_seatpicker_tester_is_registered_in_registry(): void
-    {
-        $registry = $this->app->make(IntegrationTesterRegistry::class);
-
-        $this->assertTrue($registry->has('seatpicker'));
-        $this->assertInstanceOf(SeatpickerTester::class, $registry->get('seatpicker'));
     }
 }

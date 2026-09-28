@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Services\OpnSense\OpnSenseDhcpService;
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Response;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
@@ -25,11 +22,11 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
                     && $context['path'] === '/api/dhcpv4/ranges';
             });
 
-        $mock = new MockHandler([
-            new Response(500, [], 'Internal Server Error'),
+        $mock = Http::sequence([
+            Http::response('Internal Server Error', 500),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler, 'http_errors' => true]);
+        Http::fake(['*' => $mock]);
+        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
             client: $client,
@@ -55,11 +52,11 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
                     && $context['path'] === '/api/dhcpv6/ranges';
             });
 
-        $mock = new MockHandler([
-            new Response(500, [], 'Internal Server Error'),
+        $mock = Http::sequence([
+            Http::response('Internal Server Error', 500),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler, 'http_errors' => true]);
+        Http::fake(['*' => $mock]);
+        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
             client: $client,

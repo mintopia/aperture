@@ -7,12 +7,9 @@ namespace Tests\Unit\Services\Dhcp;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpRange;
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class OpnSenseDhcpServiceFieldMapTest extends TestCase
@@ -47,7 +44,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     ];
 
     /**
-     * @param  list<Response>  $responses
+     * @param  list<PromiseInterface>  $responses
      * @param  array<string, string>  $leaseFieldMap
      * @param  array<string, string>  $rangeFieldMap
      */
@@ -59,9 +56,9 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         array $leaseFieldMap = ['ip' => 'address', 'mac' => 'mac', 'hostname' => 'hostname', 'expires' => 'ends', 'status' => 'status'],
         array $rangeFieldMap = ['interface' => 'interface', 'subnet' => 'subnet', 'range_from' => 'range_from', 'range_to' => 'range_to', 'gateway' => 'gateway', 'description' => 'description', 'prefix' => 'prefix'],
     ): OpnSenseDhcpService {
-        $mock = new MockHandler($responses);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
+        $mock = Http::sequence($responses);
+        Http::fake(['*' => $mock]);
+        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         return new OpnSenseDhcpService(
             client: $client,
@@ -73,11 +70,19 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         );
     }
 
+    /**
+     * @return array<int, Request>
+     */
+    private function history(): array
+    {
+        return Http::recorded()->map(fn (array $pair): Request => $pair[0])->values()->all();
+    }
+
     public function test_dnsmasq_leases_mapped_from_hwaddr_and_expires(): void
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         [
                             'address' => '10.0.0.50',
@@ -87,7 +92,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
                             'if' => 'em0',
                         ],
                     ],
-                ])),
+                ], 200),
             ],
             leaseFieldMap: self::DNSMASQ_LEASE_MAP,
         );
@@ -106,7 +111,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         [
                             'address' => '10.0.0.60',
@@ -116,7 +121,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
                             'if' => 'igb0',
                         ],
                     ],
-                ])),
+                ], 200),
             ],
             leaseFieldMap: self::KEA_LEASE_MAP,
         );
@@ -134,13 +139,13 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.1', 'hwaddr' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'expires' => '2026-01-01'],
                         ['address' => '10.0.0.2', 'hwaddr' => 'aa:bb:cc:00:00:02', 'hostname' => 'h2', 'expires' => '2026-01-01'],
                         ['address' => '10.0.0.3', 'hwaddr' => 'aa:bb:cc:00:00:03', 'hostname' => 'h3', 'expires' => '2026-01-01'],
                     ],
-                ])),
+                ], 200),
             ],
             poolSize: 100,
             leaseFieldMap: self::DNSMASQ_LEASE_MAP,
@@ -157,12 +162,12 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.1', 'hwaddr' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'expire' => '1748736000'],
                         ['address' => '10.0.0.2', 'hwaddr' => 'aa:bb:cc:00:00:02', 'hostname' => 'h2', 'expire' => '1748736000'],
                     ],
-                ])),
+                ], 200),
             ],
             poolSize: 50,
             leaseFieldMap: self::KEA_LEASE_MAP,
@@ -179,12 +184,12 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.50', 'hwaddr' => 'aa:bb:cc:dd:ee:01', 'hostname' => 'target', 'expires' => '2026-06-01 12:00:00'],
                         ['address' => '10.0.0.51', 'hwaddr' => 'aa:bb:cc:dd:ee:02', 'hostname' => 'other', 'expires' => '2026-06-01 13:00:00'],
                     ],
-                ])),
+                ], 200),
             ],
             leaseFieldMap: self::DNSMASQ_LEASE_MAP,
         );
@@ -202,11 +207,11 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.50', 'hwaddr' => 'aa:bb:cc:dd:ee:01', 'hostname' => 'h1', 'expires' => '2026-06-01'],
                     ],
-                ])),
+                ], 200),
             ],
             leaseFieldMap: self::DNSMASQ_LEASE_MAP,
         );
@@ -220,7 +225,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         [
                             'interface' => 'lan',
@@ -229,8 +234,8 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
                             'domain' => 'lan.local',
                         ],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv4RangesPath: '/api/dnsmasq/settings/search_range',
             rangeFieldMap: self::DNSMASQ_RANGE_MAP,
@@ -263,7 +268,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
 
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         [
                             'interface' => 'lan',
@@ -273,8 +278,8 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
                             '%set_tag' => 'ipv6-lan',
                         ],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv4RangesPath: '/api/dnsmasq/settings/search_range',
             rangeFieldMap: $rangeFieldMap,
@@ -294,11 +299,11 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'isc-host', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                     ],
-                ])),
+                ], 200),
             ],
         );
 
@@ -313,46 +318,38 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
 
     public function test_get_requests_do_not_include_json_body(): void
     {
-        /** @var list<array{request: Request}> $history */
-        $history = [];
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        $mock = Http::sequence([
+            Http::response([
                 'rows' => [['address' => '10.0.0.1', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active']],
-            ])),
+            ], 200),
         ]);
-        $handler = HandlerStack::create($mock);
-        $handler->push(Middleware::history($history));
-
-        $client = new Client(['handler' => $handler]);
+        Http::fake(['*' => $mock]);
+        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService($client, 254);
         $service->getLeases();
 
-        $this->assertCount(1, $history);
-        $this->assertEquals('', (string) $history[0]['request']->getBody());
-        $this->assertFalse($history[0]['request']->hasHeader('Content-Type'));
+        $this->assertCount(1, $this->history());
+        $this->assertEquals('', $this->history()[0]->body());
+        $this->assertFalse($this->history()[0]->hasHeader('Content-Type'));
     }
 
     public function test_range_get_requests_do_not_include_json_body(): void
     {
-        /** @var list<array{request: Request}> $history */
-        $history = [];
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        $mock = Http::sequence([
+            Http::response([
                 'rows' => [['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200']],
-            ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            ], 200),
+            Http::response(['rows' => []], 200),
         ]);
-        $handler = HandlerStack::create($mock);
-        $handler->push(Middleware::history($history));
-
-        $client = new Client(['handler' => $handler]);
+        Http::fake(['*' => $mock]);
+        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService($client, 254, ipv4RangesPath: '/api/kea/dhcpv4/search_subnet');
         $service->getRanges();
 
-        $this->assertCount(2, $history);
-        $this->assertEquals('', (string) $history[0]['request']->getBody());
-        $this->assertFalse($history[0]['request']->hasHeader('Content-Type'));
+        $this->assertCount(2, $this->history());
+        $this->assertEquals('', $this->history()[0]->body());
+        $this->assertFalse($this->history()[0]->hasHeader('Content-Type'));
     }
 }

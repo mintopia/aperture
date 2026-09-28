@@ -39,7 +39,7 @@ final class KeaBootstrapper implements IntegrationBootstrapper
 
     private function buildDhcpService(): ?DhcpInterface
     {
-        $config = $this->getIntegrationDbConfig();
+        $config = IntegrationConfig::safeGetAll(Integration::Kea->value);
 
         $ipv4Client = $this->buildClient($config, 'v4', 'dhcp4');
         $ipv6Client = $this->buildClient($config, 'v6', 'dhcp6');
@@ -81,17 +81,5 @@ final class KeaBootstrapper implements IntegrationBootstrapper
             verifySsl: (bool) ($config['verify_ssl'] ?? true),
             service: $service,
         );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getIntegrationDbConfig(): array
-    {
-        try {
-            return IntegrationConfig::getAll(Integration::Kea->value);
-        } catch (Throwable) {
-            return [];
-        }
     }
 }

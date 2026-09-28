@@ -14,24 +14,11 @@ use App\Integration\PrometheusBootstrapper;
 use App\Integration\VyOsBootstrapper;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
-use App\Services\Firewalls\OpnSenseApiService;
-use App\Services\Integration\BorealisTester;
-use App\Services\Integration\CiscoTester;
-use App\Services\Integration\IntegrationTesterRegistry;
-use App\Services\Integration\KeaTester;
-use App\Services\Integration\LibreNmsTester;
-use App\Services\Integration\OpnSenseTester;
-use App\Services\Integration\PiHoleTester;
-use App\Services\Integration\PrometheusTester;
-use App\Services\Integration\SeatpickerTester;
-use App\Services\Integration\VyOsTester;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\Prometheus\PrometheusService;
 use App\Services\VyOs\VyOsClient;
-use GuzzleHttp\Client;
 use Illuminate\Support\ServiceProvider;
-use Throwable;
 
 class IntegrationServiceProvider extends ServiceProvider
 {
@@ -40,31 +27,9 @@ class IntegrationServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->registerIntegrationTesters();
         $this->registerSharedSingletons();
         $this->registerCapabilityBindings();
         $this->registerNonCapabilityBindings();
-    }
-
-    /**
-     * Register the integration tester registry.
-     */
-    protected function registerIntegrationTesters(): void
-    {
-        $this->app->singleton(function (): IntegrationTesterRegistry {
-            $registry = new IntegrationTesterRegistry;
-            $registry->register(Integration::OpnSense->value, new OpnSenseTester);
-            $registry->register(Integration::PiHole->value, new PiHoleTester);
-            $registry->register(Integration::LibreNms->value, new LibreNmsTester);
-            $registry->register(Integration::Borealis->value, new BorealisTester);
-            $registry->register(Integration::Prometheus->value, new PrometheusTester);
-            $registry->register(Integration::Seatpicker->value, new SeatpickerTester);
-            $registry->register(Integration::VyOs->value, new VyOsTester);
-            $registry->register(Integration::Cisco->value, $this->app->make(CiscoTester::class));
-            $registry->register(Integration::Kea->value, new KeaTester);
-
-            return $registry;
-        });
     }
 
     /**
@@ -73,19 +38,11 @@ class IntegrationServiceProvider extends ServiceProvider
     protected function registerSharedSingletons(): void
     {
         $this->app->singleton(function (): OpnSenseClient {
-            $dbConfig = $this->getIntegrationDbConfig(Integration::OpnSense->value);
-
-            $client = new Client([
-                'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
-                'base_uri' => $dbConfig['endpoint'] ?? '',
-                'auth' => [$dbConfig['key'] ?? '', $dbConfig['secret'] ?? ''],
-            ]);
-
-            return new OpnSenseClient($client);
+            return OpnSenseClient::fromConfig(IntegrationConfig::safeGetAll(Integration::OpnSense->value));
         });
 
         $this->app->singleton(function (): PrometheusService {
-            $config = $this->getIntegrationDbConfig(Integration::Prometheus->value);
+            $config = IntegrationConfig::safeGetAll(Integration::Prometheus->value);
 
             return new PrometheusService(
                 endpoint: (string) ($config['endpoint'] ?? ''),
@@ -96,7 +53,7 @@ class IntegrationServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (): LibreNmsService {
-            $dbConfig = $this->getIntegrationDbConfig(Integration::LibreNms->value);
+            $dbConfig = IntegrationConfig::safeGetAll(Integration::LibreNms->value);
 
             return new LibreNmsService(
                 endpoint: (string) ($dbConfig['endpoint'] ?? ''),
@@ -105,7 +62,7 @@ class IntegrationServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(function (): VyOsClient {
-            $dbConfig = $this->getIntegrationDbConfig(Integration::VyOs->value);
+            $dbConfig = IntegrationConfig::safeGetAll(Integration::VyOs->value);
 
             return new VyOsClient(
                 endpoint: (string) ($dbConfig['endpoint'] ?? ''),
@@ -134,12 +91,8 @@ class IntegrationServiceProvider extends ServiceProvider
      */
     protected function registerNonCapabilityBindings(): void
     {
-        $this->app->singleton(function (): OpnSenseApiService {
-            return new OpnSenseApiService($this->getIntegrationDbConfig(Integration::OpnSense->value));
-        });
-
         $this->app->singleton(function (): BorealisService {
-            $dbConfig = $this->getIntegrationDbConfig(Integration::Borealis->value);
+            $dbConfig = IntegrationConfig::safeGetAll(Integration::Borealis->value);
 
             return new BorealisService(
                 clientId: (string) ($dbConfig['client_id'] ?? ''),
@@ -147,19 +100,5 @@ class IntegrationServiceProvider extends ServiceProvider
                 endpoint: (string) ($dbConfig['endpoint'] ?? ''),
             );
         });
-    }
-
-    /**
-     * Safely load integration config from DB, returning empty array if table doesn't exist.
-     *
-     * @return array<string, mixed>
-     */
-    protected function getIntegrationDbConfig(string $integration): array
-    {
-        try {
-            return IntegrationConfig::getAll($integration);
-        } catch (Throwable) {
-            return [];
-        }
     }
 }

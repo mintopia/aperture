@@ -24,7 +24,7 @@ class CaptivePortalController extends Controller
     public function index(Request $request, AuthProviderInterface $authProvider): View|Response
     {
         try {
-            $scope = (string) IntegrationConfig::getWithFallback('borealis', 'scope', 'discord');
+            $scope = (string) IntegrationConfig::getValue('borealis', 'scope', 'discord');
             $deviceFlow = $authProvider->initiateDeviceFlow($scope);
 
             Cache::put(
