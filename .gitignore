@@ -42,3 +42,5 @@ GEMINI.md
 /.junie/
 /.playwright-mcp/
 **/skills/laravel-best-practices/
+/test-results-*/
+/database/pw*.sqlite
