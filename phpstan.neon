@@ -5,6 +5,4 @@ includes:
 parameters:
     paths:
         - app/
-    scanFiles:
-        - _ide_helper_models.php
     level: 8

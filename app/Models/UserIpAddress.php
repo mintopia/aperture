@@ -12,8 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * @mixin IdeHelperUserIpAddress
- *
  * @property int $id
  * @property int $user_id
  * @property int $ip_address_id
