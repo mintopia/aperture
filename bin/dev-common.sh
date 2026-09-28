@@ -1,16 +1,26 @@
 #!/usr/bin/env bash
-# Sourced by the dev-*.sh wrappers: picks the compose override files.
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-files=(docker-compose.yaml)
-if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "${DEV_TRAEFIK_CONTAINER:-traefik}"; then
-    files+=(docker-compose.override.yml)
-else
-    files+=(docker-compose.override.ports.yml)
-fi
-[[ "${DEV_START_MODE:-}" == traefik ]] && files=(docker-compose.yaml docker-compose.override.yml)
-[[ "${DEV_START_MODE:-}" == ports ]] && files=(docker-compose.yaml docker-compose.override.ports.yml)
+traefik_container="${DEV_TRAEFIK_CONTAINER:-traefik}"
+traefik_network="${DEV_TRAEFIK_NETWORK:-frontend}"
+mode="${DEV_START_MODE:-auto}"
 
-COMPOSE_FILE="$(IFS=:; echo "${files[*]}")"
-export COMPOSE_FILE
+traefik_running() {
+    docker ps --format '{{.Names}}' | grep -Fxq "${traefik_container}"
+}
+
+case "${mode}" in
+    auto) traefik_running && mode=traefik || mode=ports ;;
+    traefik)
+        traefik_running || { echo "Error: Traefik container '${traefik_container}' is not running." >&2; exit 1; }
+        ;;
+    ports) ;;
+    *) echo "Error: DEV_START_MODE must be one of: auto, traefik, ports." >&2; exit 1 ;;
+esac
+
+export COMPOSE_FILE="docker-compose.yaml:docker-compose.override.${mode}.yml"
+
+if [[ "${mode}" == traefik ]]; then
+    docker network inspect "${traefik_network}" >/dev/null 2>&1 || docker network create "${traefik_network}" >/dev/null
+fi

@@ -42,7 +42,7 @@ bin/dev-status.sh     # docker compose ps (includes health)
 
 Health comes from the compose healthchecks; `--wait` blocks until they pass. Traefik mode (HTTPS hostnames) is used when a `traefik` container is running, otherwise local ports (`http://127.0.0.1:8000`, `:5173`, `:8080`). Force one with `DEV_START_MODE=traefik` or `DEV_START_MODE=ports`.
 
-Run one-off tools with `docker compose run --rm`, e.g. `docker compose run --rm aperture php artisan tinker`, `docker compose run --rm aperture composer install`, `docker compose run --rm aperture vendor/bin/phpunit`, `docker compose run --rm vite npm install`. Pass `-f docker-compose.yaml` to skip the Traefik override.
+Run one-off tools with `docker compose run --rm`, e.g. `docker compose run --rm aperture php artisan tinker`, `docker compose run --rm aperture composer install`, `docker compose run --rm aperture vendor/bin/phpunit`, `docker compose run --rm vite npm install`.
 
 ## Quality Checks
 
