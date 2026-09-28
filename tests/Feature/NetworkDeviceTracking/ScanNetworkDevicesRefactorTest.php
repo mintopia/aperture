@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\NetworkDeviceTracking;
 
+use App\Enums\Capability;
 use App\Jobs\ScanNetworkDevices;
 use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
@@ -15,9 +16,10 @@ use App\Models\SwitchPortMac;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
+use App\Services\ValueObjects\DhcpSnapshot;
 use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery\MockInterface;
 use Tests\Feature\Concerns\CreatesAdminUsers;
@@ -35,20 +37,20 @@ class ScanNetworkDevicesRefactorTest extends TestCase
     {
         $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases): void {
             $mock->allows([
-                'getLeases' => collect($leases),
+                'snapshot' => DhcpSnapshot::create(collect($leases), collect()),
             ]);
         });
     }
 
     /**
-     * @param  list<ArpEntry>  $arp
+     * @param  list<IpMacEntry>  $arp
      * @param  list<ForwardingEntry>  $fdb
      */
     private function mockInventory(array $arp = [], array $fdb = []): void
     {
         $this->mock(IpMacResolverInterface::class, function (MockInterface $mock) use ($arp): void {
             $mock->allows([
-                'getArpTable' => collect($arp),
+                'getIpMacTable' => collect($arp),
             ]);
         });
 
@@ -72,7 +74,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
     public function test_discovery_persists_all_arp_macs(): void
     {
         $this->mockDhcp();
-        $this->mockInventory([new ArpEntry('127.0.0.1', 'AA:BB:CC:DD:EE:02')]);
+        $this->mockInventory([new IpMacEntry('127.0.0.1', 'AA:BB:CC:DD:EE:02')]);
 
         app()->call([new ScanNetworkDevices, 'handle']);
 
@@ -106,7 +108,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
     public function test_discovery_creates_ip_mac_pivot_with_correct_source(): void
     {
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-05-01')]);
-        $this->mockInventory([new ArpEntry('127.0.0.2', 'AA:BB:CC:DD:EE:02')]);
+        $this->mockInventory([new IpMacEntry('127.0.0.2', 'AA:BB:CC:DD:EE:02')]);
 
         app()->call([new ScanNetworkDevices, 'handle']);
 
@@ -133,7 +135,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
 
     public function test_discovery_does_not_write_dhcp_leases(): void
     {
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
 
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'my-laptop', '2026-05-01 12:00:00')]);
         $this->mockInventory();

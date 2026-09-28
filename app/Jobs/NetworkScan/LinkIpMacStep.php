@@ -9,17 +9,17 @@ use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\NetworkRangeService;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 
 final class LinkIpMacStep
 {
     /**
      * @param  Collection<int, DhcpLease>  $leases
-     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, IpMacEntry>  $entries
      */
-    public function __invoke(Collection $leases, Collection $arpEntries, NetworkRangeService $rangeService): void
+    public function __invoke(Collection $leases, Collection $entries, NetworkRangeService $rangeService): void
     {
         /** @var list<array{ip: string, mac: string, source: string}> $pairs */
         $pairs = [];
@@ -32,9 +32,9 @@ final class LinkIpMacStep
             }
         }
 
-        foreach ($arpEntries as $arp) {
-            $normalized = MacAddress::normalize($arp->mac);
-            $address = IpAddress::normalize($arp->ip);
+        foreach ($entries as $entry) {
+            $normalized = MacAddress::normalize($entry->mac);
+            $address = IpAddress::normalize($entry->ip);
             if ($address !== '' && $normalized !== null) {
                 $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'arp'];
             }

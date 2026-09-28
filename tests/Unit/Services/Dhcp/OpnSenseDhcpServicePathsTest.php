@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\AddressFamily;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Tests\Support\Fake;
@@ -39,7 +40,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             leasesPath: '/api/kea/leases/search',
         );
 
-        $service->getLeases();
+        $service->snapshot()->leases;
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('/api/kea/leases/search', parse_url(Fake::requests()[0]->url(), PHP_URL_PATH));
@@ -54,7 +55,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $service->getRanges();
+        $service->snapshot()->ranges;
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('/api/kea/dhcpv4/search_subnet', parse_url(Fake::requests()[0]->url(), PHP_URL_PATH));
@@ -69,7 +70,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
 
-        $service->getRanges();
+        $service->snapshot()->ranges;
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('/api/kea/dhcpv6/search_subnet', parse_url(Fake::requests()[0]->url(), PHP_URL_PATH));
@@ -90,11 +91,11 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(2, Fake::requests());
         $this->assertCount(1, $ranges);
-        $this->assertEquals('ipv6', $ranges->first()->type);
+        $this->assertEquals(AddressFamily::IPv6, $ranges->first()->type);
     }
 
     public function test_skips_ipv6_when_path_is_empty(): void
@@ -112,11 +113,11 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ipv6RangesPath: '',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(2, Fake::requests());
         $this->assertCount(1, $ranges);
-        $this->assertEquals('ipv4', $ranges->first()->type);
+        $this->assertEquals(AddressFamily::IPv4, $ranges->first()->type);
     }
 
     public function test_skips_both_ranges_when_paths_are_empty(): void
@@ -127,7 +128,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ipv6RangesPath: '',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, Fake::requests());
         $this->assertCount(0, $ranges);
@@ -145,7 +146,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ],
         );
 
-        $service->getLeases();
+        $service->snapshot()->leases;
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('GET', Fake::requests()[0]->method());
@@ -159,9 +160,9 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ],
         );
 
-        $service->getLeases();
+        $snapshot = $service->snapshot();
 
-        $ranges = $service->getRanges();
+        $ranges = $snapshot->ranges;
 
         $this->assertCount(1, Fake::requests(), 'Only the leases request should be made; ISC has no range endpoints');
         $this->assertEquals('/api/dhcpv4/leases/search_lease', parse_url(Fake::requests()[0]->url(), PHP_URL_PATH));
@@ -185,7 +186,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ipv6RangesPath: '/api/dnsmasq/settings/search_range',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(2, Fake::requests());
         $this->assertEquals('/api/dnsmasq/settings/search_range', parse_url(Fake::requests()[0]->url(), PHP_URL_PATH));

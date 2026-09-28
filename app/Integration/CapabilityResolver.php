@@ -85,7 +85,7 @@ final class CapabilityResolver
     private function assignments(): array
     {
         return $this->assignments ??= InstallGuard::tolerateMissingTable(
-            fn (): array => CapabilityAssignment::query()->pluck('integration', 'capability')->all(),
+            fn (): array => CapabilityAssignment::query()->get()->mapWithKeys(fn (CapabilityAssignment $a): array => [$a->capability->value => $a->integration])->all(),
             [],
         );
     }

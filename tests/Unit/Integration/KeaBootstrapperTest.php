@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Integration;
 
+use App\Enums\Capability;
 use App\Integration\IntegrationBootstrapper;
 use App\Integration\KeaBootstrapper;
 use App\Models\CapabilityAssignment;
@@ -34,7 +35,7 @@ class KeaBootstrapperTest extends TestCase
     public function test_binds_kea_dhcp_service_when_kea_is_active_dhcp_provider(): void
     {
         Queue::fake();
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
         IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea.local');
 
         $this->assertInstanceOf(KeaDhcpService::class, $this->app->make(DhcpInterface::class));
@@ -43,7 +44,7 @@ class KeaBootstrapperTest extends TestCase
     public function test_falls_through_to_null_service_when_kea_is_active_dhcp_provider_but_endpoint_not_configured(): void
     {
         Queue::fake();
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
 
         $service = $this->app->make(DhcpInterface::class);
 
@@ -54,7 +55,7 @@ class KeaBootstrapperTest extends TestCase
     public function test_falls_through_to_previous_service_when_endpoint_configured_but_blank(): void
     {
         Queue::fake();
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
         IntegrationConfig::setValue('kea', 'endpoint_v4', '');
 
         $service = $this->app->make(DhcpInterface::class);
@@ -71,7 +72,7 @@ class KeaBootstrapperTest extends TestCase
                 ['result' => 3, 'text' => 'no leases found'],
             ]),
         ]);
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
         IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea.local');
         IntegrationConfig::setValue('kea', 'username_v4', 'admin');
         IntegrationConfig::setValue('kea', 'password_v4', 'secret', encrypted: true);
@@ -98,7 +99,7 @@ class KeaBootstrapperTest extends TestCase
                 ['result' => 3, 'text' => 'no leases found'],
             ]),
         ]);
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
         IntegrationConfig::setValue('kea', 'endpoint_v6', 'https://kea6.local');
         IntegrationConfig::setValue('kea', 'username_v6', 'admin');
         IntegrationConfig::setValue('kea', 'password_v6', 'secret', encrypted: true);
@@ -109,7 +110,7 @@ class KeaBootstrapperTest extends TestCase
         $this->assertNull($service->getLease('192.168.1.50'));
         Http::assertNothingSent();
 
-        $service->getLeases();
+        $service->snapshot()->leases;
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();
@@ -130,7 +131,7 @@ class KeaBootstrapperTest extends TestCase
             'kea4.local' => Http::response([['result' => 3]]),
             'kea6.local' => Http::response([['result' => 3]]),
         ]);
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
         IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea4.local');
         IntegrationConfig::setValue('kea', 'endpoint_v6', 'https://kea6.local');
         IntegrationConfig::setValue('kea', 'username_v6', 'admin');
@@ -139,7 +140,7 @@ class KeaBootstrapperTest extends TestCase
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(KeaDhcpService::class, $service);
 
-        $service->getLeases();
+        $service->snapshot()->leases;
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();
@@ -164,7 +165,7 @@ class KeaBootstrapperTest extends TestCase
     public function test_falls_through_when_kea_config_lookup_throws(): void
     {
         Queue::fake();
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
         Schema::drop('integration_configs');
 
         $service = $this->app->make(DhcpInterface::class);
@@ -176,7 +177,7 @@ class KeaBootstrapperTest extends TestCase
     public function test_resolves_other_provider_when_kea_is_not_active_dhcp_provider(): void
     {
         Queue::fake();
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
         $service = $this->app->make(DhcpInterface::class);
 
@@ -187,7 +188,7 @@ class KeaBootstrapperTest extends TestCase
     public function test_binds_kea_ip_mac_resolver_when_kea_is_active_ip_mac_provider(): void
     {
         Queue::fake();
-        CapabilityAssignment::assign('ip-mac', 'kea');
+        CapabilityAssignment::assign(Capability::IpMac, 'kea');
 
         $this->assertInstanceOf(KeaIpMacResolver::class, $this->app->make(IpMacResolverInterface::class));
     }
@@ -195,7 +196,7 @@ class KeaBootstrapperTest extends TestCase
     public function test_resolves_other_provider_when_kea_is_not_active_ip_mac_provider(): void
     {
         Queue::fake();
-        CapabilityAssignment::assign('ip-mac', 'librenms');
+        CapabilityAssignment::assign(Capability::IpMac, 'librenms');
 
         $resolver = $this->app->make(IpMacResolverInterface::class);
 

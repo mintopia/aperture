@@ -55,13 +55,13 @@ class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
         ApplyOuiPolicyStep $applyOuiPolicy,
     ): void {
 
-        $leases = $dhcp->getLeases();
-        $arpEntries = $ipMac->getArpTable();
+        $leases = $dhcp->snapshot()->leases;
+        $entries = $ipMac->getIpMacTable();
         $forwardingEntries = $portMac->getForwardingDatabase();
 
-        $persistMacs($leases, $arpEntries, $forwardingEntries);
-        $persistIps($leases, $arpEntries, $rangeService);
-        $linkIpMac($leases, $arpEntries, $rangeService);
+        $persistMacs($leases, $entries, $forwardingEntries);
+        $persistIps($leases, $entries, $rangeService);
+        $linkIpMac($leases, $entries, $rangeService);
         $linkSwitchPortMacs($forwardingEntries);
         $applyOuiPolicy();
     }

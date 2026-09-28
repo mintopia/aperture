@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpRangeRecord;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Null\NullDhcpService;
-use App\Services\ValueObjects\DhcpRange;
+use App\Services\ValueObjects\DhcpSnapshot;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Queue;
 use RuntimeException;
 use Tests\TestCase;
@@ -29,13 +29,9 @@ class HomeControllerDhcpPoolsTest extends TestCase
 
         Queue::fake();
 
-        // The dashboard must never query the DHCP provider live; pools come
-        // from the synced dhcp_range_records table. Any call to getRanges()
-        // fails the test.
         $this->app->instance(DhcpInterface::class, new class extends NullDhcpService
         {
-            /** @return Collection<int, DhcpRange> */
-            public function getRanges(): Collection
+            public function snapshot(): DhcpSnapshot
             {
                 throw new RuntimeException('Dashboard must not query the DHCP provider live.');
             }
@@ -59,7 +55,7 @@ class HomeControllerDhcpPoolsTest extends TestCase
         $admin = $this->createAdminUser();
 
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 
@@ -96,7 +92,7 @@ class HomeControllerDhcpPoolsTest extends TestCase
         $admin = $this->createAdminUser();
 
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 
@@ -134,7 +130,7 @@ class HomeControllerDhcpPoolsTest extends TestCase
         $admin = $this->createAdminUser();
 
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 
@@ -166,7 +162,7 @@ class HomeControllerDhcpPoolsTest extends TestCase
         $admin = $this->createAdminUser();
 
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 
@@ -230,7 +226,7 @@ class HomeControllerDhcpPoolsTest extends TestCase
         $admin = $this->createAdminUser();
 
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 

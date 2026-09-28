@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AddressFamily;
+use App\Enums\Capability;
 use App\Http\Controllers\Controller;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
@@ -23,7 +25,7 @@ class DhcpController extends Controller
             ->get()
             ->map(fn (DhcpRangeRecord $range): array => [
                 'name' => $range->interface ?: ($range->description ?: 'Default'),
-                'ip_version' => $range->type === 'ipv4' ? 'IPv4' : 'IPv6',
+                'ip_version' => $range->type === AddressFamily::IPv4 ? 'IPv4' : 'IPv6',
                 'network' => $range->subnet ?: $range->prefix,
                 'start' => $range->range_from,
                 'end' => $range->range_to,
@@ -73,7 +75,7 @@ class DhcpController extends Controller
                 'start' => $range->range_from ?: null,
                 'end' => $range->range_to ?: null,
                 'prefix' => $range->prefix,
-                'type' => $range->type,
+                'type' => $range->type->value,
             ])
             ->values()
             ->all();
@@ -92,7 +94,7 @@ class DhcpController extends Controller
     private function activeIntegration(): ?string
     {
         try {
-            return CapabilityAssignment::activeIntegration('dhcp');
+            return CapabilityAssignment::activeIntegration(Capability::Dhcp);
         } catch (Throwable) {
             return null;
         }

@@ -10,7 +10,7 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Kea\KeaIpMacResolver;
-use App\Services\ValueObjects\ArpEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
@@ -32,9 +32,9 @@ class KeaIpMacResolverTest extends TestCase
         $this->assertInstanceOf(IpMacResolverInterface::class, new KeaIpMacResolver);
     }
 
-    public function test_get_arp_table_returns_empty_collection(): void
+    public function test_get_ip_mac_table_returns_empty_collection(): void
     {
-        $table = $this->resolver->getArpTable();
+        $table = $this->resolver->getIpMacTable();
 
         $this->assertInstanceOf(Collection::class, $table);
         $this->assertTrue($table->isEmpty());
@@ -51,7 +51,7 @@ class KeaIpMacResolverTest extends TestCase
             'expires_at' => now()->addHour(),
         ]);
 
-        $table = $this->resolver->getArpTable();
+        $table = $this->resolver->getIpMacTable();
 
         $this->assertCount(1, $table);
         $this->assertSame('10.0.0.5', $table->first()->ip);
@@ -66,7 +66,7 @@ class KeaIpMacResolverTest extends TestCase
             'expires_at' => now()->addHour(),
         ]);
 
-        $this->assertCount(0, $this->resolver->getArpTable());
+        $this->assertCount(0, $this->resolver->getIpMacTable());
     }
 
     public function test_includes_active_kea_ipv6_lease_with_mac(): void
@@ -80,11 +80,11 @@ class KeaIpMacResolverTest extends TestCase
             'expires_at' => now()->addHour(),
         ]);
 
-        $table = $this->resolver->getArpTable();
+        $table = $this->resolver->getIpMacTable();
 
         $this->assertCount(1, $table);
         $entry = $table->first();
-        $this->assertInstanceOf(ArpEntry::class, $entry);
+        $this->assertInstanceOf(IpMacEntry::class, $entry);
         $this->assertSame('2001:db8::1', $entry->ip);
         $this->assertSame('AA:BB:CC:DD:EE:02', $entry->mac);
     }
@@ -99,7 +99,7 @@ class KeaIpMacResolverTest extends TestCase
             'expires_at' => now()->addHour(),
         ]);
 
-        $this->assertCount(0, $this->resolver->getArpTable());
+        $this->assertCount(0, $this->resolver->getIpMacTable());
     }
 
     public function test_excludes_expired_lease(): void
@@ -109,7 +109,7 @@ class KeaIpMacResolverTest extends TestCase
             'expires_at' => now()->subHour(),
         ]);
 
-        $this->assertCount(0, $this->resolver->getArpTable());
+        $this->assertCount(0, $this->resolver->getIpMacTable());
     }
 
     public function test_includes_lease_with_null_expiry(): void
@@ -119,7 +119,7 @@ class KeaIpMacResolverTest extends TestCase
             'expires_at' => null,
         ]);
 
-        $this->assertCount(1, $this->resolver->getArpTable());
+        $this->assertCount(1, $this->resolver->getIpMacTable());
     }
 
     public function test_excludes_lease_from_other_integration(): void
@@ -129,6 +129,6 @@ class KeaIpMacResolverTest extends TestCase
             'expires_at' => now()->addHour(),
         ]);
 
-        $this->assertCount(0, $this->resolver->getArpTable());
+        $this->assertCount(0, $this->resolver->getIpMacTable());
     }
 }

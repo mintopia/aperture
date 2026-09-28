@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
@@ -57,13 +58,13 @@ class OpnSenseHttpConfigTest extends TestCase
     public function test_dhcp_service_client_has_request_and_connect_timeouts(): void
     {
         config(['services.external_http.timeout' => 7, 'services.external_http.connect_timeout' => 3]);
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
         $this->app->forgetInstance(DhcpInterface::class);
 
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
-        $options = $this->captureOptions(fn (): Collection => $service->getLeases());
+        $options = $this->captureOptions(fn (): Collection => $service->snapshot()->leases);
 
         $this->assertSame(7, $options['timeout']);
         $this->assertSame(3, $options['connect_timeout']);
@@ -71,7 +72,7 @@ class OpnSenseHttpConfigTest extends TestCase
 
     public function test_isc_ipv6_ranges_do_not_point_at_the_leases_endpoint(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
         $this->app->forgetInstance(DhcpInterface::class);

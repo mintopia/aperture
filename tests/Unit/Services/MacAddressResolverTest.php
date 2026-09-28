@@ -8,8 +8,9 @@ use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Kea\KeaClient;
 use App\Services\Kea\KeaDhcpService;
 use App\Services\MacAddressResolver;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease;
+use App\Services\ValueObjects\DhcpSnapshot;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Facades\Http;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -17,7 +18,7 @@ use Tests\TestCase;
 
 class MacAddressResolverTest extends TestCase
 {
-    public function test_resolves_mac_from_kea_lease_without_consulting_arp_fallback(): void
+    public function test_resolves_mac_from_kea_lease_without_consulting_ip_mac_fallback(): void
     {
         Http::fake([
             'kea.local' => Http::response([
@@ -37,7 +38,7 @@ class MacAddressResolverTest extends TestCase
         $dhcp = new KeaDhcpService(new KeaClient(endpoint: 'https://kea.local'));
 
         $ipMac = Mockery::mock(IpMacResolverInterface::class);
-        $ipMac->shouldNotReceive('getArpTable');
+        $ipMac->shouldNotReceive('getIpMacTable');
 
         $resolver = new MacAddressResolver($dhcp, $ipMac);
         $result = $resolver->resolveIpToMac('192.168.1.50');
@@ -45,7 +46,7 @@ class MacAddressResolverTest extends TestCase
         $this->assertSame('AA:BB:CC:DD:EE:FF', $result);
     }
 
-    public function test_falls_back_to_arp_when_kea_has_no_active_lease(): void
+    public function test_falls_back_to_ip_mac_table_when_kea_has_no_active_lease(): void
     {
         Http::fake([
             'kea.local' => Http::response([
@@ -56,9 +57,9 @@ class MacAddressResolverTest extends TestCase
         $dhcp = new KeaDhcpService(new KeaClient(endpoint: 'https://kea.local'));
 
         $ipMac = Mockery::mock(IpMacResolverInterface::class);
-        $ipMac->shouldReceive('getArpTable')
+        $ipMac->shouldReceive('getIpMacTable')
             ->andReturn(collect([
-                new ArpEntry(ip: '192.168.1.50', mac: '11:22:33:44:55:66'),
+                new IpMacEntry(ip: '192.168.1.50', mac: '11:22:33:44:55:66'),
             ]));
 
         $resolver = new MacAddressResolver($dhcp, $ipMac);
@@ -75,7 +76,7 @@ class MacAddressResolverTest extends TestCase
             ->andReturn(new DhcpLease(ip: '192.168.1.100', mac: 'aa:bb:cc:dd:ee:ff', hostname: 'test', expires: ''));
 
         $inventory = Mockery::mock(IpMacResolverInterface::class);
-        $inventory->shouldNotReceive('getArpTable');
+        $inventory->shouldNotReceive('getIpMacTable');
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
         $result = $resolver->resolveIpToMac('192.168.1.100');
@@ -83,7 +84,7 @@ class MacAddressResolverTest extends TestCase
         $this->assertSame('AA:BB:CC:DD:EE:FF', $result);
     }
 
-    public function test_falls_back_to_arp_when_dhcp_returns_null(): void
+    public function test_falls_back_to_ip_mac_table_when_dhcp_returns_null(): void
     {
         $dhcp = Mockery::mock(DhcpInterface::class);
         $dhcp->shouldReceive('getLease')
@@ -91,10 +92,10 @@ class MacAddressResolverTest extends TestCase
             ->andReturnNull();
 
         $inventory = Mockery::mock(IpMacResolverInterface::class);
-        $inventory->shouldReceive('getArpTable')
+        $inventory->shouldReceive('getIpMacTable')
             ->andReturn(collect([
-                new ArpEntry(ip: '192.168.1.100', mac: 'aa:bb:cc:dd:ee:ff'),
-                new ArpEntry(ip: '192.168.1.101', mac: '11:22:33:44:55:66'),
+                new IpMacEntry(ip: '192.168.1.100', mac: 'aa:bb:cc:dd:ee:ff'),
+                new IpMacEntry(ip: '192.168.1.101', mac: '11:22:33:44:55:66'),
             ]));
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
@@ -109,7 +110,7 @@ class MacAddressResolverTest extends TestCase
         $dhcp->shouldReceive('getLease')->andReturnNull();
 
         $inventory = Mockery::mock(IpMacResolverInterface::class);
-        $inventory->shouldReceive('getArpTable')->andReturn(collect([]));
+        $inventory->shouldReceive('getIpMacTable')->andReturn(collect([]));
 
         $resolver = new MacAddressResolver($dhcp, $inventory);
         $result = $resolver->resolveIpToMac('192.168.1.200');
@@ -169,12 +170,12 @@ class MacAddressResolverTest extends TestCase
     public function test_resolve_mac_to_ips(array $leaseRows, string $queryMac, array $expected): void
     {
         $dhcp = Mockery::mock(DhcpInterface::class);
-        $dhcp->shouldReceive('getLeases')
+        $dhcp->shouldReceive('snapshot')
             ->once()
-            ->andReturn(collect(array_map(
+            ->andReturn(DhcpSnapshot::create(collect(array_map(
                 fn (array $row): DhcpLease => new DhcpLease(ip: $row[0], mac: $row[1], hostname: $row[2], expires: ''),
                 $leaseRows,
-            )));
+            )), collect()));
 
         $inventory = Mockery::mock(IpMacResolverInterface::class);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Providers;
 
+use App\Enums\Capability;
 use App\Integration\CapabilityResolver;
 use App\Integration\CiscoBootstrapper;
 use App\Integration\InstallGuard;
@@ -137,14 +138,14 @@ class IntegrationServiceProviderTest extends TestCase
             'port-errors' => [$noSetup, PortErrorsInterface::class, NullPortErrors::class],
             'ip-mac' => [
                 function (): void {
-                    CapabilityAssignment::where('capability', 'ip-mac')->delete();
+                    CapabilityAssignment::where('capability', Capability::IpMac)->delete();
                 },
                 IpMacResolverInterface::class,
                 NullIpMacResolver::class,
             ],
             'port-mac' => [
                 function (): void {
-                    CapabilityAssignment::where('capability', 'port-mac')->delete();
+                    CapabilityAssignment::where('capability', Capability::PortMac)->delete();
                 },
                 PortMacInterface::class,
                 NullPortMac::class,
@@ -175,7 +176,7 @@ class IntegrationServiceProviderTest extends TestCase
                     IntegrationConfig::setValue('opnsense', 'key', 'key', true);
                     IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
                     IntegrationConfig::setValue('opnsense', 'zone_id', '1');
-                    CapabilityAssignment::assign('captive-portal', 'opnsense');
+                    CapabilityAssignment::assign(Capability::CaptivePortal, 'opnsense');
                     app()->forgetInstance(OpnSenseClient::class);
                 },
                 CaptivePortalInterface::class,
@@ -188,7 +189,7 @@ class IntegrationServiceProviderTest extends TestCase
                     IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
                     IntegrationConfig::setValue('opnsense', 'ratelimit_up_uuid', 'up-uuid');
                     IntegrationConfig::setValue('opnsense', 'ratelimit_down_uuid', 'down-uuid');
-                    CapabilityAssignment::assign('rate-limiting', 'opnsense');
+                    CapabilityAssignment::assign(Capability::RateLimiting, 'opnsense');
                     app()->forgetInstance(OpnSenseClient::class);
                 },
                 RateLimitingInterface::class,
@@ -200,7 +201,7 @@ class IntegrationServiceProviderTest extends TestCase
                     IntegrationConfig::setValue('opnsense', 'key', 'key', true);
                     IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
                     IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
-                    CapabilityAssignment::assign('dhcp', 'opnsense');
+                    CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
                 },
                 DhcpInterface::class,
                 OpnSenseDhcpService::class,
@@ -210,7 +211,7 @@ class IntegrationServiceProviderTest extends TestCase
                     IntegrationConfig::setValue('pihole', 'endpoint', 'http://pihole.local');
                     IntegrationConfig::setValue('pihole', 'password', 'test-password', true);
                     IntegrationConfig::setValue('pihole', 'filtered_group_id', '1');
-                    CapabilityAssignment::assign('dns-filtering', 'pihole');
+                    CapabilityAssignment::assign(Capability::DnsFiltering, 'pihole');
                 },
                 DnsFilteringInterface::class,
                 PiHoleService::class,
@@ -219,7 +220,7 @@ class IntegrationServiceProviderTest extends TestCase
                 function (): void {
                     IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
                     IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
-                    CapabilityAssignment::assign('ip-bandwidth', 'prometheus');
+                    CapabilityAssignment::assign(Capability::IpBandwidth, 'prometheus');
                     app()->forgetInstance(PrometheusService::class);
                 },
                 IpBandwidthInterface::class,
@@ -229,7 +230,7 @@ class IntegrationServiceProviderTest extends TestCase
                 function (): void {
                     IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
                     IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
-                    CapabilityAssignment::assign('port-bandwidth', 'prometheus');
+                    CapabilityAssignment::assign(Capability::PortBandwidth, 'prometheus');
                     app()->forgetInstance(PrometheusService::class);
                 },
                 PortBandwidthInterface::class,
@@ -239,7 +240,7 @@ class IntegrationServiceProviderTest extends TestCase
                 function (): void {
                     IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
                     IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
-                    CapabilityAssignment::assign('port-errors', 'prometheus');
+                    CapabilityAssignment::assign(Capability::PortErrors, 'prometheus');
                     app()->forgetInstance(PrometheusService::class);
                 },
                 PortErrorsInterface::class,
@@ -249,7 +250,7 @@ class IntegrationServiceProviderTest extends TestCase
                 function (): void {
                     IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
                     IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
-                    CapabilityAssignment::assign('ip-mac', 'librenms');
+                    CapabilityAssignment::assign(Capability::IpMac, 'librenms');
                     app()->forgetInstance(LibreNmsService::class);
                 },
                 IpMacResolverInterface::class,
@@ -259,7 +260,7 @@ class IntegrationServiceProviderTest extends TestCase
                 function (): void {
                     IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
                     IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
-                    CapabilityAssignment::assign('port-mac', 'librenms');
+                    CapabilityAssignment::assign(Capability::PortMac, 'librenms');
                     app()->forgetInstance(LibreNmsService::class);
                 },
                 PortMacInterface::class,
@@ -303,7 +304,7 @@ class IntegrationServiceProviderTest extends TestCase
     public function test_captive_portal_returns_null_when_different_integration_assigned(): void
     {
         // Assign a different integration for captive-portal
-        CapabilityAssignment::assign('captive-portal', 'some-other');
+        CapabilityAssignment::assign(Capability::CaptivePortal, 'some-other');
 
         $service = $this->app->make(CaptivePortalInterface::class);
 
@@ -325,8 +326,8 @@ class IntegrationServiceProviderTest extends TestCase
     {
         IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea.local');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
-        CapabilityAssignment::assign('dhcp', 'kea');
-        CapabilityAssignment::assign('ip-mac', 'vyos');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
+        CapabilityAssignment::assign(Capability::IpMac, 'vyos');
 
         $bootstrappers = [
             new OpnSenseBootstrapper, new PrometheusBootstrapper, new LibreNmsBootstrapper,
@@ -346,7 +347,7 @@ class IntegrationServiceProviderTest extends TestCase
 
     public function test_unusable_active_provider_falls_back_to_null_implementation(): void
     {
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
 
         $this->assertInstanceOf(NullDhcpService::class, $this->app->make(DhcpInterface::class));
     }
@@ -355,7 +356,7 @@ class IntegrationServiceProviderTest extends TestCase
     {
         $this->assertInstanceOf(NullDnsFiltering::class, $this->app->make(DnsFilteringInterface::class));
 
-        CapabilityAssignment::assign('dns-filtering', 'pihole');
+        CapabilityAssignment::assign(Capability::DnsFiltering, 'pihole');
 
         $this->assertInstanceOf(PiHoleService::class, $this->app->make(DnsFilteringInterface::class));
     }

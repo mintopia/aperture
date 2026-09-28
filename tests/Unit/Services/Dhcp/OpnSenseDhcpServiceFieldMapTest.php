@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\AddressFamily;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpRange;
@@ -89,7 +90,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
             leaseFieldMap: self::DNSMASQ_LEASE_MAP,
         );
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertInstanceOf(DhcpLease::class, $leases[0]);
@@ -118,7 +119,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
             leaseFieldMap: self::KEA_LEASE_MAP,
         );
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertEquals('10.0.0.60', $leases[0]->ip);
@@ -143,7 +144,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
             leaseFieldMap: self::DNSMASQ_LEASE_MAP,
         );
 
-        $pool = $service->getPoolStatus();
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertEquals(100, $pool->total);
         $this->assertEquals(3, $pool->used);
@@ -165,7 +166,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
             leaseFieldMap: self::KEA_LEASE_MAP,
         );
 
-        $pool = $service->getPoolStatus();
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertEquals(50, $pool->total);
         $this->assertEquals(2, $pool->used);
@@ -233,12 +234,12 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
             rangeFieldMap: self::DNSMASQ_RANGE_MAP,
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
         $this->assertInstanceOf(DhcpRange::class, $ranges->first());
         $this->assertEquals('lan', $ranges->first()->interface);
-        $this->assertEquals('ipv4', $ranges->first()->type);
+        $this->assertEquals(AddressFamily::IPv4, $ranges->first()->type);
         $this->assertEquals('10.0.0.100', $ranges->first()->rangeFrom);
         $this->assertEquals('10.0.0.200', $ranges->first()->rangeTo);
         $this->assertEquals('lan.local', $ranges->first()->description);
@@ -277,10 +278,10 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
             rangeFieldMap: $rangeFieldMap,
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
-        $this->assertEquals('ipv6', $ranges->first()->type);
+        $this->assertEquals(AddressFamily::IPv6, $ranges->first()->type);
         $this->assertEquals('fd00::100', $ranges->first()->rangeFrom);
         $this->assertEquals('fd00::200', $ranges->first()->rangeTo);
         $this->assertEquals('fd00::100/64', $ranges->first()->prefix);
@@ -299,7 +300,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
             ],
         );
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertEquals('10.0.0.10', $leases[0]->ip);
@@ -317,7 +318,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService('http://opnsense.test', 'key', 'secret', true, 254);
-        $service->getLeases();
+        $service->snapshot()->leases;
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('', Fake::requests()[0]->body());
@@ -334,7 +335,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService('http://opnsense.test', 'key', 'secret', true, 254, ipv4RangesPath: '/api/kea/dhcpv4/search_subnet');
-        $service->getRanges();
+        $service->snapshot()->ranges;
 
         $this->assertCount(2, Fake::requests());
         $this->assertEquals('', Fake::requests()[0]->body());

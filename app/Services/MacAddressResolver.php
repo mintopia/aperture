@@ -23,9 +23,9 @@ class MacAddressResolver implements MacAddressResolverInterface
             return $this->normalizeMac($lease->mac);
         }
 
-        $arpEntry = $this->ipMac->getArpTable()->firstWhere('ip', $ipAddress);
-        if ($arpEntry !== null && ! empty($arpEntry->mac)) {
-            return $this->normalizeMac($arpEntry->mac);
+        $entry = $this->ipMac->getIpMacTable()->firstWhere('ip', $ipAddress);
+        if ($entry !== null && ! empty($entry->mac)) {
+            return $this->normalizeMac($entry->mac);
         }
 
         return null;
@@ -36,7 +36,7 @@ class MacAddressResolver implements MacAddressResolverInterface
     {
         $normalized = $this->normalizeMac($macAddress);
 
-        return $this->dhcp->getLeases()
+        return $this->dhcp->snapshot()->leases
             ->filter(fn (DhcpLease $lease): bool => $lease->mac !== null && $this->normalizeMac($lease->mac) === $normalized)
             ->map(fn (DhcpLease $lease): array => [
                 'ip' => $lease->ip,

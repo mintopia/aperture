@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Jobs;
 
-use App\Jobs\SyncDhcpData;
 use App\Models\DhcpLease;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Services\Dhcp\DhcpSyncService;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
+use App\Services\ValueObjects\DhcpSnapshot;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
@@ -22,7 +23,7 @@ class DhcpLeaseIdentityKeyTest extends TestCase
 
     private function sync(array $leases, string $integration = 'cisco'): void
     {
-        (new SyncDhcpData)->performLeaseSync($integration, collect($leases), ['ipv4' => true, 'ipv6' => true]);
+        (new DhcpSyncService)->syncLeases($integration, DhcpSnapshot::create(collect($leases), collect()));
     }
 
     public function test_repeated_sync_produces_single_row(): void

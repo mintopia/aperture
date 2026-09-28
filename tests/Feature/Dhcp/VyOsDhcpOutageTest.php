@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dhcp;
 
+use App\Enums\Capability;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
@@ -60,7 +61,7 @@ class VyOsDhcpOutageTest extends TestCase
 
     private function bindService(): void
     {
-        CapabilityAssignment::assign('dhcp', 'vyos');
+        CapabilityAssignment::assign(Capability::Dhcp, 'vyos');
 
         $client = Mockery::mock(VyOsClient::class);
         $client->shouldReceive('showText')->andReturnUsing(function (array $path): string {

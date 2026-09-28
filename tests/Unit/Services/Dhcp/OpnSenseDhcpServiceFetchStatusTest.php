@@ -7,6 +7,7 @@ namespace Tests\Unit\Services\Dhcp;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\ConnectionException;
+use Tests\Support\DhcpFetchStatusArray;
 use Tests\Support\Fake;
 use Tests\TestCase;
 
@@ -57,17 +58,18 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
     public function test_status_is_all_true_when_nothing_failed(): void
     {
         $service = $this->service([$this->ok(['rows' => []])]);
-        $service->getLeases();
+        $snapshot = $service->snapshot();
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], $service->getFetchStatus());
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], DhcpFetchStatusArray::of($snapshot));
     }
 
     public function test_lease_failure_marks_both_lease_families_failed(): void
     {
         $service = $this->service([$this->refused()]);
 
-        $this->assertCount(0, $service->getLeases());
-        $status = $service->getFetchStatus();
+        $snapshot = $service->snapshot();
+        $this->assertCount(0, $snapshot->leases);
+        $status = DhcpFetchStatusArray::of($snapshot);
         $this->assertFalse($status['ipv4']);
         $this->assertFalse($status['ipv6']);
         $this->assertTrue($status['ipv4_ranges']);
@@ -77,8 +79,9 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
     {
         $service = $this->service([Fake::response(200, [], 'not json')]);
 
-        $this->assertCount(0, $service->getLeases());
-        $this->assertFalse($service->getFetchStatus()['ipv4']);
+        $snapshot = $service->snapshot();
+        $this->assertCount(0, $snapshot->leases);
+        $this->assertFalse(DhcpFetchStatusArray::of($snapshot)['ipv4']);
     }
 
     public function test_per_family_range_failures_are_tracked_separately(): void
@@ -86,11 +89,11 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
         $service = $this->service([
             $this->ok(['rows' => []]),
             $this->refused(),
+            $this->ok(['rows' => []]),
         ], v4: '/v4', v6: '/v6');
 
-        $service->getRanges();
-
-        $status = $service->getFetchStatus();
+        $snapshot = $service->snapshot();
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertTrue($status['ipv4_ranges']);
         $this->assertFalse($status['ipv6_ranges']);
@@ -99,11 +102,10 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
 
     public function test_shared_range_endpoint_failure_marks_both_families(): void
     {
-        $service = $this->service([Fake::response(502)], v4: '/r', v6: '/r');
+        $service = $this->service([Fake::response(502), $this->ok(['rows' => []])], v4: '/r', v6: '/r');
 
-        $service->getRanges();
-
-        $status = $service->getFetchStatus();
+        $snapshot = $service->snapshot();
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertFalse($status['ipv4_ranges']);
         $this->assertFalse($status['ipv6_ranges']);
@@ -114,18 +116,9 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
         $range = ['interface' => 'lan', 'subnet' => '10.0.0.0/24', 'range_from' => '10.0.0.1', 'range_to' => '10.0.0.9'];
         $service = $this->service([$this->ok(['rows' => [$range]]), Fake::response(500)], v4: '/r');
 
-        $service->getRanges();
+        $snapshot = $service->snapshot();
 
-        $this->assertFalse($service->getFetchStatus()['ipv4']);
-    }
-
-    public function test_reset_snapshot_clears_failures(): void
-    {
-        $service = $this->service([Fake::response(500)]);
-        $service->getLeases();
-        $service->resetSnapshot();
-
-        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], $service->getFetchStatus());
+        $this->assertFalse(DhcpFetchStatusArray::of($snapshot)['ipv4']);
     }
 
     public function test_kea_mode_pages_through_all_leases(): void
@@ -136,10 +129,11 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
             $this->ok(['rows' => $this->rows(200, 50), 'total' => 250]),
         ], post: true);
 
-        $this->assertCount(250, $service->getLeases());
+        $snapshot = $service->snapshot();
+        $this->assertCount(250, $snapshot->leases);
         $this->assertCount(3, Fake::requests());
         $this->assertSame(3, Fake::requests()[2]->data()['current']);
-        $this->assertTrue($service->getFetchStatus()['ipv4']);
+        $this->assertTrue(DhcpFetchStatusArray::of($snapshot)['ipv4']);
     }
 
     public function test_paging_stops_on_short_page_without_total(): void
@@ -149,7 +143,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
             $this->ok(['rows' => $this->rows(100, 7)]),
         ], post: true);
 
-        $this->assertCount(107, $service->getLeases());
+        $this->assertCount(107, $service->snapshot()->leases);
         $this->assertCount(2, Fake::requests());
     }
 
@@ -160,8 +154,9 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
             Fake::response(500),
         ], post: true);
 
-        $this->assertCount(0, $service->getLeases());
-        $this->assertFalse($service->getFetchStatus()['ipv4']);
+        $snapshot = $service->snapshot();
+        $this->assertCount(0, $snapshot->leases);
+        $this->assertFalse(DhcpFetchStatusArray::of($snapshot)['ipv4']);
     }
 
     public function test_page_cap_marks_failed_instead_of_returning_partial_data(): void
@@ -170,7 +165,8 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
         $responses = array_fill(0, 500, $this->ok(['rows' => $this->rows(0, 100), 'total' => 1000000]));
         $service = $this->service($responses, post: true);
 
-        $this->assertCount(0, $service->getLeases());
-        $this->assertFalse($service->getFetchStatus()['ipv4']);
+        $snapshot = $service->snapshot();
+        $this->assertCount(0, $snapshot->leases);
+        $this->assertFalse(DhcpFetchStatusArray::of($snapshot)['ipv4']);
     }
 }

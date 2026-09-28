@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\Capability;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ToggleCapabilityRequest extends FormRequest
 {
@@ -20,12 +22,12 @@ class ToggleCapabilityRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, ValidationRule|array<int, string>|string>
+     * @return array<string, ValidationRule|array<int, mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'capability' => 'required|string',
+            'capability' => ['required', Rule::enum(Capability::class)],
             'integration' => 'required|string',
             'active' => 'required|boolean',
         ];

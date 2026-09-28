@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dhcp;
 
+use App\Enums\Capability;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
@@ -27,7 +28,7 @@ class KeaDhcpIntegrationTest extends TestCase
 
     private function configureKeaIntegration(?string $endpointV4 = null, ?string $endpointV6 = null): void
     {
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
 
         if ($endpointV4 !== null) {
             IntegrationConfig::setValue('kea', 'endpoint_v4', $endpointV4);

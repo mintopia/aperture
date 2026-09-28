@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\AddressFamily;
 use Database\Factories\DhcpPoolStatusRecordFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -14,7 +15,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $integration
- * @property string $address_family
+ * @property AddressFamily $address_family
  * @property string $total
  * @property string $used
  * @property string $available
@@ -41,6 +42,7 @@ class DhcpPoolStatusRecord extends Model
     protected function casts(): array
     {
         return [
+            'address_family' => AddressFamily::class,
             'synced_at' => 'datetime',
         ];
     }

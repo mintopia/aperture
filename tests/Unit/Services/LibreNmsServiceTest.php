@@ -43,7 +43,7 @@ class LibreNmsServiceTest extends TestCase
         $this->assertEquals(100, $result[0]->vlan);
     }
 
-    public function test_get_arp_table_returns_collection(): void
+    public function test_get_ip_mac_table_returns_collection(): void
     {
         $responseBody = json_encode([
             'arp' => [
@@ -56,7 +56,7 @@ class LibreNmsServiceTest extends TestCase
             Fake::response(200, [], $responseBody),
         ]);
 
-        $result = $service->getArpTable();
+        $result = $service->getIpMacTable();
         $this->assertInstanceOf(Collection::class, $result);
         $this->assertCount(2, $result);
         $this->assertEquals('10.0.0.1', $result[0]->ip);

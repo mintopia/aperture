@@ -24,6 +24,7 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
 
         Fake::sequence([
             Fake::response(500, [], 'Internal Server Error'),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
 
         $service = new OpnSenseDhcpService(
@@ -36,7 +37,7 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
             ipv6RangesPath: '',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -54,6 +55,7 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
 
         Fake::sequence([
             Fake::response(500, [], 'Internal Server Error'),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
 
         $service = new OpnSenseDhcpService(
@@ -66,7 +68,7 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }

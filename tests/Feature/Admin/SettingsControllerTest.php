@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\Role;
@@ -49,7 +50,7 @@ class SettingsControllerTest extends TestCase
         $serviceCount = count(config('integrations'));
 
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opn.local');
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
         $response = $this->actingAs($admin)->get('/admin/settings/integrations');
 

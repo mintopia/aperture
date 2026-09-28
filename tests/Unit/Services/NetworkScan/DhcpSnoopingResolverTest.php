@@ -7,7 +7,7 @@ namespace Tests\Unit\Services\NetworkScan;
 use App\Models\DhcpSnoopingObservation;
 use App\Models\SwitchConfig;
 use App\Services\NetworkScan\DhcpSnoopingResolver;
-use App\Services\ValueObjects\ArpEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
@@ -36,7 +36,7 @@ class DhcpSnoopingResolverTest extends TestCase
         $mappings = $this->resolver->getObservedMappings();
 
         $this->assertCount(1, $mappings);
-        $this->assertInstanceOf(ArpEntry::class, $mappings->first());
+        $this->assertInstanceOf(IpMacEntry::class, $mappings->first());
         $this->assertSame('10.0.0.50', $mappings->first()->ip);
         $this->assertSame('AA:BB:CC:DD:EE:FF', $mappings->first()->mac);
     }

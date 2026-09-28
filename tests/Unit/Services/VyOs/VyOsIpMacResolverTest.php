@@ -57,7 +57,7 @@ class VyOsIpMacResolverTest extends TestCase
         return implode("\n", $lines)."\n";
     }
 
-    public function test_get_arp_table_returns_ipv4_neighbors(): void
+    public function test_get_ip_mac_table_returns_ipv4_neighbors(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -72,7 +72,7 @@ class VyOsIpMacResolverTest extends TestCase
             ->once()
             ->andReturn('');
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertCount(2, $result);
         $this->assertSame('192.168.1.100', $result->get(0)->ip);
@@ -80,7 +80,7 @@ class VyOsIpMacResolverTest extends TestCase
         $this->assertSame('192.168.1.101', $result->get(1)->ip);
     }
 
-    public function test_get_arp_table_returns_ipv6_neighbors(): void
+    public function test_get_ip_mac_table_returns_ipv6_neighbors(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -94,14 +94,14 @@ class VyOsIpMacResolverTest extends TestCase
                 ['ip' => 'fe80::1', 'mac' => 'aa:bb:cc:dd:ee:03', 'state' => 'REACHABLE'],
             ]));
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertCount(1, $result);
         $this->assertSame('fe80::1', $result->first()->ip);
         $this->assertSame('aa:bb:cc:dd:ee:03', $result->first()->mac);
     }
 
-    public function test_get_arp_table_merges_ipv4_and_ipv6(): void
+    public function test_get_ip_mac_table_merges_ipv4_and_ipv6(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -117,7 +117,7 @@ class VyOsIpMacResolverTest extends TestCase
                 ['ip' => 'fe80::1', 'mac' => 'aa:bb:cc:dd:ee:02', 'state' => 'REACHABLE'],
             ]));
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertCount(2, $result);
         $ips = $result->pluck('ip')->all();
@@ -125,7 +125,7 @@ class VyOsIpMacResolverTest extends TestCase
         $this->assertContains('fe80::1', $ips);
     }
 
-    public function test_get_arp_table_deduplicates_by_ip_and_mac(): void
+    public function test_get_ip_mac_table_deduplicates_by_ip_and_mac(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -142,12 +142,12 @@ class VyOsIpMacResolverTest extends TestCase
                 ['ip' => 'fe80::1', 'mac' => 'aa:bb:cc:dd:ee:02', 'state' => 'REACHABLE'],
             ]));
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertCount(2, $result);
     }
 
-    public function test_get_arp_table_returns_empty_collection_when_no_data(): void
+    public function test_get_ip_mac_table_returns_empty_collection_when_no_data(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -159,12 +159,12 @@ class VyOsIpMacResolverTest extends TestCase
             ->once()
             ->andReturn('');
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertCount(0, $result);
     }
 
-    public function test_get_arp_table_handles_ipv4_exception_gracefully(): void
+    public function test_get_ip_mac_table_handles_ipv4_exception_gracefully(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -178,13 +178,13 @@ class VyOsIpMacResolverTest extends TestCase
                 ['ip' => 'fe80::1', 'mac' => 'aa:bb:cc:dd:ee:01', 'state' => 'REACHABLE'],
             ]));
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertCount(1, $result);
         $this->assertSame('fe80::1', $result->first()->ip);
     }
 
-    public function test_get_arp_table_handles_ipv6_exception_gracefully(): void
+    public function test_get_ip_mac_table_handles_ipv6_exception_gracefully(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -198,13 +198,13 @@ class VyOsIpMacResolverTest extends TestCase
             ->once()
             ->andThrow(new RuntimeException('Connection refused'));
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertCount(1, $result);
         $this->assertSame('192.168.1.1', $result->first()->ip);
     }
 
-    public function test_get_arp_table_skips_entries_without_mac(): void
+    public function test_get_ip_mac_table_skips_entries_without_mac(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -220,13 +220,13 @@ class VyOsIpMacResolverTest extends TestCase
             ->once()
             ->andReturn('');
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertCount(1, $result);
         $this->assertSame('192.168.1.1', $result->first()->ip);
     }
 
-    public function test_get_arp_table_normalises_mac_to_lowercase(): void
+    public function test_get_ip_mac_table_normalises_mac_to_lowercase(): void
     {
         $this->client->shouldReceive('showText')
             ->with(['ip', 'neighbors'])
@@ -240,7 +240,7 @@ class VyOsIpMacResolverTest extends TestCase
             ->once()
             ->andReturn('');
 
-        $result = $this->resolver->getArpTable();
+        $result = $this->resolver->getIpMacTable();
 
         $this->assertSame('aa:bb:cc:dd:ee:ff', $result->first()->mac);
     }

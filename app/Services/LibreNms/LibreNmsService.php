@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\LibreNms;
 
 use App\Services\Http\ExternalHttp;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use App\Services\ValueObjects\NetworkDevice;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
@@ -46,15 +46,15 @@ class LibreNmsService
         ));
     }
 
-    /** @return Collection<int, ArpEntry> */
-    public function getArpTable(): Collection
+    /** @return Collection<int, IpMacEntry> */
+    public function getIpMacTable(): Collection
     {
         $response = $this->http()->get('/api/v0/resources/ip/arp');
         /** @var array<string, mixed> $data */
         $data = $response->json();
 
         return collect(array_map(
-            fn (array $entry): ArpEntry => new ArpEntry(
+            fn (array $entry): IpMacEntry => new IpMacEntry(
                 ip: (string) ($entry['ipv4_address'] ?? ''),
                 mac: (string) ($entry['mac_address'] ?? ''),
             ),
@@ -64,7 +64,7 @@ class LibreNmsService
 
     public function resolveIpToPort(string $ipAddress): ?ResolvedPort
     {
-        $arp = $this->getArpTable()->firstWhere('ip', $ipAddress);
+        $arp = $this->getIpMacTable()->firstWhere('ip', $ipAddress);
         if (! $arp) {
             return null;
         }
@@ -124,7 +124,7 @@ class LibreNmsService
         );
     }
 
-    /** @return Collection<int, ArpEntry> */
+    /** @return Collection<int, IpMacEntry> */
     public function getIpv6Neighbors(): Collection
     {
         $response = $this->http()->get('/api/v0/resources/ip/arp');
@@ -132,7 +132,7 @@ class LibreNmsService
         $data = $response->json();
 
         $entries = array_map(
-            fn (array $entry): ArpEntry => new ArpEntry(
+            fn (array $entry): IpMacEntry => new IpMacEntry(
                 ip: (string) ($entry['ipv4_address'] ?? ''),
                 mac: (string) ($entry['mac_address'] ?? ''),
             ),
@@ -141,7 +141,7 @@ class LibreNmsService
 
         return collect(array_values(array_filter(
             $entries,
-            fn (ArpEntry $entry): bool => str_contains($entry->ip, ':'),
+            fn (IpMacEntry $entry): bool => str_contains($entry->ip, ':'),
         )));
     }
 }
