@@ -14,34 +14,100 @@ use Throwable;
 class KeaTester implements TestableIntegration
 {
     /**
-     * Commands the `lease_cmds` hook must expose for Aperture to work with Kea.
+     * Commands the `lease_cmds` hook must expose for Aperture to work with Kea's IPv4 Endpoint.
      *
      * @var list<string>
      */
-    private const REQUIRED_COMMANDS = ['lease4-get-page', 'config-get'];
+    private const REQUIRED_COMMANDS_V4 = ['lease4-get-page', 'config-get'];
+
+    /**
+     * Commands the `lease_cmds` hook must expose for Aperture to work with Kea's IPv6 Endpoint.
+     *
+     * @var list<string>
+     */
+    private const REQUIRED_COMMANDS_V6 = ['lease6-get-page', 'config-get'];
 
     /**
      * @param  array<string, mixed>  $config
      */
     public function connect(array $config): TestConnectionResult
     {
-        $endpoint = $config['endpoint_v4'] ?? null;
+        $v4Endpoint = $this->nonEmptyString($config['endpoint_v4'] ?? null);
+        $v6Endpoint = $this->nonEmptyString($config['endpoint_v6'] ?? null);
 
-        if (! is_string($endpoint) || $endpoint === '') {
+        if ($v4Endpoint === null && $v6Endpoint === null) {
             return new TestConnectionResult(
                 success: false,
-                message: 'No IPv4 Endpoint configured. Set the IPv4 Endpoint in the integration settings.',
+                message: 'No Endpoint configured. Set the IPv4 Endpoint and/or the IPv6 Endpoint in the integration settings.',
             );
         }
 
-        $username = $config['username_v4'] ?? null;
-        $password = $config['password_v4'] ?? null;
+        $verifySsl = (bool) ($config['verify_ssl'] ?? true);
+        $results = [];
 
+        if ($v4Endpoint !== null) {
+            $results[] = $this->testEndpoint(
+                label: 'IPv4',
+                endpoint: $v4Endpoint,
+                username: $this->nonEmptyString($config['username_v4'] ?? null),
+                password: $this->nonEmptyString($config['password_v4'] ?? null),
+                verifySsl: $verifySsl,
+                service: 'dhcp4',
+                requiredCommands: self::REQUIRED_COMMANDS_V4,
+            );
+        }
+
+        if ($v6Endpoint !== null) {
+            $results[] = $this->testEndpoint(
+                label: 'IPv6',
+                endpoint: $v6Endpoint,
+                username: $this->nonEmptyString($config['username_v6'] ?? null),
+                password: $this->nonEmptyString($config['password_v6'] ?? null),
+                verifySsl: $verifySsl,
+                service: 'dhcp6',
+                requiredCommands: self::REQUIRED_COMMANDS_V6,
+            );
+        }
+
+        if (count($results) === 1) {
+            return $results[0];
+        }
+
+        return new TestConnectionResult(
+            success: array_reduce(
+                $results,
+                fn (bool $carry, TestConnectionResult $result): bool => $carry && $result->success,
+                true
+            ),
+            message: implode(' ', array_map(fn (TestConnectionResult $result): string => $result->message, $results)),
+        );
+    }
+
+    private function nonEmptyString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * Test a single Kea Endpoint and report the outcome.
+     *
+     * @param  list<string>  $requiredCommands
+     */
+    private function testEndpoint(
+        string $label,
+        string $endpoint,
+        ?string $username,
+        ?string $password,
+        bool $verifySsl,
+        string $service,
+        array $requiredCommands,
+    ): TestConnectionResult {
         $client = new KeaClient(
             endpoint: $endpoint,
-            username: is_string($username) && $username !== '' ? $username : null,
-            password: is_string($password) && $password !== '' ? $password : null,
-            verifySsl: (bool) ($config['verify_ssl'] ?? true),
+            username: $username,
+            password: $password,
+            verifySsl: $verifySsl,
+            service: $service,
         );
 
         try {
@@ -49,7 +115,7 @@ class KeaTester implements TestableIntegration
         } catch (ConnectionException $exception) {
             return new TestConnectionResult(
                 success: false,
-                message: 'Could not reach the IPv4 Endpoint: '.$exception->getMessage(),
+                message: sprintf('Could not reach the %s Endpoint: ', $label).$exception->getMessage(),
                 requestMethod: 'POST',
                 requestUrl: $endpoint,
             );
@@ -59,7 +125,7 @@ class KeaTester implements TestableIntegration
             if ($status === 401 || $status === 403) {
                 return new TestConnectionResult(
                     success: false,
-                    message: 'Authentication failed on the IPv4 Endpoint. Check the configured username and password.',
+                    message: sprintf('Authentication failed on the %s Endpoint. Check the configured username and password.', $label),
                     requestMethod: 'POST',
                     requestUrl: $endpoint,
                     responseStatus: $status,
@@ -68,7 +134,7 @@ class KeaTester implements TestableIntegration
 
             return new TestConnectionResult(
                 success: false,
-                message: 'Could not reach the IPv4 Endpoint: HTTP '.$status.'.',
+                message: sprintf('Could not reach the %s Endpoint: HTTP %s.', $label, $status),
                 requestMethod: 'POST',
                 requestUrl: $endpoint,
                 responseStatus: $status,
@@ -76,18 +142,18 @@ class KeaTester implements TestableIntegration
         } catch (Throwable $throwable) {
             return new TestConnectionResult(
                 success: false,
-                message: 'Kea reported an error on the IPv4 Endpoint: '.$throwable->getMessage(),
+                message: sprintf('Kea reported an error on the %s Endpoint: ', $label).$throwable->getMessage(),
                 requestMethod: 'POST',
                 requestUrl: $endpoint,
             );
         }
 
-        $missing = array_values(array_diff(self::REQUIRED_COMMANDS, $commands));
+        $missing = array_values(array_diff($requiredCommands, $commands));
 
         if ($missing !== []) {
             return new TestConnectionResult(
                 success: false,
-                message: 'Connected to the IPv4 Endpoint, but the lease_cmds hook appears to be missing: '.implode(', ', $missing).' not available.',
+                message: sprintf('Connected to the %s Endpoint, but the lease_cmds hook appears to be missing: ', $label).implode(', ', $missing).' not available.',
                 requestMethod: 'POST',
                 requestUrl: $endpoint,
             );
@@ -95,7 +161,7 @@ class KeaTester implements TestableIntegration
 
         return new TestConnectionResult(
             success: true,
-            message: 'Connected to the IPv4 Endpoint successfully.',
+            message: sprintf('Connected to the %s Endpoint successfully.', $label),
             requestMethod: 'POST',
             requestUrl: $endpoint,
         );

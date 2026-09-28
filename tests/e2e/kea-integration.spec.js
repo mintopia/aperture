@@ -1,5 +1,31 @@
 import http from 'node:http';
+import { execSync } from 'node:child_process';
 import { test, expect } from '@playwright/test';
+import { buildPlaywrightEnv, resolveBaseUrl } from '../../playwright/env.js';
+
+const playwrightEnv = buildPlaywrightEnv(resolveBaseUrl());
+
+/**
+ * "Test Connection" merges the saved config with non-empty request values
+ * (IntegrationConfigMerger), so a blank form field doesn't clear a saved
+ * Endpoint — and Save itself refuses to persist both Endpoints blank, since
+ * at least one is required. The only way to exercise the neither-configured
+ * case is to remove the saved rows directly, bypassing the validated Save
+ * endpoint, the same way auth.setup.js talks to the fixture database.
+ */
+function clearKeaEndpoints() {
+    execSync(
+        'php artisan tinker --execute="\\App\\Models\\IntegrationConfig::where(\'integration\',\'kea\')->whereIn(\'key\',[\'endpoint_v4\',\'endpoint_v6\'])->delete();"',
+        {
+            cwd: process.cwd(),
+            stdio: 'inherit',
+            env: {
+                ...process.env,
+                ...playwrightEnv,
+            },
+        }
+    );
+}
 
 /**
  * The Laravel backend, not the browser, makes the outbound "Test Connection"
@@ -25,7 +51,7 @@ function closeStub(stub) {
     return new Promise((resolve) => stub.server.close(resolve));
 }
 
-test.describe('Kea Integration (IPv4)', () => {
+test.describe('Kea Integration', () => {
     // All e2e tests share one authenticated session (storageState), so concurrent
     // requests from other workers can clobber this file's Inertia validation-error flash data.
     test.describe.configure({ mode: 'serial' });
@@ -33,9 +59,16 @@ test.describe('Kea Integration (IPv4)', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/admin/settings/integrations/kea');
 
-        await page.getByTestId('field-input-endpoint_v4').fill('');
+        // At least one Endpoint must be configured, so the reset baseline keeps a
+        // dummy IPv4 Endpoint set rather than blanking both — tests that need a
+        // fully unconfigured form clear it themselves without saving (Test
+        // Connection posts live form state, not the persisted config).
+        await page.getByTestId('field-input-endpoint_v4').fill('https://kea-baseline.example.test:8000');
         await page.getByTestId('field-input-username_v4').fill('');
         await page.getByTestId('field-input-password_v4').fill('');
+        await page.getByTestId('field-input-endpoint_v6').fill('');
+        await page.getByTestId('field-input-username_v6').fill('');
+        await page.getByTestId('field-input-password_v6').fill('');
         await page.getByTestId('action-save').click();
         await expect(page.getByTestId('form-field-error')).toHaveCount(0);
 
@@ -62,17 +95,21 @@ test.describe('Kea Integration (IPv4)', () => {
         await expect(page.getByTestId('field-input-endpoint_v4')).toBeVisible();
         await expect(page.getByTestId('field-input-username_v4')).toBeVisible();
         await expect(page.getByTestId('field-input-password_v4')).toBeVisible();
+        await expect(page.getByTestId('field-input-endpoint_v6')).toBeVisible();
+        await expect(page.getByTestId('field-input-username_v6')).toBeVisible();
+        await expect(page.getByTestId('field-input-password_v6')).toBeVisible();
         await expect(page.getByTestId('field-toggle-verify_ssl')).toBeVisible();
     });
 
-    test('reports "no endpoint configured" when the IPv4 Endpoint is blank', async ({ page }) => {
+    test('reports "no endpoint configured" when neither Endpoint is set', async ({ page }) => {
+        clearKeaEndpoints();
         await page.goto('/admin/settings/integrations/kea');
 
         await page.getByTestId('action-test-connection').click();
 
         const panel = page.getByTestId('test-result-panel');
         await expect(panel).toBeVisible();
-        await expect(panel).toContainText(/no ipv4 endpoint configured/i);
+        await expect(panel).toContainText(/no endpoint configured/i);
     });
 
     test('saving the IPv4 endpoint persists across a reload', async ({ page }) => {
@@ -85,6 +122,18 @@ test.describe('Kea Integration (IPv4)', () => {
 
         await page.reload();
         await expect(page.getByTestId('field-input-endpoint_v4')).toHaveValue('https://kea.example.test:8000');
+    });
+
+    test('saving the IPv6 endpoint persists across a reload', async ({ page }) => {
+        await page.goto('/admin/settings/integrations/kea');
+
+        await page.getByTestId('field-input-endpoint_v6').fill('https://kea6.example.test:8000');
+        await page.getByTestId('action-save').click();
+
+        await expect(page.getByTestId('form-field-error')).toHaveCount(0);
+
+        await page.reload();
+        await expect(page.getByTestId('field-input-endpoint_v6')).toHaveValue('https://kea6.example.test:8000');
     });
 
     test('setting a username without a password fails validation and does not save', async ({ page }) => {
@@ -119,6 +168,40 @@ test.describe('Kea Integration (IPv4)', () => {
 
         await page.reload();
         await expect(page.getByTestId('field-input-password_v4')).toHaveValue('');
+    });
+
+    test('setting a v6 username without a password fails validation and does not save', async ({ page }) => {
+        await page.goto('/admin/settings/integrations/kea');
+
+        await expect(page.getByTestId('field-input-username_v6')).toHaveValue('');
+
+        await page.getByTestId('field-input-username_v6').fill('kea-admin');
+        await page.getByTestId('field-input-password_v6').fill('');
+        await page.getByTestId('action-save').click();
+
+        const error = page.getByTestId('form-field-error');
+        await expect(error).toBeVisible();
+        await expect(error).toContainText(/password/i);
+
+        await page.reload();
+        await expect(page.getByTestId('field-input-username_v6')).toHaveValue('');
+    });
+
+    test('setting a v6 password without a username fails validation and does not save', async ({ page }) => {
+        await page.goto('/admin/settings/integrations/kea');
+
+        await expect(page.getByTestId('field-input-password_v6')).toHaveValue('');
+
+        await page.getByTestId('field-input-username_v6').fill('');
+        await page.getByTestId('field-input-password_v6').fill('kea-secret');
+        await page.getByTestId('action-save').click();
+
+        const error = page.getByTestId('form-field-error');
+        await expect(error).toBeVisible();
+        await expect(error).toContainText(/username/i);
+
+        await page.reload();
+        await expect(page.getByTestId('field-input-password_v6')).toHaveValue('');
     });
 
     test('toggles the DHCP and IP-MAC capability assignment', async ({ page }) => {
@@ -169,6 +252,46 @@ test.describe('Kea Integration (IPv4)', () => {
             await expect(panel).toContainText(/lease4-get-page/);
         } finally {
             await closeStub(stub);
+        }
+    });
+
+    test('test connection succeeds against a stubbed IPv6-only Kea endpoint', async ({ page }) => {
+        const stub = await startKeaStub(['list-commands', 'config-get', 'lease6-get-page']);
+
+        try {
+            // Test Connection falls back to the saved config for any blank field,
+            // so blanking IPv4 in the form alone wouldn't stop it being tested too
+            // — clear the saved Endpoints first so only the IPv6 stub is exercised.
+            clearKeaEndpoints();
+            await page.goto('/admin/settings/integrations/kea');
+            await page.getByTestId('field-input-endpoint_v6').fill(stub.url);
+            await page.getByTestId('action-test-connection').click();
+
+            const panel = page.getByTestId('test-result-panel');
+            await expect(panel).toBeVisible();
+            await expect(panel).toContainText(/connected to the ipv6 endpoint successfully/i);
+        } finally {
+            await closeStub(stub);
+        }
+    });
+
+    test('test connection succeeds against stubbed dual-stack Kea endpoints', async ({ page }) => {
+        const stubV4 = await startKeaStub(['list-commands', 'config-get', 'lease4-get-page', 'statistic-get']);
+        const stubV6 = await startKeaStub(['list-commands', 'config-get', 'lease6-get-page']);
+
+        try {
+            await page.goto('/admin/settings/integrations/kea');
+            await page.getByTestId('field-input-endpoint_v4').fill(stubV4.url);
+            await page.getByTestId('field-input-endpoint_v6').fill(stubV6.url);
+            await page.getByTestId('action-test-connection').click();
+
+            const panel = page.getByTestId('test-result-panel');
+            await expect(panel).toBeVisible();
+            await expect(panel).toContainText(/connected to the ipv4 endpoint successfully/i);
+            await expect(panel).toContainText(/connected to the ipv6 endpoint successfully/i);
+        } finally {
+            await closeStub(stubV4);
+            await closeStub(stubV6);
         }
     });
 });
