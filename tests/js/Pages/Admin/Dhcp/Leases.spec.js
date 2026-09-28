@@ -339,6 +339,58 @@ describe('Dhcp/Leases', () => {
         });
     });
 
+    describe('IP sorting and range membership', () => {
+        const ipOrder = (wrapper) =>
+            wrapper.findAll('[data-testid^="lease-row-"][data-testid$="-ip"]').map((el) => el.text());
+
+        it('sorts mixed IPv4 and compressed IPv6 numerically', () => {
+            const wrapper = mountLeases({
+                ranges: [],
+                leases: [
+                    { ip: '2001:db8::10', mac: 'A', hostname: '', expires: '' },
+                    { ip: '10.0.0.10', mac: 'B', hostname: '', expires: '' },
+                    { ip: '2001:db8::2', mac: 'C', hostname: '', expires: '' },
+                    { ip: '10.0.0.9', mac: 'D', hostname: '', expires: '' },
+                    { ip: '::1', mac: 'E', hostname: '', expires: '' },
+                ],
+            });
+            expect(ipOrder(wrapper)).toEqual(['::1', '10.0.0.9', '10.0.0.10', '2001:db8::2', '2001:db8::10']);
+        });
+
+        it('reverses the order when sorted descending', async () => {
+            const wrapper = mountLeases({
+                ranges: [],
+                leases: [
+                    { ip: '2001:db8::2', mac: 'C', hostname: '', expires: '' },
+                    { ip: '2001:db8::10', mac: 'A', hostname: '', expires: '' },
+                ],
+            });
+            await wrapper.findAll('th')[0].trigger('click');
+            expect(ipOrder(wrapper)).toEqual(['2001:db8::10', '2001:db8::2']);
+        });
+
+        it('applies start/end range membership to compressed IPv6', () => {
+            window.history.replaceState({}, '', '/?network=lan6');
+            const wrapper = mountLeases({
+                ranges: [{ network: 'lan6', start: '2001:db8::2', end: '2001:db8::ff' }],
+                leases: [
+                    { ip: '2001:db8::10', mac: 'A', hostname: '', expires: '' },
+                    { ip: '2001:db8::100', mac: 'B', hostname: '', expires: '' },
+                ],
+            });
+            expect(ipOrder(wrapper)).toEqual(['2001:db8::10']);
+        });
+    });
+
+    describe('Expiry formatting', () => {
+        it('formats epoch expiry via the shared en-GB date format', () => {
+            const wrapper = mountLeases();
+            expect(wrapper.find('[data-testid="lease-row-0-expires"]').text()).toMatch(
+                /^\d{1,2} Apr 2024, \d{2}:\d{2}$/,
+            );
+        });
+    });
+
     describe('Show more', () => {
         it('shows "Show More" button when more leases exist than display limit', () => {
             const manyLeases = Array.from({ length: 60 }, (_, i) => ({

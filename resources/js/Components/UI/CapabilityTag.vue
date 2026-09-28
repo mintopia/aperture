@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { kebabToTitle } from '@/utils/strings.js';
 
 const props = defineProps({
     name: {
@@ -12,13 +13,7 @@ const props = defineProps({
     },
 });
 
-const formattedName = computed(() =>
-    props.name
-        .split('-')
-        .filter(Boolean)
-        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-        .join(' '),
-);
+const formattedName = computed(() => kebabToTitle(props.name));
 
 const stateClasses = computed(() =>
     props.active

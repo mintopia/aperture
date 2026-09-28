@@ -4,6 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { ref, onMounted } from 'vue';
 import { formatRelative } from '@/utils/dates';
+import { kebabToTitle } from '@/utils/strings';
 import { useApi } from '@/composables/useApi.js';
 
 defineOptions({ layout: AdminLayout });
@@ -107,14 +108,6 @@ function healthDotClass(health) {
     if (health === true) return 'bg-[var(--color-success)] shadow-[0_0_6px_var(--color-success)]';
     if (health === false) return 'bg-[var(--color-danger)] shadow-[0_0_6px_var(--color-danger)]';
     return 'bg-[var(--color-text-muted)]';
-}
-
-function formatCapabilityName(name) {
-    return name
-        .split('-')
-        .filter(Boolean)
-        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-        .join(' ');
 }
 
 function toggleField(key) {
@@ -405,7 +398,7 @@ function formatTestOutput(output) {
                             capability.active ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-text-muted)] opacity-40'
                         "
                     />
-                    {{ formatCapabilityName(capability.name) }}
+                    {{ kebabToTitle(capability.name) }}
                     <span
                         class="text-[11px] font-normal"
                         :class="capability.active ? 'text-[var(--color-text-muted)]' : ''"

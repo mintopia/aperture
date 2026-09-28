@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
+import { formatDate } from '@/utils/dates.js';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import DataTable from '@/Components/UI/DataTable.vue';
 import FilterBar from '@/Components/UI/FilterBar.vue';
@@ -103,15 +104,7 @@ function onSortDirectionUpdate(dir) {
 
 function formatTimestamp(iso) {
     if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleString('en-GB', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
+    return formatDate(iso, { month: '2-digit', second: '2-digit' });
 }
 </script>
 
