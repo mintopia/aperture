@@ -9,6 +9,7 @@ use App\Services\CoverImageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class CoverImageServiceTest extends TestCase
@@ -25,31 +26,24 @@ class CoverImageServiceTest extends TestCase
         $this->service = new CoverImageService;
     }
 
-    public function test_store_saves_cover_image_with_original_extension(): void
+    public static function storedExtensionProvider(): array
     {
-        $file = UploadedFile::fake()->image('cover.png', 1200, 400);
-
-        $this->service->store($file);
-
-        Storage::disk('public')->assertExists('branding/cover.png');
+        return [
+            'png keeps original extension' => ['cover.png', 'branding/cover.png'],
+            'jpeg keeps jpg extension' => ['cover.jpg', 'branding/cover.jpg'],
+            'webp keeps webp extension' => ['cover.webp', 'branding/cover.webp'],
+            'unknown extension falls back to png' => ['cover.bmp', 'branding/cover.png'],
+        ];
     }
 
-    public function test_store_saves_jpeg_with_jpg_extension(): void
+    #[DataProvider('storedExtensionProvider')]
+    public function test_store_saves_with_expected_extension(string $uploadedName, string $expectedStoredPath): void
     {
-        $file = UploadedFile::fake()->image('cover.jpg', 1200, 400);
+        $file = UploadedFile::fake()->image($uploadedName, 1200, 400);
 
         $this->service->store($file);
 
-        Storage::disk('public')->assertExists('branding/cover.jpg');
-    }
-
-    public function test_store_saves_webp_with_webp_extension(): void
-    {
-        $file = UploadedFile::fake()->image('cover.webp', 1200, 400);
-
-        $this->service->store($file);
-
-        Storage::disk('public')->assertExists('branding/cover.webp');
+        Storage::disk('public')->assertExists($expectedStoredPath);
     }
 
     public function test_store_sets_dashboard_cover_image_setting(): void
@@ -150,15 +144,5 @@ class CoverImageServiceTest extends TestCase
         // Need a fresh service instance to avoid cache
         $service = new CoverImageService;
         $this->assertFalse($service->exists());
-    }
-
-    public function test_store_falls_back_to_png_for_unknown_extension(): void
-    {
-        // Create a fake image with a non-standard extension
-        $file = UploadedFile::fake()->image('cover.bmp', 1200, 400);
-
-        $this->service->store($file);
-
-        Storage::disk('public')->assertExists('branding/cover.png');
     }
 }

@@ -8,6 +8,7 @@ use App\Services\Kea\KeaClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -65,39 +66,21 @@ class KeaClientTest extends TestCase
         });
     }
 
-    public function test_omits_basic_auth_when_username_missing(): void
+    public static function omittedBasicAuthCredentialsProvider(): array
     {
-        Http::fake(['kea.local' => Http::response([['result' => 0]])]);
-
-        $client = new KeaClient(endpoint: 'https://kea.local', username: null, password: 'secret');
-        $client->sendCommand('list-commands');
-
-        Http::assertSent(function ($request): bool {
-            $auth = $request->header('Authorization');
-
-            return empty($auth);
-        });
+        return [
+            'username missing' => [null, 'secret'],
+            'password missing' => ['admin', null],
+            'both missing' => [null, null],
+        ];
     }
 
-    public function test_omits_basic_auth_when_password_missing(): void
+    #[DataProvider('omittedBasicAuthCredentialsProvider')]
+    public function test_omits_basic_auth_when_credentials_incomplete(?string $username, ?string $password): void
     {
         Http::fake(['kea.local' => Http::response([['result' => 0]])]);
 
-        $client = new KeaClient(endpoint: 'https://kea.local', username: 'admin');
-        $client->sendCommand('list-commands');
-
-        Http::assertSent(function ($request): bool {
-            $auth = $request->header('Authorization');
-
-            return empty($auth);
-        });
-    }
-
-    public function test_omits_basic_auth_when_both_missing(): void
-    {
-        Http::fake(['kea.local' => Http::response([['result' => 0]])]);
-
-        $client = new KeaClient(endpoint: 'https://kea.local');
+        $client = new KeaClient(endpoint: 'https://kea.local', username: $username, password: $password);
         $client->sendCommand('list-commands');
 
         Http::assertSent(function ($request): bool {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import RecentActivity from '../RecentActivity.vue';
+import RecentActivity from '@/Components/Admin/RecentActivity.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
     Link: {

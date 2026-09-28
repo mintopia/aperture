@@ -15,23 +15,17 @@ use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Queue;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class ScanStepsCaseInsensitiveIpv6Test extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
 
     private const LOWER = '2a0f:85c1:d91:2100:7485:ac59:8bc9:72e6';
 
     private const UPPER = '2A0F:85C1:D91:2100:7485:AC59:8BC9:72E6';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Queue::fake();
-    }
 
     public function test_persist_ips_step_matches_existing_lowercase_row_for_uppercase_dhcp_lease(): void
     {

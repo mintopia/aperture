@@ -13,9 +13,11 @@ use App\Models\User;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use Closure;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -39,70 +41,69 @@ class SwitchManagementControllerTest extends TestCase
     // Authentication & Authorization
     // -------------------------------------------------------------------------
 
-    public function test_unauthenticated_user_is_redirected_from_switches_index(): void
+    #[DataProvider('switchRoutesProvider')]
+    public function test_unauthenticated_user_is_redirected_from_switches_route(string $method, string $pathTemplate): void
     {
-        $response = $this->get('/admin/switches');
+        $switch = SwitchConfig::factory()->create();
+        $path = str_replace('{id}', (string) $switch->id, $pathTemplate);
+
+        $response = $this->{$method}($path, []);
         $response->assertRedirect('/captive');
     }
 
-    public function test_unauthenticated_user_is_redirected_from_switches_store(): void
+    public static function switchRoutesProvider(): array
     {
-        $response = $this->post('/admin/switches', []);
-        $response->assertRedirect('/captive');
+        return [
+            'index' => ['get', '/admin/switches'],
+            'store' => ['post', '/admin/switches'],
+            'show' => ['get', '/admin/switches/{id}'],
+        ];
     }
 
-    public function test_unauthenticated_user_is_redirected_from_switches_show(): void
-    {
-        $switch = SwitchConfig::factory()->create();
-        $response = $this->get('/admin/switches/'.$switch->id);
-        $response->assertRedirect('/captive');
-    }
-
-    public function test_non_admin_cannot_access_switches_index(): void
-    {
-        $user = User::factory()->create();
-        $this->actingAs($user)->get('/admin/switches')->assertForbidden();
-    }
-
-    public function test_non_admin_cannot_store_switch(): void
-    {
-        $user = User::factory()->create();
-        $this->actingAs($user)->post('/admin/switches', [])->assertForbidden();
-    }
-
-    public function test_non_admin_cannot_update_switch(): void
+    #[DataProvider('nonAdminSwitchRoutesProvider')]
+    public function test_non_admin_cannot_access_switch_route(string $method, string $pathTemplate): void
     {
         $user = User::factory()->create();
         $switch = SwitchConfig::factory()->create();
-        $this->actingAs($user)->put('/admin/switches/'.$switch->id, [])->assertForbidden();
+        $path = str_replace('{id}', (string) $switch->id, $pathTemplate);
+
+        $this->actingAs($user)->{$method}($path, [])->assertForbidden();
     }
 
-    public function test_non_admin_cannot_delete_switch(): void
+    public static function nonAdminSwitchRoutesProvider(): array
     {
-        $user = User::factory()->create();
-        $switch = SwitchConfig::factory()->create();
-        $this->actingAs($user)->delete('/admin/switches/'.$switch->id)->assertForbidden();
+        return [
+            'index' => ['get', '/admin/switches'],
+            'store' => ['post', '/admin/switches'],
+            'update' => ['put', '/admin/switches/{id}'],
+            'delete' => ['delete', '/admin/switches/{id}'],
+            'sync' => ['post', '/admin/switches/{id}/sync'],
+            'test connection' => ['post', '/admin/switches/{id}/test'],
+            'view config' => ['get', '/admin/switches/{id}/config'],
+        ];
     }
 
-    public function test_non_admin_cannot_sync_switch(): void
+    #[DataProvider('nonexistentSwitchRoutesProvider')]
+    public function test_route_returns_404_for_nonexistent_switch(string $method, string $path): void
     {
-        $user = User::factory()->create();
-        $switch = SwitchConfig::factory()->create();
-        $this->actingAs($user)->post('/admin/switches/'.$switch->id.'/sync')->assertForbidden();
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->{$method}($path, []);
+
+        $response->assertNotFound();
     }
 
-    public function test_non_admin_cannot_test_switch_connection(): void
+    public static function nonexistentSwitchRoutesProvider(): array
     {
-        $user = User::factory()->create();
-        $switch = SwitchConfig::factory()->create();
-        $this->actingAs($user)->post('/admin/switches/'.$switch->id.'/test')->assertForbidden();
-    }
-
-    public function test_non_admin_cannot_view_switch_config(): void
-    {
-        $user = User::factory()->create();
-        $switch = SwitchConfig::factory()->create();
-        $this->actingAs($user)->get('/admin/switches/'.$switch->id.'/config')->assertForbidden();
+        return [
+            'show' => ['get', '/admin/switches/99999'],
+            'edit' => ['get', '/admin/switches/99999/edit'],
+            'update' => ['put', '/admin/switches/99999'],
+            'delete' => ['delete', '/admin/switches/99999'],
+            'sync' => ['post', '/admin/switches/99999/sync'],
+            'test connection' => ['post', '/admin/switches/99999/test'],
+            'config' => ['get', '/admin/switches/99999/config'],
+        ];
     }
 
     // -------------------------------------------------------------------------
@@ -498,15 +499,6 @@ class SwitchManagementControllerTest extends TestCase
         );
     }
 
-    public function test_show_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->get('/admin/switches/99999');
-
-        $response->assertNotFound();
-    }
-
     public function test_show_does_not_expose_password_fields(): void
     {
         $admin = $this->createAdminUser();
@@ -548,15 +540,6 @@ class SwitchManagementControllerTest extends TestCase
         );
     }
 
-    public function test_edit_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->get('/admin/switches/99999/edit');
-
-        $response->assertNotFound();
-    }
-
     // -------------------------------------------------------------------------
     // Update — data-testid: switches-update-action
     // -------------------------------------------------------------------------
@@ -589,65 +572,43 @@ class SwitchManagementControllerTest extends TestCase
         ]);
     }
 
-    public function test_update_skips_empty_password(): void
+    #[DataProvider('emptyPasswordFieldsProvider')]
+    public function test_update_skips_empty_password_field(string $column, array $extraPayload): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create([
-            'password' => 'original-password',
-        ]);
-
-        $originalPasswordRaw = SwitchConfig::where('id', $switch->id)
-            ->first()
-            ->getRawOriginal('password');
-
-        $response = $this->actingAs($admin)->put('/admin/switches/'.$switch->id, [
-            'name' => $switch->name,
-            'hostname' => $switch->hostname,
-            'type' => 'cisco',
-            'username' => $switch->username,
-            'password' => '',
-            'port' => $switch->port,
-            'timeout' => $switch->timeout,
-        ]);
-
-        $response->assertRedirect();
-
-        $updatedPasswordRaw = SwitchConfig::where('id', $switch->id)
-            ->first()
-            ->getRawOriginal('password');
-
-        $this->assertEquals($originalPasswordRaw, $updatedPasswordRaw);
-    }
-
-    public function test_update_skips_empty_enable_password(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create([
-            'enable_password' => 'original-enable',
+            $column => 'original-value',
         ]);
 
         $originalRaw = SwitchConfig::where('id', $switch->id)
             ->first()
-            ->getRawOriginal('enable_password');
+            ->getRawOriginal($column);
 
-        $response = $this->actingAs($admin)->put('/admin/switches/'.$switch->id, [
+        $response = $this->actingAs($admin)->put('/admin/switches/'.$switch->id, array_merge([
             'name' => $switch->name,
             'hostname' => $switch->hostname,
             'type' => 'cisco',
             'username' => $switch->username,
             'password' => '',
-            'enable_password' => '',
             'port' => $switch->port,
             'timeout' => $switch->timeout,
-        ]);
+        ], $extraPayload));
 
         $response->assertRedirect();
 
         $updatedRaw = SwitchConfig::where('id', $switch->id)
             ->first()
-            ->getRawOriginal('enable_password');
+            ->getRawOriginal($column);
 
         $this->assertEquals($originalRaw, $updatedRaw);
+    }
+
+    public static function emptyPasswordFieldsProvider(): array
+    {
+        return [
+            'password' => ['password', []],
+            'enable_password' => ['enable_password', ['enable_password' => '']],
+        ];
     }
 
     public function test_update_switch_keeps_existing_username_when_blank(): void
@@ -721,21 +682,6 @@ class SwitchManagementControllerTest extends TestCase
         $response->assertSessionHasErrors(['name', 'hostname', 'type']);
     }
 
-    public function test_update_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/switches/99999', [
-            'name' => 'Ghost Switch',
-            'hostname' => 'ghost-sw.local',
-            'type' => 'cisco',
-            'username' => 'admin',
-            'password' => 'secret',
-        ]);
-
-        $response->assertNotFound();
-    }
-
     public function test_update_can_toggle_enabled_state(): void
     {
         $admin = $this->createAdminUser();
@@ -764,21 +710,6 @@ class SwitchManagementControllerTest extends TestCase
     // Destroy — data-testid: switch-delete
     // -------------------------------------------------------------------------
 
-    public function test_delete_records_audit_log_entry(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        $this->actingAs($admin)->delete('/admin/switches/'.$switch->id);
-
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'switch.deleted',
-            'subject_type' => $switch->getMorphClass(),
-            'subject_id' => $switch->id,
-            'process' => 'admin',
-        ]);
-    }
-
     public function test_admin_can_delete_switch(): void
     {
         $admin = $this->createAdminUser();
@@ -789,25 +720,12 @@ class SwitchManagementControllerTest extends TestCase
         $response->assertRedirect('/admin/switches');
         $response->assertSessionHas('success');
         $this->assertDatabaseMissing('switch_configs', ['id' => $switch->id]);
-    }
-
-    public function test_delete_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->delete('/admin/switches/99999');
-
-        $response->assertNotFound();
-    }
-
-    public function test_delete_redirects_to_switches_index(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        $response = $this->actingAs($admin)->delete('/admin/switches/'.$switch->id);
-
-        $response->assertRedirect('/admin/switches');
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'switch.deleted',
+            'subject_type' => $switch->getMorphClass(),
+            'subject_id' => $switch->id,
+            'process' => 'admin',
+        ]);
     }
 
     // -------------------------------------------------------------------------
@@ -849,69 +767,55 @@ class SwitchManagementControllerTest extends TestCase
         $this->assertTrue($circuitBreaker->isAvailable($switch));
     }
 
-    public function test_sync_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->post('/admin/switches/99999/sync');
-
-        $response->assertNotFound();
-    }
-
     // -------------------------------------------------------------------------
     // Test Connection — data-testid: switches-test-connection-action
     // -------------------------------------------------------------------------
 
-    public function test_admin_can_test_switch_connection_success(): void
+    #[DataProvider('switchConnectionTestProvider')]
+    public function test_admin_can_test_switch_connection(Closure $mockSetup, bool $expectedSuccess): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
-        $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
-        $adapterMock->shouldReceive('getAllPorts')->once()->andReturn(collect([]));
-
-        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
-        $factoryMock->shouldReceive('make')
-            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
-            ->once()
-            ->andReturn($adapterMock);
-        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
+        $mockSetup($switch);
 
         $response = $this->actingAs($admin)->postJson('/admin/switches/'.$switch->id.'/test');
 
         $response->assertOk();
         $response->assertJson([
-            'success' => true,
+            'success' => $expectedSuccess,
         ]);
     }
 
-    public function test_admin_can_test_switch_connection_failure(): void
+    public static function switchConnectionTestProvider(): array
     {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
+        return [
+            'success' => [
+                function (SwitchConfig $switch): void {
+                    $adapterMock = Mockery::mock(NetworkSwitchInterface::class);
+                    $adapterMock->shouldReceive('getAllPorts')->once()->andReturn(collect([]));
 
-        $factoryMock = Mockery::mock(SwitchServiceFactory::class);
-        $factoryMock->shouldReceive('make')
-            ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
-            ->once()
-            ->andThrow(new RuntimeException('Connection refused'));
-        $this->app->instance(SwitchServiceFactory::class, $factoryMock);
-
-        $response = $this->actingAs($admin)->postJson('/admin/switches/'.$switch->id.'/test');
-
-        $response->assertOk();
-        $response->assertJson([
-            'success' => false,
-        ]);
-    }
-
-    public function test_test_connection_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->postJson('/admin/switches/99999/test');
-
-        $response->assertNotFound();
+                    $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+                    $factoryMock->shouldReceive('make')
+                        ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+                        ->once()
+                        ->andReturn($adapterMock);
+                    app()->instance(SwitchServiceFactory::class, $factoryMock);
+                },
+                true,
+            ],
+            'failure' => [
+                function (SwitchConfig $switch): void {
+                    $factoryMock = Mockery::mock(SwitchServiceFactory::class);
+                    $factoryMock->shouldReceive('make')
+                        ->with(Mockery::on(fn (SwitchConfig $sc): bool => $sc->id === $switch->id))
+                        ->once()
+                        ->andThrow(new RuntimeException('Connection refused'));
+                    app()->instance(SwitchServiceFactory::class, $factoryMock);
+                },
+                false,
+            ],
+        ];
     }
 
     // -------------------------------------------------------------------------
@@ -926,15 +830,6 @@ class SwitchManagementControllerTest extends TestCase
         $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/config');
 
         $response->assertOk();
-    }
-
-    public function test_config_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->get('/admin/switches/99999/config');
-
-        $response->assertNotFound();
     }
 
     // -------------------------------------------------------------------------

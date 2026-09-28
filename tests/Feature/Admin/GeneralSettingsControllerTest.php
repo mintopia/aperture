@@ -11,6 +11,7 @@ use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class GeneralSettingsControllerTest extends TestCase
@@ -86,58 +87,28 @@ class GeneralSettingsControllerTest extends TestCase
         $this->assertEquals('My Network Portal', Setting::get('general.site_title'));
     }
 
-    public function test_admin_can_save_terms_as_page(): void
+    #[DataProvider('termsTypeProvider')]
+    public function test_admin_can_save_terms(string $termsType, string $termsValue): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
         $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'terms_type' => 'page',
-            'terms_value' => 'terms-of-service',
+            'terms_type' => $termsType,
+            'terms_value' => $termsValue,
         ]));
 
         $response->assertRedirect();
-        $this->assertEquals('page', Setting::get('general.terms_type'));
-        $this->assertEquals('terms-of-service', Setting::get('general.terms_value'));
+        $this->assertEquals($termsType, Setting::get('general.terms_type'));
+        $this->assertEquals($termsValue, Setting::get('general.terms_value'));
     }
 
-    public function test_admin_can_save_terms_as_url(): void
+    public static function termsTypeProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'terms_type' => 'url',
-            'terms_value' => 'https://example.com/terms',
-        ]));
-
-        $response->assertRedirect();
-        $this->assertEquals('url', Setting::get('general.terms_type'));
-        $this->assertEquals('https://example.com/terms', Setting::get('general.terms_value'));
-    }
-
-    public function test_site_title_is_required(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'site_title' => '',
-        ]));
-
-        $response->assertSessionHasErrors('site_title');
-    }
-
-    public function test_terms_type_must_be_valid(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'terms_type' => 'invalid',
-        ]));
-
-        $response->assertSessionHasErrors('terms_type');
+        return [
+            'page' => ['page', 'terms-of-service'],
+            'url' => ['url', 'https://example.com/terms'],
+        ];
     }
 
     public function test_non_admin_cannot_access_general_settings(): void
@@ -185,34 +156,6 @@ class GeneralSettingsControllerTest extends TestCase
         $this->assertEquals('light', Setting::get('theme.mode'));
     }
 
-    public function test_theme_update_validates_accent_hue_range(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'accent_hue' => -1,
-        ]));
-        $response->assertSessionHasErrors('accent_hue');
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'accent_hue' => 500,
-        ]));
-        $response->assertSessionHasErrors('accent_hue');
-    }
-
-    public function test_theme_mode_validates_allowed_values(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'theme_mode' => 'invalid-mode',
-        ]));
-
-        $response->assertSessionHasErrors('theme_mode');
-    }
-
     public function test_admin_can_update_accent_chroma_and_lightness(): void
     {
         Queue::fake();
@@ -227,30 +170,6 @@ class GeneralSettingsControllerTest extends TestCase
         $response->assertRedirect();
         $this->assertEquals('0.25', Setting::get('theme.accent_chroma'));
         $this->assertEquals('68', Setting::get('theme.accent_lightness'));
-    }
-
-    public function test_accent_chroma_validates_range(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'accent_chroma' => 0.5,
-        ]));
-
-        $response->assertSessionHasErrors('accent_chroma');
-    }
-
-    public function test_accent_lightness_validates_range(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'accent_lightness' => 100,
-        ]));
-
-        $response->assertSessionHasErrors('accent_lightness');
     }
 
     public function test_settings_page_returns_theme_values(): void
@@ -292,28 +211,30 @@ class GeneralSettingsControllerTest extends TestCase
         $this->assertEquals($customCss, Setting::get('theme.custom_css'));
     }
 
-    public function test_custom_css_validates_max_length(): void
+    #[DataProvider('invalidSettingsPayloadProvider')]
+    public function test_settings_update_rejects_invalid_field(array $overrides, string $expectedErrorField): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'custom_css' => str_repeat('a', 10001),
-        ]));
+        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload($overrides));
 
-        $response->assertSessionHasErrors('custom_css');
+        $response->assertSessionHasErrors($expectedErrorField);
     }
 
-    public function test_custom_css_rejects_script_tags(): void
+    public static function invalidSettingsPayloadProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
-            'custom_css' => 'body { color: red; } <script>alert("xss")</script>',
-        ]));
-
-        $response->assertSessionHasErrors('custom_css');
+        return [
+            'empty site title' => [['site_title' => ''], 'site_title'],
+            'invalid terms type' => [['terms_type' => 'invalid'], 'terms_type'],
+            'invalid theme mode' => [['theme_mode' => 'invalid-mode'], 'theme_mode'],
+            'accent hue below range' => [['accent_hue' => -1], 'accent_hue'],
+            'accent hue above range' => [['accent_hue' => 500], 'accent_hue'],
+            'accent chroma above range' => [['accent_chroma' => 0.5], 'accent_chroma'],
+            'accent lightness above range' => [['accent_lightness' => 100], 'accent_lightness'],
+            'custom css exceeds max length' => [['custom_css' => str_repeat('a', 10001)], 'custom_css'],
+            'custom css rejects script tags' => [['custom_css' => 'body { color: red; } <script>alert("xss")</script>'], 'custom_css'],
+        ];
     }
 
     public function test_admin_can_save_all_settings_together(): void

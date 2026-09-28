@@ -14,6 +14,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class KeaDhcpServiceTest extends TestCase
@@ -721,43 +722,24 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertSame('10.0.0.7', $this->assertLease($leases->first())->ip);
     }
 
-    public function test_http_failure_is_caught_and_reported_via_fetch_status(): void
+    public static function leasesFetchFailureProvider(): array
     {
-        Http::fake(['kea.local' => Http::response('Unauthorized', 401)]);
-
-        $leases = $this->service->getLeases();
-
-        $this->assertTrue($leases->isEmpty());
-        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
+        return [
+            'http failure' => [fn () => Http::fake(['kea.local' => Http::response('Unauthorized', 401)])],
+            'connection failure' => [fn () => Http::fake(['kea.local' => fn () => throw new ConnectionException('Connection refused')])],
+            'malformed response' => [fn () => Http::fake(['kea.local' => Http::response(['not' => 'a list'])])],
+            'other kea error result' => [fn () => Http::fake([
+                'kea.local' => Http::response([
+                    ['result' => 1, 'text' => 'command not supported'],
+                ]),
+            ])],
+        ];
     }
 
-    public function test_connection_failure_is_caught_and_reported_via_fetch_status(): void
+    #[DataProvider('leasesFetchFailureProvider')]
+    public function test_lease_fetch_failure_is_caught_and_reported_via_fetch_status(\Closure $fakeHttp): void
     {
-        Http::fake(['kea.local' => fn () => throw new ConnectionException('Connection refused')]);
-
-        $leases = $this->service->getLeases();
-
-        $this->assertTrue($leases->isEmpty());
-        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
-    }
-
-    public function test_malformed_response_is_caught_and_reported_via_fetch_status(): void
-    {
-        Http::fake(['kea.local' => Http::response(['not' => 'a list'])]);
-
-        $leases = $this->service->getLeases();
-
-        $this->assertTrue($leases->isEmpty());
-        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
-    }
-
-    public function test_other_kea_error_result_is_caught_and_reported_via_fetch_status(): void
-    {
-        Http::fake([
-            'kea.local' => Http::response([
-                ['result' => 1, 'text' => 'command not supported'],
-            ]),
-        ]);
+        $fakeHttp();
 
         $leases = $this->service->getLeases();
 
@@ -969,49 +951,33 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertNull($lease->mac);
     }
 
-    public function test_get_lease_returns_null_on_connection_failure(): void
+    public static function getLeaseFailureProvider(): array
     {
-        Http::fake(['kea.local' => fn () => throw new ConnectionException('Connection refused')]);
+        return [
+            'connection failure' => [fn () => Http::fake(['kea.local' => fn () => throw new ConnectionException('Connection refused')])],
+            'http error response' => [fn () => Http::fake(['kea.local' => Http::response('Internal Server Error', 500)])],
+            'kea error result code' => [fn () => Http::fake([
+                'kea.local' => Http::response([
+                    ['result' => 1, 'text' => 'command not supported'],
+                ]),
+            ])],
+            'malformed body' => [fn () => Http::fake(['kea.local' => Http::response(['not' => 'a list'])])],
+        ];
+    }
+
+    #[DataProvider('getLeaseFailureProvider')]
+    public function test_get_lease_returns_null_on_fetch_failure(\Closure $fakeHttp): void
+    {
+        $fakeHttp();
 
         $this->assertNull($this->service->getLease('192.168.1.50'));
     }
 
-    public function test_get_lease_returns_null_on_http_error_response(): void
+    public function test_get_lease_returns_null_for_ipv6_input_when_ipv6_client_not_configured_without_sending_a_request(): void
     {
-        Http::fake(['kea.local' => Http::response('Internal Server Error', 500)]);
-
-        $this->assertNull($this->service->getLease('192.168.1.50'));
-    }
-
-    public function test_get_lease_returns_null_on_kea_error_result_code(): void
-    {
-        Http::fake([
-            'kea.local' => Http::response([
-                ['result' => 1, 'text' => 'command not supported'],
-            ]),
-        ]);
-
-        $this->assertNull($this->service->getLease('192.168.1.50'));
-    }
-
-    public function test_get_lease_returns_null_on_malformed_body(): void
-    {
-        Http::fake(['kea.local' => Http::response(['not' => 'a list'])]);
-
-        $this->assertNull($this->service->getLease('192.168.1.50'));
-    }
-
-    public function test_get_lease_returns_null_for_non_ipv4_input_without_sending_a_request(): void
-    {
-        Http::fake();
-
-        $this->assertNull($this->service->getLease('2001:db8::1'));
-
-        Http::assertNothingSent();
-    }
-
-    public function test_get_lease_returns_null_when_ipv6_endpoint_not_configured(): void
-    {
+        // Covers both "not an IPv4 address" and "no IPv6 client configured" for
+        // this input: the default setUp() service has no IPv6 endpoint, so a
+        // valid IPv6 address is rejected before any HTTP request is made.
         Http::fake();
 
         $this->assertNull($this->service->getLease('2001:db8::1'));

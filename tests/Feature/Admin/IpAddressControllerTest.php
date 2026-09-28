@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Mockery\MockInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class IpAddressControllerTest extends TestCase
@@ -245,7 +246,8 @@ class IpAddressControllerTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_admin_can_sort_ips_by_last_seen_at(): void
+    #[DataProvider('ipSortingProvider')]
+    public function test_admin_can_sort_ips(string $queryString): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -255,22 +257,16 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->get('/admin/ips?order=last_seen_at');
+        $response = $this->actingAs($admin)->get('/admin/ips?'.$queryString);
         $response->assertOk();
     }
 
-    public function test_admin_can_sort_ips_with_custom_direction(): void
+    public static function ipSortingProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.11';
-        $ip->last_seen_at = Carbon::now();
-        $ip->save();
-
-        $response = $this->actingAs($admin)->get('/admin/ips?order=address&direction=desc');
-        $response->assertOk();
+        return [
+            'by last_seen_at' => ['order=last_seen_at'],
+            'by address descending' => ['order=address&direction=desc'],
+        ];
     }
 
     public function test_admin_can_view_ip_show_without_port(): void
@@ -292,99 +288,8 @@ class IpAddressControllerTest extends TestCase
         );
     }
 
-    public function test_admin_can_limit_ip(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.32';
-        $ip->last_seen_at = Carbon::now();
-        $ip->save();
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', [
-            'limit' => 1,
-        ]);
-        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
-    }
-
-    public function test_admin_can_unlimit_ip(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.33';
-        $ip->last_seen_at = Carbon::now();
-        $ip->save();
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', [
-            'limit' => 0,
-        ]);
-        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
-    }
-
-    public function test_limit_requires_limit_field(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.52';
-        $ip->last_seen_at = Carbon::now();
-        $ip->save();
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', []);
-        $response->assertSessionHasErrors(['limit']);
-    }
-
-    public function test_limit_rejects_non_boolean_limit(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.53';
-        $ip->last_seen_at = Carbon::now();
-        $ip->save();
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', [
-            'limit' => 'notabool',
-        ]);
-        $response->assertSessionHasErrors(['limit']);
-    }
-
-    public function test_internet_requires_allow_field(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.54';
-        $ip->last_seen_at = Carbon::now();
-        $ip->save();
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', []);
-        $response->assertSessionHasErrors(['allow']);
-    }
-
-    public function test_internet_rejects_non_boolean_allow(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.55';
-        $ip->last_seen_at = Carbon::now();
-        $ip->save();
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', [
-            'allow' => 'notabool',
-        ]);
-        $response->assertSessionHasErrors(['allow']);
-    }
-
-    public function test_admin_can_allow_internet(): void
+    #[DataProvider('toggleActionsProvider')]
+    public function test_admin_can_toggle_ip_setting(string $pathSuffix, string $field, int $value): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -394,26 +299,61 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', [
-            'allow' => 1,
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.$pathSuffix, [
+            $field => $value,
         ]);
         $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
     }
 
-    public function test_admin_can_deny_internet(): void
+    public static function toggleActionsProvider(): array
+    {
+        return [
+            'rate limit enabled' => ['/limit', 'limit', 1],
+            'rate limit disabled' => ['/limit', 'limit', 0],
+            'internet allowed' => ['/internet', 'allow', 1],
+            'internet denied' => ['/internet', 'allow', 0],
+        ];
+    }
+
+    #[DataProvider('toggleEndpointsProvider')]
+    public function test_toggle_endpoint_requires_its_field(string $pathSuffix, string $field): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
         $ip = new IpAddress;
-        $ip->address = '10.0.0.35';
+        $ip->address = '10.0.0.52';
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', [
-            'allow' => 0,
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.$pathSuffix, []);
+        $response->assertSessionHasErrors([$field]);
+    }
+
+    #[DataProvider('toggleEndpointsProvider')]
+    public function test_toggle_endpoint_rejects_non_boolean_value(string $pathSuffix, string $field): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.53';
+        $ip->last_seen_at = Carbon::now();
+        $ip->save();
+
+        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.$pathSuffix, [
+            $field => 'notabool',
         ]);
-        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
+        $response->assertSessionHasErrors([$field]);
+    }
+
+    public static function toggleEndpointsProvider(): array
+    {
+        return [
+            'rate limit' => ['/limit', 'limit'],
+            'internet' => ['/internet', 'allow'],
+            'dns filter' => ['/dns-filter', 'filter'],
+        ];
     }
 
     public function test_admin_can_store_new_ip(): void
@@ -446,20 +386,21 @@ class IpAddressControllerTest extends TestCase
         $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.101']);
     }
 
-    public function test_admin_can_view_ip_show_with_port_data(): void
+    #[DataProvider('resolvedPortShowProvider')]
+    public function test_admin_can_view_ip_show_with_port_data(string $ipAddress, string $mac): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
         $inventory = Mockery::mock(LibreNmsService::class);
         $inventory->shouldReceive('resolveIpToPort')
-            ->andReturn(new ResolvedPort(ip: '10.0.0.200', mac: 'AA:BB:CC:DD:EE:FF', port: '1', switch: ''));
+            ->andReturn(new ResolvedPort(ip: $ipAddress, mac: $mac, port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
             ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'down', speed: 1000));
         $this->app->instance(LibreNmsService::class, $inventory);
 
         $ip = new IpAddress;
-        $ip->address = '10.0.0.200';
+        $ip->address = $ipAddress;
         $ip->last_seen_at = Carbon::now();
         $ip->save();
 
@@ -478,36 +419,12 @@ class IpAddressControllerTest extends TestCase
         );
     }
 
-    public function test_admin_can_view_ip_show_with_successful_switch_connection(): void
+    public static function resolvedPortShowProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $inventory = Mockery::mock(LibreNmsService::class);
-        $inventory->shouldReceive('resolveIpToPort')
-            ->andReturn(new ResolvedPort(ip: '10.0.0.201', mac: 'AA:BB:CC:DD:EE:01', port: '1', switch: ''));
-        $inventory->shouldReceive('getPortDetail')
-            ->andReturn(new PortDetail(hostname: 'switch01', interface: 'Gi0/1', status: 'up', adminStatus: 'down', speed: 1000));
-        $this->app->instance(LibreNmsService::class, $inventory);
-
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.201';
-        $ip->last_seen_at = Carbon::now();
-        $ip->save();
-
-        SwitchConfig::factory()->create(['hostname' => 'switch01']);
-
-        $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->component('Admin/Ips/Show')
-            ->has('ip')
-            ->has('port')
-            ->has('switchInfo')
-            ->where('switchInfo.switchName', 'switch01')
-            ->where('switchInfo.portId', 'Gi0/1')
-        );
+        return [
+            'resolved port data' => ['10.0.0.200', 'AA:BB:CC:DD:EE:FF'],
+            'successful switch connection' => ['10.0.0.201', 'AA:BB:CC:DD:EE:01'],
+        ];
     }
 
     public function test_admin_can_view_ip_show_with_fallback_switch_config_when_hostname_not_in_db(): void
@@ -584,15 +501,16 @@ class IpAddressControllerTest extends TestCase
             ->assertJsonStructure(['timestamps', 'download', 'upload', 'totalReceived', 'totalSent']);
     }
 
-    public function test_admin_bandwidth_accepts_range_parameter(): void
+    #[DataProvider('bandwidthRangeProvider')]
+    public function test_admin_bandwidth_accepts_range_parameter(string $range): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
 
-        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock) use ($range): void {
             $mock->shouldReceive('getIpBandwidth')
-                ->withArgs(fn (string $ipAddr, string $range): bool => $range === '4d')
+                ->withArgs(fn (string $ipAddr, string $rangeArg): bool => $rangeArg === $range)
                 ->once()
                 ->andReturn(new IpBandwidthResult(
                     received: 0,
@@ -603,33 +521,17 @@ class IpAddressControllerTest extends TestCase
                 ));
         });
 
-        $response = $this->actingAs($admin)->getJson('/admin/ips/'.$ip->address.'/bandwidth?range=4d');
+        $response = $this->actingAs($admin)->getJson('/admin/ips/'.$ip->address.'/bandwidth?range='.$range);
 
         $response->assertOk();
     }
 
-    public function test_admin_bandwidth_accepts_7d_range(): void
+    public static function bandwidthRangeProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
-
-        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getIpBandwidth')
-                ->withArgs(fn (string $ipAddr, string $range): bool => $range === '7d')
-                ->once()
-                ->andReturn(new IpBandwidthResult(
-                    received: 0,
-                    sent: 0,
-                    timestamps: [],
-                    download: [],
-                    upload: [],
-                ));
-        });
-
-        $response = $this->actingAs($admin)->getJson('/admin/ips/'.$ip->address.'/bandwidth?range=7d');
-
-        $response->assertOk();
+        return [
+            '4 days' => ['4d'],
+            '7 days' => ['7d'],
+        ];
     }
 
     public function test_admin_bandwidth_rejects_72h_range(): void
@@ -654,56 +556,27 @@ class IpAddressControllerTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_admin_can_enable_dns_filter(): void
+    #[DataProvider('dnsFilterTogglesProvider')]
+    public function test_admin_can_toggle_dns_filter(bool $initial, int $filterValue, bool $expected): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $ip = IpAddress::factory()->create();
+        $ip = IpAddress::factory()->create(['dns_filtering_enabled' => $initial]);
 
         $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', [
-            'filter' => 1,
+            'filter' => $filterValue,
         ]);
         $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
-        $this->assertTrue($ip->fresh()->dns_filtering_enabled);
+        $this->assertSame($expected, (bool) $ip->fresh()->dns_filtering_enabled);
     }
 
-    public function test_admin_can_disable_dns_filter(): void
+    public static function dnsFilterTogglesProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = IpAddress::factory()->create(['dns_filtering_enabled' => true]);
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', [
-            'filter' => 0,
-        ]);
-        $response->assertRedirect(route('admin.ips.show', ['ip' => $ip], false));
-        $this->assertFalse($ip->fresh()->dns_filtering_enabled);
-    }
-
-    public function test_dns_filter_requires_filter_field(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = IpAddress::factory()->create();
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', []);
-        $response->assertSessionHasErrors(['filter']);
-    }
-
-    public function test_dns_filter_rejects_non_boolean_filter(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $ip = IpAddress::factory()->create();
-
-        $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', [
-            'filter' => 'notabool',
-        ]);
-        $response->assertSessionHasErrors(['filter']);
+        return [
+            'enable' => [false, 1, true],
+            'disable' => [true, 0, false],
+        ];
     }
 
     public function test_non_admin_cannot_toggle_dns_filter(): void
@@ -767,61 +640,33 @@ class IpAddressControllerTest extends TestCase
         );
     }
 
-    public function test_internet_toggle_creates_audit_log(): void
+    #[DataProvider('toggleAuditLogProvider')]
+    public function test_toggle_action_creates_audit_log(string $pathSuffix, array $payload, string $initialColumn, string $expectedAction): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        $ip = IpAddress::factory()->create(['internet_enabled' => false]);
+        $ip = IpAddress::factory()->create([$initialColumn => false]);
 
-        $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/internet', ['allow' => 1]);
+        $this->actingAs($admin)->post('/admin/ips/'.$ip->address.$pathSuffix, $payload);
 
         $this->assertDatabaseHas('audit_logs', [
-            'action' => 'ip.internet_toggled',
+            'action' => $expectedAction,
             'subject_type' => $ip->getMorphClass(),
             'subject_id' => $ip->id,
             'process' => 'admin',
         ]);
-        $log = AuditLog::where('action', 'ip.internet_toggled')->first();
+        $log = AuditLog::where('action', $expectedAction)->first();
         $this->assertNotNull($log);
         $this->assertTrue($log->metadata['enabled']);
     }
 
-    public function test_rate_limit_toggle_creates_audit_log(): void
+    public static function toggleAuditLogProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $ip = IpAddress::factory()->create(['rate_limit_enabled' => false]);
-
-        $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/limit', ['limit' => 1]);
-
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'ip.rate_limit_toggled',
-            'subject_type' => $ip->getMorphClass(),
-            'subject_id' => $ip->id,
-            'process' => 'admin',
-        ]);
-        $log = AuditLog::where('action', 'ip.rate_limit_toggled')->first();
-        $this->assertNotNull($log);
-        $this->assertTrue($log->metadata['enabled']);
-    }
-
-    public function test_dns_filter_toggle_creates_audit_log(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $ip = IpAddress::factory()->create(['dns_filtering_enabled' => false]);
-
-        $this->actingAs($admin)->post('/admin/ips/'.$ip->address.'/dns-filter', ['filter' => 1]);
-
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'ip.dns_filter_toggled',
-            'subject_type' => $ip->getMorphClass(),
-            'subject_id' => $ip->id,
-            'process' => 'admin',
-        ]);
-        $log = AuditLog::where('action', 'ip.dns_filter_toggled')->first();
-        $this->assertNotNull($log);
-        $this->assertTrue($log->metadata['enabled']);
+        return [
+            'internet toggle' => ['/internet', ['allow' => 1], 'internet_enabled', 'ip.internet_toggled'],
+            'rate limit toggle' => ['/limit', ['limit' => 1], 'rate_limit_enabled', 'ip.rate_limit_toggled'],
+            'dns filter toggle' => ['/dns-filter', ['filter' => 1], 'dns_filtering_enabled', 'ip.dns_filter_toggled'],
+        ];
     }
 
     public function test_show_auto_creates_ip_within_managed_range(): void

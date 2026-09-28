@@ -11,19 +11,14 @@ use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\CaptivePortalInterface;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Mockery;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class UserLoginCascadeTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-    }
 
     public function test_login_assigns_mac_ownership_when_unowned(): void
     {

@@ -10,8 +10,10 @@ use App\Models\MacAddress;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
+use Closure;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class AuditLogControllerTest extends TestCase
@@ -115,7 +117,8 @@ class AuditLogControllerTest extends TestCase
         );
     }
 
-    public function test_filterable_by_date_from(): void
+    #[DataProvider('dateFilterProvider')]
+    public function test_filterable_by_date(string $queryParam, string $expectedAction): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -127,36 +130,22 @@ class AuditLogControllerTest extends TestCase
         AuditLog::record(action: 'ip.updated', subject: $ip, process: 'scan_network');
         $this->travelBack();
 
-        $response = $this->actingAs($admin)->get('/admin/audit-log?date_from=2026-06-03');
+        $response = $this->actingAs($admin)->get('/admin/audit-log?'.$queryParam.'=2026-06-03');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/AuditLog/Index')
             ->has('logs.data', 1)
-            ->where('logs.data.0.action', 'ip.updated')
+            ->where('logs.data.0.action', $expectedAction)
         );
     }
 
-    public function test_filterable_by_date_to(): void
+    public static function dateFilterProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $ip = IpAddress::factory()->create();
-
-        $this->travelTo('2026-06-01 12:00:00');
-        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
-        $this->travelTo('2026-06-05 12:00:00');
-        AuditLog::record(action: 'ip.updated', subject: $ip, process: 'scan_network');
-        $this->travelBack();
-
-        $response = $this->actingAs($admin)->get('/admin/audit-log?date_to=2026-06-03');
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->component('Admin/AuditLog/Index')
-            ->has('logs.data', 1)
-            ->where('logs.data.0.action', 'ip.created')
-        );
+        return [
+            'date_from excludes earlier records' => ['date_from', 'ip.updated'],
+            'date_to excludes later records' => ['date_to', 'ip.created'],
+        ];
     }
 
     public function test_pagination_works(): void
@@ -186,72 +175,32 @@ class AuditLogControllerTest extends TestCase
         $this->actingAs($user)->get('/admin/audit-log')->assertForbidden();
     }
 
-    public function test_subject_url_resolved_for_user(): void
+    #[DataProvider('subjectUrlProvider')]
+    public function test_subject_url_resolved(string $action, Closure $subjectFactory, string $process, string $expectedType, string $routeName): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        $target = User::factory()->create();
-        AuditLog::record(action: 'user.updated', subject: $target, actor: $admin, process: 'admin');
+        $subject = $subjectFactory();
+        AuditLog::record(action: $action, subject: $subject, process: $process);
 
         $response = $this->actingAs($admin)->get('/admin/audit-log');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/AuditLog/Index')
-            ->where('logs.data.0.subject_type', 'User')
-            ->where('logs.data.0.subject_url', route('admin.users.show', $target))
+            ->where('logs.data.0.subject_type', $expectedType)
+            ->where('logs.data.0.subject_url', route($routeName, $subject))
         );
     }
 
-    public function test_subject_url_resolved_for_ip_address(): void
+    public static function subjectUrlProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $ip = IpAddress::factory()->create();
-        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
-
-        $response = $this->actingAs($admin)->get('/admin/audit-log');
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->component('Admin/AuditLog/Index')
-            ->where('logs.data.0.subject_type', 'IpAddress')
-            ->where('logs.data.0.subject_url', route('admin.ips.show', $ip))
-        );
-    }
-
-    public function test_subject_url_resolved_for_mac_address(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $mac = MacAddress::factory()->create();
-        AuditLog::record(action: 'mac.created', subject: $mac, process: 'scan_network');
-
-        $response = $this->actingAs($admin)->get('/admin/audit-log');
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->component('Admin/AuditLog/Index')
-            ->where('logs.data.0.subject_type', 'MacAddress')
-            ->where('logs.data.0.subject_url', route('admin.macs.show', $mac))
-        );
-    }
-
-    public function test_subject_url_resolved_for_switch_config(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-        AuditLog::record(action: 'switch.updated', subject: $switch, process: 'admin');
-
-        $response = $this->actingAs($admin)->get('/admin/audit-log');
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->component('Admin/AuditLog/Index')
-            ->where('logs.data.0.subject_type', 'SwitchConfig')
-            ->where('logs.data.0.subject_url', route('admin.switches.show', $switch))
-        );
+        return [
+            'user' => ['user.updated', fn () => User::factory()->create(), 'admin', 'User', 'admin.users.show'],
+            'ip address' => ['ip.created', fn () => IpAddress::factory()->create(), 'scan_network', 'IpAddress', 'admin.ips.show'],
+            'mac address' => ['mac.created', fn () => MacAddress::factory()->create(), 'scan_network', 'MacAddress', 'admin.macs.show'],
+            'switch config' => ['switch.updated', fn () => SwitchConfig::factory()->create(), 'admin', 'SwitchConfig', 'admin.switches.show'],
+        ];
     }
 
     public function test_related_url_resolved_when_present(): void
@@ -306,7 +255,8 @@ class AuditLogControllerTest extends TestCase
         );
     }
 
-    public function test_sortable_by_action_ascending(): void
+    #[DataProvider('actionSortDirectionProvider')]
+    public function test_sortable_by_action(string $direction, string $firstAction, string $secondAction): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
@@ -314,34 +264,24 @@ class AuditLogControllerTest extends TestCase
         AuditLog::record(action: 'ip.updated', subject: $ip, process: 'scan_network');
         AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
 
-        $response = $this->actingAs($admin)->get('/admin/audit-log?order=action&direction=asc');
+        $response = $this->actingAs($admin)->get('/admin/audit-log?order=action&direction='.$direction);
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/AuditLog/Index')
-            ->where('logs.data.0.action', 'ip.created')
-            ->where('logs.data.1.action', 'ip.updated')
+            ->where('logs.data.0.action', $firstAction)
+            ->where('logs.data.1.action', $secondAction)
             ->where('filters.order', 'action')
-            ->where('filters.direction', 'asc')
+            ->where('filters.direction', $direction)
         );
     }
 
-    public function test_sortable_by_action_descending(): void
+    public static function actionSortDirectionProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-        $ip = IpAddress::factory()->create();
-        AuditLog::record(action: 'ip.created', subject: $ip, process: 'scan_network');
-        AuditLog::record(action: 'ip.updated', subject: $ip, process: 'scan_network');
-
-        $response = $this->actingAs($admin)->get('/admin/audit-log?order=action&direction=desc');
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
-            ->component('Admin/AuditLog/Index')
-            ->where('logs.data.0.action', 'ip.updated')
-            ->where('logs.data.1.action', 'ip.created')
-        );
+        return [
+            'ascending' => ['asc', 'ip.created', 'ip.updated'],
+            'descending' => ['desc', 'ip.updated', 'ip.created'],
+        ];
     }
 
     public function test_defaults_to_created_at_desc_sort(): void

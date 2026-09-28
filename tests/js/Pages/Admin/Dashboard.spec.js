@@ -1,6 +1,8 @@
 /* eslint-disable vue/one-component-per-file */
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { router } from '@inertiajs/vue3';
 import Dashboard from '@/Pages/Admin/Dashboard.vue';
 
 let deferredReady = true;
@@ -43,8 +45,40 @@ vi.mock('@inertiajs/vue3', async () => {
 
             return resetFormMock;
         },
+        router: { reload: vi.fn() },
     };
 });
+
+function createMockPusher(state = 'connected') {
+    const bindings = {};
+    return {
+        connection: {
+            state,
+            bind: vi.fn((event, handler) => {
+                bindings[event] = handler;
+            }),
+        },
+        _bindings: bindings,
+    };
+}
+
+function createMockEcho(pusher) {
+    const channels = {};
+    return {
+        connector: { pusher },
+        private: vi.fn((channelName) => {
+            const channel = { listen: vi.fn(), _listeners: {} };
+            channel.listen = vi.fn((event, handler) => {
+                channel._listeners[event] = handler;
+                return channel;
+            });
+            channels[channelName] = channel;
+            return channel;
+        }),
+        leave: vi.fn(),
+        _channels: channels,
+    };
+}
 
 vi.stubGlobal('route', (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`));
 
@@ -407,6 +441,113 @@ describe('Dashboard', () => {
             await wrapper.find('[data-testid="reset-password-input"]').trigger('keydown.enter');
 
             expect(resetFormMock.post).not.toHaveBeenCalled();
+        });
+    });
+
+    // useAdminChannel's own subscribe/register-listener/leave-on-unmount/polling-fallback
+    // behavior is covered generically by tests/js/composables/useAdminChannel.spec.js; these
+    // only cover Dashboard's own AuditLogRecorded handler and its fetchBandwidth poll wiring.
+    describe('Echo integration', () => {
+        let originalEcho;
+
+        beforeEach(() => {
+            originalEcho = window.Echo;
+        });
+
+        afterEach(() => {
+            window.Echo = originalEcho;
+        });
+
+        it('prepends activity item and triggers refresh on AuditLogRecorded', async () => {
+            const echo = createMockEcho(createMockPusher('connected'));
+            window.Echo = echo;
+
+            const wrapper = mount(Dashboard, {
+                props: makeProps(),
+                global: defaultGlobal,
+            });
+
+            router.reload.mockClear();
+
+            const channel = echo._channels['admin.events'];
+            channel._listeners['AuditLogRecorded']({
+                id: 999,
+                action: 'switch.unreachable',
+                description: 'Switch edge-1 unreachable after 4 failures',
+                severity: 'critical',
+                created_at: '2026-06-12T10:00:00+00:00',
+            });
+
+            await nextTick();
+
+            expect(router.reload).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    only: ['totalUsers', 'onlineUsers', 'activeIps', 'blockedUsers', 'dhcpPools', 'recentUsers'],
+                    preserveScroll: true,
+                }),
+            );
+
+            const activityWidget = wrapper.find('[data-testid="recent-activity"]');
+            expect(activityWidget.exists()).toBe(true);
+            expect(activityWidget.html()).toContain('Switch edge-1 unreachable after 4 failures');
+        });
+
+        it('seeds recent activity from recentEvents prop on mount', async () => {
+            const recentEvents = [
+                {
+                    id: 1,
+                    action: 'user.blocked',
+                    description: 'Alice was blocked',
+                    severity: 'warning',
+                    created_at: '2026-06-12T09:00:00Z',
+                },
+                {
+                    id: 2,
+                    action: 'user.connected',
+                    description: 'Bob connected',
+                    severity: 'info',
+                    created_at: '2026-06-12T09:30:00Z',
+                },
+            ];
+
+            const wrapper = mount(Dashboard, {
+                props: makeProps({ recentEvents }),
+                global: defaultGlobal,
+            });
+
+            await nextTick();
+
+            const activityWidget = wrapper.find('[data-testid="recent-activity"]');
+            expect(activityWidget.exists()).toBe(true);
+            const html = activityWidget.html();
+            expect(html).toContain('Alice was blocked');
+            expect(html).toContain('Bob connected');
+        });
+
+        it('falls back to polling fetchBandwidth when WebSocket is disconnected', async () => {
+            window.Echo = undefined;
+
+            mount(Dashboard, { props: makeProps(), global: defaultGlobal });
+
+            await vi.advanceTimersByTimeAsync(0);
+            vi.mocked(window.axios.get).mockClear();
+
+            await vi.advanceTimersByTimeAsync(30000);
+
+            expect(window.axios.get).toHaveBeenCalled();
+        });
+
+        it('does not poll fetchBandwidth when WebSocket is connected', async () => {
+            window.Echo = createMockEcho(createMockPusher('connected'));
+
+            mount(Dashboard, { props: makeProps(), global: defaultGlobal });
+
+            await vi.advanceTimersByTimeAsync(0);
+            vi.mocked(window.axios.get).mockClear();
+
+            await vi.advanceTimersByTimeAsync(60000);
+
+            expect(window.axios.get).not.toHaveBeenCalled();
         });
     });
 });

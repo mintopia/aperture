@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { defineComponent } from 'vue';
-import { useBandwidthChart } from '../useBandwidthChart.js';
+import { useBandwidthChart } from '@/composables/useBandwidthChart.js';
 
 const mockData = {
     timestamps: ['1000', '2000'],

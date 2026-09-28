@@ -2,181 +2,106 @@ import { describe, it, expect } from 'vitest';
 import { typeLabel, statusLabel, formatPortStatus, formatSpeed, formatDuplex, formatVlan } from '@/utils/switches';
 
 describe('typeLabel', () => {
-    it('returns label for known types', () => {
-        expect(typeLabel('cisco')).toBe('Cisco IOS');
-        expect(typeLabel('cisco_ios')).toBe('Cisco IOS');
-        expect(typeLabel('cisco_nxos')).toBe('Cisco NX-OS');
-        expect(typeLabel('arista_eos')).toBe('Arista EOS');
-        expect(typeLabel('juniper_junos')).toBe('Juniper JunOS');
-        expect(typeLabel('snmp')).toBe('SNMP');
-    });
-
-    it('returns raw value for unknown types', () => {
-        expect(typeLabel('unknown')).toBe('unknown');
+    it.each([
+        { input: 'cisco', expected: 'Cisco IOS' },
+        { input: 'cisco_ios', expected: 'Cisco IOS' },
+        { input: 'cisco_nxos', expected: 'Cisco NX-OS' },
+        { input: 'arista_eos', expected: 'Arista EOS' },
+        { input: 'juniper_junos', expected: 'Juniper JunOS' },
+        { input: 'snmp', expected: 'SNMP' },
+        { input: 'unknown', expected: 'unknown' },
+    ])('$input -> $expected', ({ input, expected }) => {
+        expect(typeLabel(input)).toBe(expected);
     });
 });
 
 describe('statusLabel', () => {
-    it('returns "Connected" for connected', () => {
-        expect(statusLabel('connected')).toBe('Connected');
-    });
-
-    it('returns "Not Connected" for notconnect', () => {
-        expect(statusLabel('notconnect')).toBe('Not Connected');
-    });
-
-    it('returns "Error Disabled" for err-disabled', () => {
-        expect(statusLabel('err-disabled')).toBe('Error Disabled');
-    });
-
-    it('returns "Up" for up', () => {
-        expect(statusLabel('up')).toBe('Up');
-    });
-
-    it('returns "Down" for down', () => {
-        expect(statusLabel('down')).toBe('Down');
-    });
-
-    it('returns "Disabled" for disabled', () => {
-        expect(statusLabel('disabled')).toBe('Disabled');
-    });
-
-    it('capitalizes unknown status values', () => {
-        expect(statusLabel('monitoring')).toBe('Monitoring');
-    });
-
-    it('capitalizes single character status', () => {
-        expect(statusLabel('x')).toBe('X');
-    });
-
-    it('returns dash for null', () => {
-        expect(statusLabel(null)).toBe('—');
-    });
-
-    it('returns dash for undefined', () => {
-        expect(statusLabel(undefined)).toBe('—');
-    });
-
-    it('returns dash for empty string', () => {
-        expect(statusLabel('')).toBe('—');
+    it.each([
+        { name: 'connected', input: 'connected', expected: 'Connected' },
+        { name: 'notconnect', input: 'notconnect', expected: 'Not Connected' },
+        { name: 'err-disabled', input: 'err-disabled', expected: 'Error Disabled' },
+        { name: 'up', input: 'up', expected: 'Up' },
+        { name: 'down', input: 'down', expected: 'Down' },
+        { name: 'disabled', input: 'disabled', expected: 'Disabled' },
+        { name: 'unknown status (capitalized)', input: 'monitoring', expected: 'Monitoring' },
+        { name: 'single character status (capitalized)', input: 'x', expected: 'X' },
+        { name: 'null', input: null, expected: '—' },
+        { name: 'undefined', input: undefined, expected: '—' },
+        { name: 'empty string', input: '', expected: '—' },
+    ])('$name -> $expected', ({ input, expected }) => {
+        expect(statusLabel(input)).toBe(expected);
     });
 });
 
 describe('formatPortStatus', () => {
-    it('formats up/connected as "Up / Connected"', () => {
-        expect(formatPortStatus('up', 'connected')).toBe('Up / Connected');
-    });
-
-    it('formats down/notconnect as "Down / Not Connected"', () => {
-        expect(formatPortStatus('down', 'notconnect')).toBe('Down / Not Connected');
-    });
-
-    it('formats up/err-disabled as "Up / Error Disabled"', () => {
-        expect(formatPortStatus('up', 'err-disabled')).toBe('Up / Error Disabled');
-    });
-
-    it('returns "Admin Down" when admin is down and oper is missing', () => {
-        expect(formatPortStatus('down', null)).toBe('Admin Down');
-        expect(formatPortStatus('down', undefined)).toBe('Admin Down');
-        expect(formatPortStatus('down', '')).toBe('Admin Down');
-    });
-
-    it('formats down/down as "Down / Down"', () => {
-        expect(formatPortStatus('down', 'down')).toBe('Down / Down');
-    });
-
-    it('returns dash when both are missing', () => {
-        expect(formatPortStatus(null, null)).toBe('—');
-        expect(formatPortStatus(undefined, undefined)).toBe('—');
-        expect(formatPortStatus('', '')).toBe('—');
-    });
-
-    it('handles only oper status provided', () => {
-        expect(formatPortStatus(null, 'connected')).toBe('— / Connected');
-    });
-
-    it('handles only admin status provided (non-down)', () => {
-        expect(formatPortStatus('up', null)).toBe('Up / —');
+    it.each([
+        { name: 'up/connected', admin: 'up', oper: 'connected', expected: 'Up / Connected' },
+        { name: 'down/notconnect', admin: 'down', oper: 'notconnect', expected: 'Down / Not Connected' },
+        { name: 'up/err-disabled', admin: 'up', oper: 'err-disabled', expected: 'Up / Error Disabled' },
+        { name: 'down/down', admin: 'down', oper: 'down', expected: 'Down / Down' },
+        { name: 'down/null oper -> Admin Down', admin: 'down', oper: null, expected: 'Admin Down' },
+        { name: 'down/undefined oper -> Admin Down', admin: 'down', oper: undefined, expected: 'Admin Down' },
+        { name: 'down/empty oper -> Admin Down', admin: 'down', oper: '', expected: 'Admin Down' },
+        { name: 'both null -> dash', admin: null, oper: null, expected: '—' },
+        { name: 'both undefined -> dash', admin: undefined, oper: undefined, expected: '—' },
+        { name: 'both empty -> dash', admin: '', oper: '', expected: '—' },
+        { name: 'only oper provided', admin: null, oper: 'connected', expected: '— / Connected' },
+        { name: 'only admin provided (non-down)', admin: 'up', oper: null, expected: 'Up / —' },
+    ])('$name -> $expected', ({ admin, oper, expected }) => {
+        expect(formatPortStatus(admin, oper)).toBe(expected);
     });
 });
 
 describe('formatSpeed', () => {
-    it('formats auto-negotiated Mbps speeds', () => {
-        expect(formatSpeed('a-1000')).toBe('1 Gbps');
-        expect(formatSpeed('a-100')).toBe('100 Mbps');
-        expect(formatSpeed('a-10')).toBe('10 Mbps');
-    });
-
-    it('formats fixed Mbps speeds', () => {
-        expect(formatSpeed('1000')).toBe('1 Gbps');
-        expect(formatSpeed('100')).toBe('100 Mbps');
-        expect(formatSpeed('10')).toBe('10 Mbps');
-    });
-
-    it('formats fixed Gbps speeds', () => {
-        expect(formatSpeed('10G')).toBe('10 Gbps');
-        expect(formatSpeed('25G')).toBe('25 Gbps');
-        expect(formatSpeed('40G')).toBe('40 Gbps');
-        expect(formatSpeed('100G')).toBe('100 Gbps');
-    });
-
-    it('returns Auto for auto', () => {
-        expect(formatSpeed('auto')).toBe('Auto');
-    });
-
-    it('returns dash for missing values', () => {
-        expect(formatSpeed(null)).toBe('—');
-        expect(formatSpeed(undefined)).toBe('—');
-        expect(formatSpeed('')).toBe('—');
-    });
-
-    it('capitalizes unknown values', () => {
-        expect(formatSpeed('custom')).toBe('Custom');
+    it.each([
+        { name: 'auto-negotiated Gbps', input: 'a-1000', expected: '1 Gbps' },
+        { name: 'auto-negotiated 100 Mbps', input: 'a-100', expected: '100 Mbps' },
+        { name: 'auto-negotiated 10 Mbps', input: 'a-10', expected: '10 Mbps' },
+        { name: 'fixed Gbps (1000)', input: '1000', expected: '1 Gbps' },
+        { name: 'fixed 100 Mbps', input: '100', expected: '100 Mbps' },
+        { name: 'fixed 10 Mbps', input: '10', expected: '10 Mbps' },
+        { name: 'fixed 10G', input: '10G', expected: '10 Gbps' },
+        { name: 'fixed 25G', input: '25G', expected: '25 Gbps' },
+        { name: 'fixed 40G', input: '40G', expected: '40 Gbps' },
+        { name: 'fixed 100G', input: '100G', expected: '100 Gbps' },
+        { name: 'auto', input: 'auto', expected: 'Auto' },
+        { name: 'null', input: null, expected: '—' },
+        { name: 'undefined', input: undefined, expected: '—' },
+        { name: 'empty string', input: '', expected: '—' },
+        { name: 'unknown value (capitalized)', input: 'custom', expected: 'Custom' },
+    ])('$name -> $expected', ({ input, expected }) => {
+        expect(formatSpeed(input)).toBe(expected);
     });
 });
 
 describe('formatDuplex', () => {
-    it('formats auto-negotiated duplex values', () => {
-        expect(formatDuplex('a-full')).toBe('Full');
-        expect(formatDuplex('a-half')).toBe('Half');
-    });
-
-    it('formats fixed duplex values', () => {
-        expect(formatDuplex('full')).toBe('Full');
-        expect(formatDuplex('half')).toBe('Half');
-    });
-
-    it('returns Auto for auto', () => {
-        expect(formatDuplex('auto')).toBe('Auto');
-    });
-
-    it('returns dash for missing values', () => {
-        expect(formatDuplex(null)).toBe('—');
-        expect(formatDuplex(undefined)).toBe('—');
-        expect(formatDuplex('')).toBe('—');
-    });
-
-    it('capitalizes unknown duplex values', () => {
-        expect(formatDuplex('custom')).toBe('Custom');
+    it.each([
+        { name: 'auto-negotiated full', input: 'a-full', expected: 'Full' },
+        { name: 'auto-negotiated half', input: 'a-half', expected: 'Half' },
+        { name: 'fixed full', input: 'full', expected: 'Full' },
+        { name: 'fixed half', input: 'half', expected: 'Half' },
+        { name: 'auto', input: 'auto', expected: 'Auto' },
+        { name: 'null', input: null, expected: '—' },
+        { name: 'undefined', input: undefined, expected: '—' },
+        { name: 'empty string', input: '', expected: '—' },
+        { name: 'unknown value (capitalized)', input: 'custom', expected: 'Custom' },
+    ])('$name -> $expected', ({ input, expected }) => {
+        expect(formatDuplex(input)).toBe(expected);
     });
 });
 
 describe('formatVlan', () => {
-    it('formats special switchport modes', () => {
-        expect(formatVlan(null, 'trunk')).toBe('Trunk');
-        expect(formatVlan(0, 'trunk')).toBe('Trunk');
-        expect(formatVlan(null, 'routed')).toBe('Routed');
-        expect(formatVlan(null, 'unassigned')).toBe('Unassigned');
-        expect(formatVlan(null, 'suspended')).toBe('Suspended');
-    });
-
-    it('formats real VLAN IDs', () => {
-        expect(formatVlan(100, 'access')).toBe('100');
-        expect(formatVlan(100, null)).toBe('100');
-    });
-
-    it('returns dash when VLAN is missing with no special mode', () => {
-        expect(formatVlan(null, null)).toBe('—');
-        expect(formatVlan(0, null)).toBe('—');
+    it.each([
+        { name: 'trunk mode with null vlan', vlan: null, mode: 'trunk', expected: 'Trunk' },
+        { name: 'trunk mode with zero vlan', vlan: 0, mode: 'trunk', expected: 'Trunk' },
+        { name: 'routed mode', vlan: null, mode: 'routed', expected: 'Routed' },
+        { name: 'unassigned mode', vlan: null, mode: 'unassigned', expected: 'Unassigned' },
+        { name: 'suspended mode', vlan: null, mode: 'suspended', expected: 'Suspended' },
+        { name: 'real vlan id with access mode', vlan: 100, mode: 'access', expected: '100' },
+        { name: 'real vlan id with null mode', vlan: 100, mode: null, expected: '100' },
+        { name: 'null vlan and mode -> dash', vlan: null, mode: null, expected: '—' },
+        { name: 'zero vlan and null mode -> dash', vlan: 0, mode: null, expected: '—' },
+    ])('$name -> $expected', ({ vlan, mode, expected }) => {
+        expect(formatVlan(vlan, mode)).toBe(expected);
     });
 });

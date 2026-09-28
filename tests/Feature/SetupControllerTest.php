@@ -7,20 +7,15 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Queue;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class SetupControllerTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
 
     protected bool $seedSetupUser = false;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-    }
 
     public function test_setup_page_accessible_when_no_users_exist(): void
     {

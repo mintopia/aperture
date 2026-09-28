@@ -15,28 +15,31 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PortalControllerTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    public function test_index_creates_ip_and_renders_view(): void
+    #[DataProvider('portalUserBlockedStatusProvider')]
+    public function test_index_renders_for_user(bool $internetBlocked): void
     {
         Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
+        $user = $internetBlocked
+            ? User::factory()->internetBlocked()->create()
+            : User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
     }
 
-    public function test_index_does_not_allow_when_user_blocked(): void
+    public static function portalUserBlockedStatusProvider(): array
     {
-        Queue::fake();
-        $user = User::factory()->internetBlocked()->create();
-
-        $response = $this->actingAs($user)->get('/');
-        $response->assertStatus(200);
+        return [
+            'allowed user' => [false],
+            'blocked user' => [true],
+        ];
     }
 
     public function test_status_returns_json_with_ip_info(): void
@@ -139,25 +142,26 @@ class PortalControllerTest extends TestCase
         $response->assertRedirect(route('captive.index'));
     }
 
-    public function test_index_passes_ipv6_endpoint_when_configured(): void
+    #[DataProvider('ipv6EndpointConfigProvider')]
+    public function test_index_passes_ipv6_endpoint(?string $configuredEndpoint, string $expected): void
     {
         Queue::fake();
-        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://{random}.ipv6.example.com');
+        if ($configuredEndpoint !== null) {
+            IntegrationConfig::setValue('ipv6', 'detection_endpoint', $configuredEndpoint);
+        }
         $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
         $response->assertStatus(200);
-        $response->assertViewHas('ipv6DetectionEndpoint', 'https://{random}.ipv6.example.com');
+        $response->assertViewHas('ipv6DetectionEndpoint', $expected);
     }
 
-    public function test_index_passes_empty_ipv6_endpoint_when_not_configured(): void
+    public static function ipv6EndpointConfigProvider(): array
     {
-        Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
-
-        $response = $this->actingAs($user)->get('/');
-        $response->assertStatus(200);
-        $response->assertViewHas('ipv6DetectionEndpoint', '');
+        return [
+            'configured' => ['https://{random}.ipv6.example.com', 'https://{random}.ipv6.example.com'],
+            'not configured' => [null, ''],
+        ];
     }
 
     public function test_portal_uses_captive_layout(): void
@@ -171,73 +175,34 @@ class PortalControllerTest extends TestCase
         $response->assertSee('max-w-md');
     }
 
-    public function test_portal_has_data_testid(): void
+    #[DataProvider('portalDataTestIdProvider')]
+    public function test_portal_shows_data_testid(bool $internetBlocked, string $testId): void
     {
         Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
+        $user = $internetBlocked
+            ? User::factory()->internetBlocked()->create()
+            : User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');
 
         $response->assertOk();
-        $response->assertSee('data-testid="portal-page"', false);
+        $response->assertSee('data-testid="'.$testId.'"', false);
     }
 
-    public function test_portal_shows_blocked_message_with_data_testid(): void
+    public static function portalDataTestIdProvider(): array
     {
-        Queue::fake();
-        $user = User::factory()->internetBlocked()->create();
-
-        $response = $this->actingAs($user)->get('/');
-
-        $response->assertOk();
-        $response->assertSee('data-testid="portal-blocked"', false);
+        return [
+            'portal page' => [false, 'portal-page'],
+            'blocked message' => [true, 'portal-blocked'],
+            'waiting status' => [false, 'portal-status-waiting'],
+            'ok status when allowed' => [false, 'portal-status-ok'],
+            'ip address' => [false, 'portal-ip'],
+            'dashboard link when allowed' => [false, 'portal-dashboard-link'],
+        ];
     }
 
-    public function test_portal_shows_waiting_status_with_data_testid(): void
-    {
-        Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
-
-        $response = $this->actingAs($user)->get('/');
-
-        $response->assertOk();
-        $response->assertSee('data-testid="portal-status-waiting"', false);
-    }
-
-    public function test_portal_shows_ok_status_with_data_testid_when_allowed(): void
-    {
-        Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
-
-        $response = $this->actingAs($user)->get('/');
-
-        $response->assertOk();
-        $response->assertSee('data-testid="portal-status-ok"', false);
-    }
-
-    public function test_portal_shows_ip_address_with_data_testid(): void
-    {
-        Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
-
-        $response = $this->actingAs($user)->get('/');
-
-        $response->assertOk();
-        $response->assertSee('data-testid="portal-ip"', false);
-    }
-
-    public function test_portal_has_dashboard_link_with_data_testid_when_allowed(): void
-    {
-        Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
-
-        $response = $this->actingAs($user)->get('/');
-
-        $response->assertOk();
-        $response->assertSee('data-testid="portal-dashboard-link"', false);
-    }
-
-    public function test_portal_js_uses_hidden_class_not_d_none(): void
+    #[DataProvider('portalHiddenClassMarkupProvider')]
+    public function test_portal_uses_hidden_class_not_bootstrap_d_none(string $expectedText): void
     {
         Queue::fake();
         $user = User::factory()->create(['internet_blocked' => false]);
@@ -246,19 +211,15 @@ class PortalControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('d-none');
-        $response->assertSee('hidden');
+        $response->assertSee($expectedText);
     }
 
-    public function test_portal_dns_warning_uses_hidden_class(): void
+    public static function portalHiddenClassMarkupProvider(): array
     {
-        Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
-
-        $response = $this->actingAs($user)->get('/');
-
-        $response->assertOk();
-        $response->assertSee('dns-warning');
-        $response->assertDontSee('d-none');
+        return [
+            'hidden utility class present' => ['hidden'],
+            'dns warning markup present' => ['dns-warning'],
+        ];
     }
 
     public function test_status_returns_null_ip_when_outside_managed_range(): void
@@ -320,9 +281,9 @@ class PortalControllerTest extends TestCase
         ]);
     }
 
-    public function test_status_calls_firewall_enable_when_user_has_internet(): void
+    #[DataProvider('firewallEnableEndpointProvider')]
+    public function test_endpoint_calls_firewall_enable_when_user_has_internet(string $path): void
     {
-        // Pre-create IP so internet_enabled is already true in DB — simulates firewall losing state
         $ip = IpAddress::factory()->internetEnabled()->create(['address' => '127.0.0.1']);
         $user = User::factory()->create(['internet_enabled' => true]);
         $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);
@@ -331,7 +292,15 @@ class PortalControllerTest extends TestCase
         $captivePortal->shouldReceive('addIp')->once();
         $this->app->instance(CaptivePortalInterface::class, $captivePortal);
 
-        $this->actingAs($user)->get('/status');
+        $this->actingAs($user)->get($path);
+    }
+
+    public static function firewallEnableEndpointProvider(): array
+    {
+        return [
+            'status endpoint' => ['/status'],
+            'index endpoint' => ['/'],
+        ];
     }
 
     public function test_status_does_not_call_firewall_when_user_is_blocked(): void
@@ -349,20 +318,6 @@ class PortalControllerTest extends TestCase
         $this->app->instance(CaptivePortalInterface::class, $captivePortal);
 
         $this->actingAs($user)->get('/status');
-    }
-
-    public function test_index_calls_firewall_enable_when_user_has_internet(): void
-    {
-        // Pre-create IP so internet_enabled is already true in DB — simulates firewall losing state
-        $ip = IpAddress::factory()->internetEnabled()->create(['address' => '127.0.0.1']);
-        $user = User::factory()->create(['internet_enabled' => true]);
-        $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);
-
-        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
-        $captivePortal->shouldReceive('addIp')->once();
-        $this->app->instance(CaptivePortalInterface::class, $captivePortal);
-
-        $this->actingAs($user)->get('/');
     }
 
     public function test_ipv6_calls_firewall_enable_when_user_has_internet(): void
@@ -437,48 +392,38 @@ class PortalControllerTest extends TestCase
         ]);
     }
 
-    public function test_ipv6_does_not_link_mac_when_client_ip_has_no_mac(): void
+    #[DataProvider('noMacLinkageScenarioProvider')]
+    public function test_ipv6_does_not_link_mac_when_unavailable(bool $createClientIp, string $ipv6Address): void
     {
         Queue::fake();
         $user = User::factory()->create(['internet_blocked' => false]);
 
-        IpAddress::factory()->create(['address' => '127.0.0.1']);
+        if ($createClientIp) {
+            IpAddress::factory()->create(['address' => '127.0.0.1']);
+        }
 
         IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
 
         $jwtService = Mockery::mock(Ipv6JwtService::class);
         $jwtService->shouldReceive('verifyAndExtract')
-            ->andReturn('2001:db8::2');
+            ->andReturn($ipv6Address);
         $this->app->instance(Ipv6JwtService::class, $jwtService);
 
         $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
 
-        $ipv6Record = IpAddress::whereAddress('2001:db8::2')->first();
+        $ipv6Record = IpAddress::whereAddress($ipv6Address)->first();
         $this->assertNotNull($ipv6Record);
         $this->assertDatabaseMissing('ip_address_mac_address', [
             'ip_address_id' => $ipv6Record->id,
         ]);
     }
 
-    public function test_ipv6_does_not_link_mac_when_client_ip_not_in_database(): void
+    public static function noMacLinkageScenarioProvider(): array
     {
-        Queue::fake();
-        $user = User::factory()->create(['internet_blocked' => false]);
-
-        IntegrationConfig::setValue('ipv6', 'jwks_url', 'https://ipv6.example.com/.well-known/jwks.json');
-
-        $jwtService = Mockery::mock(Ipv6JwtService::class);
-        $jwtService->shouldReceive('verifyAndExtract')
-            ->andReturn('2001:db8::3');
-        $this->app->instance(Ipv6JwtService::class, $jwtService);
-
-        $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
-
-        $ipv6Record = IpAddress::whereAddress('2001:db8::3')->first();
-        $this->assertNotNull($ipv6Record);
-        $this->assertDatabaseMissing('ip_address_mac_address', [
-            'ip_address_id' => $ipv6Record->id,
-        ]);
+        return [
+            'client ip has no mac' => [true, '2001:db8::2'],
+            'client ip not in database' => [false, '2001:db8::3'],
+        ];
     }
 
     public function test_ipv6_updates_last_seen_when_mac_already_linked(): void

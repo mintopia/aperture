@@ -285,4 +285,17 @@ describe('DnsFilterBlock', () => {
         const button = wrapper.find('[data-testid="dns-filter-toggle"]');
         expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
     });
+
+    it('exposes updateDnsFilter, which updates the toggle state when called externally', async () => {
+        const wrapper = mount(DnsFilterBlock, {
+            props: { blockContext: { dnsFilteringEnabled: false } },
+        });
+        expect(wrapper.vm.updateDnsFilter).toBeInstanceOf(Function);
+
+        wrapper.vm.updateDnsFilter(true);
+        await wrapper.vm.$nextTick();
+
+        const button = wrapper.find('[data-testid="dns-filter-toggle"]');
+        expect(button.classes()).toContain('bg-[var(--color-accent)]');
+    });
 });

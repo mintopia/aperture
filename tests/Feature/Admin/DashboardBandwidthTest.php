@@ -11,6 +11,7 @@ use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class DashboardBandwidthTest extends TestCase
@@ -60,15 +61,16 @@ class DashboardBandwidthTest extends TestCase
             ]);
     }
 
-    public function test_bandwidth_accepts_range_parameter(): void
+    #[DataProvider('bandwidthRangeProvider')]
+    public function test_bandwidth_accepts_range_parameter(string $queryString, string $expectedRange): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
+        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock) use ($expectedRange): void {
             $mock->shouldReceive('getTotalBandwidth')
                 ->once()
-                ->with('1h')
+                ->with($expectedRange)
                 ->andReturn(new IpBandwidthResult(
                     received: 0,
                     sent: 0,
@@ -78,111 +80,40 @@ class DashboardBandwidthTest extends TestCase
                 ));
         });
 
-        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range=1h');
+        $response = $this->actingAs($admin)->getJson('/admin/bandwidth'.$queryString);
 
         $response->assertOk();
     }
 
-    public function test_bandwidth_accepts_4d_range(): void
+    public static function bandwidthRangeProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getTotalBandwidth')
-                ->once()
-                ->with('4d')
-                ->andReturn(new IpBandwidthResult(
-                    received: 0,
-                    sent: 0,
-                    timestamps: [],
-                    download: [],
-                    upload: [],
-                ));
-        });
-
-        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range=4d');
-
-        $response->assertOk();
+        return [
+            '1 hour' => ['?range=1h', '1h'],
+            '4 days' => ['?range=4d', '4d'],
+            '7 days' => ['?range=7d', '7d'],
+            'defaults to 24h when omitted' => ['', '24h'],
+        ];
     }
 
-    public function test_bandwidth_accepts_7d_range(): void
+    #[DataProvider('invalidBandwidthRangeProvider')]
+    public function test_bandwidth_rejects_invalid_range(string $range): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getTotalBandwidth')
-                ->once()
-                ->with('7d')
-                ->andReturn(new IpBandwidthResult(
-                    received: 0,
-                    sent: 0,
-                    timestamps: [],
-                    download: [],
-                    upload: [],
-                ));
-        });
-
-        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range=7d');
-
-        $response->assertOk();
-    }
-
-    public function test_bandwidth_rejects_72h_range(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range=72h');
+        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range='.$range);
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['range']);
     }
 
-    public function test_bandwidth_rejects_invalid_range(): void
+    public static function invalidBandwidthRangeProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range=99d');
-
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['range']);
-    }
-
-    public function test_bandwidth_rejects_arbitrary_string_range(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->getJson('/admin/bandwidth?range=invalid');
-
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['range']);
-    }
-
-    public function test_bandwidth_defaults_to_24h_when_range_is_null(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $this->mock(IpBandwidthInterface::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('getTotalBandwidth')
-                ->once()
-                ->with('24h')
-                ->andReturn(new IpBandwidthResult(
-                    received: 0,
-                    sent: 0,
-                    timestamps: [],
-                    download: [],
-                    upload: [],
-                ));
-        });
-
-        $response = $this->actingAs($admin)->getJson('/admin/bandwidth');
-
-        $response->assertOk();
+        return [
+            '72h' => ['72h'],
+            '99d' => ['99d'],
+            'arbitrary string' => ['invalid'],
+        ];
     }
 
     public function test_bandwidth_requires_admin_auth(): void
