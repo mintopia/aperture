@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\SwitchConfig;
-use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\NetworkSwitch\SwitchConnectionTester;
 use Illuminate\Console\Command;
-use Throwable;
 
 class TestSwitchConnectionCommand extends Command
 {
@@ -21,7 +20,7 @@ class TestSwitchConnectionCommand extends Command
      */
     protected $description = 'Test connectivity to a configured network switch';
 
-    public function handle(SwitchServiceFactory $factory): int
+    public function handle(SwitchConnectionTester $tester): int
     {
         $identifier = $this->argument('switch');
 
@@ -38,19 +37,16 @@ class TestSwitchConnectionCommand extends Command
         $this->info(sprintf('Switch: %s (%s)', $switchConfig->name, $switchConfig->hostname));
         $this->info(sprintf('Connecting to %s:%d...', $switchConfig->hostname, $switchConfig->port ?? 22));
 
-        try {
-            $startTime = microtime(true);
-            $adapter = $factory->make($switchConfig);
-            $ports = $adapter->getAllPorts();
-            $duration = round(microtime(true) - $startTime, 3);
+        $result = $tester->test($switchConfig);
 
-            $this->info(sprintf('Connected. Found %d ports in %ss.', $ports->count(), $duration));
-
-            return Command::SUCCESS;
-        } catch (Throwable $throwable) {
-            $this->error(sprintf('Connection failed: %s', $throwable->getMessage()));
+        if (! $result->success) {
+            $this->error(sprintf('Connection failed: %s', $result->exception?->getMessage()));
 
             return Command::FAILURE;
         }
+
+        $this->info(sprintf('Connected. Found %d ports in %ss.', $result->portCount, $result->duration));
+
+        return Command::SUCCESS;
     }
 }

@@ -15,6 +15,7 @@ use App\Jobs\SyncSwitchPortsJob;
 use App\Models\AuditLog;
 use App\Models\SwitchConfig;
 use App\Services\NetworkSwitch\CircuitBreaker;
+use App\Services\NetworkSwitch\SwitchConnectionTester;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SwitchIndexDataService;
 use Illuminate\Http\JsonResponse;
@@ -158,28 +159,26 @@ class SwitchManagementController extends Controller
         return back()->with('success', 'Switch sync has been queued.');
     }
 
-    public function testConnection(SwitchConfig $switchConfig): JsonResponse
+    public function testConnection(SwitchConfig $switchConfig, SwitchConnectionTester $tester): JsonResponse
     {
-        try {
-            $adapter = $this->factory->make($switchConfig);
-            $adapter->getAllPorts();
+        $result = $tester->test($switchConfig);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Connection successful.',
-            ]);
-        } catch (SwitchHostKeyMismatchException $mismatch) {
+        if ($result->success) {
+            return response()->json(['success' => true, 'message' => 'Connection successful.']);
+        }
+
+        if ($result->exception instanceof SwitchHostKeyMismatchException) {
             Log::warning('Switch host key mismatch', ['switch' => $switchConfig->id]);
 
-            return response()->json(['success' => false, 'message' => $mismatch->getMessage()]);
-        } catch (Throwable $throwable) {
-            Log::warning('Switch connection test failed', ['switch' => $switchConfig->id, 'error' => $throwable->getMessage()]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Connection test failed. Check the switch configuration and try again.',
-            ]);
+            return response()->json(['success' => false, 'message' => $result->exception->getMessage()]);
         }
+
+        Log::warning('Switch connection test failed', ['switch' => $switchConfig->id, 'error' => $result->exception?->getMessage()]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Connection test failed. Check the switch configuration and try again.',
+        ]);
     }
 
     public function config(SwitchConfig $switchConfig): Response

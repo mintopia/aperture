@@ -64,7 +64,13 @@ class PortSyncService
                 $macsCreated = $macResult['created'];
                 $macsUpdated = $macResult['updated'];
 
-                $this->portMacSync->cleanStaleMacs($switchConfig, $macResult['syncedMacIds']);
+                if ($macEntries->isEmpty()) {
+                    Log::warning('Empty or unparseable MAC address table, skipping stale MAC cleanup', [
+                        'switch' => $switchConfig->hostname,
+                    ]);
+                } else {
+                    $this->portMacSync->cleanStaleMacs($switchConfig, $macResult['syncedMacIds']);
+                }
 
                 if ($snoopingBindings instanceof Collection) {
                     $this->persistSnoopingBindings($snoopingBindings, $switchConfig);

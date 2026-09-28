@@ -123,9 +123,9 @@ class CiscoDhcpServiceTest extends TestCase
         return $outputs;
     }
 
-    private function createService(string $poolSize = '0', bool $ipv6Enabled = true): CiscoDhcpService
+    private function createService(string $poolSize = '0', bool $ipv6Enabled = true, string $timezone = 'UTC'): CiscoDhcpService
     {
-        return new CiscoDhcpService($this->transport, $this->parser, $poolSize, $ipv6Enabled);
+        return new CiscoDhcpService($this->transport, $this->parser, $poolSize, $ipv6Enabled, $timezone);
     }
 
     private function expectTransportCall(bool $ipv6 = true, array $outputs = []): void
@@ -165,7 +165,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertSame('10.0.0.50', $first->ip);
         $this->assertSame('00:11:22:33:44:55', $first->mac);
         $this->assertNull($first->hostname);
-        $this->assertSame('Jun 08 2026 12:00 AM', $first->expires);
+        $this->assertSame('2026-06-08 00:00:00', $first->expires);
     }
 
     // -------------------------------------------------------------------------
@@ -860,5 +860,16 @@ class CiscoDhcpServiceTest extends TestCase
         $status = DhcpFetchStatusArray::of($snapshot);
         $this->assertTrue($status['ipv4']);
         $this->assertFalse($status['ipv6']);
+    }
+
+    public function test_lease_expiry_is_converted_from_switch_timezone_to_utc(): void
+    {
+        $this->expectTransportCall(true);
+
+        $leases = $this->createService(timezone: 'America/New_York')->snapshot()->leases;
+
+        $first = $leases->first(fn (DhcpLease $l): bool => $l->ip === '10.0.0.50');
+        $this->assertInstanceOf(DhcpLease::class, $first);
+        $this->assertSame('2026-06-08 04:00:00', $first->expires);
     }
 }

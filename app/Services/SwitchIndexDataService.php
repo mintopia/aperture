@@ -38,8 +38,8 @@ class SwitchIndexDataService
             ->withCount([
                 'switchPorts',
                 'switchPorts as ports_up_count' => fn ($q) => $q->whereIn('status', ['connected', 'up']),
-                'switchPorts as ports_down_count' => fn ($q) => $q->whereIn('status', ['down', 'notconnect']),
-                'switchPorts as ports_error_count' => fn ($q) => $q->where('status', 'err-disabled'),
+                'switchPorts as ports_down_count' => fn ($q) => $q->whereIn('status', ['down', 'notconnect', 'inactive', 'sfpAbsent', 'xcvrAbsen', 'suspnd']),
+                'switchPorts as ports_error_count' => fn ($q) => $q->whereIn('status', ['err-disabled', 'faulty']),
             ])
             ->with('latestSyncRun');
 

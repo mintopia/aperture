@@ -45,6 +45,7 @@ final class CiscoBootstrapper implements IntegrationBootstrapper
             parser: new IosOutputParser,
             poolSize: (string) ($config['pool_size'] ?? '0'),
             ipv6Enabled: (bool) ($config['ipv6_enabled'] ?? true),
+            timezone: $switchConfig->timezone ?: 'UTC',
         );
     }
 }

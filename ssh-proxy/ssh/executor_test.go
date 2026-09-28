@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -391,5 +392,55 @@ func TestExecutor_AlreadyInEnableMode(t *testing.T) {
 	}
 	if result.Output[1].Command != "show vlan brief" {
 		t.Errorf("second command should be 'show vlan brief', got %q", result.Output[1].Command)
+	}
+}
+
+func TestExecutor_PromptPlaceholderIgnoresNonPromptLinesEndingInHash(t *testing.T) {
+	session := newMockSession("sw1>", "config line\r\nbanner text #", "\r\nend\r\nsw1>")
+	e := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: time.Second}
+
+	result := e.Execute(session, []Command{{Command: "show run", Expect: `/^{prompt}(\([^)]*\))?[>#]\s*$/`}})
+
+	if !result.Success {
+		t.Fatalf("expected success, got %q", result.Error)
+	}
+	if got := result.Output[0].Output; !strings.HasSuffix(got, "end\r\nsw1>") {
+		t.Fatalf("output truncated: %q", got)
+	}
+}
+
+func TestExecutor_PromptPlaceholderRejectsOtherHostnames(t *testing.T) {
+	session := newMockSession("sw1>", "sw2#\r\n", "sw1#")
+	e := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: time.Second}
+
+	result := e.Execute(session, []Command{{Command: "x", Expect: `/^{prompt}#\s*$/`}})
+
+	if !result.Success || !strings.HasSuffix(result.Output[0].Output, "sw1#") {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+}
+
+func TestExecutor_PromptPlaceholderMatchesConfigModePrompt(t *testing.T) {
+	session := newMockSession("sw1#", "conf t\r\nsw1(config)#")
+	e := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: time.Second}
+
+	result := e.Execute(session, []Command{{Command: "conf t", Expect: `/^{prompt}\(config\)#\s*$/`}})
+
+	if !result.Success {
+		t.Fatalf("expected success, got %q", result.Error)
+	}
+}
+
+func TestExecutor_PromptPlaceholderLearnsPromptFromFirstOutputWhenInitialReadEmpty(t *testing.T) {
+	session := newMockSession("", "sw9#", "junk #\r\n", "sw9#")
+	e := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: time.Second}
+
+	result := e.Execute(session, []Command{
+		{Command: "a", Expect: `/^{prompt}#\s*$/`},
+		{Command: "b", Expect: `/^{prompt}#\s*$/`},
+	})
+
+	if !result.Success || !strings.HasSuffix(result.Output[1].Output, "sw9#") {
+		t.Fatalf("unexpected result: %+v", result)
 	}
 }

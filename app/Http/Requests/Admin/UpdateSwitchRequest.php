@@ -36,6 +36,7 @@ class UpdateSwitchRequest extends FormRequest
             'enabled' => 'sometimes|boolean',
             'port' => 'integer|min:1|max:65535',
             'timeout' => 'integer|min:1|max:300',
+            'timezone' => 'sometimes|string|timezone:all',
         ];
     }
 }

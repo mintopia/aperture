@@ -160,7 +160,6 @@ class PortSyncServiceSnoopingTest extends TestCase
         $this->assertSame('completed', $result->syncRun->status);
 
         Log::shouldHaveReceived('warning')
-            ->once()
             ->withArgs(fn (string $message, array $context): bool => $message === 'DHCP snooping sync failed, continuing with port sync'
                 && $context['switch'] === $this->switchConfig->hostname
                 && $context['error'] === 'DHCP snooping table not found'

@@ -6,7 +6,10 @@ namespace Tests\Feature\Console;
 
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\SshProxy\CommandOutput;
+use App\Services\SshProxy\CommandResult;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Collection;
@@ -127,5 +130,20 @@ class TestSwitchConnectionCommandTest extends TestCase
         $this->artisan('aperture:test-switch-connection', ['switch' => $switchConfig->id])
             ->expectsOutputToContain('Connection failed: Connection refused')
             ->assertExitCode(1);
+    }
+
+    public function test_command_uses_proxy_transport_with_configured_port(): void
+    {
+        $switch = SwitchConfig::factory()->create(['port' => 2222, 'enable_password' => null]);
+        $proxy = Mockery::mock(SshProxyClientInterface::class);
+        $proxy->shouldReceive('execute')
+            ->once()
+            ->with($switch->hostname, Mockery::any(), Mockery::any(), Mockery::type('array'), 2222, 'commands', Mockery::any(), Mockery::any(), Mockery::any())
+            ->andReturn(new CommandResult(true, [new CommandOutput('terminal length 0', ''), new CommandOutput('show interface status', '')]));
+        $this->app->instance(SshProxyClientInterface::class, $proxy);
+
+        $this->artisan('aperture:test-switch-connection', ['switch' => $switch->id])
+            ->expectsOutputToContain('Found 0 ports')
+            ->assertExitCode(0);
     }
 }
