@@ -15,16 +15,16 @@ RUN composer install \
         --prefer-dist \
         --ignore-platform-reqs
 
-# Use the node23 image to do an npm install
-FROM node:23-slim AS npm
+# Use the node24 LTS image to do an npm install
+FROM node:24-slim AS npm
 
 WORKDIR /app/
 ENV HOME=/tmp
 RUN mkdir -p /app
 COPY --from=composer /app/ /app
 
-# Update npm to the latest version to patch vulnerabilities
-RUN npm install -g npm@latest
+# Update npm within its current major to patch vulnerabilities
+RUN npm install -g npm@12
 
 RUN npm install --production=false && \
     npm run build
