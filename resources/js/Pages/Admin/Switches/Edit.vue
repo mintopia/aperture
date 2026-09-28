@@ -4,6 +4,7 @@ import { router, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
+import { switchTimezones as timezones } from '@/utils/switches';
 
 defineOptions({ layout: AdminLayout });
 
