@@ -123,19 +123,13 @@ describe('Account/Settings', () => {
 
     // ── Verification gate ───────────────────────────────────────────────────
 
-    it('shows verification form when user has password and is not verified', () => {
-        const wrapper = mountComponent(userWithPassword, false);
-        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(true);
-    });
-
-    it('shows verification form when user has passkeys and is not verified', () => {
-        const wrapper = mountComponent(userWithPasskeys, false);
-        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(true);
-    });
-
-    it('hides verification form when verified is true', () => {
-        const wrapper = mountComponent(userWithPassword, true);
-        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(false);
+    it.each([
+        { name: 'user has password, not verified', user: userWithPassword, verified: false, expected: true },
+        { name: 'user has passkeys, not verified', user: userWithPasskeys, verified: false, expected: true },
+        { name: 'user has password, verified', user: userWithPassword, verified: true, expected: false },
+    ])('verify-form: $name', ({ user, verified, expected }) => {
+        const wrapper = mountComponent(user, verified);
+        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(expected);
     });
 
     it('shows create password section when user has neither password nor passkeys', () => {
@@ -177,14 +171,12 @@ describe('Account/Settings', () => {
         expect(wrapper.find('[data-testid="password-save"]').exists()).toBe(true);
     });
 
-    it('shows clear password button when user has a password', () => {
-        const wrapper = mountComponent(userWithPassword, true);
-        expect(wrapper.find('[data-testid="password-clear"]').exists()).toBe(true);
-    });
-
-    it('hides clear password button when user has no password', () => {
-        const wrapper = mountComponent(userWithNeither, false);
-        expect(wrapper.find('[data-testid="password-clear"]').exists()).toBe(false);
+    it.each([
+        { name: 'user has a password', user: userWithPassword, verified: true, expected: true },
+        { name: 'user has no password', user: userWithNeither, verified: false, expected: false },
+    ])('password-clear button: $name', ({ user, verified, expected }) => {
+        const wrapper = mountComponent(user, verified);
+        expect(wrapper.find('[data-testid="password-clear"]').exists()).toBe(expected);
     });
 
     // ── Layout selection ────────────────────────────────────────────────────
@@ -196,20 +188,13 @@ describe('Account/Settings', () => {
 
     // ── Passkey section ─────────────────────────────────────────────────────
 
-    it('hides passkey section when verification gate is active', () => {
-        const wrapper = mountComponent(userWithPassword, false);
-        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(false);
-    });
-
-    it('shows passkey section when verified', () => {
-        const wrapper = mountComponent(userWithPassword, true);
-        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(true);
-    });
-
-    it('hides passkey section when user has neither password nor passkeys', () => {
-        const wrapper = mountComponent(userWithNeither, false);
-        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(false);
+    it.each([
+        { name: 'verification gate active', user: userWithPassword, verified: false, expected: false },
+        { name: 'verified', user: userWithPassword, verified: true, expected: true },
+        { name: 'neither password nor passkeys', user: userWithNeither, verified: false, expected: false },
+    ])('passkey-section: $name', ({ user, verified, expected }) => {
+        const wrapper = mountComponent(user, verified);
+        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(expected);
     });
 
     // ── Passkey register button ─────────────────────────────────────────────
@@ -227,34 +212,22 @@ describe('Account/Settings', () => {
 
     // ── Passkey list ────────────────────────────────────────────────────────
 
-    it('shows passkey-list when user has passkeys', () => {
-        const wrapper = mountComponent(userWithPasskeys, true);
-        expect(wrapper.find('[data-testid="passkey-list"]').exists()).toBe(true);
+    it.each([
+        { name: 'user has passkeys', user: userWithPasskeys, verified: true, expected: true },
+        { name: 'user has no passkeys', user: userWithNeither, verified: false, expected: false },
+    ])('passkey-list: $name', ({ user, verified, expected }) => {
+        const wrapper = mountComponent(user, verified);
+        expect(wrapper.find('[data-testid="passkey-list"]').exists()).toBe(expected);
     });
 
-    it('does not show passkey-list when user has no passkeys', () => {
-        const wrapper = mountComponent(userWithNeither, false);
-        expect(wrapper.find('[data-testid="passkey-list"]').exists()).toBe(false);
-    });
-
-    it('renders passkey-item-{id} for each passkey', () => {
+    it('renders an item and delete button for each passkey, with names shown in the list', () => {
         const wrapper = mountComponent(userWithPasskeys, true);
-        expect(wrapper.find('[data-testid="passkey-item-pk-1"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="passkey-item-pk-2"]').exists()).toBe(true);
-    });
-
-    it('shows passkey names in the list', () => {
-        const wrapper = mountComponent(userWithPasskeys, true);
-        expect(wrapper.find('[data-testid="passkey-list"]').text()).toContain('My Passkey');
-        expect(wrapper.find('[data-testid="passkey-list"]').text()).toContain('Backup Key');
-    });
-
-    // ── Passkey delete buttons ──────────────────────────────────────────────
-
-    it('renders passkey-delete-{id} button for each passkey', () => {
-        const wrapper = mountComponent(userWithPasskeys, true);
-        expect(wrapper.find('[data-testid="passkey-delete-pk-1"]').exists()).toBe(true);
-        expect(wrapper.find('[data-testid="passkey-delete-pk-2"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-item-pk-1"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-item-pk-2"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-delete-pk-1"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-delete-pk-2"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-list"]').text()).toContain('My Passkey');
+        expect.soft(wrapper.find('[data-testid="passkey-list"]').text()).toContain('Backup Key');
     });
 
     // ── Error state ─────────────────────────────────────────────────────────
