@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\OpnSense;
 
-use stdClass;
 use App\Services\Firewalls\Exceptions\BackendException;
 use App\Services\OpnSense\OpnSenseClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use stdClass;
 use Tests\Support\Fake;
 use Tests\TestCase;
 

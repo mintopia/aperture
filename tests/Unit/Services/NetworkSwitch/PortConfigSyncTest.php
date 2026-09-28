@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\NetworkSwitch;
 
-use Illuminate\Support\Facades\Date;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Models\SwitchPortConfig;
 use App\Services\NetworkSwitch\PortConfigSync;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 

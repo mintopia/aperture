@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
-use Throwable;
-use Illuminate\Support\Collection;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
@@ -13,9 +11,11 @@ use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use ReflectionProperty;
 use Tests\TestCase;
+use Throwable;
 
 class OpnSenseHttpConfigTest extends TestCase
 {

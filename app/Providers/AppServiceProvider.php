@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Http\Controllers\E2e\DeviceApprovalController;
 use App\Events\BandwidthAnomalyDetected;
 use App\Events\DhcpPoolThresholdReached;
 use App\Events\IpMacLinked;
 use App\Events\SwitchUnreachable;
+use App\Http\Controllers\E2e\DeviceApprovalController;
 use App\Integration\InstallGuard;
 use App\Listeners\CascadeMacOwnershipOnLink;
 use App\Listeners\RecordBandwidthAnomaly;
@@ -32,8 +32,8 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;

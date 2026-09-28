@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\PiHole;
 
-use Throwable;
 use App\Models\IpAddress;
 use App\Services\PiHole\PiHoleService;
 use App\Services\ValueObjects\ReconcileResult;
@@ -13,13 +12,14 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class PiHoleServiceTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
     /**
-     * @param list<PromiseInterface|Throwable> $responses
+     * @param  list<PromiseInterface|Throwable>  $responses
      */
     private function createServiceWithMock(array $responses): PiHoleService
     {
