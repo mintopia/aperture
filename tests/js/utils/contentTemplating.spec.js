@@ -9,70 +9,46 @@ describe('renderTemplate', () => {
         user: { name: 'Player', params: { seat: 'A42', team: 'Red' } },
     };
 
-    it('replaces {user.name} with user property', () => {
-        expect(renderTemplate('Hello {user.name}', context)).toBe('Hello Player');
+    it.each([
+        { name: 'user.name property', template: 'Hello {user.name}', expected: 'Hello Player' },
+        { name: 'user.params.seat parameter', template: 'Seat: {user.params.seat}', expected: 'Seat: A42' },
+        { name: 'user.params.team parameter', template: 'Team: {user.params.team}', expected: 'Team: Red' },
+        { name: 'ipv4 address', template: 'IP: {ipv4}', expected: 'IP: 10.0.0.1' },
+        { name: 'ipv6 address', template: 'IP: {ipv6}', expected: 'IP: fe80::1' },
+        { name: 'mac address', template: 'MAC: {mac}', expected: 'MAC: AA:BB:CC:DD:EE:FF' },
+        {
+            name: 'multiple placeholders in one string',
+            template: 'Seat {user.params.seat} at {ipv4}',
+            expected: 'Seat A42 at 10.0.0.1',
+        },
+        { name: 'missing user parameter -> empty', template: '{user.params.missing}', expected: '' },
+        { name: 'missing user property and param -> empty', template: '{user.missing}', expected: '' },
+        { name: 'user.seat falls through to user.params.seat', template: '{user.seat}', expected: 'A42' },
+        {
+            name: 'no placeholders -> original string',
+            template: 'No placeholders here',
+            expected: 'No placeholders here',
+        },
+        { name: 'null content -> empty', template: null, expected: '' },
+        { name: 'empty string content -> empty', template: '', expected: '' },
+    ])('$name', ({ template, expected }) => {
+        expect(renderTemplate(template, context)).toBe(expected);
     });
 
-    it('replaces {user.params.seat} with user parameter', () => {
-        expect(renderTemplate('Seat: {user.params.seat}', context)).toBe('Seat: A42');
-    });
-
-    it('replaces {user.params.team} with user parameter', () => {
-        expect(renderTemplate('Team: {user.params.team}', context)).toBe('Team: Red');
-    });
-
-    it('replaces {ipv4} with IPv4 address', () => {
-        expect(renderTemplate('IP: {ipv4}', context)).toBe('IP: 10.0.0.1');
-    });
-
-    it('replaces {ipv6} with IPv6 address', () => {
-        expect(renderTemplate('IP: {ipv6}', context)).toBe('IP: fe80::1');
-    });
-
-    it('replaces {mac} with MAC address', () => {
-        expect(renderTemplate('MAC: {mac}', context)).toBe('MAC: AA:BB:CC:DD:EE:FF');
-    });
-
-    it('replaces multiple placeholders in one string', () => {
-        expect(renderTemplate('Seat {user.params.seat} at {ipv4}', context)).toBe('Seat A42 at 10.0.0.1');
-    });
-
-    it('renders empty string for missing user parameter', () => {
-        expect(renderTemplate('{user.params.missing}', context)).toBe('');
-    });
-
-    it('handles user with no params object', () => {
-        const ctx = { ...context, user: { name: 'Test' } };
-        expect(renderTemplate('{user.params.seat}', ctx)).toBe('');
-    });
-
-    it('renders empty string for missing user property and param', () => {
-        expect(renderTemplate('{user.missing}', context)).toBe('');
-    });
-
-    it('{user.seat} falls through to user.params.seat', () => {
-        expect(renderTemplate('{user.seat}', context)).toBe('A42');
-    });
-
-    it('renders empty string for null MAC', () => {
-        const ctx = { ...context, macAddress: null };
-        expect(renderTemplate('MAC: {mac}', ctx)).toBe('MAC: ');
-    });
-
-    it('returns original string when no placeholders', () => {
-        expect(renderTemplate('No placeholders here', context)).toBe('No placeholders here');
-    });
-
-    it('handles null content gracefully', () => {
-        expect(renderTemplate(null, context)).toBe('');
-    });
-
-    it('handles empty string content', () => {
-        expect(renderTemplate('', context)).toBe('');
-    });
-
-    it('user.params takes priority over user property for nested keys', () => {
-        // {user.params.seat} should resolve from params, not try user.params as a property
-        expect(renderTemplate('{user.params.seat}', context)).toBe('A42');
+    it.each([
+        {
+            name: 'user with no params object',
+            ctx: { ...context, user: { name: 'Test' } },
+            template: '{user.params.seat}',
+            expected: '',
+        },
+        {
+            name: 'null MAC address',
+            ctx: { ...context, macAddress: null },
+            template: 'MAC: {mac}',
+            expected: 'MAC: ',
+        },
+    ])('handles $name', ({ ctx, template, expected }) => {
+        expect(renderTemplate(template, ctx)).toBe(expected);
     });
 });
