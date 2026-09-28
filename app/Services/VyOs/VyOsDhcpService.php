@@ -62,7 +62,7 @@ class VyOsDhcpService implements DhcpInterface
         return $this->snapshot()->leases->first(fn (DhcpLease $lease): bool => IpAddress::normalize($lease->ip) === $needle);
     }
 
-    /** @return Collection<int, DhcpLease>|null null on fetch failure */
+    /** @return Collection<int, DhcpLease>|null */
     private function fetchLeases(AddressFamily $family): ?Collection
     {
         $isV4 = $family === AddressFamily::IPv4;
@@ -86,7 +86,7 @@ class VyOsDhcpService implements DhcpInterface
         }
     }
 
-    /** @return Collection<int, DhcpRange>|null null on fetch failure */
+    /** @return Collection<int, DhcpRange>|null */
     private function fetchRanges(AddressFamily $family): ?Collection
     {
         $isV4 = $family === AddressFamily::IPv4;

@@ -135,7 +135,7 @@ class OpnSenseDhcpService implements DhcpInterface
     }
 
     /**
-     * @return Collection<int, DhcpRange>|null null on fetch failure
+     * @return Collection<int, DhcpRange>|null
      */
     private function fetchRangesFrom(string $path, string $label): ?Collection
     {
@@ -247,8 +247,6 @@ class OpnSenseDhcpService implements DhcpInterface
     }
 
     /**
-     * Null on failure; the leases endpoint is shared, so both families count as failed.
-     *
      * @return Collection<int, array{address: string, mac: string, hostname: string, ends: string, status: string}>|null
      */
     protected function fetchLeases(): ?Collection

@@ -29,9 +29,6 @@ class HomeControllerDhcpPoolsTest extends TestCase
 
         Queue::fake();
 
-        // The dashboard must never query the DHCP provider live; pools come
-        // from the synced dhcp_range_records table. Any call to snapshot()
-        // fails the test.
         $this->app->instance(DhcpInterface::class, new class extends NullDhcpService
         {
             public function snapshot(): DhcpSnapshot

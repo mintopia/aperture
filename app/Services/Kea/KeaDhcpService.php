@@ -66,8 +66,8 @@ class KeaDhcpService implements DhcpInterface
             try {
                 $leases[$family->value] = $this->fetchFamilyLeases($client, $family, $now, $declined[$family->value]);
                 $leasesOk[$family->value] = true;
-            } catch (Throwable $e) {
-                Log::warning(sprintf('Kea %s lease fetch failed', $this->label($family)), ['error' => $e->getMessage()]);
+            } catch (Throwable $throwable) {
+                Log::warning(sprintf('Kea %s lease fetch failed', $this->label($family)), ['error' => $throwable->getMessage()]);
                 $leasesOk[$family->value] = false;
             }
         }
@@ -133,7 +133,7 @@ class KeaDhcpService implements DhcpInterface
 
     /**
      * @param  Collection<int, string>  $usageIps
-     * @return Collection<int, DhcpRange>|null null when config-get failed
+     * @return Collection<int, DhcpRange>|null
      */
     private function fetchRanges(KeaClient $client, AddressFamily $family, Collection $usageIps): ?Collection
     {
@@ -222,8 +222,6 @@ class KeaDhcpService implements DhcpInterface
     }
 
     /**
-     * Declined leases hold an address without being a host lease, so they are collected into $declined for pool usage only.
-     *
      * @param  Collection<int, DhcpLease>  $declined
      * @return Collection<int, DhcpLease>
      */

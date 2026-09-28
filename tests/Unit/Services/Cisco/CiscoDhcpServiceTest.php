@@ -746,7 +746,6 @@ class CiscoDhcpServiceTest extends TestCase
 
         $service = $this->createService();
         $snapshot = $service->snapshot();
-        $snapshot->leases; // trigger snapshot
 
         $status = DhcpFetchStatusArray::of($snapshot);
 
