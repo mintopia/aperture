@@ -104,6 +104,85 @@ class KeaBootstrapperTest extends TestCase
         });
     }
 
+    public function test_kea_dhcp_service_is_wired_when_only_ipv6_endpoint_configured(): void
+    {
+        Queue::fake();
+        Http::fake([
+            'kea6.local' => Http::response([
+                ['result' => 3, 'text' => 'no leases found'],
+            ]),
+        ]);
+        CapabilityAssignment::assign('dhcp', 'kea');
+        IntegrationConfig::setValue('kea', 'endpoint_v6', 'https://kea6.local');
+        IntegrationConfig::setValue('kea', 'username_v6', 'admin');
+        IntegrationConfig::setValue('kea', 'password_v6', 'secret', encrypted: true);
+
+        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
+
+        (new KeaBootstrapper)->register($this->app);
+
+        $service = $this->app->make(DhcpInterface::class);
+        $this->assertInstanceOf(KeaDhcpService::class, $service);
+
+        $this->assertNull($service->getLease('192.168.1.50'));
+        Http::assertNothingSent();
+
+        $service->getLeases();
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+            $auth = $request->header('Authorization');
+
+            return $request->url() === 'https://kea6.local'
+                && $data['command'] === 'lease6-get-page'
+                && $data['service'] === ['dhcp6']
+                && ! empty($auth)
+                && str_starts_with($auth[0], 'Basic ');
+        });
+    }
+
+    public function test_kea_dhcp_service_is_wired_to_both_endpoints_when_both_configured(): void
+    {
+        Queue::fake();
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::response([['result' => 3]]),
+        ]);
+        CapabilityAssignment::assign('dhcp', 'kea');
+        IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea4.local');
+        IntegrationConfig::setValue('kea', 'endpoint_v6', 'https://kea6.local');
+        IntegrationConfig::setValue('kea', 'username_v6', 'admin');
+        IntegrationConfig::setValue('kea', 'password_v6', 'secret', encrypted: true);
+
+        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
+
+        (new KeaBootstrapper)->register($this->app);
+
+        $service = $this->app->make(DhcpInterface::class);
+        $this->assertInstanceOf(KeaDhcpService::class, $service);
+
+        $service->getLeases();
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+
+            return $request->url() === 'https://kea4.local'
+                && $data['command'] === 'lease4-get-page'
+                && $data['service'] === ['dhcp4'];
+        });
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+            $auth = $request->header('Authorization');
+
+            return $request->url() === 'https://kea6.local'
+                && $data['command'] === 'lease6-get-page'
+                && $data['service'] === ['dhcp6']
+                && ! empty($auth)
+                && str_starts_with($auth[0], 'Basic ');
+        });
+    }
+
     public function test_falls_through_when_kea_config_lookup_throws(): void
     {
         Queue::fake();

@@ -18,6 +18,8 @@ use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Event;
 use Mockery\MockInterface;
 use Tests\TestCase;
@@ -26,9 +28,81 @@ class SyncDhcpDataTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     private function assignDhcpProvider(string $integration = 'cisco'): void
     {
         CapabilityAssignment::assign('dhcp', $integration);
+    }
+
+    /**
+     * Bind a DhcpInterface test double that also implements the optional
+     * getFetchStatus()/resetSnapshot() duck-typed extras, so that
+     * method_exists() sees them the way it would for a real provider (a
+     * Mockery interface mock does NOT gain methods not declared on the
+     * interface just because shouldReceive/allows was called for them).
+     *
+     * @param  list<DhcpLeaseVO>  $leases
+     * @param  list<DhcpRange>  $ranges
+     * @param  array{ipv4: bool, ipv6: bool}  $fetchStatus
+     */
+    private function bindDhcpServiceWithFetchStatus(
+        array $leases,
+        array $ranges,
+        DhcpPoolStatus $poolStatus,
+        array $fetchStatus,
+    ): void {
+        $service = new class($leases, $ranges, $poolStatus, $fetchStatus) implements DhcpInterface
+        {
+            /**
+             * @param  list<DhcpLeaseVO>  $leases
+             * @param  list<DhcpRange>  $ranges
+             * @param  array{ipv4: bool, ipv6: bool}  $fetchStatus
+             */
+            public function __construct(
+                private array $leases,
+                private array $ranges,
+                private DhcpPoolStatus $poolStatus,
+                private array $fetchStatus,
+            ) {}
+
+            public function getPoolStatus(): DhcpPoolStatus
+            {
+                return $this->poolStatus;
+            }
+
+            /** @return Collection<int, DhcpLeaseVO> */
+            public function getLeases(): Collection
+            {
+                return collect($this->leases);
+            }
+
+            public function getLease(string $ipAddress): ?DhcpLeaseVO
+            {
+                return null;
+            }
+
+            /** @return Collection<int, DhcpRange> */
+            public function getRanges(): Collection
+            {
+                return collect($this->ranges);
+            }
+
+            /** @return array{ipv4: bool, ipv6: bool} */
+            public function getFetchStatus(): array
+            {
+                return $this->fetchStatus;
+            }
+
+            public function resetSnapshot(): void {}
+        };
+
+        $this->app->instance(DhcpInterface::class, $service);
     }
 
     /**
@@ -542,5 +616,215 @@ class SyncDhcpDataTest extends TestCase
         $this->dispatchSyncJob();
 
         Event::assertNotDispatched(DhcpPoolThresholdReached::class);
+    }
+
+    public function test_ipv6_fetch_failure_leaves_ipv6_leases_untouched_while_ipv4_updates(): void
+    {
+        $this->assignDhcpProvider('cisco');
+
+        Carbon::setTestNow(Carbon::parse('2026-01-01 00:00:00'));
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [
+                new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-06-09 00:00:00'),
+                new DhcpLeaseVO('2001:db8::1', 'AA:BB:CC:DD:EE:02', 'host-v6', '2026-06-09 00:00:00'),
+            ],
+            ranges: [],
+            poolStatus: new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_leases', 2);
+        $ipv6SyncStateAfterFirstRun = DhcpSyncState::where([
+            'integration' => 'cisco',
+            'dataset' => 'leases',
+            'address_family' => 'ipv6',
+        ])->firstOrFail();
+        $firstRunSuccessAt = $ipv6SyncStateAfterFirstRun->last_success_at;
+        $this->assertNotNull($firstRunSuccessAt);
+
+        Carbon::setTestNow(Carbon::parse('2026-01-01 00:05:00'));
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [
+                new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1-renamed', '2026-06-10 00:00:00'),
+            ],
+            ranges: [],
+            poolStatus: new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0),
+            fetchStatus: ['ipv4' => true, 'ipv6' => false],
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseHas('dhcp_leases', [
+            'integration' => 'cisco',
+            'hostname' => 'host1-renamed',
+        ]);
+
+        $this->assertDatabaseCount('dhcp_leases', 2);
+        $ipv6Ip = IpAddress::where('address', '2001:db8::1')->firstOrFail();
+        $this->assertDatabaseHas('dhcp_leases', [
+            'integration' => 'cisco',
+            'ip_address_id' => $ipv6Ip->id,
+            'hostname' => 'host-v6',
+        ]);
+
+        $ipv6SyncStateAfterSecondRun = DhcpSyncState::where([
+            'integration' => 'cisco',
+            'dataset' => 'leases',
+            'address_family' => 'ipv6',
+        ])->firstOrFail();
+        $this->assertTrue($ipv6SyncStateAfterSecondRun->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($ipv6SyncStateAfterSecondRun->last_success_at->equalTo($firstRunSuccessAt));
+    }
+
+    public function test_ipv4_fetch_failure_leaves_ipv4_leases_ranges_and_pool_status_untouched_while_ipv6_updates(): void
+    {
+        $this->assignDhcpProvider('cisco');
+
+        Carbon::setTestNow(Carbon::parse('2026-01-01 00:00:00'));
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [
+                new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-06-09 00:00:00'),
+                new DhcpLeaseVO('2001:db8::1', 'AA:BB:CC:DD:EE:02', 'host-v6', '2026-06-09 00:00:00'),
+            ],
+            ranges: [
+                new DhcpRange(
+                    interface: 'Vlan100',
+                    type: 'ipv4',
+                    subnet: '10.0.0.0/24',
+                    rangeFrom: '10.0.0.10',
+                    rangeTo: '10.0.0.200',
+                    prefix: null,
+                    gateway: '10.0.0.1',
+                    description: 'Main LAN',
+                ),
+            ],
+            poolStatus: new DhcpPoolStatus(total: 254, used: 100, available: 154, utilisation: 0.3937),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_leases', 2);
+        $this->assertDatabaseCount('dhcp_range_records', 1);
+        $poolStatusRecordBefore = DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail();
+        $ipv4LeaseSyncStateBefore = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'leases', 'address_family' => 'ipv4',
+        ])->firstOrFail();
+        $rangeSyncStateBefore = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'ranges', 'address_family' => 'ipv4',
+        ])->firstOrFail();
+        $poolStatusSyncStateBefore = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'pool_status', 'address_family' => 'ipv4',
+        ])->firstOrFail();
+        $ipv4SuccessAt = $ipv4LeaseSyncStateBefore->last_success_at;
+        $rangeSuccessAt = $rangeSyncStateBefore->last_success_at;
+        $poolStatusSuccessAt = $poolStatusSyncStateBefore->last_success_at;
+
+        Carbon::setTestNow(Carbon::parse('2026-01-01 00:05:00'));
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [
+                new DhcpLeaseVO('2001:db8::1', 'AA:BB:CC:DD:EE:02', 'host-v6-renamed', '2026-06-10 00:00:00'),
+            ],
+            ranges: [],
+            poolStatus: new DhcpPoolStatus(total: 999, used: 999, available: 0, utilisation: 1.0),
+            fetchStatus: ['ipv4' => false, 'ipv6' => true],
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseHas('dhcp_leases', [
+            'integration' => 'cisco',
+            'hostname' => 'host-v6-renamed',
+        ]);
+
+        $this->assertDatabaseCount('dhcp_leases', 2);
+        $ipv4Ip = IpAddress::where('address', '10.0.0.1')->firstOrFail();
+        $this->assertDatabaseHas('dhcp_leases', [
+            'integration' => 'cisco',
+            'ip_address_id' => $ipv4Ip->id,
+            'hostname' => 'host1',
+        ]);
+
+        $this->assertDatabaseCount('dhcp_range_records', 1);
+        $this->assertDatabaseHas('dhcp_range_records', ['integration' => 'cisco', 'subnet' => '10.0.0.0/24']);
+        $poolStatusRecordAfter = DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail();
+        $this->assertSame($poolStatusRecordBefore->total, $poolStatusRecordAfter->total);
+        $this->assertSame($poolStatusRecordBefore->used, $poolStatusRecordAfter->used);
+
+        $ipv4LeaseSyncStateAfter = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'leases', 'address_family' => 'ipv4',
+        ])->firstOrFail();
+        $rangeSyncStateAfter = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'ranges', 'address_family' => 'ipv4',
+        ])->firstOrFail();
+        $poolStatusSyncStateAfter = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'pool_status', 'address_family' => 'ipv4',
+        ])->firstOrFail();
+
+        $this->assertTrue($ipv4LeaseSyncStateAfter->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($ipv4LeaseSyncStateAfter->last_success_at->equalTo($ipv4SuccessAt));
+        $this->assertTrue($rangeSyncStateAfter->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($rangeSyncStateAfter->last_success_at->equalTo($rangeSuccessAt));
+        $this->assertTrue($poolStatusSyncStateAfter->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($poolStatusSyncStateAfter->last_success_at->equalTo($poolStatusSuccessAt));
+    }
+
+    public function test_stale_lease_deletion_is_scoped_to_its_own_address_family(): void
+    {
+        $this->assignDhcpProvider('cisco');
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [
+                new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-06-09 00:00:00'),
+                new DhcpLeaseVO('2001:db8::1', 'AA:BB:CC:DD:EE:02', 'host-v6-1', '2026-06-09 00:00:00'),
+            ],
+            ranges: [],
+            poolStatus: new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+        );
+        $this->dispatchSyncJob();
+        $this->assertDatabaseCount('dhcp_leases', 2);
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [
+                new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-06-09 00:00:00'),
+                new DhcpLeaseVO('2001:db8::2', 'AA:BB:CC:DD:EE:03', 'host-v6-2', '2026-06-09 00:00:00'),
+            ],
+            ranges: [],
+            poolStatus: new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_leases', 2);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.1']);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::2']);
+        $staleIp = IpAddress::where('address', '2001:db8::1')->first();
+        if ($staleIp !== null) {
+            $this->assertDatabaseMissing('dhcp_leases', ['ip_address_id' => $staleIp->id]);
+        }
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [
+                new DhcpLeaseVO('10.0.0.2', 'AA:BB:CC:DD:EE:04', 'host1-new', '2026-06-09 00:00:00'),
+                new DhcpLeaseVO('2001:db8::2', 'AA:BB:CC:DD:EE:03', 'host-v6-2', '2026-06-09 00:00:00'),
+            ],
+            ranges: [],
+            poolStatus: new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_leases', 2);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.2']);
+        $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::2']);
+        $staleIpv4 = IpAddress::where('address', '10.0.0.1')->first();
+        if ($staleIpv4 !== null) {
+            $this->assertDatabaseMissing('dhcp_leases', ['ip_address_id' => $staleIpv4->id]);
+        }
+        $currentIpv6 = IpAddress::where('address', '2001:db8::2')->firstOrFail();
+        $this->assertDatabaseHas('dhcp_leases', ['ip_address_id' => $currentIpv6->id, 'hostname' => 'host-v6-2']);
     }
 }

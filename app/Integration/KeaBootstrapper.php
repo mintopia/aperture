@@ -39,9 +39,16 @@ final class KeaBootstrapper implements IntegrationBootstrapper
 
     private function buildDhcpService(): ?DhcpInterface
     {
-        $client = $this->buildClient();
+        $config = $this->getIntegrationDbConfig();
 
-        return $client instanceof KeaClient ? new KeaDhcpService($client) : null;
+        $ipv4Client = $this->buildClient($config, 'v4', 'dhcp4');
+        $ipv6Client = $this->buildClient($config, 'v6', 'dhcp6');
+
+        if (! $ipv4Client instanceof KeaClient && ! $ipv6Client instanceof KeaClient) {
+            return null;
+        }
+
+        return new KeaDhcpService($ipv4Client, $ipv6Client);
     }
 
     private function isActive(string $capability): bool
@@ -53,23 +60,26 @@ final class KeaBootstrapper implements IntegrationBootstrapper
         }
     }
 
-    private function buildClient(): ?KeaClient
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function buildClient(array $config, string $suffix, string $service): ?KeaClient
     {
-        $config = $this->getIntegrationDbConfig();
-        $endpoint = $config['endpoint_v4'] ?? null;
+        $endpoint = $config['endpoint_'.$suffix] ?? null;
 
         if (! is_string($endpoint) || $endpoint === '') {
             return null;
         }
 
-        $username = $config['username_v4'] ?? null;
-        $password = $config['password_v4'] ?? null;
+        $username = $config['username_'.$suffix] ?? null;
+        $password = $config['password_'.$suffix] ?? null;
 
         return new KeaClient(
             endpoint: $endpoint,
             username: is_string($username) && $username !== '' ? $username : null,
             password: is_string($password) && $password !== '' ? $password : null,
             verifySsl: (bool) ($config['verify_ssl'] ?? true),
+            service: $service,
         );
     }
 

@@ -7,6 +7,7 @@ namespace App\Services\NetworkSwitch;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\PortStatistics;
 use App\Services\ValueObjects\PortStatus;
+use App\Support\Duid;
 
 class IosOutputParser
 {
@@ -702,15 +703,6 @@ class IosOutputParser
     }
 
     /**
-     * Extract and normalise a MAC address from a DHCPv6 DUID hex string.
-     *
-     * Supported DUID types:
-     *  - DUID-LL  (type 0003): 0003 0001 XX:XX:XX:XX:XX:XX — last 6 bytes are MAC
-     *  - DUID-LLT (type 0001): 0001 0001 TTTTTTTT XX:XX:XX:XX:XX:XX — last 6 bytes are MAC
-     *
-     * Returns null for DUID-EN (0002), DUID-UUID (0004), or unrecognised formats.
-     */
-    /**
      * Build a DHCPv6 binding entry with proper shape typing.
      *
      * @return array{ip: string, mac: string|null, expires: string, duid: string, iaid: string}
@@ -726,25 +718,14 @@ class IosOutputParser
         ];
     }
 
+    /**
+     * Extract and normalise a MAC address from a DHCPv6 DUID hex string.
+     *
+     * Delegates to {@see Duid::macAddress()}.
+     */
     private function extractMacFromDuid(string $duid): ?string
     {
-        $hex = strtoupper($duid);
-
-        // DUID-LL: type 0003 + hardware type 0001 + 6-byte MAC = 20 hex chars
-        if (str_starts_with($hex, '0003') && strlen($hex) >= 20) {
-            $mac = substr($hex, 8, 12);
-
-            return implode(':', str_split($mac, 2));
-        }
-
-        // DUID-LLT: type 0001 + hardware type 0001 + 4-byte time + 6-byte MAC = 28 hex chars
-        if (str_starts_with($hex, '0001') && strlen($hex) >= 28) {
-            $mac = substr($hex, 16, 12);
-
-            return implode(':', str_split($mac, 2));
-        }
-
-        return null;
+        return Duid::macAddress($duid);
     }
 
     /**
