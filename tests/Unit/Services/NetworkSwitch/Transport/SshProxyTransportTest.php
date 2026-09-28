@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\NetworkSwitch\Transport;
 
+use App\Exceptions\SwitchHostKeyMismatchException;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\Transport\SshProxyTransport;
@@ -42,6 +43,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -116,6 +120,9 @@ class SshProxyTransportTest extends TestCase
                 ],
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -158,6 +165,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -206,6 +216,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -256,6 +269,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -317,6 +333,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -371,6 +390,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -577,5 +599,58 @@ class SshProxyTransportTest extends TestCase
         $this->expectExceptionMessage('Missing output for switch command [show version].');
 
         $transport->execute('show version');
+    }
+
+    public function test_execute_passes_private_key_passphrase_and_host_key_to_proxy(): void
+    {
+        $switchConfig = SwitchConfig::factory()->withPrivateKey('PEM')->make([
+            'hostname' => 'switch.local',
+            'enable_password' => null,
+            'passphrase' => 'pp',
+            'host_key' => 'ssh-ed25519 PIN',
+        ]);
+
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->with('switch.local', 'admin', '', Mockery::type('array'), 22, 'commands', 'PEM', 'pp', 'ssh-ed25519 PIN')
+            ->andReturn(new CommandResult(success: true, output: [
+                new CommandOutput('terminal length 0', ''),
+                new CommandOutput('show version', 'ok'),
+            ]));
+
+        $this->assertSame('ok', (new SshProxyTransport($proxyClient, $switchConfig))->execute('show version'));
+    }
+
+    public function test_host_key_mismatch_throws_dedicated_exception_with_clear_message(): void
+    {
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')->once()->andReturn(new CommandResult(
+            success: false,
+            output: [],
+            error: 'expected SHA256:a but got SHA256:b',
+            errorCode: CommandResult::HOST_KEY_MISMATCH,
+        ));
+
+        $this->expectException(SwitchHostKeyMismatchException::class);
+        $this->expectExceptionMessage('SSH host key mismatch');
+
+        (new SshProxyTransport($proxyClient, SwitchConfig::factory()->make()))->execute('show version');
+    }
+
+    public function test_invalid_private_key_error_is_reported(): void
+    {
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')->once()->andReturn(new CommandResult(
+            success: false,
+            output: [],
+            error: 'bad pem',
+            errorCode: CommandResult::INVALID_PRIVATE_KEY,
+        ));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('private key or passphrase is invalid');
+
+        (new SshProxyTransport($proxyClient, SwitchConfig::factory()->make()))->execute('show version');
     }
 }

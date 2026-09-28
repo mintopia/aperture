@@ -3,6 +3,7 @@ package ssh
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -20,20 +21,96 @@ type Connection struct {
 	dataCh  chan []byte
 	closeCh chan struct{}
 	closed  bool
+	hostKey string
 }
 
 // Verify Connection implements Session at compile time.
 var _ Session = (*Connection)(nil)
 
+type ConnectParams struct {
+	Hostname   string
+	Port       int
+	Username   string
+	Password   string
+	PrivateKey string // PEM; takes precedence over Password
+	Passphrase string
+	// HostKey is the pinned key (authorized_keys format); empty means trust on first use.
+	HostKey string
+}
+
+var ErrHostKeyMismatch = errors.New("host key mismatch")
+
+var ErrInvalidPrivateKey = errors.New("invalid private key")
+
+func Fingerprint(authorizedKey string) (string, error) {
+	pub, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
+	if err != nil {
+		return "", err
+	}
+	return gossh.FingerprintSHA256(pub), nil
+}
+
+func HostKeysEqual(a, b string) bool {
+	ka, _, _, _, errA := gossh.ParseAuthorizedKey([]byte(a))
+	kb, _, _, _, errB := gossh.ParseAuthorizedKey([]byte(b))
+	return errA == nil && errB == nil && bytes.Equal(ka.Marshal(), kb.Marshal())
+}
+
+func authMethod(p ConnectParams) (gossh.AuthMethod, error) {
+	if p.PrivateKey == "" {
+		return gossh.Password(p.Password), nil
+	}
+	var raw any
+	var err error
+	if p.Passphrase != "" {
+		raw, err = gossh.ParseRawPrivateKeyWithPassphrase([]byte(p.PrivateKey), []byte(p.Passphrase))
+	} else {
+		raw, err = gossh.ParseRawPrivateKey([]byte(p.PrivateKey))
+	}
+	if err != nil {
+		var missing *gossh.PassphraseMissingError
+		if errors.As(err, &missing) {
+			return nil, fmt.Errorf("%w: key is encrypted and no passphrase was given", ErrInvalidPrivateKey)
+		}
+		return nil, fmt.Errorf("%w: %v", ErrInvalidPrivateKey, err)
+	}
+	signer, err := gossh.NewSignerFromKey(raw)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrInvalidPrivateKey, err)
+	}
+	return gossh.PublicKeys(signer), nil
+}
+
 // Connect establishes an SSH connection with PTY to the given host.
 // The provided context controls the overall connect+handshake+auth timeout.
-func Connect(ctx context.Context, hostname string, port int, username, password string) (*Connection, error) {
+func Connect(ctx context.Context, p ConnectParams) (*Connection, error) {
+	auth, err := authMethod(p)
+	if err != nil {
+		return nil, err
+	}
+
+	var observed string
+	var mismatch error
 	sshConfig := &gossh.ClientConfig{
-		User: username,
-		Auth: []gossh.AuthMethod{
-			gossh.Password(password),
+		User: p.Username,
+		Auth: []gossh.AuthMethod{auth},
+		HostKeyCallback: func(_ string, _ net.Addr, key gossh.PublicKey) error {
+			observed = string(bytes.TrimSpace(gossh.MarshalAuthorizedKey(key)))
+			if p.HostKey == "" {
+				return nil
+			}
+			pinned, _, _, _, perr := gossh.ParseAuthorizedKey([]byte(p.HostKey))
+			if perr != nil {
+				mismatch = fmt.Errorf("%w: pinned key is unparseable: %v", ErrHostKeyMismatch, perr)
+				return mismatch
+			}
+			if !bytes.Equal(pinned.Marshal(), key.Marshal()) {
+				mismatch = fmt.Errorf("%w: expected %s but server presented %s",
+					ErrHostKeyMismatch, gossh.FingerprintSHA256(pinned), gossh.FingerprintSHA256(key))
+				return mismatch
+			}
+			return nil
 		},
-		HostKeyCallback: gossh.InsecureIgnoreHostKey(), //nolint:gosec // network switches don't have known host keys
 	}
 
 	// Include older algorithms for Cisco IOS compatibility (SSH-1.99-Cisco-1.25).
@@ -62,7 +139,7 @@ func Connect(ctx context.Context, hostname string, port int, username, password 
 		"3des-cbc",
 	}
 
-	addr := fmt.Sprintf("%s:%d", hostname, port)
+	addr := fmt.Sprintf("%s:%d", p.Hostname, p.Port)
 
 	// Dial TCP with context for timeout/cancellation.
 	var d net.Dialer
@@ -82,6 +159,9 @@ func Connect(ctx context.Context, hostname string, port int, username, password 
 	sshConn, chans, reqs, err := gossh.NewClientConn(netConn, addr, sshConfig)
 	if err != nil {
 		netConn.Close()
+		if mismatch != nil {
+			return nil, mismatch
+		}
 		return nil, fmt.Errorf("SSH handshake failed: %w", err)
 	}
 
@@ -134,12 +214,16 @@ func Connect(ctx context.Context, hostname string, port int, username, password 
 		stdin:   stdin,
 		dataCh:  make(chan []byte, 256),
 		closeCh: make(chan struct{}),
+		hostKey: observed,
 	}
 
 	go conn.readLoop(stdout)
 
 	return conn, nil
 }
+
+// HostKey returns the server host key observed at connect time (authorized_keys format).
+func (c *Connection) HostKey() string { return c.hostKey }
 
 // readLoop continuously reads from stdout and pushes chunks to dataCh.
 func (c *Connection) readLoop(r io.Reader) {

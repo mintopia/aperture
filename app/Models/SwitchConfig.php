@@ -24,7 +24,10 @@ use Illuminate\Support\Carbon;
  * @property string $hostname
  * @property string $type
  * @property string $username
- * @property string $password
+ * @property string|null $password
+ * @property string|null $private_key
+ * @property string|null $passphrase
+ * @property string|null $host_key
  * @property string|null $enable_password
  * @property bool $enabled
  * @property int $port
@@ -63,11 +66,14 @@ use Illuminate\Support\Carbon;
     'username',
     'password',
     'enable_password',
+    'private_key',
+    'passphrase',
+    'host_key',
     'enabled',
     'port',
     'timeout',
 ])]
-#[Hidden(['password', 'enable_password'])]
+#[Hidden(['password', 'enable_password', 'private_key', 'passphrase'])]
 class SwitchConfig extends Model
 {
     /** @use HasFactory<SwitchConfigFactory> */
@@ -98,6 +104,11 @@ class SwitchConfig extends Model
             'name' => $this->name,
             'hostname' => $this->hostname,
             'type' => $this->type,
+            'has_password' => filled($this->password),
+            'has_private_key' => $this->usesPrivateKey(),
+            'has_passphrase' => filled($this->passphrase),
+            'host_key' => $this->host_key,
+            'host_key_fingerprint' => $this->hostKeyFingerprint(),
             'enabled' => $this->enabled,
             'port' => $this->port,
             'timeout' => $this->timeout,
@@ -105,6 +116,19 @@ class SwitchConfig extends Model
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
+    }
+
+    public function usesPrivateKey(): bool
+    {
+        return filled($this->private_key);
+    }
+
+    public function hostKeyFingerprint(): ?string
+    {
+        $parts = preg_split('/\s+/', trim((string) $this->host_key));
+        $blob = isset($parts[1]) ? base64_decode($parts[1], true) : false;
+
+        return $blob === false ? null : 'SHA256:'.rtrim(base64_encode(hash('sha256', $blob, true)), '=');
     }
 
     /** @return HasMany<SwitchPort, $this> */
@@ -130,6 +154,8 @@ class SwitchConfig extends Model
         return [
             'password' => 'encrypted',
             'enable_password' => 'encrypted',
+            'private_key' => 'encrypted',
+            'passphrase' => 'encrypted',
             'enabled' => 'boolean',
             'port' => 'integer',
             'timeout' => 'integer',

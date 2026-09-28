@@ -14,12 +14,49 @@ import (
 
 // executeRequest matches the PHP client's POST /execute JSON body.
 type executeRequest struct {
-	Hostname string        `json:"hostname"`
-	Username string        `json:"username"`
-	Password string        `json:"password"`
-	Commands []ssh.Command `json:"commands"`
-	Port     int           `json:"port"`
-	Channel  string        `json:"channel"`
+	Hostname   string        `json:"hostname"`
+	Username   string        `json:"username"`
+	Password   string        `json:"password"`
+	PrivateKey string        `json:"private_key"`
+	Passphrase string        `json:"passphrase"`
+	HostKey    string        `json:"host_key"`
+	Commands   []ssh.Command `json:"commands"`
+	Port       int           `json:"port"`
+	Channel    string        `json:"channel"`
+}
+
+const (
+	errCodeHostKeyMismatch   = "host_key_mismatch"
+	errCodeInvalidPrivateKey = "invalid_private_key"
+)
+
+type hostKeyer interface{ HostKey() string }
+
+func hostKeyOf(s ssh.Session) string {
+	if hk, ok := s.(hostKeyer); ok {
+		return hk.HostKey()
+	}
+	return ""
+}
+
+func connectFailure(err error) (int, string) {
+	switch {
+	case errors.Is(err, ssh.ErrHostKeyMismatch):
+		return http.StatusInternalServerError, errCodeHostKeyMismatch
+	case errors.Is(err, ssh.ErrInvalidPrivateKey):
+		return http.StatusBadRequest, errCodeInvalidPrivateKey
+	}
+	return http.StatusInternalServerError, ""
+}
+
+func (h *Handler) writeConnectFailure(w http.ResponseWriter, err error) {
+	status, code := connectFailure(err)
+	writeJSON(w, status, executeResponse{
+		Success:   false,
+		Output:    make([]ssh.CommandOutput, 0),
+		Error:     fmt.Sprintf("SSH connection failed: %s", err),
+		ErrorCode: code,
+	})
 }
 
 // executeResponse matches the PHP API's success response shape.
@@ -27,6 +64,9 @@ type executeResponse struct {
 	Success bool                `json:"success"`
 	Output  []ssh.CommandOutput `json:"output"`
 	Error   string              `json:"error,omitempty"`
+	// HostKey is the observed server key (authorized_keys format) for the PHP app to pin.
+	HostKey   string `json:"host_key,omitempty"`
+	ErrorCode string `json:"error_code,omitempty"`
 }
 
 // Execute handles POST /execute — runs commands on a network switch via SSH.
@@ -68,8 +108,23 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Acquire a pool slot for this hostname+channel.
-	entry, isNew, err := h.pool.Acquire(req.Hostname, req.Channel)
+	key := pool.NewKey(req.Hostname, req.Port, req.Username, req.Channel, req.Password, req.PrivateKey, req.Passphrase)
+	params := ssh.ConnectParams{
+		Hostname:   req.Hostname,
+		Port:       req.Port,
+		Username:   req.Username,
+		Password:   req.Password,
+		PrivateKey: req.PrivateKey,
+		Passphrase: req.Passphrase,
+		HostKey:    req.HostKey,
+	}
+
+	entry, isNew, err := h.pool.Acquire(key)
+	if err == nil && !isNew && entry.HostKey != "" && (req.HostKey == "" || !ssh.HostKeysEqual(req.HostKey, entry.HostKey)) {
+		// Pin cleared or changed (e.g. admin reset); reconnect so the reported key is fresh.
+		h.pool.Evict(key)
+		entry, isNew, err = h.pool.Acquire(key)
+	}
 	if err != nil {
 		if errors.Is(err, pool.ErrHostLocked) {
 			h.logger.Warn("host is locked",
@@ -91,6 +146,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 
 	// If the connection is new, establish the SSH session.
 	var session ssh.Session
+	var observedKey string
 	if isNew {
 		ctx, cancel := context.WithTimeout(r.Context(), h.connectTimeout)
 		defer cancel()
@@ -102,7 +158,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			"request_id", requestID,
 		)
 
-		conn, connErr := h.connector(ctx, req.Hostname, req.Port, req.Username, req.Password)
+		conn, connErr := h.connector(ctx, params)
 		if connErr != nil {
 			h.logger.Error("SSH connection failed",
 				"hostname", req.Hostname,
@@ -112,16 +168,14 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 				"request_id", requestID,
 			)
 			// Clean up the placeholder entry.
-			h.pool.Remove(req.Hostname, req.Channel)
-			writeJSON(w, http.StatusInternalServerError, executeResponse{
-				Success: false,
-				Output:  make([]ssh.CommandOutput, 0),
-				Error:   fmt.Sprintf("SSH connection failed: %s", connErr),
-			})
+			h.pool.Remove(key)
+			h.writeConnectFailure(w, connErr)
 			return
 		}
 
-		h.pool.SetConnection(req.Hostname, req.Channel, conn)
+		h.pool.SetConnection(key, conn)
+		observedKey = hostKeyOf(conn)
+		h.pool.SetHostKey(key, observedKey)
 		session = conn
 		h.logger.Info("connected to host",
 			"hostname", req.Hostname,
@@ -140,13 +194,17 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 				"channel", req.Channel,
 				"request_id", requestID,
 			)
-			h.pool.Remove(req.Hostname, req.Channel)
+			h.pool.Remove(key)
 			writeJSON(w, http.StatusInternalServerError, executeResponse{
 				Success: false,
 				Output:  make([]ssh.CommandOutput, 0),
 				Error:   "SSH connection failed: pooled connection invalid",
 			})
 			return
+		}
+		observedKey = entry.HostKey
+		if observedKey == "" {
+			observedKey = hostKeyOf(session)
 		}
 		h.logger.Debug("reusing pooled connection",
 			"hostname", req.Hostname,
@@ -156,7 +214,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Execute commands — always release the lock afterwards.
-	defer h.pool.Release(req.Hostname, req.Channel)
+	defer h.pool.Release(key)
 
 	h.logger.Info("executing commands",
 		"hostname", req.Hostname,
@@ -181,13 +239,13 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		)
 
 		// Evict the stale connection.
-		h.pool.Evict(req.Hostname, req.Channel)
+		h.pool.Evict(key)
 
 		// Establish a new connection.
 		retryCtx, retryCancel := context.WithTimeout(r.Context(), h.connectTimeout)
 		defer retryCancel()
 
-		retryConn, retryErr := h.connector(retryCtx, req.Hostname, req.Port, req.Username, req.Password)
+		retryConn, retryErr := h.connector(retryCtx, params)
 		if retryErr != nil {
 			h.logger.Error("retry reconnection failed",
 				"hostname", req.Hostname,
@@ -195,16 +253,12 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 				"error", retryErr,
 				"request_id", requestID,
 			)
-			writeJSON(w, http.StatusInternalServerError, executeResponse{
-				Success: false,
-				Output:  make([]ssh.CommandOutput, 0),
-				Error:   fmt.Sprintf("SSH connection failed: %s", retryErr),
-			})
+			h.writeConnectFailure(w, retryErr)
 			return
 		}
 
 		// Re-acquire a pool slot, store the new connection, and retry.
-		retryEntry, _, acquireErr := h.pool.Acquire(req.Hostname, req.Channel)
+		retryEntry, _, acquireErr := h.pool.Acquire(key)
 		if acquireErr != nil {
 			retryConn.Close()
 			h.logger.Error("retry pool acquire failed",
@@ -221,7 +275,9 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_ = retryEntry // entry is created; set the connection on it
-		h.pool.SetConnection(req.Hostname, req.Channel, retryConn)
+		h.pool.SetConnection(key, retryConn)
+		observedKey = hostKeyOf(retryConn)
+		h.pool.SetHostKey(key, observedKey)
 
 		h.logger.Info("retrying commands after reconnection",
 			"hostname", req.Hostname,
@@ -254,6 +310,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			Success: result.Success,
 			Output:  result.Output,
 			Error:   result.Error,
+			HostKey: observedKey,
 		})
 		return
 	}
@@ -275,6 +332,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		Success: result.Success,
 		Output:  result.Output,
 		Error:   result.Error,
+		HostKey: observedKey,
 	})
 }
 

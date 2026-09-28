@@ -35,7 +35,7 @@ func (m *mockExecutor) Execute(_ ssh.Session, _ []ssh.Command) *ssh.CommandResul
 func testServer(apiKey string) *http.Server {
 	logger := slog.New(slog.NewTextHandler(&bytes.Buffer{}, &slog.HandlerOptions{Level: slog.LevelError}))
 	p := pool.New(10 * time.Minute)
-	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return &mockSession{}, nil
 	}
 	h := handler.New(p, connector, &mockExecutor{}, 10*time.Second, logger, []string{"commands", "polling"})

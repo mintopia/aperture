@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\NetworkSwitch\Transport;
 
+use App\Exceptions\SwitchHostKeyMismatchException;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
+use App\Services\SshProxy\SwitchProxyExecutor;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
@@ -44,14 +46,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
             'proxy_commands' => $this->sanitizeCommandsForLog($proxyCommands),
         ]);
 
-        $result = $this->proxyClient->execute(
-            $this->switchConfig->hostname,
-            $this->switchConfig->username,
-            $this->switchConfig->password,
-            $proxyCommands,
-            $this->switchConfig->port ?? 22,
-            $this->channel,
-        );
+        $result = (new SwitchProxyExecutor($this->proxyClient))->execute($this->switchConfig, $proxyCommands, $this->channel);
 
         if (! $result->success) {
             Log::warning('SshProxyTransport: command execution failed', [
@@ -65,7 +60,11 @@ class SshProxyTransport implements SwitchCommandTransportInterface
                     'output_tail' => substr($o->output, -200),
                 ], $result->output),
             ]);
-            throw new RuntimeException($result->error ?? 'Switch proxy command execution failed.');
+            if ($result->errorCode === CommandResult::HOST_KEY_MISMATCH) {
+                throw new SwitchHostKeyMismatchException($result->failureMessage());
+            }
+
+            throw new RuntimeException($result->failureMessage());
         }
 
         Log::debug('SshProxyTransport: commands executed successfully', [

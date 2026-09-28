@@ -36,8 +36,8 @@ func main() {
 	connPool := pool.NewWithKeepalive(cfg.IdleTimeout, cfg.KeepaliveInterval)
 
 	// Create SSH connector function.
-	connector := func(ctx context.Context, hostname string, port int, username, password string) (ssh.Session, error) {
-		return ssh.Connect(ctx, hostname, port, username, password)
+	connector := func(ctx context.Context, params ssh.ConnectParams) (ssh.Session, error) {
+		return ssh.Connect(ctx, params)
 	}
 
 	// Create command executor.

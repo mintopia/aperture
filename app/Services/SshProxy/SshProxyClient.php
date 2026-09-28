@@ -6,7 +6,9 @@ namespace App\Services\SshProxy;
 
 use App\Services\Interfaces\SshProxyClientInterface;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ServerException;
 use RuntimeException;
 
 class SshProxyClient implements SshProxyClientInterface
@@ -27,7 +29,7 @@ class SshProxyClient implements SshProxyClientInterface
         ]);
     }
 
-    public function execute(string $hostname, string $username, string $password, array $commands, int $port = 22, string $channel = 'commands'): CommandResult
+    public function execute(string $hostname, string $username, string $password, array $commands, int $port = 22, string $channel = 'commands', ?string $privateKey = null, ?string $passphrase = null, ?string $hostKey = null): CommandResult
     {
         try {
             $response = $this->client->post('execute', [
@@ -38,10 +40,13 @@ class SshProxyClient implements SshProxyClientInterface
                     'commands' => $commands,
                     'port' => $port,
                     'channel' => $channel,
+                    'private_key' => $privateKey ?? '',
+                    'passphrase' => $passphrase ?? '',
+                    'host_key' => $hostKey ?? '',
                 ],
             ]);
 
-            /** @var array{success: bool, output: array<int, array{command: string, output: string}>, error?: string} $data */
+            /** @var array{success: bool, output: array<int, array{command: string, output: string}>, error?: string, error_code?: string, host_key?: string} $data */
             $data = json_decode((string) $response->getBody(), true);
 
             return new CommandResult(
@@ -51,14 +56,35 @@ class SshProxyClient implements SshProxyClientInterface
                     $data['output'],
                 ),
                 error: $data['error'] ?? null,
+                hostKey: filled($data['host_key'] ?? null) ? $data['host_key'] : null,
+                errorCode: filled($data['error_code'] ?? null) ? $data['error_code'] : null,
             );
         } catch (ClientException $clientException) {
             if ($clientException->getResponse()->getStatusCode() === 409) {
                 throw new RuntimeException('Host is currently locked by another request', $clientException->getCode(), $clientException);
             }
 
-            throw $clientException;
+            return $this->resultFromErrorResponse($clientException) ?? throw $clientException;
+        } catch (ServerException $serverException) {
+            return $this->resultFromErrorResponse($serverException) ?? throw $serverException;
         }
+    }
+
+    private function resultFromErrorResponse(BadResponseException $exception): ?CommandResult
+    {
+        /** @var array{error?: string, error_code?: string}|null $data */
+        $data = json_decode((string) $exception->getResponse()->getBody(), true);
+
+        if (! is_array($data) || blank($data['error_code'] ?? null)) {
+            return null;
+        }
+
+        return new CommandResult(
+            success: false,
+            output: [],
+            error: $data['error'] ?? null,
+            errorCode: $data['error_code'],
+        );
     }
 
     public function status(): ProxyStatus
