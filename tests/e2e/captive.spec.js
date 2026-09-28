@@ -21,11 +21,11 @@ test.describe('Captive Portal Login (S1)', () => {
 });
 
 test.describe('Captive Portal Logo', () => {
-    test('captive portal renders default A logo mark when no custom logo', async ({ page }) => {
+    test('captive portal renders default logo icon when no custom logo', async ({ page }) => {
         await page.goto('/captive');
-        const loginSection = page.getByTestId('captive-login');
-        await expect(loginSection).toBeVisible();
-        await expect(loginSection.locator('.font-heading').first()).toContainText('A');
+        await expect(page.getByTestId('captive-login')).toBeVisible();
+        await expect(page.getByTestId('captive-logo-icon')).toBeVisible();
+        await expect(page.getByTestId('captive-logo-image')).toHaveCount(0);
     });
 });
 

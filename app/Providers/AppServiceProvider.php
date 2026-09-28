@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Http\Controllers\E2e\DeviceApprovalController;
 use App\Models\IpAddress;
 use App\Models\Setting;
 use App\Models\User;
@@ -12,11 +13,13 @@ use App\Observers\IpAddressObserver;
 use App\Observers\UserIpAddressObserver;
 use App\Observers\UserObserver;
 use App\Services\Auth\BorealisDeviceFlowService;
+use App\Services\Auth\E2e\FakeDeviceFlowService;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\NetworkRangeService;
 use App\Services\ThemeService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -28,7 +31,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(AuthProviderInterface::class, BorealisDeviceFlowService::class);
+        $this->app->bind(
+            AuthProviderInterface::class,
+            $this->app->environment('playwright') ? FakeDeviceFlowService::class : BorealisDeviceFlowService::class
+        );
         $this->app->scoped(ThemeService::class);
         $this->app->scoped(NetworkRangeService::class);
     }
@@ -38,6 +44,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment('playwright')) {
+            // php -S handles each request in a fresh process, so the device flow needs a shared cache.
+            config(['cache.default' => 'file', 'cache.stores.file.path' => storage_path('framework/cache/playwright')]);
+            Route::middleware('api')->post('/api/e2e/device/approve', DeviceApprovalController::class);
+        }
+
         if ($this->app->environment('production') && config('app.debug')) {
             Log::critical('APP_DEBUG is enabled in production. Disable it to prevent information disclosure.');
         }
