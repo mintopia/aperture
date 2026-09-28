@@ -24,27 +24,14 @@ describe('base64UrlToBuffer', () => {
         expect(bytes[2]).toBe(0xff);
     });
 
-    it('adds padding when length % 4 === 2', () => {
-        // "A" in base64 is "QQ==" (2 padding chars needed)
-        // base64url strips padding: "QQ"
-        const buffer = base64UrlToBuffer('QQ');
+    it.each([
+        { name: 'length % 4 === 2 (adds "==" padding)', input: 'QQ', expected: 'A' },
+        { name: 'length % 4 === 3 (adds "=" padding)', input: 'QUI', expected: 'AB' },
+        { name: 'length % 4 === 0 (no padding needed)', input: 'QUJD', expected: 'ABC' },
+    ])('decodes correctly when $name', ({ input, expected }) => {
+        const buffer = base64UrlToBuffer(input);
         const bytes = new Uint8Array(buffer);
-        expect(String.fromCharCode(...bytes)).toBe('A');
-    });
-
-    it('adds padding when length % 4 === 3', () => {
-        // "AB" in base64 is "QUI=" (1 padding char needed)
-        // base64url strips padding: "QUI"
-        const buffer = base64UrlToBuffer('QUI');
-        const bytes = new Uint8Array(buffer);
-        expect(String.fromCharCode(...bytes)).toBe('AB');
-    });
-
-    it('handles input that needs no padding (length % 4 === 0)', () => {
-        // "ABC" in base64 is "QUJD" (no padding needed)
-        const buffer = base64UrlToBuffer('QUJD');
-        const bytes = new Uint8Array(buffer);
-        expect(String.fromCharCode(...bytes)).toBe('ABC');
+        expect(String.fromCharCode(...bytes)).toBe(expected);
     });
 
     it('returns an ArrayBuffer', () => {

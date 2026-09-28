@@ -39,7 +39,9 @@ use App\Services\Prometheus\PrometheusIpBandwidth;
 use App\Services\Prometheus\PrometheusPortBandwidth;
 use App\Services\Prometheus\PrometheusPortErrors;
 use App\Services\Prometheus\PrometheusService;
+use Closure;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class IntegrationServiceProviderTest extends TestCase
@@ -50,271 +52,212 @@ class IntegrationServiceProviderTest extends TestCase
     // Shared singletons
     // -------------------------------------------------------
 
-    public function test_opnsense_client_is_registered_as_singleton(): void
+    public static function singletonBindingProvider(): array
     {
-        IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
-        IntegrationConfig::setValue('opnsense', 'key', 'test-key', true);
-        IntegrationConfig::setValue('opnsense', 'secret', 'test-secret', true);
-
-        $this->app->forgetInstance(OpnSenseClient::class);
-
-        $client1 = $this->app->make(OpnSenseClient::class);
-        $client2 = $this->app->make(OpnSenseClient::class);
-
-        $this->assertInstanceOf(OpnSenseClient::class, $client1);
-        $this->assertSame($client1, $client2);
+        return [
+            'opnsense client' => [
+                function (): void {
+                    IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
+                    IntegrationConfig::setValue('opnsense', 'key', 'test-key', true);
+                    IntegrationConfig::setValue('opnsense', 'secret', 'test-secret', true);
+                },
+                OpnSenseClient::class,
+            ],
+            'prometheus service' => [
+                function (): void {
+                    IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+                    IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
+                },
+                PrometheusService::class,
+            ],
+            'librenms service' => [
+                function (): void {
+                    IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
+                    IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
+                },
+                LibreNmsService::class,
+            ],
+            'borealis service' => [
+                function (): void {
+                    IntegrationConfig::setValue('borealis', 'endpoint', 'https://auth.test.local');
+                    IntegrationConfig::setValue('borealis', 'client_id', 'test-client-id');
+                    IntegrationConfig::setValue('borealis', 'client_secret', 'test-secret', true);
+                },
+                BorealisService::class,
+            ],
+        ];
     }
 
-    public function test_prometheus_service_is_registered_as_singleton(): void
+    #[DataProvider('singletonBindingProvider')]
+    public function test_service_is_registered_as_singleton(Closure $configureIntegration, string $class): void
     {
-        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
-        IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
+        $configureIntegration();
+        $this->app->forgetInstance($class);
 
-        $this->app->forgetInstance(PrometheusService::class);
+        $instance1 = $this->app->make($class);
+        $instance2 = $this->app->make($class);
 
-        $service1 = $this->app->make(PrometheusService::class);
-        $service2 = $this->app->make(PrometheusService::class);
-
-        $this->assertInstanceOf(PrometheusService::class, $service1);
-        $this->assertSame($service1, $service2);
-    }
-
-    public function test_librenms_service_is_registered_as_singleton(): void
-    {
-        IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
-        IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
-
-        $this->app->forgetInstance(LibreNmsService::class);
-
-        $service1 = $this->app->make(LibreNmsService::class);
-        $service2 = $this->app->make(LibreNmsService::class);
-
-        $this->assertInstanceOf(LibreNmsService::class, $service1);
-        $this->assertSame($service1, $service2);
-    }
-
-    // -------------------------------------------------------
-    // 1. captive-portal / opnsense
-    // -------------------------------------------------------
-
-    public function test_captive_portal_returns_null_when_no_capability(): void
-    {
-        $service = $this->app->make(CaptivePortalInterface::class);
-
-        $this->assertInstanceOf(NullCaptivePortal::class, $service);
-    }
-
-    public function test_captive_portal_returns_opnsense_when_capability_assigned(): void
-    {
-        IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
-        IntegrationConfig::setValue('opnsense', 'key', 'key', true);
-        IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
-        IntegrationConfig::setValue('opnsense', 'zone_id', '1');
-        CapabilityAssignment::assign('captive-portal', 'opnsense');
-
-        $this->app->forgetInstance(OpnSenseClient::class);
-
-        $service = $this->app->make(CaptivePortalInterface::class);
-
-        $this->assertInstanceOf(OpnSenseCaptivePortal::class, $service);
+        $this->assertInstanceOf($class, $instance1);
+        $this->assertSame($instance1, $instance2);
     }
 
     // -------------------------------------------------------
-    // 2. rate-limiting / opnsense
+    // Capability -> interface bindings: falls back to Null* when unassigned
     // -------------------------------------------------------
 
-    public function test_rate_limiting_returns_null_when_no_capability(): void
+    public static function nullFallbackProvider(): array
     {
-        $service = $this->app->make(RateLimitingInterface::class);
+        $noSetup = function (): void {};
 
-        $this->assertInstanceOf(NullRateLimiter::class, $service);
+        return [
+            'captive-portal' => [$noSetup, CaptivePortalInterface::class, NullCaptivePortal::class],
+            'rate-limiting' => [$noSetup, RateLimitingInterface::class, NullRateLimiter::class],
+            'dhcp' => [$noSetup, DhcpInterface::class, NullDhcpService::class],
+            'dns-filtering' => [$noSetup, DnsFilteringInterface::class, NullDnsFiltering::class],
+            'ip-bandwidth' => [$noSetup, IpBandwidthInterface::class, NullIpBandwidth::class],
+            'port-bandwidth' => [$noSetup, PortBandwidthInterface::class, NullPortBandwidth::class],
+            'port-errors' => [$noSetup, PortErrorsInterface::class, NullPortErrors::class],
+            'ip-mac' => [
+                function (): void {
+                    CapabilityAssignment::where('capability', 'ip-mac')->delete();
+                },
+                IpMacResolverInterface::class,
+                NullIpMacResolver::class,
+            ],
+            'port-mac' => [
+                function (): void {
+                    CapabilityAssignment::where('capability', 'port-mac')->delete();
+                },
+                PortMacInterface::class,
+                NullPortMac::class,
+            ],
+        ];
     }
 
-    public function test_rate_limiting_returns_opnsense_when_capability_assigned(): void
+    #[DataProvider('nullFallbackProvider')]
+    public function test_returns_null_service_when_no_capability_assigned(Closure $setup, string $interface, string $expectedNullClass): void
     {
-        IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
-        IntegrationConfig::setValue('opnsense', 'key', 'key', true);
-        IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
-        IntegrationConfig::setValue('opnsense', 'ratelimit_up_uuid', 'up-uuid');
-        IntegrationConfig::setValue('opnsense', 'ratelimit_down_uuid', 'down-uuid');
-        CapabilityAssignment::assign('rate-limiting', 'opnsense');
+        $setup();
 
-        $this->app->forgetInstance(OpnSenseClient::class);
+        $service = $this->app->make($interface);
 
-        $service = $this->app->make(RateLimitingInterface::class);
-
-        $this->assertInstanceOf(OpnSenseRateLimiter::class, $service);
-    }
-
-    // -------------------------------------------------------
-    // 3. dhcp / opnsense
-    // -------------------------------------------------------
-
-    public function test_dhcp_returns_null_when_no_capability(): void
-    {
-        $service = $this->app->make(DhcpInterface::class);
-
-        $this->assertInstanceOf(NullDhcpService::class, $service);
-    }
-
-    public function test_dhcp_returns_opnsense_when_capability_assigned(): void
-    {
-        IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
-        IntegrationConfig::setValue('opnsense', 'key', 'key', true);
-        IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
-        IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
-        CapabilityAssignment::assign('dhcp', 'opnsense');
-
-        $service = $this->app->make(DhcpInterface::class);
-
-        $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
+        $this->assertInstanceOf($expectedNullClass, $service);
     }
 
     // -------------------------------------------------------
-    // 4. dns-filtering / pihole
+    // Capability -> interface bindings: resolves the assigned integration
     // -------------------------------------------------------
 
-    public function test_dns_filtering_returns_null_when_no_capability(): void
+    public static function capabilityAssignedProvider(): array
     {
-        $service = $this->app->make(DnsFilteringInterface::class);
-
-        $this->assertInstanceOf(NullDnsFiltering::class, $service);
+        return [
+            'captive-portal -> opnsense' => [
+                function (): void {
+                    IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
+                    IntegrationConfig::setValue('opnsense', 'key', 'key', true);
+                    IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
+                    IntegrationConfig::setValue('opnsense', 'zone_id', '1');
+                    CapabilityAssignment::assign('captive-portal', 'opnsense');
+                    app()->forgetInstance(OpnSenseClient::class);
+                },
+                CaptivePortalInterface::class,
+                OpnSenseCaptivePortal::class,
+            ],
+            'rate-limiting -> opnsense' => [
+                function (): void {
+                    IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
+                    IntegrationConfig::setValue('opnsense', 'key', 'key', true);
+                    IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
+                    IntegrationConfig::setValue('opnsense', 'ratelimit_up_uuid', 'up-uuid');
+                    IntegrationConfig::setValue('opnsense', 'ratelimit_down_uuid', 'down-uuid');
+                    CapabilityAssignment::assign('rate-limiting', 'opnsense');
+                    app()->forgetInstance(OpnSenseClient::class);
+                },
+                RateLimitingInterface::class,
+                OpnSenseRateLimiter::class,
+            ],
+            'dhcp -> opnsense' => [
+                function (): void {
+                    IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
+                    IntegrationConfig::setValue('opnsense', 'key', 'key', true);
+                    IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
+                    IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
+                    CapabilityAssignment::assign('dhcp', 'opnsense');
+                },
+                DhcpInterface::class,
+                OpnSenseDhcpService::class,
+            ],
+            'dns-filtering -> pihole' => [
+                function (): void {
+                    IntegrationConfig::setValue('pihole', 'endpoint', 'http://pihole.local');
+                    IntegrationConfig::setValue('pihole', 'password', 'test-password', true);
+                    IntegrationConfig::setValue('pihole', 'filtered_group_id', '1');
+                    CapabilityAssignment::assign('dns-filtering', 'pihole');
+                },
+                DnsFilteringInterface::class,
+                PiHoleService::class,
+            ],
+            'ip-bandwidth -> prometheus' => [
+                function (): void {
+                    IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+                    IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
+                    CapabilityAssignment::assign('ip-bandwidth', 'prometheus');
+                    app()->forgetInstance(PrometheusService::class);
+                },
+                IpBandwidthInterface::class,
+                PrometheusIpBandwidth::class,
+            ],
+            'port-bandwidth -> prometheus' => [
+                function (): void {
+                    IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+                    IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
+                    CapabilityAssignment::assign('port-bandwidth', 'prometheus');
+                    app()->forgetInstance(PrometheusService::class);
+                },
+                PortBandwidthInterface::class,
+                PrometheusPortBandwidth::class,
+            ],
+            'port-errors -> prometheus' => [
+                function (): void {
+                    IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
+                    IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
+                    CapabilityAssignment::assign('port-errors', 'prometheus');
+                    app()->forgetInstance(PrometheusService::class);
+                },
+                PortErrorsInterface::class,
+                PrometheusPortErrors::class,
+            ],
+            'ip-mac -> librenms' => [
+                function (): void {
+                    IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
+                    IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
+                    CapabilityAssignment::assign('ip-mac', 'librenms');
+                    app()->forgetInstance(LibreNmsService::class);
+                },
+                IpMacResolverInterface::class,
+                LibreNmsIpMacResolver::class,
+            ],
+            'port-mac -> librenms' => [
+                function (): void {
+                    IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
+                    IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
+                    CapabilityAssignment::assign('port-mac', 'librenms');
+                    app()->forgetInstance(LibreNmsService::class);
+                },
+                PortMacInterface::class,
+                LibreNmsPortMac::class,
+            ],
+        ];
     }
 
-    public function test_dns_filtering_returns_pihole_when_capability_assigned(): void
+    #[DataProvider('capabilityAssignedProvider')]
+    public function test_returns_assigned_service_when_capability_assigned(Closure $setup, string $interface, string $expectedClass): void
     {
-        IntegrationConfig::setValue('pihole', 'endpoint', 'http://pihole.local');
-        IntegrationConfig::setValue('pihole', 'password', 'test-password', true);
-        IntegrationConfig::setValue('pihole', 'filtered_group_id', '1');
-        CapabilityAssignment::assign('dns-filtering', 'pihole');
+        $setup();
 
-        $service = $this->app->make(DnsFilteringInterface::class);
+        $service = $this->app->make($interface);
 
-        $this->assertInstanceOf(PiHoleService::class, $service);
-    }
-
-    // -------------------------------------------------------
-    // 5. ip-bandwidth / prometheus
-    // -------------------------------------------------------
-
-    public function test_ip_bandwidth_returns_null_when_no_capability(): void
-    {
-        $service = $this->app->make(IpBandwidthInterface::class);
-
-        $this->assertInstanceOf(NullIpBandwidth::class, $service);
-    }
-
-    public function test_ip_bandwidth_returns_prometheus_when_capability_assigned(): void
-    {
-        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
-        IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
-        CapabilityAssignment::assign('ip-bandwidth', 'prometheus');
-
-        $this->app->forgetInstance(PrometheusService::class);
-
-        $service = $this->app->make(IpBandwidthInterface::class);
-
-        $this->assertInstanceOf(PrometheusIpBandwidth::class, $service);
-    }
-
-    // -------------------------------------------------------
-    // 6. port-bandwidth / prometheus
-    // -------------------------------------------------------
-
-    public function test_port_bandwidth_returns_null_when_no_capability(): void
-    {
-        $service = $this->app->make(PortBandwidthInterface::class);
-
-        $this->assertInstanceOf(NullPortBandwidth::class, $service);
-    }
-
-    public function test_port_bandwidth_returns_prometheus_when_capability_assigned(): void
-    {
-        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
-        IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
-        CapabilityAssignment::assign('port-bandwidth', 'prometheus');
-
-        $this->app->forgetInstance(PrometheusService::class);
-
-        $service = $this->app->make(PortBandwidthInterface::class);
-
-        $this->assertInstanceOf(PrometheusPortBandwidth::class, $service);
-    }
-
-    // -------------------------------------------------------
-    // 7. port-errors / prometheus
-    // -------------------------------------------------------
-
-    public function test_port_errors_returns_null_when_no_capability(): void
-    {
-        $service = $this->app->make(PortErrorsInterface::class);
-
-        $this->assertInstanceOf(NullPortErrors::class, $service);
-    }
-
-    public function test_port_errors_returns_prometheus_when_capability_assigned(): void
-    {
-        IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
-        IntegrationConfig::setValue('prometheus', 'bearer_token', 'test-token');
-        CapabilityAssignment::assign('port-errors', 'prometheus');
-
-        $this->app->forgetInstance(PrometheusService::class);
-
-        $service = $this->app->make(PortErrorsInterface::class);
-
-        $this->assertInstanceOf(PrometheusPortErrors::class, $service);
-    }
-
-    // -------------------------------------------------------
-    // 8. ip-mac / librenms
-    // -------------------------------------------------------
-
-    public function test_ip_mac_returns_null_when_no_capability(): void
-    {
-        CapabilityAssignment::where('capability', 'ip-mac')->delete();
-
-        $service = $this->app->make(IpMacResolverInterface::class);
-
-        $this->assertInstanceOf(NullIpMacResolver::class, $service);
-    }
-
-    public function test_ip_mac_returns_librenms_when_capability_assigned(): void
-    {
-        IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
-        IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
-        CapabilityAssignment::assign('ip-mac', 'librenms');
-
-        $this->app->forgetInstance(LibreNmsService::class);
-
-        $service = $this->app->make(IpMacResolverInterface::class);
-
-        $this->assertInstanceOf(LibreNmsIpMacResolver::class, $service);
-    }
-
-    // -------------------------------------------------------
-    // 9. port-mac / librenms
-    // -------------------------------------------------------
-
-    public function test_port_mac_returns_null_when_no_capability(): void
-    {
-        CapabilityAssignment::where('capability', 'port-mac')->delete();
-
-        $service = $this->app->make(PortMacInterface::class);
-
-        $this->assertInstanceOf(NullPortMac::class, $service);
-    }
-
-    public function test_port_mac_returns_librenms_when_capability_assigned(): void
-    {
-        IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
-        IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
-        CapabilityAssignment::assign('port-mac', 'librenms');
-
-        $this->app->forgetInstance(LibreNmsService::class);
-
-        $service = $this->app->make(PortMacInterface::class);
-
-        $this->assertInstanceOf(LibreNmsPortMac::class, $service);
+        $this->assertInstanceOf($expectedClass, $service);
     }
 
     // -------------------------------------------------------
@@ -333,33 +276,6 @@ class IntegrationServiceProviderTest extends TestCase
         $service = $this->app->make(OpnSenseApiService::class);
 
         $this->assertInstanceOf(OpnSenseApiService::class, $service);
-    }
-
-    public function test_borealis_service_is_registered_as_singleton(): void
-    {
-        IntegrationConfig::setValue('borealis', 'endpoint', 'https://auth.test.local');
-        IntegrationConfig::setValue('borealis', 'client_id', 'test-client-id');
-        IntegrationConfig::setValue('borealis', 'client_secret', 'test-secret', true);
-
-        $this->app->forgetInstance(BorealisService::class);
-
-        $service1 = $this->app->make(BorealisService::class);
-        $service2 = $this->app->make(BorealisService::class);
-
-        $this->assertInstanceOf(BorealisService::class, $service1);
-        $this->assertSame($service1, $service2);
-    }
-
-    public function test_librenms_service_is_directly_resolvable(): void
-    {
-        IntegrationConfig::setValue('librenms', 'endpoint', 'http://librenms.local');
-        IntegrationConfig::setValue('librenms', 'api_key', 'test-token', true);
-
-        $this->app->forgetInstance(LibreNmsService::class);
-
-        $service = $this->app->make(LibreNmsService::class);
-
-        $this->assertInstanceOf(LibreNmsService::class, $service);
     }
 
     // -------------------------------------------------------
