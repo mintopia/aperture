@@ -4,39 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Feature\Concerns\ActsAsAdminInSetUp;
 use Tests\TestCase;
 
 class CaptivePortalApiSettingsControllerTest extends TestCase
 {
+    use ActsAsAdminInSetUp;
     use LazilyRefreshDatabase;
-
-    private User $admin;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-        $this->admin = $this->createAdminUser();
-    }
-
-    protected function createAdminUser(): User
-    {
-        $user = User::factory()->create();
-        $role = new Role;
-        $role->code = 'admin';
-        $role->name = 'Admin';
-        $role->save();
-        $user->roles()->attach($role);
-
-        return $user;
-    }
 
     #[Test]
     public function settings_page_loads(): void

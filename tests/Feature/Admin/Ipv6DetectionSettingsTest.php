@@ -5,36 +5,15 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Models\IntegrationConfig;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Queue;
+use Tests\Feature\Concerns\ActsAsAdminInSetUp;
 use Tests\TestCase;
 
 class Ipv6DetectionSettingsTest extends TestCase
 {
+    use ActsAsAdminInSetUp;
     use LazilyRefreshDatabase;
-
-    private User $admin;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-        $this->admin = $this->createAdminUser();
-    }
-
-    protected function createAdminUser(): User
-    {
-        $user = User::factory()->create();
-        $role = new Role;
-        $role->code = 'admin';
-        $role->name = 'Admin';
-        $role->save();
-        $user->roles()->attach($role);
-
-        return $user;
-    }
 
     public function test_show_returns_settings_page(): void
     {
