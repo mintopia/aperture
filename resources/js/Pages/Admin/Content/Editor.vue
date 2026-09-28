@@ -209,8 +209,8 @@ async function saveBlock(data) {
         if (block) {
             Object.assign(block, data);
         }
-    } catch (_e) {
-        // Failed saves leave the local state untouched; the editor stays as-is.
+    } catch (e) {
+        console.error(e);
     } finally {
         selectedBlock.value = null;
     }
@@ -224,8 +224,8 @@ async function deleteBlock(id) {
         await del(`/admin/content/${id}`);
         localBlocks.value = localBlocks.value.filter((b) => b.id !== id);
         hasChanges.value = true;
-    } catch (_e) {
-        // Failed saves leave the local state untouched; the editor stays as-is.
+    } catch (e) {
+        console.error(e);
     } finally {
         selectedBlock.value = null;
     }
@@ -244,8 +244,8 @@ async function saveLayout() {
             })),
         });
         hasChanges.value = false;
-    } catch (_e) {
-        // Failed saves leave the local state untouched; the editor stays as-is.
+    } catch (e) {
+        console.error(e);
     } finally {
         saving.value = false;
     }
