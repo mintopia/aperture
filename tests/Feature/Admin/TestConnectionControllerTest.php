@@ -257,7 +257,7 @@ class TestConnectionControllerTest extends TestCase
         $mockProxy = Mockery::mock(SshProxyClientInterface::class);
         $mockProxy->shouldReceive('execute')
             ->once()
-            ->with($switch->hostname, $switch->username, $switch->password, Mockery::type('array'))
+            ->with($switch->hostname, $switch->username, $switch->password, Mockery::type('array'), 22, 'commands', null, null, null)
             ->andReturn(new CommandResult(success: true, output: ['Switch> ']));
 
         $this->app->instance(SshProxyClientInterface::class, $mockProxy);

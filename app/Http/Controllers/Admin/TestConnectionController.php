@@ -11,6 +11,7 @@ use App\Services\Integration\IntegrationConfigMerger;
 use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\SshProxy\CommandOutput;
+use App\Services\SshProxy\SwitchProxyExecutor;
 use App\Services\ValueObjects\TestConnectionResult;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
@@ -46,10 +47,8 @@ class TestConnectionController extends Controller
         $requestUrl = $switchConfig->hostname;
 
         try {
-            $result = $proxyClient->execute(
-                $switchConfig->hostname,
-                $switchConfig->username,
-                $switchConfig->password,
+            $result = (new SwitchProxyExecutor($proxyClient))->execute(
+                $switchConfig,
                 [['command' => '', 'expect' => '/^.*[>#]$/']],
             );
 
@@ -67,7 +66,7 @@ class TestConnectionController extends Controller
                     'output' => $outputSummary,
                 ]);
 
-                $message = $result->error ?? 'Unknown error';
+                $message = $result->failureMessage('Unknown error');
 
                 ConnectionTestLog::record(
                     'switch-'.$switchConfig->hostname,

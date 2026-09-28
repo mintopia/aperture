@@ -13,6 +13,7 @@ use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
@@ -309,5 +310,88 @@ class SshProxyClientTest extends TestCase
             'contains path segment' => ['10.0.0.5/path'],
             'contains scheme and userinfo style host' => ['http://user@10.0.0.5'],
         ];
+    }
+
+    public function test_execute_sends_key_auth_and_pinned_host_key_and_parses_observed_key(): void
+    {
+        $history = [];
+        $mock = new MockHandler([new Response(200, [], json_encode([
+            'success' => true,
+            'output' => [],
+            'host_key' => 'ssh-ed25519 AAAA',
+        ]))]);
+        $stack = HandlerStack::create($mock);
+        $stack->push(Middleware::history($history));
+
+        $proxyClient = new SshProxyClient('http://localhost:8022', 'k');
+        (new ReflectionClass($proxyClient))->getProperty('client')->setValue($proxyClient, new Client(['handler' => $stack]));
+
+        $result = $proxyClient->execute('h', 'u', '', [], 22, 'commands', 'PEM', 'pp', 'ssh-ed25519 PIN');
+
+        $body = json_decode((string) $history[0]['request']->getBody(), true);
+        $this->assertSame('PEM', $body['private_key']);
+        $this->assertSame('pp', $body['passphrase']);
+        $this->assertSame('ssh-ed25519 PIN', $body['host_key']);
+        $this->assertSame('ssh-ed25519 AAAA', $result->hostKey);
+        $this->assertNull($result->errorCode);
+    }
+
+    public function test_execute_defaults_key_fields_to_empty_strings(): void
+    {
+        $history = [];
+        $stack = HandlerStack::create(new MockHandler([new Response(200, [], json_encode(['success' => true, 'output' => []]))]));
+        $stack->push(Middleware::history($history));
+
+        $proxyClient = new SshProxyClient('http://localhost:8022', 'k');
+        (new ReflectionClass($proxyClient))->getProperty('client')->setValue($proxyClient, new Client(['handler' => $stack]));
+        $proxyClient->execute('h', 'u', 'p', []);
+
+        $body = json_decode((string) $history[0]['request']->getBody(), true);
+        $this->assertSame(['private_key' => '', 'passphrase' => '', 'host_key' => ''], array_intersect_key($body, array_flip(['private_key', 'passphrase', 'host_key'])));
+    }
+
+    public function test_execute_returns_result_for_host_key_mismatch_error_code(): void
+    {
+        $proxyClient = $this->createClientWithMockHandler([
+            new Response(500, [], json_encode([
+                'success' => false,
+                'output' => [],
+                'error' => 'SSH connection failed: host key mismatch',
+                'error_code' => 'host_key_mismatch',
+            ])),
+        ]);
+
+        $result = $proxyClient->execute('h', 'u', 'p', [], 22, 'commands', null, null, 'ssh-ed25519 PIN');
+
+        $this->assertFalse($result->success);
+        $this->assertSame(CommandResult::HOST_KEY_MISMATCH, $result->errorCode);
+        $this->assertStringContainsString('host key mismatch', $result->failureMessage());
+    }
+
+    public function test_execute_returns_result_for_invalid_private_key_error_code(): void
+    {
+        $proxyClient = $this->createClientWithMockHandler([
+            new Response(400, [], json_encode([
+                'success' => false,
+                'output' => [],
+                'error' => 'SSH connection failed: invalid private key: bad',
+                'error_code' => 'invalid_private_key',
+            ])),
+        ]);
+
+        $result = $proxyClient->execute('h', 'u', '', [], 22, 'commands', 'garbage');
+
+        $this->assertSame(CommandResult::INVALID_PRIVATE_KEY, $result->errorCode);
+        $this->assertStringContainsString('private key', $result->failureMessage());
+    }
+
+    public function test_execute_still_throws_for_errors_without_error_code(): void
+    {
+        $proxyClient = $this->createClientWithMockHandler([
+            new Response(500, [], json_encode(['success' => false, 'error' => 'dial failed'])),
+        ]);
+
+        $this->expectException(ServerException::class);
+        $proxyClient->execute('h', 'u', 'p', []);
     }
 }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\SwitchHostKeyMismatchException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ResetSwitchHostKeyRequest;
 use App\Http\Requests\Admin\StoreSwitchRequest;
 use App\Http\Requests\Admin\UpdateSwitchRequest;
 use App\Http\Resources\SwitchConfigResource;
@@ -57,7 +59,7 @@ class SwitchManagementController extends Controller
 
     public function store(StoreSwitchRequest $request): RedirectResponse
     {
-        $switchConfig = SwitchConfig::create($request->validated());
+        $switchConfig = SwitchConfig::create($request->switchAttributes());
 
         AuditLog::record(
             action: 'switch.created',
@@ -106,21 +108,7 @@ class SwitchManagementController extends Controller
 
     public function update(UpdateSwitchRequest $request, SwitchConfig $switchConfig): RedirectResponse
     {
-        $validated = $request->validated();
-
-        if (empty($validated['username'])) {
-            unset($validated['username']);
-        }
-
-        if (empty($validated['password'])) {
-            unset($validated['password']);
-        }
-
-        if (empty($validated['enable_password'])) {
-            unset($validated['enable_password']);
-        }
-
-        $switchConfig->update($validated);
+        $switchConfig->update($request->switchAttributes($switchConfig));
 
         AuditLog::record(
             action: 'switch.updated',
@@ -130,6 +118,20 @@ class SwitchManagementController extends Controller
         );
 
         return back()->with('success', 'Switch updated successfully.');
+    }
+
+    public function resetHostKey(ResetSwitchHostKeyRequest $request, SwitchConfig $switchConfig): RedirectResponse
+    {
+        $switchConfig->update(['host_key' => null]);
+
+        AuditLog::record(
+            action: 'switch.host_key_reset',
+            subject: $switchConfig,
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp()],
+        );
+
+        return back()->with('success', 'Pinned host key cleared. The next connection will pin the key the switch presents.');
     }
 
     public function destroy(Request $request, SwitchConfig $switchConfig): RedirectResponse
@@ -166,6 +168,10 @@ class SwitchManagementController extends Controller
                 'success' => true,
                 'message' => 'Connection successful.',
             ]);
+        } catch (SwitchHostKeyMismatchException $mismatch) {
+            Log::warning('Switch host key mismatch', ['switch' => $switchConfig->id]);
+
+            return response()->json(['success' => false, 'message' => $mismatch->getMessage()]);
         } catch (Throwable $throwable) {
             Log::warning('Switch connection test failed', ['switch' => $switchConfig->id, 'error' => $throwable->getMessage()]);
 
