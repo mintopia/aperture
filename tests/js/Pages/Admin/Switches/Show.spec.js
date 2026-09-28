@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Show from '@/Pages/Admin/Switches/Show.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
@@ -7,6 +7,7 @@ vi.mock('@inertiajs/vue3', () => ({
         post: vi.fn(),
         delete: vi.fn(),
         visit: vi.fn(),
+        reload: vi.fn(),
     },
     Link: {
         template: '<a><slot /></a>',
@@ -72,6 +73,11 @@ function mountShow(propsOverride = {}) {
 describe('Show.vue - broken template references', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    it('renders the page title with the switch name', () => {
+        const wrapper = mountShow();
+        expect(wrapper.find('[data-testid="page-title"]').text()).toBe('Core Switch');
     });
 
     describe('props', () => {
@@ -297,5 +303,80 @@ describe('Show.vue - broken template references', () => {
             });
             expect(wrapper.find('[data-testid="sync-status"]').exists()).toBe(true);
         });
+    });
+});
+
+// useAdminChannel's own subscribe/listen/leave behavior is covered generically by
+// tests/js/composables/useAdminChannel.spec.js; these cover Show's own handler logic:
+// the switch_config_id guard on SwitchSyncCompleted, and the unconditional refresh on
+// PortStateChanged.
+describe('Show Echo integration', () => {
+    let originalEcho;
+
+    function createMockEcho() {
+        const channels = {};
+        return {
+            private: vi.fn((channelName) => {
+                const channel = {
+                    _listeners: {},
+                    listen: vi.fn((event, handler) => {
+                        channel._listeners[event] = handler;
+                        return channel;
+                    }),
+                };
+                channels[channelName] = channel;
+                return channel;
+            }),
+            leave: vi.fn(),
+            _channels: channels,
+        };
+    }
+
+    beforeEach(() => {
+        originalEcho = window.Echo;
+        vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        window.Echo = originalEcho;
+    });
+
+    it('refreshes when SwitchSyncCompleted matches this switch', async () => {
+        const { router } = await import('@inertiajs/vue3');
+        const echo = createMockEcho();
+        window.Echo = echo;
+
+        mountShow();
+        router.reload.mockClear();
+
+        echo._channels['admin.events']._listeners['SwitchSyncCompleted']({ switch_config_id: 1 });
+
+        expect(router.reload).toHaveBeenCalled();
+    });
+
+    it('does not refresh when SwitchSyncCompleted is for a different switch', async () => {
+        const { router } = await import('@inertiajs/vue3');
+        const echo = createMockEcho();
+        window.Echo = echo;
+
+        mountShow();
+        router.reload.mockClear();
+
+        echo._channels['admin.events']._listeners['SwitchSyncCompleted']({ switch_config_id: 999 });
+
+        expect(router.reload).not.toHaveBeenCalled();
+    });
+
+    it('refreshes on PortStateChanged', async () => {
+        const { router } = await import('@inertiajs/vue3');
+        const echo = createMockEcho();
+        window.Echo = echo;
+
+        mountShow();
+        router.reload.mockClear();
+
+        echo._channels['admin.events']._listeners['PortStateChanged']();
+
+        expect(router.reload).toHaveBeenCalled();
     });
 });
