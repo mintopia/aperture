@@ -192,7 +192,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
             if ($normalizedMac !== null) {
                 $mac = MacAddress::firstOrCreate(
                     ['mac_address' => $normalizedMac],
-                    ['source' => 'dhcp'],
+                    ['source' => $lease->macFromDuid ? MacAddress::SOURCE_DHCP_DUID : 'dhcp'],
                 );
                 $macAddressId = $mac->id;
             }

@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\IpAddress;
+use App\Models\MacAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
 use Illuminate\Support\Facades\Log;
@@ -70,7 +71,7 @@ class UserNetworkAssociationService
      */
     private function cascadeMacOwnership(User $user, IpAddress $ip): void
     {
-        $macs = $ip->macAddresses()->get();
+        $macs = $ip->macAddresses()->where('mac_addresses.source', '!=', MacAddress::SOURCE_DHCP_DUID)->get();
 
         foreach ($macs as $mac) {
             // Assign MAC ownership if unowned

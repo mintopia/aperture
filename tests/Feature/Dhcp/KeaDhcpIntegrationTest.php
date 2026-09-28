@@ -172,6 +172,8 @@ class KeaDhcpIntegrationTest extends TestCase
             'ip_address_id' => $v6Ip->id,
             'mac_address_id' => $v6Mac->id,
         ]);
+        $this->assertSame('dhcp_duid', $v6Mac->source);
+        $this->assertSame('dhcp', $v4Mac->source);
     }
 
     public function test_ipv6_fetch_failure_updates_ipv4_and_keeps_ipv6_last_known_data(): void

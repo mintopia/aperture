@@ -54,6 +54,9 @@ class MacAddress extends Model
     /** @use HasFactory<MacAddressFactory> */
     use HasFactory;
 
+    /** Source of MACs derived from a DHCPv6 DUID; DUIDs can be shared by cloned images, so they never drive ownership. */
+    public const SOURCE_DHCP_DUID = 'dhcp_duid';
+
     /** @var list<string> */
     protected $fillable = [
         'mac_address',

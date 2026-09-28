@@ -554,7 +554,18 @@ class KeaDhcpService implements DhcpInterface
             mac: $this->deriveMac($lease, $isIpv6),
             hostname: is_string($hostname) ? $hostname : '',
             expires: Carbon::createFromTimestamp($expiresAt)->toIso8601String(),
+            macFromDuid: $this->macIsDuidDerived($lease, $isIpv6),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $lease
+     */
+    private function macIsDuidDerived(array $lease, bool $isIpv6): bool
+    {
+        $hw = $lease['hw-address'] ?? null;
+
+        return $isIpv6 && ! (is_string($hw) && $hw !== '') && $this->deriveMac($lease, $isIpv6) !== null;
     }
 
     /**
