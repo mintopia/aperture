@@ -19,6 +19,18 @@ class SettingsSeeder extends Seeder
                 'description' => 'If a user authenticates using multiple methods, link them using their email address.',
                 'value' => true,
             ],
+            (object) [
+                'code' => 'theme.name',
+                'name' => 'Theme Name',
+                'description' => 'The active colour theme for the application.',
+                'value' => 'cool-neon',
+            ],
+            (object) [
+                'code' => 'theme.mode',
+                'name' => 'Theme Mode',
+                'description' => 'The default colour mode (light or dark).',
+                'value' => 'dark',
+            ],
         ];
 
         foreach ($settings as $config) {

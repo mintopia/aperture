@@ -87,8 +87,8 @@ class ThemeServiceTest extends TestCase
     public function test_db_settings_override_config_defaults(): void
     {
         config(['aperture.theme.mode' => 'light']);
+        $this->saveSetting('theme.mode', 'Theme Mode', 'dark');
 
-        // Migration seeds theme.mode as 'dark' — DB should win
         $service = app(ThemeService::class);
         $theme = $service->getTheme();
 

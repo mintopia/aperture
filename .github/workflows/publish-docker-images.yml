@@ -84,6 +84,51 @@ jobs:
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
 
+  schema-dumps:
+    name: Schema Dumps
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: secret
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, sqlite3, pdo_sqlite, bcmath, intl, gd, xml
+          tools: composer:v2
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Schema dumps match migrations
+        run: bin/schema-dump.sh --check
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USERNAME: root
+          DB_PASSWORD: secret
+
   js-quality:
     name: JS Quality
     runs-on: ubuntu-latest
