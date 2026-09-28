@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useUserChannel } from '../useUserChannel.js';
+import { useUserChannel } from '@/composables/useUserChannel.js';
 
 describe('useUserChannel', () => {
     let mockChannel;

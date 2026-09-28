@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import BandwidthBlock from '../BandwidthBlock.vue';
+import BandwidthBlock from '@/Components/Blocks/BandwidthBlock.vue';
 
 const routeMock = vi.fn(() => '/api/portal/stats/bandwidth');
 

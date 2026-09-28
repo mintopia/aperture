@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useApi } from '../useApi.js';
+import { useApi } from '@/composables/useApi.js';
 
 describe('useApi', () => {
     beforeEach(() => {

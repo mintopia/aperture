@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
-import { useAdminChannel } from '../useAdminChannel';
+import { useAdminChannel } from '@/composables/useAdminChannel';
 
 function createMockPusher(initialState = 'connected') {
     const bindings = {};
