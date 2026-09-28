@@ -29,6 +29,19 @@ class SyncFirewallJobTest extends TestCase
         ];
     }
 
+    /**
+     * @return array<string, array{FirewallAction, bool}>
+     */
+    public static function failedProvider(): array
+    {
+        return [
+            'internet enabled' => [FirewallAction::Internet, true],
+            'internet disabled' => [FirewallAction::Internet, false],
+            'rate limit enabled' => [FirewallAction::RateLimit, true],
+            'rate limit disabled' => [FirewallAction::RateLimit, false],
+        ];
+    }
+
     public function test_has_correct_retry_configuration(): void
     {
         $job = new SyncFirewallJob(IpAddress::factory()->make(), FirewallAction::Internet, true);
@@ -52,18 +65,18 @@ class SyncFirewallJobTest extends TestCase
         $this->app->call([$job, 'handle']);
     }
 
-    #[DataProvider('handleProvider')]
-    public function test_failed_logs_error(FirewallAction $action): void
+    #[DataProvider('failedProvider')]
+    public function test_failed_logs_error(FirewallAction $action, bool $enabled): void
     {
         $ip = IpAddress::factory()->make(['address' => '10.0.0.50']);
-        $job = new SyncFirewallJob($ip, $action, true);
+        $job = new SyncFirewallJob($ip, $action, $enabled);
 
         Log::shouldReceive('error')
             ->once()
             ->with('SyncFirewallJob failed', [
                 'action' => $action->value,
                 'ip' => '10.0.0.50',
-                'enabled' => true,
+                'enabled' => $enabled,
                 'error' => 'Connection timed out',
             ]);
 

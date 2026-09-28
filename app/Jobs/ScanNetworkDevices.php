@@ -250,7 +250,6 @@ class ScanNetworkDevices implements ShouldQueue
                 );
             }
 
-            // Re-dispatch on refresh so links lacking a user association heal (ADR-011).
             IpMacLinked::dispatch($ip, $mac, $pair['source'], 'scan_network');
         }
     }

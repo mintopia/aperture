@@ -64,7 +64,6 @@ class DhcpLeaseIdentityKeyTest extends TestCase
     {
         $lease = new DhcpLeaseVO(self::IP, self::MAC, 'host-b', '2026-06-09 00:00:00');
 
-        // The scan reuses the existing ip/mac rows.
         IpAddress::factory()->create(['address' => self::IP]);
         MacAddress::factory()->create(['mac_address' => self::MAC]);
 

@@ -20,7 +20,6 @@ class ResetCommandTest extends TestCase
     {
         parent::setUp();
 
-        // Sync jobs fired by model observers would call the firewall backends; keep them off the wire.
         Queue::fake()->except(ResetAperture::class);
     }
 
