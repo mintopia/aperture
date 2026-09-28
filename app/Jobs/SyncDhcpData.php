@@ -190,11 +190,11 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
             $dhcpLease = DhcpLeaseModel::updateOrCreate(
                 [
-                    'integration' => $integration,
                     'ip_address_id' => $ip->id,
+                    'mac_address_id' => $macAddressId,
                 ],
                 [
-                    'mac_address_id' => $macAddressId,
+                    'integration' => $integration,
                     'hostname' => $lease->hostname,
                     'expires_at' => $lease->expires,
                 ],

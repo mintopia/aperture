@@ -16,7 +16,7 @@ final class PersistDhcpLeasesStep
     /**
      * @param  Collection<int, DhcpLeaseVO>  $leases
      */
-    public function __invoke(Collection $leases, NetworkRangeService $rangeService): void
+    public function __invoke(Collection $leases, NetworkRangeService $rangeService, ?string $integration = null): void
     {
         $ips = IpAddress::whereIn('address', $leases->map(fn ($l): string => IpAddress::normalize($l->ip)))->get()->keyBy('address');
         $macs = MacAddress::whereIn('mac_address', $leases->filter(fn ($l): bool => $l->mac !== null)->map(fn ($l): string => MacAddress::normalize((string) $l->mac)))->get()->keyBy('mac_address');
@@ -40,6 +40,7 @@ final class PersistDhcpLeasesStep
             DhcpLease::updateOrCreate(
                 ['ip_address_id' => $ip->id, 'mac_address_id' => $mac->id],
                 [
+                    'integration' => $integration,
                     'hostname' => $lease->hostname !== '' ? $lease->hostname : null,
                     'expires_at' => $lease->expires !== '' ? $lease->expires : null,
                 ],

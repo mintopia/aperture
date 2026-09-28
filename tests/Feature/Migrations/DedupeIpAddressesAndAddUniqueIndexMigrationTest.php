@@ -111,11 +111,15 @@ class DedupeIpAddressesAndAddUniqueIndexMigrationTest extends TestCase
             ['ip_address_id' => $this->dupeUpperCaseId, 'mac_address_id' => $this->macY->id, 'source' => 'dhcp', 'last_seen_at' => self::MID, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
-        // dhcp_leases: collision on unique (integration, ip_address_id) + clean repoint
+        // dhcp_leases: collision on unique (integration, ip_address_id) + clean repoint.
+        // The "clean repoint" row uses macY (not macX) so that, once the later
+        // 2026_09_28 migration keys dhcp_leases on (ip_address_id, mac_address_id)
+        // instead, repointing it onto the keeper doesn't collide with the
+        // keeper's own macX row.
         DB::table('dhcp_leases')->insert([
             ['integration' => 'cisco', 'ip_address_id' => $this->keeperId, 'mac_address_id' => $this->macX->id, 'hostname' => 'old-host', 'expires_at' => null, 'created_at' => self::OLD, 'updated_at' => self::OLD],
             ['integration' => 'cisco', 'ip_address_id' => $this->dupeUpperCaseId, 'mac_address_id' => $this->macX->id, 'hostname' => 'new-host', 'expires_at' => null, 'created_at' => self::NEWEST, 'updated_at' => self::NEWEST],
-            ['integration' => 'opnsense', 'ip_address_id' => $this->dupeSameCaseId, 'mac_address_id' => $this->macX->id, 'hostname' => 'opn-host', 'expires_at' => null, 'created_at' => self::MID, 'updated_at' => self::MID],
+            ['integration' => 'opnsense', 'ip_address_id' => $this->dupeSameCaseId, 'mac_address_id' => $this->macY->id, 'hostname' => 'opn-host', 'expires_at' => null, 'created_at' => self::MID, 'updated_at' => self::MID],
         ]);
 
         // audit_logs morphs pointing at duplicates (subject and related)

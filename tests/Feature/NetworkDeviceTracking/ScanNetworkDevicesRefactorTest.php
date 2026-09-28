@@ -6,6 +6,7 @@ namespace Tests\Feature\NetworkDeviceTracking;
 
 use App\Jobs\ScanNetworkDevices;
 use App\Models\AuditLog;
+use App\Models\CapabilityAssignment;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
@@ -152,6 +153,27 @@ class ScanNetworkDevicesRefactorTest extends TestCase
             'ip_address_id' => $ip->id,
             'mac_address_id' => $mac->id,
             'hostname' => 'my-laptop',
+        ]);
+    }
+
+    public function test_discovery_persists_dhcp_leases_with_active_integration(): void
+    {
+        CapabilityAssignment::assign('dhcp', 'kea');
+
+        $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'my-laptop', '2026-05-01 12:00:00')]);
+        $this->mockInventory();
+
+        (new ScanNetworkDevices)->handle();
+
+        $ip = IpAddress::where('address', '127.0.0.1')->first();
+        $mac = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:01')->first();
+
+        $this->assertNotNull($ip);
+        $this->assertNotNull($mac);
+        $this->assertDatabaseHas('dhcp_leases', [
+            'ip_address_id' => $ip->id,
+            'mac_address_id' => $mac->id,
+            'integration' => 'kea',
         ]);
     }
 

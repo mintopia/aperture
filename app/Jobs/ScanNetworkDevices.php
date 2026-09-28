@@ -10,6 +10,7 @@ use App\Jobs\NetworkScan\LinkSwitchPortMacsStep;
 use App\Jobs\NetworkScan\PersistDhcpLeasesStep;
 use App\Jobs\NetworkScan\PersistIpsStep;
 use App\Jobs\NetworkScan\PersistMacsStep;
+use App\Models\CapabilityAssignment;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
@@ -65,9 +66,23 @@ class ScanNetworkDevices implements ShouldQueue
         $persistMacs($leases, $arpEntries, $forwardingEntries);
         $persistIps($leases, $arpEntries, $rangeService);
         $linkIpMac($leases, $arpEntries, $rangeService);
-        $persistDhcpLeases($leases, $rangeService);
+        $persistDhcpLeases($leases, $rangeService, $this->activeDhcpIntegration());
         $linkSwitchPortMacs($forwardingEntries);
         $applyOuiPolicy();
+    }
+
+    /**
+     * Resolve the active DHCP integration for stamping persisted leases.
+     * Defensive against a missing capability_assignments table (fresh
+     * installs mid-migration), mirroring DhcpController::activeIntegration().
+     */
+    private function activeDhcpIntegration(): ?string
+    {
+        try {
+            return CapabilityAssignment::activeIntegration('dhcp');
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     public function failed(Throwable $exception): void
