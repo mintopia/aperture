@@ -41,8 +41,10 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertInstanceOf(DhcpInterface::class, $this->service);
     }
 
-    public function test_get_pool_status_returns_zeroed_status(): void
+    public function test_get_pool_status_returns_zeroed_status_when_kea_reports_result_three(): void
     {
+        $this->fakeConfigGet(['result' => 3, 'text' => 'no config']);
+
         $status = $this->service->getPoolStatus();
 
         $this->assertInstanceOf(DhcpPoolStatus::class, $status);
@@ -52,12 +54,361 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertSame(0.0, $status->utilisation);
     }
 
-    public function test_get_ranges_returns_empty_collection(): void
+    public function test_get_ranges_returns_empty_collection_when_no_subnets_configured(): void
     {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => ['Dhcp4' => ['subnet4' => []]],
+        ]);
+
         $ranges = $this->service->getRanges();
 
         $this->assertInstanceOf(Collection::class, $ranges);
         $this->assertTrue($ranges->isEmpty());
+    }
+
+    public function test_get_ranges_sends_config_get_command(): void
+    {
+        $this->fakeConfigGet(['result' => 3]);
+
+        $this->service->getRanges();
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+
+            return $data['command'] === 'config-get' && ! isset($data['arguments']);
+        });
+    }
+
+    public function test_dhcp4_missing_from_arguments_returns_empty_collection(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => ['SomethingElse' => []],
+        ]);
+
+        $this->assertTrue($this->service->getRanges()->isEmpty());
+    }
+
+    public function test_dhcp4_non_array_returns_empty_collection(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => ['Dhcp4' => 'not-an-array'],
+        ]);
+
+        $this->assertTrue($this->service->getRanges()->isEmpty());
+    }
+
+    public function test_ignores_non_array_subnet4_and_shared_networks(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => [
+                'Dhcp4' => [
+                    'subnet4' => 'not-an-array',
+                    'shared-networks' => 'not-an-array',
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($this->service->getRanges()->isEmpty());
+    }
+
+    public function test_parses_range_format_pool_with_and_without_spaces(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        [
+                            'subnet' => '10.0.0.0/24',
+                            'interface' => 'eth0',
+                            'pools' => [
+                                ['pool' => '10.0.0.10-10.0.0.20'],
+                                ['pool' => '10.0.0.30 - 10.0.0.40'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $ranges = $this->service->getRanges()->values()->all();
+
+        $this->assertCount(2, $ranges);
+        $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
+        $this->assertSame('10.0.0.20', $ranges[0]->rangeTo);
+        $this->assertSame('eth0', $ranges[0]->interface);
+        $this->assertSame('10.0.0.30', $ranges[1]->rangeFrom);
+        $this->assertSame('10.0.0.40', $ranges[1]->rangeTo);
+    }
+
+    public function test_parses_cidr_format_pools(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        [
+                            'subnet' => '10.0.0.0/24',
+                            'interface' => 'eth0',
+                            'pools' => [
+                                ['pool' => '10.0.0.64/26'],
+                                ['pool' => '10.0.0.5/32'],
+                                ['pool' => '10.0.0.70/26'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $ranges = $this->service->getRanges()->values()->all();
+
+        $this->assertCount(3, $ranges);
+        $this->assertSame('10.0.0.64', $ranges[0]->rangeFrom);
+        $this->assertSame('10.0.0.127', $ranges[0]->rangeTo);
+        $this->assertSame('10.0.0.5', $ranges[1]->rangeFrom);
+        $this->assertSame('10.0.0.5', $ranges[1]->rangeTo);
+        $this->assertSame('10.0.0.64', $ranges[2]->rangeFrom);
+        $this->assertSame('10.0.0.127', $ranges[2]->rangeTo);
+    }
+
+    public function test_includes_subnets_inside_shared_networks_with_interface_fallback(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => [
+                'Dhcp4' => [
+                    'subnet4' => [],
+                    'shared-networks' => [
+                        [
+                            'name' => 'office-network',
+                            'subnet4' => [
+                                [
+                                    'subnet' => '10.1.0.0/24',
+                                    'pools' => [['pool' => '10.1.0.10 - 10.1.0.20']],
+                                ],
+                                [
+                                    'subnet' => '10.2.0.0/24',
+                                    'interface' => 'eth5',
+                                    'pools' => [['pool' => '10.2.0.10 - 10.2.0.20']],
+                                ],
+                            ],
+                        ],
+                        [
+                            'name' => '',
+                            'subnet4' => [
+                                [
+                                    'subnet' => '10.3.0.0/24',
+                                    'pools' => [['pool' => '10.3.0.10 - 10.3.0.20']],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $ranges = $this->service->getRanges()->values()->all();
+
+        $this->assertCount(3, $ranges);
+        $this->assertSame('office-network', $ranges[0]->interface);
+        $this->assertSame('eth5', $ranges[1]->interface);
+        $this->assertSame('', $ranges[2]->interface);
+    }
+
+    public function test_label_fallback_order(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        [
+                            'subnet' => '10.0.0.0/24',
+                            'user-context' => ['name' => 'subnet-name'],
+                            'pools' => [
+                                ['pool' => '10.0.0.10 - 10.0.0.20', 'user-context' => ['name' => 'pool-name']],
+                                ['pool' => '10.0.0.30 - 10.0.0.40'],
+                                ['pool' => '10.0.0.50 - 10.0.0.60', 'user-context' => ['name' => '']],
+                            ],
+                        ],
+                        [
+                            'subnet' => '10.1.0.0/24',
+                            'user-context' => ['name' => ''],
+                            'pools' => [
+                                ['pool' => '10.1.0.10 - 10.1.0.20'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $ranges = $this->service->getRanges()->values()->all();
+
+        $this->assertCount(4, $ranges);
+        $this->assertSame('pool-name', $ranges[0]->description);
+        $this->assertSame('subnet-name', $ranges[1]->description);
+        $this->assertSame('subnet-name', $ranges[2]->description);
+        $this->assertSame("10.1.0.0/24 (10.1.0.10\u{2013}10.1.0.20)", $ranges[3]->description);
+    }
+
+    public function test_pd_pools_are_ignored(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        [
+                            'subnet' => '10.0.0.0/24',
+                            'pools' => [['pool' => '10.0.0.10 - 10.0.0.20']],
+                            'pd-pools' => [['prefix' => '2001:db8::', 'prefix-len' => 48, 'delegated-len' => 64]],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $ranges = $this->service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
+        $this->assertSame('10.0.0.20', $ranges[0]->rangeTo);
+    }
+
+    public function test_skips_malformed_subnet_and_pool_entries(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        'not-an-array',
+                        ['pools' => [['pool' => '10.0.0.1 - 10.0.0.2']]],
+                        ['subnet' => 123, 'pools' => [['pool' => '10.0.0.1 - 10.0.0.2']]],
+                        ['subnet' => '10.0.0.0/24', 'pools' => 'not-an-array'],
+                        [
+                            'subnet' => '10.0.1.0/24',
+                            'pools' => [
+                                'not-an-array',
+                                ['no_pool_key' => true],
+                                ['pool' => 'garbage'],
+                                ['pool' => '999.999.999.999/24'],
+                                ['pool' => '10.0.1.0/33'],
+                                ['pool' => '10.0.1.0/abc'],
+                                ['pool' => '10.0.1.20 - 10.0.1.10'],
+                                ['pool' => '10.0.1.10 - 10.0.1.20'],
+                            ],
+                        ],
+                    ],
+                    'shared-networks' => [
+                        'not-an-array',
+                        ['name' => 'net', 'subnet4' => 'not-an-array'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $ranges = $this->service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('10.0.1.10', $ranges[0]->rangeFrom);
+        $this->assertSame('10.0.1.20', $ranges[0]->rangeTo);
+    }
+
+    public function test_computes_used_addresses_from_leases_inside_pool_bounds(): void
+    {
+        $this->fakeConfigGet(
+            [
+                'result' => 0,
+                'arguments' => [
+                    'Dhcp4' => [
+                        'subnet4' => [
+                            [
+                                'subnet' => '10.0.0.0/24',
+                                'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease('10.0.0.11', 'AA:BB:CC:00:00:01', 'in-range-1'),
+                            $this->keaLease('10.0.0.13', 'AA:BB:CC:00:00:02', 'in-range-2'),
+                            $this->keaLease('10.0.0.99', 'AA:BB:CC:00:00:03', 'out-of-range'),
+                        ],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+        );
+
+        $ranges = $this->service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('5', $ranges[0]->totalAddresses);
+        $this->assertSame(2, $ranges[0]->usedAddresses);
+        $this->assertSame(0.4, $ranges[0]->utilisation);
+    }
+
+    public function test_get_pool_status_aggregates_across_multiple_ranges(): void
+    {
+        $this->fakeConfigGet(
+            [
+                'result' => 0,
+                'arguments' => [
+                    'Dhcp4' => [
+                        'subnet4' => [
+                            [
+                                'subnet' => '10.0.0.0/24',
+                                'pools' => [
+                                    ['pool' => '10.0.0.10 - 10.0.0.14'],
+                                    ['pool' => '10.0.0.20/30'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease('10.0.0.11', 'AA:BB:CC:00:00:01', 'host-1'),
+                            $this->keaLease('10.0.0.21', 'AA:BB:CC:00:00:02', 'host-2'),
+                        ],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+        );
+
+        $status = $this->service->getPoolStatus();
+
+        $this->assertSame(9, $status->total);
+        $this->assertSame(2, $status->used);
+        $this->assertSame(7, $status->available);
+        $this->assertSame(0.2222, $status->utilisation);
+    }
+
+    public function test_get_ranges_http_failure_propagates_uncaught(): void
+    {
+        Http::fake(['kea.local' => Http::response('Unauthorized', 401)]);
+
+        $this->expectException(RequestException::class);
+
+        $this->service->getRanges();
     }
 
     public function test_get_leases_returns_empty_collection_when_kea_reports_result_three(): void
@@ -655,6 +1006,29 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertNull($this->service->getLease('2001:db8::1'));
 
         Http::assertNothingSent();
+    }
+
+    /**
+     * @param  array<string, mixed>  $configGetResponse
+     * @param  list<array<string, mixed>>  $leaseResponses
+     */
+    private function fakeConfigGet(array $configGetResponse, array $leaseResponses = [['result' => 3]]): void
+    {
+        $leaseQueue = $leaseResponses;
+
+        Http::fake([
+            'kea.local' => function ($request) use ($configGetResponse, &$leaseQueue) {
+                $command = $request->data()['command'] ?? null;
+
+                if ($command === 'config-get') {
+                    return Http::response([$configGetResponse]);
+                }
+
+                $next = array_shift($leaseQueue) ?? ['result' => 3];
+
+                return Http::response([$next]);
+            },
+        ]);
     }
 
     /**
