@@ -8,8 +8,10 @@ use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class IntegrationControllerTest extends TestCase
@@ -179,27 +181,40 @@ class IntegrationControllerTest extends TestCase
         $this->assertNull(IntegrationConfig::getValue('opnsense', 'unknown_key'));
     }
 
-    public function test_integer_config_values_are_stored_as_integers(): void
+    #[DataProvider('numericConfigValuesProvider')]
+    public function test_numeric_config_values_are_stored_with_correct_type(string $integration, array $config, string $field, int $expected): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        $response = $this->actingAs($admin)->put('/admin/settings/integrations/pihole', [
-            'config' => [
-                'endpoint' => 'https://pihole.test',
-                'password' => 'secret',
-                'filtered_group_id' => '3',
-                'enabled' => '1',
-                'verify_ssl' => '1',
-            ],
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/'.$integration, [
+            'config' => $config,
         ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        $stored = IntegrationConfig::getValue('pihole', 'filtered_group_id');
-        $this->assertSame(3, $stored);
+        $stored = IntegrationConfig::getValue($integration, $field);
+        $this->assertSame($expected, $stored);
         $this->assertIsInt($stored);
+    }
+
+    public static function numericConfigValuesProvider(): array
+    {
+        return [
+            'pihole filtered_group_id' => [
+                'pihole',
+                ['endpoint' => 'https://pihole.test', 'password' => 'secret', 'filtered_group_id' => '3', 'enabled' => '1', 'verify_ssl' => '1'],
+                'filtered_group_id',
+                3,
+            ],
+            'prometheus default_step' => [
+                'prometheus',
+                ['endpoint' => 'https://prometheus.test', 'bearer_token' => 'tok', 'verify_ssl' => '1', 'default_step' => '60', 'enabled' => '1'],
+                'default_step',
+                60,
+            ],
+        ];
     }
 
     public function test_null_integer_config_values_remain_null(): void
@@ -222,29 +237,6 @@ class IntegrationControllerTest extends TestCase
 
         $stored = IntegrationConfig::getValue('pihole', 'filtered_group_id');
         $this->assertNull($stored);
-    }
-
-    public function test_numeric_config_values_are_stored_with_correct_type(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->put('/admin/settings/integrations/prometheus', [
-            'config' => [
-                'endpoint' => 'https://prometheus.test',
-                'bearer_token' => 'tok',
-                'verify_ssl' => '1',
-                'default_step' => '60',
-                'enabled' => '1',
-            ],
-        ]);
-
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-
-        $stored = IntegrationConfig::getValue('prometheus', 'default_step');
-        $this->assertSame(60, $stored);
-        $this->assertIsInt($stored);
     }
 
     public function test_non_admin_cannot_access_integration(): void
@@ -284,90 +276,55 @@ class IntegrationControllerTest extends TestCase
         $response->assertJsonPath('groups.1.name', 'Ad Blocking');
     }
 
-    public function test_pihole_groups_returns_error_on_auth_failure(): void
+    #[DataProvider('piholeGroupsErrorProvider')]
+    public function test_pihole_groups_returns_error(?\Closure $fakeSetup, array $payload, string $expectedErrorSubstring): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        Http::fake([
-            '*/api/auth' => Http::response(['error' => ['key' => 'unauthorized']], 401),
-        ]);
+        if ($fakeSetup !== null) {
+            $fakeSetup();
+        }
 
-        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
-            'endpoint' => 'https://pihole.test',
-            'password' => 'wrong-password',
-        ]);
+        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', $payload);
 
         $response->assertOk();
         $response->assertJsonPath('groups', []);
-        $this->assertStringContainsString('authentication failed', $response->json('error'));
+        $this->assertStringContainsString($expectedErrorSubstring, $response->json('error'));
     }
 
-    public function test_pihole_groups_returns_error_on_groups_failure(): void
+    public static function piholeGroupsErrorProvider(): array
     {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        Http::fake([
-            '*/api/auth' => Http::response(['session' => ['sid' => 'tok', 'validity' => 300]], 200),
-            '*/api/groups' => Http::response('Forbidden', 403),
-        ]);
-
-        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
-            'endpoint' => 'https://pihole.test',
-            'password' => 'test',
-        ]);
-
-        $response->assertOk();
-        $response->assertJsonPath('groups', []);
-        $this->assertStringContainsString('Failed to fetch Pi-hole groups', $response->json('error'));
-    }
-
-    public function test_pihole_groups_returns_error_when_no_endpoint(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
-            'password' => 'test',
-        ]);
-
-        $response->assertOk();
-        $response->assertJsonPath('groups', []);
-        $this->assertStringContainsString('endpoint is not configured', $response->json('error'));
-    }
-
-    public function test_pihole_groups_returns_error_when_no_password(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
-            'endpoint' => 'https://pihole.test',
-        ]);
-
-        $response->assertOk();
-        $response->assertJsonPath('groups', []);
-        $this->assertStringContainsString('password is not configured', $response->json('error'));
-    }
-
-    public function test_pihole_groups_returns_error_when_sid_missing_from_auth_response(): void
-    {
-        Queue::fake();
-        $admin = $this->createAdminUser();
-
-        Http::fake([
-            '*/api/auth' => Http::response(['session' => ['validity' => 300]], 200),
-        ]);
-
-        $response = $this->actingAs($admin)->postJson('/admin/settings/integrations/pihole/groups', [
-            'endpoint' => 'https://pihole.test',
-            'password' => 'test',
-        ]);
-
-        $response->assertOk();
-        $response->assertJsonPath('groups', []);
-        $this->assertStringContainsString('no session ID', $response->json('error'));
+        return [
+            'auth failure' => [
+                fn () => Http::fake(['*/api/auth' => Http::response(['error' => ['key' => 'unauthorized']], 401)]),
+                ['endpoint' => 'https://pihole.test', 'password' => 'wrong-password'],
+                'authentication failed',
+            ],
+            'groups failure' => [
+                fn () => Http::fake([
+                    '*/api/auth' => Http::response(['session' => ['sid' => 'tok', 'validity' => 300]], 200),
+                    '*/api/groups' => Http::response('Forbidden', 403),
+                ]),
+                ['endpoint' => 'https://pihole.test', 'password' => 'test'],
+                'Failed to fetch Pi-hole groups',
+            ],
+            'no endpoint configured' => [
+                null,
+                ['password' => 'test'],
+                'endpoint is not configured',
+            ],
+            'no password configured' => [
+                null,
+                ['endpoint' => 'https://pihole.test'],
+                'password is not configured',
+            ],
+            'sid missing from auth response' => [
+                fn () => Http::fake(['*/api/auth' => Http::response(['session' => ['validity' => 300]], 200)]),
+                ['endpoint' => 'https://pihole.test', 'password' => 'test'],
+                'no session ID',
+            ],
+        ];
     }
 
     public function test_pihole_groups_sends_sid_header_to_groups_endpoint(): void
@@ -501,5 +458,169 @@ class IntegrationControllerTest extends TestCase
         $this->assertEquals('/admin/settings/integrations/pihole/groups', $filteredGroupField['remote_url']);
         $this->assertEquals('name', $filteredGroupField['remote_label']);
         $this->assertEquals('id', $filteredGroupField['remote_value']);
+    }
+
+    // -------------------------------------------------------------------------
+    // Encrypted config fields (merged from IntegrationControllerEncryptionTest)
+    // -------------------------------------------------------------------------
+
+    #[DataProvider('encryptedConfigFieldsProvider')]
+    public function test_encrypted_config_fields_are_stored_encrypted(string $integration, array $config, string $field, string $expectedValue): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/'.$integration, [
+            'config' => $config,
+        ]);
+
+        $response->assertRedirect();
+
+        $configRecord = IntegrationConfig::where('integration', $integration)
+            ->where('key', $field)
+            ->first();
+
+        $this->assertNotNull($configRecord);
+        $this->assertTrue($configRecord->encrypted, $field.' should be marked as encrypted');
+        $this->assertEquals($expectedValue, $configRecord->value, 'Accessor should decrypt the value');
+
+        $raw = DB::table('integration_configs')
+            ->where('integration', $integration)
+            ->where('key', $field)
+            ->value('value');
+
+        $this->assertStringNotContainsString($expectedValue, (string) $raw, 'Raw DB value should not contain plaintext');
+    }
+
+    public static function encryptedConfigFieldsProvider(): array
+    {
+        return [
+            // Borealis has client_secret with type 'password' in config/integrations.php.
+            'borealis client_secret' => [
+                'borealis',
+                ['endpoint' => 'https://auth.example.com', 'client_id' => 'my-client-id', 'client_secret' => 'super-secret-value', 'scope' => 'discord'],
+                'client_secret',
+                'super-secret-value',
+            ],
+            // OPNsense has 'key' and 'secret' fields with type 'password'.
+            'opnsense key' => [
+                'opnsense',
+                ['endpoint' => 'https://opnsense.local/api', 'key' => 'my-api-key', 'secret' => 'my-api-secret'],
+                'key',
+                'my-api-key',
+            ],
+            'opnsense secret' => [
+                'opnsense',
+                ['endpoint' => 'https://opnsense.local/api', 'key' => 'my-api-key', 'secret' => 'my-api-secret'],
+                'secret',
+                'my-api-secret',
+            ],
+            // Prometheus has bearer_token with type 'password' but it's NOT in the ENCRYPTED_KEYS
+            // constant — this proves encryption is derived from config/integrations.php, not the constant.
+            'prometheus bearer_token' => [
+                'prometheus',
+                ['endpoint' => 'https://prometheus.local', 'bearer_token' => 'my-bearer-token-secret'],
+                'bearer_token',
+                'my-bearer-token-secret',
+            ],
+            'kea password_v4' => [
+                'kea',
+                ['endpoint_v4' => 'https://kea.local:8000', 'username_v4' => 'admin', 'password_v4' => 'super-secret-kea-password'],
+                'password_v4',
+                'super-secret-kea-password',
+            ],
+            'kea password_v6' => [
+                'kea',
+                ['endpoint_v6' => 'https://kea.local:8000', 'username_v6' => 'admin', 'password_v6' => 'super-secret-kea-password'],
+                'password_v6',
+                'super-secret-kea-password',
+            ],
+        ];
+    }
+
+    public function test_stores_non_password_fields_unencrypted(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/opnsense', [
+            'config' => [
+                'endpoint' => 'https://opnsense.local/api',
+                'verify_ssl' => '1',
+            ],
+        ]);
+
+        $response->assertRedirect();
+
+        $config = IntegrationConfig::where('integration', 'opnsense')
+            ->where('key', 'verify_ssl')
+            ->first();
+
+        $this->assertNotNull($config);
+        $this->assertFalse($config->encrypted, 'verify_ssl should NOT be encrypted');
+    }
+
+    #[DataProvider('keaValidationFailureProvider')]
+    public function test_kea_config_validation_failures(array $config, array $expectedErrorKeys): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => $config,
+        ]);
+
+        $response->assertSessionHasErrors($expectedErrorKeys);
+    }
+
+    public static function keaValidationFailureProvider(): array
+    {
+        return [
+            'username_v4 without password_v4' => [
+                ['endpoint_v4' => 'https://kea.local:8000', 'username_v4' => 'admin'],
+                ['config.password_v4'],
+            ],
+            'password_v4 without username_v4' => [
+                ['endpoint_v4' => 'https://kea.local:8000', 'password_v4' => 'super-secret-kea-password'],
+                ['config.username_v4'],
+            ],
+            'username_v6 without password_v6' => [
+                ['endpoint_v4' => 'https://kea.local:8000', 'username_v6' => 'admin'],
+                ['config.password_v6'],
+            ],
+            'password_v6 without username_v6' => [
+                ['endpoint_v4' => 'https://kea.local:8000', 'password_v6' => 'super-secret-kea-password'],
+                ['config.username_v6'],
+            ],
+            'no endpoints provided' => [
+                ['endpoint_v4' => '', 'endpoint_v6' => ''],
+                ['config.endpoint_v4', 'config.endpoint_v6'],
+            ],
+        ];
+    }
+
+    #[DataProvider('keaValidConfigProvider')]
+    public function test_kea_config_passes_validation(array $config): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => $config,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+    }
+
+    public static function keaValidConfigProvider(): array
+    {
+        return [
+            'ipv4 only' => [
+                ['endpoint_v4' => 'https://kea.local:8000'],
+            ],
+            'ipv6 only' => [
+                ['endpoint_v6' => 'https://kea.local:8000'],
+            ],
+            'both endpoints' => [
+                ['endpoint_v4' => 'https://kea.local:8000', 'endpoint_v6' => 'https://kea.local:8001'],
+            ],
+        ];
     }
 }
