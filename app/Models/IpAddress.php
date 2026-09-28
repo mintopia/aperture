@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Traits\ToString;
 use App\Services\NetworkRangeService;
 use Database\Factories\IpAddressFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -60,6 +61,15 @@ use Illuminate\Support\Carbon;
  * @mixin IdeHelperIpAddress
  * @mixin \Eloquent
  */
+#[Fillable([
+    'address',
+    'internet_enabled',
+    'rate_limit_enabled',
+    'dns_filtering_enabled',
+    'comment',
+    'last_seen_at',
+    'expires_at',
+])]
 class IpAddress extends Model
 {
     /** @use HasFactory<Factory<static>> */
@@ -67,20 +77,10 @@ class IpAddress extends Model
 
     use ToString;
 
-    protected string $stringDescriptionProperty = 'address';
-
-    /**
-     * @var list<string>
-     */
-    protected $fillable = [
-        'address',
-        'internet_enabled',
-        'rate_limit_enabled',
-        'dns_filtering_enabled',
-        'comment',
-        'last_seen_at',
-        'expires_at',
-    ];
+    protected function getStringDescription(): ?string
+    {
+        return $this->address;
+    }
 
     /**
      * @return array<string, string>
@@ -160,7 +160,7 @@ class IpAddress extends Model
             return $existing;
         }
 
-        if (! app(NetworkRangeService::class)->isManaged((string) $value)) {
+        if (! resolve(NetworkRangeService::class)->isManaged((string) $value)) {
             return null;
         }
 
@@ -173,7 +173,7 @@ class IpAddress extends Model
     /** @return HasMany<UserIpAddress, $this> */
     public function users(): HasMany
     {
-        return $this->hasMany(UserIpAddress::class, 'ip_address_id')->orderBy('last_seen_at', 'desc');
+        return $this->hasMany(UserIpAddress::class, 'ip_address_id')->latest('last_seen_at');
     }
 
     /** @return BelongsToMany<MacAddress, $this, IpAddressMacAddress> */

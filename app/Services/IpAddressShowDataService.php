@@ -16,8 +16,8 @@ use App\Services\Interfaces\PortErrorsInterface;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -97,7 +97,7 @@ class IpAddressShowDataService
                     'id' => $mac->id,
                     'mac_address' => $mac->mac_address,
                     'source' => $mac->pivot->source,
-                    'last_seen_at' => Carbon::parse($mac->pivot->last_seen_at)->toIso8601String(),
+                    'last_seen_at' => Date::parse($mac->pivot->last_seen_at)->toIso8601String(),
                     'user' => $mac->user instanceof User ? ['id' => $mac->user->id, 'nickname' => $mac->user->nickname] : null,
                 ];
             });

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\SwitchConfigFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -54,24 +56,22 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'name',
+    'hostname',
+    'type',
+    'username',
+    'password',
+    'enable_password',
+    'enabled',
+    'port',
+    'timeout',
+])]
+#[Hidden(['password', 'enable_password'])]
 class SwitchConfig extends Model
 {
     /** @use HasFactory<SwitchConfigFactory> */
     use HasFactory;
-
-    protected $fillable = [
-        'name',
-        'hostname',
-        'type',
-        'username',
-        'password',
-        'enable_password',
-        'enabled',
-        'port',
-        'timeout',
-    ];
-
-    protected $hidden = ['password', 'enable_password'];
 
     public static function defaultFallback(): self
     {

@@ -8,6 +8,7 @@ use App\Models\DhcpSyncState;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Tests\TestCase;
 
 class DhcpSyncStateTest extends TestCase
@@ -46,7 +47,7 @@ class DhcpSyncStateTest extends TestCase
 
     public function test_casts_timestamps(): void
     {
-        $now = Carbon::now();
+        $now = Date::now();
 
         $state = DhcpSyncState::factory()->create([
             'last_attempt_at' => $now,

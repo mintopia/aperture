@@ -45,7 +45,7 @@ class ThemeSettingsControllerTest extends TestCase
     public function test_theme_includes_site_logo_fields_when_no_logo(): void
     {
         Queue::fake();
-        $theme = app(ThemeService::class)->getTheme();
+        $theme = resolve(ThemeService::class)->getTheme();
 
         $this->assertArrayHasKey('has_site_logo', $theme);
         $this->assertArrayHasKey('site_logo_url', $theme);
@@ -60,10 +60,10 @@ class ThemeSettingsControllerTest extends TestCase
         Queue::fake();
         Storage::fake('public');
         $file = UploadedFile::fake()->image('logo.png', 128, 128);
-        app(LogoService::class)->store($file);
+        resolve(LogoService::class)->store($file);
 
         // Need a fresh instance since ThemeService caches
-        $themeService = new ThemeService(app(LogoService::class));
+        $themeService = new ThemeService(resolve(LogoService::class));
         $theme = $themeService->getTheme();
 
         $this->assertTrue($theme['has_site_logo']);

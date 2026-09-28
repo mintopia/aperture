@@ -9,8 +9,8 @@ use App\Models\MacAddress;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -61,7 +61,7 @@ class SearchControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $ip = new IpAddress;
         $ip->address = '192.168.1.50';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($admin)->getJson('/admin/search?q=192.168.1.50');

@@ -64,7 +64,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertDatabaseHas('mac_addresses', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
     }
@@ -74,7 +74,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp();
         $this->mockInventory([new ArpEntry('127.0.0.1', 'AA:BB:CC:DD:EE:02')]);
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertDatabaseHas('mac_addresses', ['mac_address' => 'AA:BB:CC:DD:EE:02']);
     }
@@ -84,7 +84,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertDatabaseHas('ip_addresses', ['address' => '127.0.0.1']);
     }
@@ -96,7 +96,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('192.168.1.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertDatabaseMissing('ip_addresses', ['address' => '192.168.1.1']);
         // MAC should still be stored regardless
@@ -108,7 +108,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-05-01')]);
         $this->mockInventory([new ArpEntry('127.0.0.2', 'AA:BB:CC:DD:EE:02')]);
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip1 = IpAddress::where('address', '127.0.0.1')->first();
         $mac1 = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:01')->first();
@@ -138,7 +138,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'my-laptop', '2026-05-01 12:00:00')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertNotNull(IpAddress::where('address', '127.0.0.1')->first());
         $this->assertNotNull(MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:01')->first());
@@ -157,7 +157,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp();
         $this->mockInventory([], [new ForwardingEntry('aabb.ccdd.ee03', $switchPort->port_name, 100)]);
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $spm = SwitchPortMac::where('mac_address', 'AA:BB:CC:DD:EE:03')->first();
         $this->assertNotNull($spm);
@@ -171,7 +171,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'host', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $freshIp = $ip->fresh();
         $this->assertNotNull($freshIp);
@@ -185,7 +185,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'xbox', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
@@ -199,7 +199,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', '11:22:33:44:55:66', 'laptop', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
@@ -211,7 +211,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'host', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
@@ -223,7 +223,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'host', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'ip.created', 'process' => 'scan_network']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'mac.created', 'process' => 'scan_network']);
@@ -235,7 +235,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'host', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertDatabaseHas('mac_addresses', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
     }
@@ -253,7 +253,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         $this->mockDhcp();
         $this->mockInventory([], [new ForwardingEntry('aabb.ccdd.ee04', $switchPort->port_name, 100)]);
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $spm = SwitchPortMac::where('mac_address', 'AA:BB:CC:DD:EE:04')->first();
         $this->assertNotNull($spm);

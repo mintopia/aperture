@@ -7,6 +7,7 @@ use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Models\Role;
 use App\Models\User;
+use Closure;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -277,12 +278,12 @@ class IntegrationControllerTest extends TestCase
     }
 
     #[DataProvider('piholeGroupsErrorProvider')]
-    public function test_pihole_groups_returns_error(?\Closure $fakeSetup, array $payload, string $expectedErrorSubstring): void
+    public function test_pihole_groups_returns_error(?Closure $fakeSetup, array $payload, string $expectedErrorSubstring): void
     {
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        if ($fakeSetup !== null) {
+        if ($fakeSetup instanceof Closure) {
             $fakeSetup();
         }
 

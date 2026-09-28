@@ -10,9 +10,10 @@ use App\Services\Kea\KeaDhcpService;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
+use Closure;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -26,13 +27,13 @@ class KeaDhcpServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Carbon::setTestNow(Carbon::createFromTimestamp(self::NOW_TIMESTAMP));
+        Date::setTestNow(Date::createFromTimestamp(self::NOW_TIMESTAMP));
         $this->service = new KeaDhcpService(new KeaClient(endpoint: 'https://kea.local'));
     }
 
     protected function tearDown(): void
     {
-        Carbon::setTestNow();
+        Date::setTestNow();
         parent::tearDown();
     }
 
@@ -636,7 +637,7 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertSame('AA:BB:CC:00:00:05', $lease->mac);
         $this->assertSame('my-host', $lease->hostname);
         $this->assertSame(
-            Carbon::createFromTimestamp(2_000_000_999)->toIso8601String(),
+            Date::createFromTimestamp(2_000_000_999)->toIso8601String(),
             $lease->expires,
         );
     }
@@ -763,7 +764,7 @@ class KeaDhcpServiceTest extends TestCase
     }
 
     #[DataProvider('leasesFetchFailureProvider')]
-    public function test_lease_fetch_failure_is_caught_and_reported_via_fetch_status(\Closure $fakeHttp): void
+    public function test_lease_fetch_failure_is_caught_and_reported_via_fetch_status(Closure $fakeHttp): void
     {
         $fakeHttp();
 
@@ -797,7 +798,7 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertSame('aa:bb:cc:dd:ee:ff', $lease->mac);
         $this->assertSame('workstation-1', $lease->hostname);
         $this->assertSame(
-            Carbon::createFromTimestamp(self::NOW_TIMESTAMP + 1_000)->toIso8601String(),
+            Date::createFromTimestamp(self::NOW_TIMESTAMP + 1_000)->toIso8601String(),
             $lease->expires,
         );
 
@@ -992,7 +993,7 @@ class KeaDhcpServiceTest extends TestCase
     }
 
     #[DataProvider('getLeaseFailureProvider')]
-    public function test_get_lease_returns_null_on_fetch_failure(\Closure $fakeHttp): void
+    public function test_get_lease_returns_null_on_fetch_failure(Closure $fakeHttp): void
     {
         $fakeHttp();
 
@@ -1049,7 +1050,7 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertSame('AA:BB:CC:00:00:01', $lease->mac);
         $this->assertSame('workstation-6', $lease->hostname);
         $this->assertSame(
-            Carbon::createFromTimestamp(self::NOW_TIMESTAMP + 1_000)->toIso8601String(),
+            Date::createFromTimestamp(self::NOW_TIMESTAMP + 1_000)->toIso8601String(),
             $lease->expires,
         );
 

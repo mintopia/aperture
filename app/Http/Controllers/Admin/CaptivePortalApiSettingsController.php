@@ -33,9 +33,9 @@ class CaptivePortalApiSettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'user_portal_url' => 'nullable|url|max:500',
-            'venue_info_url' => 'nullable|url|max:500',
-            'can_extend_session' => 'required|boolean',
+            'user_portal_url' => ['nullable', 'url', 'max:500'],
+            'venue_info_url' => ['nullable', 'url', 'max:500'],
+            'can_extend_session' => ['required', 'boolean'],
         ]);
 
         Setting::set('captive_portal_api.user_portal_url', 'Captive Portal User URL', $validated['user_portal_url'] ?? '');

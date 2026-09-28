@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Providers;
 
-use App\Providers\RouteServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route as RoutingRoute;
@@ -10,13 +9,8 @@ use Illuminate\Routing\UrlGenerator;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
-class RouteServiceProviderTest extends TestCase
+class AppServiceProviderRoutingTest extends TestCase
 {
-    public function test_home_constant_is_defined(): void
-    {
-        $this->assertEquals('/', RouteServiceProvider::HOME);
-    }
-
     public function test_api_rate_limiter_is_configured(): void
     {
         $this->assertTrue(RateLimiter::limiter('api') !== null);
@@ -48,7 +42,7 @@ class RouteServiceProviderTest extends TestCase
 
     public function test_format_path_returns_unchanged_when_portid_embedded_in_segment(): void
     {
-        // Covers RouteServiceProvider line 57: portIdIndex === false
+        // Covers the AppServiceProvider path formatter: portIdIndex === false
         // This happens when the URI contains the string "{portId}" but it is embedded
         // within a segment (e.g., "prefix{portId}suffix"), so array_search for the
         // exact segment "{portId}" returns false.

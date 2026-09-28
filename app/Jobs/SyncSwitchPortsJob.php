@@ -59,11 +59,7 @@ class SyncSwitchPortsJob implements ShouldBeUnique, ShouldQueue
             $circuitBreaker->recordSuccess($this->switchConfig);
 
             foreach ($result->portStateChanges as $change) {
-                PortStateChanged::dispatch(
-                    $change['switchPort'],
-                    $change['oldStatus'],
-                    $change['newStatus'],
-                );
+                event(new PortStateChanged($change['switchPort'], $change['oldStatus'], $change['newStatus']));
             }
         } catch (Throwable $throwable) {
             $circuitBreaker->recordFailure($this->switchConfig);

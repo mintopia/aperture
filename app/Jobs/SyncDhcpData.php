@@ -122,12 +122,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
         $wasBelowThreshold = $previousUtilisation === null || $previousUtilisation < self::UTILISATION_THRESHOLD;
         if ($wasBelowThreshold) {
-            DhcpPoolThresholdReached::dispatch(
-                pool: $integration,
-                usage: $currentUtilisation,
-                threshold: self::UTILISATION_THRESHOLD,
-                addressFamily: $addressFamily,
-            );
+            event(new DhcpPoolThresholdReached(pool: $integration, usage: $currentUtilisation, threshold: self::UTILISATION_THRESHOLD, addressFamily: $addressFamily));
         }
     }
 
@@ -146,7 +141,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
      */
     public function performLeaseSync(string $integration, Collection $leases, array $fetchStatus): int
     {
-        $ipv4Leases = $leases->filter(fn (DhcpLease $lease): bool => ! $this->isIpv6($lease->ip))->values();
+        $ipv4Leases = $leases->reject(fn (DhcpLease $lease): bool => $this->isIpv6($lease->ip))->values();
         $ipv6Leases = $leases->filter(fn (DhcpLease $lease): bool => $this->isIpv6($lease->ip))->values();
 
         $count = $this->performLeaseSyncForFamily($integration, 'ipv4', $ipv4Leases, $fetchStatus['ipv4']);

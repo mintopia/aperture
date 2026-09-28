@@ -79,7 +79,7 @@ final class LinkIpMacStep
 
             // Dispatch on refresh too, so existing links that never received a
             // user association can heal on the next scan (ADR-011).
-            IpMacLinked::dispatch($ip, $mac, $pair['source'], 'scan_network');
+            event(new IpMacLinked($ip, $mac, $pair['source'], 'scan_network'));
         }
     }
 }

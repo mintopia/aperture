@@ -46,7 +46,7 @@ class PageController extends Controller
 
         Page::create($validated);
 
-        return redirect()->route('admin.content.pages.index')->with('success', 'Page created successfully.');
+        return to_route('admin.content.pages.index')->with('success', 'Page created successfully.');
     }
 
     public function edit(Page $page): Response
@@ -68,13 +68,13 @@ class PageController extends Controller
 
         $page->update($validated);
 
-        return redirect()->route('admin.content.pages.index')->with('success', 'Page updated successfully.');
+        return to_route('admin.content.pages.index')->with('success', 'Page updated successfully.');
     }
 
     public function destroy(Page $page): RedirectResponse
     {
         $page->delete();
 
-        return redirect()->route('admin.content.pages.index')->with('success', 'Page deleted successfully.');
+        return to_route('admin.content.pages.index')->with('success', 'Page deleted successfully.');
     }
 }

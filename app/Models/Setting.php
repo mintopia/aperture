@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Casts\SettingValue;
 use App\Models\Traits\ToString;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -45,18 +46,17 @@ use Illuminate\Support\Facades\Cache;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'code',
+    'name',
+    'value',
+])]
 class Setting extends Model
 {
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
     use ToString;
-
-    protected $fillable = [
-        'code',
-        'name',
-        'value',
-    ];
 
     protected $casts = [
         'value' => SettingValue::class,

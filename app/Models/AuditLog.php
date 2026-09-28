@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Events\AuditLogRecorded;
 use Database\Factories\AuditLogFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -25,26 +26,24 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed>|null $metadata
  * @property Carbon $created_at
  */
+#[Fillable([
+    'action',
+    'subject_type',
+    'subject_id',
+    'related_type',
+    'related_id',
+    'actor_type',
+    'actor_id',
+    'process',
+    'severity',
+    'metadata',
+])]
 class AuditLog extends Model
 {
     /** @use HasFactory<AuditLogFactory> */
     use HasFactory;
 
     const UPDATED_AT = null;
-
-    /** @var list<string> */
-    protected $fillable = [
-        'action',
-        'subject_type',
-        'subject_id',
-        'related_type',
-        'related_id',
-        'actor_type',
-        'actor_id',
-        'process',
-        'severity',
-        'metadata',
-    ];
 
     /**
      * @return array<string, string>
@@ -99,7 +98,7 @@ class AuditLog extends Model
             'severity' => $severity,
         ]);
 
-        AuditLogRecorded::dispatch($log);
+        event(new AuditLogRecorded($log));
 
         return $log;
     }

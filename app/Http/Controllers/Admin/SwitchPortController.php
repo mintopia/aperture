@@ -213,21 +213,21 @@ class SwitchPortController extends Controller
 
     public function refresh(SwitchConfig $switchConfig, string $portId): RedirectResponse
     {
-        SyncSwitchPortsJob::dispatch($switchConfig);
+        dispatch(new SyncSwitchPortsJob($switchConfig));
 
         return back()->with('success', 'Port refresh has been queued.');
     }
 
     public function shutdown(SwitchConfig $switchConfig, string $portId): RedirectResponse
     {
-        SwitchPortActionJob::dispatch($switchConfig, $portId, 'shutdown');
+        dispatch(new SwitchPortActionJob($switchConfig, $portId, 'shutdown'));
 
         return back()->with('success', 'Port shutdown has been queued.');
     }
 
     public function enable(SwitchConfig $switchConfig, string $portId): RedirectResponse
     {
-        SwitchPortActionJob::dispatch($switchConfig, $portId, 'enable');
+        dispatch(new SwitchPortActionJob($switchConfig, $portId, 'enable'));
 
         return back()->with('success', 'Port enable has been queued.');
     }

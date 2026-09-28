@@ -18,6 +18,8 @@ return RectorConfig::configure()
         SetList::CODING_STYLE,
         SetList::DEAD_CODE,
         SetList::TYPE_DECLARATION,
-        LaravelSetList::LARAVEL_120,
+        LaravelSetList::LARAVEL_130,
+        LaravelSetList::LARAVEL_CODE_QUALITY,
+        LaravelSetList::LARAVEL_COLLECTION,
     ])
     ->withImportNames();

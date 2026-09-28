@@ -77,7 +77,7 @@ class AdminOnlyPolicyTest extends TestCase
         $policy = new $policyClass;
         $actor = $asAdmin ? $this->admin : $this->regularUser;
 
-        $result = $subjectFactory !== null
+        $result = $subjectFactory instanceof Closure
             ? $policy->{$ability}($actor, $subjectFactory())
             : $policy->{$ability}($actor);
 

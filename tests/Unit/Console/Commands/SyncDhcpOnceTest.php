@@ -8,6 +8,7 @@ use App\Jobs\SyncDhcpData;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Null\NullDhcpService;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -38,6 +39,7 @@ class SyncDhcpOnceTest extends TestCase
 
     public function test_dhcp_sync_job_is_scheduled(): void
     {
+        Artisan::all();
         $schedule = $this->app->make(Schedule::class);
         $events = collect($schedule->events());
 

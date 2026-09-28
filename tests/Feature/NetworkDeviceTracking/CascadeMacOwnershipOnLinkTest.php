@@ -29,7 +29,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
     private function handleEvent(IpAddress $ip, MacAddress $mac, string $source = 'dhcp', string $process = 'scan_network'): void
     {
         /** @var CascadeMacOwnershipOnLink $listener */
-        $listener = app(CascadeMacOwnershipOnLink::class);
+        $listener = resolve(CascadeMacOwnershipOnLink::class);
         $listener->handle(new IpMacLinked($ip, $mac, $source, $process));
     }
 
@@ -164,7 +164,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
         $this->app->instance(MacAddressResolverInterface::class, $macResolver);
 
         /** @var IpAddressActionService $service */
-        $service = app(IpAddressActionService::class);
+        $service = resolve(IpAddressActionService::class);
         $service->enableInternet($ip);
 
         $this->assertTrue(

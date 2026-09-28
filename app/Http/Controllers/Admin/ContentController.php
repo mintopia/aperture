@@ -66,12 +66,12 @@ class ContentController extends Controller
     public function updateLayout(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'blocks' => 'required|array',
-            'blocks.*.id' => 'required|exists:content_blocks,id',
-            'blocks.*.grid_col' => 'required|integer|min:1|max:3',
-            'blocks.*.grid_row' => 'required|integer|min:1',
-            'blocks.*.col_span' => 'required|integer|min:1|max:3',
-            'blocks.*.row_span' => 'required|integer|min:1',
+            'blocks' => ['required', 'array'],
+            'blocks.*.id' => ['required', 'exists:content_blocks,id'],
+            'blocks.*.grid_col' => ['required', 'integer', 'min:1', 'max:3'],
+            'blocks.*.grid_row' => ['required', 'integer', 'min:1'],
+            'blocks.*.col_span' => ['required', 'integer', 'min:1', 'max:3'],
+            'blocks.*.row_span' => ['required', 'integer', 'min:1'],
         ]);
 
         // Validate spans don't exceed grid bounds

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\SwitchPortConfigFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -37,19 +38,17 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'switch_port_id',
+    'config_text',
+    'config_hash',
+    'interface_output',
+    'last_fetched_at',
+])]
 class SwitchPortConfig extends Model
 {
     /** @use HasFactory<SwitchPortConfigFactory> */
     use HasFactory;
-
-    /** @var list<string> */
-    protected $fillable = [
-        'switch_port_id',
-        'config_text',
-        'config_hash',
-        'interface_output',
-        'last_fetched_at',
-    ];
 
     /**
      * @return array<string, mixed>

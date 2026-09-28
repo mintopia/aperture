@@ -72,7 +72,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
             $queries->push($query->sql);
         });
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         // Verify we never load ALL mac_addresses without a WHERE filter
         $unfilteredSelects = $queries->filter(function (string $sql): bool {
@@ -107,7 +107,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         ]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip1 = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip1);
@@ -129,7 +129,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'xbox', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'oui.auto_allowed',
@@ -154,7 +154,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'xbox', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         // Should NOT create an audit log since IP was already enabled
         $this->assertDatabaseMissing('audit_logs', [
@@ -169,7 +169,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'device', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
@@ -182,7 +182,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'device', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
@@ -196,7 +196,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'device', '2026-05-01')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
@@ -216,7 +216,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $this->mockDhcp();
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         $ip1->refresh();
         $ip2->refresh();
@@ -249,7 +249,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
         $this->mockDhcp();
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         // Verify all matching IPs were enabled
         foreach ($ips as $ip) {

@@ -9,7 +9,7 @@ use App\Models\IpAddressMacAddress;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -24,7 +24,7 @@ class NetworkSettingsClearIpMacTest extends TestCase
     {
         parent::setUp();
         Queue::fake();
-        $this->travelTo(Carbon::parse('2026-06-10 12:00:00'));
+        $this->travelTo(Date::parse('2026-06-10 12:00:00'));
     }
 
     protected function createAdminUser(?string $password = 'password'): User

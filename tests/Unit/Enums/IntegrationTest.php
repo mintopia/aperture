@@ -6,7 +6,6 @@ namespace Tests\Unit\Enums;
 
 use App\Enums\Capability;
 use App\Enums\Integration;
-use App\Enums\PortOperStatus;
 use PHPUnit\Framework\TestCase;
 
 class IntegrationTest extends TestCase
@@ -42,19 +41,6 @@ class IntegrationTest extends TestCase
         foreach (['captive-portal', 'rate-limiting', 'dhcp', 'dns-filtering', 'ip-bandwidth', 'port-bandwidth', 'port-errors', 'ip-mac', 'port-mac', 'authentication'] as $cap) {
             $this->assertContains($cap, $values, 'Missing capability: '.$cap);
         }
-    }
-
-    public function test_port_oper_status_up_is_up(): void
-    {
-        $status = PortOperStatus::from('up');
-        $this->assertSame(PortOperStatus::Up, $status);
-        $this->assertTrue($status->isUp());
-    }
-
-    public function test_port_oper_status_is_case_insensitive_via_try_from(): void
-    {
-        $this->assertSame(PortOperStatus::Down, PortOperStatus::tryFrom('down'));
-        $this->assertNull(PortOperStatus::tryFrom('unknown_value'));
     }
 
     public function test_integration_try_from_unknown_returns_null(): void

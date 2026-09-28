@@ -66,7 +66,7 @@ class SwitchManagementController extends Controller
             metadata: ['ip' => $request->getClientIp()],
         );
 
-        return redirect()->route('admin.switches.show', $switchConfig)
+        return to_route('admin.switches.show', $switchConfig)
             ->with('success', 'Switch created successfully.');
     }
 
@@ -143,7 +143,7 @@ class SwitchManagementController extends Controller
 
         $switchConfig->delete();
 
-        return redirect()->route('admin.switches.index')
+        return to_route('admin.switches.index')
             ->with('success', 'Switch deleted successfully.');
     }
 
@@ -151,7 +151,7 @@ class SwitchManagementController extends Controller
     {
         $circuitBreaker->reset($switchConfig);
 
-        SyncSwitchPortsJob::dispatch($switchConfig);
+        dispatch(new SyncSwitchPortsJob($switchConfig));
 
         return back()->with('success', 'Switch sync has been queued.');
     }

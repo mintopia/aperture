@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\DhcpSnoopingObservationFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,21 +23,19 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
+#[Fillable([
+    'switch_config_id',
+    'vlan',
+    'ip',
+    'mac',
+    'interface',
+    'expires_at',
+    'observed_at',
+])]
 class DhcpSnoopingObservation extends Model
 {
     /** @use HasFactory<DhcpSnoopingObservationFactory> */
     use HasFactory;
-
-    /** @var list<string> */
-    protected $fillable = [
-        'switch_config_id',
-        'vlan',
-        'ip',
-        'mac',
-        'interface',
-        'expires_at',
-        'observed_at',
-    ];
 
     protected function casts(): array
     {

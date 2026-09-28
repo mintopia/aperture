@@ -71,12 +71,13 @@ class QueueReliabilityTest extends TestCase
                 $timeouts[$job::class] = $job->timeout ?? 60;
             }
         }
+
         foreach (config('horizon.defaults') as $name => $supervisor) {
-            $timeouts["horizon:$name"] = $supervisor['timeout'];
+            $timeouts['horizon:'.$name] = $supervisor['timeout'];
         }
 
         foreach ($timeouts as $name => $timeout) {
-            $this->assertGreaterThanOrEqual($timeout + self::SAFETY_MARGIN, $retryAfter, "retry_after too short for {$name}");
+            $this->assertGreaterThanOrEqual($timeout + self::SAFETY_MARGIN, $retryAfter, 'retry_after too short for '.$name);
         }
     }
 
@@ -104,6 +105,7 @@ class QueueReliabilityTest extends TestCase
             foreach ($jobs as $job) {
                 $this->assertSame($expected[$group], $job->queue, $job::class);
             }
+
             $this->assertContains($expected[$group], $served);
         }
     }

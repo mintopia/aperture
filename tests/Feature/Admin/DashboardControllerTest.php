@@ -8,8 +8,8 @@ use App\Models\DhcpRangeRecord;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -86,7 +86,7 @@ class DashboardControllerTest extends TestCase
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
         $ip->internet_enabled = true;
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($user)->get('/admin');

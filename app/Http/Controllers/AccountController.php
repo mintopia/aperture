@@ -43,7 +43,7 @@ class AccountController extends Controller
             abort(403); // Required for PHPStan level 8 null-safety
         }
 
-        $request->validate(['password' => 'required|string']);
+        $request->validate(['password' => ['required', 'string']]);
 
         if ($user->password === null || ! Hash::check($request->string('password')->value(), $user->password)) {
             return back()->withErrors(['password' => 'Incorrect password.']);
@@ -66,7 +66,7 @@ class AccountController extends Controller
         }
 
         $request->validate([
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $user->update(['password' => Hash::make($request->string('password')->value())]);
@@ -91,7 +91,7 @@ class AccountController extends Controller
         }
 
         $request->validate([
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $user->password = $request->password;

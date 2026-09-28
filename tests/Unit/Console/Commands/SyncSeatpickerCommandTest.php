@@ -7,6 +7,7 @@ namespace Tests\Unit\Console\Commands;
 use App\Models\IntegrationConfig;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -60,6 +61,7 @@ class SyncSeatpickerCommandTest extends TestCase
 
     public function test_command_is_scheduled(): void
     {
+        Artisan::all();
         $schedule = $this->app->make(Schedule::class);
         $events = collect($schedule->events());
 

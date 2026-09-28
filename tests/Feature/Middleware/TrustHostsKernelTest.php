@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Middleware;
 
-use App\Http\Kernel;
 use App\Http\Middleware\TrustHosts;
-use ReflectionClass;
+use Illuminate\Contracts\Http\Kernel;
 use Tests\TestCase;
 
 class TrustHostsKernelTest extends TestCase
@@ -15,12 +14,6 @@ class TrustHostsKernelTest extends TestCase
     {
         $kernel = $this->app->make(Kernel::class);
 
-        $reflection = new ReflectionClass($kernel);
-        $property = $reflection->getProperty('middleware');
-        $property->setAccessible(true);
-
-        $middleware = $property->getValue($kernel);
-
-        $this->assertContains(TrustHosts::class, $middleware);
+        $this->assertContains(TrustHosts::class, $kernel->getGlobalMiddleware());
     }
 }

@@ -44,25 +44,16 @@ class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
     }
 
     public function handle(
-        ?DhcpInterface $dhcp = null,
-        ?IpMacResolverInterface $ipMac = null,
-        ?PortMacInterface $portMac = null,
-        ?NetworkRangeService $rangeService = null,
-        ?PersistMacsStep $persistMacs = null,
-        ?PersistIpsStep $persistIps = null,
-        ?LinkIpMacStep $linkIpMac = null,
-        ?LinkSwitchPortMacsStep $linkSwitchPortMacs = null,
-        ?ApplyOuiPolicyStep $applyOuiPolicy = null,
+        DhcpInterface $dhcp,
+        IpMacResolverInterface $ipMac,
+        PortMacInterface $portMac,
+        NetworkRangeService $rangeService,
+        PersistMacsStep $persistMacs,
+        PersistIpsStep $persistIps,
+        LinkIpMacStep $linkIpMac,
+        LinkSwitchPortMacsStep $linkSwitchPortMacs,
+        ApplyOuiPolicyStep $applyOuiPolicy,
     ): void {
-        $dhcp ??= app(DhcpInterface::class);
-        $ipMac ??= app(IpMacResolverInterface::class);
-        $portMac ??= app(PortMacInterface::class);
-        $rangeService ??= app(NetworkRangeService::class);
-        $persistMacs ??= new PersistMacsStep;
-        $persistIps ??= new PersistIpsStep;
-        $linkIpMac ??= new LinkIpMacStep;
-        $linkSwitchPortMacs ??= new LinkSwitchPortMacsStep;
-        $applyOuiPolicy ??= new ApplyOuiPolicyStep;
 
         $leases = $dhcp->getLeases();
         $arpEntries = $ipMac->getArpTable();

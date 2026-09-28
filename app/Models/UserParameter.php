@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\UserParameterFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,17 +34,15 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'user_id',
+    'key',
+    'value',
+])]
 class UserParameter extends Model
 {
     /** @use HasFactory<UserParameterFactory> */
     use HasFactory;
-
-    /** @var list<string> */
-    protected $fillable = [
-        'user_id',
-        'key',
-        'value',
-    ];
 
     /**
      * @return array<string, string>
