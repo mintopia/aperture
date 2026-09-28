@@ -12,6 +12,7 @@ use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\MacAddressResolver;
+use App\Services\NetworkScan\DhcpSnoopingResolver;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SshProxy\SshProxyClient;
 use Illuminate\Foundation\Application;
@@ -73,6 +74,7 @@ class NetworkServiceProvider extends ServiceProvider
             return new MacAddressResolver(
                 $app->make(DhcpInterface::class),
                 $app->make(IpMacResolverInterface::class),
+                $app->make(DhcpSnoopingResolver::class),
             );
         });
     }

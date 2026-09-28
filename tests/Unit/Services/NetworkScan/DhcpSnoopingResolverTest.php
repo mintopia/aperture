@@ -100,4 +100,24 @@ class DhcpSnoopingResolverTest extends TestCase
 
         $this->assertCount(0, $mappings);
     }
+
+    public function test_supplement_prefers_primary_table_and_fills_missing_ips(): void
+    {
+        $switch = SwitchConfig::factory()->create();
+        foreach ([['10.0.0.1', 'AA:AA:AA:AA:AA:01'], ['10.0.0.2', 'AA:AA:AA:AA:AA:02']] as [$ip, $mac]) {
+            DhcpSnoopingObservation::factory()->create([
+                'switch_config_id' => $switch->id,
+                'ip' => $ip,
+                'mac' => $mac,
+                'observed_at' => now(),
+            ]);
+        }
+
+        $merged = $this->resolver->supplement(collect([new IpMacEntry('10.0.0.1', 'BB:BB:BB:BB:BB:01')]));
+
+        $this->assertSame(
+            ['10.0.0.1' => 'BB:BB:BB:BB:BB:01', '10.0.0.2' => 'AA:AA:AA:AA:AA:02'],
+            $merged->mapWithKeys(fn (IpMacEntry $e): array => [$e->ip => $e->mac])->all(),
+        );
+    }
 }
