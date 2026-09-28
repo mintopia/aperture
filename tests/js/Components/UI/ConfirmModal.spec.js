@@ -77,28 +77,14 @@ describe('ConfirmModal', () => {
         expect(wrapper.text()).toContain('Extra confirmation details');
     });
 
-    it('applies danger variant styling', () => {
-        const wrapper = mountComponent({ variant: 'danger' });
+    it.each([
+        { variant: 'danger', expectClasses: ['text-[var(--color-danger)]', 'border-[var(--color-danger)]/40'] },
+        { variant: 'warning', expectClasses: ['text-[var(--color-warning)]', 'border-[var(--color-warning)]/40'] },
+        { variant: 'primary', expectClasses: ['bg-[var(--color-primary)]', 'text-white'] },
+    ])('applies $variant variant styling', ({ variant, expectClasses }) => {
+        const wrapper = mountComponent({ variant });
         const btn = wrapper.find('[data-testid="confirm-modal-confirm"]');
-
-        expect(btn.classes()).toContain('text-[var(--color-danger)]');
-        expect(btn.classes()).toContain('border-[var(--color-danger)]/40');
-    });
-
-    it('applies warning variant styling', () => {
-        const wrapper = mountComponent({ variant: 'warning' });
-        const btn = wrapper.find('[data-testid="confirm-modal-confirm"]');
-
-        expect(btn.classes()).toContain('text-[var(--color-warning)]');
-        expect(btn.classes()).toContain('border-[var(--color-warning)]/40');
-    });
-
-    it('applies primary variant styling', () => {
-        const wrapper = mountComponent({ variant: 'primary' });
-        const btn = wrapper.find('[data-testid="confirm-modal-confirm"]');
-
-        expect(btn.classes()).toContain('bg-[var(--color-primary)]');
-        expect(btn.classes()).toContain('text-white');
+        expectClasses.forEach((cls) => expect(btn.classes()).toContain(cls));
     });
 
     it('uses Dispatch modal surface styling', () => {
