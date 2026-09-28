@@ -10,6 +10,7 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Kea\KeaIpMacResolver;
+use App\Services\ValueObjects\ArpEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
@@ -61,6 +62,39 @@ class KeaIpMacResolverTest extends TestCase
     {
         DhcpLease::factory()->create([
             'integration' => Integration::Kea->value,
+            'mac_address_id' => null,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $this->assertCount(0, $this->resolver->getArpTable());
+    }
+
+    public function test_includes_active_kea_ipv6_lease_with_mac(): void
+    {
+        $ip = IpAddress::factory()->create(['address' => '2001:db8::1']);
+        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:02']);
+        DhcpLease::factory()->create([
+            'integration' => Integration::Kea->value,
+            'ip_address_id' => $ip->id,
+            'mac_address_id' => $mac->id,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $table = $this->resolver->getArpTable();
+
+        $this->assertCount(1, $table);
+        $entry = $table->first();
+        $this->assertInstanceOf(ArpEntry::class, $entry);
+        $this->assertSame('2001:db8::1', $entry->ip);
+        $this->assertSame('AA:BB:CC:DD:EE:02', $entry->mac);
+    }
+
+    public function test_excludes_ipv6_lease_without_mac(): void
+    {
+        $ip = IpAddress::factory()->create(['address' => '2001:db8::2']);
+        DhcpLease::factory()->create([
+            'integration' => Integration::Kea->value,
+            'ip_address_id' => $ip->id,
             'mac_address_id' => null,
             'expires_at' => now()->addHour(),
         ]);
