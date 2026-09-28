@@ -89,8 +89,6 @@ class KeaTester implements TestableIntegration
     }
 
     /**
-     * Test a single Kea Endpoint and report the outcome.
-     *
      * @param  list<string>  $requiredCommands
      */
     private function testEndpoint(

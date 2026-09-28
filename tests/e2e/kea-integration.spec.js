@@ -5,17 +5,9 @@ import { buildPlaywrightEnv, resolveBaseUrl } from '../../playwright/env.js';
 
 const playwrightEnv = buildPlaywrightEnv(resolveBaseUrl());
 
-/**
- * "Test Connection" merges the saved config with non-empty request values
- * (IntegrationConfigMerger), so a blank form field doesn't clear a saved
- * Endpoint — and Save itself refuses to persist both Endpoints blank, since
- * at least one is required. The only way to exercise the neither-configured
- * case is to remove the saved rows directly, bypassing the validated Save
- * endpoint, the same way auth.setup.js talks to the fixture database.
- */
-function clearKeaEndpoints() {
+function clearKeaEndpointsBypassingSaveValidation() {
     execSync(
-        'php artisan tinker --execute="\\App\\Models\\IntegrationConfig::where(\'integration\',\'kea\')->whereIn(\'key\',[\'endpoint_v4\',\'endpoint_v6\'])->delete();"',
+        "php artisan tinker --execute=\"\\App\\Models\\IntegrationConfig::where('integration','kea')->whereIn('key',['endpoint_v4','endpoint_v6'])->delete();\"",
         {
             cwd: process.cwd(),
             stdio: 'inherit',
@@ -23,14 +15,10 @@ function clearKeaEndpoints() {
                 ...process.env,
                 ...playwrightEnv,
             },
-        }
+        },
     );
 }
 
-/**
- * The Laravel backend, not the browser, makes the outbound "Test Connection"
- * request, so the stub binds to 127.0.0.1 where the app server can reach it.
- */
 function startKeaStub(commands) {
     return new Promise((resolve) => {
         const server = http.createServer((req, res) => {
@@ -52,17 +40,11 @@ function closeStub(stub) {
 }
 
 test.describe('Kea Integration', () => {
-    // All e2e tests share one authenticated session (storageState), so concurrent
-    // requests from other workers can clobber this file's Inertia validation-error flash data.
     test.describe.configure({ mode: 'serial' });
 
     test.beforeEach(async ({ page }) => {
         await page.goto('/admin/settings/integrations/kea');
 
-        // At least one Endpoint must be configured, so the reset baseline keeps a
-        // dummy IPv4 Endpoint set rather than blanking both — tests that need a
-        // fully unconfigured form clear it themselves without saving (Test
-        // Connection posts live form state, not the persisted config).
         await page.getByTestId('field-input-endpoint_v4').fill('https://kea-baseline.example.test:8000');
         await page.getByTestId('field-input-username_v4').fill('');
         await page.getByTestId('field-input-password_v4').fill('');
@@ -102,7 +84,7 @@ test.describe('Kea Integration', () => {
     });
 
     test('reports "no endpoint configured" when neither Endpoint is set', async ({ page }) => {
-        clearKeaEndpoints();
+        clearKeaEndpointsBypassingSaveValidation();
         await page.goto('/admin/settings/integrations/kea');
 
         await page.getByTestId('action-test-connection').click();
@@ -259,10 +241,7 @@ test.describe('Kea Integration', () => {
         const stub = await startKeaStub(['list-commands', 'config-get', 'lease6-get-page']);
 
         try {
-            // Test Connection falls back to the saved config for any blank field,
-            // so blanking IPv4 in the form alone wouldn't stop it being tested too
-            // — clear the saved Endpoints first so only the IPv6 stub is exercised.
-            clearKeaEndpoints();
+            clearKeaEndpointsBypassingSaveValidation();
             await page.goto('/admin/settings/integrations/kea');
             await page.getByTestId('field-input-endpoint_v6').fill(stub.url);
             await page.getByTestId('action-test-connection').click();
