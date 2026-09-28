@@ -16,20 +16,14 @@ use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\IpAddressActionService;
 use App\Services\NetworkRangeService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Mockery;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class CascadeMacOwnershipOnLinkTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Queue::fake();
-    }
 
     private function handleEvent(IpAddress $ip, MacAddress $mac, string $source = 'dhcp', string $process = 'scan_network'): void
     {
