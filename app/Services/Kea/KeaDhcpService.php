@@ -6,6 +6,8 @@ namespace App\Services\Kea;
 
 use App\Services\Null\NullDhcpService;
 use App\Services\ValueObjects\DhcpLease;
+use App\Services\ValueObjects\DhcpPoolStatus;
+use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +31,70 @@ class KeaDhcpService extends NullDhcpService
     private const MAX_PAGES = 10_000;
 
     public function __construct(private readonly KeaClient $client) {}
+
+    public function getPoolStatus(): DhcpPoolStatus
+    {
+        $ranges = $this->getRanges();
+
+        $total = 0;
+        $used = 0;
+
+        foreach ($ranges as $range) {
+            $total += (int) ($range->totalAddresses ?? '0');
+            $used += $range->usedAddresses ?? 0;
+        }
+
+        return new DhcpPoolStatus(
+            total: $total,
+            used: $used,
+            available: max(0, $total - $used),
+            utilisation: $total > 0 ? round($used / $total, 4) : 0.0,
+        );
+    }
+
+    /** @return Collection<int, DhcpRange> */
+    public function getRanges(): Collection
+    {
+        $entry = $this->client->sendCommand('config-get');
+        $arguments = $entry['arguments'] ?? null;
+
+        if (! is_array($arguments)) {
+            return collect();
+        }
+
+        $dhcp4 = $arguments['Dhcp4'] ?? null;
+
+        if (! is_array($dhcp4)) {
+            return collect();
+        }
+
+        $ranges = collect();
+
+        $this->collectSubnets($ranges, $dhcp4['subnet4'] ?? [], '');
+
+        $sharedNetworks = $dhcp4['shared-networks'] ?? [];
+
+        if (is_array($sharedNetworks)) {
+            foreach ($sharedNetworks as $sharedNetwork) {
+                if (! is_array($sharedNetwork)) {
+                    continue;
+                }
+
+                $name = $sharedNetwork['name'] ?? null;
+                $fallbackInterface = is_string($name) && $name !== '' ? $name : '';
+
+                $this->collectSubnets($ranges, $sharedNetwork['subnet4'] ?? [], $fallbackInterface);
+            }
+        }
+
+        if ($ranges->isEmpty()) {
+            return $ranges;
+        }
+
+        $leases = $this->getLeases();
+
+        return $ranges->map(fn (DhcpRange $range): DhcpRange => $this->enrichRangeWithUsage($range, $leases))->values();
+    }
 
     /** @return Collection<int, DhcpLease> */
     public function getLeases(): Collection
@@ -179,6 +245,189 @@ class KeaDhcpService extends NullDhcpService
             mac: is_string($mac) && $mac !== '' ? $mac : null,
             hostname: is_string($hostname) ? $hostname : '',
             expires: Carbon::createFromTimestamp($this->expiresAt($lease))->toIso8601String(),
+        );
+    }
+
+    /**
+     * @param  Collection<int, DhcpRange>  $ranges
+     */
+    private function collectSubnets(Collection $ranges, mixed $subnets, string $fallbackInterface): void
+    {
+        if (! is_array($subnets)) {
+            return;
+        }
+
+        foreach ($subnets as $subnet) {
+            $this->collectSubnetRanges($ranges, $subnet, $fallbackInterface);
+        }
+    }
+
+    /**
+     * @param  Collection<int, DhcpRange>  $ranges
+     */
+    private function collectSubnetRanges(Collection $ranges, mixed $subnet, string $fallbackInterface): void
+    {
+        if (! is_array($subnet)) {
+            return;
+        }
+
+        $cidr = $subnet['subnet'] ?? null;
+
+        if (! is_string($cidr) || $cidr === '') {
+            return;
+        }
+
+        $pools = $subnet['pools'] ?? [];
+
+        if (! is_array($pools)) {
+            return;
+        }
+
+        $interfaceField = $subnet['interface'] ?? null;
+        $interface = is_string($interfaceField) && $interfaceField !== '' ? $interfaceField : $fallbackInterface;
+        $subnetLabel = $this->contextName($subnet['user-context'] ?? null);
+
+        foreach ($pools as $pool) {
+            $range = $this->buildRange($pool, $cidr, $interface, $subnetLabel);
+
+            if ($range instanceof DhcpRange) {
+                $ranges->push($range);
+            }
+        }
+    }
+
+    private function buildRange(mixed $pool, string $cidr, string $interface, ?string $subnetLabel): ?DhcpRange
+    {
+        if (! is_array($pool)) {
+            return null;
+        }
+
+        $poolString = $pool['pool'] ?? null;
+
+        if (! is_string($poolString) || $poolString === '') {
+            return null;
+        }
+
+        $bounds = $this->parseRangeBounds($poolString);
+
+        if ($bounds === null) {
+            return null;
+        }
+
+        [$from, $to] = $bounds;
+
+        $label = $this->contextName($pool['user-context'] ?? null)
+            ?? $subnetLabel
+            ?? sprintf('%s (%s–%s)', $cidr, $from, $to);
+
+        return new DhcpRange(
+            interface: $interface,
+            type: 'ipv4',
+            subnet: $cidr,
+            rangeFrom: $from,
+            rangeTo: $to,
+            prefix: null,
+            gateway: null,
+            description: $label,
+        );
+    }
+
+    /**
+     * @return array{0: string, 1: string}|null
+     */
+    private function parseRangeBounds(string $pool): ?array
+    {
+        if (str_contains($pool, '/')) {
+            return $this->parseCidrRangeBounds($pool);
+        }
+
+        if (preg_match('/^\s*([^\s-]+)\s*-\s*([^\s-]+)\s*$/', $pool, $matches) !== 1) {
+            return null;
+        }
+
+        $fromLong = ip2long($matches[1]);
+        $toLong = ip2long($matches[2]);
+
+        if ($fromLong === false || $toLong === false || $fromLong > $toLong) {
+            return null;
+        }
+
+        return [$matches[1], $matches[2]];
+    }
+
+    /**
+     * @return array{0: string, 1: string}|null
+     */
+    private function parseCidrRangeBounds(string $cidr): ?array
+    {
+        [$network, $prefixLength] = array_pad(explode('/', $cidr, 2), 2, '');
+
+        if (! ctype_digit($prefixLength)) {
+            return null;
+        }
+
+        $prefixLength = (int) $prefixLength;
+
+        if ($prefixLength > 32) {
+            return null;
+        }
+
+        $networkLong = ip2long($network);
+
+        if ($networkLong === false) {
+            return null;
+        }
+
+        // Masking with 0xFFFFFFFF keeps the shift result within 32 bits on 64-bit PHP builds.
+        $mask = $prefixLength === 0 ? 0 : ((-1 << (32 - $prefixLength)) & 0xFFFFFFFF);
+        $networkLong &= $mask;
+
+        return [long2ip($networkLong), long2ip($networkLong | (~$mask & 0xFFFFFFFF))];
+    }
+
+    private function contextName(mixed $userContext): ?string
+    {
+        if (! is_array($userContext)) {
+            return null;
+        }
+
+        $name = $userContext['name'] ?? null;
+
+        return is_string($name) && $name !== '' ? $name : null;
+    }
+
+    /**
+     * @param  Collection<int, DhcpLease>  $leases
+     */
+    private function enrichRangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
+    {
+        $fromLong = ip2long((string) $range->rangeFrom);
+        $toLong = ip2long((string) $range->rangeTo);
+
+        if ($fromLong === false || $toLong === false) {
+            return $range; // @codeCoverageIgnore
+        }
+
+        $total = $toLong - $fromLong + 1;
+
+        $used = $leases->filter(function (DhcpLease $lease) use ($fromLong, $toLong): bool {
+            $leaseLong = ip2long($lease->ip);
+
+            return $leaseLong !== false && $leaseLong >= $fromLong && $leaseLong <= $toLong;
+        })->count();
+
+        return new DhcpRange(
+            interface: $range->interface,
+            type: $range->type,
+            subnet: $range->subnet,
+            rangeFrom: $range->rangeFrom,
+            rangeTo: $range->rangeTo,
+            prefix: $range->prefix,
+            gateway: $range->gateway,
+            description: $range->description,
+            totalAddresses: (string) $total,
+            usedAddresses: $used,
+            utilisation: $total > 0 ? round($used / $total, 4) : 0.0,
         );
     }
 }
