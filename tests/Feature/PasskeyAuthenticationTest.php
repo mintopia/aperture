@@ -5,19 +5,16 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Queue;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class PasskeyAuthenticationTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-    }
-
+    // Overrides CreatesAdminUsers::createAdminUser() — passkey flows require a
+    // pre-existing password so the "change password" fallback path is exercised.
     protected function createAdminUser(): User
     {
         $user = User::factory()->withPassword()->create();

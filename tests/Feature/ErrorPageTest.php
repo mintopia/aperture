@@ -5,18 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Queue;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class ErrorPageTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-    }
 
     public function test_404_error_renders_inertia_error_page(): void
     {

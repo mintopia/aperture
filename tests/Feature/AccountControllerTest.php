@@ -3,34 +3,16 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Queue;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class AccountControllerTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-    }
-
-    protected function createAdminUser(): User
-    {
-        $user = User::factory()->create();
-        $role = new Role;
-        $role->code = 'admin';
-        $role->name = 'Admin';
-        $role->save();
-        $user->roles()->attach($role);
-
-        return $user;
-    }
 
     public function test_authenticated_user_can_access_account_settings(): void
     {
