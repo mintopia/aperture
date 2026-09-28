@@ -24,6 +24,7 @@ class PiHoleTester implements TestableIntegration
             fn () => Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
                 ->asJson()
                 ->timeout(10)
+                ->connectTimeout(5)
                 ->post($url, ['password' => $config['password'] ?? '']),
             'Connected and authenticated successfully',
         );

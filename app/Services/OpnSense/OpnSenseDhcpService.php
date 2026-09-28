@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace App\Services\OpnSense;
 
 use App\Models\IpAddress;
+use App\Services\Http\ExternalHttp;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
-use GuzzleHttp\Client;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Psr\Http\Message\ResponseInterface;
 use Throwable;
 use UnexpectedValueException;
 
@@ -32,7 +33,10 @@ class OpnSenseDhcpService implements DhcpInterface
      * @param  array{interface: string, subnet: string, range_from: string, range_to: string, gateway: string, description: string, prefix: string, subnet_mask?: string, pools?: string}  $rangeFieldMap
      */
     public function __construct(
-        protected Client $client,
+        protected string $endpoint,
+        protected string $key,
+        protected string $secret,
+        protected bool $verifySsl = true,
         protected int $poolSize = 0,
         protected string $leasesPath = '/api/dhcpv4/leases/search_lease',
         protected string $ipv4RangesPath = '',
@@ -132,7 +136,7 @@ class OpnSenseDhcpService implements DhcpInterface
     private function fetchRangesFrom(string $path, string $label, array $statusKeys): Collection
     {
         try {
-            $data = json_decode($this->client->get($path)->getBody()->getContents(), true);
+            $data = $this->http()->get($path)->throw()->json();
 
             if (! is_array($data) || ! is_array($data['rows'] ?? null)) {
                 throw new UnexpectedValueException('Unexpected ranges response');
@@ -354,7 +358,7 @@ class OpnSenseDhcpService implements DhcpInterface
     protected function fetchLeases(): Collection
     {
         try {
-            $rows = $this->leasesUsePost ? $this->fetchAllLeaseRows() : $this->fetchLeaseRows($this->client->get($this->leasesPath))['rows'];
+            $rows = $this->leasesUsePost ? $this->fetchAllLeaseRows() : $this->fetchLeaseRows($this->http()->get($this->leasesPath))['rows'];
         } catch (Throwable $e) {
             $this->fetchStatus['ipv4'] = false;
             $this->fetchStatus['ipv6'] = false;
@@ -372,6 +376,12 @@ class OpnSenseDhcpService implements DhcpInterface
         ]);
     }
 
+    protected function http(): PendingRequest
+    {
+        return ExternalHttp::request($this->endpoint, $this->verifySsl)
+            ->withBasicAuth($this->key, $this->secret);
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -380,9 +390,7 @@ class OpnSenseDhcpService implements DhcpInterface
         $all = [];
 
         for ($page = 1; $page <= self::MAX_LEASE_PAGES; $page++) {
-            $result = $this->fetchLeaseRows($this->client->post($this->leasesPath, [
-                'json' => ['current' => $page, 'rowCount' => self::LEASE_PAGE_SIZE],
-            ]));
+            $result = $this->fetchLeaseRows($this->http()->post($this->leasesPath, ['current' => $page, 'rowCount' => self::LEASE_PAGE_SIZE]));
             $all = array_merge($all, $result['rows']);
 
             $done = $result['total'] !== null
@@ -400,9 +408,9 @@ class OpnSenseDhcpService implements DhcpInterface
     /**
      * @return array{rows: list<array<string, mixed>>, total: int|null}
      */
-    private function fetchLeaseRows(ResponseInterface $response): array
+    private function fetchLeaseRows(Response $response): array
     {
-        $data = json_decode($response->getBody()->getContents(), true);
+        $data = $response->throw()->json();
 
         if (! is_array($data) || ! is_array($data['rows'] ?? null)) {
             throw new UnexpectedValueException('Unexpected leases response');

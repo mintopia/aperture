@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Providers;
 
+use App\Integration\CapabilityResolver;
+use App\Integration\CiscoBootstrapper;
+use App\Integration\InstallGuard;
+use App\Integration\KeaBootstrapper;
+use App\Integration\LibreNmsBootstrapper;
+use App\Integration\OpnSenseBootstrapper;
+use App\Integration\PiHoleBootstrapper;
+use App\Integration\PrometheusBootstrapper;
+use App\Integration\VyOsBootstrapper;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
@@ -18,6 +27,7 @@ use App\Services\Interfaces\PortBandwidthInterface;
 use App\Services\Interfaces\PortErrorsInterface;
 use App\Services\Interfaces\PortMacInterface;
 use App\Services\Interfaces\RateLimitingInterface;
+use App\Services\Kea\KeaDhcpService;
 use App\Services\LibreNms\LibreNmsIpMacResolver;
 use App\Services\LibreNms\LibreNmsPortMac;
 use App\Services\LibreNms\LibreNmsService;
@@ -39,9 +49,14 @@ use App\Services\Prometheus\PrometheusIpBandwidth;
 use App\Services\Prometheus\PrometheusPortBandwidth;
 use App\Services\Prometheus\PrometheusPortErrors;
 use App\Services\Prometheus\PrometheusService;
+use App\Services\VyOs\VyOsIpMacResolver;
 use Closure;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
+use ReflectionProperty;
 use Tests\TestCase;
 
 class IntegrationServiceProviderTest extends TestCase
@@ -89,7 +104,7 @@ class IntegrationServiceProviderTest extends TestCase
     }
 
     #[DataProvider('singletonBindingProvider')]
-    public function test_service_is_registered_as_singleton(Closure $configureIntegration, string $class): void
+    public function test_service_is_scoped_per_request(Closure $configureIntegration, string $class): void
     {
         $configureIntegration();
         $this->app->forgetInstance($class);
@@ -99,6 +114,9 @@ class IntegrationServiceProviderTest extends TestCase
 
         $this->assertInstanceOf($class, $instance1);
         $this->assertSame($instance1, $instance2);
+
+        $this->app->forgetScopedInstances();
+        $this->assertNotSame($instance1, $this->app->make($class));
     }
 
     // -------------------------------------------------------
@@ -301,5 +319,66 @@ class IntegrationServiceProviderTest extends TestCase
         $this->assertInstanceOf(NullCaptivePortal::class, $service1);
         $this->assertInstanceOf(NullCaptivePortal::class, $service2);
         $this->assertNotSame($service1, $service2);
+    }
+
+    public function test_resolution_does_not_depend_on_bootstrapper_registration_order(): void
+    {
+        IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea.local');
+        IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.local');
+        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign('ip-mac', 'vyos');
+
+        $bootstrappers = [
+            new OpnSenseBootstrapper, new PrometheusBootstrapper, new LibreNmsBootstrapper,
+            new PiHoleBootstrapper, new VyOsBootstrapper, new CiscoBootstrapper, new KeaBootstrapper,
+        ];
+
+        $forward = new CapabilityResolver($this->app, $bootstrappers);
+        $reversed = new CapabilityResolver($this->app, array_reverse($bootstrappers));
+
+        foreach (array_keys(CapabilityResolver::contracts()) as $capability) {
+            $this->assertSame($forward->resolve($capability)::class, $reversed->resolve($capability)::class, $capability);
+        }
+
+        $this->assertInstanceOf(KeaDhcpService::class, $reversed->resolve('dhcp'));
+        $this->assertInstanceOf(VyOsIpMacResolver::class, $reversed->resolve('ip-mac'));
+    }
+
+    public function test_unusable_active_provider_falls_back_to_null_implementation(): void
+    {
+        CapabilityAssignment::assign('dhcp', 'kea');
+
+        $this->assertInstanceOf(NullDhcpService::class, $this->app->make(DhcpInterface::class));
+    }
+
+    public function test_reassigning_capability_is_picked_up_within_same_scope(): void
+    {
+        $this->assertInstanceOf(NullDnsFiltering::class, $this->app->make(DnsFilteringInterface::class));
+
+        CapabilityAssignment::assign('dns-filtering', 'pihole');
+
+        $this->assertInstanceOf(PiHoleService::class, $this->app->make(DnsFilteringInterface::class));
+    }
+
+    public function test_saving_integration_config_yields_client_with_new_values(): void
+    {
+        IntegrationConfig::setValue('prometheus', 'default_step', '30');
+        $first = $this->app->make(PrometheusService::class);
+
+        IntegrationConfig::setValue('prometheus', 'default_step', '90');
+        $second = $this->app->make(PrometheusService::class);
+
+        $this->assertNotSame($first, $second);
+        $this->assertSame(30, (new ReflectionProperty($first, 'defaultStep'))->getValue($first));
+        $this->assertSame(90, (new ReflectionProperty($second, 'defaultStep'))->getValue($second));
+    }
+
+    public function test_missing_capability_table_is_tolerated_but_other_query_errors_propagate(): void
+    {
+        Schema::drop('capability_assignments');
+        $this->assertInstanceOf(NullDhcpService::class, $this->app->make(DhcpInterface::class));
+
+        $this->expectException(QueryException::class);
+        InstallGuard::tolerateMissingTable(fn (): mixed => DB::select('select * from'), null);
     }
 }

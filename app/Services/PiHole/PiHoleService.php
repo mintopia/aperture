@@ -5,18 +5,20 @@ declare(strict_types=1);
 namespace App\Services\PiHole;
 
 use App\Models\IpAddress;
+use App\Services\Http\ExternalHttp;
 use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\ValueObjects\ReconcileResult;
-use GuzzleHttp\Client;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 class PiHoleService implements DnsFilteringInterface
 {
     public function __construct(
-        protected Client $client,
+        protected string $endpoint,
         protected string $password,
         protected int $filteredGroupId,
+        protected bool $verifySsl = true,
     ) {}
 
     public function isEnabledForIp(string $ipAddress): bool
@@ -137,12 +139,10 @@ class PiHoleService implements DnsFilteringInterface
     {
         $sid = $this->getSessionId();
 
-        $response = $this->client->get('/api/clients', [
-            'headers' => ['X-FTL-SID' => $sid],
-        ]);
+        $response = $this->authed($sid)->get('/api/clients')->throw();
 
         /** @var array{clients: array<int, array{id: int, client: string, groups: array<int, int>, comment: string}>} $data */
-        $data = json_decode($response->getBody()->getContents(), true);
+        $data = $response->json();
 
         return $data['clients'];
     }
@@ -154,13 +154,10 @@ class PiHoleService implements DnsFilteringInterface
     {
         $sid = $this->getSessionId();
 
-        $response = $this->client->get('/api/clients', [
-            'headers' => ['X-FTL-SID' => $sid],
-            'query' => ['search' => $ipAddress],
-        ]);
+        $response = $this->authed($sid)->get('/api/clients', ['search' => $ipAddress])->throw();
 
         /** @var array{clients: array<int, array{id: int, client: string, groups: array<int, int>, comment: string}>} $data */
-        $data = json_decode($response->getBody()->getContents(), true);
+        $data = $response->json();
         $clients = $data['clients'];
 
         foreach ($clients as $client) {
@@ -179,14 +176,11 @@ class PiHoleService implements DnsFilteringInterface
     {
         $sid = $this->getSessionId();
 
-        $this->client->post('/api/clients', [
-            'headers' => ['X-FTL-SID' => $sid],
-            'json' => [
-                'client' => $ipAddress,
-                'groups' => $groups,
-                'comment' => 'Managed by Aperture',
-            ],
-        ]);
+        $this->authed($sid)->post('/api/clients', [
+            'client' => $ipAddress,
+            'groups' => $groups,
+            'comment' => 'Managed by Aperture',
+        ])->throw();
     }
 
     /**
@@ -196,33 +190,36 @@ class PiHoleService implements DnsFilteringInterface
     {
         $sid = $this->getSessionId();
 
-        $this->client->put('/api/clients/'.urlencode($clientIdentifier), [
-            'headers' => ['X-FTL-SID' => $sid],
-            'json' => [
-                'comment' => $comment,
-                'groups' => $groups,
-            ],
-        ]);
+        $this->authed($sid)->put('/api/clients/'.urlencode($clientIdentifier), [
+            'comment' => $comment,
+            'groups' => $groups,
+        ])->throw();
     }
 
     protected function deleteClient(string $clientIdentifier): void
     {
         $sid = $this->getSessionId();
 
-        $this->client->delete('/api/clients/'.urlencode($clientIdentifier), [
-            'headers' => ['X-FTL-SID' => $sid],
-        ]);
+        $this->authed($sid)->delete('/api/clients/'.urlencode($clientIdentifier))->throw();
+    }
+
+    protected function http(): PendingRequest
+    {
+        return ExternalHttp::request($this->endpoint, $this->verifySsl)->asJson();
+    }
+
+    protected function authed(string $sid): PendingRequest
+    {
+        return $this->http()->withHeaders(['X-FTL-SID' => $sid]);
     }
 
     protected function getSessionId(): string
     {
         return Cache::remember('pihole_session_id', 270, function (): string {
-            $response = $this->client->post('/api/auth', [
-                'json' => ['password' => $this->password],
-            ]);
+            $response = $this->http()->post('/api/auth', ['password' => $this->password])->throw();
 
             /** @var array{session: array{sid: string, validity: int}} $data */
-            $data = json_decode($response->getBody()->getContents(), true);
+            $data = $response->json();
 
             return $data['session']['sid'];
         });

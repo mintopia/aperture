@@ -120,7 +120,7 @@ final class PortConfigSync
                     'port' => $portName,
                 ]);
             } catch (Throwable $e) {
-                Log::debug('PortConfigSync: config sync failed for port', [
+                Log::warning('PortConfigSync: config sync failed for port', [
                     'switch' => $switchConfig->hostname,
                     'port' => $portName,
                     'error' => $e->getMessage(),
@@ -196,7 +196,7 @@ final class PortConfigSync
                         $rawInterfaceOutput = $portStatusDetail->description !== '' ? $portStatusDetail->description : null;
                     }
                 } catch (Throwable $throwable) {
-                    Log::debug('PortConfigSync: interface output fetch failed for port', [
+                    Log::warning('PortConfigSync: interface output fetch failed for port', [
                         'switch' => $switchConfig->hostname,
                         'port' => $portStatus->interface,
                         'error' => $throwable->getMessage(),
@@ -213,7 +213,7 @@ final class PortConfigSync
                     'port' => $portStatus->interface,
                 ]);
             } catch (Throwable $e) {
-                Log::debug('PortConfigSync: config fetch failed for port', [
+                Log::warning('PortConfigSync: config fetch failed for port', [
                     'switch' => $switchConfig->hostname,
                     'port' => $portStatus->interface,
                     'error' => $e->getMessage(),

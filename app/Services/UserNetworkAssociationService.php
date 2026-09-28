@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Models\UserIpAddress;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class UserNetworkAssociationService
@@ -47,8 +48,12 @@ class UserNetworkAssociationService
         if ($ip->internet_enabled) {
             try {
                 $this->actionService->enableInternet($ip);
-            } catch (Throwable) {
-                // Firewall sync is best-effort
+            } catch (Throwable $e) {
+                Log::warning('Firewall enable failed during user association', [
+                    'user_id' => $user->id,
+                    'ip' => $ip->address,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
