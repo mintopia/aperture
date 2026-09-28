@@ -36,7 +36,6 @@ use Illuminate\Support\Carbon;
  * @method static Builder|Setting whereUpdatedAt($value)
  * @method static Builder|Setting whereValue($value)
  *
- * @mixin IdeHelperSetting
  *
  * @property string $type
  *
