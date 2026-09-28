@@ -112,7 +112,7 @@ class IpAddressControllerTest extends TestCase
         foreach (['2001:db8::10', '10.0.0.10', '2001:db8::2', '10.0.0.2', '::1', '10.0.0.1'] as $address) {
             $ip = new IpAddress;
             $ip->address = $address;
-            $ip->last_seen_at = Carbon::now();
+            $ip->last_seen_at = Date::now();
             $ip->save();
         }
 
