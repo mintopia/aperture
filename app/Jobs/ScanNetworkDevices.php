@@ -13,6 +13,7 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
 use App\Services\NetworkRangeService;
+use App\Services\NetworkScan\DhcpSnoopingResolver;
 use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,6 +47,7 @@ class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
     public function handle(
         DhcpInterface $dhcp,
         IpMacResolverInterface $ipMac,
+        DhcpSnoopingResolver $snooping,
         PortMacInterface $portMac,
         NetworkRangeService $rangeService,
         PersistMacsStep $persistMacs,
@@ -56,7 +58,7 @@ class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
     ): void {
 
         $leases = $dhcp->snapshot()->leases;
-        $entries = $ipMac->getIpMacTable();
+        $entries = $snooping->supplement($ipMac->getIpMacTable());
         $forwardingEntries = $portMac->getForwardingDatabase();
 
         $persistMacs($leases, $entries, $forwardingEntries);

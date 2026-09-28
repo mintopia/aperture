@@ -22,7 +22,7 @@ final class KeaBootstrapper implements IntegrationBootstrapper
     {
         return [
             Capability::Dhcp->value => fn (): ?DhcpInterface => $this->buildDhcpService(),
-            Capability::IpMac->value => fn (): KeaIpMacResolver => new KeaIpMacResolver,
+            Capability::IpMac->value => fn (): KeaIpMacResolver => new KeaIpMacResolver($this->buildDhcpService()),
         ];
     }
 

@@ -4,30 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services\Kea;
 
-use App\Enums\Integration;
-use App\Models\DhcpLease;
+use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
+use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 
 class KeaIpMacResolver implements IpMacResolverInterface
 {
+    public function __construct(private readonly ?DhcpInterface $kea = null) {}
+
     /** @return Collection<int, IpMacEntry> */
     public function getIpMacTable(): Collection
     {
-        return DhcpLease::query()
-            ->where('integration', Integration::Kea->value)
-            ->whereNotNull('mac_address_id')
-            ->where(function ($query): void {
-                $query->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
-            })
-            ->with(['ipAddress', 'macAddress'])
-            ->get()
-            ->map(fn (DhcpLease $lease): IpMacEntry => new IpMacEntry(
-                ip: $lease->ipAddress->address ?? '',
-                mac: $lease->macAddress->mac_address ?? '',
-            ))
+        if (! $this->kea instanceof DhcpInterface) {
+            return collect();
+        }
+
+        return $this->kea->snapshot()->leases
+            ->filter(fn (DhcpLease $lease): bool => $lease->mac !== null)
+            ->map(fn (DhcpLease $lease): IpMacEntry => new IpMacEntry(ip: $lease->ip, mac: (string) $lease->mac))
             ->unique(fn (IpMacEntry $entry): string => $entry->ip.'|'.$entry->mac)
             ->values();
     }

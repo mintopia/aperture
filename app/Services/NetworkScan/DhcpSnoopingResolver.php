@@ -26,4 +26,20 @@ class DhcpSnoopingResolver
             ->unique(fn (IpMacEntry $entry): string => $entry->ip.'|'.$entry->mac)
             ->values();
     }
+
+    /**
+     * Snooping is the lowest-precedence source: it only fills IPs the IP-MAC Table lacks.
+     *
+     * @param  Collection<int, IpMacEntry>  $primary
+     * @return Collection<int, IpMacEntry>
+     */
+    public function supplement(Collection $primary): Collection
+    {
+        $known = $primary->pluck('ip')->flip();
+
+        return $primary
+            ->concat($this->getObservedMappings()->reject(fn (IpMacEntry $entry): bool => $known->has($entry->ip)))
+            ->unique(fn (IpMacEntry $entry): string => $entry->ip.'|'.$entry->mac)
+            ->values();
+    }
 }
