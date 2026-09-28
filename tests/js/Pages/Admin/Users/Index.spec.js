@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
+import { router } from '@inertiajs/vue3';
 import Index from '@/Pages/Admin/Users/Index.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
@@ -7,6 +8,7 @@ vi.mock('@inertiajs/vue3', () => ({
         template: '<a :href="href"><slot /></a>',
         props: ['href'],
     },
+    router: { get: vi.fn() },
 }));
 
 vi.stubGlobal('route', (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`));
@@ -164,5 +166,37 @@ describe('Users Index', () => {
         const headers = wrapper.findAll('th').map((th) => th.text());
         expect(headers).toContain('Bandwidth (7d)');
         expect(headers).toContain('Status');
+    });
+
+    it('drives a server-side request when searching', () => {
+        router.get.mockClear();
+        const wrapper = mount(Index, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+
+        wrapper.findComponent({ name: 'FilterBar' }).vm.$emit('update:search', 'alice');
+
+        expect(router.get).toHaveBeenCalledWith(
+            '/mocked/admin.users.index',
+            expect.objectContaining({ search: 'alice' }),
+            expect.objectContaining({ preserveState: true }),
+        );
+    });
+
+    it('drives a server-side request when the status filter changes', () => {
+        router.get.mockClear();
+        const wrapper = mount(Index, {
+            props: makeProps(),
+            global: defaultGlobal,
+        });
+
+        wrapper.findComponent({ name: 'FilterBar' }).vm.$emit('update:filter-values', { status: 'blocked' });
+
+        expect(router.get).toHaveBeenCalledWith(
+            '/mocked/admin.users.index',
+            expect.objectContaining({ status: 'blocked' }),
+            expect.objectContaining({ preserveState: true }),
+        );
     });
 });
