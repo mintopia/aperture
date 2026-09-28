@@ -226,7 +226,7 @@ describe('DataTable', () => {
     });
 
     describe('Dispatch mockup styling', () => {
-        it('table uses 13px font size and border-collapse', () => {
+        it('table/header/row classes match the flat mockup (no card chrome, correct sizing/borders)', () => {
             const wrapper = mount(DataTable, {
                 props: { columns, rows },
                 global: { stubs },
@@ -235,87 +235,41 @@ describe('DataTable', () => {
                 },
             });
             const table = wrapper.find('table');
-            expect(table.classes()).toContain('text-[13px]');
-            expect(table.classes()).toContain('border-collapse');
-        });
+            expect.soft(table.classes()).toContain('text-[13px]');
+            expect.soft(table.classes()).toContain('border-collapse');
 
-        it('outer wrapper has no card styles (no bg, border, rounded, shadow)', () => {
-            const wrapper = mount(DataTable, {
-                props: { columns, rows },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
-                },
-            });
             const container = wrapper.find('[data-testid="data-table"]');
-            const classList = container.classes();
-            const hasCard = classList.some(
-                (c) => c.startsWith('bg-') || c.startsWith('rounded') || c.startsWith('shadow') || c === 'border',
-            );
-            expect(hasCard).toBe(false);
-        });
+            const hasCard = container
+                .classes()
+                .some(
+                    (c) => c.startsWith('bg-') || c.startsWith('rounded') || c.startsWith('shadow') || c === 'border',
+                );
+            expect.soft(hasCard).toBe(false);
 
-        it('header th has correct mockup classes', () => {
-            const wrapper = mount(DataTable, {
-                props: { columns, rows },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
-                },
-            });
             const th = wrapper.find('th');
-            expect(th.classes()).toContain('text-[11px]');
-            expect(th.classes()).toContain('font-semibold');
-            expect(th.classes()).toContain('tracking-[0.05em]');
-            expect(th.classes()).toContain('uppercase');
-            expect(th.classes()).toContain('text-[var(--color-text-muted)]');
-            expect(th.classes()).toContain('py-2');
-        });
+            expect.soft(th.classes()).toContain('text-[11px]');
+            expect.soft(th.classes()).toContain('font-semibold');
+            expect.soft(th.classes()).toContain('tracking-[0.05em]');
+            expect.soft(th.classes()).toContain('uppercase');
+            expect.soft(th.classes()).toContain('text-[var(--color-text-muted)]');
+            expect.soft(th.classes()).toContain('py-2');
+            expect.soft(th.classes()).toContain('border-b');
+            expect.soft(th.classes()).toContain('border-[var(--color-border-hover)]');
+            expect.soft(th.classes()).not.toContain('border-b-2');
+            expect.soft(th.classes()).not.toContain('px-4');
 
-        it('header th border uses --color-border-hover (1px, not 2px)', () => {
-            const wrapper = mount(DataTable, {
-                props: { columns, rows },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
-                },
-            });
-            const th = wrapper.find('th');
-            expect(th.classes()).toContain('border-b');
-            expect(th.classes()).toContain('border-[var(--color-border-hover)]');
-            expect(th.classes()).not.toContain('border-b-2');
-        });
-
-        it('header tr has no border or background classes', () => {
-            const wrapper = mount(DataTable, {
-                props: { columns, rows },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
-                },
-            });
             const headerTr = wrapper.find('thead tr');
-            const classList = headerTr.classes();
-            const hasBorderOrBg = classList.some((c) => c.startsWith('border') || c.startsWith('bg-'));
-            expect(hasBorderOrBg).toBe(false);
-        });
+            const hasBorderOrBg = headerTr.classes().some((c) => c.startsWith('border') || c.startsWith('bg-'));
+            expect.soft(hasBorderOrBg).toBe(false);
 
-        it('data rows have no inline border classes (borders are on td via CSS)', () => {
-            const wrapper = mount(DataTable, {
-                props: { columns, rows },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
-                },
-            });
             const row = wrapper.find('[data-testid="data-table-row"]');
-            expect(row.classes()).toContain('transition-colors');
-            expect(row.classes()).not.toContain('border-b');
-            expect(row.classes()).not.toContain('border-[var(--color-border)]');
-            expect(row.classes()).not.toContain('last:border-b-0');
+            expect.soft(row.classes()).toContain('transition-colors');
+            expect.soft(row.classes()).not.toContain('border-b');
+            expect.soft(row.classes()).not.toContain('border-[var(--color-border)]');
+            expect.soft(row.classes()).not.toContain('last:border-b-0');
         });
 
-        it('rows have no hover:border-l-2 class', () => {
+        it('clickable rows use bg-hover only (no border-l hover accent)', () => {
             const wrapper = mount(DataTable, {
                 props: { columns, rows, clickable: true, rowHref: (row) => `/users/${row.id}` },
                 global: { stubs },
@@ -324,33 +278,9 @@ describe('DataTable', () => {
                 },
             });
             const row = wrapper.find('[data-testid="data-table-row"]');
-            const classList = row.classes();
-            const hasBorderLHover = classList.some((c) => c.includes('border-l'));
-            expect(hasBorderLHover).toBe(false);
-        });
-
-        it('clickable rows use bg hover only', () => {
-            const wrapper = mount(DataTable, {
-                props: { columns, rows, clickable: true, rowHref: (row) => `/users/${row.id}` },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
-                },
-            });
-            const row = wrapper.find('[data-testid="data-table-row"]');
-            expect(row.classes()).toContain('hover:bg-[var(--color-surface-hover)]');
-        });
-
-        it('header th has no px-4 padding', () => {
-            const wrapper = mount(DataTable, {
-                props: { columns, rows },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
-                },
-            });
-            const th = wrapper.find('th');
-            expect(th.classes()).not.toContain('px-4');
+            const hasBorderLHover = row.classes().some((c) => c.includes('border-l'));
+            expect.soft(hasBorderLHover).toBe(false);
+            expect.soft(row.classes()).toContain('hover:bg-[var(--color-surface-hover)]');
         });
     });
 
@@ -476,7 +406,7 @@ describe('DataTable', () => {
             expect(headers[1].attributes('aria-sort')).toBe('none');
         });
 
-        it('sort button has interactive styling (full-width, cursor, hover)', () => {
+        it('sort button has interactive full-width styling and correctly spaced indicator', () => {
             const wrapper = mount(DataTable, {
                 props: {
                     columns: sortableColumns,
@@ -490,56 +420,29 @@ describe('DataTable', () => {
                 },
             });
             const sortButton = wrapper.find('[data-testid="sort-name"]');
-            expect(sortButton.classes()).toContain('flex');
-            expect(sortButton.classes()).toContain('w-full');
-            expect(sortButton.classes()).toContain('cursor-pointer');
-            expect(sortButton.classes()).toContain('text-left');
-            expect(sortButton.classes()).not.toContain('inline-flex');
-        });
-
-        it('sort indicator has ml-0.5 spacing', () => {
-            const wrapper = mount(DataTable, {
-                props: {
-                    columns: sortableColumns,
-                    rows,
-                    sortColumn: 'name',
-                    sortDirection: 'asc',
-                },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td><td>${row.email}</td>`,
-                },
-            });
-            const sortButton = wrapper.find('[data-testid="sort-name"]');
-            const indicator = sortButton.find('span');
-            expect(indicator.classes()).toContain('ml-0.5');
+            expect.soft(sortButton.classes()).toContain('flex');
+            expect.soft(sortButton.classes()).toContain('w-full');
+            expect.soft(sortButton.classes()).toContain('cursor-pointer');
+            expect.soft(sortButton.classes()).toContain('text-left');
+            expect.soft(sortButton.classes()).not.toContain('inline-flex');
+            expect.soft(sortButton.find('span').classes()).toContain('ml-0.5');
         });
 
         // --- Accessibility: focus indicator (WCAG 2.4.7) ---
-        it('sort button does not have bare outline-none without a focus ring replacement', () => {
+        it('sort button has a focus-visible ring, not a bare outline-none', () => {
             const wrapper = mount(DataTable, {
                 props: { columns: sortableColumns, rows },
                 global: { stubs },
             });
             const sortBtn = wrapper.find('[data-testid="sort-name"]');
-            expect(sortBtn.exists()).toBe(true);
-            // Should not use bare outline-none that kills focus visibility
-            expect(sortBtn.classes()).not.toContain('outline-none');
-        });
-
-        it('sort button has focus-visible ring classes for keyboard navigation', () => {
-            const wrapper = mount(DataTable, {
-                props: { columns: sortableColumns, rows },
-                global: { stubs },
-            });
-            const sortBtn = wrapper.find('[data-testid="sort-name"]');
-            const cls = sortBtn.classes().join(' ');
-            expect(cls).toContain('focus-visible:ring-2');
+            expect.soft(sortBtn.exists()).toBe(true);
+            expect.soft(sortBtn.classes()).not.toContain('outline-none');
+            expect.soft(sortBtn.classes().join(' ')).toContain('focus-visible:ring-2');
         });
     });
 
     describe('Accessibility: focus indicators on clickable rows (WCAG 2.4.7)', () => {
-        it('clickable row does not have bare focus-visible:outline-none without a ring', () => {
+        it('clickable row has a focus-visible ring, not a bare focus-visible:outline-none', () => {
             const wrapper = mount(DataTable, {
                 props: {
                     columns,
@@ -554,26 +457,8 @@ describe('DataTable', () => {
             });
             const row = wrapper.find('[data-testid="data-table-row"]');
             const cls = row.classes().join(' ');
-            // The row should NOT have bare focus-visible:outline-none (without a ring companion)
-            expect(cls).not.toContain('focus-visible:outline-none');
-        });
-
-        it('clickable row has focus-visible ring for keyboard visibility', () => {
-            const wrapper = mount(DataTable, {
-                props: {
-                    columns,
-                    rows,
-                    clickable: true,
-                    rowHref: (row) => `/users/${row.id}`,
-                },
-                global: { stubs },
-                slots: {
-                    row: ({ row }) => `<td>${row.name}</td>`,
-                },
-            });
-            const row = wrapper.find('[data-testid="data-table-row"]');
-            const cls = row.classes().join(' ');
-            expect(cls).toContain('focus-visible:ring-2');
+            expect.soft(cls).not.toContain('focus-visible:outline-none');
+            expect.soft(cls).toContain('focus-visible:ring-2');
         });
     });
 });
