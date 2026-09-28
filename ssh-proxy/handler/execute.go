@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sshproxy/pool"
 	"sshproxy/ssh"
@@ -68,15 +69,17 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log := h.logger.With(
+		"hostname", req.Hostname,
+		"channel", req.Channel,
+		"request_id", requestID,
+	)
+
 	// Acquire a pool slot for this hostname+channel.
 	entry, isNew, err := h.pool.Acquire(req.Hostname, req.Channel)
 	if err != nil {
 		if errors.Is(err, pool.ErrHostLocked) {
-			h.logger.Warn("host is locked",
-				"hostname", req.Hostname,
-				"channel", req.Channel,
-				"request_id", requestID,
-			)
+			log.Warn("host is locked")
 			writeJSON(w, http.StatusConflict, map[string]string{
 				"error": "Host is currently locked by another request",
 			})
@@ -92,54 +95,22 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 	// If the connection is new, establish the SSH session.
 	var session ssh.Session
 	if isNew {
-		ctx, cancel := context.WithTimeout(r.Context(), h.connectTimeout)
-		defer cancel()
-
-		h.logger.Info("connecting to host",
-			"hostname", req.Hostname,
-			"port", req.Port,
-			"channel", req.Channel,
-			"request_id", requestID,
-		)
-
-		conn, connErr := h.connector(ctx, req.Hostname, req.Port, req.Username, req.Password)
+		conn, connErr := h.connect(r.Context(), log, req, "SSH connection failed")
 		if connErr != nil {
-			h.logger.Error("SSH connection failed",
-				"hostname", req.Hostname,
-				"port", req.Port,
-				"channel", req.Channel,
-				"error", connErr,
-				"request_id", requestID,
-			)
 			// Clean up the placeholder entry.
 			h.pool.Remove(req.Hostname, req.Channel)
-			writeJSON(w, http.StatusInternalServerError, executeResponse{
-				Success: false,
-				Output:  make([]ssh.CommandOutput, 0),
-				Error:   fmt.Sprintf("SSH connection failed: %s", connErr),
-			})
+			writeConnectError(w, connErr)
 			return
 		}
-
 		h.pool.SetConnection(req.Hostname, req.Channel, conn)
 		session = conn
-		h.logger.Info("connected to host",
-			"hostname", req.Hostname,
-			"port", req.Port,
-			"channel", req.Channel,
-			"request_id", requestID,
-		)
 	} else {
 		// Reuse existing connection — the entry.Conn is an io.Closer,
 		// but we know it's also an ssh.Session.
 		var ok bool
 		session, ok = entry.Conn.(ssh.Session)
 		if !ok || session == nil {
-			h.logger.Error("pooled connection is not a valid session",
-				"hostname", req.Hostname,
-				"channel", req.Channel,
-				"request_id", requestID,
-			)
+			log.Error("pooled connection is not a valid session")
 			h.pool.Remove(req.Hostname, req.Channel)
 			writeJSON(w, http.StatusInternalServerError, executeResponse{
 				Success: false,
@@ -148,22 +119,15 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		h.logger.Debug("reusing pooled connection",
-			"hostname", req.Hostname,
-			"channel", req.Channel,
-			"request_id", requestID,
-		)
+		log.Debug("reusing pooled connection")
 	}
 
 	// Execute commands — always release the lock afterwards.
 	defer h.pool.Release(req.Hostname, req.Channel)
 
-	h.logger.Info("executing commands",
-		"hostname", req.Hostname,
-		"channel", req.Channel,
+	log.Info("executing commands",
 		"command_count", len(req.Commands),
 		"commands_summary", commandsSummary(req.Commands),
-		"request_id", requestID,
 	)
 
 	execStart := time.Now()
@@ -173,46 +137,22 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 	// If the command failed with a connection error on a reused (pooled)
 	// connection, attempt stale recovery: evict, reconnect, retry once.
 	if !result.Success && !isNew && isConnectionError(result.Error) {
-		h.logger.Warn("stale connection detected, retrying with new connection",
-			"hostname", req.Hostname,
-			"channel", req.Channel,
+		log.Warn("stale connection detected, retrying with new connection",
 			"original_error", result.Error,
-			"request_id", requestID,
 		)
 
-		// Evict the stale connection.
-		h.pool.Evict(req.Hostname, req.Channel)
+		h.pool.Remove(req.Hostname, req.Channel)
 
-		// Establish a new connection.
-		retryCtx, retryCancel := context.WithTimeout(r.Context(), h.connectTimeout)
-		defer retryCancel()
-
-		retryConn, retryErr := h.connector(retryCtx, req.Hostname, req.Port, req.Username, req.Password)
+		retryConn, retryErr := h.connect(r.Context(), log, req, "retry reconnection failed")
 		if retryErr != nil {
-			h.logger.Error("retry reconnection failed",
-				"hostname", req.Hostname,
-				"channel", req.Channel,
-				"error", retryErr,
-				"request_id", requestID,
-			)
-			writeJSON(w, http.StatusInternalServerError, executeResponse{
-				Success: false,
-				Output:  make([]ssh.CommandOutput, 0),
-				Error:   fmt.Sprintf("SSH connection failed: %s", retryErr),
-			})
+			writeConnectError(w, retryErr)
 			return
 		}
 
 		// Re-acquire a pool slot, store the new connection, and retry.
-		retryEntry, _, acquireErr := h.pool.Acquire(req.Hostname, req.Channel)
-		if acquireErr != nil {
+		if _, _, acquireErr := h.pool.Acquire(req.Hostname, req.Channel); acquireErr != nil {
 			retryConn.Close()
-			h.logger.Error("retry pool acquire failed",
-				"hostname", req.Hostname,
-				"channel", req.Channel,
-				"error", acquireErr,
-				"request_id", requestID,
-			)
+			log.Error("retry pool acquire failed", "error", acquireErr)
 			writeJSON(w, http.StatusInternalServerError, executeResponse{
 				Success: false,
 				Output:  make([]ssh.CommandOutput, 0),
@@ -220,33 +160,22 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		_ = retryEntry // entry is created; set the connection on it
 		h.pool.SetConnection(req.Hostname, req.Channel, retryConn)
 
-		h.logger.Info("retrying commands after reconnection",
-			"hostname", req.Hostname,
-			"channel", req.Channel,
-			"request_id", requestID,
-		)
+		log.Info("retrying commands after reconnection")
 
 		execStart = time.Now()
 		result = h.executor.Execute(retryConn, req.Commands)
 		execDuration = time.Since(execStart)
 
 		if result.Success {
-			h.logger.Info("retry succeeded after stale connection recovery",
-				"hostname", req.Hostname,
-				"channel", req.Channel,
+			log.Info("retry succeeded after stale connection recovery",
 				"duration_ms", execDuration.Milliseconds(),
-				"request_id", requestID,
 			)
 		} else {
-			h.logger.Error("retry failed after stale connection recovery",
-				"hostname", req.Hostname,
-				"channel", req.Channel,
+			log.Error("retry failed after stale connection recovery",
 				"error", result.Error,
 				"duration_ms", execDuration.Milliseconds(),
-				"request_id", requestID,
 			)
 		}
 
@@ -258,23 +187,43 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build log attributes for the "commands executed" line.
 	logAttrs := []any{
-		"hostname", req.Hostname,
-		"channel", req.Channel,
 		"success", result.Success,
 		"duration_ms", execDuration.Milliseconds(),
-		"request_id", requestID,
 	}
 	if result.Error != "" {
 		logAttrs = append(logAttrs, "error", result.Error)
 	}
-	h.logger.Info("commands executed", logAttrs...)
+	log.Info("commands executed", logAttrs...)
 
 	writeJSON(w, http.StatusOK, executeResponse{
 		Success: result.Success,
 		Output:  result.Output,
 		Error:   result.Error,
+	})
+}
+
+// connect dials the switch within the connect timeout, logging the attempt
+// and, on failure, the error under failMsg.
+func (h *Handler) connect(ctx context.Context, log *slog.Logger, req executeRequest, failMsg string) (ssh.Session, error) {
+	ctx, cancel := context.WithTimeout(ctx, h.connectTimeout)
+	defer cancel()
+
+	log.Info("connecting to host", "port", req.Port)
+	conn, err := h.connector(ctx, req.Hostname, req.Port, req.Username, req.Password)
+	if err != nil {
+		log.Error(failMsg, "port", req.Port, "error", err)
+		return nil, err
+	}
+	log.Info("connected to host", "port", req.Port)
+	return conn, nil
+}
+
+func writeConnectError(w http.ResponseWriter, err error) {
+	writeJSON(w, http.StatusInternalServerError, executeResponse{
+		Success: false,
+		Output:  make([]ssh.CommandOutput, 0),
+		Error:   fmt.Sprintf("SSH connection failed: %s", err),
 	})
 }
 
@@ -306,24 +255,7 @@ func isConnectionError(errMsg string) bool {
 func commandsSummary(commands []ssh.Command) []string {
 	summary := make([]string, 0, len(commands))
 	for _, cmd := range commands {
-		summary = append(summary, sanitizeCommandForLog(cmd.Command))
+		summary = append(summary, ssh.SanitizeForLog(cmd.Command))
 	}
 	return summary
-}
-
-func sanitizeCommandForLog(cmd string) string {
-	if len(cmd) < 50 &&
-		!strings.Contains(cmd, " ") &&
-		!strings.HasPrefix(cmd, "show") &&
-		!strings.HasPrefix(cmd, "terminal") &&
-		!strings.HasPrefix(cmd, "en") &&
-		!strings.HasPrefix(cmd, "configure") &&
-		!strings.HasPrefix(cmd, "interface") &&
-		!strings.HasPrefix(cmd, "no ") &&
-		!strings.HasPrefix(cmd, "shutdown") &&
-		!strings.HasPrefix(cmd, "end") &&
-		!strings.HasPrefix(cmd, "write") {
-		return "****"
-	}
-	return cmd
 }
