@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
-import { buildPlaywrightEnv, localFallbackUrls, resolveBaseUrl } from './playwright/env.js';
+import { buildPlaywrightEnv, localFallbackUrls, resolveBaseUrl, sshProxyStubPort } from './playwright/env.js';
 
 const baseURL = resolveBaseUrl();
 const authFile = 'playwright/.auth/admin.json';
@@ -64,6 +64,12 @@ export default defineConfig({
                       DB_CONNECTION: 'sqlite',
                       DB_DATABASE: path.resolve(process.cwd(), firstRunDatabase),
                   },
+              },
+              {
+                  command: 'node tests/e2e/support/ssh-proxy-stub.js',
+                  url: `http://127.0.0.1:${sshProxyStubPort}/health`,
+                  reuseExistingServer: true,
+                  timeout: 30 * 1000,
               },
           ]
         : undefined,

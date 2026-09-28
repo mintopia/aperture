@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\AuditLog;
+use App\Models\DhcpLease;
+use App\Models\DhcpRangeRecord;
+use App\Models\IpAddress;
+use App\Models\MacAddress;
+use App\Models\UserIpAddress;
 use App\Models\ContentBlock;
 use App\Models\IntegrationConfig;
 use App\Models\Page;
@@ -119,6 +124,7 @@ class PrepareE2eCommand extends Command
         $this->prepareDedicatedUser('playwright-passkey@example.test', 'playwright-passkey', 'playwright-passkey-password');
 
         $this->prepareAttendeeFixtures();
+        $this->prepareAdminJourneyFixtures();
 
         foreach (['127.0.0.1', '::1'] as $ip) {
             RateLimiter::clear('login-attempt:'.Str::lower($email).'|'.$ip);
@@ -204,6 +210,82 @@ class PrepareE2eCommand extends Command
         Setting::set('dns.check_url', 'DNS check URL', 'http://dns-check.e2e.invalid/{uuid}');
         Setting::set('dns.warning_message', 'DNS warning message', 'Playwright DNS warning');
         IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'http://ipv6-check.e2e.invalid/{uuid}');
+    }
+
+    private function prepareAdminJourneyFixtures(): void
+    {
+        Model::unguarded(function (): void {
+            $userRole = Role::query()->firstOrCreate(['code' => 'user'], ['name' => 'User']);
+
+            $makeUser = function (string $nickname) use ($userRole): User {
+                $user = User::query()->where('email', $nickname.'@example.test')->first() ?? new User;
+                $user->email = $nickname.'@example.test';
+                $user->nickname = $nickname;
+                $user->internet_blocked = false;
+                $user->save();
+                $user->roles()->syncWithoutDetaching([$userRole->id]);
+
+                return $user;
+            };
+
+            $makeIp = function (string $address, bool $internet) {
+                $ip = IpAddress::query()->firstOrNew(['address' => $address]);
+                $ip->internet_enabled = $internet;
+                $ip->rate_limit_enabled = false;
+                $ip->dns_filtering_enabled = false;
+                $ip->last_seen_at = now();
+                $ip->save();
+
+                return $ip;
+            };
+
+            $makeMac = function (string $mac, string $source, ?User $owner, IpAddress $ip) {
+                $record = MacAddress::query()->updateOrCreate(
+                    ['mac_address' => $mac],
+                    ['source' => $source, 'user_id' => $owner?->id, 'description' => null]
+                );
+                $ip->macAddresses()->syncWithoutDetaching([$record->id => ['source' => $source, 'last_seen_at' => now()]]);
+
+                return $record;
+            };
+
+            $makeUser('pw-block-user');
+            $makeUser('pw-edit-user');
+            $netUser = $makeUser('pw-net-user');
+
+            $ipA = $makeIp('10.99.0.11', false);
+            $ipB = $makeIp('10.99.0.12', false);
+            $ipC = $makeIp('10.99.5.20', true);
+            $makeIp('10.99.1.10', true);
+
+            foreach ([$ipA, $ipB] as $ip) {
+                UserIpAddress::query()->updateOrCreate(
+                    ['user_id' => $netUser->id, 'ip_address_id' => $ip->id],
+                    ['last_seen_at' => now()]
+                );
+            }
+
+            $macA = $makeMac('02:99:00:00:00:01', 'static', $netUser, $ipA);
+            $macB = $makeMac('02:99:00:00:00:02', 'snmp', null, $ipB);
+            $macC = $makeMac('02:99:00:00:00:03', 'dhcp', null, $ipC);
+
+            foreach ([
+                ['10.99.0.0/24', '10.99.0.10', '10.99.0.200'],
+                ['10.99.5.0/24', '10.99.5.10', '10.99.5.200'],
+            ] as [$subnet, $from, $to]) {
+                DhcpRangeRecord::query()->updateOrCreate(
+                    ['integration' => 'kea', 'subnet' => $subnet],
+                    ['interface' => 'pw-'.$subnet, 'type' => 'ipv4', 'range_from' => $from, 'range_to' => $to, 'prefix' => $subnet, 'total_addresses' => '191', 'used_addresses' => 1, 'utilisation' => 0.01]
+                );
+            }
+
+            foreach ([[$ipA, $macA, 'pw-laptop'], [$ipB, $macB, 'pw-console'], [$ipC, $macC, 'pw-remote']] as [$ip, $mac, $hostname]) {
+                DhcpLease::query()->updateOrCreate(
+                    ['ip_address_id' => $ip->id, 'mac_address_id' => $mac->id],
+                    ['integration' => 'kea', 'hostname' => $hostname, 'expires_at' => now()->addDay()]
+                );
+            }
+        });
     }
 
     private function verifyRedisConnections(): bool
