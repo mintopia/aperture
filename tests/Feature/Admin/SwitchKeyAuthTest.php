@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Interfaces\SshProxyClientInterface;
+use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -236,7 +237,7 @@ class SwitchKeyAuthTest extends TestCase
         $proxy = Mockery::mock(SshProxyClientInterface::class);
         $proxy->shouldReceive('execute')->once()
             ->with($switch->hostname, $switch->username, '', Mockery::type('array'), 22, 'commands', $switch->private_key, 'pp', null)
-            ->andReturn(new CommandResult(success: true, output: [], hostKey: self::HOST_KEY));
+            ->andReturn(new CommandResult(success: true, output: [new CommandOutput('terminal length 0', ''), new CommandOutput('show interface status', '')], hostKey: self::HOST_KEY));
         $this->app->instance(SshProxyClientInterface::class, $proxy);
 
         $this->actingAs($this->admin())->postJson('/admin/settings/test/switch/'.$switch->id)
@@ -252,7 +253,7 @@ class SwitchKeyAuthTest extends TestCase
         $proxy = Mockery::mock(SshProxyClientInterface::class);
         $proxy->shouldReceive('execute')->once()
             ->with(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(), 22, 'commands', null, null, self::HOST_KEY)
-            ->andReturn(new CommandResult(success: true, output: [], hostKey: 'ssh-ed25519 AAAAOTHER'));
+            ->andReturn(new CommandResult(success: true, output: [new CommandOutput('terminal length 0', ''), new CommandOutput('show interface status', '')], hostKey: 'ssh-ed25519 AAAAOTHER'));
         $this->app->instance(SshProxyClientInterface::class, $proxy);
 
         $this->actingAs($this->admin())->postJson('/admin/settings/test/switch/'.$switch->id)->assertOk();
@@ -313,5 +314,36 @@ class SwitchKeyAuthTest extends TestCase
         $switch->refresh();
         $this->assertNull($switch->passphrase);
         $this->assertStringContainsString('fake', (string) $switch->private_key);
+    }
+
+    public function test_store_persists_timezone_and_defaults_to_utc(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->post('/admin/switches', $this->payload(['timezone' => 'Europe/London']))
+            ->assertSessionHasNoErrors();
+        $this->assertSame('Europe/London', SwitchConfig::firstOrFail()->timezone);
+
+        $this->assertSame('UTC', SwitchConfig::factory()->create()->refresh()->timezone);
+    }
+
+    public function test_update_changes_timezone(): void
+    {
+        $switch = SwitchConfig::factory()->create();
+
+        $this->actingAs($this->admin())->put('/admin/switches/'.$switch->id, $this->payload([
+            'hostname' => $switch->hostname,
+            'timezone' => 'Australia/Sydney',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame('Australia/Sydney', $switch->refresh()->timezone);
+    }
+
+    public function test_invalid_timezone_is_rejected(): void
+    {
+        $this->actingAs($this->admin())->post('/admin/switches', $this->payload(['timezone' => 'Mars/Olympus']))
+            ->assertSessionHasErrors('timezone');
+
+        $this->assertSame(0, SwitchConfig::count());
     }
 }

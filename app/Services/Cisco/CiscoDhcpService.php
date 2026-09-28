@@ -16,6 +16,7 @@ use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
 use App\Services\ValueObjects\DhcpSnapshot;
 use App\Support\Ipv6Prefix;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -27,6 +28,7 @@ class CiscoDhcpService implements DhcpInterface
         private IosOutputParser $parser,
         private string $poolSize = '0',
         private bool $ipv6Enabled = true,
+        private string $timezone = 'UTC',
     ) {}
 
     public function snapshot(): DhcpSnapshot
@@ -101,7 +103,7 @@ class CiscoDhcpService implements DhcpInterface
                 ip: $binding['ip'],
                 mac: $binding['mac'],
                 hostname: '',
-                expires: $binding['expires'],
+                expires: $this->toUtc($binding['expires']),
             ));
 
         if ($ipv6Active) {
@@ -113,13 +115,24 @@ class CiscoDhcpService implements DhcpInterface
                     ip: $binding['ip'],
                     mac: $binding['mac'],
                     hostname: '',
-                    expires: $binding['expires'],
+                    expires: $this->toUtc($binding['expires']),
                 ));
 
             $leases = $leases->concat($ipv6Leases);
         }
 
         return $leases->values();
+    }
+
+    private function toUtc(string $expires): string
+    {
+        try {
+            $local = Carbon::createFromFormat('M d Y h:i A', trim($expires), $this->timezone);
+        } catch (Throwable) {
+            return $expires;
+        }
+
+        return $local instanceof Carbon ? $local->utc()->format('Y-m-d H:i:s') : $expires;
     }
 
     /**

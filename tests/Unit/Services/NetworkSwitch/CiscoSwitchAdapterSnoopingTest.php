@@ -9,6 +9,7 @@ use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 class CiscoSwitchAdapterSnoopingTest extends TestCase
 {
@@ -43,15 +44,41 @@ class CiscoSwitchAdapterSnoopingTest extends TestCase
         $this->assertSame(86400, $bindings[0]['lease_seconds']);
     }
 
-    public function test_get_dhcp_snooping_bindings_returns_empty_on_error(): void
+    public function test_get_dhcp_snooping_bindings_throws_on_error_output(): void
     {
         $transport = $this->createMock(SwitchCommandTransportInterface::class);
         $transport->method('execute')
             ->willReturn("% Invalid input detected at '^' marker.");
 
         $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
-        $bindings = $adapter->getDhcpSnoopingBindings();
 
-        $this->assertCount(0, $bindings);
+        $this->expectException(RuntimeException::class);
+        $adapter->getDhcpSnoopingBindings();
+    }
+
+    public function test_get_dhcp_snooping_bindings_throws_on_unparseable_output(): void
+    {
+        $transport = $this->createMock(SwitchCommandTransportInterface::class);
+        $transport->method('execute')->willReturn('DHCP snooping is not configured');
+
+        $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
+
+        $this->expectException(RuntimeException::class);
+        $adapter->getDhcpSnoopingBindings();
+    }
+
+    public function test_get_dhcp_snooping_bindings_returns_empty_for_valid_empty_table(): void
+    {
+        $transport = $this->createMock(SwitchCommandTransportInterface::class);
+        $transport->method('execute')
+            ->willReturn(implode("\r\n", [
+                'MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface',
+                '-----------------   ---------------  ----------  -------------  ----  --------------------',
+                'Total number of bindings: 0',
+            ]));
+
+        $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
+
+        $this->assertCount(0, $adapter->getDhcpSnoopingBindings());
     }
 }

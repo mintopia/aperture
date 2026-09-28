@@ -101,12 +101,13 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         $proxyCommands = [];
 
         $enablePassword = $this->switchConfig->enable_password ?? '';
-        $defaultPromptExpectation = $enablePassword !== '' ? '/^.*#\s*$/' : '/^.*[>#]\s*$/';
+        // {prompt} is expanded by the proxy to the hostname learned at login.
+        $defaultPromptExpectation = $enablePassword !== '' ? '/^{prompt}(\([^)]*\))?#\s*$/' : '/^{prompt}(\([^)]*\))?[>#]\s*$/';
 
         if ($enablePassword !== '') {
             // Use "if" conditions so enable commands are skipped on pooled
             // connections that are already in privileged-exec mode.
-            $proxyCommands[] = ['command' => 'en', 'if' => '/>\s*$/', 'expect' => '/Password:/'];
+            $proxyCommands[] = ['command' => 'en', 'if' => '/^{prompt}>\s*$/', 'expect' => '/Password:/'];
             $proxyCommands[] = ['command' => $enablePassword, 'if' => '/Password:/', 'expect' => $defaultPromptExpectation];
         }
 
@@ -155,9 +156,9 @@ class SshProxyTransport implements SwitchCommandTransportInterface
     protected function expectedPromptFor(string $command, string $defaultPromptExpectation): string
     {
         return match (true) {
-            in_array($command, ['configure terminal', 'conf t'], true) => '/\\(config\\)#\s*$/',
-            str_starts_with($command, 'interface ') || str_starts_with($command, 'int ') => '/\\(config-if\\)#\s*$/',
-            in_array($command, ['shutdown', 'no shutdown', 'shut', 'no shut'], true) => '/\\(config-if\\)#\s*$/',
+            in_array($command, ['configure terminal', 'conf t'], true) => '/^{prompt}\\(config\\)#\s*$/',
+            str_starts_with($command, 'interface ') || str_starts_with($command, 'int ') => '/^{prompt}\\(config-if\\)#\s*$/',
+            in_array($command, ['shutdown', 'no shutdown', 'shut', 'no shut'], true) => '/^{prompt}\\(config-if\\)#\s*$/',
             default => $defaultPromptExpectation,
         };
     }
@@ -217,6 +218,6 @@ class SshProxyTransport implements SwitchCommandTransportInterface
 
     protected function isPromptLine(string $line): bool
     {
-        return preg_match('/^.*[>#]\s*$/', rtrim($line)) === 1;
+        return preg_match('/^[^\s()#>]+(\([^)]*\))?[>#]$/', rtrim($line)) === 1;
     }
 }

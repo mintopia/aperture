@@ -29,6 +29,7 @@ class SwitchConfigFactory extends Factory
             'enabled' => true,
             'port' => 22,
             'timeout' => 5,
+            'timezone' => 'UTC',
         ];
     }
 

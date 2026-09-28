@@ -4,6 +4,7 @@ import { router, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
+import { switchTimezones as timezones } from '@/utils/switches';
 
 defineOptions({ layout: AdminLayout });
 
@@ -27,6 +28,7 @@ const form = reactive(
         community: props.switchConfig.community ?? '',
         port: props.switchConfig.port ?? 22,
         timeout: props.switchConfig.timeout ?? 5,
+        timezone: props.switchConfig.timezone ?? 'UTC',
         enabled: props.switchConfig.enabled ?? true,
     }),
 );
@@ -219,6 +221,17 @@ function confirmDelete() {
                             max="120"
                             class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
+                    </FormField>
+
+                    <FormField label="Switch timezone" name="timezone" :error="form.errors.timezone">
+                        <select
+                            id="timezone"
+                            v-model="form.timezone"
+                            data-testid="switch-timezone"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                        >
+                            <option v-for="zone in timezones" :key="zone" :value="zone">{{ zone }}</option>
+                        </select>
                     </FormField>
                 </div>
             </div>

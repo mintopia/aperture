@@ -357,6 +357,47 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals(200, $entries[2]->vlan);
     }
 
+    public function test_parse_mac_address_table_accepts_star_prefixed_rows(): void
+    {
+        $output = implode("\r\n", [
+            'Legend: * - primary entry',
+            '   VLAN     MAC Address      Type      learn     Age       Port',
+            '---------+-----------------+--------+---------+------+----------------',
+            '*  100     aabb.ccdd.eeff    dynamic   Yes       0        Gi1/0/1',
+            '*   20     1122.3344.5566    dynamic   ~~~       10       Eth1/2',
+            '* 200 aabb.ccdd.0011 static - F F Gi1/0/3',
+        ]);
+
+        $entries = $this->parser->parseMacAddressTable($output);
+
+        $this->assertCount(3, $entries);
+        $this->assertSame('Gi1/0/1', $entries[0]->port);
+        $this->assertSame(100, $entries[0]->vlan);
+        $this->assertSame('Eth1/2', $entries[1]->port);
+        $this->assertSame('Gi1/0/3', $entries[2]->port);
+    }
+
+    public function test_parse_interface_status_table_recognises_all_status_tokens(): void
+    {
+        $output = implode("\r\n", [
+            'Port      Name               Status       Vlan       Duplex  Speed Type',
+            'Gi1/0/1   a                  inactive     1          auto    auto  10/100/1000BaseTX',
+            'Gi1/0/2   b                  sfpAbsent    1          auto    auto  No Gbic',
+            'Te1/1/1   c                  xcvrAbsen    1          auto    auto  unknown',
+            'Gi1/0/3   d                  suspnd       1          auto    auto  10/100/1000BaseTX',
+            'Gi1/0/4   e                  faulty       1          auto    auto  10/100/1000BaseTX',
+            'Gi1/0/5   f                  connected    routed     full    1000  10/100/1000BaseTX',
+        ]);
+
+        $ports = $this->parser->parseInterfaceStatusTable($output);
+
+        $this->assertSame(
+            ['inactive', 'sfpAbsent', 'xcvrAbsen', 'suspnd', 'faulty', 'connected'],
+            array_map(fn ($p) => $p->status, $ports),
+        );
+        $this->assertSame('routed', $ports[5]->switchportMode);
+    }
+
     public function test_parse_mac_address_table_empty(): void
     {
         $output = implode("\r\n", [

@@ -81,3 +81,30 @@ test.describe('Switch form authentication method', () => {
         await expect(page.getByTestId('switch-auth-private-key')).toBeChecked();
     });
 });
+
+test.describe('Switch timezone', () => {
+    test('create defaults to UTC and edit persists the chosen timezone', async ({ page }) => {
+        const host = `tz-switch-${Date.now()}.local`;
+        await page.goto('/admin/switches/create');
+        await expect(page.getByTestId('switch-timezone')).toHaveValue('UTC');
+
+        await page.getByTestId('switch-name').fill('Timezone Switch');
+        await page.getByTestId('switch-hostname').fill(host);
+        await page.getByTestId('switch-type').selectOption('cisco');
+        await page.getByTestId('switch-username').fill('admin');
+        await page.getByTestId('switch-password').fill('secret');
+        await page.getByTestId('switch-timezone').selectOption('Europe/London');
+        await page.getByTestId('action-save').click();
+        await expect(page).toHaveURL(/\/admin\/switches\/\d+$/);
+
+        await page.goto(`${page.url()}/edit`);
+        await expect(page.getByTestId('switch-timezone')).toHaveValue('Europe/London');
+
+        await page.getByTestId('switch-timezone').selectOption('America/New_York');
+        await page.getByTestId('action-save').click();
+        await expect(page).toHaveURL(/\/admin\/switches\/\d+$/);
+
+        await page.goto(`${page.url()}/edit`);
+        await expect(page.getByTestId('switch-timezone')).toHaveValue('America/New_York');
+    });
+});

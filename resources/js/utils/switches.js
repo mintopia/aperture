@@ -74,3 +74,5 @@ export function formatVlan(vlan, switchportMode) {
     if (vlan === null || vlan === 0) return '—';
     return String(vlan);
 }
+
+export const switchTimezones = Array.from(new Set(['UTC', ...Intl.supportedValuesOf('timeZone')]));

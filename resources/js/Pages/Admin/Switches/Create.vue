@@ -4,6 +4,7 @@ import { useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
+import { switchTimezones as timezones } from '@/utils/switches';
 
 defineOptions({ layout: AdminLayout });
 
@@ -24,6 +25,7 @@ const form = useForm({
     community: '',
     port: 22,
     timeout: 5,
+    timezone: 'UTC',
     enabled: true,
 });
 
@@ -178,6 +180,17 @@ function submit() {
                             max="120"
                             class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
+                    </FormField>
+
+                    <FormField label="Switch timezone" name="timezone" :error="form.errors.timezone">
+                        <select
+                            id="timezone"
+                            v-model="form.timezone"
+                            data-testid="switch-timezone"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                        >
+                            <option v-for="zone in timezones" :key="zone" :value="zone">{{ zone }}</option>
+                        </select>
                     </FormField>
                 </div>
             </div>
