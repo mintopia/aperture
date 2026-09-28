@@ -112,6 +112,8 @@ class PrepareE2eCommand extends Command
             return [$admin, $switch];
         });
 
+        $this->prepareDedicatedUser('playwright-passkey@example.test', 'playwright-passkey', 'playwright-passkey-password');
+
         foreach (['127.0.0.1', '::1'] as $ip) {
             RateLimiter::clear('login-attempt:'.Str::lower($email).'|'.$ip);
         }
@@ -141,6 +143,21 @@ class PrepareE2eCommand extends Command
         $this->info(sprintf('Playwright fixtures prepared. Admin=%s, Switch=%s', $email, $switch->hostname));
 
         return self::SUCCESS;
+    }
+
+    private function prepareDedicatedUser(string $email, string $nickname, string $password): void
+    {
+        Model::unguarded(function () use ($email, $nickname, $password): void {
+            $roleIds = Role::query()->whereIn('code', ['admin', 'user'])->pluck('id')->all();
+
+            $user = User::query()->where('email', $email)->first() ?? new User;
+            $user->email = $email;
+            $user->nickname = $nickname;
+            $user->password = $password;
+            $user->save();
+
+            $user->roles()->syncWithoutDetaching($roleIds);
+        });
     }
 
     private function verifyRedisConnections(): bool
