@@ -10,7 +10,7 @@ column read `row.allowed`, but `allowed` was renamed to `internet_enabled`
 always rendered "—".
 
 `internet_enabled` was a non-nullable boolean (default false) and is the live
-enforcement flag: `IpAddressObserver` dispatches `SyncInternetAccessJob`
+enforcement flag: `IpAddressObserver` dispatches `SyncFirewallJob` (internet action)
 (firewall allow/block) on change, and `IpPolicyService` derives it from user
 policy. With only true/false, a freshly-discovered IP that nobody has decided on
 was stored as `false` and would read as "Blocked", which is wrong — it has no

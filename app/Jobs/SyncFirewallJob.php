@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Enums\FirewallAction;
 use App\Models\IpAddress;
 use App\Services\IpAddressActionService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,7 +12,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class SyncInternetAccessJob implements ShouldQueue
+class SyncFirewallJob implements ShouldQueue
 {
     use Queueable;
 
@@ -21,6 +22,7 @@ class SyncInternetAccessJob implements ShouldQueue
 
     public function __construct(
         public readonly IpAddress $ip,
+        public readonly FirewallAction $action,
         public readonly bool $enabled,
     ) {}
 
@@ -34,16 +36,20 @@ class SyncInternetAccessJob implements ShouldQueue
 
     public function handle(IpAddressActionService $actionService): void
     {
-        if ($this->enabled) {
-            $actionService->enableInternet($this->ip);
-        } else {
-            $actionService->disableInternet($this->ip);
-        }
+        match ($this->action) {
+            FirewallAction::Internet => $this->enabled
+                ? $actionService->enableInternet($this->ip)
+                : $actionService->disableInternet($this->ip),
+            FirewallAction::RateLimit => $this->enabled
+                ? $actionService->enableRateLimit($this->ip)
+                : $actionService->disableRateLimit($this->ip),
+        };
     }
 
     public function failed(Throwable $exception): void
     {
-        Log::error('SyncInternetAccessJob failed', [
+        Log::error('SyncFirewallJob failed', [
+            'action' => $this->action->value,
             'ip' => $this->ip->address,
             'enabled' => $this->enabled,
             'error' => $exception->getMessage(),

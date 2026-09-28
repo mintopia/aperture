@@ -11,7 +11,6 @@ use App\Services\NetworkSwitch\PortMacSync;
 use App\Services\NetworkSwitch\PortStatusSync;
 use App\Services\NetworkSwitch\PortSyncService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
-use App\Services\NetworkSwitch\SyncRunTracker;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +49,7 @@ class PortSyncServiceTransactionTest extends TestCase
         $factory = $this->createMock(SwitchServiceFactory::class);
         $factory->method('make')->willReturn($adapter);
 
-        $service = new PortSyncService($factory, new SyncRunTracker, new PortStatusSync, new PortMacSync, new PortConfigSync);
+        $service = new PortSyncService($factory, new PortStatusSync, new PortMacSync, new PortConfigSync);
         $service->syncSwitch($switchConfig);
 
         $transactionIndex = array_search('transaction_open', $callOrder, true);

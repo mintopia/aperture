@@ -9,6 +9,7 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
+use App\Models\SwitchSyncRun;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SupportsDhcpSnooping;
 use Illuminate\Support\Collection;
@@ -20,7 +21,6 @@ class PortSyncService
 {
     public function __construct(
         protected SwitchServiceFactory $factory,
-        protected SyncRunTracker $runTracker,
         protected PortStatusSync $portStatusSync,
         protected PortMacSync $portMacSync,
         protected PortConfigSync $portConfigSync,
@@ -28,10 +28,10 @@ class PortSyncService
 
     public function syncSwitch(SwitchConfig $switchConfig): SyncResult
     {
-        $this->runTracker->cleanStale($switchConfig);
+        SwitchSyncRun::cleanStale($switchConfig);
 
         $syncStartedAt = now();
-        $syncRun = $this->runTracker->start($switchConfig);
+        $syncRun = SwitchSyncRun::start($switchConfig);
 
         /** @var array<int, array{switchPort: SwitchPort, oldStatus: ?string, newStatus: string}> $portStateChanges */
         $portStateChanges = [];
@@ -71,9 +71,9 @@ class PortSyncService
                 }
             });
 
-            $this->runTracker->complete($syncRun, $portsCreated, $portsUpdated, $macsCreated, $macsUpdated);
+            $syncRun->complete($portsCreated, $portsUpdated, $macsCreated, $macsUpdated);
         } catch (Throwable $throwable) {
-            $this->runTracker->fail($syncRun, $throwable->getMessage());
+            $syncRun->fail($throwable->getMessage());
 
             throw $throwable;
         } finally {

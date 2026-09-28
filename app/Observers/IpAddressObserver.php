@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Enums\FirewallAction;
 use App\Jobs\SyncDnsFilteringJob;
-use App\Jobs\SyncInternetAccessJob;
-use App\Jobs\SyncRateLimitJob;
+use App\Jobs\SyncFirewallJob;
 use App\Models\IpAddress;
 
 class IpAddressObserver
@@ -15,11 +15,11 @@ class IpAddressObserver
     {
         if ($ip->wasChanged('internet_enabled')) {
             // null (no explicit decision) is enforced as blocked — deny-by-default.
-            SyncInternetAccessJob::dispatch($ip, (bool) $ip->internet_enabled);
+            SyncFirewallJob::dispatch($ip, FirewallAction::Internet, (bool) $ip->internet_enabled);
         }
 
         if ($ip->wasChanged('rate_limit_enabled')) {
-            SyncRateLimitJob::dispatch($ip, $ip->rate_limit_enabled);
+            SyncFirewallJob::dispatch($ip, FirewallAction::RateLimit, $ip->rate_limit_enabled);
         }
 
         if ($ip->wasChanged('dns_filtering_enabled')) {

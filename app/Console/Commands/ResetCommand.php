@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Models\IpAddress;
-use App\Models\User;
+use App\Jobs\ResetAperture;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
 
 use function Laravel\Prompts\confirm;
 
@@ -36,37 +34,10 @@ class ResetCommand extends Command
         if (! $confirmed) {
             $this->output->writeln('Exiting');
 
-            return 0;
+            return self::SUCCESS;
         }
 
-        // IPs
-        IpAddress::query()->chunk(100, function (Collection $ips): void {
-            foreach ($ips as $ip) {
-                /** @var IpAddress $ip */
-                if ($ip->rate_limit_enabled) {
-                    $this->output->writeln($ip.' Unlimiting');
-                    $ip->rate_limit_enabled = false;
-                    $ip->saveQuietly();
-                }
-
-                $ip->internet_enabled = false;
-                $ip->saveQuietly();
-                $ip->delete();
-                $this->output->writeln($ip.' Deleted');
-            }
-        });
-
-        // Delete Users
-        $ids = User::query()->whereHas('roles', function ($query): void {
-            $query->whereCode('admin');
-        })->pluck('id');
-
-        User::query()->whereNotIn('id', $ids)->chunk(100, function (Collection $users): void {
-            foreach ($users as $user) {
-                $this->output->writeln($user.' Deleted ');
-                $user->delete();
-            }
-        });
+        ResetAperture::dispatchSync();
 
         $this->output->writeln('Finished');
 

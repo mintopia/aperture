@@ -186,4 +186,66 @@ class SwitchSyncRunTest extends TestCase
 
         $this->assertDatabaseMissing('switch_sync_runs', ['id' => $run->id]);
     }
+
+    public function test_start_creates_running_sync_run(): void
+    {
+        $switchConfig = SwitchConfig::factory()->create();
+
+        $run = SwitchSyncRun::start($switchConfig);
+
+        $this->assertSame('running', $run->status);
+        $this->assertSame($switchConfig->id, $run->switch_config_id);
+        $this->assertNotNull($run->started_at);
+    }
+
+    public function test_complete_updates_status_and_counters(): void
+    {
+        $run = SwitchSyncRun::start(SwitchConfig::factory()->create());
+
+        $run->complete(portsCreated: 2, portsUpdated: 5, macsCreated: 10, macsUpdated: 3);
+        $run->refresh();
+
+        $this->assertSame('completed', $run->status);
+        $this->assertSame(2, $run->ports_created);
+        $this->assertSame(5, $run->ports_updated);
+        $this->assertSame(10, $run->macs_created);
+        $this->assertSame(3, $run->macs_updated);
+        $this->assertNotNull($run->finished_at);
+    }
+
+    public function test_fail_updates_status_and_records_error(): void
+    {
+        $run = SwitchSyncRun::start(SwitchConfig::factory()->create());
+
+        $run->fail('Connection refused');
+        $run->refresh();
+
+        $this->assertSame('failed', $run->status);
+        $this->assertSame('Connection refused', $run->error);
+        $this->assertNotNull($run->finished_at);
+    }
+
+    public function test_clean_stale_fails_only_old_running_runs_for_the_switch(): void
+    {
+        $switchConfig = SwitchConfig::factory()->create();
+        $stale = SwitchSyncRun::factory()->running()->create([
+            'switch_config_id' => $switchConfig->id,
+            'started_at' => now()->subMinutes(10),
+        ]);
+        $fresh = SwitchSyncRun::factory()->running()->create([
+            'switch_config_id' => $switchConfig->id,
+            'started_at' => now()->subMinute(),
+        ]);
+        $otherSwitch = SwitchSyncRun::factory()->running()->create([
+            'started_at' => now()->subMinutes(10),
+        ]);
+
+        SwitchSyncRun::cleanStale($switchConfig);
+
+        $this->assertSame('failed', $stale->fresh()->status);
+        $this->assertSame('Sync timed out (stale run cleanup)', $stale->fresh()->error);
+        $this->assertNotNull($stale->fresh()->finished_at);
+        $this->assertSame('running', $fresh->fresh()->status);
+        $this->assertSame('running', $otherSwitch->fresh()->status);
+    }
 }
