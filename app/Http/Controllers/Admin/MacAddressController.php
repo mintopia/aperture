@@ -11,7 +11,7 @@ use App\Models\MacAddress;
 use App\Models\SwitchPortMac;
 use App\Support\SearchHelper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -117,7 +117,7 @@ class MacAddressController extends Controller
                     'id' => $ip->id,
                     'address' => $ip->address,
                     'source' => $ip->pivot->source,
-                    'last_seen_at' => Carbon::parse($ip->pivot->last_seen_at)->toIso8601String(),
+                    'last_seen_at' => Date::parse($ip->pivot->last_seen_at)->toIso8601String(),
                 ];
             });
 

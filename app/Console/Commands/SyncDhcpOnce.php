@@ -15,7 +15,7 @@ class SyncDhcpOnce extends Command
 
     public function handle(): int
     {
-        SyncDhcpData::dispatchSync();
+        dispatch_sync(new SyncDhcpData);
         $this->info('DHCP sync completed.');
 
         return self::SUCCESS;

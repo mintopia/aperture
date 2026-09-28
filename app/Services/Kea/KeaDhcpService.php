@@ -9,8 +9,8 @@ use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
 use App\Support\Duid;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -367,7 +367,7 @@ class KeaDhcpService implements DhcpInterface
 
     private function fetchSnapshot(): void
     {
-        $now = Carbon::now()->getTimestamp();
+        $now = Date::now()->getTimestamp();
 
         /** @var Collection<int, DhcpLease> $ipv4Leases */
         $ipv4Leases = collect();
@@ -553,7 +553,7 @@ class KeaDhcpService implements DhcpInterface
             ip: $ip,
             mac: $this->deriveMac($lease, $isIpv6),
             hostname: is_string($hostname) ? $hostname : '',
-            expires: Carbon::createFromTimestamp($expiresAt)->toIso8601String(),
+            expires: Date::createFromTimestamp($expiresAt)->toIso8601String(),
             macFromDuid: $this->macIsDuidDerived($lease, $isIpv6),
         );
     }

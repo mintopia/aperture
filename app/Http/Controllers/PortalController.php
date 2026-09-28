@@ -11,6 +11,7 @@ use App\Models\IpAddress;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Ipv6JwtService;
+use App\Services\UserNetworkAssociationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,12 +19,12 @@ use Throwable;
 
 class PortalController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, UserNetworkAssociationService $associations): View
     {
         $clientIp = (string) $request->getClientIp();
         /** @var User $user */
         $user = $request->user();
-        $ip = $user->addIp($clientIp);
+        $ip = $associations->addIp($user, $clientIp);
 
         $dbConfig = IntegrationConfig::getAll('ipv6');
         $ipv6DetectionEndpoint = $dbConfig['detection_endpoint'] ?? '';
@@ -37,23 +38,23 @@ class PortalController extends Controller
         ]);
     }
 
-    public function status(Request $request): JsonResponse
+    public function status(Request $request, UserNetworkAssociationService $associations): JsonResponse
     {
         $clientIp = (string) $request->getClientIp();
         /** @var User $user */
         $user = $request->user();
         $this->ensureInternetEnabled($user);
-        $ip = $user->addIp($clientIp);
+        $ip = $associations->addIp($user, $clientIp);
 
         return response()->json((object) [
             'ip' => $clientIp,
-            'internetEnabled' => $ip !== null && (bool) $ip->internet_enabled,
+            'internetEnabled' => $ip instanceof IpAddress && (bool) $ip->internet_enabled,
         ]);
     }
 
-    public function ipv6(Request $request, Ipv6JwtService $jwtService): JsonResponse
+    public function ipv6(Request $request, Ipv6JwtService $jwtService, UserNetworkAssociationService $associations): JsonResponse
     {
-        $request->validate(['token' => 'required|string']);
+        $request->validate(['token' => ['required', 'string']]);
 
         $dbConfig = IntegrationConfig::getAll('ipv6');
         $jwksUrl = $dbConfig['jwks_url'] ?? '';
@@ -70,7 +71,7 @@ class PortalController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        $ip = $user->addIp($ipv6);
+        $ip = $associations->addIp($user, $ipv6);
 
         if ($ip instanceof IpAddress) {
             $clientIpRecord = IpAddress::whereAddress((string) $request->getClientIp())->first();
@@ -100,13 +101,13 @@ class PortalController extends Controller
 
                 // Dispatch on refresh too, so existing links can heal missing
                 // user associations (ADR-011).
-                IpMacLinked::dispatch($ip, $mac, 'ipv6_detection', 'ipv6_detection');
+                event(new IpMacLinked($ip, $mac, 'ipv6_detection', 'ipv6_detection'));
             }
         }
 
         return response()->json((object) [
             'ip' => $ipv6,
-            'internetEnabled' => $ip !== null && (bool) $ip->internet_enabled,
+            'internetEnabled' => $ip instanceof IpAddress && (bool) $ip->internet_enabled,
         ]);
     }
 

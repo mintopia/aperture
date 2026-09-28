@@ -89,6 +89,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
         ], v4: '/v4', v6: '/v6');
 
         $service->getRanges();
+
         $status = $service->getFetchStatus();
 
         $this->assertTrue($status['ipv4_ranges']);
@@ -101,6 +102,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
         $service = $this->service([Fake::response(502)], v4: '/r', v6: '/r');
 
         $service->getRanges();
+
         $status = $service->getFetchStatus();
 
         $this->assertFalse($status['ipv4_ranges']);

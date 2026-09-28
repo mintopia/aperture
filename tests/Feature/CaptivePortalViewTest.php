@@ -158,7 +158,7 @@ class CaptivePortalViewTest extends TestCase
 
     public function test_captive_routes_have_throttle_middleware(): void
     {
-        $routes = app('router')->getRoutes();
+        $routes = resolve('router')->getRoutes();
 
         $captiveIndex = $routes->getByName('captive.index');
         $this->assertNotNull($captiveIndex, 'captive.index route should exist');

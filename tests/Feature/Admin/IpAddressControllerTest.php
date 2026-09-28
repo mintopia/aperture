@@ -10,11 +10,12 @@ use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\LibreNms\LibreNmsService;
+use App\Services\UserNetworkAssociationService;
 use App\Services\ValueObjects\IpBandwidthResult;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Mockery\MockInterface;
@@ -44,7 +45,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($admin)->get('/admin/ips');
@@ -63,7 +64,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.2';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
@@ -111,7 +112,7 @@ class IpAddressControllerTest extends TestCase
         foreach (['2001:db8::10', '10.0.0.10', '2001:db8::2', '10.0.0.2', '::1', '10.0.0.1'] as $address) {
             $ip = new IpAddress;
             $ip->address = $address;
-            $ip->last_seen_at = Carbon::now();
+            $ip->last_seen_at = Date::now();
             $ip->save();
         }
 
@@ -134,12 +135,12 @@ class IpAddressControllerTest extends TestCase
 
         $ip1 = new IpAddress;
         $ip1->address = '10.0.0.1';
-        $ip1->last_seen_at = Carbon::now();
+        $ip1->last_seen_at = Date::now();
         $ip1->save();
 
         $ip2 = new IpAddress;
         $ip2->address = '192.168.1.1';
-        $ip2->last_seen_at = Carbon::now();
+        $ip2->last_seen_at = Date::now();
         $ip2->save();
 
         $response = $this->actingAs($admin)->get('/admin/ips?address=10.0.0.1');
@@ -155,17 +156,17 @@ class IpAddressControllerTest extends TestCase
 
         $ip1 = new IpAddress;
         $ip1->address = '10.0.0.1';
-        $ip1->last_seen_at = Carbon::now();
+        $ip1->last_seen_at = Date::now();
         $ip1->save();
 
         $ip2 = new IpAddress;
         $ip2->address = '10.0.0.2';
-        $ip2->last_seen_at = Carbon::now();
+        $ip2->last_seen_at = Date::now();
         $ip2->save();
 
         $ip3 = new IpAddress;
         $ip3->address = '192.168.1.1';
-        $ip3->last_seen_at = Carbon::now();
+        $ip3->last_seen_at = Date::now();
         $ip3->save();
 
         $response = $this->actingAs($admin)->get('/admin/ips?address=10.0.0');
@@ -182,19 +183,19 @@ class IpAddressControllerTest extends TestCase
         $allowed = new IpAddress;
         $allowed->address = '10.0.0.1';
         $allowed->internet_enabled = true;
-        $allowed->last_seen_at = Carbon::now();
+        $allowed->last_seen_at = Date::now();
         $allowed->save();
 
         $blocked = new IpAddress;
         $blocked->address = '10.0.0.2';
         $blocked->internet_enabled = false;
-        $blocked->last_seen_at = Carbon::now();
+        $blocked->last_seen_at = Date::now();
         $blocked->save();
 
         $unassigned = new IpAddress;
         $unassigned->address = '10.0.0.3';
         $unassigned->internet_enabled = null;
-        $unassigned->last_seen_at = Carbon::now();
+        $unassigned->last_seen_at = Date::now();
         $unassigned->save();
 
         $allowedResponse = $this->actingAs($admin)->get('/admin/ips?status=allowed');
@@ -225,7 +226,7 @@ class IpAddressControllerTest extends TestCase
     {
         $ip = new IpAddress;
         $ip->address = '10.1.2.3';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $this->assertNull($ip->fresh()->internet_enabled);
@@ -238,12 +239,12 @@ class IpAddressControllerTest extends TestCase
 
         $ip1 = new IpAddress;
         $ip1->address = '2001:db8::1';
-        $ip1->last_seen_at = Carbon::now();
+        $ip1->last_seen_at = Date::now();
         $ip1->save();
 
         $ip2 = new IpAddress;
         $ip2->address = '10.0.0.1';
-        $ip2->last_seen_at = Carbon::now();
+        $ip2->last_seen_at = Date::now();
         $ip2->save();
 
         $response = $this->actingAs($admin)->get('/admin/ips?address='.urlencode('2001:DB8::1'));
@@ -259,11 +260,11 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.5';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $user = User::factory()->create(['nickname' => 'TargetUser']);
-        $user->addIp('10.0.0.5');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '10.0.0.5');
 
         $response = $this->actingAs($admin)->get('/admin/ips?nickname=TargetUser');
 
@@ -278,7 +279,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.10';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($admin)->get('/admin/ips?'.$queryString);
@@ -300,7 +301,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.20';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
@@ -320,7 +321,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.34';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.$pathSuffix, [
@@ -347,7 +348,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.52';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.$pathSuffix, []);
@@ -362,7 +363,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.53';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         $response = $this->actingAs($admin)->post('/admin/ips/'.$ip->address.$pathSuffix, [
@@ -425,7 +426,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = $ipAddress;
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         SwitchConfig::factory()->create(['hostname' => 'switch01']);
@@ -482,7 +483,7 @@ class IpAddressControllerTest extends TestCase
 
         $ip = new IpAddress;
         $ip->address = '10.0.0.99';
-        $ip->last_seen_at = Carbon::now();
+        $ip->last_seen_at = Date::now();
         $ip->save();
 
         // No SwitchConfig created for 'unknown-switch.local' — fallback will be used

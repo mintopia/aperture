@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Casts\NormalizeMacAddress;
 use Database\Factories\MacAddressFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -49,6 +50,12 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'mac_address',
+    'user_id',
+    'source',
+    'description',
+])]
 class MacAddress extends Model
 {
     /** @use HasFactory<MacAddressFactory> */
@@ -56,14 +63,6 @@ class MacAddress extends Model
 
     /** Source of MACs derived from a DHCPv6 DUID; DUIDs can be shared by cloned images, so they never drive ownership. */
     public const SOURCE_DHCP_DUID = 'dhcp_duid';
-
-    /** @var list<string> */
-    protected $fillable = [
-        'mac_address',
-        'user_id',
-        'source',
-        'description',
-    ];
 
     public function getRouteKeyName(): string
     {

@@ -38,7 +38,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
             collect(),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertSame(1, IpAddress::count());
@@ -61,7 +61,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect(),
             collect([new ArpEntry(self::UPPER, 'AA:BB:CC:DD:EE:01')]),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertSame(1, IpAddress::count());
@@ -84,7 +84,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
             collect(),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertDatabaseHas('ip_address_mac_address', [
@@ -118,7 +118,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
             collect(),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         // Still exactly one pivot row, but the event must fire on refresh too so
@@ -141,7 +141,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, null, 'host', '2026-06-11')]),
             collect(),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertDatabaseCount('ip_address_mac_address', 0);
@@ -161,7 +161,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
             collect([new ArpEntry('2a0f:85c1:d91:2100::dead', 'AA:BB:CC:DD:EE:02')]),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertDatabaseCount('ip_address_mac_address', 0);

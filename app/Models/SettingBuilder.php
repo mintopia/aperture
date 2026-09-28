@@ -33,6 +33,9 @@ class SettingBuilder extends Builder
         return $this->flushAfter(fn (): int => parent::upsert($values, $uniqueBy, $update));
     }
 
+    /**
+     * @param  array<int|string, mixed>  $values
+     */
     public function insert(array $values): bool
     {
         return $this->flushAfter(fn (): bool => $this->toBase()->insert($values));

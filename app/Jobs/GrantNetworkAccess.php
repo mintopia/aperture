@@ -34,7 +34,7 @@ class GrantNetworkAccess implements ShouldQueue
         $this->ipAddress->internet_enabled = true;
         $this->ipAddress->save();
 
-        InternetAccessChanged::dispatch($this->ipAddress, true, $this->user);
+        event(new InternetAccessChanged($this->ipAddress, true, $this->user));
 
         Log::info('Network access granted', [
             'user_id' => $this->user->id,

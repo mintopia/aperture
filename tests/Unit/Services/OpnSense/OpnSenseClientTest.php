@@ -9,6 +9,7 @@ use App\Services\OpnSense\OpnSenseClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use stdClass;
 use Tests\Support\Fake;
 use Tests\TestCase;
 
@@ -47,7 +48,7 @@ class OpnSenseClientTest extends TestCase
     {
         Http::fake(['opnsense.test/*' => Http::response('{"result":"saved"}')]);
 
-        $this->client()->post('/api/test', [], new \stdClass);
+        $this->client()->post('/api/test', [], new stdClass);
 
         Http::assertSent(fn (Request $request): bool => $request->body() === '{}');
     }

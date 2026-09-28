@@ -162,7 +162,7 @@ class UserController extends Controller
             }
         }
 
-        return redirect()->route('admin.users.show', $user)->with('success', 'User updated successfully.');
+        return to_route('admin.users.show', $user)->with('success', 'User updated successfully.');
     }
 
     public function block(UserBlockRequest $request, User $user): RedirectResponse

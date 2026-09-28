@@ -46,15 +46,7 @@ class DetectBandwidthAnomaliesCommand extends Command
 
                     $userInfo = $this->resolveUser($talker->ip);
 
-                    BandwidthAnomalyDetected::dispatch(
-                        ipAddress: $talker->ip,
-                        userName: $userInfo['name'],
-                        userId: $userInfo['id'],
-                        shortTermAvg: $shortTermAvg,
-                        longTermAvg: $longTermAvg,
-                        ratio: round($ratio, 2),
-                        threshold: $threshold,
-                    );
+                    event(new BandwidthAnomalyDetected(ipAddress: $talker->ip, userName: $userInfo['name'], userId: $userInfo['id'], shortTermAvg: $shortTermAvg, longTermAvg: $longTermAvg, ratio: round($ratio, 2), threshold: $threshold));
 
                     Log::info('Bandwidth anomaly detected', [
                         'ip' => $talker->ip,

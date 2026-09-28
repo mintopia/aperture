@@ -12,13 +12,14 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class PiHoleServiceTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
     /**
-     * @param  list<PromiseInterface|\Throwable>  $responses
+     * @param  list<PromiseInterface|Throwable>  $responses
      */
     private function createServiceWithMock(array $responses): PiHoleService
     {

@@ -149,6 +149,7 @@ class PortalControllerTest extends TestCase
         if ($configuredEndpoint !== null) {
             IntegrationConfig::setValue('ipv6', 'detection_endpoint', $configuredEndpoint);
         }
+
         $user = User::factory()->create(['internet_blocked' => false]);
 
         $response = $this->actingAs($user)->get('/');

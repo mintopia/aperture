@@ -8,6 +8,7 @@ use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class OpnSenseDhcpServiceRangeUsageTest extends TestCase
 {
@@ -23,7 +24,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     ];
 
     /**
-     * @param  list<PromiseInterface|\Throwable>  $responses
+     * @param  list<PromiseInterface|Throwable>  $responses
      * @param  array<string, string>  $rangeFieldMap
      */
     private function createService(

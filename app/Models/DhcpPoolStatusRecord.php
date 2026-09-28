@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\DhcpPoolStatusRecordFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -21,23 +23,20 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
+#[Fillable([
+    'integration',
+    'address_family',
+    'total',
+    'used',
+    'available',
+    'utilisation',
+    'synced_at',
+])]
+#[Table(name: 'dhcp_pool_statuses')]
 class DhcpPoolStatusRecord extends Model
 {
     /** @use HasFactory<DhcpPoolStatusRecordFactory> */
     use HasFactory;
-
-    protected $table = 'dhcp_pool_statuses';
-
-    /** @var list<string> */
-    protected $fillable = [
-        'integration',
-        'address_family',
-        'total',
-        'used',
-        'available',
-        'utilisation',
-        'synced_at',
-    ];
 
     protected function casts(): array
     {

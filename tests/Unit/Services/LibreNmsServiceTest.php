@@ -8,11 +8,12 @@ use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Support\Collection;
 use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class LibreNmsServiceTest extends TestCase
 {
     /**
-     * @param  list<PromiseInterface|\Throwable>  $responses
+     * @param  list<PromiseInterface|Throwable>  $responses
      */
     protected function createServiceWithMockClient(array $responses): LibreNmsService
     {

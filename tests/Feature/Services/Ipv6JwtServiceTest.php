@@ -87,7 +87,7 @@ class Ipv6JwtServiceTest extends TestCase
     {
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1');
 
         $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
@@ -99,7 +99,7 @@ class Ipv6JwtServiceTest extends TestCase
     {
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('192.168.1.1');
 
         $this->expectException(InvalidArgumentException::class);
@@ -112,7 +112,7 @@ class Ipv6JwtServiceTest extends TestCase
     {
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
 
         // Create a JWT signed with a different key
         $otherKey = openssl_pkey_new([
@@ -139,7 +139,7 @@ class Ipv6JwtServiceTest extends TestCase
     {
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
 
         $service->verifyAndExtract($this->makeJwt('2001:db8::1'), $this->jwksUrl);
         $service->verifyAndExtract($this->makeJwt('2001:db8::2'), $this->jwksUrl);
@@ -151,7 +151,7 @@ class Ipv6JwtServiceTest extends TestCase
     {
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
 
         $expiredJwt = JWT::encode(
             ['sub' => '2001:db8::1', 'iat' => time() - 600, 'exp' => time() - 300],
@@ -169,7 +169,7 @@ class Ipv6JwtServiceTest extends TestCase
     {
         Http::fake([$this->jwksUrl => Http::response('Server Error', 500)]);
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1');
 
         $this->expectException(RuntimeException::class);
@@ -183,7 +183,7 @@ class Ipv6JwtServiceTest extends TestCase
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
         IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'aperture']);
 
         $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
@@ -196,7 +196,7 @@ class Ipv6JwtServiceTest extends TestCase
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
         IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'wrong-audience']);
 
         $this->expectException(InvalidArgumentException::class);
@@ -209,7 +209,7 @@ class Ipv6JwtServiceTest extends TestCase
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
         IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1');
 
         $this->expectException(InvalidArgumentException::class);
@@ -222,7 +222,7 @@ class Ipv6JwtServiceTest extends TestCase
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
         IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['iss' => 'borealis']);
 
         $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
@@ -235,7 +235,7 @@ class Ipv6JwtServiceTest extends TestCase
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
         IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['iss' => 'wrong-issuer']);
 
         $this->expectException(InvalidArgumentException::class);
@@ -248,7 +248,7 @@ class Ipv6JwtServiceTest extends TestCase
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
         IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1');
 
         $this->expectException(InvalidArgumentException::class);
@@ -260,7 +260,7 @@ class Ipv6JwtServiceTest extends TestCase
     {
         Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1');
 
         $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
@@ -274,7 +274,7 @@ class Ipv6JwtServiceTest extends TestCase
         IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
         IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'aperture', 'iss' => 'borealis']);
 
         $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
@@ -288,7 +288,7 @@ class Ipv6JwtServiceTest extends TestCase
         IntegrationConfig::setValue('ipv6', 'jwt_audience', 'aperture');
         IntegrationConfig::setValue('ipv6', 'jwt_issuer', 'borealis');
 
-        $service = app(Ipv6JwtService::class);
+        $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'aperture', 'iss' => 'wrong']);
 
         $this->expectException(InvalidArgumentException::class);

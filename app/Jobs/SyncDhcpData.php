@@ -19,23 +19,16 @@ use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
 use App\Support\Queues;
 use Closure;
-use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 {
-    use Dispatchable;
-    use InteractsWithQueue;
-    use Queueable;
-    use SerializesModels;
+    use \Illuminate\Foundation\Queue\Queueable;
 
     public int $timeout = 120;
 
@@ -122,12 +115,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
         $wasBelowThreshold = $previousUtilisation === null || $previousUtilisation < self::UTILISATION_THRESHOLD;
         if ($wasBelowThreshold) {
-            DhcpPoolThresholdReached::dispatch(
-                pool: $integration,
-                usage: $currentUtilisation,
-                threshold: self::UTILISATION_THRESHOLD,
-                addressFamily: $addressFamily,
-            );
+            event(new DhcpPoolThresholdReached(pool: $integration, usage: $currentUtilisation, threshold: self::UTILISATION_THRESHOLD, addressFamily: $addressFamily));
         }
     }
 
@@ -146,7 +134,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
      */
     public function performLeaseSync(string $integration, Collection $leases, array $fetchStatus): int
     {
-        $ipv4Leases = $leases->filter(fn (DhcpLease $lease): bool => ! $this->isIpv6($lease->ip))->values();
+        $ipv4Leases = $leases->reject(fn (DhcpLease $lease): bool => $this->isIpv6($lease->ip))->values();
         $ipv6Leases = $leases->filter(fn (DhcpLease $lease): bool => $this->isIpv6($lease->ip))->values();
 
         $count = $this->performLeaseSyncForFamily($integration, 'ipv4', $ipv4Leases, $fetchStatus['ipv4']);

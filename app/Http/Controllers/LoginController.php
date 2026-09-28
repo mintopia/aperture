@@ -48,7 +48,7 @@ class LoginController extends Controller
                     return redirect($intended);
                 }
 
-                return redirect()->route('admin.home');
+                return to_route('admin.home');
             }
 
             return redirect()->intended('/');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\CapabilityAssignmentFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -30,12 +31,11 @@ use Illuminate\Support\Collection;
  *
  * @mixin \Eloquent
  */
+#[Fillable(['capability', 'integration'])]
 class CapabilityAssignment extends Model
 {
     /** @use HasFactory<CapabilityAssignmentFactory> */
     use HasFactory;
-
-    protected $fillable = ['capability', 'integration'];
 
     /**
      * Assign an integration as the active provider for a capability.

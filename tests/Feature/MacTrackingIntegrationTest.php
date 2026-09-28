@@ -30,7 +30,7 @@ class MacTrackingIntegrationTest extends TestCase
 
     private function makeService(): IpAddressActionService
     {
-        return app(IpAddressActionService::class);
+        return resolve(IpAddressActionService::class);
     }
 
     public function test_allow_links_mac_when_resolved(): void

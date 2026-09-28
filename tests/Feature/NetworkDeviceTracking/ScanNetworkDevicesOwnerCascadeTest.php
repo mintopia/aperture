@@ -69,7 +69,7 @@ class ScanNetworkDevicesOwnerCascadeTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:10', 'owned-device', '2026-06-11')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         // Exactly one row for the address: no case-variant duplicate created
         $this->assertSame(1, IpAddress::count());

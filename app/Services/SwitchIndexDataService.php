@@ -63,7 +63,7 @@ class SwitchIndexDataService
         $switches = $query->orderBy($order, $direction)
             ->get()
             ->map(fn (SwitchConfig $s): array => [
-                ...(new SwitchConfigResource($s))->toArray(request()),
+                ...(new SwitchConfigResource($s))->toArray($request),
                 'port_count' => $s->switch_ports_count,
                 'ports_up' => $s->ports_up_count,
                 'ports_down' => $s->ports_down_count,

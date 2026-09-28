@@ -8,11 +8,12 @@ use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class OpnSenseDhcpServicePathsTest extends TestCase
 {
     /**
-     * @param  array<int, PromiseInterface|\Throwable>  $responses
+     * @param  array<int, PromiseInterface|Throwable>  $responses
      */
     private function createServiceWithHistory(
         array $responses,

@@ -18,7 +18,7 @@ use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
 use Mockery\MockInterface;
 use Tests\TestCase;
@@ -29,7 +29,7 @@ class SyncDhcpDataTest extends TestCase
 
     protected function tearDown(): void
     {
-        Carbon::setTestNow();
+        Date::setTestNow();
 
         parent::tearDown();
     }
@@ -585,7 +585,7 @@ class SyncDhcpDataTest extends TestCase
     {
         $this->assignDhcpProvider('cisco');
 
-        Carbon::setTestNow(Carbon::parse('2026-01-01 00:00:00'));
+        Date::setTestNow(Date::parse('2026-01-01 00:00:00'));
 
         $this->bindDhcpServiceWithFetchStatus(
             leases: [
@@ -607,7 +607,7 @@ class SyncDhcpDataTest extends TestCase
         $firstRunSuccessAt = $ipv6SyncStateAfterFirstRun->last_success_at;
         $this->assertNotNull($firstRunSuccessAt);
 
-        Carbon::setTestNow(Carbon::parse('2026-01-01 00:05:00'));
+        Date::setTestNow(Date::parse('2026-01-01 00:05:00'));
 
         $this->bindDhcpServiceWithFetchStatus(
             leases: [
@@ -637,7 +637,7 @@ class SyncDhcpDataTest extends TestCase
             'dataset' => 'leases',
             'address_family' => 'ipv6',
         ])->firstOrFail();
-        $this->assertTrue($ipv6SyncStateAfterSecondRun->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($ipv6SyncStateAfterSecondRun->last_attempt_at->equalTo(Date::parse('2026-01-01 00:05:00')));
         $this->assertTrue($ipv6SyncStateAfterSecondRun->last_success_at->equalTo($firstRunSuccessAt));
     }
 
@@ -645,7 +645,7 @@ class SyncDhcpDataTest extends TestCase
     {
         $this->assignDhcpProvider('cisco');
 
-        Carbon::setTestNow(Carbon::parse('2026-01-01 00:00:00'));
+        Date::setTestNow(Date::parse('2026-01-01 00:00:00'));
 
         $this->bindDhcpServiceWithFetchStatus(
             leases: [
@@ -685,7 +685,7 @@ class SyncDhcpDataTest extends TestCase
         $rangeSuccessAt = $rangeSyncStateBefore->last_success_at;
         $poolStatusSuccessAt = $poolStatusSyncStateBefore->last_success_at;
 
-        Carbon::setTestNow(Carbon::parse('2026-01-01 00:05:00'));
+        Date::setTestNow(Date::parse('2026-01-01 00:05:00'));
 
         $this->bindDhcpServiceWithFetchStatus(
             leases: [
@@ -726,11 +726,11 @@ class SyncDhcpDataTest extends TestCase
             'integration' => 'cisco', 'dataset' => 'pool_status', 'address_family' => 'ipv4',
         ])->firstOrFail();
 
-        $this->assertTrue($ipv4LeaseSyncStateAfter->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($ipv4LeaseSyncStateAfter->last_attempt_at->equalTo(Date::parse('2026-01-01 00:05:00')));
         $this->assertTrue($ipv4LeaseSyncStateAfter->last_success_at->equalTo($ipv4SuccessAt));
-        $this->assertTrue($rangeSyncStateAfter->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($rangeSyncStateAfter->last_attempt_at->equalTo(Date::parse('2026-01-01 00:05:00')));
         $this->assertTrue($rangeSyncStateAfter->last_success_at->equalTo($rangeSuccessAt));
-        $this->assertTrue($poolStatusSyncStateAfter->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($poolStatusSyncStateAfter->last_attempt_at->equalTo(Date::parse('2026-01-01 00:05:00')));
         $this->assertTrue($poolStatusSyncStateAfter->last_success_at->equalTo($poolStatusSuccessAt));
     }
 
@@ -738,7 +738,7 @@ class SyncDhcpDataTest extends TestCase
     {
         $this->assignDhcpProvider('cisco');
 
-        Carbon::setTestNow(Carbon::parse('2026-01-01 00:00:00'));
+        Date::setTestNow(Date::parse('2026-01-01 00:00:00'));
 
         $this->bindDhcpServiceWithFetchStatus(
             leases: [
@@ -834,7 +834,7 @@ class SyncDhcpDataTest extends TestCase
     {
         $this->assignDhcpProvider('cisco');
 
-        Carbon::setTestNow(Carbon::parse('2026-01-01 00:00:00'));
+        Date::setTestNow(Date::parse('2026-01-01 00:00:00'));
 
         $ipv4Range = new DhcpRange(
             interface: 'Vlan100',
@@ -879,7 +879,7 @@ class SyncDhcpDataTest extends TestCase
         $ipv6SuccessAt = $ipv6RangeSyncStateBefore->last_success_at;
         $this->assertNotNull($ipv6SuccessAt);
 
-        Carbon::setTestNow(Carbon::parse('2026-01-01 00:05:00'));
+        Date::setTestNow(Date::parse('2026-01-01 00:05:00'));
 
         $fetchStatusWithIpv6RangesFailing = ['ipv4' => true, 'ipv6' => true, 'ipv6_ranges' => false];
         $this->bindDhcpServiceWithFetchStatus(
@@ -904,7 +904,7 @@ class SyncDhcpDataTest extends TestCase
         $ipv6RangeSyncStateAfter = DhcpSyncState::where([
             'integration' => 'cisco', 'dataset' => 'ranges', 'address_family' => 'ipv6',
         ])->firstOrFail();
-        $this->assertTrue($ipv6RangeSyncStateAfter->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($ipv6RangeSyncStateAfter->last_attempt_at->equalTo(Date::parse('2026-01-01 00:05:00')));
         $this->assertTrue($ipv6RangeSyncStateAfter->last_success_at->equalTo($ipv6SuccessAt));
     }
 
@@ -1143,7 +1143,7 @@ class SyncDhcpDataTest extends TestCase
         ]);
         $this->bindDhcpServiceWithFetchStatus([], [], new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0), ['ipv4' => true, 'ipv6' => true]);
 
-        (new SyncDhcpData)->handle(app(DhcpInterface::class));
+        (new SyncDhcpData)->handle(resolve(DhcpInterface::class));
 
         $this->assertDatabaseMissing('dhcp_pool_statuses', ['integration' => 'kea', 'address_family' => 'ipv6']);
     }
@@ -1157,7 +1157,7 @@ class SyncDhcpDataTest extends TestCase
         ]);
         $this->bindDhcpServiceWithFetchStatus([], [], new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0), ['ipv4' => true, 'ipv6' => false]);
 
-        (new SyncDhcpData)->handle(app(DhcpInterface::class));
+        (new SyncDhcpData)->handle(resolve(DhcpInterface::class));
 
         $this->assertDatabaseHas('dhcp_pool_statuses', ['integration' => 'kea', 'address_family' => 'ipv6']);
     }

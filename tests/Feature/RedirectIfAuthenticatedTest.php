@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Providers\RouteServiceProvider;
 use App\Services\Auth\DeviceFlowResponse;
 use App\Services\Interfaces\AuthProviderInterface;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -18,7 +17,7 @@ class RedirectIfAuthenticatedTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get('/login');
-        $response->assertRedirect(RouteServiceProvider::HOME);
+        $response->assertRedirect('/');
     }
 
     public function test_guest_can_view_login_page(): void

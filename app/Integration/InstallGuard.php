@@ -21,12 +21,12 @@ final class InstallGuard
     {
         try {
             return $callback();
-        } catch (QueryException $e) {
-            if (self::isMissingTable($e)) {
+        } catch (QueryException $queryException) {
+            if (self::isMissingTable($queryException)) {
                 return $default;
             }
 
-            throw $e;
+            throw $queryException;
         }
     }
 

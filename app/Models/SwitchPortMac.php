@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Casts\NormalizeMacAddress;
 use Database\Factories\SwitchPortMacFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -39,19 +40,17 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'switch_port_id',
+    'mac_address',
+    'mac_address_id',
+    'vlan',
+    'last_seen_at',
+])]
 class SwitchPortMac extends Model
 {
     /** @use HasFactory<SwitchPortMacFactory> */
     use HasFactory;
-
-    /** @var list<string> */
-    protected $fillable = [
-        'switch_port_id',
-        'mac_address',
-        'mac_address_id',
-        'vlan',
-        'last_seen_at',
-    ];
 
     /**
      * @return array<string, mixed>

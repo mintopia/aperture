@@ -20,7 +20,7 @@ class SetupController extends Controller
     public function index(): Response|RedirectResponse
     {
         if (User::query()->exists()) {
-            return redirect()->route('login');
+            return to_route('login');
         }
 
         return Inertia::render('Setup/Index');
@@ -29,7 +29,7 @@ class SetupController extends Controller
     public function store(Request $request): RedirectResponse
     {
         if ($this->usersExist()) {
-            return redirect()->route('login');
+            return to_route('login');
         }
 
         $validated = $request->validate([
@@ -40,12 +40,12 @@ class SetupController extends Controller
         $lock = Cache::lock('aperture_setup', 10);
 
         if (! $lock->get()) {
-            return redirect()->route('login');
+            return to_route('login');
         }
 
         try {
             if ($this->usersExist()) {
-                return redirect()->route('login');
+                return to_route('login');
             }
 
             /** @var User $user */
@@ -79,7 +79,7 @@ class SetupController extends Controller
             Auth::login($user);
             $request->session()->regenerate();
 
-            return redirect()->route('admin.home');
+            return to_route('admin.home');
         } finally {
             $lock->release();
         }

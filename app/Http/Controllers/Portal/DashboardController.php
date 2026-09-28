@@ -11,18 +11,19 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\UserNetworkAssociationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, UserNetworkAssociationService $associations): Response
     {
         /** @var User $user */
         $user = $request->user();
         $clientIp = (string) $request->getClientIp();
-        $ip = $user->addIp($clientIp);
+        $ip = $associations->addIp($user, $clientIp);
 
         $blocks = ContentBlock::active()->get();
 
@@ -44,7 +45,7 @@ class DashboardController extends Controller
             'blockContext' => [
                 'currentIpv4' => $clientIp,
                 'currentIpv6' => $ipv6,
-                'internetEnabled' => $ip !== null && (bool) $ip->internet_enabled,
+                'internetEnabled' => $ip instanceof IpAddress && (bool) $ip->internet_enabled,
                 'internetBlocked' => (bool) $user->internet_blocked,
                 'blockedMessage' => Setting::get('portal.blocked_message', ''),
                 'macAddress' => $macString,

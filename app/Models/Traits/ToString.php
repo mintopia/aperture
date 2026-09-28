@@ -24,12 +24,6 @@ trait ToString
 
     protected function getStringDescription(): ?string
     {
-        $str = $this->code ?? $this->name ?? null;
-        // @phpstan-ignore function.alreadyNarrowedType
-        if (property_exists($this, 'stringDescriptionProperty')) {
-            return $this->{$this->stringDescriptionProperty} ?? null;
-        }
-
-        return $str;
+        return $this->code ?? $this->name ?? null;
     }
 }

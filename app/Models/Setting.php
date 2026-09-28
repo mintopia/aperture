@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Casts\SettingValue;
 use App\Models\Traits\ToString;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -45,22 +46,17 @@ use Illuminate\Support\Facades\Cache;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'code',
+    'name',
+    'value',
+])]
 class Setting extends Model
 {
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
     use ToString;
-
-    protected $fillable = [
-        'code',
-        'name',
-        'value',
-    ];
-
-    protected $casts = [
-        'value' => SettingValue::class,
-    ];
 
     public const CACHE_KEY = 'settings.all';
 
@@ -77,7 +73,7 @@ class Setting extends Model
 
     /**
      * @param  \Illuminate\Database\Query\Builder  $query
-     * @return SettingBuilder<static>
+     * @return SettingBuilder<Setting>
      */
     public function newEloquentBuilder($query): SettingBuilder
     {
@@ -122,5 +118,12 @@ class Setting extends Model
 
         $setting->value = $value;
         $setting->save();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'value' => SettingValue::class,
+        ];
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\ConnectionTestLogFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,12 +43,11 @@ use Illuminate\Support\Collection;
  *
  * @mixin \Eloquent
  */
+#[Fillable(['integration', 'success', 'message', 'request_method', 'request_url', 'response_status', 'response_time_ms', 'response_data'])]
 class ConnectionTestLog extends Model
 {
     /** @use HasFactory<ConnectionTestLogFactory> */
     use HasFactory;
-
-    protected $fillable = ['integration', 'success', 'message', 'request_method', 'request_url', 'response_status', 'response_time_ms', 'response_data'];
 
     protected function casts(): array
     {

@@ -114,7 +114,7 @@ class IpAddressController extends Controller
 
     public function limit(Request $request, IpAddress $ip): RedirectResponse
     {
-        $request->validate(['limit' => 'required|boolean']);
+        $request->validate(['limit' => ['required', 'boolean']]);
 
         $ip->rate_limit_enabled = $request->boolean('limit');
         $ip->save();
@@ -133,7 +133,7 @@ class IpAddressController extends Controller
 
     public function internet(Request $request, IpAddress $ip): RedirectResponse
     {
-        $request->validate(['allow' => 'required|boolean']);
+        $request->validate(['allow' => ['required', 'boolean']]);
 
         $ip->internet_enabled = $request->boolean('allow');
         $ip->save();
@@ -152,7 +152,7 @@ class IpAddressController extends Controller
 
     public function dnsFilter(Request $request, IpAddress $ip): RedirectResponse
     {
-        $request->validate(['filter' => 'required|boolean']);
+        $request->validate(['filter' => ['required', 'boolean']]);
 
         $ip->dns_filtering_enabled = $request->boolean('filter');
         $ip->save();

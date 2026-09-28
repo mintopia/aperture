@@ -9,7 +9,7 @@ use App\Models\SwitchPort;
 use App\Models\SwitchPortConfig;
 use App\Services\NetworkSwitch\PortConfigSync;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
@@ -33,7 +33,7 @@ class PortConfigSyncTest extends TestCase
             ],
         ];
 
-        $sync->sync($switchConfig, $portConfigData, Carbon::now());
+        $sync->sync($switchConfig, $portConfigData, Date::now());
 
         $this->assertDatabaseHas('switch_port_configs', [
             'switch_port_id' => $port->id,
@@ -66,7 +66,7 @@ class PortConfigSyncTest extends TestCase
             ],
         ];
 
-        $sync->sync($switchConfig, $portConfigData, Carbon::now());
+        $sync->sync($switchConfig, $portConfigData, Date::now());
 
         $this->assertDatabaseHas('switch_port_configs', [
             'switch_port_id' => $port->id,
@@ -107,7 +107,7 @@ class PortConfigSyncTest extends TestCase
             ],
         ];
 
-        $sync->sync($switchConfig, $portConfigData, Carbon::now());
+        $sync->sync($switchConfig, $portConfigData, Date::now());
 
         $existingConfig->refresh();
 
@@ -128,7 +128,7 @@ class PortConfigSyncTest extends TestCase
             ],
         ];
 
-        $sync->sync($switchConfig, $portConfigData, Carbon::now());
+        $sync->sync($switchConfig, $portConfigData, Date::now());
 
         $this->assertDatabaseCount('switch_port_configs', 0);
     }
@@ -149,7 +149,7 @@ class PortConfigSyncTest extends TestCase
             ],
         ];
 
-        $sync->sync($switchConfig, $portConfigData, Carbon::now());
+        $sync->sync($switchConfig, $portConfigData, Date::now());
 
         $this->assertDatabaseCount('switch_port_configs', 0);
     }
@@ -173,7 +173,7 @@ class PortConfigSyncTest extends TestCase
             ],
         ];
 
-        $sync->sync($switchConfig, $portConfigData, Carbon::now());
+        $sync->sync($switchConfig, $portConfigData, Date::now());
 
         $this->assertDatabaseHas('switch_port_configs', [
             'switch_port_id' => $port->id,
@@ -200,7 +200,7 @@ class PortConfigSyncTest extends TestCase
             ],
         ];
 
-        $sync->sync($switchConfig, $portConfigData, Carbon::now());
+        $sync->sync($switchConfig, $portConfigData, Date::now());
 
         $this->assertDatabaseMissing('switch_port_configs', [
             'switch_port_id' => $port->id,
@@ -226,7 +226,7 @@ class PortConfigSyncTest extends TestCase
             ],
         ];
 
-        $sync->sync($switchConfig, $portConfigData, Carbon::now());
+        $sync->sync($switchConfig, $portConfigData, Date::now());
 
         $this->assertDatabaseHas('switch_port_configs', [
             'switch_port_id' => $port->id,
@@ -246,7 +246,7 @@ class PortConfigSyncTest extends TestCase
         $sync = new PortConfigSync;
 
         // Should not throw and should not create any config records
-        $sync->sync($switchConfig, [], Carbon::now());
+        $sync->sync($switchConfig, [], Date::now());
 
         $this->assertDatabaseCount('switch_port_configs', 0);
     }
@@ -266,7 +266,7 @@ class PortConfigSyncTest extends TestCase
                 'rawConfig' => "% Invalid input detected at '^' marker.",
                 'rawInterfaceOutput' => null,
             ],
-        ], Carbon::now());
+        ], Date::now());
 
         Log::shouldHaveReceived('warning')
             ->once()

@@ -152,6 +152,8 @@ class PrepareE2eCommandTest extends TestCase
             ->with('PING')
             ->andReturn('PONG');
 
+        Redis::shouldReceive('del')->andReturn(1);
+
         $this->artisan('aperture:e2e:prepare', ['--verify-redis' => true])
             ->expectsOutputToContain('Redis verification passed')
             ->assertSuccessful();

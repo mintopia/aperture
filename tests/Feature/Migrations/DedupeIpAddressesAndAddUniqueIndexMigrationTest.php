@@ -10,7 +10,7 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -179,7 +179,7 @@ class DedupeIpAddressesAndAddUniqueIndexMigrationTest extends TestCase
         // internet_enabled was true on a duplicate only: logical OR
         $this->assertTrue((bool) $keeper->internet_enabled);
         // last_seen_at: max across the group
-        $this->assertTrue(Carbon::parse((string) $keeper->last_seen_at)->equalTo(Carbon::parse(self::NEWEST)));
+        $this->assertTrue(Date::parse((string) $keeper->last_seen_at)->equalTo(Date::parse(self::NEWEST)));
     }
 
     public function test_repoints_and_merges_user_ip_addresses(): void
@@ -194,7 +194,7 @@ class DedupeIpAddressesAndAddUniqueIndexMigrationTest extends TestCase
             ->where('ip_address_id', $this->keeperId)
             ->get();
         $this->assertCount(1, $userARows);
-        $this->assertTrue(Carbon::parse((string) $userARows->first()->last_seen_at)->equalTo(Carbon::parse(self::NEWEST)));
+        $this->assertTrue(Date::parse((string) $userARows->first()->last_seen_at)->equalTo(Date::parse(self::NEWEST)));
 
         // Repointed: userB now references the keeper
         $this->assertSame(1, DB::table('user_ip_addresses')
@@ -221,7 +221,7 @@ class DedupeIpAddressesAndAddUniqueIndexMigrationTest extends TestCase
             ->where('mac_address_id', $this->macX->id)
             ->get();
         $this->assertCount(1, $macXRows);
-        $this->assertTrue(Carbon::parse((string) $macXRows->first()->last_seen_at)->equalTo(Carbon::parse(self::NEWEST)));
+        $this->assertTrue(Date::parse((string) $macXRows->first()->last_seen_at)->equalTo(Date::parse(self::NEWEST)));
         $this->assertSame('arp', $macXRows->first()->source);
 
         // Repointed: macY now linked to the keeper

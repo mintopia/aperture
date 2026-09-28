@@ -10,11 +10,12 @@ use Illuminate\Http\Client\ConnectionException;
 use ReflectionClass;
 use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class OpnSenseDhcpServiceTest extends TestCase
 {
     /**
-     * @param  array<int, PromiseInterface|\Throwable>  $responses
+     * @param  array<int, PromiseInterface|Throwable>  $responses
      */
     private function createServiceWithMock(array $responses, int $poolSize = 0): OpnSenseDhcpService
     {

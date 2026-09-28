@@ -5,6 +5,7 @@ namespace Tests\Unit\Models;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\UserNetworkAssociationService;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -128,7 +129,7 @@ class UserTest extends TestCase
     {
         Queue::fake();
         $user = User::factory()->create();
-        $ip = $user->addIp('192.168.1.100');
+        $ip = resolve(UserNetworkAssociationService::class)->addIp($user, '192.168.1.100');
 
         $this->assertInstanceOf(IpAddress::class, $ip);
         $this->assertEquals('192.168.1.100', $ip->address);
@@ -143,8 +144,8 @@ class UserTest extends TestCase
     {
         Queue::fake();
         $user = User::factory()->create();
-        $ip1 = $user->addIp('192.168.1.100');
-        $ip2 = $user->addIp('192.168.1.100');
+        $ip1 = resolve(UserNetworkAssociationService::class)->addIp($user, '192.168.1.100');
+        $ip2 = resolve(UserNetworkAssociationService::class)->addIp($user, '192.168.1.100');
 
         $this->assertNotNull($ip1);
         $this->assertNotNull($ip2);

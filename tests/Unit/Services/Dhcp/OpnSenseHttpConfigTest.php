@@ -11,9 +11,11 @@ use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use ReflectionProperty;
 use Tests\TestCase;
+use Throwable;
 
 class OpnSenseHttpConfigTest extends TestCase
 {
@@ -33,7 +35,7 @@ class OpnSenseHttpConfigTest extends TestCase
 
         try {
             $call();
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         return $captured;
@@ -61,7 +63,7 @@ class OpnSenseHttpConfigTest extends TestCase
 
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
-        $options = $this->captureOptions(fn () => $service->getLeases());
+        $options = $this->captureOptions(fn (): Collection => $service->getLeases());
 
         $this->assertSame(7, $options['timeout']);
         $this->assertSame(3, $options['connect_timeout']);

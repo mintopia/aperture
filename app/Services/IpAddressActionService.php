@@ -55,7 +55,7 @@ class IpAddressActionService
 
                 // Fires for both fresh links and refreshes, so links created
                 // here without a user association can heal later (ADR-011).
-                IpMacLinked::dispatch($ip, $macAddress, 'auth', 'auth');
+                event(new IpMacLinked($ip, $macAddress, 'auth', 'auth'));
             }
         } catch (Throwable $throwable) {
             // MAC resolution and ownership cascade are best-effort, but the

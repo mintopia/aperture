@@ -29,7 +29,7 @@ class UserObserver implements ShouldHandleEventsAfterCommit
         $userIps = $user->ips()->with('ip')->get();
 
         foreach ($userIps as $userIp) {
-            SyncUserPolicyJob::dispatch($user, $userIp->ip);
+            dispatch(new SyncUserPolicyJob($user, $userIp->ip));
         }
     }
 }

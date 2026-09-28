@@ -9,11 +9,12 @@ use Illuminate\Http\Client\RequestException as HttpRequestException;
 use stdClass;
 use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class BorealisServiceTest extends TestCase
 {
     /**
-     * @param  list<PromiseInterface|\Throwable>  $responses
+     * @param  list<PromiseInterface|Throwable>  $responses
      */
     protected function createServiceWithMockClient(array $responses): BorealisService
     {

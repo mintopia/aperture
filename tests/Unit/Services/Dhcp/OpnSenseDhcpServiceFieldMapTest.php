@@ -10,6 +10,7 @@ use App\Services\ValueObjects\DhcpRange;
 use GuzzleHttp\Promise\PromiseInterface;
 use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class OpnSenseDhcpServiceFieldMapTest extends TestCase
 {
@@ -43,7 +44,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
     ];
 
     /**
-     * @param  list<PromiseInterface|\Throwable>  $responses
+     * @param  list<PromiseInterface|Throwable>  $responses
      * @param  array<string, string>  $leaseFieldMap
      * @param  array<string, string>  $rangeFieldMap
      */

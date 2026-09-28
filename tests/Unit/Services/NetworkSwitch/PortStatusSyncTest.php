@@ -9,7 +9,7 @@ use App\Models\SwitchPort;
 use App\Services\NetworkSwitch\PortStatusSync;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Tests\TestCase;
 
 class PortStatusSyncTest extends TestCase
@@ -32,7 +32,7 @@ class PortStatusSyncTest extends TestCase
             adminStatus: 'enabled',
         );
 
-        $result = $sync->sync(collect([$portStatus]), $switchConfig, Carbon::now());
+        $result = $sync->sync(collect([$portStatus]), $switchConfig, Date::now());
 
         $this->assertDatabaseHas('switch_ports', [
             'switch_config_id' => $switchConfig->id,
@@ -62,7 +62,7 @@ class PortStatusSyncTest extends TestCase
             vlan: '10',
         );
 
-        $result = $sync->sync(collect([$portStatus]), $switchConfig, Carbon::now());
+        $result = $sync->sync(collect([$portStatus]), $switchConfig, Date::now());
 
         $this->assertDatabaseHas('switch_ports', [
             'switch_config_id' => $switchConfig->id,
@@ -91,7 +91,7 @@ class PortStatusSyncTest extends TestCase
             duplex: 'a-full',
         );
 
-        $result = $sync->sync(collect([$portStatus]), $switchConfig, Carbon::now());
+        $result = $sync->sync(collect([$portStatus]), $switchConfig, Date::now());
 
         $this->assertCount(1, $result['stateChanges']);
         $this->assertSame('notconnect', $result['stateChanges'][0]['oldStatus']);
@@ -116,7 +116,7 @@ class PortStatusSyncTest extends TestCase
             duplex: 'a-full',
         );
 
-        $result = $sync->sync(collect([$portStatus]), $switchConfig, Carbon::now());
+        $result = $sync->sync(collect([$portStatus]), $switchConfig, Date::now());
 
         $this->assertCount(0, $result['stateChanges']);
     }

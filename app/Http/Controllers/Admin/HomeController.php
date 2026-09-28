@@ -15,6 +15,7 @@ use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\AuditLog\AuditLogDescriptionGenerator;
 use App\Services\Interfaces\IpBandwidthInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class HomeController extends Controller
     {
         return Inertia::render('Admin/Dashboard', [
             'totalUsers' => User::count(),
-            'onlineUsers' => User::whereHas('ips', fn ($q) => $q->whereHas('ip', fn ($q2) => $q2->where('internet_enabled', true)))->count(), // @phpstan-ignore argument.templateType
+            'onlineUsers' => User::whereHas('ips', fn (Builder $q) => $q->whereHas('ip', fn (Builder $q2) => $q2->where('internet_enabled', true)))->count(),
             'activeIps' => IpAddress::where('internet_enabled', true)->count(),
             'blockedUsers' => User::where('internet_blocked', true)->count(),
             'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools()),
@@ -88,9 +89,9 @@ class HomeController extends Controller
             metadata: ['ip' => $request->getClientIp()],
         );
 
-        ResetAperture::dispatch();
+        dispatch(new ResetAperture);
 
-        return redirect()->route('admin.home')->with('success', 'Portal reset initiated.');
+        return to_route('admin.home')->with('success', 'Portal reset initiated.');
     }
 
     /** @return list<array{name: string, network: string|null, used: int, total: string, utilisation: float}> */
@@ -116,9 +117,8 @@ class HomeController extends Controller
     private function getRecentUsers(): LengthAwarePaginator
     {
         return User::query()
-            ->select('users.*')
-            ->selectRaw('(SELECT COUNT(*) FROM user_ip_addresses WHERE user_ip_addresses.user_id = users.id) as ips_count')
-            ->selectRaw('(SELECT MAX(user_ip_addresses.last_seen_at) FROM user_ip_addresses WHERE user_ip_addresses.user_id = users.id) as last_seen')
+            ->withCount('ips')
+            ->withMax('ips as last_seen', 'last_seen_at')
             ->orderByDesc('users.weekly_bandwidth')
             ->orderByDesc('last_seen')
             ->paginate(25);

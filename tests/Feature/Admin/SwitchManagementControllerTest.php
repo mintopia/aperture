@@ -756,7 +756,7 @@ class SwitchManagementControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
-        $circuitBreaker = app(CircuitBreaker::class);
+        $circuitBreaker = resolve(CircuitBreaker::class);
         $circuitBreaker->recordFailure($switch);
         $circuitBreaker->recordFailure($switch);
         $circuitBreaker->recordFailure($switch);
