@@ -646,7 +646,6 @@ describe('TimeSeriesChart', () => {
             const dataset = config.data.datasets[0];
             // borderColor should be the resolved hex, not the raw var() string
             expect(dataset.borderColor).toBe('#22c55e');
-            // backgroundColor should be a relative oklch colour derived from the resolved hex
             expect(dataset.backgroundColor).toBe('oklch(from #22c55e l c h / 0.12)');
             expect(dataset.backgroundColor).not.toContain('var(');
         });

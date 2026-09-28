@@ -160,23 +160,16 @@ describe('ConfirmModal', () => {
         expect(dialog.open).toBe(true);
     });
 
-    it('closes the native dialog when show becomes false', async () => {
-        const wrapper = mountComponent();
-        const dialog = wrapper.find('dialog').element;
-        const close = vi.spyOn(dialog, 'close');
+    it('returns focus to the opener after the dialog leaves', async () => {
+        const opener = document.createElement('button');
+        document.body.appendChild(opener);
+        opener.focus();
+        const wrapper = mountComponent({}, { global: { stubs: { transition: false } } });
+        const focus = vi.spyOn(opener, 'focus');
 
         await wrapper.setProps({ show: false });
-
-        expect(close).toHaveBeenCalled();
+        await vi.waitFor(() => expect(focus).toHaveBeenCalled());
         expect(wrapper.find('dialog').exists()).toBe(false);
-    });
-
-    it('closes the native dialog on unmount', () => {
-        const wrapper = mountComponent();
-        const close = vi.spyOn(wrapper.find('dialog').element, 'close');
-
-        wrapper.unmount();
-
-        expect(close).toHaveBeenCalled();
+        opener.remove();
     });
 });

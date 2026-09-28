@@ -26,6 +26,50 @@ test.describe('Admin Dashboard (S4)', () => {
     });
 });
 
+test.describe('Native-platform refactor rendering', () => {
+    test('every sidebar nav item renders an SVG icon', async ({ page }) => {
+        await page.goto('/admin');
+        const items = page.getByTestId('admin-sidebar').locator('nav a');
+        const count = await items.count();
+        expect(count).toBeGreaterThanOrEqual(9);
+        for (let i = 0; i < count; i++) {
+            await expect(items.nth(i).locator('svg path').first()).toBeAttached();
+        }
+    });
+
+    test('dashboard stats show final values without animation', async ({ page }) => {
+        await page.goto('/admin');
+        const stats = page.getByTestId('dashboard-stats').getByTestId('stat-card');
+        await expect(stats).toHaveCount(4);
+        const first = await stats.first().innerText();
+        await page.waitForTimeout(500);
+        expect(await stats.first().innerText()).toBe(first);
+        expect(first).toMatch(/\d/);
+    });
+
+    test('theme toggle switches data-mode and accent colours', async ({ page }) => {
+        await page.goto('/admin');
+        const html = page.locator('html');
+        const before = await html.getAttribute('data-mode');
+        const accentBefore = await html.evaluate((el) => el.style.getPropertyValue('--color-accent'));
+        await page.getByRole('switch').first().click();
+        const after = before === 'dark' ? 'light' : 'dark';
+        await expect(html).toHaveAttribute('data-mode', after);
+        const accentAfter = await html.evaluate((el) => el.style.getPropertyValue('--color-accent'));
+        expect(accentAfter).not.toBe(accentBefore);
+        expect(accentAfter).toContain('oklch');
+    });
+
+    test('bandwidth chart canvas renders', async ({ page }) => {
+        await page.goto('/admin');
+        const chart = page.getByTestId('bandwidth-chart');
+        await expect(chart).toBeVisible();
+        const box = await chart.locator('canvas').first().boundingBox();
+        expect(box.width).toBeGreaterThan(100);
+        expect(box.height).toBeGreaterThan(50);
+    });
+});
+
 test.describe('Recent Activity widget', () => {
     test('widget is visible with heading and seeded entries', async ({ page }) => {
         await page.goto('/admin');

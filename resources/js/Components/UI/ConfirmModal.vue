@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -32,28 +32,28 @@ const confirmButtonClass = computed(() => {
     return variants[props.variant] ?? variants.danger;
 });
 
-watch(
-    () => props.show,
-    (show) => {
-        if (!show) dialogRef.value?.close();
-    },
-    { flush: 'pre' },
-);
+let opener = null;
 
 function setDialog(el) {
     dialogRef.value = el;
-    if (el && !el.open) el.showModal();
+    if (el && !el.open) {
+        opener = document.activeElement;
+        el.showModal();
+    }
 }
 
 function onClose() {
     if (props.show && dialogRef.value && !dialogRef.value.open) dialogRef.value.showModal();
 }
 
-onBeforeUnmount(() => dialogRef.value?.close());
+function onAfterLeave() {
+    opener?.focus?.();
+    opener = null;
+}
 </script>
 
 <template>
-    <Transition name="modal">
+    <Transition name="modal" @after-leave="onAfterLeave">
         <dialog
             v-if="show"
             :ref="setDialog"
@@ -110,13 +110,28 @@ onBeforeUnmount(() => dialogRef.value?.close());
 </template>
 
 <style scoped>
-.modal-enter-active {
+.modal-enter-active,
+.modal-enter-active::backdrop {
     transition:
         opacity 200ms ease-out,
         transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.modal-enter-from {
+.modal-leave-active,
+.modal-leave-active::backdrop {
+    transition:
+        opacity 150ms ease-in,
+        transform 150ms ease-in;
+}
+.modal-enter-from,
+.modal-leave-to,
+.modal-enter-from::backdrop,
+.modal-leave-to::backdrop {
     opacity: 0;
+}
+.modal-enter-from {
     transform: scale(0.96);
+}
+.modal-leave-to {
+    transform: scale(0.98);
 }
 </style>
