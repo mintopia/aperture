@@ -13,8 +13,8 @@ readonly class DhcpSnapshot
     /**
      * @param  Collection<int, DhcpLease>  $leases
      * @param  Collection<int, DhcpRange>  $ranges
-     * @param  array<string, DhcpPoolStatus>  $poolStatuses  keyed by AddressFamily value
-     * @param  array<string, DhcpFetchStatus>  $fetchStatuses  keyed by AddressFamily value
+     * @param  array<value-of<AddressFamily>, DhcpPoolStatus>  $poolStatuses
+     * @param  array<value-of<AddressFamily>, DhcpFetchStatus>  $fetchStatuses
      */
     public function __construct(
         public Collection $leases,
@@ -27,7 +27,7 @@ readonly class DhcpSnapshot
     /**
      * @param  Collection<int, DhcpLease>  $leases
      * @param  Collection<int, DhcpRange>  $ranges
-     * @param  array<string, DhcpPoolStatus>  $poolOverrides  keyed by AddressFamily value; families not listed are derived from ranges
+     * @param  array<value-of<AddressFamily>, DhcpPoolStatus>  $poolOverrides
      */
     public static function create(
         Collection $leases,
