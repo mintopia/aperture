@@ -126,66 +126,33 @@ describe('Ips/Index', () => {
         expect(addressCell.classes().some((c) => c.includes('color-primary'))).toBe(true);
     });
 
-    it('renders MAC address when present', () => {
+    it('renders MAC/user/status cells correctly for allowed, blocked, and unassigned rows', () => {
         const wrapper = mountComponent();
-        const macCell = wrapper.find('[data-testid="ip-mac"]');
-        expect(macCell.text()).toBe('AA:BB:CC:DD:EE:FF');
-    });
 
-    it('renders em dash when MAC address is null', () => {
-        const wrapper = mountComponent();
         const macCells = wrapper.findAll('[data-testid="ip-mac"]');
-        expect(macCells[1].text()).toBe('—');
-    });
+        expect.soft(macCells[0].text()).toBe('AA:BB:CC:DD:EE:FF');
+        expect.soft(macCells[1].text()).toBe('—');
 
-    it('renders user as a Link when user exists', () => {
-        const wrapper = mountComponent();
-        const userCell = wrapper.find('[data-testid="ip-user"]');
-        const link = userCell.find('a');
-        expect(link.exists()).toBe(true);
-        expect(link.text()).toBe('testuser');
-        expect(link.attributes('href')).toBe('/admin/users/42');
-    });
-
-    it('renders em dash for user when no users', () => {
-        const wrapper = mountComponent();
         const userCells = wrapper.findAll('[data-testid="ip-user"]');
-        expect(userCells[1].find('a').exists()).toBe(false);
-        expect(userCells[1].text()).toBe('—');
-    });
+        const userLink = userCells[0].find('a');
+        expect.soft(userLink.exists()).toBe(true);
+        expect.soft(userLink.text()).toBe('testuser');
+        expect.soft(userLink.attributes('href')).toBe('/admin/users/42');
+        expect.soft(userCells[1].find('a').exists()).toBe(false);
+        expect.soft(userCells[1].text()).toBe('—');
 
-    it('renders "Allowed" status text for allowed IP', () => {
-        const wrapper = mountComponent();
         const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        expect(statusCells[0].text()).toContain('Allowed');
-    });
+        expect.soft(statusCells[0].text()).toContain('Allowed');
+        expect.soft(statusCells[1].text()).toContain('Blocked');
+        expect.soft(statusCells[2].text()).toContain('—');
 
-    it('renders "Blocked" status text for blocked IP', () => {
-        const wrapper = mountComponent();
-        const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        expect(statusCells[1].text()).toContain('Blocked');
-    });
+        const allowedDot = statusCells[0].find('span.rounded-full');
+        expect.soft(allowedDot.exists()).toBe(true);
+        expect.soft(allowedDot.classes().some((c) => c.includes('color-success'))).toBe(true);
 
-    it('renders an em dash status for an IP with no explicit decision', () => {
-        const wrapper = mountComponent();
-        const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        expect(statusCells[2].text()).toContain('—');
-    });
-
-    it('renders status dot with success classes for allowed IP', () => {
-        const wrapper = mountComponent();
-        const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        const dot = statusCells[0].find('span.rounded-full');
-        expect(dot.exists()).toBe(true);
-        expect(dot.classes().some((c) => c.includes('color-success'))).toBe(true);
-    });
-
-    it('renders status dot with danger classes for denied IP', () => {
-        const wrapper = mountComponent();
-        const statusCells = wrapper.findAll('[data-testid="ip-status"]');
-        const dot = statusCells[1].find('span.rounded-full');
-        expect(dot.exists()).toBe(true);
-        expect(dot.classes().some((c) => c.includes('color-danger'))).toBe(true);
+        const blockedDot = statusCells[1].find('span.rounded-full');
+        expect.soft(blockedDot.exists()).toBe(true);
+        expect.soft(blockedDot.classes().some((c) => c.includes('color-danger'))).toBe(true);
     });
 
     it('renders Pagination component', () => {
