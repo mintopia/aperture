@@ -1,6 +1,92 @@
 import { mount } from '@vue/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Leases from '@/Pages/Admin/Dhcp/Leases.vue';
+import { isIpInPrefix } from '@/utils/dhcp.js';
+
+describe('isIpInPrefix', () => {
+    it.each([
+        { name: 'address inside the prefix', addr: '2001:db8:1::5', prefix: '2001:db8:1::/64', expected: true },
+        { name: 'matches case-insensitively', addr: '2001:DB8:1::5', prefix: '2001:db8:1::/64', expected: true },
+        { name: 'address outside the prefix', addr: '2001:db8:2::5', prefix: '2001:db8:1::/64', expected: false },
+        {
+            name: 'partial hextet match only (10 vs 1)',
+            addr: '2001:db8:10::5',
+            prefix: '2001:db8:1::/64',
+            expected: false,
+        },
+        {
+            name: 'partial hextet match only (1f00 vs 1)',
+            addr: '2001:db8:1f00::5',
+            prefix: '2001:db8:1::/64',
+            expected: false,
+        },
+        { name: 'null address', addr: null, prefix: '2001:db8:1::/64', expected: false },
+        { name: 'null prefix', addr: '2001:db8:1::5', prefix: null, expected: false },
+        { name: 'empty inputs', addr: '', prefix: '', expected: false },
+        { name: 'prefix with no network portion', addr: '2001:db8:1::5', prefix: '::/0', expected: false },
+        {
+            name: 'zero-compressed prefix rejects a mismatched address',
+            addr: '2001:db8:1::5',
+            prefix: '2001:db8::/64',
+            expected: false,
+        },
+        {
+            name: 'zero-compressed prefix rejects a mismatched address (fd00)',
+            addr: 'fd00:1::5',
+            prefix: 'fd00::/64',
+            expected: false,
+        },
+        {
+            name: 'zero-compressed prefix matches an address inside it',
+            addr: '2001:db8::5',
+            prefix: '2001:db8::/64',
+            expected: true,
+        },
+        {
+            name: 'zero-compressed prefix matches an address inside it (fd00)',
+            addr: 'fd00::1:5',
+            prefix: 'fd00::/64',
+            expected: true,
+        },
+        { name: 'prefix without a length', addr: '2001:db8:1::5', prefix: '2001:db8:1::', expected: false },
+        { name: 'invalid prefix length', addr: '2001:db8:1::5', prefix: '2001:db8:1::/129', expected: false },
+        {
+            name: 'malformed address (invalid hex digit)',
+            addr: '2001:db8:zz::5',
+            prefix: '2001:db8:1::/64',
+            expected: false,
+        },
+        {
+            name: 'malformed address (too many groups)',
+            addr: '1:2:3:4:5:6:7:8:9',
+            prefix: '2001:db8:1::/64',
+            expected: false,
+        },
+        { name: 'malformed prefix', addr: '2001:db8:1::5', prefix: 'not-a-prefix/64', expected: false },
+        { name: 'IPv4 address input', addr: '10.0.0.5', prefix: '2001:db8:1::/64', expected: false },
+        { name: 'IPv4 prefix input', addr: '2001:db8:1::5', prefix: '10.0.0.0/24', expected: false },
+        {
+            name: 'non-hextet-aligned prefix length /63 matches lower half',
+            addr: '2001:db8:1:8000::5',
+            prefix: '2001:db8:1:8000::/63',
+            expected: true,
+        },
+        {
+            name: 'non-hextet-aligned prefix length /63 matches upper half',
+            addr: '2001:db8:1:8001::5',
+            prefix: '2001:db8:1:8000::/63',
+            expected: true,
+        },
+        {
+            name: 'non-hextet-aligned prefix length /63 rejects outside range',
+            addr: '2001:db8:1:8002::5',
+            prefix: '2001:db8:1:8000::/63',
+            expected: false,
+        },
+    ])('$name', ({ addr, prefix, expected }) => {
+        expect(isIpInPrefix(addr, prefix)).toBe(expected);
+    });
+});
 
 vi.mock('@inertiajs/vue3', () => ({
     router: {
@@ -43,6 +129,22 @@ function mountLeases(propsOverride = {}) {
             },
         },
     });
+}
+
+// Ranges/leases exercising the prefix-based (IPv6) branch of applyRangeFilter,
+// which the IPv4 start/end ranges above never reach.
+const prefixRanges = [{ network: '2001:db8:1::/64', start: null, end: null, prefix: '2001:db8:1::/64' }];
+const prefixLeases = [
+    { ip: '10.0.0.50', mac: 'AA:BB:CC:DD:EE:01', hostname: 'host-v4', expires: '' },
+    { ip: '2001:db8:1::5', mac: 'AA:BB:CC:DD:EE:02', hostname: 'host-v6-a', expires: '' },
+    { ip: '2001:DB8:1::1F', mac: 'AA:BB:CC:DD:EE:03', hostname: 'host-v6-b', expires: '' },
+    { ip: '2001:db8:2::5', mac: 'AA:BB:CC:DD:EE:04', hostname: 'host-v6-other', expires: '' },
+];
+
+function mountLeasesAtNetwork(network) {
+    const query = network ? '/?network=' + encodeURIComponent(network) : '/';
+    window.history.replaceState({}, '', query);
+    return mountLeases({ leases: prefixLeases, ranges: prefixRanges });
 }
 
 describe('Dhcp/Leases', () => {
@@ -253,6 +355,49 @@ describe('Dhcp/Leases', () => {
         it('hides "Show More" when all leases fit', () => {
             const wrapper = mountLeases();
             expect(wrapper.find('[data-testid="show-more-button"]').exists()).toBe(false);
+        });
+    });
+
+    describe('URL-seeded range filter (?network=)', () => {
+        afterEach(() => {
+            window.history.replaceState({}, '', '/');
+        });
+
+        it('shows all leases when no network is in the URL', () => {
+            const wrapper = mountLeasesAtNetwork(null);
+            expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(4);
+        });
+
+        it('filters leases by prefix for an IPv6 range without start/end', () => {
+            const wrapper = mountLeasesAtNetwork('2001:db8:1::/64');
+            const rows = wrapper.findAll('[data-testid="data-table-row"]');
+            expect(rows).toHaveLength(2);
+            expect(wrapper.text()).toContain('host-v6-a');
+            expect(wrapper.text()).toContain('host-v6-b');
+            expect(wrapper.text()).not.toContain('host-v6-other');
+            expect(wrapper.text()).not.toContain('host-v4');
+        });
+
+        it('shows all leases when the URL-seeded range does not exist', () => {
+            const wrapper = mountLeasesAtNetwork('192.168.99.0/24');
+            expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(4);
+        });
+
+        it('filters leases by lexicographic start/end for an IPv6 range', async () => {
+            const wrapper = mountLeases({
+                leases: [
+                    { ip: '2001:db8:1::5', mac: 'AA:BB:CC:DD:EE:01', hostname: 'in-range', expires: '' },
+                    { ip: '2001:db8:1::6', mac: 'AA:BB:CC:DD:EE:02', hostname: 'out-of-range', expires: '' },
+                ],
+                ranges: [{ network: '2001:db8:1::/64', start: '2001:db8:1::5', end: '2001:db8:1::5' }],
+            });
+
+            await wrapper.find('[data-testid="filter-select-range"]').setValue('2001:db8:1::/64');
+            await wrapper.vm.$nextTick();
+
+            const rows = wrapper.findAll('[data-testid="data-table-row"]');
+            expect(rows).toHaveLength(1);
+            expect(wrapper.text()).toContain('in-range');
         });
     });
 });
