@@ -9,6 +9,7 @@ use App\Services\Kea\KeaClient;
 use App\Services\Kea\KeaDhcpService;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
+use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -1969,7 +1970,13 @@ class KeaDhcpServiceTest extends TestCase
         $service = $this->dualStackService();
 
         $this->fakeDualStackConfigGet(
-            ['Dhcp4' => ['subnet4' => []]],
+            [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                    ],
+                ],
+            ],
             [
                 'Dhcp6' => [
                     'subnet6' => [
@@ -1980,12 +1987,21 @@ class KeaDhcpServiceTest extends TestCase
                     ],
                 ],
             ],
+            ipv4LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [$this->keaLease('10.0.0.11', 'AA:BB:CC:00:00:01', 'v4-host')],
+                    ],
+                ],
+                ['result' => 3],
+            ],
             ipv6LeaseResponses: [
                 [
                     'result' => 0,
                     'arguments' => [
                         'leases' => [
-                            $this->keaLease6('2a0f:85c1:d91:2100::1', hwAddress: 'AA:BB:CC:00:00:01'),
+                            $this->keaLease6('2a0f:85c1:d91:2100::1', hwAddress: 'AA:BB:CC:00:00:02'),
                         ],
                     ],
                 ],
@@ -1994,16 +2010,24 @@ class KeaDhcpServiceTest extends TestCase
         );
 
         $ranges = $service->getRanges()->values()->all();
+        $ipv6Range = collect($ranges)->firstOrFail(fn (DhcpRange $range): bool => $range->type === 'ipv6');
 
-        $this->assertCount(1, $ranges);
-        $this->assertSame('18446744073709551616', $ranges[0]->totalAddresses);
-        $this->assertSame(1, $ranges[0]->usedAddresses);
+        $this->assertCount(2, $ranges);
+        $this->assertSame('18446744073709551616', $ipv6Range->totalAddresses);
+        $this->assertSame(1, $ipv6Range->usedAddresses);
 
-        $status = $service->getPoolStatus();
+        $ipv6Status = $service->getPoolStatus('ipv6');
 
-        $this->assertSame(PHP_INT_MAX, $status->total);
-        $this->assertSame(1, $status->used);
-        $this->assertSame(PHP_INT_MAX - 1, $status->available);
+        $this->assertSame(PHP_INT_MAX, $ipv6Status->total);
+        $this->assertSame(1, $ipv6Status->used);
+        $this->assertSame(PHP_INT_MAX - 1, $ipv6Status->available);
+
+        $ipv4Status = $service->getPoolStatus('ipv4');
+
+        $this->assertSame(5, $ipv4Status->total);
+        $this->assertSame(1, $ipv4Status->used);
+        $this->assertSame(4, $ipv4Status->available);
+        $this->assertSame(0.2, $ipv4Status->utilisation);
     }
 
     public function test_get_pool_status_aggregates_ipv4_and_ipv6_ranges(): void
@@ -2045,12 +2069,61 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $status = $service->getPoolStatus();
+        $ipv4Status = $service->getPoolStatus('ipv4');
 
-        $this->assertSame(10, $status->total);
-        $this->assertSame(2, $status->used);
-        $this->assertSame(8, $status->available);
-        $this->assertSame(0.2, $status->utilisation);
+        $this->assertSame(5, $ipv4Status->total);
+        $this->assertSame(1, $ipv4Status->used);
+        $this->assertSame(4, $ipv4Status->available);
+        $this->assertSame(0.2, $ipv4Status->utilisation);
+
+        $ipv6Status = $service->getPoolStatus('ipv6');
+
+        $this->assertSame(5, $ipv6Status->total);
+        $this->assertSame(1, $ipv6Status->used);
+        $this->assertSame(4, $ipv6Status->available);
+        $this->assertSame(0.2, $ipv6Status->utilisation);
+    }
+
+    public function test_get_pool_status_default_family_matches_explicit_ipv4(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                    ],
+                ],
+            ],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        ['subnet' => '2001:db8::/64', 'pools' => [['pool' => '2001:db8::10 - 2001:db8::14']]],
+                    ],
+                ],
+            ],
+            ipv4LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [$this->keaLease('10.0.0.11', 'AA:BB:CC:00:00:01', 'v4-host')],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+            ipv6LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [$this->keaLease6('2001:db8::11', hwAddress: 'AA:BB:CC:00:00:02')],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+        );
+
+        $this->assertEquals($service->getPoolStatus('ipv4'), $service->getPoolStatus());
     }
 
     public function test_ipv6_config_get_failure_returns_empty_ipv6_ranges_without_breaking_ipv4(): void

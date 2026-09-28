@@ -42,18 +42,22 @@ class SyncDhcpDataTest extends TestCase
     /**
      * @param  list<DhcpLeaseVO>  $leases
      * @param  list<DhcpRange>  $ranges
-     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool, ipv6_ranges?: bool}  $fetchStatus
      */
     private function bindDhcpServiceWithFetchStatus(
         array $leases,
         array $ranges,
         DhcpPoolStatus $poolStatus,
         array $fetchStatus,
+        ?DhcpPoolStatus $ipv6PoolStatus = null,
     ): void {
-        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases, $ranges, $poolStatus, $fetchStatus): void {
+        $ipv6PoolStatus ??= new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
+
+        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases, $ranges, $poolStatus, $ipv6PoolStatus, $fetchStatus): void {
             $mock->allows('getLeases')->andReturn(collect($leases));
             $mock->allows('getRanges')->andReturn(collect($ranges));
-            $mock->allows('getPoolStatus')->andReturn($poolStatus);
+            $mock->shouldReceive('getPoolStatus')->with('ipv4')->andReturn($poolStatus);
+            $mock->shouldReceive('getPoolStatus')->with('ipv6')->andReturn($ipv6PoolStatus);
             $mock->allows('getFetchStatus')->andReturn($fetchStatus);
             $mock->allows('resetSnapshot');
         });
@@ -67,13 +71,16 @@ class SyncDhcpDataTest extends TestCase
         array $leases = [],
         array $ranges = [],
         ?DhcpPoolStatus $poolStatus = null,
+        ?DhcpPoolStatus $ipv6PoolStatus = null,
     ): void {
         $poolStatus ??= new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
+        $ipv6PoolStatus ??= new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
 
-        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases, $ranges, $poolStatus): void {
+        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases, $ranges, $poolStatus, $ipv6PoolStatus): void {
             $mock->allows('getLeases')->andReturn(collect($leases));
             $mock->allows('getRanges')->andReturn(collect($ranges));
-            $mock->allows('getPoolStatus')->andReturn($poolStatus);
+            $mock->shouldReceive('getPoolStatus')->with('ipv4')->andReturn($poolStatus);
+            $mock->shouldReceive('getPoolStatus')->with('ipv6')->andReturn($ipv6PoolStatus);
             $mock->allows('getFetchStatus')->andReturn(['ipv4' => true, 'ipv6' => true]);
             $mock->allows('resetSnapshot');
         });
@@ -821,5 +828,309 @@ class SyncDhcpDataTest extends TestCase
 
         $currentIpv6 = IpAddress::where('address', '2001:db8::2')->firstOrFail();
         $this->assertDatabaseHas('dhcp_leases', ['ip_address_id' => $currentIpv6->id, 'hostname' => 'host-v6-2']);
+    }
+
+    public function test_ipv6_range_fetch_failure_preserves_ipv4_and_previously_synced_ipv6_ranges(): void
+    {
+        $this->assignDhcpProvider('cisco');
+
+        Carbon::setTestNow(Carbon::parse('2026-01-01 00:00:00'));
+
+        $ipv4Range = new DhcpRange(
+            interface: 'Vlan100',
+            type: 'ipv4',
+            subnet: '10.0.0.0/24',
+            rangeFrom: '10.0.0.10',
+            rangeTo: '10.0.0.200',
+            prefix: null,
+            gateway: '10.0.0.1',
+            description: 'Main LAN',
+            totalAddresses: '191',
+            usedAddresses: 50,
+            utilisation: 0.2618,
+        );
+        $ipv6Range = new DhcpRange(
+            interface: 'VLAN400_DHCPV6',
+            type: 'ipv6',
+            subnet: null,
+            rangeFrom: null,
+            rangeTo: null,
+            prefix: '2001:db8::/64',
+            gateway: null,
+            description: 'V6 LAN',
+            totalAddresses: '18446744073709551616',
+            usedAddresses: 3,
+            utilisation: 0.0,
+        );
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv4Range, $ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 191, used: 50, available: 141, utilisation: 0.2618),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: PHP_INT_MAX, used: 3, available: PHP_INT_MAX - 3, utilisation: 0.0),
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_range_records', 2);
+        $ipv6RangeSyncStateBefore = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'ranges', 'address_family' => 'ipv6',
+        ])->firstOrFail();
+        $ipv6SuccessAt = $ipv6RangeSyncStateBefore->last_success_at;
+        $this->assertNotNull($ipv6SuccessAt);
+
+        Carbon::setTestNow(Carbon::parse('2026-01-01 00:05:00'));
+
+        $fetchStatusWithIpv6RangesFailing = ['ipv4' => true, 'ipv6' => true, 'ipv6_ranges' => false];
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv4Range],
+            poolStatus: new DhcpPoolStatus(total: 191, used: 50, available: 141, utilisation: 0.2618),
+            fetchStatus: $fetchStatusWithIpv6RangesFailing,
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_range_records', 2);
+        $this->assertDatabaseHas('dhcp_range_records', [
+            'integration' => 'cisco', 'type' => 'ipv6', 'interface' => 'VLAN400_DHCPV6',
+        ]);
+        $this->assertDatabaseHas('dhcp_range_records', [
+            'integration' => 'cisco', 'type' => 'ipv4', 'subnet' => '10.0.0.0/24',
+        ]);
+        $this->assertDatabaseHas('dhcp_pool_statuses', [
+            'integration' => 'cisco', 'address_family' => 'ipv6', 'used' => '3',
+        ]);
+
+        $ipv6RangeSyncStateAfter = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'ranges', 'address_family' => 'ipv6',
+        ])->firstOrFail();
+        $this->assertTrue($ipv6RangeSyncStateAfter->last_attempt_at->equalTo(Carbon::parse('2026-01-01 00:05:00')));
+        $this->assertTrue($ipv6RangeSyncStateAfter->last_success_at->equalTo($ipv6SuccessAt));
+    }
+
+    public function test_ipv4_lease_fetch_failure_does_not_hide_ipv6_range_sync(): void
+    {
+        $this->assignDhcpProvider('cisco');
+
+        $ipv6Range = new DhcpRange(
+            interface: 'VLAN400_DHCPV6',
+            type: 'ipv6',
+            subnet: null,
+            rangeFrom: null,
+            rangeTo: null,
+            prefix: '2001:db8::/64',
+            gateway: null,
+            description: 'V6 LAN',
+            totalAddresses: '100',
+            usedAddresses: 10,
+            utilisation: 0.1,
+        );
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0),
+            fetchStatus: ['ipv4' => false, 'ipv6' => true],
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_range_records', 1);
+        $this->assertDatabaseHas('dhcp_range_records', [
+            'integration' => 'cisco',
+            'type' => 'ipv6',
+            'interface' => 'VLAN400_DHCPV6',
+            'total_addresses' => '100',
+        ]);
+
+        $ipv4RangeSyncState = DhcpSyncState::where([
+            'integration' => 'cisco', 'dataset' => 'ranges', 'address_family' => 'ipv4',
+        ])->firstOrFail();
+        $this->assertNull($ipv4RangeSyncState->last_success_at);
+    }
+
+    public function test_pool_status_sync_produces_independent_rows_per_address_family(): void
+    {
+        $this->assignDhcpProvider('cisco');
+
+        $ipv6Range = new DhcpRange(
+            interface: 'VLAN400_DHCPV6',
+            type: 'ipv6',
+            subnet: null,
+            rangeFrom: null,
+            rangeTo: null,
+            prefix: '2001:db8::/64',
+            gateway: null,
+            description: 'V6 LAN',
+        );
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 254, used: 100, available: 154, utilisation: 0.3937),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: PHP_INT_MAX, used: 3, available: PHP_INT_MAX - 3, utilisation: 0.0),
+        );
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_pool_statuses', 2);
+        $this->assertDatabaseHas('dhcp_pool_statuses', [
+            'integration' => 'cisco',
+            'address_family' => 'ipv4',
+            'total' => '254',
+            'used' => '100',
+        ]);
+
+        $ipv4Record = DhcpPoolStatusRecord::where(['integration' => 'cisco', 'address_family' => 'ipv4'])->firstOrFail();
+        $this->assertSame(0.3937, (float) $ipv4Record->utilisation);
+
+        $ipv6Record = DhcpPoolStatusRecord::where(['integration' => 'cisco', 'address_family' => 'ipv6'])->firstOrFail();
+        $this->assertSame(PHP_INT_MAX, (int) $ipv6Record->total);
+        $this->assertSame(0.0, (float) $ipv6Record->utilisation);
+    }
+
+    public function test_threshold_event_fires_for_ipv4_only(): void
+    {
+        Event::fake([DhcpPoolThresholdReached::class]);
+
+        $this->assignDhcpProvider('cisco');
+
+        $ipv6Range = new DhcpRange(
+            interface: 'VLAN400_DHCPV6',
+            type: 'ipv6',
+            subnet: null,
+            rangeFrom: null,
+            rangeTo: null,
+            prefix: '2001:db8::/64',
+            gateway: null,
+            description: 'V6 LAN',
+        );
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+        );
+        $this->dispatchSyncJob();
+
+        Event::assertNotDispatched(DhcpPoolThresholdReached::class);
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 100, used: 85, available: 15, utilisation: 0.85),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+        );
+        $this->dispatchSyncJob();
+
+        Event::assertDispatched(DhcpPoolThresholdReached::class, 1);
+        Event::assertDispatched(DhcpPoolThresholdReached::class, function (DhcpPoolThresholdReached $event): bool {
+            return $event->addressFamily === 'ipv4' && $event->usage === 0.85;
+        });
+    }
+
+    public function test_threshold_event_does_not_refire_once_already_crossed(): void
+    {
+        Event::fake([DhcpPoolThresholdReached::class]);
+
+        $this->assignDhcpProvider('cisco');
+
+        $ipv6Range = new DhcpRange(
+            interface: 'VLAN400_DHCPV6',
+            type: 'ipv6',
+            subnet: null,
+            rangeFrom: null,
+            rangeTo: null,
+            prefix: '2001:db8::/64',
+            gateway: null,
+            description: 'V6 LAN',
+        );
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+        );
+        $this->dispatchSyncJob();
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 100, used: 85, available: 15, utilisation: 0.85),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+        );
+        $this->dispatchSyncJob();
+
+        Event::assertDispatched(DhcpPoolThresholdReached::class, 1);
+
+        Event::fake([DhcpPoolThresholdReached::class]);
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 100, used: 85, available: 15, utilisation: 0.85),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+        );
+        $this->dispatchSyncJob();
+
+        Event::assertNotDispatched(DhcpPoolThresholdReached::class);
+    }
+
+    public function test_threshold_event_fires_for_ipv6_after_ipv4_already_crossed(): void
+    {
+        Event::fake([DhcpPoolThresholdReached::class]);
+
+        $this->assignDhcpProvider('cisco');
+
+        $ipv6Range = new DhcpRange(
+            interface: 'VLAN400_DHCPV6',
+            type: 'ipv6',
+            subnet: null,
+            rangeFrom: null,
+            rangeTo: null,
+            prefix: '2001:db8::/64',
+            gateway: null,
+            description: 'V6 LAN',
+        );
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+        );
+        $this->dispatchSyncJob();
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 100, used: 85, available: 15, utilisation: 0.85),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
+        );
+        $this->dispatchSyncJob();
+
+        Event::fake([DhcpPoolThresholdReached::class]);
+
+        $this->bindDhcpServiceWithFetchStatus(
+            leases: [],
+            ranges: [$ipv6Range],
+            poolStatus: new DhcpPoolStatus(total: 100, used: 85, available: 15, utilisation: 0.85),
+            fetchStatus: ['ipv4' => true, 'ipv6' => true],
+            ipv6PoolStatus: new DhcpPoolStatus(total: 100, used: 85, available: 15, utilisation: 0.85),
+        );
+        $this->dispatchSyncJob();
+
+        Event::assertDispatched(DhcpPoolThresholdReached::class, 1);
+        Event::assertDispatched(DhcpPoolThresholdReached::class, function (DhcpPoolThresholdReached $event): bool {
+            return $event->addressFamily === 'ipv6' && $event->usage === 0.85;
+        });
     }
 }

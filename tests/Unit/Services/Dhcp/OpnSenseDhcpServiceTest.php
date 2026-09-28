@@ -110,6 +110,18 @@ class OpnSenseDhcpServiceTest extends TestCase
         $this->assertEquals(0.0, $pool->utilisation);
     }
 
+    public function test_get_pool_status_ipv6_returns_zeroed_status(): void
+    {
+        $service = $this->createServiceWithMock([], 254);
+
+        $pool = $service->getPoolStatus('ipv6');
+
+        $this->assertEquals(0, $pool->total);
+        $this->assertEquals(0, $pool->used);
+        $this->assertEquals(0, $pool->available);
+        $this->assertEquals(0.0, $pool->utilisation);
+    }
+
     public function test_get_lease_returns_matching_lease(): void
     {
         $service = $this->createServiceWithMock([

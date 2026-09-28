@@ -44,9 +44,9 @@ class KeaDhcpService implements DhcpInterface
         private readonly ?KeaClient $ipv6Client = null,
     ) {}
 
-    public function getPoolStatus(): DhcpPoolStatus
+    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
     {
-        $ranges = $this->getRanges();
+        $ranges = $this->getRanges()->filter(fn (DhcpRange $range): bool => $range->type === $family);
 
         $totalSum = '0';
         $used = 0;
