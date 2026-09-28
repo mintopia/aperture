@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BandwidthRequest;
+use App\Http\Requests\Admin\ResetApertureRequest;
 use App\Http\Resources\BandwidthResource;
 use App\Jobs\ResetAperture;
 use App\Models\AuditLog;
@@ -18,9 +19,7 @@ use App\Services\Interfaces\IpBandwidthInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -64,22 +63,10 @@ class HomeController extends Controller
         return BandwidthResource::make($bandwidth)->response();
     }
 
-    public function reset(Request $request): RedirectResponse
+    public function reset(ResetApertureRequest $request): RedirectResponse
     {
-        $request->validate([
-            'password' => ['required', 'string'],
-        ]);
-
         /** @var User $user */
         $user = $request->user();
-
-        if ($user->password === null) {
-            return back()->withErrors(['password' => 'Password required for destructive operations.']);
-        }
-
-        if (! Hash::check($request->string('password')->value(), $user->password)) {
-            return back()->withErrors(['password' => 'The provided password is incorrect.']);
-        }
 
         AuditLog::record(
             action: 'portal.reset',

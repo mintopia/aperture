@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Http;
 
 use App\Http\Controllers\LoginController;
+use App\Http\Requests\LoginRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
@@ -28,8 +29,9 @@ class LoginControllerNicknameTest extends TestCase
     {
         $controller = new LoginController;
 
-        $request = Request::create('/login', 'POST', ['email' => 'admin@example.com', 'password' => 'secret123']);
+        $request = LoginRequest::createFromBase(Request::create('/login', 'POST', ['email' => 'admin@example.com', 'password' => 'secret123']));
         $request->setLaravelSession($this->app->make('session.store'));
+        $request->setContainer($this->app)->validateResolved();
 
         $this->expectException(ValidationException::class);
 

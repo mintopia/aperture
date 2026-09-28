@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Events\IpMacLinked;
+use App\Http\Requests\PortalTokenRequest;
 use App\Models\AuditLog;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
@@ -52,10 +53,8 @@ class PortalController extends Controller
         ]);
     }
 
-    public function ipv6(Request $request, Ipv6JwtService $jwtService, UserNetworkAssociationService $associations): JsonResponse
+    public function ipv6(PortalTokenRequest $request, Ipv6JwtService $jwtService, UserNetworkAssociationService $associations): JsonResponse
     {
-        $request->validate(['token' => ['required', 'string']]);
-
         $dbConfig = IntegrationConfig::getAll('ipv6');
         $jwksUrl = $dbConfig['jwks_url'] ?? '';
 

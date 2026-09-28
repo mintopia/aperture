@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SetupRequest;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -26,16 +26,13 @@ class SetupController extends Controller
         return Inertia::render('Setup/Index');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(SetupRequest $request): RedirectResponse
     {
         if ($this->usersExist()) {
             return to_route('login');
         }
 
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:12', 'confirmed'],
-        ]);
+        $validated = $request->validated();
 
         $lock = Cache::lock('aperture_setup', 10);
 
