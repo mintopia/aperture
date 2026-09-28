@@ -8,6 +8,8 @@ use App\Services\Null\NullDhcpService;
 use App\Services\ValueObjects\DhcpLease;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class KeaDhcpService extends NullDhcpService
 {
@@ -64,6 +66,51 @@ class KeaDhcpService extends NullDhcpService
         }
 
         return $leases;
+    }
+
+    public function getLease(string $ipAddress): ?DhcpLease
+    {
+        if (filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+            return null;
+        }
+
+        try {
+            $entry = $this->client->sendCommand('lease4-get', ['ip-address' => $ipAddress]);
+        } catch (Throwable $e) {
+            Log::warning('Kea lease4-get failed', ['ip' => $ipAddress, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+
+        $lease = $entry['arguments'] ?? null;
+
+        if (! is_array($lease) || $lease === []) {
+            return null;
+        }
+
+        if (($lease['state'] ?? null) !== self::LEASE_STATE_ACTIVE) {
+            return null;
+        }
+
+        if (! is_int($lease['cltt'] ?? null) || ! is_int($lease['valid-lft'] ?? null)) {
+            return null;
+        }
+
+        $expiresAt = $lease['cltt'] + $lease['valid-lft'];
+
+        if ($expiresAt <= now()->getTimestamp()) {
+            return null;
+        }
+
+        $hwAddress = $lease['hw-address'] ?? null;
+        $hostname = $lease['hostname'] ?? null;
+
+        return new DhcpLease(
+            ip: $ipAddress,
+            mac: is_string($hwAddress) && $hwAddress !== '' ? $hwAddress : null,
+            hostname: is_string($hostname) ? $hostname : '',
+            expires: Carbon::createFromTimestamp($expiresAt)->toIso8601String(),
+        );
     }
 
     /**

@@ -39,23 +39,9 @@ final class KeaBootstrapper implements IntegrationBootstrapper
 
     private function buildDhcpService(): ?DhcpInterface
     {
-        $endpoint = IntegrationConfig::getValue(Integration::Kea->value, 'endpoint_v4');
+        $client = $this->buildClient();
 
-        if (! is_string($endpoint) || $endpoint === '') {
-            return null;
-        }
-
-        $username = IntegrationConfig::getValue(Integration::Kea->value, 'username_v4');
-        $password = IntegrationConfig::getValue(Integration::Kea->value, 'password_v4');
-
-        $client = new KeaClient(
-            endpoint: $endpoint,
-            username: is_string($username) && $username !== '' ? $username : null,
-            password: is_string($password) && $password !== '' ? $password : null,
-            verifySsl: (bool) IntegrationConfig::getValue(Integration::Kea->value, 'verify_ssl', true),
-        );
-
-        return new KeaDhcpService($client);
+        return $client instanceof KeaClient ? new KeaDhcpService($client) : null;
     }
 
     private function isActive(string $capability): bool
@@ -64,6 +50,38 @@ final class KeaBootstrapper implements IntegrationBootstrapper
             return CapabilityAssignment::isActiveProvider(Integration::Kea->value, $capability);
         } catch (Throwable) {
             return false;
+        }
+    }
+
+    private function buildClient(): ?KeaClient
+    {
+        $config = $this->getIntegrationDbConfig();
+        $endpoint = $config['endpoint_v4'] ?? null;
+
+        if (! is_string($endpoint) || $endpoint === '') {
+            return null;
+        }
+
+        $username = $config['username_v4'] ?? null;
+        $password = $config['password_v4'] ?? null;
+
+        return new KeaClient(
+            endpoint: $endpoint,
+            username: is_string($username) && $username !== '' ? $username : null,
+            password: is_string($password) && $password !== '' ? $password : null,
+            verifySsl: (bool) ($config['verify_ssl'] ?? true),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getIntegrationDbConfig(): array
+    {
+        try {
+            return IntegrationConfig::getAll(Integration::Kea->value);
+        } catch (Throwable) {
+            return [];
         }
     }
 }
