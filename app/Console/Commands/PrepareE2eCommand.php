@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\AuditLog;
+use App\Models\ContentBlock;
+use App\Models\IntegrationConfig;
+use App\Models\Page;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Models\User;
@@ -112,6 +116,10 @@ class PrepareE2eCommand extends Command
             return [$admin, $switch];
         });
 
+        $this->prepareDedicatedUser('playwright-passkey@example.test', 'playwright-passkey', 'playwright-passkey-password');
+
+        $this->prepareAttendeeFixtures();
+
         foreach (['127.0.0.1', '::1'] as $ip) {
             RateLimiter::clear('login-attempt:'.Str::lower($email).'|'.$ip);
         }
@@ -141,6 +149,61 @@ class PrepareE2eCommand extends Command
         $this->info(sprintf('Playwright fixtures prepared. Admin=%s, Switch=%s', $email, $switch->hostname));
 
         return self::SUCCESS;
+    }
+
+    private function prepareDedicatedUser(string $email, string $nickname, string $password): void
+    {
+        Model::unguarded(function () use ($email, $nickname, $password): void {
+            $roleIds = Role::query()->whereIn('code', ['admin', 'user'])->pluck('id')->all();
+
+            $user = User::query()->where('email', $email)->first() ?? new User;
+            $user->email = $email;
+            $user->nickname = $nickname;
+            $user->password = $password;
+            $user->save();
+
+            $user->roles()->syncWithoutDetaching($roleIds);
+        });
+    }
+
+    private function prepareAttendeeFixtures(): void
+    {
+        Model::unguarded(function (): void {
+            $userRole = Role::query()->firstOrCreate(['code' => 'user'], ['name' => 'User']);
+
+            foreach ([
+                ['playwright-attendee@example.test', 'playwright-attendee'],
+                ['playwright-account@example.test', 'playwright-account'],
+            ] as [$email, $nickname]) {
+                $user = User::query()->where('email', $email)->first() ?? new User;
+                $user->email = $email;
+                $user->nickname = $nickname;
+                $user->password = 'playwright-attendee-password';
+                $user->dns_filtering_enabled = false;
+                $user->save();
+                $user->roles()->syncWithoutDetaching([$userRole->id]);
+            }
+
+            Page::query()->updateOrCreate(
+                ['slug' => 'playwright-page'],
+                ['title' => 'Playwright Page', 'content' => "Hello **e2e** attendee.\n\n<script>window.__pwInjected = true</script>"]
+            );
+
+            foreach ([
+                ['connection_strip', 'Connection Status', null, 1, 1, 3],
+                ['bandwidth', 'Your Bandwidth', null, 1, 2, 2],
+                ['dns_filter', 'DNS Ad Blocking', 'Toggle DNS filtering for your connection.', 3, 2, 1],
+            ] as [$type, $title, $content, $col, $row, $colSpan]) {
+                ContentBlock::query()->updateOrCreate(
+                    ['type' => $type],
+                    ['title' => $title, 'content' => $content, 'grid_col' => $col, 'grid_row' => $row, 'col_span' => $colSpan, 'row_span' => 1, 'is_active' => true]
+                );
+            }
+        });
+
+        Setting::set('dns.check_url', 'DNS check URL', 'http://dns-check.e2e.invalid/{uuid}');
+        Setting::set('dns.warning_message', 'DNS warning message', 'Playwright DNS warning');
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'http://ipv6-check.e2e.invalid/{uuid}');
     }
 
     private function verifyRedisConnections(): bool

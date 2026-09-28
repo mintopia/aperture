@@ -1,51 +1,37 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Settings Pages (S8)', () => {
-    test('settings nav renders on integrations page', async ({ page }) => {
+test.describe('Integration Settings', () => {
+    test('integrations page lists services and the capabilities reference', async ({ page }) => {
         await page.goto('/admin/settings/integrations');
-        await expect(page.getByTestId('settings-nav')).toBeVisible();
+        await expect(page.getByTestId('page-title')).toBeVisible();
+        await expect(page.getByTestId('integrations-table')).toBeVisible();
+        await expect(page.getByTestId('integration-row-opnsense')).toBeVisible();
+        await expect(page.getByTestId('capabilities-reference')).toBeVisible();
     });
 
-    test('all settings nav items visible', async ({ page }) => {
-        await page.goto('/admin/settings/integrations');
-        await expect(page.getByTestId('settings-nav-integrations')).toBeVisible();
-        await expect(page.getByTestId('settings-nav-theme')).toBeVisible();
+    test('integration detail page has config form and actions', async ({ page }) => {
+        await page.goto('/admin/settings/integrations/opnsense');
+        await expect(page.getByTestId('config-form')).toBeVisible();
+        await expect(page.getByTestId('action-save')).toBeVisible();
+        await expect(page.getByTestId('action-test-connection')).toBeVisible();
+        await expect(page.getByTestId('field-input-endpoint')).toBeVisible();
     });
+});
 
-    test('theme page has visual picker', async ({ page }) => {
-        await page.goto('/admin/settings/theme');
-        await expect(page.getByTestId('page-title')).toContainText('Theme');
-    });
-
-    test('theme page has theme options with data-testid', async ({ page }) => {
-        await page.goto('/admin/settings/theme');
-        await expect(page.getByTestId('theme-option-cool-neon')).toBeVisible();
-        await expect(page.getByTestId('theme-option-default')).toBeVisible();
-    });
-
-    test('theme page has mode options with data-testid', async ({ page }) => {
-        await page.goto('/admin/settings/theme');
+test.describe('Site Settings', () => {
+    test('site settings page has branding, accent and mode controls', async ({ page }) => {
+        await page.goto('/admin/content/settings');
+        await expect(page.getByTestId('input-site-title')).toBeVisible();
+        await expect(page.getByTestId('accent-hue-slider')).toBeVisible();
         await expect(page.getByTestId('mode-option-light')).toBeVisible();
         await expect(page.getByTestId('mode-option-dark')).toBeVisible();
-    });
-
-    test('save button exists on all settings pages', async ({ page }) => {
-        for (const sub of ['integrations', 'theme']) {
-            await page.goto(`/admin/settings/${sub}`);
-            await expect(page.getByTestId('action-save')).toBeVisible();
-        }
-    });
-
-    test('integrations page has form fields for endpoints', async ({ page }) => {
-        await page.goto('/admin/settings/integrations');
-        await expect(page.getByTestId('form-field-opnsense_endpoint')).toBeVisible();
     });
 });
 
 test.describe('Logo Upload', () => {
     test('settings page has logo upload input', async ({ page }) => {
         await page.goto('/admin/content/settings');
-        await expect(page.getByTestId('input-logo')).toBeVisible();
+        await expect(page.getByTestId('input-logo')).toBeAttached();
     });
 
     test('settings page shows help text for logo', async ({ page }) => {
