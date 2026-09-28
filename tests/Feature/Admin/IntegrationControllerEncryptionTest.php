@@ -202,4 +202,119 @@ class IntegrationControllerEncryptionTest extends TestCase
 
         $response->assertSessionHasErrors('config.username_v4');
     }
+
+    public function test_stores_kea_password_v6_encrypted(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v6' => 'https://kea.local:8000',
+                'username_v6' => 'admin',
+                'password_v6' => 'super-secret-kea-password',
+            ],
+        ]);
+
+        $response->assertRedirect();
+
+        $config = IntegrationConfig::where('integration', 'kea')
+            ->where('key', 'password_v6')
+            ->first();
+
+        $this->assertNotNull($config);
+        $this->assertTrue($config->encrypted, 'password_v6 should be marked as encrypted');
+        $this->assertEquals('super-secret-kea-password', $config->value, 'Accessor should decrypt the value');
+
+        $raw = DB::table('integration_configs')
+            ->where('integration', 'kea')
+            ->where('key', 'password_v6')
+            ->value('value');
+
+        $this->assertStringNotContainsString('super-secret-kea-password', (string) $raw, 'Raw DB value should not contain plaintext');
+    }
+
+    public function test_kea_username_v6_without_password_v6_fails_validation(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v4' => 'https://kea.local:8000',
+                'username_v6' => 'admin',
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('config.password_v6');
+    }
+
+    public function test_kea_password_v6_without_username_v6_fails_validation(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v4' => 'https://kea.local:8000',
+                'password_v6' => 'super-secret-kea-password',
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('config.username_v6');
+    }
+
+    public function test_kea_requires_at_least_one_endpoint(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v4' => '',
+                'endpoint_v6' => '',
+            ],
+        ]);
+
+        $response->assertSessionHasErrors(['config.endpoint_v4', 'config.endpoint_v6']);
+    }
+
+    public function test_kea_passes_validation_with_ipv4_only(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v4' => 'https://kea.local:8000',
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+    }
+
+    public function test_kea_passes_validation_with_ipv6_only(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v6' => 'https://kea.local:8000',
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+    }
+
+    public function test_kea_passes_validation_with_both_endpoints(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v4' => 'https://kea.local:8000',
+                'endpoint_v6' => 'https://kea.local:8001',
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+    }
 }

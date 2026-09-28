@@ -47,7 +47,7 @@ class KeaTesterTest extends TestCase
         $result = $this->tester->connect([]);
 
         $this->assertFalse($result->success);
-        $this->assertStringContainsString('No IPv4 Endpoint configured', $result->message);
+        $this->assertStringContainsString('No Endpoint configured', $result->message);
         Http::assertNothingSent();
     }
 
@@ -55,10 +55,10 @@ class KeaTesterTest extends TestCase
     {
         Http::fake();
 
-        $result = $this->tester->connect(['endpoint_v4' => '']);
+        $result = $this->tester->connect(['endpoint_v4' => '', 'endpoint_v6' => '']);
 
         $this->assertFalse($result->success);
-        $this->assertStringContainsString('No IPv4 Endpoint configured', $result->message);
+        $this->assertStringContainsString('No Endpoint configured', $result->message);
         Http::assertNothingSent();
     }
 
@@ -197,5 +197,123 @@ class KeaTesterTest extends TestCase
 
             return empty($auth);
         });
+    }
+
+    public function test_success_v6_when_required_commands_present(): void
+    {
+        $this->fakeListCommands(['build-report', 'config-get', 'lease6-get-page']);
+
+        $result = $this->tester->connect(['endpoint_v6' => 'https://kea.local']);
+
+        $this->assertTrue($result->success);
+        $this->assertStringContainsString('IPv6 Endpoint', $result->message);
+        $this->assertStringContainsString('successfully', $result->message);
+        $this->assertSame('POST', $result->requestMethod);
+        $this->assertSame('https://kea.local', $result->requestUrl);
+    }
+
+    public function test_missing_lease6_get_page_command_is_named(): void
+    {
+        $this->fakeListCommands(['config-get']);
+
+        $result = $this->tester->connect(['endpoint_v6' => 'https://kea.local']);
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('IPv6 Endpoint', $result->message);
+        $this->assertStringContainsString('lease_cmds', $result->message);
+        $this->assertStringContainsString('lease6-get-page', $result->message);
+    }
+
+    public function test_sends_service_parameter_v6_in_command_body(): void
+    {
+        $this->fakeListCommands(['config-get', 'lease6-get-page']);
+
+        $this->tester->connect(['endpoint_v6' => 'https://kea.local']);
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+
+            return $data['command'] === 'list-commands'
+                && $data['service'] === ['dhcp6'];
+        });
+    }
+
+    public function test_authentication_failure_v6_on_401(): void
+    {
+        Http::fake(['kea.local' => Http::response('Unauthorized', 401)]);
+
+        $result = $this->tester->connect([
+            'endpoint_v6' => 'https://kea.local',
+            'username_v6' => 'admin',
+            'password_v6' => 'wrong',
+        ]);
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('IPv6 Endpoint', $result->message);
+        $this->assertStringContainsString('Authentication failed', $result->message);
+        $this->assertSame(401, $result->responseStatus);
+    }
+
+    public function test_v4_only_config_sends_exactly_one_request(): void
+    {
+        $this->fakeListCommands(['config-get', 'lease4-get-page']);
+
+        $result = $this->tester->connect(['endpoint_v4' => 'https://kea.local']);
+
+        $this->assertTrue($result->success);
+        Http::assertSentCount(1);
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+
+            return $data['service'] === ['dhcp4'];
+        });
+    }
+
+    public function test_dual_endpoint_both_succeed(): void
+    {
+        Http::fake([
+            'kea-v4.local' => Http::response([
+                ['result' => 0, 'text' => 'list-commands', 'arguments' => ['config-get', 'lease4-get-page']],
+            ]),
+            'kea-v6.local' => Http::response([
+                ['result' => 0, 'text' => 'list-commands', 'arguments' => ['config-get', 'lease6-get-page']],
+            ]),
+        ]);
+
+        $result = $this->tester->connect([
+            'endpoint_v4' => 'https://kea-v4.local',
+            'endpoint_v6' => 'https://kea-v6.local',
+        ]);
+
+        $this->assertTrue($result->success);
+        $this->assertStringContainsString('IPv4 Endpoint', $result->message);
+        $this->assertStringContainsString('IPv6 Endpoint', $result->message);
+        $this->assertStringContainsString('successfully', $result->message);
+        $this->assertNull($result->requestMethod);
+        $this->assertNull($result->requestUrl);
+    }
+
+    public function test_dual_endpoint_v4_succeeds_v6_fails(): void
+    {
+        Http::fake([
+            'kea-v4.local' => Http::response([
+                ['result' => 0, 'text' => 'list-commands', 'arguments' => ['config-get', 'lease4-get-page']],
+            ]),
+            'kea-v6.local' => Http::response([
+                ['result' => 0, 'text' => 'list-commands', 'arguments' => ['config-get']],
+            ]),
+        ]);
+
+        $result = $this->tester->connect([
+            'endpoint_v4' => 'https://kea-v4.local',
+            'endpoint_v6' => 'https://kea-v6.local',
+        ]);
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('IPv4 Endpoint successfully', $result->message);
+        $this->assertStringContainsString('IPv6 Endpoint', $result->message);
+        $this->assertStringContainsString('lease6-get-page', $result->message);
+        $this->assertNull($result->requestMethod);
+        $this->assertNull($result->requestUrl);
     }
 }
