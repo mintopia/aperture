@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\IpAddress;
 use App\Models\User;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
@@ -19,6 +20,11 @@ class ResetAperture implements ShouldQueue
     public int $tries = 3;
 
     public int $timeout = 120;
+
+    public function __construct()
+    {
+        $this->onQueue(Queues::SYNC);
+    }
 
     /**
      * @return list<int>

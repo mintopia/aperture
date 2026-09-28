@@ -17,6 +17,7 @@ use App\Services\Null\NullDhcpService;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
+use App\Support\Queues;
 use Closure;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -37,12 +38,19 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
     public int $timeout = 120;
 
+    public int $uniqueFor = 300;
+
     public int $tries = 3;
 
     /** @var list<int> */
     public array $backoff = [30, 60];
 
     private const UTILISATION_THRESHOLD = 0.8;
+
+    public function __construct()
+    {
+        $this->onQueue(Queues::SYNC);
+    }
 
     public function handle(DhcpInterface $dhcp): void
     {

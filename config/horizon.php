@@ -184,9 +184,9 @@ return [
     */
 
     'defaults' => [
-        'supervisor-1' => [
+        'supervisor-access' => [
             'connection' => 'redis',
-            'queue' => ['default'],
+            'queue' => ['access', 'default'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
@@ -197,20 +197,56 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+        'supervisor-switch' => [
+            'connection' => 'redis',
+            'queue' => ['switch'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 150,
+            'nice' => 0,
+        ],
+        'supervisor-sync' => [
+            'connection' => 'redis',
+            'queue' => ['sync'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 150,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
         'production' => [
-            'supervisor-1' => [
-                'maxProcesses' => 10,
+            'supervisor-access' => [
+                'maxProcesses' => 6,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
+            ],
+            'supervisor-switch' => [
+                'maxProcesses' => 2,
+            ],
+            'supervisor-sync' => [
+                'maxProcesses' => 2,
             ],
         ],
 
         'local' => [
-            'supervisor-1' => [
-                'maxProcesses' => 3,
+            'supervisor-access' => [
+                'maxProcesses' => 2,
+            ],
+            'supervisor-switch' => [
+                'maxProcesses' => 1,
+            ],
+            'supervisor-sync' => [
+                'maxProcesses' => 1,
             ],
         ],
     ],

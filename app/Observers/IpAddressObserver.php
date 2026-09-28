@@ -8,22 +8,23 @@ use App\Jobs\SyncDnsFilteringJob;
 use App\Jobs\SyncInternetAccessJob;
 use App\Jobs\SyncRateLimitJob;
 use App\Models\IpAddress;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class IpAddressObserver
+class IpAddressObserver implements ShouldHandleEventsAfterCommit
 {
     public function updated(IpAddress $ip): void
     {
         if ($ip->wasChanged('internet_enabled')) {
             // null (no explicit decision) is enforced as blocked — deny-by-default.
-            SyncInternetAccessJob::dispatch($ip, (bool) $ip->internet_enabled);
+            SyncInternetAccessJob::dispatch($ip);
         }
 
         if ($ip->wasChanged('rate_limit_enabled')) {
-            SyncRateLimitJob::dispatch($ip, $ip->rate_limit_enabled);
+            SyncRateLimitJob::dispatch($ip);
         }
 
         if ($ip->wasChanged('dns_filtering_enabled')) {
-            SyncDnsFilteringJob::dispatch($ip->address, $ip->dns_filtering_enabled);
+            SyncDnsFilteringJob::dispatch($ip->address);
         }
     }
 }

@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\IpAddress;
 use App\Services\IpAddressActionService;
+use App\Support\Queues;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -38,6 +39,7 @@ class IpAddressAction implements ShouldQueue
      */
     public function __construct(protected IpAddress $ip, protected string $method)
     {
+        $this->onQueue(Queues::ACCESS);
         //
     }
 
