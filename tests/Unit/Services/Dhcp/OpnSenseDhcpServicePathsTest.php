@@ -14,7 +14,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
 {
     /**
      * @param  array<int, PromiseInterface>  $responses
-     *      */
+     */
     private function createServiceWithHistory(
         array $responses,
         string $leasesPath = '/api/dhcpv4/leases/search_lease',

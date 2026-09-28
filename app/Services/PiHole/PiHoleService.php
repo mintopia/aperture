@@ -35,8 +35,6 @@ class PiHoleService implements DnsFilteringInterface
     }
 
     /**
-     * Fetch Pi-hole groups using a fresh (uncached) session.
-     *
      * @return array{groups: list<array{id: int, name: string, enabled: bool}>, error?: string}
      */
     public function getGroups(): array

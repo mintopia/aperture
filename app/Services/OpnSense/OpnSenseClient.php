@@ -37,9 +37,6 @@ class OpnSenseClient
         );
     }
 
-    /**
-     * Authenticated request builder that throws on HTTP error responses.
-     */
     public function request(?int $timeout = null): PendingRequest
     {
         $request = Http::baseUrl($this->endpoint)
@@ -91,8 +88,6 @@ class OpnSenseClient
     }
 
     /**
-     * Fetch traffic shaper rules for the admin rule pickers.
-     *
      * @return array{rules: list<array{uuid: string, description: string}>, error?: string}
      */
     public function getShaperRules(): array
@@ -125,8 +120,6 @@ class OpnSenseClient
     }
 
     /**
-     * Fetch captive portal zones for the admin zone picker.
-     *
      * @return array{zones: list<array{id: string, name: string}>, error?: string}
      */
     public function getZones(): array
