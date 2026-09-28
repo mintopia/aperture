@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\UserIpAddress;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SwitchPortControllerTest extends TestCase
@@ -39,72 +40,43 @@ class SwitchPortControllerTest extends TestCase
     // Authentication & Authorization
     // -------------------------------------------------------------------------
 
-    public function test_unauthenticated_user_is_redirected_from_switch_port_show(): void
+    #[DataProvider('portRoutesProvider')]
+    public function test_unauthenticated_user_is_redirected_from_port_route(string $method, string $pathSuffix): void
     {
         $switch = SwitchConfig::factory()->create();
 
-        $response = $this->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+        $response = $this->{$method}('/admin/switches/'.$switch->id.'/ports/Gi0%2F1'.$pathSuffix);
 
         $response->assertRedirect('/captive');
     }
 
-    public function test_unauthenticated_user_is_redirected_from_port_shutdown(): void
-    {
-        $switch = SwitchConfig::factory()->create();
-
-        $response = $this->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/shutdown');
-
-        $response->assertRedirect('/captive');
-    }
-
-    public function test_unauthenticated_user_is_redirected_from_port_enable(): void
-    {
-        $switch = SwitchConfig::factory()->create();
-
-        $response = $this->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/enable');
-
-        $response->assertRedirect('/captive');
-    }
-
-    public function test_unauthenticated_user_is_redirected_from_port_refresh(): void
-    {
-        $switch = SwitchConfig::factory()->create();
-
-        $response = $this->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/refresh');
-
-        $response->assertRedirect('/captive');
-    }
-
-    public function test_non_admin_cannot_view_switch_port(): void
+    #[DataProvider('portRoutesProvider')]
+    public function test_non_admin_cannot_perform_port_action(string $method, string $pathSuffix): void
     {
         $user = User::factory()->create();
         $switch = SwitchConfig::factory()->create();
 
-        $this->actingAs($user)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1')->assertForbidden();
+        $this->actingAs($user)->{$method}('/admin/switches/'.$switch->id.'/ports/Gi0%2F1'.$pathSuffix)->assertForbidden();
     }
 
-    public function test_non_admin_cannot_shutdown_port(): void
+    #[DataProvider('portRoutesProvider')]
+    public function test_action_returns_404_for_nonexistent_switch(string $method, string $pathSuffix): void
     {
-        $user = User::factory()->create();
-        $switch = SwitchConfig::factory()->create();
+        $admin = $this->createAdminUser();
 
-        $this->actingAs($user)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/shutdown')->assertForbidden();
+        $response = $this->actingAs($admin)->{$method}('/admin/switches/99999/ports/Gi0%2F1'.$pathSuffix);
+
+        $response->assertNotFound();
     }
 
-    public function test_non_admin_cannot_enable_port(): void
+    public static function portRoutesProvider(): array
     {
-        $user = User::factory()->create();
-        $switch = SwitchConfig::factory()->create();
-
-        $this->actingAs($user)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/enable')->assertForbidden();
-    }
-
-    public function test_non_admin_cannot_refresh_port(): void
-    {
-        $user = User::factory()->create();
-        $switch = SwitchConfig::factory()->create();
-
-        $this->actingAs($user)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1/refresh')->assertForbidden();
+        return [
+            'show' => ['get', ''],
+            'shutdown' => ['post', '/shutdown'],
+            'enable' => ['post', '/enable'],
+            'refresh' => ['post', '/refresh'],
+        ];
     }
 
     // -------------------------------------------------------------------------
@@ -368,15 +340,6 @@ class SwitchPortControllerTest extends TestCase
         Queue::assertPushed(SyncSwitchPortsJob::class, fn (SyncSwitchPortsJob $job): bool => $job->switchConfig->id === $switch->id);
     }
 
-    public function test_refresh_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->post('/admin/switches/99999/ports/Gi0%2F1/refresh');
-
-        $response->assertNotFound();
-    }
-
     // -------------------------------------------------------------------------
     // Shutdown — dispatches SwitchPortActionJob
     // -------------------------------------------------------------------------
@@ -407,15 +370,6 @@ class SwitchPortControllerTest extends TestCase
         $response->assertRedirect();
     }
 
-    public function test_shutdown_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->post('/admin/switches/99999/ports/Gi0%2F1/shutdown');
-
-        $response->assertNotFound();
-    }
-
     // -------------------------------------------------------------------------
     // Enable — dispatches SwitchPortActionJob
     // -------------------------------------------------------------------------
@@ -433,15 +387,6 @@ class SwitchPortControllerTest extends TestCase
         Queue::assertPushed(SwitchPortActionJob::class, fn (SwitchPortActionJob $job): bool => $job->switchConfig->id === $switch->id
             && $job->portId === 'Gi0/1'
             && $job->action === 'enable');
-    }
-
-    public function test_enable_returns_404_for_nonexistent_switch(): void
-    {
-        $admin = $this->createAdminUser();
-
-        $response = $this->actingAs($admin)->post('/admin/switches/99999/ports/Gi0%2F1/enable');
-
-        $response->assertNotFound();
     }
 
     // -------------------------------------------------------------------------
@@ -695,131 +640,72 @@ class SwitchPortControllerTest extends TestCase
     // Route-level command injection prevention (#9)
     // -------------------------------------------------------------------------
 
-    public function test_route_rejects_port_id_with_semicolon_injection(): void
+    #[DataProvider('showInjectionPayloadsProvider')]
+    public function test_show_route_rejects_command_injection(string $encodedPortId): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run');
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/'.$encodedPortId);
 
         $response->assertNotFound();
     }
 
-    public function test_route_rejects_port_id_with_pipe_injection(): void
+    public static function showInjectionPayloadsProvider(): array
+    {
+        return [
+            'semicolon injection' => ['Gi0%2F1%3B+show+run'],
+            'pipe injection' => ['Gi0%2F1+%7C+include+password'],
+            'newline injection' => ['Gi0%2F1%0Ashow+run'],
+            'backtick injection' => ['Gi0%2F1%60show+run%60'],
+        ];
+    }
+
+    #[DataProvider('actionInjectionRoutesProvider')]
+    public function test_action_route_rejects_command_injection(string $pathSuffix): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1+%7C+include+password');
+        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run'.$pathSuffix);
 
         $response->assertNotFound();
     }
 
-    public function test_route_rejects_port_id_with_newline_injection(): void
+    public static function actionInjectionRoutesProvider(): array
     {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%0Ashow+run');
-
-        $response->assertNotFound();
+        return [
+            'shutdown' => ['/shutdown'],
+            'enable' => ['/enable'],
+            'refresh' => ['/refresh'],
+        ];
     }
 
-    public function test_route_rejects_port_id_with_backtick_injection(): void
+    #[DataProvider('validCiscoPortFormatsProvider')]
+    public function test_route_accepts_valid_port_name_format(string $portName, string $encodedPortId): void
     {
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%60show+run%60');
-
-        $response->assertNotFound();
-    }
-
-    public function test_shutdown_route_rejects_command_injection(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run/shutdown');
-
-        $response->assertNotFound();
-    }
-
-    public function test_enable_route_rejects_command_injection(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run/enable');
-
-        $response->assertNotFound();
-    }
-
-    public function test_refresh_route_rejects_command_injection(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        $response = $this->actingAs($admin)->post('/admin/switches/'.$switch->id.'/ports/Gi0%2F1%3B+show+run/refresh');
-
-        $response->assertNotFound();
-    }
-
-    public function test_route_accepts_valid_cisco_port_formats(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        // Gi0/1 - should match route (404 is from missing port record, not route)
+        // The port_name below matches the route (404 would come from a missing
+        // port record, not from the route pattern rejecting the format).
         SwitchPort::factory()->create([
             'switch_config_id' => $switch->id,
-            'port_name' => 'Gi0/1',
+            'port_name' => $portName,
         ]);
 
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Gi0%2F1');
+        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/'.$encodedPortId);
         $response->assertOk();
     }
 
-    public function test_route_accepts_port_channel_format(): void
+    public static function validCiscoPortFormatsProvider(): array
     {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        SwitchPort::factory()->create([
-            'switch_config_id' => $switch->id,
-            'port_name' => 'Po1',
-        ]);
-
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Po1');
-        $response->assertOk();
-    }
-
-    public function test_route_accepts_vlan_format(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        SwitchPort::factory()->create([
-            'switch_config_id' => $switch->id,
-            'port_name' => 'Vl100',
-        ]);
-
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Vl100');
-        $response->assertOk();
-    }
-
-    public function test_route_accepts_ten_gigabit_format(): void
-    {
-        $admin = $this->createAdminUser();
-        $switch = SwitchConfig::factory()->create();
-
-        SwitchPort::factory()->create([
-            'switch_config_id' => $switch->id,
-            'port_name' => 'Te1/1/1',
-        ]);
-
-        $response = $this->actingAs($admin)->get('/admin/switches/'.$switch->id.'/ports/Te1%2F1%2F1');
-        $response->assertOk();
+        return [
+            'gigabit interface' => ['Gi0/1', 'Gi0%2F1'],
+            'port channel' => ['Po1', 'Po1'],
+            'vlan interface' => ['Vl100', 'Vl100'],
+            'ten gigabit interface' => ['Te1/1/1', 'Te1%2F1%2F1'],
+        ];
     }
 
     // -------------------------------------------------------------------------
