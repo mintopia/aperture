@@ -96,54 +96,24 @@ describe('UserMenu', () => {
         expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false);
     });
 
-    it('always shows Dashboard link', async () => {
+    it('always shows the Dashboard and Logout links, with correct hrefs', async () => {
         const wrapper = mountComponent(regularUser);
         await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-dashboard"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="user-menu-dashboard"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="user-menu-logout"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="user-menu-dashboard"]').attributes('href')).toBe('/portal/dashboard');
+        expect.soft(wrapper.find('[data-testid="user-menu-logout"]').attributes('href')).toBe('/logout');
     });
 
-    it('always shows Logout link', async () => {
-        const wrapper = mountComponent(regularUser);
+    it.each([
+        { name: 'Admin link, is_admin true', user: 'admin', testid: 'user-menu-admin', expected: true },
+        { name: 'Admin link, is_admin false', user: 'regular', testid: 'user-menu-admin', expected: false },
+        { name: 'Settings link, is_admin true', user: 'admin', testid: 'user-menu-settings', expected: true },
+        { name: 'Settings link, is_admin false', user: 'regular', testid: 'user-menu-settings', expected: false },
+    ])('$name', async ({ user, testid, expected }) => {
+        const wrapper = mountComponent(user === 'admin' ? adminUser : regularUser);
         await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-logout"]').exists()).toBe(true);
-    });
-
-    it('shows Admin link when is_admin is true', async () => {
-        const wrapper = mountComponent(adminUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-admin"]').exists()).toBe(true);
-    });
-
-    it('hides Admin link when is_admin is false', async () => {
-        const wrapper = mountComponent(regularUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-admin"]').exists()).toBe(false);
-    });
-
-    it('shows Settings link when is_admin is true', async () => {
-        const wrapper = mountComponent(adminUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-settings"]').exists()).toBe(true);
-    });
-
-    it('hides Settings link when is_admin is false', async () => {
-        const wrapper = mountComponent(regularUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-settings"]').exists()).toBe(false);
-    });
-
-    it('Dashboard link has correct href', async () => {
-        const wrapper = mountComponent(regularUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        const link = wrapper.find('[data-testid="user-menu-dashboard"]');
-        expect(link.attributes('href')).toBe('/portal/dashboard');
-    });
-
-    it('Logout link has correct href', async () => {
-        const wrapper = mountComponent(regularUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        const link = wrapper.find('[data-testid="user-menu-logout"]');
-        expect(link.attributes('href')).toBe('/logout');
+        expect(wrapper.find(`[data-testid="${testid}"]`).exists()).toBe(expected);
     });
 
     it('Admin link has correct href', async () => {
@@ -204,28 +174,15 @@ describe('UserMenu', () => {
         expect(dropdown.attributes('role')).toBe('menu');
     });
 
-    it('dashboard link has role="menuitem"', async () => {
-        const wrapper = mountComponent(regularUser);
+    it.each([
+        { name: 'dashboard link', user: regularUser, testid: 'user-menu-dashboard' },
+        { name: 'logout link', user: regularUser, testid: 'user-menu-logout' },
+        { name: 'admin link', user: adminUser, testid: 'user-menu-admin' },
+        { name: 'settings link', user: adminUser, testid: 'user-menu-settings' },
+    ])('$name has role="menuitem"', async ({ user, testid }) => {
+        const wrapper = mountComponent(user);
         await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-dashboard"]').attributes('role')).toBe('menuitem');
-    });
-
-    it('logout link has role="menuitem"', async () => {
-        const wrapper = mountComponent(regularUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-logout"]').attributes('role')).toBe('menuitem');
-    });
-
-    it('admin link has role="menuitem"', async () => {
-        const wrapper = mountComponent(adminUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-admin"]').attributes('role')).toBe('menuitem');
-    });
-
-    it('settings link has role="menuitem"', async () => {
-        const wrapper = mountComponent(adminUser);
-        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
-        expect(wrapper.find('[data-testid="user-menu-settings"]').attributes('role')).toBe('menuitem');
+        expect(wrapper.find(`[data-testid="${testid}"]`).attributes('role')).toBe('menuitem');
     });
 
     // Keyboard navigation tests

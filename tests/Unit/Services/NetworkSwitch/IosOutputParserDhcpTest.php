@@ -4,18 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\NetworkSwitch;
 
-use App\Services\NetworkSwitch\IosOutputParser;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Concerns\CreatesIosOutputParser;
 
 class IosOutputParserDhcpTest extends TestCase
 {
-    private IosOutputParser $parser;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->parser = new IosOutputParser;
-    }
+    use CreatesIosOutputParser;
 
     public function test_parse_dhcp_binding_table(): void
     {
@@ -118,31 +113,6 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('Vlan400', $result[1]['interface']);
     }
 
-    public function test_extract_mac_from_client_id_rfc4361_with_duid_llt(): void
-    {
-        // ff + IAID(1198f740) + DUID-LLT(0001 0001 31756fac) + MAC(bc241198f740)
-        $result = $this->parser->extractMacFromClientId('ff11.98f7.4000.0100.0131.756f.acbc.2411.98f7.40');
-
-        $this->assertSame('BC:24:11:98:F7:40', $result);
-    }
-
-    public function test_extract_mac_from_client_id_rfc4361_with_duid_ll(): void
-    {
-        // ff + IAID(11223344) + DUID-LL(0003 0001 aabbccddeeff) → MAC AA:BB:CC:DD:EE:FF
-        $result = $this->parser->extractMacFromClientId('ff11.2233.4400.0300.01aa.bbcc.ddee.ff');
-
-        $this->assertSame('AA:BB:CC:DD:EE:FF', $result);
-    }
-
-    public function test_extract_mac_from_client_id_raw_mac_starting_with_ff(): void
-    {
-        // A genuine raw MAC that happens to start with ff must not be mistaken
-        // for an RFC 4361 client-ID; it falls through to the raw-MAC branch.
-        $result = $this->parser->extractMacFromClientId('ffaa.bbcc.ddee');
-
-        $this->assertSame('FF:AA:BB:CC:DD:EE', $result);
-    }
-
     public function test_parse_dhcp_binding_with_infinite_lease(): void
     {
         $output = implode("\r\n", [
@@ -160,46 +130,6 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('Infinite', $result[0]['expires']);
         $this->assertSame('Manual', $result[0]['type']);
         $this->assertSame('Active', $result[0]['state']);
-    }
-
-    public function test_parse_dhcp_binding_table_rejects_error_output(): void
-    {
-        $output = "% Invalid input detected at '^' marker.";
-        $result = $this->parser->parseDhcpBindingTable($output);
-        $this->assertSame([], $result);
-    }
-
-    public function test_parse_dhcp_binding_table_rejects_incomplete_command_error(): void
-    {
-        $output = '% Incomplete command.';
-        $result = $this->parser->parseDhcpBindingTable($output);
-        $this->assertSame([], $result);
-    }
-
-    public function test_parse_dhcp_binding_table_rejects_ambiguous_command_error(): void
-    {
-        $output = '% Ambiguous command:  "show ip dhcp"';
-        $result = $this->parser->parseDhcpBindingTable($output);
-        $this->assertSame([], $result);
-    }
-
-    public function test_parse_dhcp_binding_table_empty_output(): void
-    {
-        $result = $this->parser->parseDhcpBindingTable('');
-        $this->assertSame([], $result);
-    }
-
-    public function test_parse_dhcp_binding_table_only_header(): void
-    {
-        $output = implode("\r\n", [
-            'Bindings from all pools not associated with VRF:',
-            'IP address          Client-ID/              Lease expiration        Type       State      Interface',
-            '                    Hardware address/',
-            '                    User name',
-        ]);
-
-        $result = $this->parser->parseDhcpBindingTable($output);
-        $this->assertSame([], $result);
     }
 
     public function test_parse_dhcp_binding_table_multiple_entries(): void
@@ -230,73 +160,79 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('Manual', $result[2]['type']);
     }
 
-    public function test_extract_mac_from_client_id_with_hardware_type(): void
+    public static function dhcpBindingTableEmptyResultProvider(): array
     {
-        // 0100.1122.3344.55 → 00:11:22:33:44:55
-        $result = $this->parser->extractMacFromClientId('0100.1122.3344.55');
-        $this->assertSame('00:11:22:33:44:55', $result);
+        $header = [
+            'Bindings from all pools not associated with VRF:',
+            'IP address          Client-ID/              Lease expiration        Type       State      Interface',
+            '                    Hardware address/',
+            '                    User name',
+        ];
+
+        return [
+            'invalid input error' => ["% Invalid input detected at '^' marker.", []],
+            'incomplete command error' => ['% Incomplete command.', []],
+            'ambiguous command error' => ['% Ambiguous command:  "show ip dhcp"', []],
+            'empty output' => ['', []],
+            'header only, no bindings' => [implode("\r\n", $header), []],
+        ];
     }
 
-    public function test_extract_mac_from_client_id_with_hardware_type_lowercase(): void
+    #[DataProvider('dhcpBindingTableEmptyResultProvider')]
+    public function test_parse_dhcp_binding_table_returns_empty_for_invalid_input(string $output, array $expected): void
     {
-        // 0100.aabb.ccdd.ee → strip 01 prefix → 00:AA:BB:CC:DD:EE
-        $result = $this->parser->extractMacFromClientId('0100.aabb.ccdd.ee');
-        $this->assertSame('00:AA:BB:CC:DD:EE', $result);
+        $this->assertSame($expected, $this->parser->parseDhcpBindingTable($output));
     }
 
-    public function test_extract_mac_from_raw_dotted_mac(): void
+    public static function extractMacFromClientIdProvider(): array
     {
-        // aabb.ccdd.eeff → AA:BB:CC:DD:EE:FF
-        $result = $this->parser->extractMacFromClientId('aabb.ccdd.eeff');
-        $this->assertSame('AA:BB:CC:DD:EE:FF', $result);
+        return [
+            // ff + IAID(1198f740) + DUID-LLT(0001 0001 31756fac) + MAC(bc241198f740)
+            'rfc4361 client-id with duid-llt' => ['ff11.98f7.4000.0100.0131.756f.acbc.2411.98f7.40', 'BC:24:11:98:F7:40'],
+            // ff + IAID(11223344) + DUID-LL(0003 0001 aabbccddeeff) -> MAC AA:BB:CC:DD:EE:FF
+            'rfc4361 client-id with duid-ll' => ['ff11.2233.4400.0300.01aa.bbcc.ddee.ff', 'AA:BB:CC:DD:EE:FF'],
+            // A genuine raw MAC that happens to start with ff must not be mistaken
+            // for an RFC 4361 client-ID; it falls through to the raw-MAC branch.
+            'raw mac starting with ff' => ['ffaa.bbcc.ddee', 'FF:AA:BB:CC:DD:EE'],
+            // 0100.1122.3344.55 -> 00:11:22:33:44:55
+            'hardware-type prefix' => ['0100.1122.3344.55', '00:11:22:33:44:55'],
+            // 0100.aabb.ccdd.ee -> strip 01 prefix -> 00:AA:BB:CC:DD:EE
+            'hardware-type prefix, lowercase' => ['0100.aabb.ccdd.ee', '00:AA:BB:CC:DD:EE'],
+            // aabb.ccdd.eeff -> AA:BB:CC:DD:EE:FF
+            'raw dotted mac' => ['aabb.ccdd.eeff', 'AA:BB:CC:DD:EE:FF'],
+            // 0011.2233.4455 -> 00:11:22:33:44:55
+            'raw dotted mac, numeric' => ['0011.2233.4455', '00:11:22:33:44:55'],
+            'unrecognized input' => ['not-a-mac-address', null],
+            'empty string' => ['', null],
+        ];
     }
 
-    public function test_extract_mac_from_raw_dotted_mac_with_numeric(): void
+    #[DataProvider('extractMacFromClientIdProvider')]
+    public function test_extract_mac_from_client_id(string $clientId, ?string $expected): void
     {
-        // 0011.2233.4455 → 00:11:22:33:44:55
-        $result = $this->parser->extractMacFromClientId('0011.2233.4455');
-        $this->assertSame('00:11:22:33:44:55', $result);
+        $this->assertSame($expected, $this->parser->extractMacFromClientId($clientId));
     }
 
-    public function test_extract_mac_returns_null_for_unrecognized(): void
+    public static function isErrorOutputProvider(): array
     {
-        $result = $this->parser->extractMacFromClientId('not-a-mac-address');
-        $this->assertNull($result);
-    }
-
-    public function test_extract_mac_returns_null_for_empty_string(): void
-    {
-        $result = $this->parser->extractMacFromClientId('');
-        $this->assertNull($result);
-    }
-
-    public function test_is_error_output_detects_invalid_input(): void
-    {
-        $this->assertTrue($this->parser->isErrorOutput("% Invalid input detected at '^' marker."));
-    }
-
-    public function test_is_error_output_detects_incomplete_command(): void
-    {
-        $this->assertTrue($this->parser->isErrorOutput('% Incomplete command.'));
-    }
-
-    public function test_is_error_output_detects_ambiguous_command(): void
-    {
-        $this->assertTrue($this->parser->isErrorOutput('% Ambiguous command:  "show ip dhcp"'));
-    }
-
-    public function test_is_error_output_returns_false_for_normal_output(): void
-    {
-        $output = implode("\n", [
+        $normalOutput = implode("\n", [
             'Bindings from all pools not associated with VRF:',
             'IP address          Client-ID/',
         ]);
-        $this->assertFalse($this->parser->isErrorOutput($output));
+
+        return [
+            'invalid input marker' => ["% Invalid input detected at '^' marker.", true],
+            'incomplete command' => ['% Incomplete command.', true],
+            'ambiguous command' => ['% Ambiguous command:  "show ip dhcp"', true],
+            'normal output' => [$normalOutput, false],
+            'empty string' => ['', false],
+        ];
     }
 
-    public function test_is_error_output_returns_false_for_empty_string(): void
+    #[DataProvider('isErrorOutputProvider')]
+    public function test_is_error_output(string $output, bool $expected): void
     {
-        $this->assertFalse($this->parser->isErrorOutput(''));
+        $this->assertSame($expected, $this->parser->isErrorOutput($output));
     }
 
     // -------------------------------------------------------------------------
@@ -360,17 +296,18 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('30', $result[1]['leased']);
     }
 
-    public function test_parse_dhcp_pool_stats_empty_output(): void
+    public static function dhcpPoolStatsEmptyResultProvider(): array
     {
-        $result = $this->parser->parseDhcpPoolStats('');
-        $this->assertSame([], $result);
+        return [
+            'empty output' => ['', []],
+            'error output' => ["% Invalid input detected at '^' marker.", []],
+        ];
     }
 
-    public function test_parse_dhcp_pool_stats_error_output(): void
+    #[DataProvider('dhcpPoolStatsEmptyResultProvider')]
+    public function test_parse_dhcp_pool_stats_returns_empty_for_invalid_input(string $output, array $expected): void
     {
-        $output = "% Invalid input detected at '^' marker.";
-        $result = $this->parser->parseDhcpPoolStats($output);
-        $this->assertSame([], $result);
+        $this->assertSame($expected, $this->parser->parseDhcpPoolStats($output));
     }
 
     // -------------------------------------------------------------------------
@@ -725,18 +662,18 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('2001:DB8::100', $result[0]['ip']);
     }
 
-    public function test_parse_dhcpv6_binding_table_empty_output(): void
+    public static function dhcpv6BindingTableEmptyResultProvider(): array
     {
-        $result = $this->parser->parseDhcpv6BindingTable('');
-
-        $this->assertSame([], $result);
+        return [
+            'empty output' => ['', []],
+            'error output' => ['% Invalid input detected', []],
+        ];
     }
 
-    public function test_parse_dhcpv6_binding_table_error_output(): void
+    #[DataProvider('dhcpv6BindingTableEmptyResultProvider')]
+    public function test_parse_dhcpv6_binding_table_returns_empty_for_invalid_input(string $output, array $expected): void
     {
-        $result = $this->parser->parseDhcpv6BindingTable('% Invalid input detected');
-
-        $this->assertSame([], $result);
+        $this->assertSame($expected, $this->parser->parseDhcpv6BindingTable($output));
     }
 
     // -------------------------------------------------------------------------
@@ -784,18 +721,18 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('3', $result[1]['active_clients']);
     }
 
-    public function test_parse_dhcpv6_pool_stats_empty_output(): void
+    public static function dhcpv6PoolStatsEmptyResultProvider(): array
     {
-        $result = $this->parser->parseDhcpv6PoolStats('');
-
-        $this->assertSame([], $result);
+        return [
+            'empty output' => ['', []],
+            'error output' => ['% Invalid input detected', []],
+        ];
     }
 
-    public function test_parse_dhcpv6_pool_stats_error_output(): void
+    #[DataProvider('dhcpv6PoolStatsEmptyResultProvider')]
+    public function test_parse_dhcpv6_pool_stats_returns_empty_for_invalid_input(string $output, array $expected): void
     {
-        $result = $this->parser->parseDhcpv6PoolStats('% Invalid input detected');
-
-        $this->assertSame([], $result);
+        $this->assertSame($expected, $this->parser->parseDhcpv6PoolStats($output));
     }
 
     // -------------------------------------------------------------------------
@@ -839,18 +776,18 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('2001:DB8:1::/64', $result['pools'][1]['prefix']);
     }
 
-    public function test_parse_dhcpv6_pool_config_empty_output(): void
+    public static function dhcpv6PoolConfigEmptyResultProvider(): array
     {
-        $result = $this->parser->parseDhcpv6PoolConfig('');
-
-        $this->assertSame(['pools' => []], $result);
+        return [
+            'empty output' => ['', ['pools' => []]],
+            'error output' => ['% Invalid input detected', ['pools' => []]],
+        ];
     }
 
-    public function test_parse_dhcpv6_pool_config_error_output(): void
+    #[DataProvider('dhcpv6PoolConfigEmptyResultProvider')]
+    public function test_parse_dhcpv6_pool_config_returns_empty_for_invalid_input(string $output, array $expected): void
     {
-        $result = $this->parser->parseDhcpv6PoolConfig('% Invalid input detected');
-
-        $this->assertSame(['pools' => []], $result);
+        $this->assertSame($expected, $this->parser->parseDhcpv6PoolConfig($output));
     }
 
     // -------------------------------------------------------------------------
@@ -912,30 +849,24 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertIsInt($result[0]['vlan']);
     }
 
-    public function test_parse_dhcp_snooping_table_empty_output(): void
+    public static function dhcpSnoopingTableEmptyResultProvider(): array
     {
-        $result = $this->parser->parseDhcpSnoopingTable('');
-
-        $this->assertSame([], $result);
-    }
-
-    public function test_parse_dhcp_snooping_table_error_output(): void
-    {
-        $result = $this->parser->parseDhcpSnoopingTable('% Invalid input detected');
-
-        $this->assertSame([], $result);
-    }
-
-    public function test_parse_dhcp_snooping_table_only_header_returns_empty(): void
-    {
-        $output = implode("\n", [
+        $headerOnly = implode("\n", [
             'MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface',
             '-----------------   ---------------  ----------  -------------  ----  --------------------',
             'Total number of bindings: 0',
         ]);
 
-        $result = $this->parser->parseDhcpSnoopingTable($output);
+        return [
+            'empty output' => ['', []],
+            'error output' => ['% Invalid input detected', []],
+            'header only, zero bindings' => [$headerOnly, []],
+        ];
+    }
 
-        $this->assertSame([], $result);
+    #[DataProvider('dhcpSnoopingTableEmptyResultProvider')]
+    public function test_parse_dhcp_snooping_table_returns_empty_for_invalid_input(string $output, array $expected): void
+    {
+        $this->assertSame($expected, $this->parser->parseDhcpSnoopingTable($output));
     }
 }

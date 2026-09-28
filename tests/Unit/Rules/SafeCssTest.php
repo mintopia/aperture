@@ -6,6 +6,7 @@ namespace Tests\Unit\Rules;
 
 use App\Rules\SafeCss;
 use Illuminate\Support\Facades\Validator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SafeCssTest extends TestCase
@@ -20,79 +21,32 @@ class SafeCssTest extends TestCase
         return $validator->passes();
     }
 
-    public function test_normal_css_passes(): void
+    public static function cssValidityProvider(): array
     {
-        $this->assertTrue($this->passes('body { color: #333; font-size: 14px; margin: 0 auto; }'));
+        return [
+            'normal css passes' => ['body { color: #333; font-size: 14px; margin: 0 auto; }', true],
+            'complex css passes' => ['.container { display: flex; justify-content: center; background-color: rgba(0,0,0,0.5); }', true],
+            'css variables pass' => [':root { --color-bg: #fff; } body { color: var(--color-bg); }', true],
+            'media queries pass' => ['@media (max-width: 768px) { .col { width: 100%; } }', true],
+            'empty string passes' => ['', true],
+            'expression is blocked' => ['body { width: expression(document.body.clientWidth); }', false],
+            'import is blocked' => ['@import url("https://evil.com/hack.css");', false],
+            'url javascript is blocked' => ['body { background: url(javascript:alert(1)); }', false],
+            'url data is blocked' => ['body { background: url(data:text/html,<script>alert(1)</script>); }', false],
+            'moz-binding is blocked' => ['body { -moz-binding: url("http://evil.com/xbl"); }', false],
+            'behavior is blocked' => ['body { behavior: url(xss.htc); }', false],
+            'binding is blocked' => ['body { binding(something); }', false],
+            'script tag is blocked' => ['body {} <script>alert(1)</script>', false],
+            'case-insensitive expression is blocked' => ['body { width: EXPRESSION(document.body.clientWidth); }', false],
+            'case-insensitive import is blocked' => ['@IMPORT url("https://evil.com/hack.css");', false],
+            'case-insensitive behavior is blocked' => ['body { BEHAVIOR: url(xss.htc); }', false],
+        ];
     }
 
-    public function test_complex_css_passes(): void
+    #[DataProvider('cssValidityProvider')]
+    public function test_css_validity(string $css, bool $expectedValid): void
     {
-        $this->assertTrue($this->passes('.container { display: flex; justify-content: center; background-color: rgba(0,0,0,0.5); }'));
-    }
-
-    public function test_css_variables_pass(): void
-    {
-        $this->assertTrue($this->passes(':root { --color-bg: #fff; } body { color: var(--color-bg); }'));
-    }
-
-    public function test_media_queries_pass(): void
-    {
-        $this->assertTrue($this->passes('@media (max-width: 768px) { .col { width: 100%; } }'));
-    }
-
-    public function test_expression_is_blocked(): void
-    {
-        $this->assertFalse($this->passes('body { width: expression(document.body.clientWidth); }'));
-    }
-
-    public function test_import_is_blocked(): void
-    {
-        $this->assertFalse($this->passes('@import url("https://evil.com/hack.css");'));
-    }
-
-    public function test_url_javascript_is_blocked(): void
-    {
-        $this->assertFalse($this->passes('body { background: url(javascript:alert(1)); }'));
-    }
-
-    public function test_url_data_is_blocked(): void
-    {
-        $this->assertFalse($this->passes('body { background: url(data:text/html,<script>alert(1)</script>); }'));
-    }
-
-    public function test_moz_binding_is_blocked(): void
-    {
-        $this->assertFalse($this->passes('body { -moz-binding: url("http://evil.com/xbl"); }'));
-    }
-
-    public function test_behavior_is_blocked(): void
-    {
-        $this->assertFalse($this->passes('body { behavior: url(xss.htc); }'));
-    }
-
-    public function test_binding_is_blocked(): void
-    {
-        $this->assertFalse($this->passes('body { binding(something); }'));
-    }
-
-    public function test_script_tag_is_blocked(): void
-    {
-        $this->assertFalse($this->passes('body {} <script>alert(1)</script>'));
-    }
-
-    public function test_case_insensitive_expression(): void
-    {
-        $this->assertFalse($this->passes('body { width: EXPRESSION(document.body.clientWidth); }'));
-    }
-
-    public function test_case_insensitive_import(): void
-    {
-        $this->assertFalse($this->passes('@IMPORT url("https://evil.com/hack.css");'));
-    }
-
-    public function test_case_insensitive_behavior(): void
-    {
-        $this->assertFalse($this->passes('body { BEHAVIOR: url(xss.htc); }'));
+        $this->assertSame($expectedValid, $this->passes($css));
     }
 
     public function test_error_message(): void
@@ -117,10 +71,5 @@ class SafeCssTest extends TestCase
         );
 
         $this->assertTrue($validator->passes());
-    }
-
-    public function test_empty_string_passes(): void
-    {
-        $this->assertTrue($this->passes(''));
     }
 }

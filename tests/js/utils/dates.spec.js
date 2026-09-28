@@ -2,38 +2,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { formatDate, formatRelative, formatRelativeTime } from '@/utils/dates';
 
 describe('formatDate', () => {
-    it('formats ISO date to human readable', () => {
-        const result = formatDate('2026-04-16T12:33:29+00:00');
-        expect(result).toMatch(/16/);
-        expect(result).toMatch(/Apr/);
-        expect(result).toMatch(/2026/);
+    it.each([
+        {
+            name: 'ISO date to human readable',
+            input: '2026-04-16T12:33:29+00:00',
+            options: undefined,
+            contains: ['16', 'Apr', '2026'],
+        },
+        { name: 'datetime string', input: '2026-04-16 12:33:29', options: undefined, contains: ['16', 'Apr'] },
+        {
+            name: 'custom options (long month)',
+            input: '2026-04-16T12:33:29Z',
+            options: { month: 'long' },
+            contains: ['April'],
+        },
+    ])('formats $name', ({ input, options, contains }) => {
+        const result = formatDate(input, options);
+        contains.forEach((substr) => expect(result).toMatch(new RegExp(substr)));
     });
 
-    it('formats datetime string', () => {
-        const result = formatDate('2026-04-16 12:33:29');
-        expect(result).toMatch(/16/);
-        expect(result).toMatch(/Apr/);
-    });
-
-    it('returns empty string for null', () => {
-        expect(formatDate(null)).toBe('');
-    });
-
-    it('returns empty string for undefined', () => {
-        expect(formatDate(undefined)).toBe('');
-    });
-
-    it('returns empty string for empty string', () => {
-        expect(formatDate('')).toBe('');
-    });
-
-    it('returns original string for invalid date', () => {
-        expect(formatDate('not-a-date')).toBe('not-a-date');
-    });
-
-    it('accepts custom options', () => {
-        const result = formatDate('2026-04-16T12:33:29Z', { month: 'long' });
-        expect(result).toMatch(/April/);
+    it.each([
+        { name: 'null', input: null, expected: '' },
+        { name: 'undefined', input: undefined, expected: '' },
+        { name: 'empty string', input: '', expected: '' },
+        { name: 'invalid date (passthrough)', input: 'not-a-date', expected: 'not-a-date' },
+    ])('returns $expected for $name', ({ input, expected }) => {
+        expect(formatDate(input)).toBe(expected);
     });
 });
 
@@ -47,20 +41,13 @@ describe('formatRelative', () => {
         vi.useRealTimers();
     });
 
-    it('returns "just now" for recent dates', () => {
-        expect(formatRelative('2026-04-16T11:59:30Z')).toBe('just now');
-    });
-
-    it('returns minutes ago', () => {
-        expect(formatRelative('2026-04-16T11:45:00Z')).toBe('15m ago');
-    });
-
-    it('returns hours ago', () => {
-        expect(formatRelative('2026-04-16T09:00:00Z')).toBe('3h ago');
-    });
-
-    it('returns days ago', () => {
-        expect(formatRelative('2026-04-14T12:00:00Z')).toBe('2d ago');
+    it.each([
+        { name: 'just now (< 60s)', input: '2026-04-16T11:59:30Z', expected: 'just now' },
+        { name: 'minutes ago', input: '2026-04-16T11:45:00Z', expected: '15m ago' },
+        { name: 'hours ago', input: '2026-04-16T09:00:00Z', expected: '3h ago' },
+        { name: 'days ago', input: '2026-04-14T12:00:00Z', expected: '2d ago' },
+    ])('returns $expected for $name', ({ input, expected }) => {
+        expect(formatRelative(input)).toBe(expected);
     });
 
     it('falls back to formatted date for old dates', () => {
@@ -70,20 +57,13 @@ describe('formatRelative', () => {
         expect(result).toMatch(/2026/);
     });
 
-    it('returns empty string for null', () => {
-        expect(formatRelative(null)).toBe('');
-    });
-
-    it('returns empty string for undefined', () => {
-        expect(formatRelative(undefined)).toBe('');
-    });
-
-    it('returns empty string for empty string', () => {
-        expect(formatRelative('')).toBe('');
-    });
-
-    it('returns original string for invalid date', () => {
-        expect(formatRelative('not-a-date')).toBe('not-a-date');
+    it.each([
+        { name: 'null', input: null, expected: '' },
+        { name: 'undefined', input: undefined, expected: '' },
+        { name: 'empty string', input: '', expected: '' },
+        { name: 'invalid date (passthrough)', input: 'not-a-date', expected: 'not-a-date' },
+    ])('returns $expected for $name', ({ input, expected }) => {
+        expect(formatRelative(input)).toBe(expected);
     });
 });
 
@@ -97,35 +77,16 @@ describe('formatRelativeTime', () => {
         vi.useRealTimers();
     });
 
-    it('returns em-dash for null', () => {
-        expect(formatRelativeTime(null)).toBe('—');
-    });
-
-    it('returns em-dash for undefined', () => {
-        expect(formatRelativeTime(undefined)).toBe('—');
-    });
-
-    it('returns em-dash for empty string', () => {
-        expect(formatRelativeTime('')).toBe('—');
-    });
-
-    it('returns original string for invalid date', () => {
-        expect(formatRelativeTime('not-a-date')).toBe('not-a-date');
-    });
-
-    it('returns "now" for very recent dates (under 60s)', () => {
-        expect(formatRelativeTime('2026-04-16T11:59:30Z')).toBe('now');
-    });
-
-    it('returns minutes for dates under an hour', () => {
-        expect(formatRelativeTime('2026-04-16T11:45:00Z')).toBe('15m');
-    });
-
-    it('returns hours for dates under a day', () => {
-        expect(formatRelativeTime('2026-04-16T09:00:00Z')).toBe('3h');
-    });
-
-    it('returns days for dates older than a day', () => {
-        expect(formatRelativeTime('2026-04-14T12:00:00Z')).toBe('2d');
+    it.each([
+        { name: 'null', input: null, expected: '—' },
+        { name: 'undefined', input: undefined, expected: '—' },
+        { name: 'empty string', input: '', expected: '—' },
+        { name: 'invalid date (passthrough)', input: 'not-a-date', expected: 'not-a-date' },
+        { name: 'very recent (< 60s)', input: '2026-04-16T11:59:30Z', expected: 'now' },
+        { name: 'minutes under an hour', input: '2026-04-16T11:45:00Z', expected: '15m' },
+        { name: 'hours under a day', input: '2026-04-16T09:00:00Z', expected: '3h' },
+        { name: 'days older than a day', input: '2026-04-14T12:00:00Z', expected: '2d' },
+    ])('returns $expected for $name', ({ input, expected }) => {
+        expect(formatRelativeTime(input)).toBe(expected);
     });
 });

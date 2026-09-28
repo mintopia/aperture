@@ -1,15 +1,15 @@
 import { mount } from '@vue/test-utils';
 import { defineComponent } from 'vue';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { usePage } from '@inertiajs/vue3';
 import Dashboard from '@/Pages/Portal/Dashboard.vue';
 
 vi.mock('@inertiajs/vue3', async () => {
     return {
-        usePage: () => ({
-            props: {
-                auth: { user: { nickname: 'TestUser' } },
-            },
-        }),
+        usePage: vi.fn(),
+        router: {
+            reload: vi.fn(),
+        },
     };
 });
 
@@ -39,6 +39,12 @@ const defaultGlobal = {
 };
 
 describe('Portal Dashboard', () => {
+    beforeEach(() => {
+        usePage.mockReturnValue({
+            props: { auth: { user: { nickname: 'TestUser' } } },
+        });
+    });
+
     const makeProps = (overrides = {}) => ({
         blocks: [],
         blockContext: {
@@ -182,5 +188,40 @@ describe('Portal Dashboard', () => {
         // The URL should appear in the element's style (as background-image) or as an img src
         const html = cover.html();
         expect(html).toContain('https://example.com/event-banner.jpg');
+    });
+
+    describe('live user channel wiring', () => {
+        let mockChannel;
+        let mockEcho;
+
+        beforeEach(() => {
+            usePage.mockReturnValue({
+                props: { auth: { user: { id: 42, nickname: 'TestUser' } } },
+            });
+            mockChannel = { listen: vi.fn().mockReturnThis(), stopListening: vi.fn().mockReturnThis() };
+            mockEcho = { private: vi.fn().mockReturnValue(mockChannel), leave: vi.fn() };
+            window.Echo = mockEcho;
+        });
+
+        afterEach(() => {
+            delete window.Echo;
+        });
+
+        // useUserChannel's own listen/unsubscribe/no-Echo-safety behavior is covered by
+        // tests/js/composables/useUserChannel.spec.js; this only checks that Dashboard wires
+        // it up with the authenticated user's id on mount and cleans up on unmount.
+        it('subscribes to the user Echo channel on mount', () => {
+            mount(Dashboard, { props: makeProps(), global: defaultGlobal });
+
+            expect(mockEcho.private).toHaveBeenCalledWith('user.42');
+        });
+
+        it('leaves the channel on unmount', () => {
+            const wrapper = mount(Dashboard, { props: makeProps(), global: defaultGlobal });
+
+            wrapper.unmount();
+
+            expect(mockEcho.leave).toHaveBeenCalledWith('user.42');
+        });
     });
 });

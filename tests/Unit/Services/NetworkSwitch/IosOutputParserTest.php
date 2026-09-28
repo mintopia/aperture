@@ -4,19 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\NetworkSwitch;
 
-use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\ValueObjects\PortStatus;
 use Tests\TestCase;
+use Tests\Unit\Concerns\CreatesIosOutputParser;
 
 class IosOutputParserTest extends TestCase
 {
-    private IosOutputParser $parser;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->parser = new IosOutputParser;
-    }
+    use CreatesIosOutputParser;
 
     public function test_parse_show_interface_extracts_status_up(): void
     {

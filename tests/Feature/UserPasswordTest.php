@@ -5,18 +5,13 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Queue;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class UserPasswordTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-    }
 
     public function test_user_can_have_password_set(): void
     {

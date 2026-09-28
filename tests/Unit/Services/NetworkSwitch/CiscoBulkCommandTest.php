@@ -10,16 +10,11 @@ use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\IosOutputParser;
 use Mockery;
 use Tests\TestCase;
+use Tests\Unit\Concerns\CreatesIosOutputParser;
 
 class CiscoBulkCommandTest extends TestCase
 {
-    private IosOutputParser $parser;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->parser = new IosOutputParser;
-    }
+    use CreatesIosOutputParser;
 
     // -------------------------------------------------------------------------
     // IosOutputParser: splitBulkShowInterface

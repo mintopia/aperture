@@ -6,20 +6,15 @@ use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Queue;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 class LoginControllerTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
 
     protected bool $seedSetupUser = false;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Queue::fake();
-    }
 
     public function test_login_page_renders(): void
     {

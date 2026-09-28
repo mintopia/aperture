@@ -504,3 +504,102 @@ describe('Show — MetadataStrip Status slot', () => {
         expect(statusSpan.classes()).toContain('text-[var(--color-text-muted)]');
     });
 });
+
+// useAdminChannel's own subscribe/listen/leave/poll-wiring behavior is covered
+// generically by tests/js/composables/useAdminChannel.spec.js (and the poll callback
+// itself, refreshData, by ShowPolling.spec.js). These cover Show's own event-matching
+// guards for PortStateChanged and SwitchSyncCompleted.
+describe('Show — Echo event handler guards', () => {
+    let originalEcho;
+
+    function createMockEcho() {
+        const channels = {};
+        return {
+            private: vi.fn((channelName) => {
+                const channel = {
+                    _listeners: {},
+                    listen: vi.fn((event, handler) => {
+                        channel._listeners[event] = handler;
+                        return channel;
+                    }),
+                };
+                channels[channelName] = channel;
+                return channel;
+            }),
+            leave: vi.fn(),
+            _channels: channels,
+        };
+    }
+
+    beforeEach(() => {
+        originalEcho = window.Echo;
+        vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        window.Echo = originalEcho;
+    });
+
+    it('refreshes on PortStateChanged matching by switch_port_id', () => {
+        const echo = createMockEcho();
+        window.Echo = echo;
+
+        mountPage({ port: { id: 5 } });
+        router.reload.mockClear();
+
+        echo._channels['admin.events']._listeners['PortStateChanged']({ switch_port_id: 5 });
+
+        expect(router.reload).toHaveBeenCalled();
+    });
+
+    it('refreshes on PortStateChanged matching by port_name', () => {
+        const echo = createMockEcho();
+        window.Echo = echo;
+
+        mountPage();
+        router.reload.mockClear();
+
+        echo._channels['admin.events']._listeners['PortStateChanged']({ port_name: 'Gi1/0/1' });
+
+        expect(router.reload).toHaveBeenCalled();
+    });
+
+    it('does not refresh on PortStateChanged for a different port', () => {
+        const echo = createMockEcho();
+        window.Echo = echo;
+
+        mountPage({ port: { id: 5 } });
+        router.reload.mockClear();
+
+        echo._channels['admin.events']._listeners['PortStateChanged']({
+            switch_port_id: 999,
+            port_name: 'Gi9/9/9',
+        });
+
+        expect(router.reload).not.toHaveBeenCalled();
+    });
+
+    it('refreshes on SwitchSyncCompleted matching this switch', () => {
+        const echo = createMockEcho();
+        window.Echo = echo;
+
+        mountPage();
+        router.reload.mockClear();
+
+        echo._channels['admin.events']._listeners['SwitchSyncCompleted']({ switch_config_id: 1 });
+
+        expect(router.reload).toHaveBeenCalled();
+    });
+
+    it('does not refresh on SwitchSyncCompleted for a different switch', () => {
+        const echo = createMockEcho();
+        window.Echo = echo;
+
+        mountPage();
+        router.reload.mockClear();
+
+        echo._channels['admin.events']._listeners['SwitchSyncCompleted']({ switch_config_id: 999 });
+
+        expect(router.reload).not.toHaveBeenCalled();
+    });
+});

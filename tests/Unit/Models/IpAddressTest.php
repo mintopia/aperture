@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class IpAddressTest extends TestCase
@@ -71,88 +72,62 @@ class IpAddressTest extends TestCase
         $this->assertEquals('10.0.0.1', $ip->address);
     }
 
-    public function test_ipv6_address_is_normalized_to_lowercase(): void
+    public static function addressNormalizationOnCreateProvider(): array
+    {
+        return [
+            'ipv6 is lowercased' => ['2001:DB8::ABCD:1', '2001:db8::abcd:1'],
+            'ipv4 is unaffected' => ['10.30.0.1', '10.30.0.1'],
+        ];
+    }
+
+    #[DataProvider('addressNormalizationOnCreateProvider')]
+    public function test_address_is_normalized_on_create(string $address, string $expected): void
     {
         $ip = IpAddress::create([
-            'address' => '2001:DB8::ABCD:1',
+            'address' => $address,
             'last_seen_at' => now(),
         ]);
 
-        $this->assertEquals('2001:db8::abcd:1', $ip->address);
-        $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::abcd:1']);
+        $this->assertEquals($expected, $ip->address);
+        $this->assertDatabaseHas('ip_addresses', ['address' => $expected]);
     }
 
-    public function test_ipv4_address_is_not_affected(): void
+    public static function normalizeProvider(): array
     {
-        $ip = IpAddress::create([
-            'address' => '10.30.0.1',
-            'last_seen_at' => now(),
-        ]);
-
-        $this->assertEquals('10.30.0.1', $ip->address);
+        return [
+            'lowercases ipv6 addresses' => ['2001:DB8::ABCD:1', '2001:db8::abcd:1'],
+            'leaves ipv4 addresses unchanged' => ['10.30.0.1', '10.30.0.1'],
+        ];
     }
 
-    public function test_normalize_lowercases_ipv6_addresses(): void
+    #[DataProvider('normalizeProvider')]
+    public function test_normalize(string $address, string $expected): void
     {
-        $this->assertSame('2001:db8::abcd:1', IpAddress::normalize('2001:DB8::ABCD:1'));
+        $this->assertSame($expected, IpAddress::normalize($address));
     }
 
-    public function test_normalize_leaves_ipv4_addresses_unchanged(): void
+    public static function togglingDispatchesSyncJobProvider(): array
     {
-        $this->assertSame('10.30.0.1', IpAddress::normalize('10.30.0.1'));
+        return [
+            'enabling rate limit dispatches SyncRateLimitJob' => ['rate_limit_enabled', false, true, SyncRateLimitJob::class],
+            'disabling rate limit dispatches SyncRateLimitJob' => ['rate_limit_enabled', true, false, SyncRateLimitJob::class],
+            'enabling internet dispatches SyncInternetAccessJob' => ['internet_enabled', false, true, SyncInternetAccessJob::class],
+            'disabling internet dispatches SyncInternetAccessJob' => ['internet_enabled', true, false, SyncInternetAccessJob::class],
+        ];
     }
 
-    public function test_enabling_rate_limit_dispatches_sync_rate_limit_job(): void
-    {
-        Queue::fake();
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
-
-        $ip->rate_limit_enabled = true;
-        $ip->save();
-        Queue::assertPushed(SyncRateLimitJob::class);
-    }
-
-    public function test_disabling_rate_limit_dispatches_sync_rate_limit_job(): void
+    #[DataProvider('togglingDispatchesSyncJobProvider')]
+    public function test_toggling_flag_dispatches_sync_job(string $attribute, bool $initial, bool $new, string $expectedJob): void
     {
         Queue::fake();
         $ip = new IpAddress;
         $ip->address = '10.0.0.1';
         $ip->last_seen_at = now();
-        $ip->rate_limit_enabled = true;
+        $ip->{$attribute} = $initial;
         $ip->save();
 
-        $ip->rate_limit_enabled = false;
+        $ip->{$attribute} = $new;
         $ip->save();
-        Queue::assertPushed(SyncRateLimitJob::class);
-    }
-
-    public function test_enabling_internet_dispatches_sync_internet_access_job(): void
-    {
-        Queue::fake();
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->save();
-
-        $ip->internet_enabled = true;
-        $ip->save();
-        Queue::assertPushed(SyncInternetAccessJob::class);
-    }
-
-    public function test_disabling_internet_dispatches_sync_internet_access_job(): void
-    {
-        Queue::fake();
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.1';
-        $ip->last_seen_at = now();
-        $ip->internet_enabled = true;
-        $ip->save();
-
-        $ip->internet_enabled = false;
-        $ip->save();
-        Queue::assertPushed(SyncInternetAccessJob::class);
+        Queue::assertPushed($expectedJob);
     }
 }

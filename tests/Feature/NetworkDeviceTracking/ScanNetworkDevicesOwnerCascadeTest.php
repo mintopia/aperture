@@ -14,8 +14,8 @@ use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
+use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
 /**
@@ -26,18 +26,12 @@ use Tests\TestCase;
  */
 class ScanNetworkDevicesOwnerCascadeTest extends TestCase
 {
+    use CreatesAdminUsers;
     use LazilyRefreshDatabase;
 
     private const LOWER = '2a0f:85c1:d91:2100:7485:ac59:8bc9:72e6';
 
     private const UPPER = '2A0F:85C1:D91:2100:7485:AC59:8BC9:72E6';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Queue::fake();
-    }
 
     /**
      * @param  list<DhcpLeaseVO>  $leases
