@@ -149,9 +149,8 @@ func TestExecute_ChangedPinReconnectsPooledSession(t *testing.T) {
 		return nil, fmt.Errorf("%w: new pin checked", ssh.ErrHostKeyMismatch)
 	}
 	h := testHandler(p, connector, okExecutor())
-	other := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOtherKeyBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-	// Unparseable keys are never equal, so a differing pin forces a reconnect.
-	_, resp := post(h, fmt.Sprintf(`{"hostname":"sw","username":"admin","password":"p","host_key":%q,"commands":[]}`, other))
+	unparseableDifferingPin := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOtherKeyBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+	_, resp := post(h, fmt.Sprintf(`{"hostname":"sw","username":"admin","password":"p","host_key":%q,"commands":[]}`, unparseableDifferingPin))
 	if calls != 1 || resp.ErrorCode != "host_key_mismatch" {
 		t.Errorf("calls=%d code=%q", calls, resp.ErrorCode)
 	}

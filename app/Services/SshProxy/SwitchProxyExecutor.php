@@ -28,7 +28,6 @@ class SwitchProxyExecutor
             $switchConfig->host_key,
         );
 
-        // TOFU: only pin on success, and never overwrite an existing pin.
         if ($result->success && $result->hostKey !== null && blank($switchConfig->host_key) && $switchConfig->exists) {
             SwitchConfig::whereKey($switchConfig->getKey())->whereNull('host_key')->update(['host_key' => $result->hostKey]);
             $switchConfig->refresh();

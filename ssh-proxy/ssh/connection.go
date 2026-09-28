@@ -34,8 +34,7 @@ type ConnectParams struct {
 	Password   string
 	PrivateKey string // PEM; takes precedence over Password
 	Passphrase string
-	// HostKey is the pinned key (authorized_keys format); empty means trust on first use.
-	HostKey string
+	HostKey    string
 }
 
 var ErrHostKeyMismatch = errors.New("host key mismatch")
@@ -222,7 +221,6 @@ func Connect(ctx context.Context, p ConnectParams) (*Connection, error) {
 	return conn, nil
 }
 
-// HostKey returns the server host key observed at connect time (authorized_keys format).
 func (c *Connection) HostKey() string { return c.hostKey }
 
 // readLoop continuously reads from stdout and pushes chunks to dataCh.

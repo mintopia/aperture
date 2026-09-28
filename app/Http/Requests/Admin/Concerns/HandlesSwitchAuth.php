@@ -32,7 +32,6 @@ trait HandlesSwitchAuth
             $data['password'] = null;
 
             if (filled($data['private_key'] ?? null)) {
-                // Middleware trims the trailing newline that PEM parsers expect.
                 $data['private_key'] = rtrim(str_replace("\r\n", "\n", $data['private_key']))."\n";
                 $data['passphrase'] = filled($data['passphrase'] ?? null) ? $data['passphrase'] : null;
             }
@@ -42,7 +41,6 @@ trait HandlesSwitchAuth
             $data['passphrase'] = null;
         }
 
-        // A pinned key belongs to one host; a new hostname must re-pin.
         if ($existing instanceof SwitchConfig && $data['hostname'] !== $existing->hostname) {
             $data['host_key'] = null;
         }

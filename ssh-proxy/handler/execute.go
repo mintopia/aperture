@@ -61,12 +61,11 @@ func (h *Handler) writeConnectFailure(w http.ResponseWriter, err error) {
 
 // executeResponse matches the PHP API's success response shape.
 type executeResponse struct {
-	Success bool                `json:"success"`
-	Output  []ssh.CommandOutput `json:"output"`
-	Error   string              `json:"error,omitempty"`
-	// HostKey is the observed server key (authorized_keys format) for the PHP app to pin.
-	HostKey   string `json:"host_key,omitempty"`
-	ErrorCode string `json:"error_code,omitempty"`
+	Success   bool                `json:"success"`
+	Output    []ssh.CommandOutput `json:"output"`
+	Error     string              `json:"error,omitempty"`
+	HostKey   string              `json:"host_key,omitempty"`
+	ErrorCode string              `json:"error_code,omitempty"`
 }
 
 // Execute handles POST /execute — runs commands on a network switch via SSH.
@@ -121,7 +120,6 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 
 	entry, isNew, err := h.pool.Acquire(key)
 	if err == nil && !isNew && entry.HostKey != "" && (req.HostKey == "" || !ssh.HostKeysEqual(req.HostKey, entry.HostKey)) {
-		// Pin cleared or changed (e.g. admin reset); reconnect so the reported key is fresh.
 		h.pool.Evict(key)
 		entry, isNew, err = h.pool.Acquire(key)
 	}

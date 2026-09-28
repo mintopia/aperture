@@ -1,7 +1,4 @@
-// Package pool provides a thread-safe SSH connection pool keyed by
-// hostname, port, username, channel and a hash of the credentials.
-// Connections are acquired with exclusive locking per key and
-// automatically swept when idle or dead.
+// Package pool provides a thread-safe SSH connection pool.
 package pool
 
 import (
@@ -206,9 +203,6 @@ createNew:
 	return entry, true, nil
 }
 
-// Evict forcibly removes and closes the entry for the given key,
-// regardless of its lock state. Use this to recover from a stale
-// connection detected during command execution.
 func (p *Pool) Evict(key Key) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -263,7 +257,6 @@ func (p *Pool) SetHostKey(key Key, hostKey string) {
 	}
 }
 
-// Stops its keepalive goroutine if one is running.
 func (p *Pool) Remove(key Key) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
