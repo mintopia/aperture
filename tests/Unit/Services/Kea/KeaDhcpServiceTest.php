@@ -1390,7 +1390,6 @@ class KeaDhcpServiceTest extends TestCase
             'kea6.local' => Http::response([['result' => 3]]),
         ]);
 
-        // $this->service (built in setUp) has no IPv6 client configured.
         $status = $this->service->getFetchStatus();
 
         $this->assertTrue($status['ipv4']);
@@ -1439,9 +1438,6 @@ class KeaDhcpServiceTest extends TestCase
 
     public function test_get_ranges_returns_empty_and_reports_failure_when_config_get_itself_fails(): void
     {
-        // Lease fetch succeeds (fetchStatus['ipv4'] stays true), but config-get
-        // specifically fails — exercises the try/catch around config-get itself,
-        // distinct from the earlier short-circuit when the lease fetch fails.
         Http::fake([
             'kea.local' => function ($request) {
                 $command = $request->data()['command'] ?? null;

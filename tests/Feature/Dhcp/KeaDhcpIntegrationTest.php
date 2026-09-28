@@ -39,14 +39,9 @@ class KeaDhcpIntegrationTest extends TestCase
     }
 
     /**
-     * Fake a Kea `lease4-get-page`/`lease6-get-page` response: returns
-     * $leases on the first page request (from === 'start') and an empty
-     * page on every subsequent request, so KeaDhcpService's pagination loop
-     * terminates cleanly after a single page.
-     *
      * @param  array<int, array<string, mixed>>  $leases
      */
-    private function keaLeasePageResponse(Request $request, array $leases): PromiseInterface
+    private function fakeSinglePageLeaseResponse(Request $request, array $leases): PromiseInterface
     {
         $data = $request->data();
         $arguments = is_array($data['arguments'] ?? null) ? $data['arguments'] : [];
@@ -91,6 +86,18 @@ class KeaDhcpIntegrationTest extends TestCase
     }
 
     /**
+     * DUID-LLT (RFC 8415): 2 bytes type (0001) + 2 bytes hw-type (0001,
+     * Ethernet) + 4 bytes timestamp + 6 bytes MAC.
+     */
+    private function keaDuidLltHex(int $timestamp, string $mac): string
+    {
+        $timestampHex = str_pad(dechex($timestamp), 8, '0', STR_PAD_LEFT);
+        $timestampBytes = implode(':', str_split($timestampHex, 2));
+
+        return "00:01:00:01:{$timestampBytes}:{$mac}";
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function keaConfigGetEntry(string $subnet, string $interface, string $poolRange): array
@@ -119,28 +126,20 @@ class KeaDhcpIntegrationTest extends TestCase
         app()->call([$job, 'handle']);
     }
 
-    /**
-     * Regression guard for the `KeaDhcpService extends NullDhcpService` bug
-     * (fixed to `implements DhcpInterface`) that made SyncDhcpData::handle()
-     * skip every real sync.
-     */
     public function test_dual_stack_sync_stores_ipv4_and_ipv6_leases_with_duid_derived_mac(): void
     {
         Queue::fake();
 
         $now = Carbon::now()->getTimestamp();
 
-        // DUID-LLT (RFC 8415): 2 bytes type (0001) + 2 bytes hw-type (0001,
-        // Ethernet) + 4 bytes timestamp (aabbccdd) + 6 bytes MAC (deadbeefcafe).
-        // Hand-derived expected MAC: DE:AD:BE:EF:CA:FE.
-        $duid = '00:01:00:01:aa:bb:cc:dd:de:ad:be:ef:ca:fe';
+        $duid = $this->keaDuidLltHex(0xAABBCCDD, 'de:ad:be:ef:ca:fe');
 
         Http::fake([
             'kea4.local' => function (Request $request) use ($now): PromiseInterface {
                 $data = $request->data();
 
                 return match ($data['command'] ?? null) {
-                    'lease4-get-page' => $this->keaLeasePageResponse($request, [
+                    'lease4-get-page' => $this->fakeSinglePageLeaseResponse($request, [
                         $this->keaIpv4Lease('10.10.0.50', '00:aa:bb:cc:dd:ee', 'host-v4', $now),
                     ]),
                     'config-get' => Http::response([
@@ -149,7 +148,7 @@ class KeaDhcpIntegrationTest extends TestCase
                     default => Http::response([['result' => 3]]),
                 };
             },
-            'kea6.local' => fn (Request $request): PromiseInterface => $this->keaLeasePageResponse($request, [
+            'kea6.local' => fn (Request $request): PromiseInterface => $this->fakeSinglePageLeaseResponse($request, [
                 $this->keaIpv6Lease('2001:db8::50', $duid, 'host-v6', $now),
             ]),
         ]);
@@ -177,7 +176,7 @@ class KeaDhcpIntegrationTest extends TestCase
         ]);
     }
 
-    public function test_ipv6_timeout_updates_ipv4_and_keeps_ipv6_last_known_data(): void
+    public function test_ipv6_fetch_failure_updates_ipv4_and_keeps_ipv6_last_known_data(): void
     {
         Queue::fake();
 
@@ -210,7 +209,7 @@ class KeaDhcpIntegrationTest extends TestCase
                 $data = $request->data();
 
                 return match ($data['command'] ?? null) {
-                    'lease4-get-page' => $this->keaLeasePageResponse($request, [
+                    'lease4-get-page' => $this->fakeSinglePageLeaseResponse($request, [
                         $this->keaIpv4Lease('10.20.0.60', '00:11:22:33:44:55', 'host-v4-new', $later->getTimestamp()),
                     ]),
                     'config-get' => Http::response([
@@ -219,9 +218,6 @@ class KeaDhcpIntegrationTest extends TestCase
                     default => Http::response([['result' => 3]]),
                 };
             },
-            // A 401 makes KeaClient::sendCommand's $response->throw() raise,
-            // which KeaDhcpService catches as a failed IPv6 fetch — the same
-            // family-scoped failure path a real timeout would take.
             'kea6.local' => Http::response(['error' => 'Unauthorized'], 401),
         ]);
 
@@ -306,11 +302,8 @@ class KeaDhcpIntegrationTest extends TestCase
         Carbon::setTestNow($later);
 
         Http::fake([
-            // A 401 fails lease4-get-page (the first call KeaDhcpService
-            // makes); once fetchStatus['ipv4'] is false, getRanges() short
-            // circuits before ever calling config-get again.
             'kea4.local' => Http::response(['error' => 'Unauthorized'], 401),
-            'kea6.local' => fn (Request $request): PromiseInterface => $this->keaLeasePageResponse($request, [
+            'kea6.local' => fn (Request $request): PromiseInterface => $this->fakeSinglePageLeaseResponse($request, [
                 $this->keaIpv6Lease(
                     '2001:db8::200',
                     '00:01:00:01:11:22:33:44:11:22:33:44:55:66',

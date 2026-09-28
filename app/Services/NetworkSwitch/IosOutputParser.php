@@ -719,9 +719,7 @@ class IosOutputParser
     }
 
     /**
-     * Extract and normalise a MAC address from a DHCPv6 DUID hex string.
-     *
-     * Delegates to {@see Duid::macAddress()}.
+     * @see Duid::macAddress()
      */
     private function extractMacFromDuid(string $duid): ?string
     {

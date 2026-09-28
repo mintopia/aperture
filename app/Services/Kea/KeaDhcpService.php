@@ -69,11 +69,9 @@ class KeaDhcpService implements DhcpInterface
     {
         $this->ensureSnapshot();
 
-        // Ranges only ever come from the IPv4/Dhcp4 config (IPv6 ranges are
-        // explicitly out of scope for this feature, tracked separately). If
-        // there's no IPv4 client, or its lease fetch already failed, don't
-        // bother attempting config-get.
-        if (! $this->ipv4Client instanceof KeaClient || ! $this->fetchStatus['ipv4']) {
+        $client = $this->usableIpv4RangeClient();
+
+        if ($client === null) {
             return collect();
         }
 
@@ -85,7 +83,7 @@ class KeaDhcpService implements DhcpInterface
         }
 
         try {
-            $entry = $this->ipv4Client->sendCommand('config-get');
+            $entry = $client->sendCommand('config-get');
         } catch (Throwable $throwable) {
             Log::warning('Kea config-get failed', ['error' => $throwable->getMessage()]);
             $this->fetchStatus['ipv4'] = false;
@@ -136,6 +134,15 @@ class KeaDhcpService implements DhcpInterface
         );
     }
 
+    private function usableIpv4RangeClient(): ?KeaClient
+    {
+        if (! $this->ipv4Client instanceof KeaClient || ! $this->fetchStatus['ipv4']) {
+            return null;
+        }
+
+        return $this->ipv4Client;
+    }
+
     /**
      * @param  Collection<int, DhcpRange>  $ranges
      * @return Collection<int, DhcpRange>
@@ -152,11 +159,7 @@ class KeaDhcpService implements DhcpInterface
     /** @return Collection<int, DhcpLease> */
     public function getLeases(): Collection
     {
-        // Always refetch: callers (e.g. KeaIpMacResolver, or a long-lived
-        // instance held across requests) must not see a stale snapshot from
-        // an earlier call.
-        $this->resetSnapshot();
-        $this->ensureSnapshot();
+        $this->refreshSnapshot();
 
         /** @var Collection<int, DhcpLease> $ipv4 */
         $ipv4 = $this->snapshot['ipv4'] ?? collect();
@@ -172,8 +175,7 @@ class KeaDhcpService implements DhcpInterface
             return null;
         }
 
-        // IPv6 single-lease lookup (`lease6-get`) is intentionally out of scope here; tracked as a follow-up.
-        if (filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+        if (! self::isIpv4Address($ipAddress)) {
             return null;
         }
 
@@ -216,10 +218,21 @@ class KeaDhcpService implements DhcpInterface
         );
     }
 
+    private static function isIpv4Address(string $ipAddress): bool
+    {
+        return filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+    }
+
     public function resetSnapshot(): void
     {
         $this->snapshot = null;
         $this->fetchStatus = ['ipv4' => false, 'ipv6' => false];
+    }
+
+    private function refreshSnapshot(): void
+    {
+        $this->resetSnapshot();
+        $this->ensureSnapshot();
     }
 
     /**
@@ -251,7 +264,7 @@ class KeaDhcpService implements DhcpInterface
         $ipv6Leases = collect();
 
         if (! $this->ipv4Client instanceof KeaClient) {
-            $this->markFamilyUnconfigured('ipv4');
+            $this->markFamilyAsDeliberatelyUnconfigured('ipv4');
         } else {
             try {
                 $ipv4Leases = $this->fetchFamilyLeases($this->ipv4Client, 'lease4-get-page', $now, isIpv6: false);
@@ -263,7 +276,7 @@ class KeaDhcpService implements DhcpInterface
         }
 
         if (! $this->ipv6Client instanceof KeaClient) {
-            $this->markFamilyUnconfigured('ipv6');
+            $this->markFamilyAsDeliberatelyUnconfigured('ipv6');
         } else {
             try {
                 $ipv6Leases = $this->fetchFamilyLeases($this->ipv6Client, 'lease6-get-page', $now, isIpv6: true);
@@ -282,22 +295,14 @@ class KeaDhcpService implements DhcpInterface
     }
 
     /**
-     * A null client means that Address Family isn't configured at all — a
-     * deliberate absence, not a failure — so it's reported as a trivial
-     * success with zero leases rather than making a request or flagging the
-     * family as down.
-     *
      * @param  'ipv4'|'ipv6'  $family
      */
-    private function markFamilyUnconfigured(string $family): void
+    private function markFamilyAsDeliberatelyUnconfigured(string $family): void
     {
         $this->fetchStatus[$family] = true;
     }
 
     /**
-     * Page through a Kea `lease4-get-page`/`lease6-get-page` command,
-     * applying the active-lease filter shared by both Address Families.
-     *
      * @return Collection<int, DhcpLease>
      */
     private function fetchFamilyLeases(KeaClient $client, string $command, int $now, bool $isIpv6): Collection
@@ -406,7 +411,6 @@ class KeaDhcpService implements DhcpInterface
         $mac = $lease['hw-address'] ?? null;
         $mac = is_string($mac) && $mac !== '' ? $mac : null;
 
-        // IPv4 leases have no DUID; only fall back to DUID parsing for IPv6.
         if ($mac === null && $isIpv6) {
             $duid = $lease['duid'] ?? null;
 
