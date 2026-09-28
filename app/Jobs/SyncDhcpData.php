@@ -63,18 +63,12 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
         Log::info('SyncDhcpData: starting sync', ['integration' => $integration]);
 
-        if (method_exists($dhcp, 'resetSnapshot')) {
-            $dhcp->resetSnapshot();
-        }
+        $dhcp->resetSnapshot();
 
         $leases = $dhcp->getLeases();
         $ranges = $dhcp->getRanges();
         $poolStatus = $dhcp->getPoolStatus();
-
-        /** @var array{ipv4: bool, ipv6: bool} $fetchStatus */
-        $fetchStatus = method_exists($dhcp, 'getFetchStatus')
-            ? $dhcp->getFetchStatus()
-            : ['ipv4' => true, 'ipv6' => true];
+        $fetchStatus = $dhcp->getFetchStatus();
 
         // Read previous pool utilisation BEFORE the transaction for threshold crossing detection
         $previousUtilisation = DhcpPoolStatusRecord::where('integration', $integration)
@@ -88,8 +82,8 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
         DB::transaction(function () use ($integration, $leases, $ranges, $poolStatus, $fetchStatus, &$leasesCount, &$rangesCount, &$poolStatusCount): void {
             $leasesCount = $this->performLeaseSync($integration, $leases, $fetchStatus);
-            $rangesCount = $this->performRangeSync($integration, $ranges);
-            $poolStatusCount = $this->performPoolStatusSync($integration, $poolStatus);
+            $rangesCount = $this->performRangeSync($integration, $ranges, $fetchStatus);
+            $poolStatusCount = $this->performPoolStatusSync($integration, $poolStatus, $fetchStatus);
         });
 
         $this->fireThresholdEventIfCrossed($integration, $previousUtilisation);
@@ -130,17 +124,31 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Sync leases from the DHCP provider into the database.
-     *
-     * Called from within the DB::transaction() closure.
-     *
      * @param  Collection<int, DhcpLease>  $leases
-     * @param  array{ipv4: bool, ipv6: bool}  $fetchStatus
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
      */
     public function performLeaseSync(string $integration, Collection $leases, array $fetchStatus): int
     {
+        $ipv4Leases = $leases->filter(fn (DhcpLease $lease): bool => ! $this->isIpv6($lease->ip))->values();
+        $ipv6Leases = $leases->filter(fn (DhcpLease $lease): bool => $this->isIpv6($lease->ip))->values();
+
+        $count = $this->performLeaseSyncForFamily($integration, 'ipv4', $ipv4Leases, $fetchStatus['ipv4']);
+
+        return $count + $this->performLeaseSyncForFamily($integration, 'ipv6', $ipv6Leases, $fetchStatus['ipv6']);
+    }
+
+    /**
+     * @param  Collection<int, DhcpLease>  $familyLeases
+     */
+    private function performLeaseSyncForFamily(string $integration, string $addressFamily, Collection $familyLeases, bool $fetchSucceeded): int
+    {
+        if (! $fetchSucceeded) {
+            $this->recordFailedAttempt($integration, $addressFamily, 'leases');
+
+            return 0;
+        }
+
         $now = now();
-        $addressFamily = 'ipv4';
 
         $syncState = DhcpSyncState::firstOrCreate(
             ['integration' => $integration, 'address_family' => $addressFamily, 'dataset' => 'leases'],
@@ -148,15 +156,15 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
         );
         $syncState->last_attempt_at = $now;
 
-        if ($leases->isEmpty()) {
-            return $this->handleEmptyResult($syncState, $integration, 'leases', function () use ($integration): void {
-                DhcpLeaseModel::where('integration', $integration)->delete();
+        if ($familyLeases->isEmpty()) {
+            return $this->handleEmptyResult($syncState, $integration, 'leases', function () use ($integration, $addressFamily): void {
+                $this->deleteStaleLeasesForFamily($integration, $addressFamily, []);
             });
         }
 
         $upsertedIds = [];
 
-        foreach ($leases as $lease) {
+        foreach ($familyLeases as $lease) {
             $ip = IpAddress::firstOrCreate(
                 ['address' => IpAddress::normalize($lease->ip)],
                 ['last_seen_at' => now()],
@@ -187,10 +195,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
             $upsertedIds[] = $dhcpLease->id;
         }
 
-        // Delete stale leases for this integration
-        DhcpLeaseModel::where('integration', $integration)
-            ->whereNotIn('id', $upsertedIds)
-            ->delete();
+        $this->deleteStaleLeasesForFamily($integration, $addressFamily, $upsertedIds);
 
         $syncState->last_success_at = $now;
         $syncState->empty_count = 0;
@@ -200,16 +205,49 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Sync ranges from the DHCP provider into the database.
-     *
-     * Called from within the DB::transaction() closure.
-     *
-     * @param  Collection<int, DhcpRange>  $ranges
+     * @param  list<int>  $keepIds
      */
-    public function performRangeSync(string $integration, Collection $ranges): int
+    private function deleteStaleLeasesForFamily(string $integration, string $addressFamily, array $keepIds): void
     {
-        $now = now();
+        DhcpLeaseModel::where('integration', $integration)
+            ->whereNotIn('id', $keepIds)
+            ->whereHas('ipAddress', function ($query) use ($addressFamily): void {
+                if ($addressFamily === 'ipv6') {
+                    $query->where('address', 'like', $this->ipv6LikePattern());
+                } else {
+                    $query->where('address', 'not like', $this->ipv6LikePattern());
+                }
+            })
+            ->delete();
+    }
+
+    private const IPV6_MARKER = ':';
+
+    private function isIpv6(string $ip): bool
+    {
+        return str_contains($ip, self::IPV6_MARKER);
+    }
+
+    private function ipv6LikePattern(): string
+    {
+        return '%'.self::IPV6_MARKER.'%';
+    }
+
+    /**
+     * @param  Collection<int, DhcpRange>  $ranges
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
+     */
+    public function performRangeSync(string $integration, Collection $ranges, array $fetchStatus): int
+    {
         $addressFamily = 'ipv4';
+
+        if (! $this->rangesFetchSucceeded($fetchStatus)) {
+            $this->recordFailedAttempt($integration, $addressFamily, 'ranges');
+
+            return 0;
+        }
+
+        $now = now();
 
         $syncState = DhcpSyncState::firstOrCreate(
             ['integration' => $integration, 'address_family' => $addressFamily, 'dataset' => 'ranges'],
@@ -261,14 +299,19 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Sync pool status from the DHCP provider into the database.
-     *
-     * Called from within the DB::transaction() closure.
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
      */
-    public function performPoolStatusSync(string $integration, DhcpPoolStatus $poolStatus): int
+    public function performPoolStatusSync(string $integration, DhcpPoolStatus $poolStatus, array $fetchStatus): int
     {
-        $now = now();
         $addressFamily = 'ipv4';
+
+        if (! $this->rangesFetchSucceeded($fetchStatus)) {
+            $this->recordFailedAttempt($integration, $addressFamily, 'pool_status');
+
+            return 0;
+        }
+
+        $now = now();
 
         $total = (string) $poolStatus->total;
         $used = (string) $poolStatus->used;
@@ -315,6 +358,24 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
         $syncState->save();
 
         return 1;
+    }
+
+    /**
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
+     */
+    private function rangesFetchSucceeded(array $fetchStatus): bool
+    {
+        return $fetchStatus['ipv4'] && ($fetchStatus['ipv4_ranges'] ?? true);
+    }
+
+    private function recordFailedAttempt(string $integration, string $addressFamily, string $dataset): void
+    {
+        $syncState = DhcpSyncState::firstOrCreate(
+            ['integration' => $integration, 'address_family' => $addressFamily, 'dataset' => $dataset],
+            ['empty_count' => 0],
+        );
+        $syncState->last_attempt_at = now();
+        $syncState->save();
     }
 
     /**

@@ -874,4 +874,20 @@ class VyOsDhcpServiceTest extends TestCase
         $this->assertCount(1, $ranges);
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
     }
+
+    public function test_get_fetch_status_reports_success(): void
+    {
+        $service = $this->createService();
+
+        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+    }
+
+    public function test_reset_snapshot_is_a_no_op(): void
+    {
+        $service = $this->createService();
+
+        $service->resetSnapshot();
+
+        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+    }
 }

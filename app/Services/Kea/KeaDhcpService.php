@@ -4,23 +4,24 @@ declare(strict_types=1);
 
 namespace App\Services\Kea;
 
-use App\Services\Null\NullDhcpService;
+use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
+use App\Support\Duid;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class KeaDhcpService extends NullDhcpService
+class KeaDhcpService implements DhcpInterface
 {
     private const PAGE_LIMIT = 1000;
 
     private const LEASE_STATE_ACTIVE = 0;
 
     /**
-     * Kea's documented keyword for the first `lease4-get-page` request.
+     * Kea's documented keyword for the first `lease{4,6}-get-page` request.
      */
     private const FIRST_PAGE_CURSOR = 'start';
 
@@ -30,7 +31,18 @@ class KeaDhcpService extends NullDhcpService
      */
     private const MAX_PAGES = 10_000;
 
-    public function __construct(private readonly KeaClient $client) {}
+    /**
+     * @var array{ipv4: Collection<int, DhcpLease>, ipv6: Collection<int, DhcpLease>, ranges: Collection<int, DhcpRange>|null}|null
+     */
+    private ?array $snapshot = null;
+
+    /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges: bool} */
+    private array $fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true];
+
+    public function __construct(
+        private readonly ?KeaClient $ipv4Client,
+        private readonly ?KeaClient $ipv6Client = null,
+    ) {}
 
     public function getPoolStatus(): DhcpPoolStatus
     {
@@ -55,17 +67,40 @@ class KeaDhcpService extends NullDhcpService
     /** @return Collection<int, DhcpRange> */
     public function getRanges(): Collection
     {
-        $entry = $this->client->sendCommand('config-get');
+        $this->ensureSnapshot();
+
+        $client = $this->usableIpv4RangeClient();
+
+        if (! $client instanceof KeaClient) {
+            return collect();
+        }
+
+        /** @var Collection<int, DhcpRange>|null $cached */
+        $cached = $this->snapshot['ranges'] ?? null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        try {
+            $entry = $client->sendCommand('config-get');
+        } catch (Throwable $throwable) {
+            Log::warning('Kea config-get failed', ['error' => $throwable->getMessage()]);
+            $this->fetchStatus['ipv4_ranges'] = false;
+
+            return $this->cacheRanges(collect());
+        }
+
         $arguments = $entry['arguments'] ?? null;
 
         if (! is_array($arguments)) {
-            return collect();
+            return $this->cacheRanges(collect());
         }
 
         $dhcp4 = $arguments['Dhcp4'] ?? null;
 
         if (! is_array($dhcp4)) {
-            return collect();
+            return $this->cacheRanges(collect());
         }
 
         $ranges = collect();
@@ -88,62 +123,66 @@ class KeaDhcpService extends NullDhcpService
         }
 
         if ($ranges->isEmpty()) {
-            return $ranges;
+            return $this->cacheRanges($ranges);
         }
 
-        $leases = $this->getLeases();
+        /** @var Collection<int, DhcpLease> $leases */
+        $leases = $this->snapshot['ipv4'] ?? collect();
 
-        return $ranges->map(fn (DhcpRange $range): DhcpRange => $this->enrichRangeWithUsage($range, $leases))->values();
+        return $this->cacheRanges(
+            $ranges->map(fn (DhcpRange $range): DhcpRange => $this->enrichRangeWithUsage($range, $leases))->values()
+        );
+    }
+
+    private function usableIpv4RangeClient(): ?KeaClient
+    {
+        if (! $this->ipv4Client instanceof KeaClient || ! $this->fetchStatus['ipv4']) {
+            return null;
+        }
+
+        return $this->ipv4Client;
+    }
+
+    /**
+     * @param  Collection<int, DhcpRange>  $ranges
+     * @return Collection<int, DhcpRange>
+     */
+    private function cacheRanges(Collection $ranges): Collection
+    {
+        if ($this->snapshot !== null) {
+            $this->snapshot['ranges'] = $ranges;
+        }
+
+        return $ranges;
     }
 
     /** @return Collection<int, DhcpLease> */
     public function getLeases(): Collection
     {
-        $leases = collect();
-        $cursor = self::FIRST_PAGE_CURSOR;
-        $now = Carbon::now()->getTimestamp();
+        $this->refreshSnapshot();
 
-        for ($page = 0; $page < self::MAX_PAGES; $page++) {
-            $entry = $this->client->sendCommand('lease4-get-page', [
-                'from' => $cursor,
-                'limit' => self::PAGE_LIMIT,
-            ]);
+        /** @var Collection<int, DhcpLease> $ipv4 */
+        $ipv4 = $this->snapshot['ipv4'] ?? collect();
+        /** @var Collection<int, DhcpLease> $ipv6 */
+        $ipv6 = $this->snapshot['ipv6'] ?? collect();
 
-            $arguments = $entry['arguments'] ?? null;
-
-            if (! is_array($arguments)) {
-                break;
-            }
-
-            /** @var mixed $pageLeases */
-            $pageLeases = $arguments['leases'] ?? [];
-
-            if (! is_array($pageLeases) || $pageLeases === []) {
-                break;
-            }
-
-            $lastIp = $this->processPage($pageLeases, $leases, $now);
-
-            if ($lastIp === null || $lastIp === $cursor) {
-                break;
-            }
-
-            $cursor = $lastIp;
-        }
-
-        return $leases;
+        return $ipv4->concat($ipv6)->values();
     }
 
     public function getLease(string $ipAddress): ?DhcpLease
     {
-        if (filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+        if (! $this->ipv4Client instanceof KeaClient) {
+            return null;
+        }
+
+        if (! $this->isIpv4Address($ipAddress)) {
             return null;
         }
 
         try {
-            $entry = $this->client->sendCommand('lease4-get', ['ip-address' => $ipAddress]);
-        } catch (Throwable $e) {
-            Log::warning('Kea lease4-get failed', ['ip' => $ipAddress, 'error' => $e->getMessage()]);
+            $entry = $this->ipv4Client->sendCommand('lease4-get', ['ip-address' => $ipAddress]);
+        } catch (Throwable $throwable) {
+            Log::warning('Kea lease4-get failed', ['ip' => $ipAddress, 'error' => $throwable->getMessage()]);
 
             return null;
         }
@@ -179,11 +218,134 @@ class KeaDhcpService extends NullDhcpService
         );
     }
 
+    private function isIpv4Address(string $ipAddress): bool
+    {
+        return filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+    }
+
+    public function resetSnapshot(): void
+    {
+        $this->snapshot = null;
+        $this->fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true];
+    }
+
+    private function refreshSnapshot(): void
+    {
+        $this->resetSnapshot();
+        $this->ensureSnapshot();
+    }
+
+    /**
+     * @return array{ipv4: bool, ipv6: bool, ipv4_ranges: bool}
+     */
+    public function getFetchStatus(): array
+    {
+        $this->ensureSnapshot();
+
+        return $this->fetchStatus;
+    }
+
+    private function ensureSnapshot(): void
+    {
+        if ($this->snapshot !== null) {
+            return;
+        }
+
+        $this->fetchSnapshot();
+    }
+
+    private function fetchSnapshot(): void
+    {
+        $now = Carbon::now()->getTimestamp();
+
+        /** @var Collection<int, DhcpLease> $ipv4Leases */
+        $ipv4Leases = collect();
+        /** @var Collection<int, DhcpLease> $ipv6Leases */
+        $ipv6Leases = collect();
+
+        if (! $this->ipv4Client instanceof KeaClient) {
+            $this->markFamilyAsDeliberatelyUnconfigured('ipv4');
+        } else {
+            try {
+                $ipv4Leases = $this->fetchFamilyLeases($this->ipv4Client, 'lease4-get-page', $now, isIpv6: false);
+                $this->fetchStatus['ipv4'] = true;
+            } catch (Throwable $e) {
+                Log::warning('Kea IPv4 lease fetch failed', ['error' => $e->getMessage()]);
+                $this->fetchStatus['ipv4'] = false;
+            }
+        }
+
+        if (! $this->ipv6Client instanceof KeaClient) {
+            $this->markFamilyAsDeliberatelyUnconfigured('ipv6');
+        } else {
+            try {
+                $ipv6Leases = $this->fetchFamilyLeases($this->ipv6Client, 'lease6-get-page', $now, isIpv6: true);
+                $this->fetchStatus['ipv6'] = true;
+            } catch (Throwable $e) {
+                Log::warning('Kea IPv6 lease fetch failed', ['error' => $e->getMessage()]);
+                $this->fetchStatus['ipv6'] = false;
+            }
+        }
+
+        $this->snapshot = [
+            'ipv4' => $ipv4Leases,
+            'ipv6' => $ipv6Leases,
+            'ranges' => null,
+        ];
+    }
+
+    /**
+     * @param  'ipv4'|'ipv6'  $family
+     */
+    private function markFamilyAsDeliberatelyUnconfigured(string $family): void
+    {
+        $this->fetchStatus[$family] = true;
+    }
+
+    /**
+     * @return Collection<int, DhcpLease>
+     */
+    private function fetchFamilyLeases(KeaClient $client, string $command, int $now, bool $isIpv6): Collection
+    {
+        $leases = collect();
+        $cursor = self::FIRST_PAGE_CURSOR;
+
+        for ($page = 0; $page < self::MAX_PAGES; $page++) {
+            $entry = $client->sendCommand($command, [
+                'from' => $cursor,
+                'limit' => self::PAGE_LIMIT,
+            ]);
+
+            $arguments = $entry['arguments'] ?? null;
+
+            if (! is_array($arguments)) {
+                break;
+            }
+
+            /** @var mixed $pageLeases */
+            $pageLeases = $arguments['leases'] ?? [];
+
+            if (! is_array($pageLeases) || $pageLeases === []) {
+                break;
+            }
+
+            $lastIp = $this->processPage($pageLeases, $leases, $now, $isIpv6);
+
+            if ($lastIp === null || $lastIp === $cursor) {
+                break;
+            }
+
+            $cursor = $lastIp;
+        }
+
+        return $leases;
+    }
+
     /**
      * @param  array<int|string, mixed>  $pageLeases
      * @param  Collection<int, DhcpLease>  $leases
      */
-    private function processPage(array $pageLeases, Collection $leases, int $now): ?string
+    private function processPage(array $pageLeases, Collection $leases, int $now, bool $isIpv6 = false): ?string
     {
         $lastIp = null;
 
@@ -200,14 +362,29 @@ class KeaDhcpService extends NullDhcpService
 
             $lastIp = $ip;
 
+            if ($isIpv6 && $this->isPrefixDelegation($lease)) {
+                continue;
+            }
+
             if (! $this->isKeepable($lease, $now)) {
                 continue;
             }
 
-            $leases->push($this->mapLease($lease, $ip));
+            $leases->push($this->mapLease($lease, $ip, $isIpv6));
         }
 
         return $lastIp;
+    }
+
+    /**
+     * IA_PD entries are Kea's DHCPv6 prefix-delegation leases (router-to-router),
+     * not host leases, and appear interleaved with IA_NA entries on the same page.
+     *
+     * @param  array<string, mixed>  $lease
+     */
+    private function isPrefixDelegation(array $lease): bool
+    {
+        return ($lease['type'] ?? null) === 'IA_PD';
     }
 
     /**
@@ -235,14 +412,24 @@ class KeaDhcpService extends NullDhcpService
     /**
      * @param  array<string, mixed>  $lease
      */
-    private function mapLease(array $lease, string $ip): DhcpLease
+    private function mapLease(array $lease, string $ip, bool $isIpv6 = false): DhcpLease
     {
         $mac = $lease['hw-address'] ?? null;
+        $mac = is_string($mac) && $mac !== '' ? $mac : null;
+
+        if ($mac === null && $isIpv6) {
+            $duid = $lease['duid'] ?? null;
+
+            if (is_string($duid) && $duid !== '') {
+                $mac = Duid::macAddress($duid);
+            }
+        }
+
         $hostname = $lease['hostname'] ?? null;
 
         return new DhcpLease(
             ip: $ip,
-            mac: is_string($mac) && $mac !== '' ? $mac : null,
+            mac: $mac,
             hostname: is_string($hostname) ? $hostname : '',
             expires: Carbon::createFromTimestamp($this->expiresAt($lease))->toIso8601String(),
         );

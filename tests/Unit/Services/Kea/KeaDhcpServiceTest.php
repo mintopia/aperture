@@ -10,11 +10,9 @@ use App\Services\Kea\KeaDhcpService;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
 use Tests\TestCase;
 
 class KeaDhcpServiceTest extends TestCase
@@ -402,13 +400,14 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertSame(0.2222, $status->utilisation);
     }
 
-    public function test_get_ranges_http_failure_propagates_uncaught(): void
+    public function test_get_ranges_returns_empty_and_reports_failure_when_ipv4_fetch_fails(): void
     {
         Http::fake(['kea.local' => Http::response('Unauthorized', 401)]);
 
-        $this->expectException(RequestException::class);
+        $ranges = $this->service->getRanges();
 
-        $this->service->getRanges();
+        $this->assertTrue($ranges->isEmpty());
+        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
     }
 
     public function test_get_leases_returns_empty_collection_when_kea_reports_result_three(): void
@@ -604,7 +603,7 @@ class KeaDhcpServiceTest extends TestCase
 
         $this->assertCount(1, $leases);
 
-        $lease = $leases->first();
+        $lease = $this->assertLease($leases->first());
         $this->assertSame('10.0.0.5', $lease->ip);
         $this->assertSame('AA:BB:CC:00:00:05', $lease->mac);
         $this->assertSame('my-host', $lease->hostname);
@@ -640,7 +639,7 @@ class KeaDhcpServiceTest extends TestCase
         $leases = $this->service->getLeases();
 
         $this->assertCount(1, $leases);
-        $this->assertSame('', $leases->first()->hostname);
+        $this->assertSame('', $this->assertLease($leases->first())->hostname);
     }
 
     public function test_maps_missing_mac_to_null(): void
@@ -669,7 +668,7 @@ class KeaDhcpServiceTest extends TestCase
         $leases = $this->service->getLeases();
 
         $this->assertCount(1, $leases);
-        $this->assertNull($leases->first()->mac);
+        $this->assertNull($this->assertLease($leases->first())->mac);
     }
 
     public function test_skips_lease_entries_missing_an_ip_address(): void
@@ -718,38 +717,40 @@ class KeaDhcpServiceTest extends TestCase
         $leases = $this->service->getLeases();
 
         $this->assertCount(1, $leases);
-        $this->assertSame('10.0.0.7', $leases->first()->ip);
+        $this->assertSame('10.0.0.7', $this->assertLease($leases->first())->ip);
     }
 
-    public function test_http_failure_propagates_uncaught(): void
+    public function test_http_failure_is_caught_and_reported_via_fetch_status(): void
     {
         Http::fake(['kea.local' => Http::response('Unauthorized', 401)]);
 
-        $this->expectException(RequestException::class);
+        $leases = $this->service->getLeases();
 
-        $this->service->getLeases();
+        $this->assertTrue($leases->isEmpty());
+        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
     }
 
-    public function test_connection_failure_propagates_uncaught(): void
+    public function test_connection_failure_is_caught_and_reported_via_fetch_status(): void
     {
         Http::fake(['kea.local' => fn () => throw new ConnectionException('Connection refused')]);
 
-        $this->expectException(ConnectionException::class);
+        $leases = $this->service->getLeases();
 
-        $this->service->getLeases();
+        $this->assertTrue($leases->isEmpty());
+        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
     }
 
-    public function test_malformed_response_propagates_uncaught(): void
+    public function test_malformed_response_is_caught_and_reported_via_fetch_status(): void
     {
         Http::fake(['kea.local' => Http::response(['not' => 'a list'])]);
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('unexpected response shape');
+        $leases = $this->service->getLeases();
 
-        $this->service->getLeases();
+        $this->assertTrue($leases->isEmpty());
+        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
     }
 
-    public function test_other_kea_error_result_propagates_uncaught(): void
+    public function test_other_kea_error_result_is_caught_and_reported_via_fetch_status(): void
     {
         Http::fake([
             'kea.local' => Http::response([
@@ -757,10 +758,10 @@ class KeaDhcpServiceTest extends TestCase
             ]),
         ]);
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('command not supported');
+        $leases = $this->service->getLeases();
 
-        $this->service->getLeases();
+        $this->assertTrue($leases->isEmpty());
+        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
     }
 
     public function test_get_lease_returns_lease_for_active_lease(): void
@@ -1050,5 +1051,466 @@ class KeaDhcpServiceTest extends TestCase
             'cltt' => $cltt,
             'valid-lft' => $validLft,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function keaLease6(
+        string $ip,
+        ?string $hwAddress = null,
+        ?string $duid = null,
+        string $hostname = '',
+        int $state = 0,
+        int $cltt = 1_999_999_999,
+        int $validLft = 1000,
+        string $type = 'IA_NA',
+    ): array {
+        $lease = [
+            'ip-address' => $ip,
+            'hostname' => $hostname,
+            'state' => $state,
+            'cltt' => $cltt,
+            'valid-lft' => $validLft,
+            'type' => $type,
+        ];
+
+        if ($hwAddress !== null) {
+            $lease['hw-address'] = $hwAddress;
+        }
+
+        if ($duid !== null) {
+            $lease['duid'] = $duid;
+        }
+
+        return $lease;
+    }
+
+    private function assertLease(mixed $lease): DhcpLease
+    {
+        if (! $lease instanceof DhcpLease) {
+            $this->fail('Expected a DhcpLease instance.');
+        }
+
+        return $lease;
+    }
+
+    private function dualStackService(): KeaDhcpService
+    {
+        return new KeaDhcpService(
+            new KeaClient(endpoint: 'https://kea4.local'),
+            new KeaClient(endpoint: 'https://kea6.local', service: 'dhcp6'),
+        );
+    }
+
+    public function test_ipv6_first_page_requests_from_start_with_limit_1000(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::response([['result' => 3]]),
+        ]);
+
+        $service->getLeases();
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+
+            return $request->url() === 'https://kea6.local'
+                && $data['command'] === 'lease6-get-page'
+                && $data['arguments'] === ['from' => 'start', 'limit' => 1000];
+        });
+    }
+
+    public function test_ipv6_paginates_through_multiple_pages(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::1', hwAddress: 'AA:BB:CC:00:00:01'),
+                            $this->keaLease6('2001:db8::2', hwAddress: 'AA:BB:CC:00:00:02'),
+                        ],
+                    ],
+                ]])
+                ->push([[
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::3', hwAddress: 'AA:BB:CC:00:00:03'),
+                        ],
+                    ],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases();
+
+        $this->assertSame(['2001:db8::1', '2001:db8::2', '2001:db8::3'], $leases->pluck('ip')->all());
+    }
+
+    public function test_ipv6_excludes_declined_reclaimed_and_time_expired_leases(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::1', hwAddress: 'AA:BB:CC:00:00:01', state: 1),
+                            $this->keaLease6('2001:db8::2', hwAddress: 'AA:BB:CC:00:00:02', state: 2),
+                            $this->keaLease6(
+                                '2001:db8::3',
+                                hwAddress: 'AA:BB:CC:00:00:03',
+                                state: 0,
+                                cltt: 1_999_999_000,
+                                validLft: 500,
+                            ),
+                        ],
+                    ],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases();
+
+        $this->assertTrue($leases->isEmpty());
+    }
+
+    public function test_ipv6_skips_ia_pd_entries_but_advances_cursor(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::1', hwAddress: 'AA:BB:CC:00:00:01', type: 'IA_PD'),
+                            $this->keaLease6('2001:db8::2', hwAddress: 'AA:BB:CC:00:00:02', type: 'IA_NA'),
+                        ],
+                    ],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases();
+
+        $this->assertCount(1, $leases);
+        $this->assertSame('2001:db8::2', $this->assertLease($leases->first())->ip);
+
+        Http::assertSentCount(3);
+    }
+
+    public function test_ipv6_mac_uses_hw_address_when_present(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::1', hwAddress: 'AA:BB:CC:00:00:01', duid: '00030001AABBCCDDEEFF'),
+                        ],
+                    ],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases();
+
+        $this->assertSame('AA:BB:CC:00:00:01', $this->assertLease($leases->first())->mac);
+    }
+
+    public function test_ipv6_mac_extracted_from_duid_llt_when_hw_address_missing(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::1', duid: '00010001AABBCCDDEEFF0011AABB'),
+                        ],
+                    ],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases();
+
+        $this->assertSame('EE:FF:00:11:AA:BB', $this->assertLease($leases->first())->mac);
+    }
+
+    public function test_ipv6_mac_extracted_from_duid_ll_when_hw_address_missing(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::1', duid: '00030001AABBCCDDEEFF'),
+                        ],
+                    ],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases();
+
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $this->assertLease($leases->first())->mac);
+    }
+
+    public function test_ipv6_mac_null_for_unsupported_duid_non_ethernet_or_missing_duid(): void
+    {
+        $service = $this->dualStackService();
+
+        $duidTypeEn = '00020000000AABBCCDD';
+        $duidLlNonEthernetHardware = '00030006AABBCCDDEEFF';
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::1', duid: $duidTypeEn),
+                            $this->keaLease6('2001:db8::2', duid: $duidLlNonEthernetHardware),
+                            $this->keaLease6('2001:db8::3'),
+                            $this->keaLease6('2001:db8::4', hwAddress: '', duid: ''),
+                        ],
+                    ],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases()->keyBy('ip');
+
+        $this->assertNull($this->assertLease($leases['2001:db8::1'])->mac);
+        $this->assertNull($this->assertLease($leases['2001:db8::2'])->mac);
+        $this->assertNull($this->assertLease($leases['2001:db8::3'])->mac);
+        $this->assertNull($this->assertLease($leases['2001:db8::4'])->mac);
+    }
+
+    public function test_get_leases_combines_ipv4_and_ipv6(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => ['leases' => [$this->keaLease('10.0.0.1', 'AA:BB:CC:00:00:01', 'v4-host')]],
+                ]])
+                ->push([['result' => 3]]),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => ['leases' => [$this->keaLease6('2001:db8::1', hwAddress: 'AA:BB:CC:00:00:02')]],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases();
+
+        $this->assertCount(2, $leases);
+        $this->assertSame(['10.0.0.1', '2001:db8::1'], $leases->pluck('ip')->all());
+    }
+
+    public function test_get_fetch_status_reports_true_true_on_dual_success(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::response([['result' => 3]]),
+        ]);
+
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true], $service->getFetchStatus());
+    }
+
+    public function test_ipv6_failure_does_not_block_or_corrupt_ipv4(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => ['leases' => [$this->keaLease('10.0.0.1', 'AA:BB:CC:00:00:01', 'v4-host')]],
+                ]])
+                ->push([['result' => 3]]),
+            'kea6.local' => Http::response('Unauthorized', 401),
+        ]);
+
+        $leases = $service->getLeases();
+        $status = $service->getFetchStatus();
+
+        $this->assertSame(['10.0.0.1'], $leases->pluck('ip')->all());
+        $this->assertTrue($status['ipv4']);
+        $this->assertFalse($status['ipv6']);
+    }
+
+    public function test_ipv4_failure_does_not_block_or_corrupt_ipv6(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => Http::response('Unauthorized', 401),
+            'kea6.local' => Http::sequence()
+                ->push([[
+                    'result' => 0,
+                    'arguments' => ['leases' => [$this->keaLease6('2001:db8::1', hwAddress: 'AA:BB:CC:00:00:02')]],
+                ]])
+                ->push([['result' => 3]]),
+        ]);
+
+        $leases = $service->getLeases();
+        $status = $service->getFetchStatus();
+
+        $this->assertSame(['2001:db8::1'], $leases->pluck('ip')->all());
+        $this->assertFalse($status['ipv4']);
+        $this->assertTrue($status['ipv6']);
+    }
+
+    public function test_unconfigured_ipv6_client_makes_no_request_and_reports_success(): void
+    {
+        Http::fake([
+            'kea.local' => Http::response([['result' => 3]]),
+            'kea6.local' => Http::response([['result' => 3]]),
+        ]);
+
+        $status = $this->service->getFetchStatus();
+
+        $this->assertTrue($status['ipv4']);
+        $this->assertTrue($status['ipv6']);
+        $this->assertTrue($this->service->getLeases()->isEmpty());
+
+        Http::assertNotSent(fn ($request): bool => $request->url() === 'https://kea6.local');
+    }
+
+    public function test_reset_snapshot_clears_cache_and_a_subsequent_call_refetches(): void
+    {
+        Http::fake(['kea.local' => Http::response([['result' => 3]])]);
+
+        $this->service->getFetchStatus();
+        Http::assertSentCount(1);
+
+        $this->service->getFetchStatus();
+        Http::assertSentCount(1);
+
+        $this->service->resetSnapshot();
+        $this->service->getFetchStatus();
+        Http::assertSentCount(2);
+    }
+
+    public function test_get_ranges_then_get_pool_status_only_sends_config_get_once(): void
+    {
+        $this->fakeConfigGet([
+            'result' => 0,
+            'arguments' => ['Dhcp4' => ['subnet4' => []]],
+        ]);
+
+        $this->service->getRanges();
+        $this->service->getPoolStatus();
+
+        $configGetCount = 0;
+        Http::assertSent(function ($request) use (&$configGetCount): bool {
+            if (($request->data()['command'] ?? null) === 'config-get') {
+                $configGetCount++;
+            }
+
+            return true;
+        });
+
+        $this->assertSame(1, $configGetCount);
+    }
+
+    public function test_get_ranges_returns_empty_and_reports_failure_when_config_get_itself_fails(): void
+    {
+        Http::fake([
+            'kea.local' => function ($request) {
+                $command = $request->data()['command'] ?? null;
+
+                if ($command === 'config-get') {
+                    return Http::response('Unauthorized', 401);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+        ]);
+
+        $ranges = $this->service->getRanges();
+        $status = $this->service->getFetchStatus();
+
+        $this->assertTrue($ranges->isEmpty());
+        $this->assertFalse($status['ipv4_ranges']);
+    }
+
+    public function test_config_get_failure_does_not_corrupt_already_fetched_ipv4_lease_status(): void
+    {
+        $leasePageQueue = [[
+            'result' => 0,
+            'arguments' => ['leases' => [$this->keaLease('10.0.0.1', 'AA:BB:CC:00:00:01', 'v4-host')]],
+        ]];
+
+        Http::fake([
+            'kea.local' => function ($request) use (&$leasePageQueue) {
+                $command = $request->data()['command'] ?? null;
+
+                if ($command === 'config-get') {
+                    return Http::response('Unauthorized', 401);
+                }
+
+                if ($command === 'lease4-get-page') {
+                    return Http::response([array_shift($leasePageQueue) ?? ['result' => 3]]);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+        ]);
+
+        $leases = $this->service->getLeases();
+        $ranges = $this->service->getRanges();
+        $status = $this->service->getFetchStatus();
+
+        $this->assertSame(['10.0.0.1'], $leases->pluck('ip')->all());
+        $this->assertTrue($ranges->isEmpty());
+        $this->assertTrue($status['ipv4']);
+        $this->assertFalse($status['ipv4_ranges']);
+    }
+
+    public function test_get_ranges_returns_empty_without_request_when_ipv4_client_is_null(): void
+    {
+        Http::fake();
+
+        $service = new KeaDhcpService(null);
+
+        $ranges = $service->getRanges();
+
+        $this->assertTrue($ranges->isEmpty());
+        Http::assertNothingSent();
     }
 }

@@ -703,4 +703,20 @@ class OpnSenseDhcpServiceTest extends TestCase
         $ranges = $service->getRanges();
         $this->assertCount(1, $ranges);
     }
+
+    public function test_get_fetch_status_reports_success(): void
+    {
+        $service = $this->createServiceWithMock([]);
+
+        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+    }
+
+    public function test_reset_snapshot_is_a_no_op(): void
+    {
+        $service = $this->createServiceWithMock([]);
+
+        $service->resetSnapshot();
+
+        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+    }
 }

@@ -348,4 +348,12 @@ class OpnSenseDhcpService implements DhcpInterface
             'status' => (string) ($row[$this->leaseFieldMap['status']] ?? 'active'),
         ]);
     }
+
+    /** @return array{ipv4: bool, ipv6: bool} */
+    public function getFetchStatus(): array
+    {
+        return ['ipv4' => true, 'ipv6' => true];
+    }
+
+    public function resetSnapshot(): void {}
 }
