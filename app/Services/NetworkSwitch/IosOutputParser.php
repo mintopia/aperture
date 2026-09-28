@@ -230,13 +230,8 @@ class IosOutputParser
     }
 
     /**
-     * Collect each binding record's columns plus its (possibly wrapped) client-ID.
-     *
-     * The client-ID can span several indented continuation lines while the
-     * remaining columns stay on the first line of the record.
-     *
      * @param  array<int, string>  $lines
-     * @return list<array<string, string>> each with keys ip, clientId, expires, type, state, interface
+     * @return list<array<string, string>>
      */
     private function collectDhcpBindingRecords(array $lines): array
     {
@@ -500,8 +495,6 @@ class IosOutputParser
     }
 
     /**
-     * Parse an `ip dhcp excluded-address <start> [end]` line.
-     *
      * @return array{start: string, end: string}|null
      */
     private function parseExcludedAddressLine(string $line): ?array
@@ -517,8 +510,6 @@ class IosOutputParser
     }
 
     /**
-     * Parse an `ip dhcp pool <name>` header line into a fresh pool record.
-     *
      * @return array{name: string, network: string, mask: string, gateway: string}|null
      */
     private function parsePoolHeaderLine(string $line): ?array
@@ -789,7 +780,6 @@ class IosOutputParser
             $subnet = $pool['network'].'/'.$prefix;
 
             $exclusions = $this->overlappingExclusionsClampedToRange($poolConfig['excluded'], $hostMin, $hostMax);
-            usort($exclusions, fn (array $a, array $b): int => $a['start'] <=> $b['start']);
 
             $results = array_merge(
                 $results,
@@ -844,12 +834,14 @@ class IosOutputParser
     }
 
     /**
-     * @param  array<int, array{start: int, end: int}>  $exclusions  sorted by start address
+     * @param  array<int, array{start: int, end: int}>  $exclusions
      * @param  array{name: string, network: string, mask: string, gateway: string}  $pool
      * @return array<int, array{name: string, subnet: string, range_from: string, range_to: string, total_addresses: string, gateway: string}>
      */
     private function subtractExclusions(int $hostMin, int $hostMax, array $exclusions, array $pool, string $subnet): array
     {
+        usort($exclusions, fn (array $a, array $b): int => $a['start'] <=> $b['start']);
+
         $ranges = [];
         $cursor = $hostMin;
 
