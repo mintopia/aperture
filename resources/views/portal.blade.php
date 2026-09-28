@@ -57,11 +57,12 @@
 @endsection
 
 @section('scripts')
-    <script>
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
     document.addEventListener("DOMContentLoaded", function() {
         var statusOK = document.getElementById('status-ok');
         var statusWaiting = document.getElementById('status-waiting');
         var ipv6Endpoint = @json($ipv6DetectionEndpoint ?? '');
+        var ipv6Sid = @json($ipv6SessionBinding ?? '');
 
         function uuid() {
             if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -80,6 +81,11 @@
             }
 
             var endpoint = ipv6Endpoint.replace('{uuid}', uuid());
+            if (ipv6Sid) {
+                endpoint = endpoint.indexOf('{sid}') !== -1
+                    ? endpoint.replace('{sid}', ipv6Sid)
+                    : endpoint + (endpoint.indexOf('?') === -1 ? '?' : '&') + 'sid=' + encodeURIComponent(ipv6Sid);
+            }
             fetch(endpoint)
                 .then(function(response) { return response.ok ? response.text() : null; })
                 .then(function(token) {

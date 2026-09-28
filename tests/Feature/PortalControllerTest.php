@@ -59,7 +59,7 @@ class PortalControllerTest extends TestCase
 
         $jwtService = Mockery::mock(Ipv6JwtService::class);
         $jwtService->shouldReceive('verifyAndExtract')
-            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json')
+            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json', Mockery::type('string'))
             ->andReturn('2001:db8::1');
         $this->app->instance(Ipv6JwtService::class, $jwtService);
 
@@ -72,6 +72,17 @@ class PortalControllerTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonStructure(['ip', 'internetEnabled']);
         $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::1']);
+    }
+
+    public function test_index_passes_session_bound_ipv6_binding(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['internet_blocked' => false]);
+
+        $this->startSession();
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertViewHas('ipv6SessionBinding', Ipv6JwtService::sessionBinding(session()->getId()));
     }
 
     public function test_ipv6_rejects_invalid_jwt(): void
@@ -265,7 +276,7 @@ class PortalControllerTest extends TestCase
 
         $jwtService = Mockery::mock(Ipv6JwtService::class);
         $jwtService->shouldReceive('verifyAndExtract')
-            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json')
+            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json', Mockery::type('string'))
             ->andReturn('2001:db8::1');
         $this->app->instance(Ipv6JwtService::class, $jwtService);
 
@@ -378,7 +389,7 @@ class PortalControllerTest extends TestCase
 
         $jwtService = Mockery::mock(Ipv6JwtService::class);
         $jwtService->shouldReceive('verifyAndExtract')
-            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json')
+            ->with('valid.jwt.token', 'https://ipv6.example.com/.well-known/jwks.json', Mockery::type('string'))
             ->andReturn('2001:db8::1');
         $this->app->instance(Ipv6JwtService::class, $jwtService);
 

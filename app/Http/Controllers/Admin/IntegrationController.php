@@ -97,7 +97,7 @@ class IntegrationController extends Controller
                 'name' => $meta['name'],
                 'description' => $meta['description'] ?? '',
                 'config' => collect($meta['fields'] ?? [])->mapWithKeys(fn (array $field, string $key): array => [
-                    $key => $config[$key] ?? '',
+                    $key => ($field['type'] === 'password') ? '' : ($config[$key] ?? ''),
                 ])->all(),
                 'fields' => collect($meta['fields'] ?? [])->map(fn (array $field, string $key): array => array_filter([
                     'key' => $key,
@@ -110,6 +110,7 @@ class IntegrationController extends Controller
                     'remote_label' => $field['remote_label'] ?? null,
                     'remote_value' => $field['remote_value'] ?? null,
                     'options' => $this->resolveFieldOptions($field['options'] ?? null),
+                    'is_set' => $field['type'] === 'password' ? ($config[$key] ?? '') !== '' : null,
                 ], fn (mixed $v): bool => $v !== null))->values()->all(),
                 'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
                     'name' => $cap,
@@ -138,6 +139,10 @@ class IntegrationController extends Controller
         $lastConfig = null;
         foreach ($validated['config'] as $key => $value) {
             if (! array_key_exists($key, $validationRules)) {
+                continue;
+            }
+
+            if (($meta['fields'][$key]['type'] ?? null) === 'password' && ($value === null || $value === '')) {
                 continue;
             }
 

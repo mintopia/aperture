@@ -625,4 +625,78 @@ class IntegrationControllerTest extends TestCase
             ],
         ];
     }
+
+    public function test_show_never_sends_password_values_to_browser(): void
+    {
+        $admin = $this->createAdminUser();
+        IntegrationConfig::setValue('pihole', 'endpoint', 'https://pihole.test');
+        IntegrationConfig::setValue('pihole', 'password', 'super-secret-value', true);
+
+        $response = $this->actingAs($admin)->get('/admin/settings/integrations/pihole');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('service.config.password', '')
+            ->where('service.config.endpoint', 'https://pihole.test')
+            ->where('service.fields', fn ($fields): bool => collect($fields)->firstWhere('key', 'password')['is_set'] === true
+                && ! array_key_exists('is_set', collect($fields)->firstWhere('key', 'endpoint')))
+        );
+        $this->assertStringNotContainsString('super-secret-value', $response->getContent());
+    }
+
+    public function test_show_reports_password_not_set(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $this->actingAs($admin)->get('/admin/settings/integrations/pihole')
+            ->assertInertia(fn ($page) => $page
+                ->where('service.fields', fn ($fields): bool => collect($fields)->firstWhere('key', 'password')['is_set'] === false)
+            );
+    }
+
+    /**
+     * @return array<string, array{mixed}>
+     */
+    public static function blankSecretProvider(): array
+    {
+        return ['empty string' => [''], 'null' => [null]];
+    }
+
+    #[DataProvider('blankSecretProvider')]
+    public function test_blank_password_save_keeps_existing_value(mixed $blank): void
+    {
+        $admin = $this->createAdminUser();
+        IntegrationConfig::setValue('pihole', 'password', 'keep-me', true);
+
+        $this->actingAs($admin)->put('/admin/settings/integrations/pihole', [
+            'config' => ['endpoint' => 'https://pihole.new', 'password' => $blank],
+        ])->assertRedirect();
+
+        $this->assertSame('keep-me', IntegrationConfig::getValue('pihole', 'password'));
+        $this->assertSame('https://pihole.new', IntegrationConfig::getValue('pihole', 'endpoint'));
+    }
+
+    public function test_absent_password_save_keeps_existing_value(): void
+    {
+        $admin = $this->createAdminUser();
+        IntegrationConfig::setValue('pihole', 'password', 'keep-me', true);
+
+        $this->actingAs($admin)->put('/admin/settings/integrations/pihole', [
+            'config' => ['endpoint' => 'https://pihole.new'],
+        ])->assertRedirect();
+
+        $this->assertSame('keep-me', IntegrationConfig::getValue('pihole', 'password'));
+    }
+
+    public function test_new_password_replaces_existing_value(): void
+    {
+        $admin = $this->createAdminUser();
+        IntegrationConfig::setValue('pihole', 'password', 'old', true);
+
+        $this->actingAs($admin)->put('/admin/settings/integrations/pihole', [
+            'config' => ['password' => 'brand-new'],
+        ])->assertRedirect();
+
+        $this->assertSame('brand-new', IntegrationConfig::getValue('pihole', 'password'));
+    }
 }

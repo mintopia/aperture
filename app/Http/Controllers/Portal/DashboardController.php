@@ -11,6 +11,7 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Ipv6JwtService;
 use App\Services\UserNetworkAssociationService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -61,6 +62,7 @@ class DashboardController extends Controller
             ] : null,
             'ipv6Detection' => $ipv6Endpoint !== '' ? [
                 'endpoint' => $ipv6Endpoint,
+                'sessionBinding' => Ipv6JwtService::sessionBinding($request->session()->getId()),
             ] : null,
         ]);
     }

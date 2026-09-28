@@ -15,7 +15,7 @@ const props = defineProps({
 
 const initialConfig = {};
 props.service.fields.forEach((field) => {
-    initialConfig[field.key] = props.service.config[field.key] ?? '';
+    initialConfig[field.key] = field.type === 'password' ? '' : (props.service.config[field.key] ?? '');
 });
 
 const form = useForm({
@@ -289,10 +289,22 @@ function formatTestOutput(output) {
                                 v-model="form.config[field.key]"
                                 :name="field.key"
                                 :type="field.type"
-                                :placeholder="field.placeholder"
+                                :placeholder="
+                                    field.type === 'password' && field.is_set
+                                        ? 'Value is set. Leave blank to keep it.'
+                                        : field.placeholder
+                                "
+                                :autocomplete="field.type === 'password' ? 'new-password' : undefined"
                                 :data-testid="`field-input-${field.key}`"
                                 class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                             />
+                            <p
+                                v-if="field.type === 'password'"
+                                :data-testid="`field-secret-status-${field.key}`"
+                                class="text-xs text-[var(--color-text-muted)]"
+                            >
+                                {{ field.is_set ? 'A value is currently set.' : 'No value set.' }}
+                            </p>
                         </template>
 
                         <p v-if="field.help" class="text-xs text-[var(--color-text-muted)]">

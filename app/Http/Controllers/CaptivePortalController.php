@@ -105,6 +105,7 @@ class CaptivePortalController extends Controller
         $associations->addIp($user, $flowData['ip'] ?? $request->getClientIp() ?? '0.0.0.0');
 
         Auth::login($user);
+        $request->session()->regenerate();
 
         AuditLog::record(
             action: 'user.captive_login',
