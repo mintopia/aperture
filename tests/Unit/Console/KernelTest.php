@@ -82,9 +82,9 @@ class KernelTest extends TestCase
     {
         $schedule = $this->app->make(Schedule::class);
         $events = collect($schedule->events());
-        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:reconcile-internet'));
+        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:reconcile internet'));
 
-        $this->assertNotNull($found, 'aperture:reconcile-internet should be scheduled');
+        $this->assertNotNull($found, 'aperture:reconcile internet should be scheduled');
         $this->assertSame('*/15 * * * *', $found->expression);
         $this->assertTrue($found->onOneServer);
         $this->assertTrue($found->withoutOverlapping);
