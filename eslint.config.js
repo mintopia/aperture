@@ -44,6 +44,6 @@ export default [
         },
     },
     {
-        ignores: ['vendor/**', 'node_modules/**', 'public/**', 'storage/**', 'resources/js/highlight.min.js'],
+        ignores: ['vendor/**', 'node_modules/**', 'public/**', 'storage/**'],
     },
 ];
