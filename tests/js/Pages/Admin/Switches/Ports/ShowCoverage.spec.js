@@ -508,7 +508,7 @@ describe('Show — MetadataStrip Status slot', () => {
 // useAdminChannel's own subscribe/listen/leave/poll-wiring behavior is covered
 // generically by tests/js/composables/useAdminChannel.spec.js (and the poll callback
 // itself, refreshData, by ShowPolling.spec.js). These cover Show's own event-matching
-// guards for PortStateChanged and SwitchSyncCompleted.
+// guards for PortStateChanged.
 describe('Show — Echo event handler guards', () => {
     let originalEcho;
 
@@ -579,27 +579,4 @@ describe('Show — Echo event handler guards', () => {
         expect(router.reload).not.toHaveBeenCalled();
     });
 
-    it('refreshes on SwitchSyncCompleted matching this switch', () => {
-        const echo = createMockEcho();
-        window.Echo = echo;
-
-        mountPage();
-        router.reload.mockClear();
-
-        echo._channels['admin.events']._listeners['SwitchSyncCompleted']({ switch_config_id: 1 });
-
-        expect(router.reload).toHaveBeenCalled();
-    });
-
-    it('does not refresh on SwitchSyncCompleted for a different switch', () => {
-        const echo = createMockEcho();
-        window.Echo = echo;
-
-        mountPage();
-        router.reload.mockClear();
-
-        echo._channels['admin.events']._listeners['SwitchSyncCompleted']({ switch_config_id: 999 });
-
-        expect(router.reload).not.toHaveBeenCalled();
-    });
 });

@@ -46,18 +46,6 @@ class CapabilityAssignmentTest extends TestCase
         $this->assertSame(1, CapabilityAssignment::query()->where('capability', 'dhcp')->count());
     }
 
-    public function test_can_unassign_capability(): void
-    {
-        Queue::fake();
-
-        CapabilityAssignment::assign('dhcp', 'opnsense');
-        CapabilityAssignment::unassign('dhcp');
-
-        $this->assertDatabaseMissing('capability_assignments', [
-            'capability' => 'dhcp',
-        ]);
-    }
-
     public function test_is_active_provider_returns_true_when_assigned(): void
     {
         Queue::fake();

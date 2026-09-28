@@ -83,17 +83,6 @@ class PiHoleService implements DnsFilteringInterface
         }
     }
 
-    public function isEnabledForIp(string $ipAddress): bool
-    {
-        $client = $this->findClient($ipAddress);
-
-        if ($client === null) {
-            return false;
-        }
-
-        return in_array($this->filteredGroupId, $client['groups'], true);
-    }
-
     public function enableForIp(string $ipAddress): void
     {
         $client = $this->findClient($ipAddress);

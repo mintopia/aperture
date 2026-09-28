@@ -76,27 +76,6 @@ class ModelRelationshipTest extends TestCase
         $this->assertNull($ip->currentMac());
     }
 
-    public function test_current_ip_returns_latest_by_last_seen_at(): void
-    {
-        $mac = MacAddress::factory()->create();
-        $oldIp = IpAddress::factory()->create();
-        $newIp = IpAddress::factory()->create();
-
-        $mac->ipAddresses()->attach($oldIp, ['source' => 'arp', 'last_seen_at' => now()->subHours(2)]);
-        $mac->ipAddresses()->attach($newIp, ['source' => 'dhcp', 'last_seen_at' => now()]);
-
-        $current = $mac->currentIp();
-        $this->assertNotNull($current);
-        $this->assertTrue($current->is($newIp));
-    }
-
-    public function test_current_ip_returns_null_when_no_ips(): void
-    {
-        $mac = MacAddress::factory()->create();
-
-        $this->assertNull($mac->currentIp());
-    }
-
     public function test_current_hostname_from_latest_dhcp_lease(): void
     {
         $mac = MacAddress::factory()->create();

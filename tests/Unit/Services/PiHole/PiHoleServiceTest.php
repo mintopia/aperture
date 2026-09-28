@@ -51,52 +51,6 @@ class PiHoleServiceTest extends TestCase
         ]);
     }
 
-    public function test_is_enabled_returns_true_when_filtered_group_in_client_groups(): void
-    {
-        Cache::flush();
-
-        $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0, 1], 'comment' => ''],
-                ],
-            ], 200),
-        ]);
-
-        $this->assertTrue($service->isEnabledForIp('10.0.0.10'));
-    }
-
-    public function test_is_enabled_returns_false_when_filtered_group_not_in_client_groups(): void
-    {
-        Cache::flush();
-
-        $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0], 'comment' => ''],
-                ],
-            ], 200),
-        ]);
-
-        $this->assertFalse($service->isEnabledForIp('10.0.0.10'));
-    }
-
-    public function test_is_enabled_returns_false_when_client_not_found(): void
-    {
-        Cache::flush();
-
-        $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [],
-            ], 200),
-        ]);
-
-        $this->assertFalse($service->isEnabledForIp('10.0.0.99'));
-    }
-
     public function test_enable_sets_only_filtered_group_on_existing_client(): void
     {
         Cache::flush();
@@ -233,8 +187,8 @@ class PiHoleServiceTest extends TestCase
             Http::response(['clients' => []], 200),
         ]);
 
-        $service->isEnabledForIp('10.0.0.10');
-        $service->isEnabledForIp('10.0.0.11');
+        $service->disableForIp('10.0.0.10');
+        $service->disableForIp('10.0.0.11');
 
         // Auth called once (cached), then 2 GET requests = 3 total
         Http::assertSentCount(3);

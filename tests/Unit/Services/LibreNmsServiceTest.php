@@ -118,24 +118,6 @@ class LibreNmsServiceTest extends TestCase
         $this->assertNull($result);
     }
 
-    public function test_get_device_list_returns_collection(): void
-    {
-        $responseBody = json_encode([
-            'devices' => [
-                ['hostname' => 'switch-1', 'ip' => '10.0.0.1', 'type' => 'network'],
-            ],
-        ]);
-
-        $service = $this->createServiceWithMockClient([
-            Http::response($responseBody),
-        ]);
-
-        $result = $service->getDeviceList();
-        $this->assertInstanceOf(Collection::class, $result);
-        $this->assertCount(1, $result);
-        $this->assertEquals('switch-1', $result[0]->hostname);
-    }
-
     public function test_get_ipv6_neighbors_filters_ipv6_only(): void
     {
         $responseBody = json_encode([
@@ -240,6 +222,6 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $this->expectException(RequestException::class);
-        $service->getDeviceList();
+        $service->getArpTable();
     }
 }

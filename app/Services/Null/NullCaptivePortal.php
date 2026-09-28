@@ -13,8 +13,6 @@ class NullCaptivePortal implements CaptivePortalInterface
 
     public function removeIp(string $ip): void {}
 
-    public function addAllowedHostnames(array $hostnames): void {}
-
     public function reconcile(bool $dryRun = false): ReconcileResult
     {
         return new ReconcileResult(added: [], removed: [], unchanged: [], errors: []);

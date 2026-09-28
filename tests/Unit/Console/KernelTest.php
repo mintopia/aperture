@@ -78,24 +78,16 @@ class KernelTest extends TestCase
         $this->assertTrue($found->onOneServer, 'aperture:sync-user-bandwidth should use onOneServer');
     }
 
-    public function test_reapply_access_rules_runs_on_one_server(): void
+    public function test_reconcile_internet_command_is_scheduled(): void
     {
         $schedule = $this->app->make(Schedule::class);
         $events = collect($schedule->events());
-        $found = $events->first(fn ($event): bool => str_contains($event->description ?? '', 'ReapplyAccessRules'));
+        $found = $events->first(fn ($event): bool => str_contains($event->command ?? '', 'aperture:reconcile internet'));
 
-        $this->assertNotNull($found, 'ReapplyAccessRules should be scheduled');
-        $this->assertTrue($found->onOneServer, 'ReapplyAccessRules should use onOneServer');
-    }
-
-    public function test_reapply_access_rules_uses_without_overlapping(): void
-    {
-        $schedule = $this->app->make(Schedule::class);
-        $events = collect($schedule->events());
-        $found = $events->first(fn ($event): bool => str_contains($event->description ?? '', 'ReapplyAccessRules'));
-
-        $this->assertNotNull($found, 'ReapplyAccessRules should be scheduled');
-        $this->assertTrue($found->withoutOverlapping, 'ReapplyAccessRules should use withoutOverlapping');
+        $this->assertNotNull($found, 'aperture:reconcile internet should be scheduled');
+        $this->assertSame('*/15 * * * *', $found->expression);
+        $this->assertTrue($found->onOneServer);
+        $this->assertTrue($found->withoutOverlapping);
     }
 
     public function test_scan_network_devices_runs_on_one_server(): void

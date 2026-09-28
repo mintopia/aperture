@@ -60,25 +60,4 @@ class SshProxyClient implements SshProxyClientInterface
             throw $requestException;
         }
     }
-
-    public function status(): ProxyStatus
-    {
-        $response = $this->request()->get('status')->throw();
-
-        /** @var array{uptime_seconds: int, connections: array<int, array{hostname: string, connected_seconds: int, last_used_seconds_ago: int, locked: bool}>} $data */
-        $data = $response->json();
-
-        return new ProxyStatus(
-            uptimeSeconds: $data['uptime_seconds'],
-            connections: array_map(
-                fn (array $c): ConnectionStatus => new ConnectionStatus(
-                    hostname: $c['hostname'],
-                    connectedSeconds: $c['connected_seconds'],
-                    lastUsedSecondsAgo: $c['last_used_seconds_ago'],
-                    locked: $c['locked'],
-                ),
-                $data['connections'],
-            ),
-        );
-    }
 }

@@ -11,7 +11,6 @@ use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
-use Throwable;
 
 class SshProxyTransport implements SwitchCommandTransportInterface
 {
@@ -78,17 +77,6 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         ]);
 
         return $this->mapOutputs($result, $commands);
-    }
-
-    public function isConnected(): bool
-    {
-        try {
-            $this->proxyClient->status();
-
-            return true;
-        } catch (Throwable) {
-            return false;
-        }
     }
 
     public function disconnect(): void {}

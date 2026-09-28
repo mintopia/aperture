@@ -31,19 +31,4 @@ class MacAddressResolver implements MacAddressResolverInterface
 
         return null;
     }
-
-    /** @return array<int, array{ip: string, hostname: string}> */
-    public function resolveMacToIps(string $macAddress): array
-    {
-        $normalized = MacAddress::normalize($macAddress);
-
-        return $this->dhcp->getLeases()
-            ->filter(fn (DhcpLease $lease): bool => $lease->mac !== null && MacAddress::normalize($lease->mac) === $normalized)
-            ->map(fn (DhcpLease $lease): array => [
-                'ip' => $lease->ip,
-                'hostname' => $lease->hostname,
-            ])
-            ->values()
-            ->all();
-    }
 }

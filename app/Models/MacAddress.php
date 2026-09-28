@@ -129,13 +129,6 @@ class MacAddress extends Model
         return implode(':', str_split($hex, 2));
     }
 
-    public function currentIp(): ?IpAddress
-    {
-        return $this->ipAddresses()
-            ->orderByPivot('last_seen_at', 'desc')
-            ->first();
-    }
-
     public function currentHostname(): ?string
     {
         $lease = $this->dhcpLeases()

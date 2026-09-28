@@ -81,26 +81,4 @@ describe('BandwidthBlock', () => {
 
         expect(global.fetch).toHaveBeenCalledTimes(callCount);
     });
-
-    it('provides a refreshBandwidth method for Echo-triggered refresh', () => {
-        const wrapper = mount(BandwidthBlock, {
-            props: { blockContext: {} },
-            global: globalConfig,
-        });
-
-        // The component should expose refreshBandwidth
-        expect(wrapper.vm.refreshBandwidth).toBeInstanceOf(Function);
-    });
-
-    it('refreshes bandwidth data when refreshBandwidth is called', async () => {
-        const wrapper = mount(BandwidthBlock, {
-            props: { blockContext: {} },
-            global: globalConfig,
-        });
-
-        global.fetch.mockClear();
-        wrapper.vm.refreshBandwidth();
-
-        expect(global.fetch).toHaveBeenCalled();
-    });
 });

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\NetworkSwitch;
 
 use App\Services\ValueObjects\ForwardingEntry;
-use App\Services\ValueObjects\PortStatistics;
 use App\Services\ValueObjects\PortStatus;
 use App\Support\Duid;
 
@@ -46,40 +45,6 @@ class IosOutputParser
             vlan: '',
             description: $description,
             adminStatus: $adminStatus,
-        );
-    }
-
-    /**
-     * Parse counters from `show interface {name}` output.
-     */
-    public function parseInterfaceCounters(string $output): PortStatistics
-    {
-        $inBytes = 0;
-        $outBytes = 0;
-        $inErrors = 0;
-        $outErrors = 0;
-
-        if (preg_match('/(\d+) packets input, (\d+) bytes/', $output, $matches)) {
-            $inBytes = (int) $matches[2];
-        }
-
-        if (preg_match('/(\d+) packets output, (\d+) bytes/', $output, $matches)) {
-            $outBytes = (int) $matches[2];
-        }
-
-        if (preg_match('/(\d+) input errors/', $output, $matches)) {
-            $inErrors = (int) $matches[1];
-        }
-
-        if (preg_match('/(\d+) output errors/', $output, $matches)) {
-            $outErrors = (int) $matches[1];
-        }
-
-        return new PortStatistics(
-            inBytes: $inBytes,
-            outBytes: $outBytes,
-            inErrors: $inErrors,
-            outErrors: $outErrors,
         );
     }
 

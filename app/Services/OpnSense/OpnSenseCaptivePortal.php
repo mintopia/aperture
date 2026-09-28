@@ -60,57 +60,6 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
         }
     }
 
-    /**
-     * @param  array<int, string>  $hostnames
-     *
-     * @throws BackendException
-     */
-    public function addAllowedHostnames(array $hostnames): void
-    {
-        $result = $this->client->get('/api/captiveportal/settings/get');
-        $zones = $result->zone->zones->zone ?? null;
-        if (! is_object($zones)) {
-            throw new BackendException('Response is malformed');
-        }
-
-        $zones = (array) $zones;
-
-        foreach ($zones as $uuid => $zone) {
-            if (! is_object($zone) || ! property_exists($zone, 'zoneid')) {
-                continue;
-            }
-
-            if ((int) $zone->zoneid !== $this->zoneId) {
-                continue;
-            }
-
-            $allowed = [];
-            if (property_exists($zone, 'allowedAddresses') && is_object($zone->allowedAddresses)) {
-                $zoneAllowed = (array) $zone->allowedAddresses;
-                foreach ($zoneAllowed as $ip) {
-                    $allowed[] = $ip->value;
-                }
-            }
-
-            foreach ($hostnames as $hostname) {
-                $ips = gethostbynamel($hostname);
-                if ($ips === false) {
-                    continue;
-                }
-
-                $allowed = array_merge($allowed, $ips);
-            }
-
-            $allowed = array_unique($allowed);
-
-            $this->client->post('/api/captiveportal/settings/setZone/'.$uuid, [], [
-                'zone' => [
-                    'allowedAddresses' => implode(',', $allowed),
-                ],
-            ]);
-        }
-    }
-
     public function reconcile(bool $dryRun = false): ReconcileResult
     {
         $currentIps = $this->fetchConnectedIps();

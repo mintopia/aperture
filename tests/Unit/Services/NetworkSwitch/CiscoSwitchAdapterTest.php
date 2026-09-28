@@ -126,32 +126,6 @@ class CiscoSwitchAdapterTest extends TestCase
         $this->assertTrue($result);
     }
 
-    public function test_get_port_statistics_returns_counters(): void
-    {
-        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
-        $transport->shouldReceive('execute')
-            ->with('show interface')
-            ->andReturn('');
-        $transport->shouldReceive('execute')
-            ->with('show interface Gi1/0/1')
-            ->once()
-            ->andReturn(implode("\r\n", [
-                'GigabitEthernet1/0/1 is up, line protocol is up (connected)',
-                '     12345 packets input, 6789012 bytes, 0 no buffer',
-                '     3 input errors, 1 CRC, 0 frame, 0 overrun, 0 ignored',
-                '     67890 packets output, 9876543 bytes, 0 underruns',
-                '     5 output errors, 0 collisions, 0 interface resets',
-            ]));
-
-        $adapter = $this->createAdapter($transport);
-        $result = $adapter->getPortStatistics('Gi1/0/1');
-
-        $this->assertEquals(6789012, $result->inBytes);
-        $this->assertEquals(9876543, $result->outBytes);
-        $this->assertEquals(3, $result->inErrors);
-        $this->assertEquals(5, $result->outErrors);
-    }
-
     public function test_get_port_running_config_sends_correct_command(): void
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
@@ -343,20 +317,6 @@ class CiscoSwitchAdapterTest extends TestCase
 
         $this->expectException(InvalidPortIdentifierException::class);
         $adapter->getPortStatus($portId);
-    }
-
-    #[DataProvider('maliciousPortIdentifiers')]
-    public function test_get_port_statistics_rejects_malicious_port_identifiers(string $portId): void
-    {
-        $transport = Mockery::mock(SwitchCommandTransportInterface::class);
-        $transport->shouldReceive('execute')
-            ->with('show interface')
-            ->andReturn('');
-
-        $adapter = $this->createAdapter($transport);
-
-        $this->expectException(InvalidPortIdentifierException::class);
-        $adapter->getPortStatistics($portId);
     }
 
     #[DataProvider('maliciousPortIdentifiers')]
