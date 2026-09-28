@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { prepareFixtures, saveLoginState } from './support/fixtures.js';
 
 const email = 'playwright-account@example.test';
 const originalPassword = 'playwright-attendee-password';
@@ -6,7 +7,13 @@ const changedPassword = 'changed-password-123';
 
 test.describe('Account settings journey', () => {
     test.describe.configure({ mode: 'serial' });
-    test.use({ storageState: { cookies: [], origins: [] } });
+    const stateFile = 'playwright/.auth/account.json';
+    test.use({ storageState: stateFile });
+
+    test.beforeAll(async ({ browser }) => {
+        prepareFixtures();
+        await saveLoginState(browser, { email, password: originalPassword }, stateFile);
+    });
 
     async function login(page, password) {
         await page.goto('/login');
@@ -17,13 +24,15 @@ test.describe('Account settings journey', () => {
         await response;
     }
 
-    async function openSettings(page, password = originalPassword) {
-        await login(page, password);
+    async function openSettings(page) {
         await page.goto('/account/settings');
         await expect(page.getByTestId('settings-page')).toBeVisible();
     }
 
     async function verify(page, password = originalPassword) {
+        const gate = page.getByTestId('verify-form');
+        await expect(gate.or(page.getByTestId('password-section'))).toBeVisible();
+        if (!(await gate.isVisible())) return;
         await page.getByTestId('verify-password').fill(password);
         await page.getByTestId('verify-submit').click();
         await expect(page.getByTestId('password-section')).toBeVisible();
@@ -74,7 +83,8 @@ test.describe('Account settings journey', () => {
 
         try {
             await context.clearCookies();
-            await openSettings(page, changedPassword);
+            await login(page, changedPassword);
+            await openSettings(page);
             await verify(page, changedPassword);
         } finally {
             if (await page.getByTestId('password-section').isVisible()) {
@@ -84,7 +94,9 @@ test.describe('Account settings journey', () => {
         }
     });
 
-    test('clears the password then creates a new one', async ({ page }) => {
+    test('clears the password then creates a new one', async ({ page, context }) => {
+        await context.clearCookies();
+        await login(page, originalPassword);
         await openSettings(page);
         await verify(page);
 

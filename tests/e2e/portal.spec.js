@@ -1,8 +1,7 @@
 import crypto from 'node:crypto';
-import { execFileSync } from 'node:child_process';
 import http from 'node:http';
 import { test, expect } from '@playwright/test';
-import { buildPlaywrightEnv, resolveBaseUrl } from '../../playwright/env.js';
+import { artisan, prepareFixtures, saveLoginState } from './support/fixtures.js';
 
 test.describe('Portal Dashboard (S3)', () => {
     test('renders page with layout', async ({ page }) => {
@@ -61,31 +60,26 @@ test.describe('Portal Footer', () => {
 });
 
 const attendee = { email: 'playwright-attendee@example.test', password: 'playwright-attendee-password' };
-const anonymous = { cookies: [], origins: [] };
 const dnsCheckUrl = 'http://dns-check.e2e.invalid/**';
 const ipv6CheckUrl = 'http://ipv6-check.e2e.invalid/**';
 
-async function loginAsAttendee(page) {
-    await page.goto('/login');
-    await page.getByTestId('login-email').fill(attendee.email);
-    await page.getByTestId('login-password').fill(attendee.password);
-    const login = page.waitForResponse((r) => r.url().endsWith('/login') && r.request().method() === 'POST');
-    await page.getByTestId('login-submit').click();
-    await login;
-    // The post-login redirect to the Blade root page renders inside an Inertia modal, so navigate explicitly.
-    await page.goto('/portal');
-}
+const attendeeState = 'playwright/.auth/attendee.json';
 
 async function mockDns(page, server) {
     await page.route(dnsCheckUrl, (route) => route.fulfill({ json: { server } }));
 }
 
 test.describe('Attendee portal', () => {
-    test.use({ storageState: anonymous });
+    test.describe.configure({ mode: 'serial' });
+    test.use({ storageState: attendeeState });
+
+    test.beforeAll(async ({ browser }) => {
+        prepareFixtures();
+        await saveLoginState(browser, attendee, attendeeState);
+    });
 
     test.beforeEach(async ({ page }) => {
         await mockDns(page, 'event');
-        await loginAsAttendee(page);
     });
 
     test('attendee dashboard greets user and hides admin link', async ({ page }) => {
@@ -221,19 +215,13 @@ test.describe('Attendee portal', () => {
 
 test.describe('Attendee IPv6 registration', () => {
     test.describe.configure({ mode: 'serial' });
-    test.use({ storageState: anonymous });
+    test.use({ storageState: attendeeState });
 
     const ipv6Address = '2001:db8::e2e';
     let jwksServer;
     let token;
 
-    function artisan(code) {
-        execFileSync('php', ['artisan', 'tinker', '--execute', code], {
-            cwd: process.cwd(),
-            env: { ...process.env, ...buildPlaywrightEnv(resolveBaseUrl()) },
-            stdio: 'pipe',
-        });
-    }
+    const tinker = (code) => artisan('tinker', '--execute', code);
 
     function signToken(privateKey) {
         const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -243,7 +231,7 @@ test.describe('Attendee IPv6 registration', () => {
         return `${header}.${payload}.${signature}`;
     }
 
-    test.beforeAll(async () => {
+    test.beforeAll(async ({ browser }) => {
         const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
         const jwks = { keys: [{ ...publicKey.export({ format: 'jwk' }), kid: 'e2e', alg: 'RS256', use: 'sig' }] };
         token = signToken(privateKey);
@@ -254,17 +242,18 @@ test.describe('Attendee IPv6 registration', () => {
         });
         await new Promise((resolve) => jwksServer.listen(0, '127.0.0.1', resolve));
         const { port } = jwksServer.address();
-        artisan(`App\\Models\\IntegrationConfig::setValue('ipv6', 'jwks_url', 'http://127.0.0.1:${port}/jwks.json');`);
+        prepareFixtures();
+        await saveLoginState(browser, attendee, attendeeState);
+        tinker(`App\\Models\\IntegrationConfig::setValue('ipv6', 'jwks_url', 'http://127.0.0.1:${port}/jwks.json');`);
     });
 
     test.afterAll(async () => {
-        artisan("App\\Models\\IntegrationConfig::setValue('ipv6', 'jwks_url', '');");
+        tinker("App\\Models\\IntegrationConfig::setValue('ipv6', 'jwks_url', '');");
         await new Promise((resolve) => jwksServer.close(resolve));
     });
 
     test.beforeEach(async ({ page }) => {
         await page.route(dnsCheckUrl, (route) => route.fulfill({ json: { server: 'event' } }));
-        await loginAsAttendee(page);
     });
 
     test('dashboard detects and registers the device IPv6 address', async ({ page }) => {

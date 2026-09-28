@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { prepareFixtures } from './support/fixtures.js';
 
 test.describe('Public content pages', () => {
     test.use({ storageState: { cookies: [], origins: [] } });
+
+    test.beforeAll(() => {
+        prepareFixtures();
+    });
 
     test('renders a page without authentication', async ({ page }) => {
         await page.goto('/content/playwright-page');
