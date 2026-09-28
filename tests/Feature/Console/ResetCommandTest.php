@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Console;
 
-use App\Models\IntegrationConfig;
+use App\Jobs\ResetAperture;
 use App\Models\IpAddress;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ResetCommandTest extends TestCase
@@ -17,13 +20,8 @@ class ResetCommandTest extends TestCase
     {
         parent::setUp();
 
-        IntegrationConfig::setValue('opnsense', 'endpoint', 'http://127.0.0.1:19199');
-        IntegrationConfig::setValue('opnsense', 'key', 'key', true);
-        IntegrationConfig::setValue('opnsense', 'secret', 'secret', true);
-        IntegrationConfig::setValue('opnsense', 'verify_ssl', '0');
-        IntegrationConfig::setValue('opnsense', 'zone_id', '1');
-        IntegrationConfig::setValue('opnsense', 'ratelimit_up_uuid', 'up-uuid');
-        IntegrationConfig::setValue('opnsense', 'ratelimit_down_uuid', 'down-uuid');
+        // Sync jobs fired by model observers would call the firewall backends; keep them off the wire.
+        Queue::fake()->except(ResetAperture::class);
     }
 
     public function test_command_exits_when_not_confirmed(): void
@@ -78,6 +76,7 @@ class ResetCommandTest extends TestCase
 
         $this->artisan('aperture:reset')
             ->expectsConfirmation('Are you sure you want to reset Aperture?', 'yes')
+            ->expectsOutput('Finished')
             ->assertSuccessful();
 
         $this->assertDatabaseMissing('ip_addresses', ['address' => '10.0.0.2']);

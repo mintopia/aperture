@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Observers;
 
+use App\Enums\FirewallAction;
 use App\Jobs\SyncDnsFilteringJob;
-use App\Jobs\SyncInternetAccessJob;
-use App\Jobs\SyncRateLimitJob;
+use App\Jobs\SyncFirewallJob;
 use App\Models\IpAddress;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -25,8 +25,8 @@ class IpAddressObserverTest extends TestCase
         $ip->internet_enabled = true;
         $ip->save();
 
-        Queue::assertPushed(SyncInternetAccessJob::class, function (SyncInternetAccessJob $job) use ($ip): bool {
-            return $job->ip->is($ip) && $job->enabled;
+        Queue::assertPushed(SyncFirewallJob::class, function (SyncFirewallJob $job) use ($ip): bool {
+            return $job->ip->is($ip) && $job->action === FirewallAction::Internet && $job->enabled;
         });
     }
 
@@ -39,8 +39,8 @@ class IpAddressObserverTest extends TestCase
         $ip->rate_limit_enabled = true;
         $ip->save();
 
-        Queue::assertPushed(SyncRateLimitJob::class, function (SyncRateLimitJob $job) use ($ip): bool {
-            return $job->ip->is($ip) && $job->enabled;
+        Queue::assertPushed(SyncFirewallJob::class, function (SyncFirewallJob $job) use ($ip): bool {
+            return $job->ip->is($ip) && $job->action === FirewallAction::RateLimit && $job->enabled;
         });
     }
 
@@ -73,8 +73,7 @@ class IpAddressObserverTest extends TestCase
         $ip->dns_filtering_enabled = true;
         $ip->save();
 
-        Queue::assertPushed(SyncInternetAccessJob::class, 1);
-        Queue::assertPushed(SyncRateLimitJob::class, 1);
+        Queue::assertPushed(SyncFirewallJob::class, 2);
         Queue::assertPushed(SyncDnsFilteringJob::class, 1);
     }
 
@@ -87,8 +86,7 @@ class IpAddressObserverTest extends TestCase
         $ip->comment = 'updated comment';
         $ip->save();
 
-        Queue::assertNotPushed(SyncInternetAccessJob::class);
-        Queue::assertNotPushed(SyncRateLimitJob::class);
+        Queue::assertNotPushed(SyncFirewallJob::class);
         Queue::assertNotPushed(SyncDnsFilteringJob::class);
     }
 }
