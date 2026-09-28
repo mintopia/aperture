@@ -143,11 +143,6 @@ class IosOutputParser
     }
 
     /**
-     * Cisco IOS interface name abbreviation mapping.
-     *
-     * Maps full interface type names to their abbreviated forms
-     * as used by `show interface status`.
-     *
      * @var array<string, string>
      */
     private const array INTERFACE_ABBREVIATIONS = [
@@ -164,12 +159,6 @@ class IosOutputParser
         'Ethernet' => 'Eth',
     ];
 
-    /**
-     * Abbreviate a full Cisco IOS interface name to its short form.
-     *
-     * For example: "GigabitEthernet1/0/1" => "Gi1/0/1"
-     * Names already abbreviated are returned as-is.
-     */
     public function abbreviateInterfaceName(string $name): string
     {
         foreach (self::INTERFACE_ABBREVIATIONS as $full => $short) {
@@ -222,10 +211,35 @@ class IosOutputParser
         }
 
         $lines = preg_split('/\r?\n/', $output) ?: [];
+        $records = $this->collectDhcpBindingRecords($lines);
 
-        // First pass: collect each record's columns plus its (possibly wrapped)
-        // client-ID. The client-ID can span several indented continuation lines
-        // while the remaining columns stay on the first line of the record.
+        $entries = [];
+
+        foreach ($records as $record) {
+            $entries[] = [
+                'ip' => $record['ip'],
+                'mac' => $this->extractMacFromClientId($record['clientId']),
+                'expires' => $record['expires'],
+                'type' => $record['type'],
+                'state' => $record['state'],
+                'interface' => $record['interface'],
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Collect each binding record's columns plus its (possibly wrapped) client-ID.
+     *
+     * The client-ID can span several indented continuation lines while the
+     * remaining columns stay on the first line of the record.
+     *
+     * @param  array<int, string>  $lines
+     * @return list<array<string, string>> each with keys ip, clientId, expires, type, state, interface
+     */
+    private function collectDhcpBindingRecords(array $lines): array
+    {
         $records = [];
         $current = null;
 
@@ -257,21 +271,14 @@ class IosOutputParser
             $current = count($records) - 1;
         }
 
-        $entries = [];
-
-        foreach ($records as $record) {
-            $entries[] = [
-                'ip' => $record['ip'],
-                'mac' => $this->extractMacFromClientId($record['clientId']),
-                'expires' => $record['expires'],
-                'type' => $record['type'],
-                'state' => $record['state'],
-                'interface' => $record['interface'],
-            ];
-        }
-
-        return $entries;
+        return $records;
     }
+
+    private const int RFC4361_TYPE_BYTE_HEX_LENGTH = 2;
+
+    private const int RFC4361_IAID_HEX_LENGTH = 8;
+
+    private const int RFC4361_PREFIX_HEX_LENGTH = self::RFC4361_TYPE_BYTE_HEX_LENGTH + self::RFC4361_IAID_HEX_LENGTH;
 
     /**
      * Extract and normalise a MAC address from a Cisco DHCP client-ID string.
@@ -293,25 +300,39 @@ class IosOutputParser
             return null;
         }
 
-        // RFC 4361 client-ID: type byte ff, then a 4-byte IAID (5 bytes / 10 hex
-        // chars total), followed by the DUID.
         $normalised = strtolower(str_replace('.', '', $clientId));
         if (str_starts_with($normalised, 'ff') && ctype_xdigit($normalised)) {
-            $mac = Duid::macAddress(substr($normalised, 10));
+            $mac = Duid::macAddress(substr($normalised, self::RFC4361_PREFIX_HEX_LENGTH));
 
             if ($mac !== null) {
                 return $mac;
             }
         }
 
-        // Format with hardware-type prefix: 01XX.XXXX.XXXX.XX (7 hex groups of 2)
+        if (($mac = $this->extractMacFromHardwarePrefixedClientId($clientId)) !== null) {
+            return $mac;
+        }
+
+        if (($mac = $this->extractMacFromDottedHexClientId($clientId)) !== null) {
+            return $mac;
+        }
+
+        return null;
+    }
+
+    private function extractMacFromHardwarePrefixedClientId(string $clientId): ?string
+    {
         if (preg_match('/^01([0-9a-fA-F]{2})\.([0-9a-fA-F]{4})\.([0-9a-fA-F]{4})\.([0-9a-fA-F]{2})$/', $clientId, $m)) {
             $hex = $m[1].$m[2].$m[3].$m[4];
 
             return implode(':', str_split(strtoupper($hex), 2));
         }
 
-        // Raw 3-group dotted hex MAC: XXXX.XXXX.XXXX
+        return null;
+    }
+
+    private function extractMacFromDottedHexClientId(string $clientId): ?string
+    {
         if (preg_match('/^([0-9a-fA-F]{4})\.([0-9a-fA-F]{4})\.([0-9a-fA-F]{4})$/', $clientId, $m)) {
             $hex = $m[1].$m[2].$m[3];
 
@@ -434,22 +455,20 @@ class IosOutputParser
         $current = null;
 
         foreach ($lines as $line) {
-            // Exclusion line: ip dhcp excluded-address <start> [end]
-            if (preg_match('/^ip dhcp excluded-address\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s+(\d{1,3}(?:\.\d{1,3}){3}))?/', $line, $m)) {
-                $start = $m[1];
-                $end = isset($m[2]) ? $m[2] : $start;
-                $excluded[] = ['start' => $start, 'end' => $end];
+            $exclusion = $this->parseExcludedAddressLine($line);
+            if ($exclusion !== null) {
+                $excluded[] = $exclusion;
 
                 continue;
             }
 
-            // Pool header: ip dhcp pool <name>
-            if (preg_match('/^ip dhcp pool\s+(\S+)/', $line, $m)) {
+            $poolHeader = $this->parsePoolHeaderLine($line);
+            if ($poolHeader !== null) {
                 if ($current !== null) {
                     $pools[] = $current;
                 }
 
-                $current = ['name' => $m[1], 'network' => '', 'mask' => '', 'gateway' => ''];
+                $current = $poolHeader;
 
                 continue;
             }
@@ -458,7 +477,6 @@ class IosOutputParser
                 continue;
             }
 
-            // End of pool block
             if (trim($line) === '!') {
                 $pools[] = $current;
                 $current = null;
@@ -479,6 +497,37 @@ class IosOutputParser
         }
 
         return ['pools' => $pools, 'excluded' => $excluded];
+    }
+
+    /**
+     * Parse an `ip dhcp excluded-address <start> [end]` line.
+     *
+     * @return array{start: string, end: string}|null
+     */
+    private function parseExcludedAddressLine(string $line): ?array
+    {
+        if (! preg_match('/^ip dhcp excluded-address\s+(\d{1,3}(?:\.\d{1,3}){3})(?:\s+(\d{1,3}(?:\.\d{1,3}){3}))?/', $line, $m)) {
+            return null;
+        }
+
+        $start = $m[1];
+        $end = isset($m[2]) ? $m[2] : $start;
+
+        return ['start' => $start, 'end' => $end];
+    }
+
+    /**
+     * Parse an `ip dhcp pool <name>` header line into a fresh pool record.
+     *
+     * @return array{name: string, network: string, mask: string, gateway: string}|null
+     */
+    private function parsePoolHeaderLine(string $line): ?array
+    {
+        if (! preg_match('/^ip dhcp pool\s+(\S+)/', $line, $m)) {
+            return null;
+        }
+
+        return ['name' => $m[1], 'network' => '', 'mask' => '', 'gateway' => ''];
     }
 
     /**
@@ -670,9 +719,6 @@ class IosOutputParser
     /**
      * Parse `show ip dhcp snooping binding` output into structured records.
      *
-     * MAC addresses are normalised to uppercase colon-separated format.
-     * VLAN is returned as an integer.
-     *
      * @return array<int, array{ip: string, mac: string, vlan: int, interface: string, lease_seconds: int}>
      */
     public function parseDhcpSnoopingTable(string $output): array
@@ -702,8 +748,6 @@ class IosOutputParser
     }
 
     /**
-     * Build a DHCPv6 binding entry with proper shape typing.
-     *
      * @return array{ip: string, mac: string|null, expires: string, duid: string, iaid: string}
      */
     private function buildDhcpv6Entry(string $ip, ?string $mac, string $expires, string $duid, string $iaid): array
@@ -721,7 +765,6 @@ class IosOutputParser
      * Compute effective DHCP ranges by subtracting excluded addresses from each pool's usable range.
      *
      * Takes the output of parseDhcpPoolConfig() and returns the resulting address ranges per pool.
-     * An exclusion in the middle of a range splits it into multiple entries (all carry the pool name).
      *
      * @param  array{pools: array<int, array{name: string, network: string, mask: string, gateway: string}>, excluded: array<int, array{start: string, end: string}>}  $poolConfig
      * @return array<int, array{name: string, subnet: string, range_from: string, range_to: string, total_addresses: string, gateway: string}>
@@ -738,66 +781,92 @@ class IosOutputParser
                 continue;
             }
 
-            // CIDR prefix length: count the number of set bits in the mask
-            $prefix = substr_count(sprintf('%032b', $maskLong & 0xFFFFFFFF), '1');
+            $prefix = $this->maskToPrefixLength($maskLong);
 
-            $hostMin = $networkLong + 1;        // first usable (skip network address)
-            $hostMax = ($networkLong | (~$maskLong & 0xFFFFFFFF)) - 1; // last usable (skip broadcast)
+            $hostMin = $this->firstUsableHost($networkLong);
+            $hostMax = $this->lastUsableHost($networkLong, $maskLong);
 
             $subnet = $pool['network'].'/'.$prefix;
 
-            // Collect exclusion ranges that overlap this pool's usable space
-            $excl = [];
-            foreach ($poolConfig['excluded'] as $ex) {
-                $exStart = ip2long($ex['start']);
-                $exEnd = ip2long($ex['end']);
-                if ($exStart === false || $exEnd === false) {
-                    continue;
-                }
+            $exclusions = $this->overlappingExclusionsClampedToRange($poolConfig['excluded'], $hostMin, $hostMax);
+            usort($exclusions, fn (array $a, array $b): int => $a['start'] <=> $b['start']);
 
-                // Only keep exclusions that overlap [hostMin, hostMax]
-                if ($exEnd < $hostMin || $exStart > $hostMax) {
-                    continue;
-                }
+            $results = array_merge(
+                $results,
+                $this->subtractExclusions($hostMin, $hostMax, $exclusions, $pool, $subnet)
+            );
+        }
 
-                // Clamp to usable range
-                $excl[] = [max($exStart, $hostMin), min($exEnd, $hostMax)];
+        return $results;
+    }
+
+    private function maskToPrefixLength(int $maskLong): int
+    {
+        return substr_count(sprintf('%032b', $maskLong & 0xFFFFFFFF), '1');
+    }
+
+    private function firstUsableHost(int $networkLong): int
+    {
+        return $networkLong + 1;
+    }
+
+    private function lastUsableHost(int $networkLong, int $maskLong): int
+    {
+        $broadcastLong = $networkLong | (~$maskLong & 0xFFFFFFFF);
+
+        return $broadcastLong - 1;
+    }
+
+    /**
+     * @param  array<int, array{start: string, end: string}>  $excluded
+     * @return array<int, array{start: int, end: int}>
+     */
+    private function overlappingExclusionsClampedToRange(array $excluded, int $hostMin, int $hostMax): array
+    {
+        $overlapping = [];
+
+        foreach ($excluded as $ex) {
+            $exStart = ip2long($ex['start']);
+            $exEnd = ip2long($ex['end']);
+            if ($exStart === false || $exEnd === false) {
+                continue;
             }
 
-            // Sort exclusions by start address
-            usort($excl, fn (array $a, array $b): int => $a[0] <=> $b[0]);
-
-            // Walk through the usable range, subtracting exclusions
-            $cursor = $hostMin;
-            foreach ($excl as [$exStart, $exEnd]) {
-                if ($cursor > $hostMax) {
-                    break;
-                }
-
-                if ($exStart > $cursor) {
-                    // There is a usable segment before this exclusion
-                    $from = long2ip($cursor);
-                    $to = long2ip($exStart - 1);
-                    $count = bcadd((string) ($exStart - 1 - $cursor), '1');
-                    $results[] = [
-                        'name' => $pool['name'],
-                        'subnet' => $subnet,
-                        'range_from' => $from,
-                        'range_to' => $to,
-                        'total_addresses' => $count,
-                        'gateway' => $pool['gateway'],
-                    ];
-                }
-
-                $cursor = $exEnd + 1;
+            $overlapsUsableRange = $exEnd >= $hostMin && $exStart <= $hostMax;
+            if (! $overlapsUsableRange) {
+                continue;
             }
 
-            // Remaining segment after all exclusions
-            if ($cursor <= $hostMax) {
+            $overlapping[] = ['start' => max($exStart, $hostMin), 'end' => min($exEnd, $hostMax)];
+        }
+
+        return $overlapping;
+    }
+
+    /**
+     * @param  array<int, array{start: int, end: int}>  $exclusions  sorted by start address
+     * @param  array{name: string, network: string, mask: string, gateway: string}  $pool
+     * @return array<int, array{name: string, subnet: string, range_from: string, range_to: string, total_addresses: string, gateway: string}>
+     */
+    private function subtractExclusions(int $hostMin, int $hostMax, array $exclusions, array $pool, string $subnet): array
+    {
+        $ranges = [];
+        $cursor = $hostMin;
+
+        foreach ($exclusions as $exclusion) {
+            if ($cursor > $hostMax) {
+                break;
+            }
+
+            $exStart = $exclusion['start'];
+            $exEnd = $exclusion['end'];
+
+            $hasGapBeforeExclusion = $exStart > $cursor;
+            if ($hasGapBeforeExclusion) {
                 $from = long2ip($cursor);
-                $to = long2ip($hostMax);
-                $count = bcadd((string) ($hostMax - $cursor), '1');
-                $results[] = [
+                $to = long2ip($exStart - 1);
+                $count = bcadd((string) ($exStart - 1 - $cursor), '1');
+                $ranges[] = [
                     'name' => $pool['name'],
                     'subnet' => $subnet,
                     'range_from' => $from,
@@ -806,8 +875,24 @@ class IosOutputParser
                     'gateway' => $pool['gateway'],
                 ];
             }
+
+            $cursor = $exEnd + 1;
         }
 
-        return $results;
+        if ($cursor <= $hostMax) {
+            $from = long2ip($cursor);
+            $to = long2ip($hostMax);
+            $count = bcadd((string) ($hostMax - $cursor), '1');
+            $ranges[] = [
+                'name' => $pool['name'],
+                'subnet' => $subnet,
+                'range_from' => $from,
+                'range_to' => $to,
+                'total_addresses' => $count,
+                'gateway' => $pool['gateway'],
+            ];
+        }
+
+        return $ranges;
     }
 }

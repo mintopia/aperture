@@ -4,17 +4,36 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-/**
- * Helpers for extracting MAC addresses from DHCPv6 DUIDs (RFC 8415).
- */
 final class Duid
 {
+    private const DUID_TYPE_LLT = '0001';
+
+    private const DUID_TYPE_LL = '0003';
+
+    private const HARDWARE_TYPE_ETHERNET = '0001';
+
+    private const TYPE_HEX_LENGTH = 4;
+
+    private const HARDWARE_TYPE_HEX_LENGTH = 4;
+
+    private const TIMESTAMP_HEX_LENGTH = 8;
+
+    private const MAC_HEX_LENGTH = 12;
+
+    private const LLT_HEX_LENGTH = self::TYPE_HEX_LENGTH + self::HARDWARE_TYPE_HEX_LENGTH + self::TIMESTAMP_HEX_LENGTH + self::MAC_HEX_LENGTH;
+
+    private const LL_HEX_LENGTH = self::TYPE_HEX_LENGTH + self::HARDWARE_TYPE_HEX_LENGTH + self::MAC_HEX_LENGTH;
+
+    private const LLT_MAC_OFFSET = self::TYPE_HEX_LENGTH + self::HARDWARE_TYPE_HEX_LENGTH + self::TIMESTAMP_HEX_LENGTH;
+
+    private const LL_MAC_OFFSET = self::TYPE_HEX_LENGTH + self::HARDWARE_TYPE_HEX_LENGTH;
+
     /**
      * Extract the hardware MAC address embedded in a DHCPv6 DUID.
      *
-     * Supports DUID-LL (type 0003) and DUID-LLT (type 0001) where the
-     * hardware-type field is Ethernet (0001); the input may be colon,
-     * hyphen, space, or dot separated hex, or plain hex.
+     * Supports DUID-LL and DUID-LLT where the hardware-type field is
+     * Ethernet; the input may be colon, hyphen, space, or dot separated
+     * hex, or plain hex.
      *
      * Returns null for DUID-EN (0002), DUID-UUID (0004), non-Ethernet
      * hardware types, wrong-length input, or non-hex input.
@@ -29,22 +48,20 @@ final class Duid
             return null;
         }
 
-        // DUID-LLT: type(2B) + hw-type(2B) + time(4B) + MAC(6B) = 28 hex chars.
-        if (str_starts_with($hex, '0001')) {
-            if (strlen($hex) !== 28 || substr($hex, 4, 4) !== '0001') {
+        if (str_starts_with($hex, self::DUID_TYPE_LLT)) {
+            if (strlen($hex) !== self::LLT_HEX_LENGTH || substr($hex, self::TYPE_HEX_LENGTH, self::HARDWARE_TYPE_HEX_LENGTH) !== self::HARDWARE_TYPE_ETHERNET) {
                 return null;
             }
 
-            return implode(':', str_split(substr($hex, 16, 12), 2));
+            return implode(':', str_split(substr($hex, self::LLT_MAC_OFFSET, self::MAC_HEX_LENGTH), 2));
         }
 
-        // DUID-LL: type(2B) + hw-type(2B) + MAC(6B) = 20 hex chars.
-        if (str_starts_with($hex, '0003')) {
-            if (strlen($hex) !== 20 || substr($hex, 4, 4) !== '0001') {
+        if (str_starts_with($hex, self::DUID_TYPE_LL)) {
+            if (strlen($hex) !== self::LL_HEX_LENGTH || substr($hex, self::TYPE_HEX_LENGTH, self::HARDWARE_TYPE_HEX_LENGTH) !== self::HARDWARE_TYPE_ETHERNET) {
                 return null;
             }
 
-            return implode(':', str_split(substr($hex, 8, 12), 2));
+            return implode(':', str_split(substr($hex, self::LL_MAC_OFFSET, self::MAC_HEX_LENGTH), 2));
         }
 
         return null;

@@ -818,6 +818,7 @@ class SyncDhcpDataTest extends TestCase
         if ($staleIpv4 !== null) {
             $this->assertDatabaseMissing('dhcp_leases', ['ip_address_id' => $staleIpv4->id]);
         }
+
         $currentIpv6 = IpAddress::where('address', '2001:db8::2')->firstOrFail();
         $this->assertDatabaseHas('dhcp_leases', ['ip_address_id' => $currentIpv6->id, 'hostname' => 'host-v6-2']);
     }

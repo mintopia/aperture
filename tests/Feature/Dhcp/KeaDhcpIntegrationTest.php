@@ -85,16 +85,14 @@ class KeaDhcpIntegrationTest extends TestCase
         ];
     }
 
-    /**
-     * DUID-LLT (RFC 8415): 2 bytes type (0001) + 2 bytes hw-type (0001,
-     * Ethernet) + 4 bytes timestamp + 6 bytes MAC.
-     */
     private function keaDuidLltHex(int $timestamp, string $mac): string
     {
+        $duidTypeLlt = '00:01';
+        $hardwareTypeEthernet = '00:01';
         $timestampHex = str_pad(dechex($timestamp), 8, '0', STR_PAD_LEFT);
         $timestampBytes = implode(':', str_split($timestampHex, 2));
 
-        return "00:01:00:01:{$timestampBytes}:{$mac}";
+        return sprintf('%s:%s:%s:%s', $duidTypeLlt, $hardwareTypeEthernet, $timestampBytes, $mac);
     }
 
     /**

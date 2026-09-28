@@ -603,7 +603,7 @@ class KeaDhcpServiceTest extends TestCase
 
         $this->assertCount(1, $leases);
 
-        $lease = $leases->first();
+        $lease = $this->assertLease($leases->first());
         $this->assertSame('10.0.0.5', $lease->ip);
         $this->assertSame('AA:BB:CC:00:00:05', $lease->mac);
         $this->assertSame('my-host', $lease->hostname);
@@ -639,7 +639,7 @@ class KeaDhcpServiceTest extends TestCase
         $leases = $this->service->getLeases();
 
         $this->assertCount(1, $leases);
-        $this->assertSame('', $leases->first()->hostname);
+        $this->assertSame('', $this->assertLease($leases->first())->hostname);
     }
 
     public function test_maps_missing_mac_to_null(): void
@@ -668,7 +668,7 @@ class KeaDhcpServiceTest extends TestCase
         $leases = $this->service->getLeases();
 
         $this->assertCount(1, $leases);
-        $this->assertNull($leases->first()->mac);
+        $this->assertNull($this->assertLease($leases->first())->mac);
     }
 
     public function test_skips_lease_entries_missing_an_ip_address(): void
@@ -717,7 +717,7 @@ class KeaDhcpServiceTest extends TestCase
         $leases = $this->service->getLeases();
 
         $this->assertCount(1, $leases);
-        $this->assertSame('10.0.0.7', $leases->first()->ip);
+        $this->assertSame('10.0.0.7', $this->assertLease($leases->first())->ip);
     }
 
     public function test_http_failure_is_caught_and_reported_via_fetch_status(): void
@@ -1086,6 +1086,15 @@ class KeaDhcpServiceTest extends TestCase
         return $lease;
     }
 
+    private function assertLease(mixed $lease): DhcpLease
+    {
+        if (! $lease instanceof DhcpLease) {
+            $this->fail('Expected a DhcpLease instance.');
+        }
+
+        return $lease;
+    }
+
     private function dualStackService(): KeaDhcpService
     {
         return new KeaDhcpService(
@@ -1199,7 +1208,7 @@ class KeaDhcpServiceTest extends TestCase
         $leases = $service->getLeases();
 
         $this->assertCount(1, $leases);
-        $this->assertSame('2001:db8::2', $leases->first()->ip);
+        $this->assertSame('2001:db8::2', $this->assertLease($leases->first())->ip);
 
         Http::assertSentCount(3);
     }
@@ -1224,7 +1233,7 @@ class KeaDhcpServiceTest extends TestCase
 
         $leases = $service->getLeases();
 
-        $this->assertSame('AA:BB:CC:00:00:01', $leases->first()->mac);
+        $this->assertSame('AA:BB:CC:00:00:01', $this->assertLease($leases->first())->mac);
     }
 
     public function test_ipv6_mac_extracted_from_duid_llt_when_hw_address_missing(): void
@@ -1247,7 +1256,7 @@ class KeaDhcpServiceTest extends TestCase
 
         $leases = $service->getLeases();
 
-        $this->assertSame('EE:FF:00:11:AA:BB', $leases->first()->mac);
+        $this->assertSame('EE:FF:00:11:AA:BB', $this->assertLease($leases->first())->mac);
     }
 
     public function test_ipv6_mac_extracted_from_duid_ll_when_hw_address_missing(): void
@@ -1270,12 +1279,15 @@ class KeaDhcpServiceTest extends TestCase
 
         $leases = $service->getLeases();
 
-        $this->assertSame('AA:BB:CC:DD:EE:FF', $leases->first()->mac);
+        $this->assertSame('AA:BB:CC:DD:EE:FF', $this->assertLease($leases->first())->mac);
     }
 
     public function test_ipv6_mac_null_for_unsupported_duid_non_ethernet_or_missing_duid(): void
     {
         $service = $this->dualStackService();
+
+        $duidTypeEn = '00020000000AABBCCDD';
+        $duidLlNonEthernetHardware = '00030006AABBCCDDEEFF';
 
         Http::fake([
             'kea4.local' => Http::response([['result' => 3]]),
@@ -1284,8 +1296,8 @@ class KeaDhcpServiceTest extends TestCase
                     'result' => 0,
                     'arguments' => [
                         'leases' => [
-                            $this->keaLease6('2001:db8::1', duid: '00020000000AABBCCDD'), // DUID-EN
-                            $this->keaLease6('2001:db8::2', duid: '00030006AABBCCDDEEFF'), // non-Ethernet
+                            $this->keaLease6('2001:db8::1', duid: $duidTypeEn),
+                            $this->keaLease6('2001:db8::2', duid: $duidLlNonEthernetHardware),
                             $this->keaLease6('2001:db8::3'),
                             $this->keaLease6('2001:db8::4', hwAddress: '', duid: ''),
                         ],
@@ -1296,10 +1308,10 @@ class KeaDhcpServiceTest extends TestCase
 
         $leases = $service->getLeases()->keyBy('ip');
 
-        $this->assertNull($leases['2001:db8::1']->mac);
-        $this->assertNull($leases['2001:db8::2']->mac);
-        $this->assertNull($leases['2001:db8::3']->mac);
-        $this->assertNull($leases['2001:db8::4']->mac);
+        $this->assertNull($this->assertLease($leases['2001:db8::1'])->mac);
+        $this->assertNull($this->assertLease($leases['2001:db8::2'])->mac);
+        $this->assertNull($this->assertLease($leases['2001:db8::3'])->mac);
+        $this->assertNull($this->assertLease($leases['2001:db8::4'])->mac);
     }
 
     public function test_get_leases_combines_ipv4_and_ipv6(): void
