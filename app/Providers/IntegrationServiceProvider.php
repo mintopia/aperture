@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Enums\Integration;
 use App\Integration\CiscoBootstrapper;
+use App\Integration\KeaBootstrapper;
 use App\Integration\LibreNmsBootstrapper;
 use App\Integration\OpnSenseBootstrapper;
 use App\Integration\PiHoleBootstrapper;
@@ -17,6 +18,7 @@ use App\Services\Firewalls\OpnSenseApiService;
 use App\Services\Integration\BorealisTester;
 use App\Services\Integration\CiscoTester;
 use App\Services\Integration\IntegrationTesterRegistry;
+use App\Services\Integration\KeaTester;
 use App\Services\Integration\LibreNmsTester;
 use App\Services\Integration\OpnSenseTester;
 use App\Services\Integration\PiHoleTester;
@@ -59,6 +61,7 @@ class IntegrationServiceProvider extends ServiceProvider
             $registry->register(Integration::Seatpicker->value, new SeatpickerTester);
             $registry->register(Integration::VyOs->value, new VyOsTester);
             $registry->register(Integration::Cisco->value, $this->app->make(CiscoTester::class));
+            $registry->register(Integration::Kea->value, new KeaTester);
 
             return $registry;
         });
@@ -123,6 +126,7 @@ class IntegrationServiceProvider extends ServiceProvider
         (new PiHoleBootstrapper)->register($this->app);
         (new VyOsBootstrapper)->register($this->app);
         (new CiscoBootstrapper)->register($this->app);
+        (new KeaBootstrapper)->register($this->app);
     }
 
     /**

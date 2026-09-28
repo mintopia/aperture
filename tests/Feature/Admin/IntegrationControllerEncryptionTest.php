@@ -144,4 +144,62 @@ class IntegrationControllerEncryptionTest extends TestCase
 
         $this->assertStringNotContainsString('my-bearer-token-secret', (string) $raw, 'Raw DB value should not contain plaintext');
     }
+
+    public function test_stores_kea_password_v4_encrypted(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v4' => 'https://kea.local:8000',
+                'username_v4' => 'admin',
+                'password_v4' => 'super-secret-kea-password',
+            ],
+        ]);
+
+        $response->assertRedirect();
+
+        $config = IntegrationConfig::where('integration', 'kea')
+            ->where('key', 'password_v4')
+            ->first();
+
+        $this->assertNotNull($config);
+        $this->assertTrue($config->encrypted, 'password_v4 should be marked as encrypted');
+        $this->assertEquals('super-secret-kea-password', $config->value, 'Accessor should decrypt the value');
+
+        $raw = DB::table('integration_configs')
+            ->where('integration', 'kea')
+            ->where('key', 'password_v4')
+            ->value('value');
+
+        $this->assertStringNotContainsString('super-secret-kea-password', (string) $raw, 'Raw DB value should not contain plaintext');
+    }
+
+    public function test_kea_username_without_password_fails_validation(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v4' => 'https://kea.local:8000',
+                'username_v4' => 'admin',
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('config.password_v4');
+    }
+
+    public function test_kea_password_without_username_fails_validation(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/kea', [
+            'config' => [
+                'endpoint_v4' => 'https://kea.local:8000',
+                'password_v4' => 'super-secret-kea-password',
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('config.username_v4');
+    }
 }
