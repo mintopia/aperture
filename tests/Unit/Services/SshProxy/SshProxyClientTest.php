@@ -144,7 +144,7 @@ class SshProxyClientTest extends TestCase
 
         $this->expectException(ConnectionException::class);
 
-        (new SshProxyClient('http://localhost:8022', 'test-key'))->status();
+        (new SshProxyClient('http://localhost:8022', 'test-key'))->execute('10.0.0.1', 'u', 'p', []);
     }
 
     public function test_execute_rethrows_non_409_client_exception(): void

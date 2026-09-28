@@ -21,6 +21,68 @@ class PiHoleService implements DnsFilteringInterface
         protected bool $verifySsl = true,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public static function fromConfig(array $config): self
+    {
+        return new self(
+            rtrim((string) ($config['endpoint'] ?? ''), '/'),
+            (string) ($config['password'] ?? ''),
+            (int) ($config['filtered_group_id'] ?? 1),
+            (bool) ($config['verify_ssl'] ?? true),
+        );
+    }
+
+    /**
+     * @return array{groups: list<array{id: int, name: string, enabled: bool}>, error?: string}
+     */
+    public function getGroups(): array
+    {
+        try {
+            if ($this->endpoint === '') {
+                return ['groups' => [], 'error' => 'Pi-hole endpoint is not configured.'];
+            }
+
+            if ($this->password === '') {
+                return ['groups' => [], 'error' => 'Pi-hole password is not configured.'];
+            }
+
+            $authResponse = $this->request(10)->post('/api/auth', ['password' => $this->password]);
+
+            if (! $authResponse->successful()) {
+                return [
+                    'groups' => [],
+                    'error' => 'Pi-hole authentication failed (HTTP '.$authResponse->status().'). Check your password.',
+                ];
+            }
+
+            /** @var string $sid */
+            $sid = $authResponse->json('session.sid', '');
+
+            if ($sid === '') {
+                return ['groups' => [], 'error' => 'Pi-hole auth succeeded but no session ID found in response.'];
+            }
+
+            $response = $this->request(10, $sid)->get('/api/groups');
+
+            if (! $response->successful()) {
+                return ['groups' => [], 'error' => 'Failed to fetch Pi-hole groups (HTTP '.$response->status().').'];
+            }
+
+            /** @var array<int, array{id: int, name?: string, enabled?: bool}> $groups */
+            $groups = $response->json('groups', []);
+
+            return ['groups' => array_values(collect($groups)->map(fn (array $g): array => [
+                'id' => $g['id'],
+                'name' => $g['name'] ?? 'Group '.$g['id'],
+                'enabled' => $g['enabled'] ?? true,
+            ])->all())];
+        } catch (Throwable $throwable) {
+            return ['groups' => [], 'error' => $throwable->getMessage()];
+        }
+    }
+
     public function enableForIp(string $ipAddress): void
     {
         $client = $this->findClient($ipAddress);

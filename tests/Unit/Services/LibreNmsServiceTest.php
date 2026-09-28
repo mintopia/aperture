@@ -222,6 +222,6 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $this->expectException(RequestException::class);
-        $service->getDeviceList();
+        $service->getArpTable();
     }
 }
