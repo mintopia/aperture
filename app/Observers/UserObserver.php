@@ -6,8 +6,9 @@ namespace App\Observers;
 
 use App\Jobs\SyncUserPolicyJob;
 use App\Models\User;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class UserObserver
+class UserObserver implements ShouldHandleEventsAfterCommit
 {
     /** @var list<string> */
     protected array $policyFields = [

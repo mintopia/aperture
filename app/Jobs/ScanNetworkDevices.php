@@ -15,18 +15,27 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
 use App\Services\NetworkRangeService;
+use App\Support\Queues;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class ScanNetworkDevices implements ShouldQueue
+class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
     public int $tries = 3;
 
     public int $timeout = 120;
+
+    public int $uniqueFor = 300;
+
+    public function __construct()
+    {
+        $this->onQueue(Queues::SYNC);
+    }
 
     /**
      * @return list<int>

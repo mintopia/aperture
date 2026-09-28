@@ -9,6 +9,7 @@ use App\Models\SwitchConfig;
 use App\Models\SwitchSyncRun;
 use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\PortSyncService;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -26,7 +27,9 @@ class SyncSwitchPortsJob implements ShouldBeUnique, ShouldQueue
 
     public function __construct(
         public SwitchConfig $switchConfig,
-    ) {}
+    ) {
+        $this->onQueue(Queues::SWITCH);
+    }
 
     public function uniqueId(): int|string
     {
