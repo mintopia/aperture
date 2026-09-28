@@ -1,10 +1,12 @@
 name: aperture
 
+x-app-build: &app-build
+  context: .
+  dockerfile: docker/develop/Dockerfile
+
 services:
   aperture:
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
+    build: *app-build
     restart: unless-stopped
     environment:
       - XDEBUG_CONFIG=client_host=host.docker.internal
@@ -44,9 +46,7 @@ services:
       start_period: 30s
 
   horizon:
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
+    build: *app-build
     restart: unless-stopped
     entrypoint: [ "php", "artisan", "horizon" ]
     env_file: .env
@@ -86,9 +86,7 @@ services:
       retries: 3
 
   scheduler:
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
+    build: *app-build
     restart: unless-stopped
     entrypoint: [ "php", "artisan", "schedule:work" ]
     env_file: .env
@@ -107,9 +105,7 @@ services:
       disable: true
 
   reverb:
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
+    build: *app-build
     restart: unless-stopped
     entrypoint: [ "php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080" ]
     env_file: .env
@@ -150,92 +146,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  composer:
-    profiles: [ "composer" ]
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
-    entrypoint: [ "composer" ]
-    command: [ "--version" ]
-    volumes:
-      - ./:/app
-    healthcheck:
-      disable: true
-
-  test:
-    profiles: [ "test" ]
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
-    entrypoint: [ "php", "vendor/bin/phpunit" ]
-    volumes:
-      - ./:/app
-    healthcheck:
-      disable: true
-
-  npm:
-    profiles: [ "npm" ]
-    image: node:23
-    entrypoint: [ "npm" ]
-    command: [ "" ]
-    working_dir: /app
-    volumes:
-      - ./:/app
-
-  artisan:
-    profiles: [ "artisan" ]
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
-    entrypoint: [ "php", "/app/artisan" ]
-    volumes:
-      - ./:/app/
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      disable: true
-
-  phpcs:
-    profiles: [ "phpcs" ]
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
-    entrypoint: [ "vendor/bin/phpcs" ]
-    volumes:
-      - ./:/app/
-    healthcheck:
-      disable: true
-
-  phpcbf:
-    profiles: [ "phpcbf" ]
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
-    entrypoint: [ "vendor/bin/phpcbf" ]
-    volumes:
-      - ./:/app/
-    healthcheck:
-      disable: true
-
-  shell:
-    profiles: [ "shell" ]
-    build:
-      context: .
-      dockerfile: docker/develop/Dockerfile
-    entrypoint: [ "/bin/sh" ]
-    volumes:
-      - ./:/app/
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      disable: true
 
 volumes:
   dbdata:
