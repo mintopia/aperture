@@ -6,10 +6,9 @@ test.describe('User List', () => {
         await expect(page.getByTestId('data-table')).toBeVisible();
     });
 
-    test('status pills are visible', async ({ page }) => {
+    test('status indicators are visible', async ({ page }) => {
         await page.goto('/admin/users');
-        const pills = page.locator('[data-testid="status-pill"]');
-        await expect(pills.first()).toBeVisible();
+        await expect(page.getByTestId('user-status').first()).toContainText(/Allowed|Denied/);
     });
 
     test('clickable rows have pointer cursor', async ({ page }) => {
