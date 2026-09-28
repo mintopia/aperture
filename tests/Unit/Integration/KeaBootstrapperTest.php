@@ -7,6 +7,7 @@ namespace Tests\Unit\Integration;
 use App\Integration\IntegrationBootstrapper;
 use App\Integration\KeaBootstrapper;
 use App\Models\CapabilityAssignment;
+use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Kea\KeaDhcpService;
@@ -31,12 +32,44 @@ class KeaBootstrapperTest extends TestCase
     {
         Queue::fake();
         CapabilityAssignment::assign('dhcp', 'kea');
+        IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea.local');
 
         $this->app->bind(DhcpInterface::class, NullDhcpService::class);
 
         (new KeaBootstrapper)->register($this->app);
 
         $this->assertInstanceOf(KeaDhcpService::class, $this->app->make(DhcpInterface::class));
+    }
+
+    public function test_falls_through_to_previous_service_when_kea_is_active_but_endpoint_not_configured(): void
+    {
+        Queue::fake();
+        CapabilityAssignment::assign('dhcp', 'kea');
+
+        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
+
+        (new KeaBootstrapper)->register($this->app);
+
+        $service = $this->app->make(DhcpInterface::class);
+
+        $this->assertInstanceOf(NullDhcpService::class, $service);
+        $this->assertNotInstanceOf(KeaDhcpService::class, $service);
+    }
+
+    public function test_falls_through_to_previous_service_when_endpoint_configured_but_blank(): void
+    {
+        Queue::fake();
+        CapabilityAssignment::assign('dhcp', 'kea');
+        IntegrationConfig::setValue('kea', 'endpoint_v4', '');
+
+        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
+
+        (new KeaBootstrapper)->register($this->app);
+
+        $service = $this->app->make(DhcpInterface::class);
+
+        $this->assertInstanceOf(NullDhcpService::class, $service);
+        $this->assertNotInstanceOf(KeaDhcpService::class, $service);
     }
 
     public function test_falls_through_to_previous_service_when_kea_is_not_active_dhcp_provider(): void
