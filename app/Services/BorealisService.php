@@ -5,21 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Services\Borealis\RequestException;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
-use Psr\Http\Message\ResponseInterface;
+use App\Services\Http\ExternalHttp;
+use Illuminate\Http\Client\Response;
 use stdClass;
 
 class BorealisService
 {
-    protected Client $client;
-
-    public function __construct(protected string $clientId, protected string $clientSecret, protected string $endpoint)
-    {
-        $this->client = new Client([
-            'base_uri' => $this->endpoint,
-        ]);
-    }
+    public function __construct(protected string $clientId, protected string $clientSecret, protected string $endpoint) {}
 
     public function check(string $deviceCode): stdClass
     {
@@ -45,26 +37,22 @@ class BorealisService
     {
         $params['client_id'] = $this->clientId;
         $params['client_secret'] = $this->clientSecret;
-        try {
-            $response = $this->client->post($url, [
-                'form_params' => $params,
-            ]);
 
-            return $this->decodeResponse($response);
-        } catch (ClientException $clientException) {
-            if ($clientException->getCode() === 403) {
-                $data = $this->decodeResponse($clientException->getResponse());
-                throw new RequestException($data->error, $clientException->getCode(), $clientException);
-            }
+        $response = ExternalHttp::request($this->endpoint)->asForm()->post($url, $params);
 
-            throw $clientException;
+        if ($response->status() === 403) {
+            $data = $this->decodeResponse($response);
+            throw new RequestException($data->error, 403, $response->toException());
         }
+
+        $response->throw();
+
+        return $this->decodeResponse($response);
     }
 
-    protected function decodeResponse(ResponseInterface $response): stdClass
+    protected function decodeResponse(Response $response): stdClass
     {
-        $json = $response->getBody()->getContents();
-        $data = json_decode($json);
+        $data = json_decode($response->body());
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new RequestException('Unable to decode response');
         }

@@ -6,48 +6,28 @@ namespace App\Integration;
 
 use App\Enums\Capability;
 use App\Enums\Integration;
-use App\Models\CapabilityAssignment;
-use App\Models\IntegrationConfig;
-use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\VyOs\VyOsClient;
 use App\Services\VyOs\VyOsDhcpService;
 use App\Services\VyOs\VyOsIpMacResolver;
 use Illuminate\Contracts\Foundation\Application;
-use Throwable;
 
 final class VyOsBootstrapper implements IntegrationBootstrapper
 {
-    public function register(Application $app): void
+    public function integration(): Integration
     {
-        $app->extend(DhcpInterface::class, function (DhcpInterface $service, Application $app): DhcpInterface {
-            if ($this->isActive(Capability::Dhcp->value)) {
-                return new VyOsDhcpService(
-                    $app->make(VyOsClient::class),
-                    (int) IntegrationConfig::getValue(Integration::VyOs->value, 'pool_size', '0'),
-                );
-            }
-
-            return $service;
-        });
-
-        $app->extend(IpMacResolverInterface::class, function (IpMacResolverInterface $service, Application $app): IpMacResolverInterface {
-            if ($this->isActive(Capability::IpMac->value)) {
-                return new VyOsIpMacResolver(
-                    $app->make(VyOsClient::class),
-                );
-            }
-
-            return $service;
-        });
+        return Integration::VyOs;
     }
 
-    private function isActive(string $capability): bool
+    public function providers(): array
     {
-        try {
-            return CapabilityAssignment::isActiveProvider(Integration::VyOs->value, $capability);
-        } catch (Throwable) {
-            return false;
-        }
+        return [
+            Capability::Dhcp->value => fn (Application $app): VyOsDhcpService => new VyOsDhcpService(
+                $app->make(VyOsClient::class),
+                (int) (InstallGuard::config(Integration::VyOs->value)['pool_size'] ?? 0),
+            ),
+            Capability::IpMac->value => fn (Application $app): VyOsIpMacResolver => new VyOsIpMacResolver(
+                $app->make(VyOsClient::class),
+            ),
+        ];
     }
 }

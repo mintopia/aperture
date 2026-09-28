@@ -26,6 +26,7 @@ class VyOsTester implements TestableIntegration
                 $response = Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
                     ->asForm()
                     ->timeout(10)
+                    ->connectTimeout(5)
                     ->post($url, [
                         'data' => (string) json_encode(['op' => 'show', 'path' => ['version']]),
                         'key' => $config['api_key'] ?? '',

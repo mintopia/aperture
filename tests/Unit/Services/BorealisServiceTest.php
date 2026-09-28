@@ -4,31 +4,22 @@ namespace Tests\Unit\Services;
 
 use App\Services\Borealis\RequestException;
 use App\Services\BorealisService;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
-use ReflectionClass;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\RequestException as HttpRequestException;
 use stdClass;
+use Tests\Support\Fake;
 use Tests\TestCase;
 
 class BorealisServiceTest extends TestCase
 {
+    /**
+     * @param  list<PromiseInterface|\Throwable>  $responses
+     */
     protected function createServiceWithMockClient(array $responses): BorealisService
     {
-        $mock = new MockHandler($responses);
-        $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack]);
+        Fake::sequence($responses);
 
-        $service = new BorealisService('client-id', 'client-secret', 'http://localhost');
-
-        $reflection = new ReflectionClass($service);
-        $prop = $reflection->getProperty('client');
-        $prop->setValue($service, $client);
-
-        return $service;
+        return new BorealisService('client-id', 'client-secret', 'http://borealis.test');
     }
 
     public function test_check_returns_std_class(): void
@@ -39,7 +30,7 @@ class BorealisServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
+            Fake::response(200, [], $responseBody),
         ]);
 
         $result = $service->check('device-code-123');
@@ -58,7 +49,7 @@ class BorealisServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
+            Fake::response(200, [], $responseBody),
         ]);
 
         $result = $service->getDeviceCodeRaw('test-scope');
@@ -68,53 +59,41 @@ class BorealisServiceTest extends TestCase
 
     public function test_make_request_throws_request_exception_on403(): void
     {
-        $responseBody = json_encode(['error' => 'authorization_pending']);
-
-        $mock = new MockHandler([
-            new ClientException(
-                'Forbidden',
-                new Request('POST', '/oauth2/token'),
-                new Response(403, [], $responseBody)
-            ),
+        $service = $this->createServiceWithMockClient([
+            Fake::response(403, [], (string) json_encode(['error' => 'authorization_pending'])),
         ]);
-        $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack]);
-
-        $service = new BorealisService('client-id', 'client-secret', 'http://localhost');
-        $reflection = new ReflectionClass($service);
-        $prop = $reflection->getProperty('client');
-        $prop->setValue($service, $client);
 
         $this->expectException(RequestException::class);
         $this->expectExceptionMessage('authorization_pending');
         $service->check('invalid');
     }
 
-    public function test_make_request_rethrows_non403_client_exception(): void
+    public function test_make_request_rethrows_non403_http_error(): void
     {
-        $mock = new MockHandler([
-            new ClientException(
-                'Not Found',
-                new Request('POST', '/oauth2/token'),
-                new Response(404, [], 'Not Found')
-            ),
+        $service = $this->createServiceWithMockClient([
+            Fake::response(404, [], 'Not Found'),
         ]);
-        $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack]);
 
-        $service = new BorealisService('client-id', 'client-secret', 'http://localhost');
-        $reflection = new ReflectionClass($service);
-        $prop = $reflection->getProperty('client');
-        $prop->setValue($service, $client);
-
-        $this->expectException(ClientException::class);
+        $this->expectException(HttpRequestException::class);
         $service->check('some-code');
+    }
+
+    public function test_request_sends_form_credentials_to_endpoint(): void
+    {
+        $service = $this->createServiceWithMockClient([Fake::response(200, [], '{}')]);
+
+        $service->check('dc');
+
+        $request = Fake::requests()[0];
+        $this->assertSame('http://borealis.test/oauth2/token', $request->url());
+        $this->assertSame('client-id', $request->data()['client_id']);
+        $this->assertSame('dc', $request->data()['device_code']);
     }
 
     public function test_decode_response_throws_on_invalid_json(): void
     {
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], 'not-valid-json{{{'),
+            Fake::response(200, [], 'not-valid-json{{{'),
         ]);
 
         $this->expectException(RequestException::class);

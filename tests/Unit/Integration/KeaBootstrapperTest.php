@@ -12,8 +12,10 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Kea\KeaDhcpService;
 use App\Services\Kea\KeaIpMacResolver;
+use App\Services\LibreNms\LibreNmsIpMacResolver;
 use App\Services\Null\NullDhcpService;
 use App\Services\Null\NullIpMacResolver;
+use App\Services\OpnSense\OpnSenseDhcpService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -35,10 +37,6 @@ class KeaBootstrapperTest extends TestCase
         CapabilityAssignment::assign('dhcp', 'kea');
         IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea.local');
 
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
-
         $this->assertInstanceOf(KeaDhcpService::class, $this->app->make(DhcpInterface::class));
     }
 
@@ -46,10 +44,6 @@ class KeaBootstrapperTest extends TestCase
     {
         Queue::fake();
         CapabilityAssignment::assign('dhcp', 'kea');
-
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
 
         $service = $this->app->make(DhcpInterface::class);
 
@@ -62,10 +56,6 @@ class KeaBootstrapperTest extends TestCase
         Queue::fake();
         CapabilityAssignment::assign('dhcp', 'kea');
         IntegrationConfig::setValue('kea', 'endpoint_v4', '');
-
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
 
         $service = $this->app->make(DhcpInterface::class);
 
@@ -85,10 +75,6 @@ class KeaBootstrapperTest extends TestCase
         IntegrationConfig::setValue('kea', 'endpoint_v4', 'https://kea.local');
         IntegrationConfig::setValue('kea', 'username_v4', 'admin');
         IntegrationConfig::setValue('kea', 'password_v4', 'secret', encrypted: true);
-
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
 
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(KeaDhcpService::class, $service);
@@ -116,10 +102,6 @@ class KeaBootstrapperTest extends TestCase
         IntegrationConfig::setValue('kea', 'endpoint_v6', 'https://kea6.local');
         IntegrationConfig::setValue('kea', 'username_v6', 'admin');
         IntegrationConfig::setValue('kea', 'password_v6', 'secret', encrypted: true);
-
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
 
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(KeaDhcpService::class, $service);
@@ -154,10 +136,6 @@ class KeaBootstrapperTest extends TestCase
         IntegrationConfig::setValue('kea', 'username_v6', 'admin');
         IntegrationConfig::setValue('kea', 'password_v6', 'secret', encrypted: true);
 
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
-
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(KeaDhcpService::class, $service);
 
@@ -189,28 +167,20 @@ class KeaBootstrapperTest extends TestCase
         CapabilityAssignment::assign('dhcp', 'kea');
         Schema::drop('integration_configs');
 
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
-
         $service = $this->app->make(DhcpInterface::class);
 
         $this->assertInstanceOf(NullDhcpService::class, $service);
         $this->assertNotInstanceOf(KeaDhcpService::class, $service);
     }
 
-    public function test_falls_through_to_previous_service_when_kea_is_not_active_dhcp_provider(): void
+    public function test_resolves_other_provider_when_kea_is_not_active_dhcp_provider(): void
     {
         Queue::fake();
         CapabilityAssignment::assign('dhcp', 'opnsense');
 
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
-
         $service = $this->app->make(DhcpInterface::class);
 
-        $this->assertInstanceOf(NullDhcpService::class, $service);
+        $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
         $this->assertNotInstanceOf(KeaDhcpService::class, $service);
     }
 
@@ -219,33 +189,22 @@ class KeaBootstrapperTest extends TestCase
         Queue::fake();
         CapabilityAssignment::assign('ip-mac', 'kea');
 
-        $this->app->bind(IpMacResolverInterface::class, NullIpMacResolver::class);
-
-        (new KeaBootstrapper)->register($this->app);
-
         $this->assertInstanceOf(KeaIpMacResolver::class, $this->app->make(IpMacResolverInterface::class));
     }
 
-    public function test_falls_through_to_previous_resolver_when_kea_is_not_active_ip_mac_provider(): void
+    public function test_resolves_other_provider_when_kea_is_not_active_ip_mac_provider(): void
     {
         Queue::fake();
         CapabilityAssignment::assign('ip-mac', 'librenms');
 
-        $this->app->bind(IpMacResolverInterface::class, NullIpMacResolver::class);
-
-        (new KeaBootstrapper)->register($this->app);
-
         $resolver = $this->app->make(IpMacResolverInterface::class);
 
-        $this->assertInstanceOf(NullIpMacResolver::class, $resolver);
+        $this->assertInstanceOf(LibreNmsIpMacResolver::class, $resolver);
         $this->assertNotInstanceOf(KeaIpMacResolver::class, $resolver);
     }
 
     public function test_falls_through_when_no_capability_assignment_exists_at_all(): void
     {
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-
-        (new KeaBootstrapper)->register($this->app);
 
         $service = $this->app->make(DhcpInterface::class);
 
@@ -255,11 +214,6 @@ class KeaBootstrapperTest extends TestCase
     public function test_falls_through_when_capability_assignment_lookup_throws(): void
     {
         Schema::drop('capability_assignments');
-
-        $this->app->bind(DhcpInterface::class, NullDhcpService::class);
-        $this->app->bind(IpMacResolverInterface::class, NullIpMacResolver::class);
-
-        (new KeaBootstrapper)->register($this->app);
 
         $this->assertInstanceOf(NullDhcpService::class, $this->app->make(DhcpInterface::class));
         $this->assertInstanceOf(NullIpMacResolver::class, $this->app->make(IpMacResolverInterface::class));

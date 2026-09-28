@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Integration\InstallGuard;
 use App\Models\IpAddress;
 use App\Models\Setting;
 use App\Models\User;
@@ -19,7 +20,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -53,12 +53,11 @@ class AppServiceProvider extends ServiceProvider
         IpAddress::observe(IpAddressObserver::class);
         UserIpAddress::observe(UserIpAddressObserver::class);
 
-        try {
-            $siteTitle = (string) Setting::get('general.site_title', config('app.name', 'Aperture'));
-        } catch (Throwable) {
-            $siteTitle = (string) config('app.name', 'Aperture');
-        }
-
-        View::share('siteTitle', $siteTitle);
+        View::composer('*', static function (\Illuminate\Contracts\View\View $view): void {
+            $view->with('siteTitle', (string) InstallGuard::tolerateMissingTable(
+                static fn (): mixed => Setting::get('general.site_title', config('app.name', 'Aperture')),
+                config('app.name', 'Aperture'),
+            ));
+        });
     }
 }

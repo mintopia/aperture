@@ -6,73 +6,42 @@ namespace App\Integration;
 
 use App\Enums\Capability;
 use App\Enums\Integration;
-use App\Models\CapabilityAssignment;
-use App\Models\IntegrationConfig;
-use App\Services\Interfaces\CaptivePortalInterface;
-use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\RateLimitingInterface;
-use App\Services\Null\NullCaptivePortal;
-use App\Services\Null\NullDhcpService;
-use App\Services\Null\NullRateLimiter;
 use App\Services\OpnSense\OpnSenseCaptivePortal;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use App\Services\OpnSense\OpnSenseRateLimiter;
-use GuzzleHttp\Client;
 use Illuminate\Contracts\Foundation\Application;
-use Throwable;
 
 final class OpnSenseBootstrapper implements IntegrationBootstrapper
 {
-    public function register(Application $app): void
+    public function integration(): Integration
     {
-        // captive-portal
-        $app->bind(function (Application $app): CaptivePortalInterface {
-            if ($this->isActive(Capability::CaptivePortal->value)) {
-                return new OpnSenseCaptivePortal(
-                    $app->make(OpnSenseClient::class),
-                    (int) IntegrationConfig::getValue(Integration::OpnSense->value, 'zone_id', '0'),
-                );
-            }
-
-            return new NullCaptivePortal;
-        });
-
-        // rate-limiting
-        $app->bind(function (Application $app): RateLimitingInterface {
-            if ($this->isActive(Capability::RateLimiting->value)) {
-                return new OpnSenseRateLimiter(
-                    $app->make(OpnSenseClient::class),
-                    (string) IntegrationConfig::getValue(Integration::OpnSense->value, 'ratelimit_up_uuid', ''),
-                    (string) IntegrationConfig::getValue(Integration::OpnSense->value, 'ratelimit_down_uuid', ''),
-                );
-            }
-
-            return new NullRateLimiter;
-        });
-
-        // dhcp
-        $app->bind(function (Application $app): DhcpInterface {
-            if ($this->isActive(Capability::Dhcp->value)) {
-                return $this->buildDhcpService();
-            }
-
-            return new NullDhcpService;
-        });
+        return Integration::OpnSense;
     }
 
-    private function isActive(string $capability): bool
+    public function providers(): array
     {
-        try {
-            return CapabilityAssignment::isActiveProvider(Integration::OpnSense->value, $capability);
-        } catch (Throwable) {
-            return false;
-        }
+        return [
+            Capability::CaptivePortal->value => fn (Application $app): OpnSenseCaptivePortal => new OpnSenseCaptivePortal(
+                $app->make(OpnSenseClient::class),
+                (int) (InstallGuard::config(Integration::OpnSense->value)['zone_id'] ?? 0),
+            ),
+            Capability::RateLimiting->value => function (Application $app): OpnSenseRateLimiter {
+                $config = InstallGuard::config(Integration::OpnSense->value);
+
+                return new OpnSenseRateLimiter(
+                    $app->make(OpnSenseClient::class),
+                    (string) ($config['ratelimit_up_uuid'] ?? ''),
+                    (string) ($config['ratelimit_down_uuid'] ?? ''),
+                );
+            },
+            Capability::Dhcp->value => fn (): OpnSenseDhcpService => $this->buildDhcpService(),
+        ];
     }
 
     private function buildDhcpService(): OpnSenseDhcpService
     {
-        $opnsenseConfig = $this->getIntegrationDbConfig();
+        $opnsenseConfig = InstallGuard::config(Integration::OpnSense->value);
         $dhcpServer = (string) ($opnsenseConfig['dhcp_server'] ?? 'isc');
         $paths = match ($dhcpServer) {
             'kea' => [
@@ -146,19 +115,12 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
                 'prefix' => 'prefix',
             ],
         };
-        $client = new Client([
-            'verify' => (bool) ($opnsenseConfig['verify_ssl'] ?? true),
-            'timeout' => 30,
-            'connect_timeout' => 5,
-            'base_uri' => $opnsenseConfig['endpoint'] ?? '',
-            'auth' => [
-                $opnsenseConfig['key'] ?? '',
-                $opnsenseConfig['secret'] ?? '',
-            ],
-        ]);
 
         return new OpnSenseDhcpService(
-            $client,
+            (string) ($opnsenseConfig['endpoint'] ?? ''),
+            (string) ($opnsenseConfig['key'] ?? ''),
+            (string) ($opnsenseConfig['secret'] ?? ''),
+            (bool) ($opnsenseConfig['verify_ssl'] ?? true),
             (int) ($opnsenseConfig['pool_size'] ?? 254),
             $paths['leases'],
             $paths['ipv4_ranges'],
@@ -167,17 +129,5 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
             $rangeFieldMap,
             $dhcpServer === 'kea',
         );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getIntegrationDbConfig(): array
-    {
-        try {
-            return IntegrationConfig::getAll(Integration::OpnSense->value);
-        } catch (Throwable) {
-            return [];
-        }
     }
 }

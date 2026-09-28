@@ -12,14 +12,11 @@ use App\Models\DhcpRangeRecord;
 use App\Models\DhcpSyncState;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\OpnSense\OpnSenseDhcpService;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Promise\Create;
-use GuzzleHttp\Psr7\Response;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Psr\Http\Message\RequestInterface;
 use Tests\TestCase;
 
 class OpnSenseDhcpOutageTest extends TestCase
@@ -40,21 +37,21 @@ class OpnSenseDhcpOutageTest extends TestCase
         ];
     }
 
-    private function respond(RequestInterface $request): mixed
+    private function respond(Request $request): mixed
     {
         if ($this->mode === 'refuse') {
-            return Create::rejectionFor(new ConnectException('refused', $request));
+            throw new ConnectionException('refused');
         }
 
         if ($this->mode === 'http500') {
-            return Create::promiseFor(new Response(500, [], 'boom'));
+            return Http::response('boom', 500);
         }
 
         if ($this->mode === 'garbage') {
-            return Create::promiseFor(new Response(200, [], '<html>maintenance</html>'));
+            return Http::response('<html>maintenance</html>', 200);
         }
 
-        $rows = match ($request->getUri()->getPath()) {
+        $rows = match (parse_url($request->url(), PHP_URL_PATH)) {
             '/leases' => [
                 ['address' => '10.0.0.10', 'hwaddr' => 'aa:bb:cc:dd:ee:01', 'hostname' => 'a', 'expire' => '2030-01-01 00:00:00', 'state' => 'active'],
                 ['address' => '10.0.0.11', 'hwaddr' => 'aa:bb:cc:dd:ee:02', 'hostname' => 'b', 'expire' => '2030-01-01 00:00:00', 'state' => 'active'],
@@ -68,17 +65,19 @@ class OpnSenseDhcpOutageTest extends TestCase
             ],
         };
 
-        return Create::promiseFor(new Response(200, [], (string) json_encode(['rows' => $rows, 'total' => count($rows)])));
+        return Http::response(['rows' => $rows, 'total' => count($rows)]);
     }
 
     private function bindService(): void
     {
         CapabilityAssignment::assign('dhcp', 'opnsense');
 
-        $client = new Client(['handler' => HandlerStack::create(fn (RequestInterface $request, array $options): mixed => $this->respond($request))]);
+        Http::fake(fn (Request $request): mixed => $this->respond($request));
 
         $this->app->instance(DhcpInterface::class, new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'https://opnsense.test',
+            key: 'k',
+            secret: 's',
             poolSize: 10,
             leasesPath: '/leases',
             ipv4RangesPath: '/v4ranges',
@@ -120,13 +119,17 @@ class OpnSenseDhcpOutageTest extends TestCase
         $this->bindService();
         $this->sync();
 
-        $handler = HandlerStack::create(function (RequestInterface $request): mixed {
-            return $request->getUri()->getPath() === '/v6ranges'
-                ? Create::rejectionFor(new ConnectException('refused', $request))
-                : $this->respond($request);
+        Http::fake(function (Request $request): mixed {
+            if (parse_url($request->url(), PHP_URL_PATH) === '/v6ranges') {
+                throw new ConnectionException('refused');
+            }
+
+            return $this->respond($request);
         });
         $this->app->instance(DhcpInterface::class, new OpnSenseDhcpService(
-            client: new Client(['handler' => $handler]),
+            endpoint: 'https://opnsense.test',
+            key: 'k',
+            secret: 's',
             poolSize: 10,
             leasesPath: '/leases',
             ipv4RangesPath: '/v4ranges',

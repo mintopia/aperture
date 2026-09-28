@@ -5,33 +5,28 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Services\OpnSense\OpnSenseDhcpService;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\ConnectionException;
 use ReflectionClass;
+use Tests\Support\Fake;
 use Tests\TestCase;
 
 class OpnSenseDhcpServiceTest extends TestCase
 {
     /**
-     * @param  array<int, Response>  $responses
+     * @param  array<int, PromiseInterface|\Throwable>  $responses
      */
     private function createServiceWithMock(array $responses, int $poolSize = 0): OpnSenseDhcpService
     {
-        $mock = new MockHandler($responses);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
+        Fake::sequence($responses);
 
-        return new OpnSenseDhcpService($client, $poolSize);
+        return new OpnSenseDhcpService('http://opnsense.test', 'key', 'secret', true, $poolSize);
     }
 
     public function test_get_leases_returns_collection(): void
     {
         $service = $this->createServiceWithMock([
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'device1', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                     ['address' => '10.0.0.11', 'mac' => '11:22:33:44:55:66', 'hostname' => 'device2', 'ends' => '2026-04-15 13:00:00', 'status' => 'active'],
@@ -54,7 +49,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_leases_returns_empty_collection(): void
     {
         $service = $this->createServiceWithMock([
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [],
                 'rowCount' => 0,
                 'total' => 0,
@@ -69,7 +64,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_pool_status_returns_stats(): void
     {
         $service = $this->createServiceWithMock([
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'a', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                     ['address' => '10.0.0.11', 'mac' => '11:22:33:44:55:66', 'hostname' => 'b', 'ends' => '2026-04-15 13:00:00', 'status' => 'active'],
@@ -92,7 +87,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_pool_status_handles_zero_pool_size(): void
     {
         $service = $this->createServiceWithMock([
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [],
                 'rowCount' => 0,
                 'total' => 0,
@@ -125,7 +120,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_lease_returns_matching_lease(): void
     {
         $service = $this->createServiceWithMock([
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'device1', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
@@ -145,7 +140,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_lease_returns_null_when_not_found(): void
     {
         $service = $this->createServiceWithMock([
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [],
                 'rowCount' => 0,
                 'total' => 0,
@@ -160,7 +155,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_lease_matches_ipv6_address_case_insensitively(): void
     {
         $service = $this->createServiceWithMock([
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '2001:DB8::100', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'v6device', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
@@ -180,18 +175,18 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_fetch_leases_uses_post_when_leases_use_post_is_true(): void
     {
         // Covers lines 338-341: fetchLeases POST branch (leasesUsePost = true)
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.5', 'mac' => 'aa:bb:cc:dd:ee:01', 'hostname' => 'dev1', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
             ])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 10,
             leasesPath: '/api/dhcpv4/leases/search_lease',
             leasesUsePost: true,
@@ -202,17 +197,17 @@ class OpnSenseDhcpServiceTest extends TestCase
         $this->assertEquals('10.0.0.5', $leases[0]->ip);
 
         // Confirm POST was used (MockHandler would throw on wrong method)
-        $lastRequest = $mock->getLastRequest();
+        $lastRequest = Fake::requests()[0] ?? null;
         $this->assertNotNull($lastRequest);
-        $this->assertEquals('POST', $lastRequest->getMethod());
+        $this->assertEquals('POST', $lastRequest->method());
     }
 
     public function test_get_ranges_returns_ipv4_ranges_with_usage_stats(): void
     {
         // Covers getRanges() with ipv4RangesPath set, buildRangeFromRow(), enrichRangeWithUsage()
-        $mock = new MockHandler([
+        Fake::sequence([
             // First call: IPv4 ranges
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -226,17 +221,17 @@ class OpnSenseDhcpServiceTest extends TestCase
                 ],
             ])),
             // Second call: leases (for enrichment)
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'device1', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
             ])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
@@ -252,9 +247,9 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_ranges_returns_ipv6_ranges_with_usage_stats(): void
     {
         // Covers getRanges() with ipv6RangesPath set and IPv6 enrichment
-        $mock = new MockHandler([
+        Fake::sequence([
             // IPv6 ranges
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -268,17 +263,17 @@ class OpnSenseDhcpServiceTest extends TestCase
                 ],
             ])),
             // Leases for enrichment
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => 'fd00::10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'ipv6device', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
             ])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
@@ -293,11 +288,11 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_ranges_returns_empty_collection_when_ranges_path_not_set(): void
     {
         // When ipv4RangesPath and ipv6RangesPath are both empty, no HTTP calls are made
-        $mock = new MockHandler([]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
+        Fake::sequence([]);
 
-        $service = new OpnSenseDhcpService(client: $client, poolSize: 0);
+        $service = new OpnSenseDhcpService(endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret', poolSize: 0);
 
         $ranges = $service->getRanges();
         $this->assertCount(0, $ranges);
@@ -306,14 +301,14 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_ranges_handles_fetch_exception_gracefully(): void
     {
         // Covers the catch(Throwable) in getRanges() when HTTP request fails
-        $mock = new MockHandler([
-            new ConnectException('Connection refused', new Request('GET', 'test')),
+        Fake::sequence([
+            new ConnectionException('Connection refused'),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
@@ -326,8 +321,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_build_range_from_row_uses_kea_pools_format(): void
     {
         // Covers lines 143-148: Kea pools "START - END" format parsing
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -341,13 +336,13 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -373,8 +368,8 @@ class OpnSenseDhcpServiceTest extends TestCase
         // Covers lines 152-156: calculateSubnet() from subnet_mask field (dnsmasq IPv4)
         // The subnet field must NOT be present in the row (or must be absent) so that
         // $subnet remains null and the calculateSubnet branch executes.
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -388,13 +383,13 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -419,8 +414,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_build_range_from_row_handles_ipv6_prefix_construction(): void
     {
         // Covers lines 160-165: IPv6 prefix construction from start_addr and prefix_len
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -433,13 +428,13 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
@@ -452,8 +447,8 @@ class OpnSenseDhcpServiceTest extends TestCase
 
     public function test_get_ranges_normalizes_ipv6_prefix_to_lowercase(): void
     {
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -466,13 +461,13 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
@@ -487,8 +482,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         // Covers line 185-186 in calculateSubnet(): ip2long returns false for invalid IP
         // The subnet field must NOT be present so $subnet remains null and calculateSubnet is called
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -502,13 +497,13 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -533,8 +528,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         // Covers enrichRangeWithUsage() line 232-233: returns $range early when rangeFrom/rangeTo null
         // To get rangeFrom === null, the 'range_from' key must be absent from the row so isset() returns false
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -546,17 +541,17 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb', 'hostname' => 'h', 'ends' => '', 'status' => 'active'],
                 ],
             ])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
@@ -573,8 +568,8 @@ class OpnSenseDhcpServiceTest extends TestCase
         // Covers enrichIpv6RangeWithUsage() line 288-289: inet_pton() returns false for invalid IPv6
         // A range with ':' in rangeFrom triggers ipv6 detection, but if the address is invalid
         // inet_pton() returns false and the range is returned unchanged.
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -587,13 +582,13 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
@@ -607,8 +602,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_enrich_ipv4_range_returns_unchanged_when_range_from_is_invalid_ip(): void
     {
         // Covers enrichIpv4RangeWithUsage() line 251-252: ip2long returns false
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -621,13 +616,13 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
@@ -642,11 +637,11 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         // Covers ipv6Diff() line 326: return PHP_INT_MAX when the difference overflows
         // We call ipv6Diff() directly via reflection to avoid downstream TypeError from +1.
-        $mock = new MockHandler([]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
+        Fake::sequence([]);
 
-        $service = new OpnSenseDhcpService(client: $client, poolSize: 0);
+        $service = new OpnSenseDhcpService(endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret', poolSize: 0);
 
         $reflection = new ReflectionClass($service);
         $method = $reflection->getMethod('ipv6Diff');
@@ -668,11 +663,11 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         // Covers subnetMaskToCidr() line 199: return null when ip2long($subnetMask) is false
         // This method is private so we access it via reflection
-        $mock = new MockHandler([]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
+        Fake::sequence([]);
 
-        $service = new OpnSenseDhcpService(client: $client, poolSize: 0);
+        $service = new OpnSenseDhcpService(endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret', poolSize: 0);
 
         $reflection = new ReflectionClass($service);
         $method = $reflection->getMethod('subnetMaskToCidr');
@@ -686,8 +681,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_both_ipv4_and_ipv6_paths_deduplicated_when_same(): void
     {
         // When ipv4RangesPath === ipv6RangesPath, only one request is made (second is skipped)
-        $mock = new MockHandler([
-            new Response(200, [], (string) json_encode([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -700,13 +695,13 @@ class OpnSenseDhcpServiceTest extends TestCase
                     ],
                 ],
             ])),
-            new Response(200, [], (string) json_encode(['rows' => []])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            endpoint: 'http://opnsense.test',
+            key: 'key',
+            secret: 'secret',
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             ipv6RangesPath: '/api/dhcpv4/ranges', // Same path — should not fetch twice

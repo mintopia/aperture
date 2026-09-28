@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\Integration;
+use App\Integration\CapabilityResolver;
 use App\Integration\CiscoBootstrapper;
+use App\Integration\InstallGuard;
+use App\Integration\IntegrationBootstrapper;
 use App\Integration\KeaBootstrapper;
 use App\Integration\LibreNmsBootstrapper;
 use App\Integration\OpnSenseBootstrapper;
 use App\Integration\PiHoleBootstrapper;
 use App\Integration\PrometheusBootstrapper;
 use App\Integration\VyOsBootstrapper;
+use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
 use App\Services\Firewalls\OpnSenseApiService;
@@ -29,19 +33,28 @@ use App\Services\LibreNms\LibreNmsService;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\Prometheus\PrometheusService;
 use App\Services\VyOs\VyOsClient;
-use GuzzleHttp\Client;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
-use Throwable;
 
 class IntegrationServiceProvider extends ServiceProvider
 {
+    /** @var list<class-string> */
+    private const CONFIG_DERIVED = [
+        OpnSenseClient::class,
+        OpnSenseApiService::class,
+        PrometheusService::class,
+        LibreNmsService::class,
+        VyOsClient::class,
+        BorealisService::class,
+    ];
+
     /**
      * Register external service bindings.
      */
     public function register(): void
     {
         $this->registerIntegrationTesters();
-        $this->registerSharedSingletons();
+        $this->registerSharedClients();
         $this->registerCapabilityBindings();
         $this->registerNonCapabilityBindings();
     }
@@ -67,27 +80,21 @@ class IntegrationServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * Register shared singletons used by multiple capability bindings.
-     */
-    protected function registerSharedSingletons(): void
+    protected function registerSharedClients(): void
     {
-        $this->app->singleton(function (): OpnSenseClient {
-            $dbConfig = $this->getIntegrationDbConfig(Integration::OpnSense->value);
+        $this->app->scoped(function (): OpnSenseClient {
+            $dbConfig = InstallGuard::config(Integration::OpnSense->value);
 
-            $client = new Client([
-                'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
-                'timeout' => 30,
-                'connect_timeout' => 5,
-                'base_uri' => $dbConfig['endpoint'] ?? '',
-                'auth' => [$dbConfig['key'] ?? '', $dbConfig['secret'] ?? ''],
-            ]);
-
-            return new OpnSenseClient($client);
+            return new OpnSenseClient(
+                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
+                key: (string) ($dbConfig['key'] ?? ''),
+                secret: (string) ($dbConfig['secret'] ?? ''),
+                verifySsl: (bool) ($dbConfig['verify_ssl'] ?? true),
+            );
         });
 
-        $this->app->singleton(function (): PrometheusService {
-            $config = $this->getIntegrationDbConfig(Integration::Prometheus->value);
+        $this->app->scoped(function (): PrometheusService {
+            $config = InstallGuard::config(Integration::Prometheus->value);
 
             return new PrometheusService(
                 endpoint: (string) ($config['endpoint'] ?? ''),
@@ -97,17 +104,18 @@ class IntegrationServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(function (): LibreNmsService {
-            $dbConfig = $this->getIntegrationDbConfig(Integration::LibreNms->value);
+        $this->app->scoped(function (): LibreNmsService {
+            $dbConfig = InstallGuard::config(Integration::LibreNms->value);
 
             return new LibreNmsService(
                 endpoint: (string) ($dbConfig['endpoint'] ?? ''),
                 apiToken: (string) ($dbConfig['api_key'] ?? ''),
+                verifySsl: (bool) ($dbConfig['verify_ssl'] ?? true),
             );
         });
 
-        $this->app->singleton(function (): VyOsClient {
-            $dbConfig = $this->getIntegrationDbConfig(Integration::VyOs->value);
+        $this->app->scoped(function (): VyOsClient {
+            $dbConfig = InstallGuard::config(Integration::VyOs->value);
 
             return new VyOsClient(
                 endpoint: (string) ($dbConfig['endpoint'] ?? ''),
@@ -117,18 +125,46 @@ class IntegrationServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * Register all capability-gated bindings via per-integration bootstrappers.
-     */
     protected function registerCapabilityBindings(): void
     {
-        (new OpnSenseBootstrapper)->register($this->app);
-        (new PrometheusBootstrapper)->register($this->app);
-        (new LibreNmsBootstrapper)->register($this->app);
-        (new PiHoleBootstrapper)->register($this->app);
-        (new VyOsBootstrapper)->register($this->app);
-        (new CiscoBootstrapper)->register($this->app);
-        (new KeaBootstrapper)->register($this->app);
+        $this->app->scoped(fn (Application $app): CapabilityResolver => new CapabilityResolver($app, $this->bootstrappers()));
+
+        foreach (CapabilityResolver::contracts() as $capability => $contract) {
+            $this->app->bind($contract['interface'], fn (Application $app): object => $app->make(CapabilityResolver::class)->resolve($capability));
+        }
+    }
+
+    /**
+     * @return list<IntegrationBootstrapper>
+     */
+    protected function bootstrappers(): array
+    {
+        return [
+            new OpnSenseBootstrapper,
+            new PrometheusBootstrapper,
+            new LibreNmsBootstrapper,
+            new PiHoleBootstrapper,
+            new VyOsBootstrapper,
+            new CiscoBootstrapper,
+            new KeaBootstrapper,
+        ];
+    }
+
+    public function boot(): void
+    {
+        $forgetResolver = function (): void {
+            $this->app->forgetInstance(CapabilityResolver::class);
+        };
+        CapabilityAssignment::saved($forgetResolver);
+        CapabilityAssignment::deleted($forgetResolver);
+
+        $forgetClients = function (): void {
+            foreach (self::CONFIG_DERIVED as $abstract) {
+                $this->app->forgetInstance($abstract);
+            }
+        };
+        IntegrationConfig::saved($forgetClients);
+        IntegrationConfig::deleted($forgetClients);
     }
 
     /**
@@ -136,12 +172,12 @@ class IntegrationServiceProvider extends ServiceProvider
      */
     protected function registerNonCapabilityBindings(): void
     {
-        $this->app->singleton(function (): OpnSenseApiService {
-            return new OpnSenseApiService($this->getIntegrationDbConfig(Integration::OpnSense->value));
+        $this->app->scoped(function (): OpnSenseApiService {
+            return new OpnSenseApiService(InstallGuard::config(Integration::OpnSense->value));
         });
 
-        $this->app->singleton(function (): BorealisService {
-            $dbConfig = $this->getIntegrationDbConfig(Integration::Borealis->value);
+        $this->app->scoped(function (): BorealisService {
+            $dbConfig = InstallGuard::config(Integration::Borealis->value);
 
             return new BorealisService(
                 clientId: (string) ($dbConfig['client_id'] ?? ''),
@@ -149,19 +185,5 @@ class IntegrationServiceProvider extends ServiceProvider
                 endpoint: (string) ($dbConfig['endpoint'] ?? ''),
             );
         });
-    }
-
-    /**
-     * Safely load integration config from DB, returning empty array if table doesn't exist.
-     *
-     * @return array<string, mixed>
-     */
-    protected function getIntegrationDbConfig(string $integration): array
-    {
-        try {
-            return IntegrationConfig::getAll($integration);
-        } catch (Throwable) {
-            return [];
-        }
     }
 }

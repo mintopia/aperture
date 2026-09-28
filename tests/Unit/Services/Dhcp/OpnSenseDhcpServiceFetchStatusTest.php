@@ -5,28 +5,24 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Services\OpnSense\OpnSenseDhcpService;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\ConnectionException;
+use Tests\Support\Fake;
 use Tests\TestCase;
 
 class OpnSenseDhcpServiceFetchStatusTest extends TestCase
 {
     /**
-     * @param  list<Response|ConnectException>  $responses
-     * @param  list<array<string, mixed>>  $history
+     * @param  list<PromiseInterface|ConnectionException>  $responses
      */
-    private function service(array $responses, array &$history = [], bool $post = false, string $v4 = '', string $v6 = ''): OpnSenseDhcpService
+    private function service(array $responses, bool $post = false, string $v4 = '', string $v6 = ''): OpnSenseDhcpService
     {
-        $stack = HandlerStack::create(new MockHandler($responses));
-        $stack->push(Middleware::history($history));
+        Fake::sequence($responses);
 
         return new OpnSenseDhcpService(
-            client: new Client(['handler' => $stack]),
+            endpoint: 'https://opnsense.test',
+            key: 'k',
+            secret: 's',
             poolSize: 10,
             ipv4RangesPath: $v4,
             ipv6RangesPath: $v6,
@@ -48,9 +44,14 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
         ], range($from, $from + $count - 1));
     }
 
-    private function ok(mixed $body): Response
+    private function ok(mixed $body): PromiseInterface
     {
-        return new Response(200, [], (string) json_encode($body));
+        return Fake::response(200, [], (string) json_encode($body));
+    }
+
+    private function refused(): ConnectionException
+    {
+        return new ConnectionException('refused');
     }
 
     public function test_status_is_all_true_when_nothing_failed(): void
@@ -63,7 +64,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
 
     public function test_lease_failure_marks_both_lease_families_failed(): void
     {
-        $service = $this->service([new ConnectException('refused', new Request('GET', 'x'))]);
+        $service = $this->service([$this->refused()]);
 
         $this->assertCount(0, $service->getLeases());
         $status = $service->getFetchStatus();
@@ -74,7 +75,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
 
     public function test_unparseable_lease_body_is_a_failure(): void
     {
-        $service = $this->service([new Response(200, [], 'not json')]);
+        $service = $this->service([Fake::response(200, [], 'not json')]);
 
         $this->assertCount(0, $service->getLeases());
         $this->assertFalse($service->getFetchStatus()['ipv4']);
@@ -84,7 +85,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
     {
         $service = $this->service([
             $this->ok(['rows' => []]),
-            new ConnectException('refused', new Request('GET', 'x')),
+            $this->refused(),
         ], v4: '/v4', v6: '/v6');
 
         $service->getRanges();
@@ -97,7 +98,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
 
     public function test_shared_range_endpoint_failure_marks_both_families(): void
     {
-        $service = $this->service([new Response(502)], v4: '/r', v6: '/r');
+        $service = $this->service([Fake::response(502)], v4: '/r', v6: '/r');
 
         $service->getRanges();
         $status = $service->getFetchStatus();
@@ -109,7 +110,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
     public function test_lease_failure_during_range_enrichment_is_recorded(): void
     {
         $range = ['interface' => 'lan', 'subnet' => '10.0.0.0/24', 'range_from' => '10.0.0.1', 'range_to' => '10.0.0.9'];
-        $service = $this->service([$this->ok(['rows' => [$range]]), new Response(500)], v4: '/r');
+        $service = $this->service([$this->ok(['rows' => [$range]]), Fake::response(500)], v4: '/r');
 
         $service->getRanges();
 
@@ -118,7 +119,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
 
     public function test_reset_snapshot_clears_failures(): void
     {
-        $service = $this->service([new Response(500)]);
+        $service = $this->service([Fake::response(500)]);
         $service->getLeases();
         $service->resetSnapshot();
 
@@ -127,36 +128,34 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
 
     public function test_kea_mode_pages_through_all_leases(): void
     {
-        $history = [];
         $service = $this->service([
             $this->ok(['rows' => $this->rows(0, 100), 'total' => 250]),
             $this->ok(['rows' => $this->rows(100, 100), 'total' => 250]),
             $this->ok(['rows' => $this->rows(200, 50), 'total' => 250]),
-        ], $history, post: true);
+        ], post: true);
 
         $this->assertCount(250, $service->getLeases());
-        $this->assertCount(3, $history);
-        $this->assertSame(3, json_decode((string) $history[2]['request']->getBody(), true)['current']);
+        $this->assertCount(3, Fake::requests());
+        $this->assertSame(3, Fake::requests()[2]->data()['current']);
         $this->assertTrue($service->getFetchStatus()['ipv4']);
     }
 
     public function test_paging_stops_on_short_page_without_total(): void
     {
-        $history = [];
         $service = $this->service([
             $this->ok(['rows' => $this->rows(0, 100)]),
             $this->ok(['rows' => $this->rows(100, 7)]),
-        ], $history, post: true);
+        ], post: true);
 
         $this->assertCount(107, $service->getLeases());
-        $this->assertCount(2, $history);
+        $this->assertCount(2, Fake::requests());
     }
 
     public function test_failure_on_later_page_marks_failed_and_discards_partial_data(): void
     {
         $service = $this->service([
             $this->ok(['rows' => $this->rows(0, 100), 'total' => 250]),
-            new Response(500),
+            Fake::response(500),
         ], post: true);
 
         $this->assertCount(0, $service->getLeases());

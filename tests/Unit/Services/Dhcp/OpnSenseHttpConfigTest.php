@@ -9,8 +9,9 @@ use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
-use GuzzleHttp\Client;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use ReflectionProperty;
 use Tests\TestCase;
 
@@ -18,37 +19,52 @@ class OpnSenseHttpConfigTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    private function guzzleOf(object $owner): Client
+    /**
+     * @return array<string, mixed>
+     */
+    private function captureOptions(callable $call): array
     {
-        $client = (new ReflectionProperty($owner, 'client'))->getValue($owner);
-        $this->assertInstanceOf(Client::class, $client);
+        $captured = [];
+        Http::fake(function (Request $request, array $options) use (&$captured) {
+            $captured = $options;
 
-        return $client;
+            return Http::response(['rows' => []]);
+        });
+
+        try {
+            $call();
+        } catch (\Throwable) {
+        }
+
+        return $captured;
     }
 
     public function test_shared_opnsense_client_has_request_and_connect_timeouts(): void
     {
+        config(['services.external_http.timeout' => 7, 'services.external_http.connect_timeout' => 3]);
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
         $this->app->forgetInstance(OpnSenseClient::class);
 
-        $guzzle = $this->guzzleOf($this->app->make(OpnSenseClient::class));
+        $client = $this->app->make(OpnSenseClient::class);
+        $options = $this->captureOptions(fn () => $client->get('/api/core/firmware/status'));
 
-        $this->assertGreaterThan(0, $guzzle->getConfig('timeout'));
-        $this->assertGreaterThan(0, $guzzle->getConfig('connect_timeout'));
+        $this->assertSame(7, $options['timeout']);
+        $this->assertSame(3, $options['connect_timeout']);
     }
 
     public function test_dhcp_service_client_has_request_and_connect_timeouts(): void
     {
+        config(['services.external_http.timeout' => 7, 'services.external_http.connect_timeout' => 3]);
         CapabilityAssignment::assign('dhcp', 'opnsense');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
         $this->app->forgetInstance(DhcpInterface::class);
 
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
-        $guzzle = $this->guzzleOf($service);
+        $options = $this->captureOptions(fn () => $service->getLeases());
 
-        $this->assertGreaterThan(0, $guzzle->getConfig('timeout'));
-        $this->assertGreaterThan(0, $guzzle->getConfig('connect_timeout'));
+        $this->assertSame(7, $options['timeout']);
+        $this->assertSame(3, $options['connect_timeout']);
     }
 
     public function test_isc_ipv6_ranges_do_not_point_at_the_leases_endpoint(): void
