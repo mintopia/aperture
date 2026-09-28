@@ -5,7 +5,14 @@ import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { ZiggyVue } from 'ziggy-js';
 
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
 createInertiaApp({
+    defaults: {
+        visitOptions: (href, options) => ({
+            viewTransition: options.method === 'get' && !options.only?.length && !reducedMotion.matches,
+        }),
+    },
     title: (title) => (title ? `${title} - Aperture` : 'Aperture'),
     resolve: (name) => {
         const pages = import.meta.glob('./Pages/**/*.vue', { eager: true });

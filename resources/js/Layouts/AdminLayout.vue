@@ -7,10 +7,8 @@ import Sidebar from '@/Components/Admin/Sidebar.vue';
 import GlobalSearch from '@/Components/Admin/GlobalSearch.vue';
 import UserMenu from '@/Components/UserMenu.vue';
 import FlashMessages from '@/Components/UI/FlashMessages.vue';
-import { useViewTransitions } from '@/composables/useViewTransitions';
 
 const page = usePage();
-useViewTransitions();
 const sidebarRef = ref(null);
 
 function toggleDrawer() {

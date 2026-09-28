@@ -58,4 +58,24 @@ test.describe('Network Settings Maintenance — Clear Stale IP to MAC Mappings',
         await daysInput.fill('30');
         await expect(page.getByTestId('clear-ip-mac-button')).toBeEnabled();
     });
+
+    test('confirm dialog traps focus, cancels on Escape and returns focus to the trigger', async ({ page }) => {
+        await page.goto('/admin/settings/network');
+
+        const trigger = page.getByTestId('clear-ip-mac-button');
+        await trigger.click();
+
+        const modal = page.getByTestId('confirm-modal');
+        await expect(modal).toBeVisible();
+        expect(await modal.evaluate((el) => el.matches(':modal'))).toBe(true);
+
+        for (let i = 0; i < 6; i++) {
+            await page.keyboard.press('Tab');
+            expect(await modal.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+        }
+
+        await page.keyboard.press('Escape');
+        await expect(modal).toBeHidden();
+        await expect(trigger).toBeFocused();
+    });
 });

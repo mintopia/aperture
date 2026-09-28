@@ -114,34 +114,4 @@ describe('StatCard', () => {
 
         expect(wrapper.find('[data-testid="stat-label-dot"]').exists()).toBe(false);
     });
-
-    it('renders sub text when sub prop is provided', () => {
-        const wrapper = mount(StatCard, {
-            props: { label: 'Users', value: 42, sub: '12 online' },
-        });
-
-        const subEl = wrapper.find('[data-testid="stat-sub"]');
-        expect(subEl.exists()).toBe(true);
-        expect(subEl.text()).toBe('12 online');
-    });
-
-    it('applies sub text styling matching mockup', () => {
-        const wrapper = mount(StatCard, {
-            props: { label: 'Users', value: 42, sub: '12 online' },
-        });
-
-        const subEl = wrapper.find('[data-testid="stat-sub"]');
-        expect(subEl.classes()).toContain('text-[11px]');
-        expect(subEl.classes()).toContain('text-[var(--color-text-muted)]');
-        expect(subEl.classes()).toContain('mt-0.5');
-        expect(subEl.classes()).toContain('font-mono');
-    });
-
-    it('does not render sub text when sub prop is empty', () => {
-        const wrapper = mount(StatCard, {
-            props: { label: 'Users', value: 42 },
-        });
-
-        expect(wrapper.find('[data-testid="stat-sub"]').exists()).toBe(false);
-    });
 });

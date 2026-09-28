@@ -8,7 +8,6 @@ const props = defineProps({
     filterValues: { type: Object, default: () => ({}) },
     totalCount: { type: Number, default: 0 },
     filteredCount: { type: Number, default: 0 },
-    debounce: { type: Number, default: 300 },
 });
 
 const emit = defineEmits(['update:search', 'update:filterValues']);
@@ -17,14 +16,10 @@ let debounceTimer = null;
 
 function handleSearchInput(event) {
     const value = event.target.value;
-    if (props.debounce === 0) {
-        emit('update:search', value);
-        return;
-    }
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
         emit('update:search', value);
-    }, props.debounce);
+    }, 300);
 }
 
 const activeFilters = computed(() =>
