@@ -358,4 +358,12 @@ class VyOsDhcpService implements DhcpInterface
 
         return $rows;
     }
+
+    /** @return array{ipv4: bool, ipv6: bool} */
+    public function getFetchStatus(): array
+    {
+        return ['ipv4' => true, 'ipv6' => true];
+    }
+
+    public function resetSnapshot(): void {}
 }

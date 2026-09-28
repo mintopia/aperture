@@ -19,7 +19,6 @@ use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Event;
 use Mockery\MockInterface;
 use Tests\TestCase;
@@ -41,12 +40,6 @@ class SyncDhcpDataTest extends TestCase
     }
 
     /**
-     * Bind a DhcpInterface test double that also implements the optional
-     * getFetchStatus()/resetSnapshot() duck-typed extras, so that
-     * method_exists() sees them the way it would for a real provider (a
-     * Mockery interface mock does NOT gain methods not declared on the
-     * interface just because shouldReceive/allows was called for them).
-     *
      * @param  list<DhcpLeaseVO>  $leases
      * @param  list<DhcpRange>  $ranges
      * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
@@ -57,52 +50,13 @@ class SyncDhcpDataTest extends TestCase
         DhcpPoolStatus $poolStatus,
         array $fetchStatus,
     ): void {
-        $service = new class($leases, $ranges, $poolStatus, $fetchStatus) implements DhcpInterface
-        {
-            /**
-             * @param  list<DhcpLeaseVO>  $leases
-             * @param  list<DhcpRange>  $ranges
-             * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
-             */
-            public function __construct(
-                private array $leases,
-                private array $ranges,
-                private DhcpPoolStatus $poolStatus,
-                private array $fetchStatus,
-            ) {}
-
-            public function getPoolStatus(): DhcpPoolStatus
-            {
-                return $this->poolStatus;
-            }
-
-            /** @return Collection<int, DhcpLeaseVO> */
-            public function getLeases(): Collection
-            {
-                return collect($this->leases);
-            }
-
-            public function getLease(string $ipAddress): ?DhcpLeaseVO
-            {
-                return null;
-            }
-
-            /** @return Collection<int, DhcpRange> */
-            public function getRanges(): Collection
-            {
-                return collect($this->ranges);
-            }
-
-            /** @return array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool} */
-            public function getFetchStatus(): array
-            {
-                return $this->fetchStatus;
-            }
-
-            public function resetSnapshot(): void {}
-        };
-
-        $this->app->instance(DhcpInterface::class, $service);
+        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases, $ranges, $poolStatus, $fetchStatus): void {
+            $mock->allows('getLeases')->andReturn(collect($leases));
+            $mock->allows('getRanges')->andReturn(collect($ranges));
+            $mock->allows('getPoolStatus')->andReturn($poolStatus);
+            $mock->allows('getFetchStatus')->andReturn($fetchStatus);
+            $mock->allows('resetSnapshot');
+        });
     }
 
     /**
@@ -120,6 +74,8 @@ class SyncDhcpDataTest extends TestCase
             $mock->allows('getLeases')->andReturn(collect($leases));
             $mock->allows('getRanges')->andReturn(collect($ranges));
             $mock->allows('getPoolStatus')->andReturn($poolStatus);
+            $mock->allows('getFetchStatus')->andReturn(['ipv4' => true, 'ipv6' => true]);
+            $mock->allows('resetSnapshot');
         });
     }
 

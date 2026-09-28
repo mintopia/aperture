@@ -362,12 +362,7 @@ class KeaDhcpService implements DhcpInterface
 
             $lastIp = $ip;
 
-            // Kea's lease6-get-page response mixes address leases (IA_NA)
-            // with prefix-delegation entries (IA_PD) in the same page. PD
-            // entries are router-to-router delegations, not host leases, so
-            // they're excluded here — but the pagination cursor above must
-            // still advance past them.
-            if ($isIpv6 && ($lease['type'] ?? null) === 'IA_PD') {
+            if ($isIpv6 && $this->isPrefixDelegation($lease)) {
                 continue;
             }
 
@@ -379,6 +374,17 @@ class KeaDhcpService implements DhcpInterface
         }
 
         return $lastIp;
+    }
+
+    /**
+     * IA_PD entries are Kea's DHCPv6 prefix-delegation leases (router-to-router),
+     * not host leases, and appear interleaved with IA_NA entries on the same page.
+     *
+     * @param  array<string, mixed>  $lease
+     */
+    private function isPrefixDelegation(array $lease): bool
+    {
+        return ($lease['type'] ?? null) === 'IA_PD';
     }
 
     /**

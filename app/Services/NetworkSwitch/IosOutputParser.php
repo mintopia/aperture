@@ -294,11 +294,10 @@ class IosOutputParser
         }
 
         // RFC 4361 client-ID: type byte ff, then a 4-byte IAID (5 bytes / 10 hex
-        // chars total), followed by the DUID. Delegate the DUID to the shared
-        // extractor; fall through if it is not a MAC-bearing DUID type.
+        // chars total), followed by the DUID.
         $normalised = strtolower(str_replace('.', '', $clientId));
         if (str_starts_with($normalised, 'ff') && ctype_xdigit($normalised)) {
-            $mac = $this->extractMacFromDuid(substr($normalised, 10));
+            $mac = Duid::macAddress(substr($normalised, 10));
 
             if ($mac !== null) {
                 return $mac;
@@ -554,7 +553,7 @@ class IosOutputParser
                 }
 
                 $pendingIp = $m[1];
-                $pendingMac = $this->extractMacFromDuid($duid);
+                $pendingMac = Duid::macAddress($duid);
                 $pendingDuid = $duid;
                 $pendingIaid = $iaid;
                 $hasPending = true;
@@ -716,14 +715,6 @@ class IosOutputParser
             'duid' => $duid,
             'iaid' => $iaid,
         ];
-    }
-
-    /**
-     * @see Duid::macAddress()
-     */
-    private function extractMacFromDuid(string $duid): ?string
-    {
-        return Duid::macAddress($duid);
     }
 
     /**

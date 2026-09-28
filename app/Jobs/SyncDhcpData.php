@@ -63,18 +63,12 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
         Log::info('SyncDhcpData: starting sync', ['integration' => $integration]);
 
-        if (method_exists($dhcp, 'resetSnapshot')) {
-            $dhcp->resetSnapshot();
-        }
+        $dhcp->resetSnapshot();
 
         $leases = $dhcp->getLeases();
         $ranges = $dhcp->getRanges();
         $poolStatus = $dhcp->getPoolStatus();
-
-        /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool} $fetchStatus */
-        $fetchStatus = method_exists($dhcp, 'getFetchStatus')
-            ? $dhcp->getFetchStatus()
-            : ['ipv4' => true, 'ipv6' => true];
+        $fetchStatus = $dhcp->getFetchStatus();
 
         // Read previous pool utilisation BEFORE the transaction for threshold crossing detection
         $previousUtilisation = DhcpPoolStatusRecord::where('integration', $integration)
