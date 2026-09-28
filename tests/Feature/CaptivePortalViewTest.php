@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Services\Auth\AuthResult;
 use App\Services\Auth\DeviceFlowResponse;
+use App\Services\Auth\UserInfo;
 use App\Services\Interfaces\AuthProviderInterface;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -186,5 +189,36 @@ class CaptivePortalViewTest extends TestCase
         $response = $this->get('/captive');
 
         $response->assertStatus(429);
+    }
+
+    public function test_captive_device_flow_login_regenerates_session_id(): void
+    {
+        Queue::fake();
+        Cache::put('device_flow:test-code', ['status' => 'pending', 'ip' => '192.168.1.100'], now()->addMinutes(10));
+
+        $mock = $this->mock(AuthProviderInterface::class);
+        $mock->shouldReceive('pollDeviceFlow')->with('test-code')->andReturn(new AuthResult(
+            accessToken: 'access-123',
+            tokenType: 'Bearer',
+            expiresIn: 3600,
+            refreshToken: 'refresh-123',
+        ));
+        $mock->shouldReceive('getUserInfo')->with('access-123')->andReturn(new UserInfo(
+            id: 'ext-user-1',
+            nickname: 'SessionUser',
+            email: 'session@example.com',
+            avatarUrl: 'https://example.com/avatar.png',
+        ));
+
+        $this->startSession();
+        $before = session()->getId();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '192.168.1.100'])
+            ->getJson('/captive/poll/test-code')
+            ->assertOk()
+            ->assertJson(['status' => 'complete']);
+
+        $this->assertAuthenticated();
+        $this->assertNotSame($before, session()->getId());
     }
 }

@@ -35,6 +35,7 @@ class PortalController extends Controller
         return view('portal', [
             'ip' => $ip,
             'ipv6DetectionEndpoint' => $ipv6DetectionEndpoint,
+            'ipv6SessionBinding' => Ipv6JwtService::sessionBinding($request->session()->getId()),
             'dnsCheckUrl' => $dnsCheckUrl,
         ]);
     }
@@ -63,7 +64,7 @@ class PortalController extends Controller
         }
 
         try {
-            $ipv6 = $jwtService->verifyAndExtract($request->input('token'), $jwksUrl);
+            $ipv6 = $jwtService->verifyAndExtract($request->input('token'), $jwksUrl, $request->session()->getId());
         } catch (Throwable $throwable) {
             return response()->json(['error' => 'Invalid token'], 422);
         }

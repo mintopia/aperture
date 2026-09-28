@@ -10,8 +10,15 @@ function generateUuid() {
     });
 }
 
-async function detectAndSubmitIpv6(endpointTemplate) {
-    const endpoint = endpointTemplate.replace('{uuid}', generateUuid());
+function buildEndpoint(template, sessionBinding) {
+    let url = template.replace('{uuid}', generateUuid());
+    if (!sessionBinding) return url;
+    if (url.includes('{sid}')) return url.replace('{sid}', sessionBinding);
+    return url + (url.includes('?') ? '&' : '?') + 'sid=' + encodeURIComponent(sessionBinding);
+}
+
+async function detectAndSubmitIpv6(endpointTemplate, sessionBinding) {
+    const endpoint = buildEndpoint(endpointTemplate, sessionBinding);
     try {
         const response = await fetch(endpoint);
         if (!response.ok) return null;
@@ -30,11 +37,11 @@ async function detectAndSubmitIpv6(endpointTemplate) {
 }
 
 export function useIpv6Detection(endpointTemplate, options = {}) {
-    const { onDetected, intervalMs = 120000 } = options;
+    const { onDetected, intervalMs = 120000, sessionBinding = '' } = options;
     let timer = null;
 
     async function runDetection() {
-        const result = await detectAndSubmitIpv6(endpointTemplate);
+        const result = await detectAndSubmitIpv6(endpointTemplate, sessionBinding);
         if (result && onDetected) {
             onDetected(result);
         }

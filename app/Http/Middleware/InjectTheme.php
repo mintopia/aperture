@@ -37,7 +37,7 @@ class InjectTheme
             $customCss = null;
         }
 
-        View::share('customCss', $customCss);
+        View::share('customCss', is_string($customCss) ? str_replace('<', '\\3C ', $customCss) : null);
         View::share('siteLogoUrl', $theme['site_logo_url']);
         View::share('hasSiteLogo', $theme['has_site_logo']);
         View::share('faviconUrls', $theme['favicon_urls']);

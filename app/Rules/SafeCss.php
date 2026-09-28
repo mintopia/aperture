@@ -24,6 +24,8 @@ class SafeCss implements ValidationRule
         '/behavior\s*:/i',
         '/binding\s*\(/i',
         '/<script/i',
+        '/<\/?\s*style/i',
+        '/</',
     ];
 
     /**

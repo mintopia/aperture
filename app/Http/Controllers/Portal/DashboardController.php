@@ -13,6 +13,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\UserNetworkAssociationService;
 use Illuminate\Http\Request;
+use App\Services\Ipv6JwtService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -61,6 +62,7 @@ class DashboardController extends Controller
             ] : null,
             'ipv6Detection' => $ipv6Endpoint !== '' ? [
                 'endpoint' => $ipv6Endpoint,
+                'sessionBinding' => Ipv6JwtService::sessionBinding($request->session()->getId()),
             ] : null,
         ]);
     }

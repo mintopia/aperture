@@ -25,6 +25,8 @@ class Ipv6JwtServiceTest extends TestCase
 
     private OpenSSLAsymmetricKey $privateKey;
 
+    private const SESSION_ID = 'session-abc';
+
     private string $kid = 'test-key-1';
 
     protected function setUp(): void
@@ -71,7 +73,7 @@ class Ipv6JwtServiceTest extends TestCase
     private function makeJwt(string $sub, ?string $kid = null, array $extraClaims = []): string
     {
         $payload = array_merge(
-            ['sub' => $sub, 'iat' => time(), 'exp' => time() + 300],
+            ['sub' => $sub, 'iat' => time(), 'exp' => time() + 300, 'sid' => Ipv6JwtService::sessionBinding(self::SESSION_ID)],
             $extraClaims,
         );
 
@@ -90,9 +92,54 @@ class Ipv6JwtServiceTest extends TestCase
         $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1');
 
-        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
 
         $this->assertSame('2001:db8::1', $result);
+    }
+
+    public function test_rejects_jwt_without_exp(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+
+        $jwt = JWT::encode(
+            ['sub' => '2001:db8::1', 'iat' => time(), 'sid' => Ipv6JwtService::sessionBinding(self::SESSION_ID)],
+            $this->privateKey,
+            'RS256',
+            $this->kid,
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('exp');
+
+        resolve(Ipv6JwtService::class)->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
+    }
+
+    public function test_rejects_jwt_bound_to_another_session(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+
+        $jwt = $this->makeJwt('2001:db8::1');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('not bound');
+
+        resolve(Ipv6JwtService::class)->verifyAndExtract($jwt, $this->jwksUrl, 'other-session');
+    }
+
+    public function test_rejects_jwt_without_session_binding(): void
+    {
+        Http::fake([$this->jwksUrl => Http::response($this->makeJwks())]);
+
+        $jwt = JWT::encode(
+            ['sub' => '2001:db8::1', 'iat' => time(), 'exp' => time() + 300],
+            $this->privateKey,
+            'RS256',
+            $this->kid,
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+
+        resolve(Ipv6JwtService::class)->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_rejects_jwt_with_ipv4_in_sub(): void
@@ -105,7 +152,7 @@ class Ipv6JwtServiceTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('not a valid IPv6');
 
-        $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_rejects_jwt_with_invalid_signature(): void
@@ -124,7 +171,7 @@ class Ipv6JwtServiceTest extends TestCase
         $otherPrivate = openssl_pkey_get_private((string) $otherPem);
         assert($otherPrivate instanceof OpenSSLAsymmetricKey);
         $badJwt = JWT::encode(
-            ['sub' => '2001:db8::1', 'iat' => time(), 'exp' => time() + 300],
+            ['sub' => '2001:db8::1', 'iat' => time(), 'exp' => time() + 300, 'sid' => Ipv6JwtService::sessionBinding(self::SESSION_ID)],
             $otherPrivate,
             'RS256',
             $this->kid,
@@ -132,7 +179,7 @@ class Ipv6JwtServiceTest extends TestCase
 
         $this->expectException(SignatureInvalidException::class);
 
-        $service->verifyAndExtract($badJwt, $this->jwksUrl);
+        $service->verifyAndExtract($badJwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_caches_jwks_response(): void
@@ -141,8 +188,8 @@ class Ipv6JwtServiceTest extends TestCase
 
         $service = resolve(Ipv6JwtService::class);
 
-        $service->verifyAndExtract($this->makeJwt('2001:db8::1'), $this->jwksUrl);
-        $service->verifyAndExtract($this->makeJwt('2001:db8::2'), $this->jwksUrl);
+        $service->verifyAndExtract($this->makeJwt('2001:db8::1'), $this->jwksUrl, self::SESSION_ID);
+        $service->verifyAndExtract($this->makeJwt('2001:db8::2'), $this->jwksUrl, self::SESSION_ID);
 
         Http::assertSentCount(1);
     }
@@ -162,7 +209,7 @@ class Ipv6JwtServiceTest extends TestCase
 
         $this->expectException(ExpiredException::class);
 
-        $service->verifyAndExtract($expiredJwt, $this->jwksUrl);
+        $service->verifyAndExtract($expiredJwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_throws_on_jwks_fetch_failure(): void
@@ -175,7 +222,7 @@ class Ipv6JwtServiceTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Failed to fetch JWKS');
 
-        $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_accepts_jwt_with_correct_audience_when_configured(): void
@@ -186,7 +233,7 @@ class Ipv6JwtServiceTest extends TestCase
         $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'aperture']);
 
-        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
 
         $this->assertSame('2001:db8::1', $result);
     }
@@ -201,7 +248,7 @@ class Ipv6JwtServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_rejects_jwt_with_missing_audience_when_configured(): void
@@ -214,7 +261,7 @@ class Ipv6JwtServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_accepts_jwt_with_correct_issuer_when_configured(): void
@@ -225,7 +272,7 @@ class Ipv6JwtServiceTest extends TestCase
         $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['iss' => 'borealis']);
 
-        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
 
         $this->assertSame('2001:db8::1', $result);
     }
@@ -240,7 +287,7 @@ class Ipv6JwtServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_rejects_jwt_with_missing_issuer_when_configured(): void
@@ -253,7 +300,7 @@ class Ipv6JwtServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
     }
 
     public function test_accepts_jwt_without_aud_iss_when_not_configured(): void
@@ -263,7 +310,7 @@ class Ipv6JwtServiceTest extends TestCase
         $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1');
 
-        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
 
         $this->assertSame('2001:db8::1', $result);
     }
@@ -277,7 +324,7 @@ class Ipv6JwtServiceTest extends TestCase
         $service = resolve(Ipv6JwtService::class);
         $jwt = $this->makeJwt('2001:db8::1', extraClaims: ['aud' => 'aperture', 'iss' => 'borealis']);
 
-        $result = $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $result = $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
 
         $this->assertSame('2001:db8::1', $result);
     }
@@ -293,6 +340,6 @@ class Ipv6JwtServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $service->verifyAndExtract($jwt, $this->jwksUrl);
+        $service->verifyAndExtract($jwt, $this->jwksUrl, self::SESSION_ID);
     }
 }
