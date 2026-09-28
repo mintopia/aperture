@@ -36,25 +36,27 @@ class KeaDhcpService implements DhcpInterface
      */
     private ?array $snapshot = null;
 
-    /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges: bool} */
-    private array $fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true];
+    /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool} */
+    private array $fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true, 'ipv6_ranges' => true];
 
     public function __construct(
         private readonly ?KeaClient $ipv4Client,
         private readonly ?KeaClient $ipv6Client = null,
     ) {}
 
-    public function getPoolStatus(): DhcpPoolStatus
+    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
     {
-        $ranges = $this->getRanges();
+        $ranges = $this->getRanges()->filter(fn (DhcpRange $range): bool => $range->type === $family);
 
-        $total = 0;
+        $totalSum = '0';
         $used = 0;
 
         foreach ($ranges as $range) {
-            $total += (int) ($range->totalAddresses ?? '0');
+            $totalSum = bcadd($totalSum, $range->totalAddresses ?? '0', 0);
             $used += $range->usedAddresses ?? 0;
         }
+
+        $total = $this->capNumericStringToPhpIntMax($totalSum);
 
         return new DhcpPoolStatus(
             total: $total,
@@ -64,14 +66,23 @@ class KeaDhcpService implements DhcpInterface
         );
     }
 
+    /**
+     * @param  numeric-string  $numericString
+     */
+    private function capNumericStringToPhpIntMax(string $numericString): int
+    {
+        return bccomp($numericString, (string) PHP_INT_MAX, 0) > 0 ? PHP_INT_MAX : (int) $numericString;
+    }
+
     /** @return Collection<int, DhcpRange> */
     public function getRanges(): Collection
     {
         $this->ensureSnapshot();
 
-        $client = $this->usableIpv4RangeClient();
+        $ipv4Client = $this->usableIpv4RangeClient();
+        $ipv6Client = $this->usableIpv6RangeClient();
 
-        if (! $client instanceof KeaClient) {
+        if (! $ipv4Client instanceof KeaClient && ! $ipv6Client instanceof KeaClient) {
             return collect();
         }
 
@@ -82,32 +93,91 @@ class KeaDhcpService implements DhcpInterface
             return $cached;
         }
 
+        $ranges = collect();
+
+        if ($ipv4Client instanceof KeaClient) {
+            $ranges = $ranges->concat($this->fetchIpv4Ranges($ipv4Client));
+        }
+
+        if ($ipv6Client instanceof KeaClient) {
+            $ranges = $ranges->concat($this->fetchIpv6Ranges($ipv6Client));
+        }
+
+        return $this->cacheRanges($ranges->values());
+    }
+
+    /** @return Collection<int, DhcpRange> */
+    private function fetchIpv4Ranges(KeaClient $client): Collection
+    {
+        return $this->fetchFamilyRanges(
+            client: $client,
+            protocolKey: 'Dhcp4',
+            subnetKey: 'subnet4',
+            snapshotKey: 'ipv4',
+            rangesStatusKey: 'ipv4_ranges',
+            logMessage: 'Kea config-get failed',
+            buildRange: $this->buildRange(...),
+            enrichRange: $this->enrichRangeWithUsage(...),
+        );
+    }
+
+    /** @return Collection<int, DhcpRange> */
+    private function fetchIpv6Ranges(KeaClient $client): Collection
+    {
+        return $this->fetchFamilyRanges(
+            client: $client,
+            protocolKey: 'Dhcp6',
+            subnetKey: 'subnet6',
+            snapshotKey: 'ipv6',
+            rangesStatusKey: 'ipv6_ranges',
+            logMessage: 'Kea IPv6 config-get failed',
+            buildRange: $this->buildIpv6Range(...),
+            enrichRange: $this->enrichIpv6RangeWithUsage(...),
+        );
+    }
+
+    /**
+     * @param  'ipv4_ranges'|'ipv6_ranges'  $rangesStatusKey
+     * @param  callable(mixed, string, string, ?string): ?DhcpRange  $buildRange
+     * @param  callable(DhcpRange, Collection<int, DhcpLease>): DhcpRange  $enrichRange
+     * @return Collection<int, DhcpRange>
+     */
+    private function fetchFamilyRanges(
+        KeaClient $client,
+        string $protocolKey,
+        string $subnetKey,
+        string $snapshotKey,
+        string $rangesStatusKey,
+        string $logMessage,
+        callable $buildRange,
+        callable $enrichRange,
+    ): Collection {
         try {
             $entry = $client->sendCommand('config-get');
         } catch (Throwable $throwable) {
-            Log::warning('Kea config-get failed', ['error' => $throwable->getMessage()]);
-            $this->fetchStatus['ipv4_ranges'] = false;
+            Log::warning($logMessage, ['error' => $throwable->getMessage()]);
+            $this->fetchStatus[$rangesStatusKey] = false;
 
-            return $this->cacheRanges(collect());
+            return collect();
         }
 
         $arguments = $entry['arguments'] ?? null;
 
         if (! is_array($arguments)) {
-            return $this->cacheRanges(collect());
+            return collect();
         }
 
-        $dhcp4 = $arguments['Dhcp4'] ?? null;
+        $protocolConfig = $arguments[$protocolKey] ?? null;
 
-        if (! is_array($dhcp4)) {
-            return $this->cacheRanges(collect());
+        if (! is_array($protocolConfig)) {
+            return collect();
         }
 
         $ranges = collect();
 
-        $this->collectSubnets($ranges, $dhcp4['subnet4'] ?? [], '');
+        $this->collectSubnets($ranges, $protocolConfig[$subnetKey] ?? [], '', $buildRange);
 
-        $sharedNetworks = $dhcp4['shared-networks'] ?? [];
+        $sharedNetworks = $protocolConfig['shared-networks'] ?? [];
 
         if (is_array($sharedNetworks)) {
             foreach ($sharedNetworks as $sharedNetwork) {
@@ -118,20 +188,18 @@ class KeaDhcpService implements DhcpInterface
                 $name = $sharedNetwork['name'] ?? null;
                 $fallbackInterface = is_string($name) && $name !== '' ? $name : '';
 
-                $this->collectSubnets($ranges, $sharedNetwork['subnet4'] ?? [], $fallbackInterface);
+                $this->collectSubnets($ranges, $sharedNetwork[$subnetKey] ?? [], $fallbackInterface, $buildRange);
             }
         }
 
         if ($ranges->isEmpty()) {
-            return $this->cacheRanges($ranges);
+            return $ranges;
         }
 
         /** @var Collection<int, DhcpLease> $leases */
-        $leases = $this->snapshot['ipv4'] ?? collect();
+        $leases = $this->snapshot[$snapshotKey] ?? collect();
 
-        return $this->cacheRanges(
-            $ranges->map(fn (DhcpRange $range): DhcpRange => $this->enrichRangeWithUsage($range, $leases))->values()
-        );
+        return $ranges->map(fn (DhcpRange $range): DhcpRange => $enrichRange($range, $leases))->values();
     }
 
     private function usableIpv4RangeClient(): ?KeaClient
@@ -141,6 +209,15 @@ class KeaDhcpService implements DhcpInterface
         }
 
         return $this->ipv4Client;
+    }
+
+    private function usableIpv6RangeClient(): ?KeaClient
+    {
+        if (! $this->ipv6Client instanceof KeaClient || ! $this->fetchStatus['ipv6']) {
+            return null;
+        }
+
+        return $this->ipv6Client;
     }
 
     /**
@@ -247,7 +324,7 @@ class KeaDhcpService implements DhcpInterface
     public function resetSnapshot(): void
     {
         $this->snapshot = null;
-        $this->fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true];
+        $this->fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true, 'ipv6_ranges' => true];
     }
 
     private function refreshSnapshot(): void
@@ -257,7 +334,7 @@ class KeaDhcpService implements DhcpInterface
     }
 
     /**
-     * @return array{ipv4: bool, ipv6: bool, ipv4_ranges: bool}
+     * @return array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool}
      */
     public function getFetchStatus(): array
     {
@@ -474,22 +551,24 @@ class KeaDhcpService implements DhcpInterface
 
     /**
      * @param  Collection<int, DhcpRange>  $ranges
+     * @param  callable(mixed, string, string, ?string): ?DhcpRange  $buildRange
      */
-    private function collectSubnets(Collection $ranges, mixed $subnets, string $fallbackInterface): void
+    private function collectSubnets(Collection $ranges, mixed $subnets, string $fallbackInterface, callable $buildRange): void
     {
         if (! is_array($subnets)) {
             return;
         }
 
         foreach ($subnets as $subnet) {
-            $this->collectSubnetRanges($ranges, $subnet, $fallbackInterface);
+            $this->collectSubnetRanges($ranges, $subnet, $fallbackInterface, $buildRange);
         }
     }
 
     /**
      * @param  Collection<int, DhcpRange>  $ranges
+     * @param  callable(mixed, string, string, ?string): ?DhcpRange  $buildRange
      */
-    private function collectSubnetRanges(Collection $ranges, mixed $subnet, string $fallbackInterface): void
+    private function collectSubnetRanges(Collection $ranges, mixed $subnet, string $fallbackInterface, callable $buildRange): void
     {
         if (! is_array($subnet)) {
             return;
@@ -512,7 +591,7 @@ class KeaDhcpService implements DhcpInterface
         $subnetLabel = $this->contextName($subnet['user-context'] ?? null);
 
         foreach ($pools as $pool) {
-            $range = $this->buildRange($pool, $cidr, $interface, $subnetLabel);
+            $range = $buildRange($pool, $cidr, $interface, $subnetLabel);
 
             if ($range instanceof DhcpRange) {
                 $ranges->push($range);
@@ -540,10 +619,6 @@ class KeaDhcpService implements DhcpInterface
 
         [$from, $to] = $bounds;
 
-        $label = $this->contextName($pool['user-context'] ?? null)
-            ?? $subnetLabel
-            ?? sprintf('%s (%s–%s)', $cidr, $from, $to);
-
         return new DhcpRange(
             interface: $interface,
             type: 'ipv4',
@@ -552,8 +627,18 @@ class KeaDhcpService implements DhcpInterface
             rangeTo: $to,
             prefix: null,
             gateway: null,
-            description: $label,
+            description: $this->poolLabel($pool, $subnetLabel, $cidr, $from, $to),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $pool
+     */
+    private function poolLabel(array $pool, ?string $subnetLabel, string $cidr, string $from, string $to): string
+    {
+        return $this->contextName($pool['user-context'] ?? null)
+            ?? $subnetLabel
+            ?? sprintf('%s (%s–%s)', $cidr, $from, $to);
     }
 
     /**
@@ -653,5 +738,170 @@ class KeaDhcpService implements DhcpInterface
             usedAddresses: $used,
             utilisation: $total > 0 ? round($used / $total, 4) : 0.0,
         );
+    }
+
+    private function buildIpv6Range(mixed $pool, string $cidr, string $interface, ?string $subnetLabel): ?DhcpRange
+    {
+        if (! is_array($pool)) {
+            return null;
+        }
+
+        $poolString = $pool['pool'] ?? null;
+
+        if (! is_string($poolString) || $poolString === '') {
+            return null;
+        }
+
+        $bounds = $this->parseIpv6RangeBounds($poolString);
+
+        if ($bounds === null) {
+            return null;
+        }
+
+        [$from, $to] = $bounds;
+
+        return new DhcpRange(
+            interface: $interface,
+            type: 'ipv6',
+            subnet: $cidr,
+            rangeFrom: $from,
+            rangeTo: $to,
+            prefix: null,
+            gateway: null,
+            description: $this->poolLabel($pool, $subnetLabel, $cidr, $from, $to),
+        );
+    }
+
+    /**
+     * @return array{0: string, 1: string}|null
+     */
+    private function parseIpv6RangeBounds(string $pool): ?array
+    {
+        if (str_contains($pool, '/')) {
+            return $this->parseIpv6CidrRangeBounds($pool);
+        }
+
+        if (preg_match('/^\s*([^\s-]+)\s*-\s*([^\s-]+)\s*$/', $pool, $matches) !== 1) {
+            return null;
+        }
+
+        $fromPacked = filter_var($matches[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false
+            ? inet_pton($matches[1])
+            : false;
+        $toPacked = filter_var($matches[2], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false
+            ? inet_pton($matches[2])
+            : false;
+
+        if ($fromPacked === false || $toPacked === false || $fromPacked > $toPacked) {
+            return null;
+        }
+
+        return [$matches[1], $matches[2]];
+    }
+
+    /**
+     * @return array{0: string, 1: string}|null
+     */
+    private function parseIpv6CidrRangeBounds(string $cidr): ?array
+    {
+        if (preg_match('#^(.+)/(\d{1,3})$#', $cidr, $matches) !== 1) {
+            return null;
+        }
+
+        $prefixLength = (int) $matches[2];
+
+        if ($prefixLength > 128 || filter_var($matches[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            return null;
+        }
+
+        $network = inet_pton($matches[1]);
+
+        if ($network === false) {
+            return null; // @codeCoverageIgnore
+        }
+
+        $fullBytes = intdiv($prefixLength, 8);
+        $remainingBits = $prefixLength % 8;
+
+        $start = $network;
+        $end = $network;
+
+        for ($i = $fullBytes + ($remainingBits > 0 ? 1 : 0); $i < 16; $i++) {
+            $start[$i] = "\x00";
+            $end[$i] = "\xFF";
+        }
+
+        if ($remainingBits > 0) {
+            $hostMask = 0xFF >> $remainingBits;
+            $networkByte = ord($network[$fullBytes]);
+            $start[$fullBytes] = chr($networkByte & ~$hostMask);
+            $end[$fullBytes] = chr($networkByte | $hostMask);
+        }
+
+        $fromAddress = inet_ntop($start);
+        $toAddress = inet_ntop($end);
+
+        if ($fromAddress === false || $toAddress === false) {
+            return null; // @codeCoverageIgnore
+        }
+
+        return [$fromAddress, $toAddress];
+    }
+
+    /**
+     * @param  Collection<int, DhcpLease>  $leases
+     */
+    private function enrichIpv6RangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
+    {
+        $fromPacked = inet_pton((string) $range->rangeFrom);
+        $toPacked = inet_pton((string) $range->rangeTo);
+
+        if ($fromPacked === false || $toPacked === false) {
+            return $range; // @codeCoverageIgnore
+        }
+
+        $total = $this->ipv6AddressCount($fromPacked, $toPacked);
+
+        $used = $leases->filter(function (DhcpLease $lease) use ($fromPacked, $toPacked): bool {
+            $leasePacked = inet_pton($lease->ip);
+
+            return $leasePacked !== false && $leasePacked >= $fromPacked && $leasePacked <= $toPacked;
+        })->count();
+
+        return new DhcpRange(
+            interface: $range->interface,
+            type: $range->type,
+            subnet: $range->subnet,
+            rangeFrom: $range->rangeFrom,
+            rangeTo: $range->rangeTo,
+            prefix: $range->prefix,
+            gateway: $range->gateway,
+            description: $range->description,
+            totalAddresses: $total,
+            usedAddresses: $used,
+            utilisation: (float) bcdiv((string) $used, $total, 6),
+        );
+    }
+
+    /**
+     * @return numeric-string
+     */
+    private function ipv6AddressCount(string $fromPacked, string $toPacked): string
+    {
+        return bcadd(bcsub($this->ipv6ToDecimal($toPacked), $this->ipv6ToDecimal($fromPacked)), '1');
+    }
+
+    /**
+     * @return numeric-string
+     */
+    private function ipv6ToDecimal(string $packed): string
+    {
+        $decimal = '0';
+
+        for ($i = 0; $i < 16; $i++) {
+            $decimal = bcadd(bcmul($decimal, '256'), (string) ord($packed[$i]));
+        }
+
+        return $decimal;
     }
 }

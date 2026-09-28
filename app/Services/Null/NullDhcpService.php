@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 
 class NullDhcpService implements DhcpInterface
 {
-    public function getPoolStatus(): DhcpPoolStatus
+    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
     {
         return new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
     }

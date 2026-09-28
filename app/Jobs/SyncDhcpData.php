@@ -67,26 +67,28 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
         $leases = $dhcp->getLeases();
         $ranges = $dhcp->getRanges();
-        $poolStatus = $dhcp->getPoolStatus();
+        $ipv4PoolStatus = $dhcp->getPoolStatus('ipv4');
+        $ipv6PoolStatus = $dhcp->getPoolStatus('ipv6');
         $fetchStatus = $dhcp->getFetchStatus();
 
         // Read previous pool utilisation BEFORE the transaction for threshold crossing detection
-        $previousUtilisation = DhcpPoolStatusRecord::where('integration', $integration)
-            ->where('address_family', 'ipv4')
-            ->value('utilisation');
-        $previousUtilisation = $previousUtilisation !== null ? (float) $previousUtilisation : null;
+        $previousUtilisation = [
+            'ipv4' => $this->currentUtilisation($integration, 'ipv4'),
+            'ipv6' => $this->currentUtilisation($integration, 'ipv6'),
+        ];
 
         $leasesCount = 0;
         $rangesCount = 0;
         $poolStatusCount = 0;
 
-        DB::transaction(function () use ($integration, $leases, $ranges, $poolStatus, $fetchStatus, &$leasesCount, &$rangesCount, &$poolStatusCount): void {
+        DB::transaction(function () use ($integration, $leases, $ranges, $ipv4PoolStatus, $ipv6PoolStatus, $fetchStatus, &$leasesCount, &$rangesCount, &$poolStatusCount): void {
             $leasesCount = $this->performLeaseSync($integration, $leases, $fetchStatus);
             $rangesCount = $this->performRangeSync($integration, $ranges, $fetchStatus);
-            $poolStatusCount = $this->performPoolStatusSync($integration, $poolStatus, $fetchStatus);
+            $poolStatusCount = $this->performPoolStatusSync($integration, $ipv4PoolStatus, $ipv6PoolStatus, $fetchStatus);
         });
 
-        $this->fireThresholdEventIfCrossed($integration, $previousUtilisation);
+        $this->fireThresholdEventIfCrossed($integration, 'ipv4', $previousUtilisation['ipv4']);
+        $this->fireThresholdEventIfCrossed($integration, 'ipv6', $previousUtilisation['ipv6']);
 
         Log::info('SyncDhcpData: sync complete', [
             'integration' => $integration,
@@ -101,12 +103,9 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
      *
      * Called directly from handle() after the transaction commits.
      */
-    public function fireThresholdEventIfCrossed(string $integration, ?float $previousUtilisation): void
+    public function fireThresholdEventIfCrossed(string $integration, string $addressFamily, ?float $previousUtilisation): void
     {
-        $currentUtilisation = DhcpPoolStatusRecord::where('integration', $integration)
-            ->where('address_family', 'ipv4')
-            ->value('utilisation');
-        $currentUtilisation = $currentUtilisation !== null ? (float) $currentUtilisation : null;
+        $currentUtilisation = $this->currentUtilisation($integration, $addressFamily);
 
         if ($currentUtilisation === null || $currentUtilisation < self::UTILISATION_THRESHOLD) {
             return;
@@ -118,14 +117,23 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
                 pool: $integration,
                 usage: $currentUtilisation,
                 threshold: self::UTILISATION_THRESHOLD,
-                addressFamily: 'ipv4',
+                addressFamily: $addressFamily,
             );
         }
     }
 
+    private function currentUtilisation(string $integration, string $addressFamily): ?float
+    {
+        $utilisation = DhcpPoolStatusRecord::where('integration', $integration)
+            ->where('address_family', $addressFamily)
+            ->value('utilisation');
+
+        return $utilisation !== null ? (float) $utilisation : null;
+    }
+
     /**
      * @param  Collection<int, DhcpLease>  $leases
-     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool, ipv6_ranges?: bool}  $fetchStatus
      */
     public function performLeaseSync(string $integration, Collection $leases, array $fetchStatus): int
     {
@@ -235,13 +243,25 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
     /**
      * @param  Collection<int, DhcpRange>  $ranges
-     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool, ipv6_ranges?: bool}  $fetchStatus
      */
     public function performRangeSync(string $integration, Collection $ranges, array $fetchStatus): int
     {
-        $addressFamily = 'ipv4';
+        $ipv4Ranges = $ranges->filter(fn (DhcpRange $range): bool => $range->type === 'ipv4')->values();
+        $ipv6Ranges = $ranges->filter(fn (DhcpRange $range): bool => $range->type === 'ipv6')->values();
 
-        if (! $this->rangesFetchSucceeded($fetchStatus)) {
+        $count = $this->performRangeSyncForFamily($integration, 'ipv4', $ipv4Ranges, $fetchStatus);
+
+        return $count + $this->performRangeSyncForFamily($integration, 'ipv6', $ipv6Ranges, $fetchStatus);
+    }
+
+    /**
+     * @param  Collection<int, DhcpRange>  $familyRanges
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool, ipv6_ranges?: bool}  $fetchStatus
+     */
+    private function performRangeSyncForFamily(string $integration, string $addressFamily, Collection $familyRanges, array $fetchStatus): int
+    {
+        if (! $this->rangesFetchSucceededForFamily($fetchStatus, $addressFamily)) {
             $this->recordFailedAttempt($integration, $addressFamily, 'ranges');
 
             return 0;
@@ -255,15 +275,17 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
         );
         $syncState->last_attempt_at = $now;
 
-        if ($ranges->isEmpty()) {
-            return $this->handleEmptyResult($syncState, $integration, 'ranges', function () use ($integration): void {
-                DhcpRangeRecord::where('integration', $integration)->delete();
+        if ($familyRanges->isEmpty()) {
+            return $this->handleEmptyResult($syncState, $integration, 'ranges', function () use ($integration, $addressFamily): void {
+                DhcpRangeRecord::where('integration', $integration)
+                    ->where('type', $addressFamily)
+                    ->delete();
             });
         }
 
         $upsertedIds = [];
 
-        foreach ($ranges as $range) {
+        foreach ($familyRanges as $range) {
             $record = DhcpRangeRecord::updateOrCreate(
                 [
                     'integration' => $integration,
@@ -286,10 +308,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
             $upsertedIds[] = $record->id;
         }
 
-        // Delete stale ranges for this integration
-        DhcpRangeRecord::where('integration', $integration)
-            ->whereNotIn('id', $upsertedIds)
-            ->delete();
+        $this->deleteStaleRanges($integration, $addressFamily, $upsertedIds);
 
         $syncState->last_success_at = $now;
         $syncState->empty_count = 0;
@@ -299,15 +318,43 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
+     * @param  list<int>  $upsertedIds
      */
-    public function performPoolStatusSync(string $integration, DhcpPoolStatus $poolStatus, array $fetchStatus): int
+    private function deleteStaleRanges(string $integration, string $addressFamily, array $upsertedIds): void
     {
-        $addressFamily = 'ipv4';
+        DhcpRangeRecord::where('integration', $integration)
+            ->where('type', $addressFamily)
+            ->whereNotIn('id', $upsertedIds)
+            ->delete();
+    }
 
-        if (! $this->rangesFetchSucceeded($fetchStatus)) {
+    /**
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool, ipv6_ranges?: bool}  $fetchStatus
+     */
+    public function performPoolStatusSync(string $integration, DhcpPoolStatus $ipv4PoolStatus, DhcpPoolStatus $ipv6PoolStatus, array $fetchStatus): int
+    {
+        $count = $this->performPoolStatusSyncForFamily($integration, 'ipv4', $ipv4PoolStatus, $fetchStatus, familyIsConfigured: true);
+
+        return $count + $this->performPoolStatusSyncForFamily($integration, 'ipv6', $ipv6PoolStatus, $fetchStatus, familyIsConfigured: $this->hasIpv6PoolData($ipv6PoolStatus));
+    }
+
+    private function hasIpv6PoolData(DhcpPoolStatus $ipv6PoolStatus): bool
+    {
+        return $ipv6PoolStatus->total > 0 || $ipv6PoolStatus->used > 0;
+    }
+
+    /**
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool, ipv6_ranges?: bool}  $fetchStatus
+     */
+    private function performPoolStatusSyncForFamily(string $integration, string $addressFamily, DhcpPoolStatus $poolStatus, array $fetchStatus, bool $familyIsConfigured): int
+    {
+        if (! $this->rangesFetchSucceededForFamily($fetchStatus, $addressFamily)) {
             $this->recordFailedAttempt($integration, $addressFamily, 'pool_status');
 
+            return 0;
+        }
+
+        if ($this->shouldSkipUnconfiguredIpv6PoolStatus($addressFamily, $familyIsConfigured)) {
             return 0;
         }
 
@@ -361,11 +408,16 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool, ipv6_ranges?: bool}  $fetchStatus
      */
-    private function rangesFetchSucceeded(array $fetchStatus): bool
+    private function rangesFetchSucceededForFamily(array $fetchStatus, string $addressFamily): bool
     {
-        return $fetchStatus['ipv4'] && ($fetchStatus['ipv4_ranges'] ?? true);
+        return $fetchStatus[$addressFamily] && ($fetchStatus[$addressFamily.'_ranges'] ?? true);
+    }
+
+    private function shouldSkipUnconfiguredIpv6PoolStatus(string $addressFamily, bool $familyIsConfigured): bool
+    {
+        return $addressFamily === 'ipv6' && ! $familyIsConfigured;
     }
 
     private function recordFailedAttempt(string $integration, string $addressFamily, string $dataset): void

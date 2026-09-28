@@ -31,8 +31,12 @@ class CiscoDhcpService implements DhcpInterface
         private bool $ipv6Enabled = true,
     ) {}
 
-    public function getPoolStatus(): DhcpPoolStatus
+    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
     {
+        if ($family !== 'ipv4') {
+            return new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
+        }
+
         $this->ensureSnapshot();
 
         /** @var array<int, array{name: string, total: string, leased: string}> $poolStats */

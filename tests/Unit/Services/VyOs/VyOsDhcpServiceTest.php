@@ -509,6 +509,18 @@ class VyOsDhcpServiceTest extends TestCase
         $this->assertSame(0.0, $pool->utilisation);
     }
 
+    public function test_get_pool_status_ipv6_returns_zeroed_status(): void
+    {
+        $service = $this->createService(254);
+
+        $pool = $service->getPoolStatus('ipv6');
+
+        $this->assertSame(0, $pool->total);
+        $this->assertSame(0, $pool->used);
+        $this->assertSame(0, $pool->available);
+        $this->assertSame(0.0, $pool->utilisation);
+    }
+
     public function test_get_ranges_subnet_without_range_key_is_skipped(): void
     {
         $this->client->shouldReceive('retrieve')

@@ -634,6 +634,18 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertEqualsWithDelta(round(2 / 500, 4), $status->utilisation, 0.0001);
     }
 
+    public function test_get_pool_status_ipv6_returns_zeroed_status(): void
+    {
+        $service = $this->createService(poolSize: '254');
+        $status = $service->getPoolStatus('ipv6');
+
+        $this->assertInstanceOf(DhcpPoolStatus::class, $status);
+        $this->assertSame(0, $status->total);
+        $this->assertSame(0, $status->used);
+        $this->assertSame(0, $status->available);
+        $this->assertSame(0.0, $status->utilisation);
+    }
+
     // -------------------------------------------------------------------------
     // getLease() — found
     // -------------------------------------------------------------------------

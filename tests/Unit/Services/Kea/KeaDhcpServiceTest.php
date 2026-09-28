@@ -9,6 +9,7 @@ use App\Services\Kea\KeaClient;
 use App\Services\Kea\KeaDhcpService;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
+use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -1252,6 +1253,39 @@ class KeaDhcpServiceTest extends TestCase
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $dhcp4Arguments
+     * @param  array<string, mixed>  $dhcp6Arguments
+     * @param  list<array<string, mixed>>  $ipv4LeaseResponses
+     * @param  list<array<string, mixed>>  $ipv6LeaseResponses
+     */
+    private function fakeDualStackConfigGet(
+        array $dhcp4Arguments,
+        array $dhcp6Arguments,
+        array $ipv4LeaseResponses = [['result' => 3]],
+        array $ipv6LeaseResponses = [['result' => 3]],
+    ): void {
+        $ipv4Queue = $ipv4LeaseResponses;
+        $ipv6Queue = $ipv6LeaseResponses;
+
+        Http::fake([
+            'kea4.local' => function ($request) use ($dhcp4Arguments, &$ipv4Queue) {
+                if (($request->data()['command'] ?? null) === 'config-get') {
+                    return Http::response([['result' => 0, 'arguments' => $dhcp4Arguments]]);
+                }
+
+                return Http::response([array_shift($ipv4Queue) ?? ['result' => 3]]);
+            },
+            'kea6.local' => function ($request) use ($dhcp6Arguments, &$ipv6Queue) {
+                if (($request->data()['command'] ?? null) === 'config-get') {
+                    return Http::response([['result' => 0, 'arguments' => $dhcp6Arguments]]);
+                }
+
+                return Http::response([array_shift($ipv6Queue) ?? ['result' => 3]]);
+            },
+        ]);
+    }
+
     public function test_ipv6_first_page_requests_from_start_with_limit_1000(): void
     {
         $service = $this->dualStackService();
@@ -1497,7 +1531,10 @@ class KeaDhcpServiceTest extends TestCase
             'kea6.local' => Http::response([['result' => 3]]),
         ]);
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true], $service->getFetchStatus());
+        $this->assertSame(
+            ['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true],
+            $service->getFetchStatus(),
+        );
     }
 
     public function test_ipv6_failure_does_not_block_or_corrupt_ipv4(): void
@@ -1661,5 +1698,570 @@ class KeaDhcpServiceTest extends TestCase
 
         $this->assertTrue($ranges->isEmpty());
         Http::assertNothingSent();
+    }
+
+    public function test_ipv6_parses_range_and_cidr_pools_including_shared_networks(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            ['Dhcp4' => ['subnet4' => []]],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        [
+                            'subnet' => '2001:db8:1::/64',
+                            'interface' => 'eth6',
+                            'pools' => [
+                                ['pool' => '2001:db8:1::10 - 2001:db8:1::20'],
+                            ],
+                        ],
+                    ],
+                    'shared-networks' => [
+                        [
+                            'name' => 'v6-office',
+                            'subnet6' => [
+                                [
+                                    'subnet' => '2001:db8:2::/64',
+                                    'pools' => [
+                                        ['pool' => '2001:db8:2::/126'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $ranges = $service->getRanges()->values()->all();
+
+        $this->assertCount(2, $ranges);
+        $this->assertSame('ipv6', $ranges[0]->type);
+        $this->assertSame('eth6', $ranges[0]->interface);
+        $this->assertSame('2001:db8:1::/64', $ranges[0]->subnet);
+        $this->assertSame('2001:db8:1::10', $ranges[0]->rangeFrom);
+        $this->assertSame('2001:db8:1::20', $ranges[0]->rangeTo);
+        $this->assertSame('17', $ranges[0]->totalAddresses);
+
+        $this->assertSame('v6-office', $ranges[1]->interface);
+        $this->assertSame('2001:db8:2::', $ranges[1]->rangeFrom);
+        $this->assertSame('2001:db8:2::3', $ranges[1]->rangeTo);
+        $this->assertSame('4', $ranges[1]->totalAddresses);
+    }
+
+    public function test_ipv6_pd_pools_are_ignored(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            ['Dhcp4' => ['subnet4' => []]],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        [
+                            'subnet' => '2001:db8::/64',
+                            'pools' => [['pool' => '2001:db8::10 - 2001:db8::20']],
+                            'pd-pools' => [['prefix' => '2001:db8:ffff::', 'prefix-len' => 48, 'delegated-len' => 64]],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $ranges = $service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('2001:db8::10', $ranges[0]->rangeFrom);
+        $this->assertSame('2001:db8::20', $ranges[0]->rangeTo);
+    }
+
+    public function test_ipv6_label_fallback_order(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            ['Dhcp4' => ['subnet4' => []]],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        [
+                            'subnet' => '2001:db8::/64',
+                            'user-context' => ['name' => 'subnet-name'],
+                            'pools' => [
+                                ['pool' => '2001:db8::10 - 2001:db8::20', 'user-context' => ['name' => 'pool-name']],
+                                ['pool' => '2001:db8::30 - 2001:db8::40'],
+                            ],
+                        ],
+                        [
+                            'subnet' => '2001:db8:1::/64',
+                            'pools' => [
+                                ['pool' => '2001:db8:1::10 - 2001:db8:1::20'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $ranges = $service->getRanges()->values()->all();
+
+        $this->assertCount(3, $ranges);
+        $this->assertSame('pool-name', $ranges[0]->description);
+        $this->assertSame('subnet-name', $ranges[1]->description);
+        $this->assertSame(
+            "2001:db8:1::/64 (2001:db8:1::10\u{2013}2001:db8:1::20)",
+            $ranges[2]->description,
+        );
+    }
+
+    public function test_ipv6_skips_malformed_subnet_and_pool_entries(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            ['Dhcp4' => ['subnet4' => []]],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        'not-an-array',
+                        ['pools' => [['pool' => '2001:db8::10 - 2001:db8::20']]],
+                        ['subnet' => 123, 'pools' => [['pool' => '2001:db8::10 - 2001:db8::20']]],
+                        ['subnet' => '2001:db8::/64', 'pools' => 'not-an-array'],
+                        [
+                            'subnet' => '2001:db8:1::/64',
+                            'pools' => [
+                                'not-an-array',
+                                ['no_pool_key' => true],
+                                ['pool' => 'garbage'],
+                                ['pool' => '999.999.999.999/64'],
+                                ['pool' => '2001:db8:1::/129'],
+                                ['pool' => '2001:db8:1::/abc'],
+                                ['pool' => '2001:db8:1::20 - 2001:db8:1::10'],
+                                ['pool' => 'garbage - 2001:db8:1::10'],
+                                ['pool' => '2001:db8:1::10 - garbage'],
+                                ['pool' => '2001:db8:1::10 - 2001:db8:1::20'],
+                            ],
+                        ],
+                    ],
+                    'shared-networks' => [
+                        'not-an-array',
+                        ['name' => 'net', 'subnet6' => 'not-an-array'],
+                    ],
+                ],
+            ],
+        );
+
+        $ranges = $service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('2001:db8:1::10', $ranges[0]->rangeFrom);
+        $this->assertSame('2001:db8:1::20', $ranges[0]->rangeTo);
+    }
+
+    public function test_ipv6_config_get_arguments_non_array_returns_empty_ipv6_ranges(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => function ($request) {
+                if (($request->data()['command'] ?? null) === 'config-get') {
+                    return Http::response([['result' => 0, 'arguments' => ['Dhcp4' => ['subnet4' => []]]]]);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+            'kea6.local' => function ($request) {
+                if (($request->data()['command'] ?? null) === 'config-get') {
+                    return Http::response([['result' => 0, 'arguments' => 'not-an-array']]);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+        ]);
+
+        $this->assertTrue($service->getRanges()->isEmpty());
+    }
+
+    public function test_ipv6_dhcp6_missing_or_non_array_returns_empty_ipv6_ranges(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            ['Dhcp4' => ['subnet4' => []]],
+            ['SomethingElse' => []],
+        );
+
+        $this->assertTrue($service->getRanges()->isEmpty());
+
+        $service->resetSnapshot();
+
+        $this->fakeDualStackConfigGet(
+            ['Dhcp4' => ['subnet4' => []]],
+            ['Dhcp6' => 'not-an-array'],
+        );
+
+        $this->assertTrue($service->getRanges()->isEmpty());
+    }
+
+    public function test_ipv6_get_ranges_returns_ipv4_only_when_no_ipv6_subnets_configured(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                    ],
+                ],
+            ],
+            ['Dhcp6' => ['subnet6' => []]],
+        );
+
+        $ranges = $service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('ipv4', $ranges[0]->type);
+    }
+
+    public function test_ipv6_computes_used_addresses_within_pool_bounds_not_whole_subnet(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            ['Dhcp4' => ['subnet4' => []]],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        [
+                            'subnet' => '2001:db8::/64',
+                            'pools' => [['pool' => '2001:db8::10 - 2001:db8::14']],
+                        ],
+                    ],
+                ],
+            ],
+            ipv6LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2001:db8::11', hwAddress: 'AA:BB:CC:00:00:01'),
+                            $this->keaLease6('2001:db8::13', hwAddress: 'AA:BB:CC:00:00:02'),
+                            $this->keaLease6('2001:db8::99', hwAddress: 'AA:BB:CC:00:00:03'),
+                            $this->keaLease6('not-an-ip', hwAddress: 'AA:BB:CC:00:00:04'),
+                        ],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+        );
+
+        $ranges = $service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('5', $ranges[0]->totalAddresses);
+        $this->assertSame(2, $ranges[0]->usedAddresses);
+        $this->assertSame(0.4, $ranges[0]->utilisation);
+    }
+
+    public function test_ipv6_slash_64_pool_total_is_capped_with_correct_used(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                    ],
+                ],
+            ],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        [
+                            'subnet' => '2a0f:85c1:d91:2100::/64',
+                            'pools' => [['pool' => '2a0f:85c1:d91:2100::/64']],
+                        ],
+                    ],
+                ],
+            ],
+            ipv4LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [$this->keaLease('10.0.0.11', 'AA:BB:CC:00:00:01', 'v4-host')],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+            ipv6LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [
+                            $this->keaLease6('2a0f:85c1:d91:2100::1', hwAddress: 'AA:BB:CC:00:00:02'),
+                        ],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+        );
+
+        $ranges = $service->getRanges()->values()->all();
+        $ipv6Range = collect($ranges)->firstOrFail(fn (DhcpRange $range): bool => $range->type === 'ipv6');
+
+        $this->assertCount(2, $ranges);
+        $this->assertSame('18446744073709551616', $ipv6Range->totalAddresses);
+        $this->assertSame(1, $ipv6Range->usedAddresses);
+
+        $ipv6Status = $service->getPoolStatus('ipv6');
+
+        $this->assertSame(PHP_INT_MAX, $ipv6Status->total);
+        $this->assertSame(1, $ipv6Status->used);
+        $this->assertSame(PHP_INT_MAX - 1, $ipv6Status->available);
+
+        $ipv4Status = $service->getPoolStatus('ipv4');
+
+        $this->assertSame(5, $ipv4Status->total);
+        $this->assertSame(1, $ipv4Status->used);
+        $this->assertSame(4, $ipv4Status->available);
+        $this->assertSame(0.2, $ipv4Status->utilisation);
+    }
+
+    public function test_get_pool_status_aggregates_ipv4_and_ipv6_ranges(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                    ],
+                ],
+            ],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        ['subnet' => '2001:db8::/64', 'pools' => [['pool' => '2001:db8::10 - 2001:db8::14']]],
+                    ],
+                ],
+            ],
+            ipv4LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [$this->keaLease('10.0.0.11', 'AA:BB:CC:00:00:01', 'v4-host')],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+            ipv6LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [$this->keaLease6('2001:db8::11', hwAddress: 'AA:BB:CC:00:00:02')],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+        );
+
+        $ipv4Status = $service->getPoolStatus('ipv4');
+
+        $this->assertSame(5, $ipv4Status->total);
+        $this->assertSame(1, $ipv4Status->used);
+        $this->assertSame(4, $ipv4Status->available);
+        $this->assertSame(0.2, $ipv4Status->utilisation);
+
+        $ipv6Status = $service->getPoolStatus('ipv6');
+
+        $this->assertSame(5, $ipv6Status->total);
+        $this->assertSame(1, $ipv6Status->used);
+        $this->assertSame(4, $ipv6Status->available);
+        $this->assertSame(0.2, $ipv6Status->utilisation);
+    }
+
+    public function test_get_pool_status_default_family_matches_explicit_ipv4(): void
+    {
+        $service = $this->dualStackService();
+
+        $this->fakeDualStackConfigGet(
+            [
+                'Dhcp4' => [
+                    'subnet4' => [
+                        ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                    ],
+                ],
+            ],
+            [
+                'Dhcp6' => [
+                    'subnet6' => [
+                        ['subnet' => '2001:db8::/64', 'pools' => [['pool' => '2001:db8::10 - 2001:db8::14']]],
+                    ],
+                ],
+            ],
+            ipv4LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [$this->keaLease('10.0.0.11', 'AA:BB:CC:00:00:01', 'v4-host')],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+            ipv6LeaseResponses: [
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'leases' => [$this->keaLease6('2001:db8::11', hwAddress: 'AA:BB:CC:00:00:02')],
+                    ],
+                ],
+                ['result' => 3],
+            ],
+        );
+
+        $this->assertEquals($service->getPoolStatus('ipv4'), $service->getPoolStatus());
+    }
+
+    public function test_ipv6_config_get_failure_returns_empty_ipv6_ranges_without_breaking_ipv4(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => function ($request) {
+                if (($request->data()['command'] ?? null) === 'config-get') {
+                    return Http::response([[
+                        'result' => 0,
+                        'arguments' => [
+                            'Dhcp4' => [
+                                'subnet4' => [
+                                    ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                                ],
+                            ],
+                        ],
+                    ]]);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+            'kea6.local' => function ($request) {
+                if (($request->data()['command'] ?? null) === 'config-get') {
+                    return Http::response('Unauthorized', 401);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+        ]);
+
+        $ranges = $service->getRanges()->values()->all();
+        $status = $service->getFetchStatus();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('ipv4', $ranges[0]->type);
+        $this->assertFalse($status['ipv6_ranges']);
+        $this->assertTrue($status['ipv4_ranges']);
+    }
+
+    public function test_ipv6_ranges_config_get_failure_does_not_corrupt_already_fetched_ipv6_lease_status(): void
+    {
+        $service = $this->dualStackService();
+
+        $leasePageQueue = [[
+            'result' => 0,
+            'arguments' => ['leases' => [$this->keaLease6('2001:db8::1', duid: '00:01:00:01:00:00:00:00:aa:bb:cc:00:00:01')]],
+        ]];
+
+        Http::fake([
+            'kea4.local' => Http::response([['result' => 3]]),
+            'kea6.local' => function ($request) use (&$leasePageQueue) {
+                $command = $request->data()['command'] ?? null;
+
+                if ($command === 'config-get') {
+                    return Http::response('Unauthorized', 401);
+                }
+
+                if ($command === 'lease6-get-page') {
+                    return Http::response([array_shift($leasePageQueue) ?? ['result' => 3]]);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+        ]);
+
+        $leases = $service->getLeases();
+        $ranges = $service->getRanges();
+        $status = $service->getFetchStatus();
+
+        $this->assertSame(['2001:db8::1'], $leases->pluck('ip')->all());
+        $this->assertTrue($ranges->isEmpty());
+        $this->assertTrue($status['ipv6']);
+        $this->assertFalse($status['ipv6_ranges']);
+        $this->assertTrue($status['ipv4']);
+        $this->assertTrue($status['ipv4_ranges']);
+    }
+
+    public function test_ipv6_ranges_skipped_when_ipv6_client_not_configured(): void
+    {
+        Http::fake([
+            'kea.local' => function ($request) {
+                if (($request->data()['command'] ?? null) === 'config-get') {
+                    return Http::response([[
+                        'result' => 0,
+                        'arguments' => [
+                            'Dhcp4' => [
+                                'subnet4' => [
+                                    ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                                ],
+                            ],
+                        ],
+                    ]]);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+        ]);
+
+        $ranges = $this->service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('ipv4', $ranges[0]->type);
+    }
+
+    public function test_ipv6_ranges_skipped_when_ipv6_lease_fetch_failed(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea4.local' => function ($request) {
+                if (($request->data()['command'] ?? null) === 'config-get') {
+                    return Http::response([[
+                        'result' => 0,
+                        'arguments' => [
+                            'Dhcp4' => [
+                                'subnet4' => [
+                                    ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                                ],
+                            ],
+                        ],
+                    ]]);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+            'kea6.local' => Http::response('Unauthorized', 401),
+        ]);
+
+        $ranges = $service->getRanges()->values()->all();
+
+        $this->assertCount(1, $ranges);
+        $this->assertSame('ipv4', $ranges[0]->type);
+
+        Http::assertNotSent(function ($request): bool {
+            return $request->url() === 'https://kea6.local'
+                && ($request->data()['command'] ?? null) === 'config-get';
+        });
     }
 }
