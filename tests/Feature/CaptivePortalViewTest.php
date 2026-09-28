@@ -170,6 +170,7 @@ class CaptivePortalViewTest extends TestCase
         $response->assertStatus(503);
         $response->assertSee('Portal authentication is currently unavailable.');
         $response->assertSee('data-testid="captive-config-error"', false);
+        $response->assertSee('[data-reload]', false);
     }
 
     public function test_captive_routes_have_throttle_middleware(): void

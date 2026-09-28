@@ -120,9 +120,11 @@
 @endsection
 
 @section('scripts')
-    @if (empty($serviceUnavailable))
     <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
         document.querySelectorAll("[data-reload]").forEach((el) => el.addEventListener("click", () => window.location.reload()));
+    </script>
+    @if (empty($serviceUnavailable))
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
         (function() {
             var deviceCode = @json($deviceCode);
             var interval = Math.max({{ $interval }} * 1000, 3000);
