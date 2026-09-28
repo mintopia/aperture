@@ -1009,6 +1009,155 @@ class KeaDhcpServiceTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_get_lease_returns_null_when_ipv6_endpoint_not_configured(): void
+    {
+        Http::fake();
+
+        $this->assertNull($this->service->getLease('2001:db8::1'));
+
+        Http::assertNothingSent();
+    }
+
+    public function test_get_lease_returns_null_for_input_that_is_neither_ipv4_nor_ipv6(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake();
+
+        $this->assertNull($service->getLease('not-an-ip-address'));
+
+        Http::assertNothingSent();
+    }
+
+    public function test_get_lease_returns_lease_for_active_ipv6_lease_using_hw_address(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea6.local' => Http::response([
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'state' => 0,
+                        'cltt' => self::NOW_TIMESTAMP - 1_000,
+                        'valid-lft' => 2_000,
+                        'hw-address' => 'AA:BB:CC:00:00:01',
+                        'hostname' => 'workstation-6',
+                        'type' => 'IA_NA',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $lease = $service->getLease('2001:db8::1');
+
+        $this->assertInstanceOf(DhcpLease::class, $lease);
+        $this->assertSame('2001:db8::1', $lease->ip);
+        $this->assertSame('AA:BB:CC:00:00:01', $lease->mac);
+        $this->assertSame('workstation-6', $lease->hostname);
+        $this->assertSame(
+            Carbon::createFromTimestamp(self::NOW_TIMESTAMP + 1_000)->toIso8601String(),
+            $lease->expires,
+        );
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+
+            return $data['command'] === 'lease6-get'
+                && $data['arguments'] === ['ip-address' => '2001:db8::1', 'type' => 'IA_NA'];
+        });
+    }
+
+    public function test_get_lease_derives_mac_from_duid_when_hw_address_missing_for_ipv6(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea6.local' => Http::response([
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'state' => 0,
+                        'cltt' => self::NOW_TIMESTAMP - 1_000,
+                        'valid-lft' => 2_000,
+                        'duid' => '00010001AABBCCDDEEFF0011AABB',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $lease = $service->getLease('2001:db8::1');
+
+        $this->assertInstanceOf(DhcpLease::class, $lease);
+        $this->assertSame('EE:FF:00:11:AA:BB', $lease->mac);
+    }
+
+    public function test_get_lease_ipv6_mac_is_null_when_hw_address_and_duid_absent(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea6.local' => Http::response([
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'state' => 0,
+                        'cltt' => self::NOW_TIMESTAMP - 1_000,
+                        'valid-lft' => 2_000,
+                    ],
+                ],
+            ]),
+        ]);
+
+        $lease = $service->getLease('2001:db8::1');
+
+        $this->assertInstanceOf(DhcpLease::class, $lease);
+        $this->assertNull($lease->mac);
+    }
+
+    public function test_get_lease_returns_null_for_inactive_ipv6_lease(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea6.local' => Http::response([
+                [
+                    'result' => 0,
+                    'arguments' => [
+                        'state' => 1,
+                        'cltt' => self::NOW_TIMESTAMP - 1_000,
+                        'valid-lft' => 2_000,
+                        'hw-address' => 'AA:BB:CC:00:00:01',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $this->assertNull($service->getLease('2001:db8::1'));
+    }
+
+    public function test_get_lease_returns_null_when_ipv6_lease_not_found(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake([
+            'kea6.local' => Http::response([
+                ['result' => 3, 'text' => 'no leases found'],
+            ]),
+        ]);
+
+        $this->assertNull($service->getLease('2001:db8::1'));
+    }
+
+    public function test_get_lease_returns_null_on_ipv6_connection_failure(): void
+    {
+        $service = $this->dualStackService();
+
+        Http::fake(['kea6.local' => fn () => throw new ConnectionException('Connection refused')]);
+
+        $this->assertNull($service->getLease('2001:db8::1'));
+    }
+
     /**
      * @param  array<string, mixed>  $configGetResponse
      * @param  list<array<string, mixed>>  $leaseResponses

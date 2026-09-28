@@ -171,18 +171,42 @@ class KeaDhcpService implements DhcpInterface
 
     public function getLease(string $ipAddress): ?DhcpLease
     {
-        if (! $this->ipv4Client instanceof KeaClient) {
+        if ($this->isIpv4Address($ipAddress)) {
+            return $this->fetchSingleLease(
+                $this->ipv4Client,
+                'lease4-get',
+                ['ip-address' => $ipAddress],
+                $ipAddress,
+                isIpv6: false,
+            );
+        }
+
+        if (! $this->isIpv6Address($ipAddress)) {
             return null;
         }
 
-        if (! $this->isIpv4Address($ipAddress)) {
+        return $this->fetchSingleLease(
+            $this->ipv6Client,
+            'lease6-get',
+            ['ip-address' => $ipAddress, 'type' => 'IA_NA'],
+            $ipAddress,
+            isIpv6: true,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function fetchSingleLease(?KeaClient $client, string $command, array $arguments, string $ipAddress, bool $isIpv6): ?DhcpLease
+    {
+        if (! $client instanceof KeaClient) {
             return null;
         }
 
         try {
-            $entry = $this->ipv4Client->sendCommand('lease4-get', ['ip-address' => $ipAddress]);
+            $entry = $client->sendCommand($command, $arguments);
         } catch (Throwable $throwable) {
-            Log::warning('Kea lease4-get failed', ['ip' => $ipAddress, 'error' => $throwable->getMessage()]);
+            Log::warning(sprintf('Kea %s failed', $command), ['ip' => $ipAddress, 'error' => $throwable->getMessage()]);
 
             return null;
         }
@@ -207,12 +231,11 @@ class KeaDhcpService implements DhcpInterface
             return null;
         }
 
-        $hwAddress = $lease['hw-address'] ?? null;
         $hostname = $lease['hostname'] ?? null;
 
         return new DhcpLease(
             ip: $ipAddress,
-            mac: is_string($hwAddress) && $hwAddress !== '' ? $hwAddress : null,
+            mac: $this->deriveMac($lease, $isIpv6),
             hostname: is_string($hostname) ? $hostname : '',
             expires: Carbon::createFromTimestamp($expiresAt)->toIso8601String(),
         );
@@ -221,6 +244,11 @@ class KeaDhcpService implements DhcpInterface
     private function isIpv4Address(string $ipAddress): bool
     {
         return filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+    }
+
+    private function isIpv6Address(string $ipAddress): bool
+    {
+        return filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
     }
 
     public function resetSnapshot(): void
@@ -414,6 +442,21 @@ class KeaDhcpService implements DhcpInterface
      */
     private function mapLease(array $lease, string $ip, bool $isIpv6 = false): DhcpLease
     {
+        $hostname = $lease['hostname'] ?? null;
+
+        return new DhcpLease(
+            ip: $ip,
+            mac: $this->deriveMac($lease, $isIpv6),
+            hostname: is_string($hostname) ? $hostname : '',
+            expires: Carbon::createFromTimestamp($this->expiresAt($lease))->toIso8601String(),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $lease
+     */
+    private function deriveMac(array $lease, bool $isIpv6): ?string
+    {
         $mac = $lease['hw-address'] ?? null;
         $mac = is_string($mac) && $mac !== '' ? $mac : null;
 
@@ -425,14 +468,7 @@ class KeaDhcpService implements DhcpInterface
             }
         }
 
-        $hostname = $lease['hostname'] ?? null;
-
-        return new DhcpLease(
-            ip: $ip,
-            mac: $mac,
-            hostname: is_string($hostname) ? $hostname : '',
-            expires: Carbon::createFromTimestamp($this->expiresAt($lease))->toIso8601String(),
-        );
+        return $mac;
     }
 
     /**
