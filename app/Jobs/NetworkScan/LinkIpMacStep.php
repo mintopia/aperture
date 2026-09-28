@@ -28,7 +28,7 @@ final class LinkIpMacStep
             $normalized = MacAddress::normalize($lease->mac);
             $address = IpAddress::normalize($lease->ip);
             if ($address !== '' && $normalized !== null) {
-                $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'dhcp'];
+                $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => $lease->macFromDuid ? MacAddress::SOURCE_DHCP_DUID : 'dhcp'];
             }
         }
 
