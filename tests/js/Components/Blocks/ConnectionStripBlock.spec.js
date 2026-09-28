@@ -138,4 +138,35 @@ describe('ConnectionStripBlock', () => {
         });
         expect(wrapper.find('[data-testid="status-dot"]').exists()).toBe(false);
     });
+
+    it('renders the block-connection-strip container', () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: { settings: {}, blockContext: defaultContext },
+        });
+        expect(wrapper.find('[data-testid="block-connection-strip"]').exists()).toBe(true);
+    });
+
+    it('updates status reactively when the blockContext prop changes', async () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: { settings: {}, blockContext: { ...defaultContext, internetEnabled: true } },
+        });
+        expect(wrapper.text()).toContain('Online');
+
+        await wrapper.setProps({ blockContext: { ...defaultContext, internetEnabled: false } });
+
+        expect(wrapper.text()).toContain('Offline');
+    });
+
+    it('exposes updateInternetStatus, which overrides status reactively when called', async () => {
+        const wrapper = mount(ConnectionStripBlock, {
+            props: { settings: {}, blockContext: { ...defaultContext, internetEnabled: true } },
+        });
+        expect(wrapper.vm.updateInternetStatus).toBeInstanceOf(Function);
+        expect(wrapper.text()).toContain('Online');
+
+        wrapper.vm.updateInternetStatus(false);
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain('Offline');
+    });
 });
