@@ -231,14 +231,7 @@ class KeaDhcpService implements DhcpInterface
             return null;
         }
 
-        $hostname = $lease['hostname'] ?? null;
-
-        return new DhcpLease(
-            ip: $ipAddress,
-            mac: $this->deriveMac($lease, $isIpv6),
-            hostname: is_string($hostname) ? $hostname : '',
-            expires: Carbon::createFromTimestamp($expiresAt)->toIso8601String(),
-        );
+        return $this->buildLease($lease, $ipAddress, $expiresAt, $isIpv6);
     }
 
     private function isIpv4Address(string $ipAddress): bool
@@ -442,13 +435,21 @@ class KeaDhcpService implements DhcpInterface
      */
     private function mapLease(array $lease, string $ip, bool $isIpv6 = false): DhcpLease
     {
+        return $this->buildLease($lease, $ip, $this->expiresAt($lease), $isIpv6);
+    }
+
+    /**
+     * @param  array<string, mixed>  $lease
+     */
+    private function buildLease(array $lease, string $ip, int $expiresAt, bool $isIpv6): DhcpLease
+    {
         $hostname = $lease['hostname'] ?? null;
 
         return new DhcpLease(
             ip: $ip,
             mac: $this->deriveMac($lease, $isIpv6),
             hostname: is_string($hostname) ? $hostname : '',
-            expires: Carbon::createFromTimestamp($this->expiresAt($lease))->toIso8601String(),
+            expires: Carbon::createFromTimestamp($expiresAt)->toIso8601String(),
         );
     }
 
