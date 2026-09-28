@@ -24,7 +24,6 @@
             --color-primary: oklch({{ $l }}% {{ $c }} {{ $hue }});
             --color-primary-hover: oklch({{ $l - 7 }}% {{ $c + 0.03 }} {{ $hue }});
             --color-accent: oklch({{ $l }}% {{ $c }} {{ $hue }});
-            --color-accent-hover: oklch({{ $l - 7 }}% {{ $c + 0.03 }} {{ $hue }});
             --color-accent-dim: oklch({{ $l }}% {{ $c }} {{ $hue }} / 0.14);
             --color-accent-text: oklch(98% 0.01 {{ $hue }});
             --color-glow: oklch({{ $l }}% {{ $c }} {{ $hue }} / 0.25);
@@ -33,7 +32,6 @@
             --color-primary: oklch({{ max($l - 21, 40) }}% {{ $c + 0.02 }} {{ $hue }});
             --color-primary-hover: oklch({{ max($l - 21, 40) - 7 }}% {{ $c + 0.04 }} {{ $hue }});
             --color-accent: oklch({{ max($l - 21, 40) }}% {{ $c + 0.02 }} {{ $hue }});
-            --color-accent-hover: oklch({{ max($l - 21, 40) - 7 }}% {{ $c + 0.04 }} {{ $hue }});
             --color-accent-dim: oklch({{ max($l - 21, 40) }}% {{ $c + 0.02 }} {{ $hue }} / 0.1);
             --color-accent-text: oklch(99% 0.005 {{ $hue }});
             --color-glow: oklch({{ max($l - 21, 40) }}% {{ $c + 0.02 }} {{ $hue }} / 0.15);

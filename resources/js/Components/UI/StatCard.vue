@@ -2,7 +2,6 @@
 defineProps({
     label: { type: String, required: true },
     value: { type: [String, Number], required: true },
-    sub: { type: String, default: '' },
     color: { type: String, default: 'text' },
     labelDotColor: { type: String, default: '' },
 });
@@ -45,9 +44,6 @@ const dotColorMap = {
             style="font-variation-settings: 'opsz' 36"
         >
             {{ value }}
-        </p>
-        <p v-if="sub" data-testid="stat-sub" class="mt-0.5 font-mono text-[11px] text-[var(--color-text-muted)]">
-            {{ sub }}
         </p>
         <slot />
     </div>

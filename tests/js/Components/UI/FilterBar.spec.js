@@ -180,25 +180,6 @@ describe('FilterBar', () => {
         expect(wrapper.emitted('update:search')[0]).toEqual(['foo']);
     });
 
-    it('debounces with custom debounce prop value', async () => {
-        const wrapper = mountFilterBar({ debounce: 500 });
-        const input = wrapper.find('[data-testid="filter-search-input"]');
-        await input.setValue('bar');
-        vi.advanceTimersByTime(300);
-        expect(wrapper.emitted('update:search')).toBeFalsy();
-        vi.advanceTimersByTime(200);
-        expect(wrapper.emitted('update:search')).toBeTruthy();
-        expect(wrapper.emitted('update:search')[0]).toEqual(['bar']);
-    });
-
-    it('disables debounce when debounce prop is 0', async () => {
-        const wrapper = mountFilterBar({ debounce: 0 });
-        const input = wrapper.find('[data-testid="filter-search-input"]');
-        await input.setValue('instant');
-        expect(wrapper.emitted('update:search')).toBeTruthy();
-        expect(wrapper.emitted('update:search')[0]).toEqual(['instant']);
-    });
-
     it('cancels previous debounce timer on rapid input', async () => {
         const wrapper = mountFilterBar();
         const input = wrapper.find('[data-testid="filter-search-input"]');

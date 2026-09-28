@@ -1,8 +1,7 @@
 <script setup>
 import { ref, computed, onBeforeUnmount } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { useTheme } from '@/composables/useTheme.js';
-import { ACCENT_PRESETS, applyAccentColor } from '@/composables/useAccentColor.js';
+import { ACCENT_PRESETS, applyAccentColor, useTheme } from '@/composables/useTheme.js';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 

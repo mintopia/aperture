@@ -19,9 +19,6 @@ vi.mock('@/composables/useTheme.js', () => ({
         previewMode: vi.fn(),
         cancelPreview: vi.fn(),
     }),
-}));
-
-vi.mock('@/composables/useAccentColor.js', () => ({
     ACCENT_PRESETS: [
         { name: 'Gold', hue: 55, c: 0.16, l: 76 },
         { name: 'Blue', hue: 230, c: 0.14, l: 72 },

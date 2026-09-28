@@ -1,41 +1,23 @@
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, useAttrs, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Chart } from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
-
-defineOptions({
-    inheritAttrs: false,
-});
 
 const props = defineProps({
     series: { type: Array, required: true },
     yAxisLabel: { type: String, default: '' },
     yAxisFormatter: { type: Function, default: null },
     height: { type: String, default: '200px' },
-    timeRange: { type: String, default: '24h' },
     loading: { type: Boolean, default: false },
     emptyMessage: { type: String, default: 'No data available' },
 });
 
-const attrs = useAttrs();
 const canvas = ref(null);
 
 let chart = null;
 
 const hasData = computed(() => {
     return props.series.some((series) => Array.isArray(series.data) && series.data.length > 0);
-});
-
-const rootTestId = computed(() => attrs['data-testid'] || 'time-series-chart');
-const rootClass = computed(() => attrs.class);
-const rootStyle = computed(() => [attrs.style, { height: props.height }]);
-const rootAttrs = computed(() => {
-    const filteredAttrs = { ...attrs };
-    delete filteredAttrs['data-testid'];
-    delete filteredAttrs.class;
-    delete filteredAttrs.style;
-
-    return filteredAttrs;
 });
 
 function getComputedColor(varName, fallback = '') {
@@ -51,34 +33,7 @@ function resolveColor(color) {
 }
 
 function withAlpha(color, alpha) {
-    if (!color) {
-        return `rgba(99, 102, 241, ${alpha})`;
-    }
-
-    if (color.startsWith('#')) {
-        let hex = color.slice(1);
-
-        if (hex.length === 3) {
-            hex = hex
-                .split('')
-                .map((char) => char + char)
-                .join('');
-        }
-
-        const red = Number.parseInt(hex.slice(0, 2), 16);
-        const green = Number.parseInt(hex.slice(2, 4), 16);
-        const blue = Number.parseInt(hex.slice(4, 6), 16);
-
-        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-    }
-
-    const rgbMatch = color.match(/rgba?\(([^)]+)\)/i);
-    if (rgbMatch) {
-        const [red, green, blue] = rgbMatch[1].split(',').map((value) => value.trim());
-        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-    }
-
-    return color;
+    return `oklch(from ${color} l c h / ${alpha})`;
 }
 
 function formatTimestamp(value, options = { hour: '2-digit', minute: '2-digit' }) {
@@ -225,7 +180,7 @@ onUnmounted(() => {
 });
 
 watch(
-    () => [props.series, props.loading, props.yAxisLabel, props.yAxisFormatter, props.timeRange],
+    () => [props.series, props.loading, props.yAxisLabel, props.yAxisFormatter],
     () => {
         nextTick(() => buildChart());
     },
@@ -234,13 +189,7 @@ watch(
 </script>
 
 <template>
-    <div
-        v-bind="rootAttrs"
-        :data-testid="rootTestId"
-        :data-time-range="timeRange"
-        :class="rootClass"
-        :style="rootStyle"
-    >
+    <div data-testid="time-series-chart" :style="{ height }">
         <div
             v-if="loading"
             data-testid="chart-loading"

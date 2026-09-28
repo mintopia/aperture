@@ -11,11 +11,6 @@ describe('ConfirmModal', () => {
                 message: 'Are you sure you want to continue?',
                 ...props,
             },
-            global: {
-                stubs: {
-                    teleport: true,
-                },
-            },
             ...options,
         });
 
@@ -89,7 +84,7 @@ describe('ConfirmModal', () => {
 
     it('uses Dispatch modal surface styling', () => {
         const wrapper = mountComponent();
-        const dialog = wrapper.find('[role="dialog"]');
+        const dialog = wrapper.find('dialog');
 
         expect(dialog.classes()).toContain('rounded');
         expect(dialog.classes()).toContain('border');
@@ -110,236 +105,78 @@ describe('ConfirmModal', () => {
 
     it('uses dialog accessibility semantics', () => {
         const wrapper = mountComponent();
-        const dialog = wrapper.find('[role="dialog"]');
+        const dialog = wrapper.find('dialog');
 
         expect(dialog.exists()).toBe(true);
-        expect(dialog.attributes('aria-modal')).toBe('true');
+        expect(dialog.element.open).toBe(true);
         expect(dialog.attributes('aria-labelledby')).toBeTruthy();
         expect(dialog.attributes('aria-describedby')).toBeTruthy();
     });
 
-    it('emits cancel on Escape key', async () => {
+    it('opens the native dialog modally when shown', () => {
+        const showModal = vi.spyOn(HTMLDialogElement.prototype, 'showModal');
         const wrapper = mountComponent();
-        await wrapper.find('[data-testid="confirm-modal"]').trigger('keydown', { key: 'Escape' });
+
+        expect(showModal).toHaveBeenCalledTimes(1);
+        expect(wrapper.find('dialog').element.open).toBe(true);
+
+        showModal.mockRestore();
+        wrapper.unmount();
+    });
+
+    it('emits cancel and keeps the dialog open on the native cancel event', async () => {
+        const wrapper = mountComponent();
+        const event = new Event('cancel', { cancelable: true });
+
+        wrapper.find('dialog').element.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(wrapper.emitted('cancel')).toHaveLength(1);
+        expect(wrapper.find('dialog').element.open).toBe(true);
+    });
+
+    it('emits cancel when the backdrop (dialog element) is clicked', async () => {
+        const wrapper = mountComponent();
+
+        await wrapper.find('dialog').trigger('click');
 
         expect(wrapper.emitted('cancel')).toHaveLength(1);
     });
 
-    it('does not emit on non-Tab/Escape key when shown', async () => {
+    it('does not emit cancel when the content is clicked', async () => {
         const wrapper = mountComponent();
-        await wrapper.find('[data-testid="confirm-modal"]').trigger('keydown', { key: 'Enter' });
+
+        await wrapper.find('[data-testid="confirm-modal-title"]').trigger('click');
 
         expect(wrapper.emitted('cancel')).toBeUndefined();
     });
 
-    it('does nothing on Escape key when modal is not shown', async () => {
-        const wrapper = mountComponent({ show: false });
-        // The overlay doesn't exist when show=false so we test via direct event dispatch
-        // which exercises the early return path
-        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
-    });
-
-    it('handles Tab from last focusable element to cycle focus to first', async () => {
+    it('reopens the dialog if it is closed natively while still shown', () => {
         const wrapper = mountComponent();
-        const overlay = wrapper.find('[data-testid="confirm-modal"]');
+        const dialog = wrapper.find('dialog').element;
 
-        const cancelBtn = wrapper.find('[data-testid="confirm-modal-cancel"]').element;
-        const confirmBtn = wrapper.find('[data-testid="confirm-modal-confirm"]').element;
+        dialog.close();
 
-        // Spy on cancel button focus (the first focusable element that should receive focus)
-        const focusSpy = vi.spyOn(cancelBtn, 'focus');
-
-        // Mock document.activeElement to be the confirm button (last focusable)
-        const activeElementDescriptor = Object.getOwnPropertyDescriptor(document, 'activeElement');
-        Object.defineProperty(document, 'activeElement', {
-            get: () => confirmBtn,
-            configurable: true,
-        });
-
-        // Tab forward from last element should wrap to first
-        await overlay.trigger('keydown', { key: 'Tab', shiftKey: false });
-
-        // Restore
-        if (activeElementDescriptor) {
-            Object.defineProperty(document, 'activeElement', activeElementDescriptor);
-        } else {
-            delete document.activeElement;
-        }
-
-        expect(focusSpy).toHaveBeenCalled();
+        expect(dialog.open).toBe(true);
     });
 
-    it('handles Shift+Tab from first focusable element to cycle focus to last', async () => {
+    it('closes the native dialog when show becomes false', async () => {
         const wrapper = mountComponent();
-        const overlay = wrapper.find('[data-testid="confirm-modal"]');
+        const dialog = wrapper.find('dialog').element;
+        const close = vi.spyOn(dialog, 'close');
 
-        const cancelBtn = wrapper.find('[data-testid="confirm-modal-cancel"]').element;
-        const confirmBtn = wrapper.find('[data-testid="confirm-modal-confirm"]').element;
-
-        // Spy on confirm button focus (the last focusable element that should receive focus)
-        const focusSpy = vi.spyOn(confirmBtn, 'focus');
-
-        // Mock document.activeElement to be the cancel button (first focusable)
-        const activeElementDescriptor = Object.getOwnPropertyDescriptor(document, 'activeElement');
-        Object.defineProperty(document, 'activeElement', {
-            get: () => cancelBtn,
-            configurable: true,
-        });
-
-        // Shift+Tab from first element should wrap to last
-        await overlay.trigger('keydown', { key: 'Tab', shiftKey: true });
-
-        // Restore
-        if (activeElementDescriptor) {
-            Object.defineProperty(document, 'activeElement', activeElementDescriptor);
-        } else {
-            delete document.activeElement;
-        }
-
-        expect(focusSpy).toHaveBeenCalled();
-    });
-
-    it('restores focus to previous element on unmount', async () => {
-        const btn = document.createElement('button');
-        document.body.appendChild(btn);
-        btn.focus();
-
-        // Mount with show=false, then open (sets previousFocusedElement), then unmount
-        const wrapper = mountComponent({ show: false });
-        const focusSpy = vi.spyOn(btn, 'focus');
-
-        // Show the modal — this sets previousFocusedElement.value = document.activeElement
-        await wrapper.setProps({ show: true });
-        await wrapper.vm.$nextTick();
-
-        // Unmount should call focus on previousFocusedElement
-        wrapper.unmount();
-        expect(focusSpy).toHaveBeenCalled();
-
-        document.body.removeChild(btn);
-    });
-
-    it('emits cancel on Escape at document level when focus is outside the modal', async () => {
-        const wrapper = mountComponent({ loading: true }, { attachTo: document.body });
-
-        await wrapper.setProps({ loading: false });
-
-        // Focus has dropped to <body> (e.g. confirm button was disabled while loading)
-        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-
-        expect(wrapper.emitted('cancel')).toHaveLength(1);
-
-        wrapper.unmount();
-    });
-
-    it('pulls focus back into the dialog when Tab is pressed while focus is outside', async () => {
-        const wrapper = mountComponent({}, { attachTo: document.body });
-
-        // Simulate focus being outside the dialog (on <body>)
-        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
-
-        const dialog = wrapper.find('[role="dialog"]').element;
-        expect(dialog.contains(document.activeElement)).toBe(true);
-
-        wrapper.unmount();
-    });
-
-    it('restores focus into the dialog when loading completes while still open', async () => {
-        const wrapper = mountComponent({ loading: true }, { attachTo: document.body });
-
-        // While loading, focus has been dropped to <body>
-        expect(document.activeElement).toBe(document.body);
-
-        await wrapper.setProps({ loading: false });
-        await wrapper.vm.$nextTick();
-
-        const dialog = wrapper.find('[role="dialog"]').element;
-        expect(dialog.contains(document.activeElement)).toBe(true);
-
-        wrapper.unmount();
-    });
-
-    it('does not steal focus when loading completes and focus is already inside the dialog', async () => {
-        const wrapper = mountComponent({ loading: true }, { attachTo: document.body });
-
-        // Mock activeElement to always resolve to the (current) cancel button,
-        // i.e. focus is already inside the dialog when loading completes.
-        const activeElementDescriptor = Object.getOwnPropertyDescriptor(document, 'activeElement');
-        Object.defineProperty(document, 'activeElement', {
-            get: () => wrapper.find('[data-testid="confirm-modal-cancel"]').element,
-            configurable: true,
-        });
-        const focusSpy = vi.spyOn(window.HTMLElement.prototype, 'focus');
-
-        await wrapper.setProps({ loading: false });
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(focusSpy).not.toHaveBeenCalled();
-
-        focusSpy.mockRestore();
-        if (activeElementDescriptor) {
-            Object.defineProperty(document, 'activeElement', activeElementDescriptor);
-        } else {
-            delete document.activeElement;
-        }
-
-        wrapper.unmount();
-    });
-
-    it('does not refocus the dialog when loading completes after the modal has closed', async () => {
-        const wrapper = mountComponent({ loading: true }, { attachTo: document.body });
-
-        await wrapper.setProps({ show: false, loading: false });
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
-        expect(document.activeElement).toBe(document.body);
-
-        wrapper.unmount();
-    });
-
-    it('ignores document-level keys when the modal is hidden', async () => {
-        const wrapper = mountComponent({ show: false }, { attachTo: document.body });
-
-        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-
-        expect(wrapper.emitted('cancel')).toBeUndefined();
-
-        wrapper.unmount();
-    });
-
-    it('does not double-handle Escape originating inside the overlay', async () => {
-        const wrapper = mountComponent({}, { attachTo: document.body });
-
-        // Dispatch a real bubbling Escape from the cancel button: the overlay
-        // handler must handle it once and the document handler must skip it.
-        wrapper
-            .find('[data-testid="confirm-modal-cancel"]')
-            .element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-
-        expect(wrapper.emitted('cancel')).toHaveLength(1);
-
-        wrapper.unmount();
-    });
-
-    it('restores focus to previous element when show changes to false', async () => {
-        const btn = document.createElement('button');
-        document.body.appendChild(btn);
-        btn.focus();
-
-        // Mount with show=false, then toggle to true (captures focused element), then false
-        const wrapper = mountComponent({ show: false });
-        const focusSpy = vi.spyOn(btn, 'focus');
-
-        // Setting show=true captures document.activeElement as previousFocusedElement
-        await wrapper.setProps({ show: true });
-        await wrapper.vm.$nextTick();
-
-        // Now set show=false — should restore focus
         await wrapper.setProps({ show: false });
-        expect(focusSpy).toHaveBeenCalled();
 
-        document.body.removeChild(btn);
+        expect(close).toHaveBeenCalled();
+        expect(wrapper.find('dialog').exists()).toBe(false);
+    });
+
+    it('closes the native dialog on unmount', () => {
+        const wrapper = mountComponent();
+        const close = vi.spyOn(wrapper.find('dialog').element, 'close');
+
+        wrapper.unmount();
+
+        expect(close).toHaveBeenCalled();
     });
 });
