@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\OpnSense;
 
+use stdClass;
 use App\Services\Firewalls\Exceptions\BackendException;
 use App\Services\OpnSense\OpnSenseClient;
 use Illuminate\Http\Client\ConnectionException;
@@ -47,7 +48,7 @@ class OpnSenseClientTest extends TestCase
     {
         Http::fake(['opnsense.test/*' => Http::response('{"result":"saved"}')]);
 
-        $this->client()->post('/api/test', [], new \stdClass);
+        $this->client()->post('/api/test', [], new stdClass);
 
         Http::assertSent(fn (Request $request): bool => $request->body() === '{}');
     }

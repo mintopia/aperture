@@ -169,7 +169,6 @@ class ScheduleTest extends TestCase
 
         $this->assertNotNull($found);
 
-        // Invoke the scheduled closure directly
         $callbackProperty = (new ReflectionClass($found))->getProperty('callback');
         $callback = $callbackProperty->getValue($found);
         $callback();

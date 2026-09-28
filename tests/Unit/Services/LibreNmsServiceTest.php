@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services;
 
+use Throwable;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\ResolvedPort;
 use GuzzleHttp\Promise\PromiseInterface;
@@ -12,7 +13,7 @@ use Tests\TestCase;
 class LibreNmsServiceTest extends TestCase
 {
     /**
-     * @param  list<PromiseInterface|\Throwable>  $responses
+     * @param list<PromiseInterface|Throwable> $responses
      */
     protected function createServiceWithMockClient(array $responses): LibreNmsService
     {

@@ -167,10 +167,10 @@ class IpAddressShowDataService
             }
 
             return $this->libreNms->getPortDetail($resolved->port);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             Log::warning('LibreNMS port lookup failed', [
                 'ip' => $ip->address,
-                'error' => $e->getMessage(),
+                'error' => $throwable->getMessage(),
             ]);
 
             return null;

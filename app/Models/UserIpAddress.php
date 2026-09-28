@@ -46,12 +46,6 @@ class UserIpAddress extends Model
     /** @use HasFactory<Factory<self>> */
     use HasFactory;
 
-    protected $casts = [
-        'last_seen_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
-
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
@@ -62,5 +56,14 @@ class UserIpAddress extends Model
     public function ip(): BelongsTo
     {
         return $this->belongsTo(IpAddress::class, 'ip_address_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'last_seen_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
     }
 }

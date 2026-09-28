@@ -146,12 +146,12 @@ class OpnSenseDhcpService implements DhcpInterface
             $rows = $data['rows'];
 
             return collect($rows)->map(fn (array $row): DhcpRange => $this->buildRangeFromRow($row))->values();
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             foreach ($statusKeys as $key) {
                 $this->fetchStatus[$key] = false;
             }
 
-            Log::warning(sprintf('Failed to fetch %s DHCP ranges', $label), ['error' => $e->getMessage(), 'path' => $path]);
+            Log::warning(sprintf('Failed to fetch %s DHCP ranges', $label), ['error' => $throwable->getMessage(), 'path' => $path]);
 
             return collect();
         }
@@ -359,10 +359,10 @@ class OpnSenseDhcpService implements DhcpInterface
     {
         try {
             $rows = $this->leasesUsePost ? $this->fetchAllLeaseRows() : $this->fetchLeaseRows($this->http()->get($this->leasesPath))['rows'];
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             $this->fetchStatus['ipv4'] = false;
             $this->fetchStatus['ipv6'] = false;
-            Log::warning('Failed to fetch DHCP leases', ['error' => $e->getMessage(), 'path' => $this->leasesPath]);
+            Log::warning('Failed to fetch DHCP leases', ['error' => $throwable->getMessage(), 'path' => $this->leasesPath]);
 
             return collect();
         }

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services;
 
+use Throwable;
 use App\Services\Borealis\RequestException;
 use App\Services\BorealisService;
 use GuzzleHttp\Promise\PromiseInterface;
@@ -13,7 +14,7 @@ use Tests\TestCase;
 class BorealisServiceTest extends TestCase
 {
     /**
-     * @param  list<PromiseInterface|\Throwable>  $responses
+     * @param list<PromiseInterface|Throwable> $responses
      */
     protected function createServiceWithMockClient(array $responses): BorealisService
     {

@@ -30,6 +30,7 @@ final class Fake
             if ($next === null) {
                 throw new OutOfBoundsException('No fake HTTP response queued');
             }
+
             if ($next instanceof Throwable) {
                 throw $next;
             }

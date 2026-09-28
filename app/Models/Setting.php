@@ -58,10 +58,6 @@ class Setting extends Model
 
     use ToString;
 
-    protected $casts = [
-        'value' => SettingValue::class,
-    ];
-
     public const CACHE_KEY = 'settings.all';
 
     protected static function booted(): void
@@ -77,7 +73,7 @@ class Setting extends Model
 
     /**
      * @param  \Illuminate\Database\Query\Builder  $query
-     * @return SettingBuilder<static>
+     * @return SettingBuilder<Setting>
      */
     public function newEloquentBuilder($query): SettingBuilder
     {
@@ -122,5 +118,12 @@ class Setting extends Model
 
         $setting->value = $value;
         $setting->save();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'value' => SettingValue::class,
+        ];
     }
 }

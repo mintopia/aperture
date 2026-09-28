@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use Throwable;
+use Illuminate\Support\Collection;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
@@ -33,7 +35,7 @@ class OpnSenseHttpConfigTest extends TestCase
 
         try {
             $call();
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         return $captured;
@@ -61,7 +63,7 @@ class OpnSenseHttpConfigTest extends TestCase
 
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
-        $options = $this->captureOptions(fn () => $service->getLeases());
+        $options = $this->captureOptions(fn (): Collection => $service->getLeases());
 
         $this->assertSame(7, $options['timeout']);
         $this->assertSame(3, $options['connect_timeout']);

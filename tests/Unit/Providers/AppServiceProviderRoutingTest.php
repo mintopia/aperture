@@ -42,7 +42,6 @@ class AppServiceProviderRoutingTest extends TestCase
 
     public function test_format_path_returns_unchanged_when_portid_embedded_in_segment(): void
     {
-        // Covers the AppServiceProvider path formatter: portIdIndex === false
         // This happens when the URI contains the string "{portId}" but it is embedded
         // within a segment (e.g., "prefix{portId}suffix"), so array_search for the
         // exact segment "{portId}" returns false.

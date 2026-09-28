@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use Throwable;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Tests\Support\Fake;
@@ -12,7 +13,7 @@ use Tests\TestCase;
 class OpnSenseDhcpServicePathsTest extends TestCase
 {
     /**
-     * @param  array<int, PromiseInterface|\Throwable>  $responses
+     * @param array<int, PromiseInterface|Throwable> $responses
      */
     private function createServiceWithHistory(
         array $responses,

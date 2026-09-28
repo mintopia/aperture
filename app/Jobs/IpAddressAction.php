@@ -17,10 +17,7 @@ use Throwable;
 
 class IpAddressAction implements ShouldQueue
 {
-    use Dispatchable;
-    use InteractsWithQueue;
-    use Queueable;
-    use SerializesModels;
+    use \Illuminate\Foundation\Queue\Queueable;
 
     public int $tries = 3;
 

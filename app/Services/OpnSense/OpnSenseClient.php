@@ -34,8 +34,8 @@ class OpnSenseClient
             $response = $this->request()->get($uri, $query);
 
             return $this->decodeResponse($response);
-        } catch (HttpClientException $exception) {
-            throw new BackendException('Error from Opnsense: '.$exception->getMessage(), $exception->getCode(), $exception);
+        } catch (HttpClientException $httpClientException) {
+            throw new BackendException('Error from Opnsense: '.$httpClientException->getMessage(), $httpClientException->getCode(), $httpClientException);
         }
     }
 
@@ -56,8 +56,8 @@ class OpnSenseClient
                 : $request->post($target, $payload ?? []);
 
             return $this->decodeResponse($response);
-        } catch (HttpClientException $exception) {
-            throw new BackendException('Error from Opnsense: '.$exception->getMessage(), $exception->getCode(), $exception);
+        } catch (HttpClientException $httpClientException) {
+            throw new BackendException('Error from Opnsense: '.$httpClientException->getMessage(), $httpClientException->getCode(), $httpClientException);
         }
     }
 

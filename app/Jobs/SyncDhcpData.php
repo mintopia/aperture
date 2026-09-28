@@ -32,10 +32,7 @@ use Illuminate\Support\Facades\Log;
 
 class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 {
-    use Dispatchable;
-    use InteractsWithQueue;
-    use Queueable;
-    use SerializesModels;
+    use \Illuminate\Foundation\Queue\Queueable;
 
     public int $timeout = 120;
 
