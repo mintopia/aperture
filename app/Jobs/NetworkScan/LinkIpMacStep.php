@@ -25,13 +25,9 @@ final class LinkIpMacStep
         $pairs = [];
 
         foreach ($leases as $lease) {
-            if ($lease->mac === null) {
-                continue;
-            }
-
             $normalized = MacAddress::normalize($lease->mac);
             $address = IpAddress::normalize($lease->ip);
-            if ($address !== '' && $normalized !== '') {
+            if ($address !== '' && $normalized !== null) {
                 $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'dhcp'];
             }
         }
@@ -39,7 +35,7 @@ final class LinkIpMacStep
         foreach ($arpEntries as $arp) {
             $normalized = MacAddress::normalize($arp->mac);
             $address = IpAddress::normalize($arp->ip);
-            if ($address !== '' && $normalized !== '') {
+            if ($address !== '' && $normalized !== null) {
                 $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'arp'];
             }
         }

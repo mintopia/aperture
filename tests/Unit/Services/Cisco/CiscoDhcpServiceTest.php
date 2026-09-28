@@ -162,7 +162,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertInstanceOf(DhcpLease::class, $first);
         $this->assertSame('10.0.0.50', $first->ip);
         $this->assertSame('00:11:22:33:44:55', $first->mac);
-        $this->assertSame('', $first->hostname);
+        $this->assertNull($first->hostname);
         $this->assertSame('Jun 08 2026 12:00 AM', $first->expires);
     }
 

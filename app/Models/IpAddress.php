@@ -96,7 +96,7 @@ class IpAddress extends Model
     }
 
     /**
-     * Normalize IPv6 addresses to lowercase on storage.
+     * Store addresses in canonical form.
      *
      * @return Attribute<string, string>
      */
@@ -108,11 +108,19 @@ class IpAddress extends Model
     }
 
     /**
-     * Normalize an IP address for storage and lookups: IPv6 addresses are
-     * lowercased, IPv4 addresses are returned unchanged.
+     * Canonical form for storage and lookups: both families round-trip through
+     * inet_pton/inet_ntop (IPv6 compressed and lowercased). Input that is not
+     * a valid address is returned trimmed, with IPv6-looking input lowercased.
      */
     public static function normalize(string $address): string
     {
+        $address = trim($address);
+        $packed = @inet_pton($address);
+
+        if ($packed !== false) {
+            return (string) inet_ntop($packed);
+        }
+
         return str_contains($address, ':') ? strtolower($address) : $address;
     }
 

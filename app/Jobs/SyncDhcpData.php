@@ -22,6 +22,7 @@ use Closure;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -187,28 +188,16 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
             );
 
             $macAddressId = null;
-            if ($lease->mac !== null) {
-                $normalized = MacAddress::normalize($lease->mac);
+            $normalizedMac = MacAddress::normalize($lease->mac);
+            if ($normalizedMac !== null) {
                 $mac = MacAddress::firstOrCreate(
-                    ['mac_address' => $normalized],
+                    ['mac_address' => $normalizedMac],
                     ['source' => 'dhcp'],
                 );
                 $macAddressId = $mac->id;
             }
 
-            $dhcpLease = DhcpLeaseModel::updateOrCreate(
-                [
-                    'ip_address_id' => $ip->id,
-                    'mac_address_id' => $macAddressId,
-                ],
-                [
-                    'integration' => $integration,
-                    'hostname' => $lease->hostname,
-                    'expires_at' => $lease->expires,
-                ],
-            );
-
-            $upsertedIds[] = $dhcpLease->id;
+            $upsertedIds[] = $this->upsertLease($integration, $ip->id, $macAddressId, $lease)->id;
         }
 
         $this->deleteStaleLeasesForFamily($integration, $addressFamily, $upsertedIds);
@@ -218,6 +207,27 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
         $syncState->save();
 
         return count($upsertedIds);
+    }
+
+    /**
+     * The only place dhcp_leases rows are written. Keyed on the unique
+     * (ip_address_id, mac_address_id) columns; a concurrent insert that wins
+     * the race is updated instead of aborting the sync.
+     */
+    private function upsertLease(string $integration, int $ipAddressId, ?int $macAddressId, DhcpLease $lease): DhcpLeaseModel
+    {
+        $key = ['ip_address_id' => $ipAddressId, 'mac_address_id' => $macAddressId];
+        $values = [
+            'integration' => $integration,
+            'hostname' => $lease->hostname,
+            'expires_at' => $lease->expires,
+        ];
+
+        try {
+            return DhcpLeaseModel::updateOrCreate($key, $values);
+        } catch (UniqueConstraintViolationException) {
+            return DhcpLeaseModel::updateOrCreate($key, $values);
+        }
     }
 
     /**

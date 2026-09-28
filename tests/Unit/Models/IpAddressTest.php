@@ -97,7 +97,21 @@ class IpAddressTest extends TestCase
         return [
             'lowercases ipv6 addresses' => ['2001:DB8::ABCD:1', '2001:db8::abcd:1'],
             'leaves ipv4 addresses unchanged' => ['10.30.0.1', '10.30.0.1'],
+            'compresses and lowercases expanded ipv6' => ['2001:DB8:0:0:0:0:0:1', '2001:db8::1'],
+            'already canonical ipv6 unchanged' => ['2001:db8::1', '2001:db8::1'],
+            'trims invalid input' => ['  not-an-ip ', 'not-an-ip'],
         ];
+    }
+
+    public function test_route_binding_resolves_non_canonical_ipv6_to_existing_row(): void
+    {
+        $ip = IpAddress::factory()->create(['address' => '2001:db8::1']);
+
+        $resolved = (new IpAddress)->resolveRouteBinding('2001:DB8:0:0:0:0:0:1', 'address');
+
+        $this->assertNotNull($resolved);
+        $this->assertTrue($resolved->is($ip));
+        $this->assertSame(1, IpAddress::count());
     }
 
     #[DataProvider('normalizeProvider')]

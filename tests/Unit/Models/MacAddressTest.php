@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class MacAddressTest extends TestCase
@@ -82,5 +83,30 @@ class MacAddressTest extends TestCase
 
         $this->assertSame('xbox', $mac->source);
         $this->assertSame('Xbox Console', $mac->description);
+    }
+
+    public static function normalizeProvider(): array
+    {
+        return [
+            'dotted' => ['aabb.ccdd.eeff', 'AA:BB:CC:DD:EE:FF'],
+            'colon' => ['aa:bb:cc:dd:ee:ff', 'AA:BB:CC:DD:EE:FF'],
+            'dash' => ['AA-BB-CC-DD-EE-FF', 'AA:BB:CC:DD:EE:FF'],
+            'plain' => ['aabbccddeeff', 'AA:BB:CC:DD:EE:FF'],
+            'unpadded colon octets' => ['0:1:2:3:4:5', '00:01:02:03:04:05'],
+            'unpadded dash octets' => ['0-1-2-3-4-5', '00:01:02:03:04:05'],
+            'lowercase' => ['abcdef012345', 'AB:CD:EF:01:23:45'],
+            'null' => [null, null],
+            'empty' => ['', null],
+            'whitespace' => ['   ', null],
+            'too short' => ['aa:bb:cc', null],
+            'too long' => ['aa:bb:cc:dd:ee:ff:00', null],
+            'non-hex' => ['gg:hh:ii:jj:kk:ll', null],
+        ];
+    }
+
+    #[DataProvider('normalizeProvider')]
+    public function test_normalize(?string $input, ?string $expected): void
+    {
+        $this->assertSame($expected, MacAddress::normalize($input));
     }
 }

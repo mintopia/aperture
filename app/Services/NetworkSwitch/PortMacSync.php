@@ -45,6 +45,9 @@ class PortMacSync
             }
 
             $normalizedMac = MacAddress::normalize($entry->mac);
+            if ($normalizedMac === null) {
+                continue;
+            }
 
             $macRecord = MacAddress::firstOrCreate(
                 ['mac_address' => $normalizedMac],

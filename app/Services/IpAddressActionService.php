@@ -37,9 +37,10 @@ class IpAddressActionService
 
         try {
             $mac = $this->macResolver->resolveIpToMac($ip->address);
-            if ($mac !== null) {
+            $normalizedMac = MacAddress::normalize($mac);
+            if ($normalizedMac !== null) {
                 $macAddress = MacAddress::firstOrCreate(
-                    ['mac_address' => MacAddress::normalize($mac)],
+                    ['mac_address' => $normalizedMac],
                     ['source' => 'auth'],
                 );
 

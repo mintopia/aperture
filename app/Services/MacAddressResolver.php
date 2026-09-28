@@ -31,7 +31,7 @@ class MacAddressResolver implements MacAddressResolverInterface
         return null;
     }
 
-    /** @return array<int, array{ip: string, hostname: string}> */
+    /** @return array<int, array{ip: string, hostname: string|null}> */
     public function resolveMacToIps(string $macAddress): array
     {
         $normalized = $this->normalizeMac($macAddress);
