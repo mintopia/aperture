@@ -24,8 +24,6 @@ vi.mock('chart.js/auto', () => ({
     }),
 }));
 
-vi.mock('chartjs-adapter-date-fns', () => ({}));
-
 describe('TimeSeriesChart', () => {
     beforeEach(() => {
         vi.restoreAllMocks();
@@ -291,20 +289,7 @@ describe('TimeSeriesChart', () => {
 
         expect(lastChartXTick).toBeDefined();
 
-        const result = lastChartXTick(null, 0, [{ value: new Date('2026-01-01T12:00:00Z').getTime() }]);
-        expect(typeof result).toBe('string');
-    });
-
-    it('x-axis tick callback uses Date.now when tick value is missing', async () => {
-        mount(TimeSeriesChart, {
-            props: { series: sampleSeries },
-        });
-
-        await nextTick();
-        await nextTick();
-
-        // Empty ticks array — should fall back to Date.now()
-        const result = lastChartXTick(null, 0, []);
+        const result = lastChartXTick(new Date('2026-01-01T12:00:00Z').getTime());
         expect(typeof result).toBe('string');
     });
 

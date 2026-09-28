@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import EditorSidePanel from '@/Components/Admin/Content/EditorSidePanel.vue';
 import { useGridEditor } from '@/composables/useGridEditor.js';
-import { useApi } from '@/composables/useApi.js';
+import { deleteJson as del, postJson as post, putJson as put } from '@/utils/http.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -21,7 +21,6 @@ const showAddMenu = ref(false);
 const addingBlock = ref(false);
 
 const { totalRows, moveBlock, computeDisplacement, cellFromPointer } = useGridEditor(localBlocks);
-const { post, put, delete: del } = useApi();
 
 // Drag state
 const dragging = ref(null);
@@ -211,7 +210,7 @@ async function saveBlock(data) {
             Object.assign(block, data);
         }
     } catch (_e) {
-        // error is surfaced via useApi's error ref
+        // Failed saves leave the local state untouched; the editor stays as-is.
     } finally {
         selectedBlock.value = null;
     }
@@ -226,7 +225,7 @@ async function deleteBlock(id) {
         localBlocks.value = localBlocks.value.filter((b) => b.id !== id);
         hasChanges.value = true;
     } catch (_e) {
-        // error is surfaced via useApi's error ref
+        // Failed saves leave the local state untouched; the editor stays as-is.
     } finally {
         selectedBlock.value = null;
     }
@@ -246,7 +245,7 @@ async function saveLayout() {
         });
         hasChanges.value = false;
     } catch (_e) {
-        // error is surfaced via useApi's error ref
+        // Failed saves leave the local state untouched; the editor stays as-is.
     } finally {
         saving.value = false;
     }

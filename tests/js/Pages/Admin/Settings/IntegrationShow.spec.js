@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IntegrationShow from '@/Pages/Admin/Settings/IntegrationShow.vue';
+import { jsonResponse } from '../../../helpers/fetch.js';
 
 const putMock = vi.fn();
 
@@ -117,13 +118,7 @@ describe('IntegrationShow.vue', () => {
 
             return `/${name}`;
         });
-        window.axios = {
-            get: vi.fn().mockResolvedValue({ data: {} }),
-            post: vi.fn().mockResolvedValue({ data: {} }),
-            put: vi.fn().mockResolvedValue({ data: {} }),
-            patch: vi.fn().mockResolvedValue({ data: {} }),
-            delete: vi.fn().mockResolvedValue({ data: {} }),
-        };
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({})));
     });
 
     it('renders page title with service name', () => {
@@ -225,23 +220,22 @@ describe('IntegrationShow.vue', () => {
     });
 
     it('sends form config data when testing connection', async () => {
-        window.axios.post.mockResolvedValue({
-            data: { success: true, message: 'Connected successfully' },
-        });
+        fetch.mockResolvedValue(jsonResponse({ success: true, message: 'Connected successfully' }));
 
         const wrapper = mountPage();
 
         await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
         await flushPromises();
 
-        expect(window.axios.post).toHaveBeenCalledWith(
-            expect.stringContaining('admin.settings.test'),
+        const [url, options] = fetch.mock.calls[0];
+        expect(url).toContain('admin.settings.test');
+        expect(options.method).toBe('POST');
+        expect(JSON.parse(options.body)).toEqual(
             expect.objectContaining({
                 endpoint: 'https://opnsense.example.com',
                 key: '',
                 verify_ssl: '1',
             }),
-            expect.any(Object),
         );
     });
 
@@ -265,13 +259,13 @@ describe('IntegrationShow.vue', () => {
 
     describe('test output toggle', () => {
         it('shows toggle button when test result has output', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: true,
                     message: 'Connected',
                     output: { status: 'ok' },
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -281,12 +275,12 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('does not show toggle button when test result has no output', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: false,
                     message: 'Connection failed',
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -296,13 +290,13 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('toggles output visibility when clicking Show/Hide Output', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: true,
                     message: 'Connected',
                     output: { status: 'ok' },
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -330,13 +324,13 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('displays JSON output formatted', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: true,
                     message: 'Connected',
                     output: { status: 'ok', version: '1.0' },
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -348,13 +342,13 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('displays string output as-is', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: true,
                     message: 'Connected',
                     output: 'plain text response',
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -365,21 +359,21 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('resets output toggle when running new test', async () => {
-            window.axios.post
-                .mockResolvedValueOnce({
-                    data: {
+            fetch
+                .mockResolvedValueOnce(
+                    jsonResponse({
                         success: true,
                         message: 'Connected',
                         output: { status: 'ok' },
-                    },
-                })
-                .mockResolvedValueOnce({
-                    data: {
+                    }),
+                )
+                .mockResolvedValueOnce(
+                    jsonResponse({
                         success: true,
                         message: 'Connected again',
                         output: { status: 'ok2' },
-                    },
-                });
+                    }),
+                );
 
             const wrapper = mountPage();
 
@@ -397,12 +391,12 @@ describe('IntegrationShow.vue', () => {
 
     describe('test result panel styling', () => {
         it('test result panel has success styling', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: true,
                     message: 'Connected',
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -416,12 +410,12 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('test result panel has danger styling', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: false,
                     message: 'Connection failed',
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -436,16 +430,16 @@ describe('IntegrationShow.vue', () => {
 
     describe('test request/response detail', () => {
         it('shows request method and URL when test result has request_method', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: true,
                     message: 'Connected',
                     request_method: 'GET',
                     request_url: 'https://opnsense.local/api/diagnostics/system/system_time',
                     response_status: 200,
                     output: { status: 'ok' },
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -458,16 +452,16 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('shows response status when present', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: true,
                     message: 'Connected',
                     request_method: 'POST',
                     request_url: 'https://pihole.local/api/auth',
                     response_status: 200,
                     output: { session: {} },
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -480,12 +474,12 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('does not show request detail when request_method is absent', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: false,
                     message: 'Connection failed',
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -495,14 +489,14 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('does not show response status for failed tests without status', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     success: false,
                     message: 'Connection failed',
                     request_method: 'GET',
                     request_url: 'https://opnsense.local/api/test',
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage();
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
@@ -657,14 +651,14 @@ describe('IntegrationShow.vue', () => {
         };
 
         it('renders select dropdown for select-remote fields', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     groups: [
                         { id: 0, name: 'Default', enabled: true },
                         { id: 1, name: 'Ad Blocking', enabled: true },
                     ],
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage({ service: remoteService });
 
@@ -675,7 +669,7 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('renders refresh button for select-remote fields', async () => {
-            window.axios.post.mockResolvedValue({ data: { groups: [] } });
+            fetch.mockResolvedValue(jsonResponse({ groups: [] }));
 
             const wrapper = mountPage({ service: remoteService });
 
@@ -683,20 +677,20 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('fetches remote options on mount for select-remote fields', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     groups: [
                         { id: 0, name: 'Default', enabled: true },
                         { id: 1, name: 'Ad Blocking', enabled: true },
                     ],
-                },
-            });
+                }),
+            );
 
             mountPage({ service: remoteService });
 
             // Should have been called for the remote select field
             await vi.waitFor(() => {
-                const remoteCalls = window.axios.post.mock.calls.filter(
+                const remoteCalls = fetch.mock.calls.filter(
                     ([url]) => url === '/admin/settings/integrations/pihole/groups',
                 );
                 expect(remoteCalls.length).toBe(1);
@@ -704,14 +698,14 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('populates dropdown options after fetch', async () => {
-            window.axios.post.mockResolvedValue({
-                data: {
+            fetch.mockResolvedValue(
+                jsonResponse({
                     groups: [
                         { id: 0, name: 'Default', enabled: true },
                         { id: 1, name: 'Ad Blocking', enabled: true },
                     ],
-                },
-            });
+                }),
+            );
 
             const wrapper = mountPage({ service: remoteService });
 
@@ -723,7 +717,7 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('shows error message when remote fetch fails', async () => {
-            window.axios.post.mockResolvedValue({ data: { groups: [], error: 'Connection refused' } });
+            fetch.mockResolvedValue(jsonResponse({ groups: [], error: 'Connection refused' }));
 
             const wrapper = mountPage({ service: remoteService });
 
@@ -733,26 +727,24 @@ describe('IntegrationShow.vue', () => {
         });
 
         it('sends current form config when fetching remote options', async () => {
-            window.axios.post.mockResolvedValue({ data: { groups: [] } });
+            fetch.mockResolvedValue(jsonResponse({ groups: [] }));
 
             mountPage({ service: remoteService });
 
             await vi.waitFor(() => {
-                const remoteCalls = window.axios.post.mock.calls.filter(
+                const remoteCalls = fetch.mock.calls.filter(
                     ([url]) => url === '/admin/settings/integrations/pihole/groups',
                 );
                 expect(remoteCalls.length).toBe(1);
 
-                const [, data] = remoteCalls[0];
+                const data = JSON.parse(remoteCalls[0][1].body);
                 expect(data).toHaveProperty('endpoint', 'https://pihole.test');
                 expect(data).toHaveProperty('password', '');
             });
         });
 
         it('re-fetches options when refresh button is clicked', async () => {
-            window.axios.post.mockResolvedValue({
-                data: { groups: [{ id: 0, name: 'Default' }] },
-            });
+            fetch.mockResolvedValue(jsonResponse({ groups: [{ id: 0, name: 'Default' }] }));
 
             const wrapper = mountPage({ service: remoteService });
 
@@ -760,7 +752,7 @@ describe('IntegrationShow.vue', () => {
             await flushPromises();
             await wrapper.vm.$nextTick();
 
-            const remoteCalls1 = window.axios.post.mock.calls.filter(
+            const remoteCalls1 = fetch.mock.calls.filter(
                 ([url]) => url === '/admin/settings/integrations/pihole/groups',
             );
             expect(remoteCalls1.length).toBe(1);
@@ -770,7 +762,7 @@ describe('IntegrationShow.vue', () => {
             await flushPromises();
             await wrapper.vm.$nextTick();
 
-            const remoteCalls2 = window.axios.post.mock.calls.filter(
+            const remoteCalls2 = fetch.mock.calls.filter(
                 ([url]) => url === '/admin/settings/integrations/pihole/groups',
             );
             expect(remoteCalls2.length).toBe(2);

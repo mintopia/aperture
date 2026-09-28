@@ -1,8 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Chart } from 'chart.js/auto';
-import 'chartjs-adapter-date-fns';
-import { formatDate, formatTime } from '@/utils/dates.js';
+import { formatDate } from '@/utils/dates';
 
 const props = defineProps({
     series: { type: Array, required: true },
@@ -37,9 +36,8 @@ function withAlpha(color, alpha) {
     return `oklch(from ${color} l c h / ${alpha})`;
 }
 
-function formatTimestamp(value, options = { hour: '2-digit', minute: '2-digit' }) {
-    return formatTime(value, options);
-}
+const TIME_ONLY = { day: undefined, month: undefined, year: undefined };
+const DAY_AND_TIME = { year: undefined };
 
 function formatValue(value) {
     const numericValue = Number(value);
@@ -122,7 +120,7 @@ function buildChart() {
                                 return '';
                             }
 
-                            return formatDate(items[0].parsed.x, { year: undefined });
+                            return formatDate(items[0].parsed.x, DAY_AND_TIME);
                         },
                         label(context) {
                             return `${context.dataset.label}: ${formatValue(context.parsed.y)}`;
@@ -132,14 +130,12 @@ function buildChart() {
             },
             scales: {
                 x: {
-                    type: 'timeseries',
+                    type: 'linear',
                     ticks: {
                         color: textColor,
                         maxTicksLimit: 8,
                         font: { size: 10 },
-                        callback: (_value, index, ticks) => {
-                            return formatTimestamp(ticks[index]?.value ?? Date.now());
-                        },
+                        callback: (value) => formatDate(value, TIME_ONLY),
                     },
                     grid: {
                         color: withAlpha(gridColor, 0.25),

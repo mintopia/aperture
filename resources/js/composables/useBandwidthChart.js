@@ -1,4 +1,5 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { getJson } from '@/utils/http.js';
 
 /**
  * Composable that encapsulates bandwidth fetch/poll/range-selection/chart-series logic.
@@ -45,9 +46,7 @@ export function useBandwidthChart(endpoint, defaultRange = '24h', pollInterval =
         bandwidthLoading.value = true;
         bandwidthError.value = false;
         try {
-            const response = await window.axios.get(`${endpoint}?range=${selectedRange.value}`);
-            const data = response.data;
-            bandwidthData.value = data;
+            bandwidthData.value = await getJson(`${endpoint}?range=${selectedRange.value}`);
         } catch (_e) {
             bandwidthError.value = true;
         } finally {
