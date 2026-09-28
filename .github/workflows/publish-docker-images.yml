@@ -121,6 +121,9 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
+      - name: Install MariaDB client (dump format must match the committed dump)
+        run: sudo apt-get install -y mariadb-client
+
       - name: Schema dumps match migrations
         run: bin/schema-dump.sh --check
         env:

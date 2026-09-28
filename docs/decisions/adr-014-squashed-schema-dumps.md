@@ -9,7 +9,7 @@ Date: 2026-09-28
 ## Decision
 `database/schema/mysql-schema.sql` (MariaDB, the `mysql` connection) and `database/schema/sqlite-schema.sql` are committed Laravel schema dumps. Laravel loads the dump matching the active connection before running any remaining migrations. The dumps also record the squashed migrations, so existing databases treat them as already run.
 
-Regenerate with `bin/schema-dump.sh` (needs a MariaDB server via `DB_*`/`DB_SOCKET`). It deletes every file in `database/migrations`, so only run it once all pending migrations have reached production. CI runs `bin/schema-dump.sh --check`, which fails when the committed dumps differ from a fresh build.
+Regenerate with `bin/schema-dump.sh` (needs a MariaDB server via `DB_*`/`DB_SOCKET`). It deletes every file in `database/migrations`, so only run it once all pending migrations have reached production. `bin/schema-dump.sh --check` (run in CI) builds both connections from the dumps plus pending migrations and fails if the sqlite and mysql table/column sets differ. When no migrations are pending it also fails if the committed dumps differ from a fresh dump (ignoring comments and auto-increment values). It always dumps with `mariadb-dump`, so CI installs `mariadb-client`.
 
 Default data (e.g. theme settings) lives in `SettingsSeeder`, not in migrations, because dumps carry schema only.
 
