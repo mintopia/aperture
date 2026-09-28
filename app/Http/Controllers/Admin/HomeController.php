@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Capability;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BandwidthRequest;
 use App\Http\Requests\Admin\ResetApertureRequest;
@@ -84,7 +85,7 @@ class HomeController extends Controller
     /** @return list<array{name: string, network: string|null, used: int, total: string, utilisation: float}> */
     private function getDhcpPools(): array
     {
-        $integration = CapabilityAssignment::activeIntegration('dhcp');
+        $integration = CapabilityAssignment::activeIntegration(Capability::Dhcp);
 
         return array_values(DhcpRangeRecord::where('integration', $integration)
             ->get()

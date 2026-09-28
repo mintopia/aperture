@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Jobs;
 
+use App\Enums\AddressFamily;
+use App\Enums\Capability;
 use App\Events\DhcpPoolThresholdReached;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
@@ -11,11 +13,14 @@ use App\Models\DhcpPoolStatusRecord;
 use App\Models\DhcpSyncState;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Services\Dhcp\DhcpSyncService;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Null\NullDhcpService;
+use App\Services\ValueObjects\DhcpFetchStatus;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
+use App\Services\ValueObjects\DhcpSnapshot;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Date;
@@ -36,7 +41,7 @@ class SyncDhcpDataTest extends TestCase
 
     private function assignDhcpProvider(string $integration = 'cisco'): void
     {
-        CapabilityAssignment::assign('dhcp', $integration);
+        CapabilityAssignment::assign(Capability::Dhcp, $integration);
     }
 
     /**
@@ -53,13 +58,16 @@ class SyncDhcpDataTest extends TestCase
     ): void {
         $ipv6PoolStatus ??= new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
 
-        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases, $ranges, $poolStatus, $ipv6PoolStatus, $fetchStatus): void {
-            $mock->allows('getLeases')->andReturn(collect($leases));
-            $mock->allows('getRanges')->andReturn(collect($ranges));
-            $mock->shouldReceive('getPoolStatus')->with('ipv4')->andReturn($poolStatus);
-            $mock->shouldReceive('getPoolStatus')->with('ipv6')->andReturn($ipv6PoolStatus);
-            $mock->allows('getFetchStatus')->andReturn($fetchStatus);
-            $mock->allows('resetSnapshot');
+        $snapshot = DhcpSnapshot::create(
+            collect($leases),
+            collect($ranges),
+            new DhcpFetchStatus($fetchStatus['ipv4'], $fetchStatus['ipv4_ranges'] ?? true),
+            new DhcpFetchStatus($fetchStatus['ipv6'], $fetchStatus['ipv6_ranges'] ?? true),
+            [AddressFamily::IPv4->value => $poolStatus, AddressFamily::IPv6->value => $ipv6PoolStatus],
+        );
+
+        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($snapshot): void {
+            $mock->allows('snapshot')->andReturn($snapshot);
         });
     }
 
@@ -76,13 +84,14 @@ class SyncDhcpDataTest extends TestCase
         $poolStatus ??= new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
         $ipv6PoolStatus ??= new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
 
-        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases, $ranges, $poolStatus, $ipv6PoolStatus): void {
-            $mock->allows('getLeases')->andReturn(collect($leases));
-            $mock->allows('getRanges')->andReturn(collect($ranges));
-            $mock->shouldReceive('getPoolStatus')->with('ipv4')->andReturn($poolStatus);
-            $mock->shouldReceive('getPoolStatus')->with('ipv6')->andReturn($ipv6PoolStatus);
-            $mock->allows('getFetchStatus')->andReturn(['ipv4' => true, 'ipv6' => true]);
-            $mock->allows('resetSnapshot');
+        $snapshot = DhcpSnapshot::create(
+            collect($leases),
+            collect($ranges),
+            poolOverrides: [AddressFamily::IPv4->value => $poolStatus, AddressFamily::IPv6->value => $ipv6PoolStatus],
+        );
+
+        $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($snapshot): void {
+            $mock->allows('snapshot')->andReturn($snapshot);
         });
     }
 
@@ -157,7 +166,7 @@ class SyncDhcpDataTest extends TestCase
             ranges: [
                 new DhcpRange(
                     interface: 'Vlan100',
-                    type: 'ipv4',
+                    type: AddressFamily::IPv4,
                     subnet: '10.0.0.0/24',
                     rangeFrom: '10.0.0.10',
                     rangeTo: '10.0.0.200',
@@ -192,7 +201,7 @@ class SyncDhcpDataTest extends TestCase
             ranges: [
                 new DhcpRange(
                     interface: 'VLAN400_DHCPV6',
-                    type: 'ipv6',
+                    type: AddressFamily::IPv6,
                     subnet: null,
                     rangeFrom: null,
                     rangeTo: null,
@@ -275,7 +284,7 @@ class SyncDhcpDataTest extends TestCase
 
         $range1 = new DhcpRange(
             interface: 'Vlan100',
-            type: 'ipv4',
+            type: AddressFamily::IPv4,
             subnet: '10.0.0.0/24',
             rangeFrom: '10.0.0.10',
             rangeTo: '10.0.0.200',
@@ -285,7 +294,7 @@ class SyncDhcpDataTest extends TestCase
         );
         $range2 = new DhcpRange(
             interface: 'Vlan200',
-            type: 'ipv4',
+            type: AddressFamily::IPv4,
             subnet: '10.0.1.0/24',
             rangeFrom: '10.0.1.10',
             rangeTo: '10.0.1.200',
@@ -317,7 +326,7 @@ class SyncDhcpDataTest extends TestCase
         $ranges = [
             new DhcpRange(
                 interface: 'VLAN440_DHCPV6',
-                type: 'ipv6',
+                type: AddressFamily::IPv6,
                 subnet: null,
                 rangeFrom: null,
                 rangeTo: null,
@@ -327,7 +336,7 @@ class SyncDhcpDataTest extends TestCase
             ),
             new DhcpRange(
                 interface: 'VLAN400_DHCPV6',
-                type: 'ipv6',
+                type: AddressFamily::IPv6,
                 subnet: null,
                 rangeFrom: null,
                 rangeTo: null,
@@ -450,7 +459,7 @@ class SyncDhcpDataTest extends TestCase
             ranges: [
                 new DhcpRange(
                     interface: 'Vlan100',
-                    type: 'ipv4',
+                    type: AddressFamily::IPv4,
                     subnet: '10.0.0.0/24',
                     rangeFrom: '10.0.0.10',
                     rangeTo: '10.0.0.200',
@@ -655,7 +664,7 @@ class SyncDhcpDataTest extends TestCase
             ranges: [
                 new DhcpRange(
                     interface: 'Vlan100',
-                    type: 'ipv4',
+                    type: AddressFamily::IPv4,
                     subnet: '10.0.0.0/24',
                     rangeFrom: '10.0.0.10',
                     rangeTo: '10.0.0.200',
@@ -838,7 +847,7 @@ class SyncDhcpDataTest extends TestCase
 
         $ipv4Range = new DhcpRange(
             interface: 'Vlan100',
-            type: 'ipv4',
+            type: AddressFamily::IPv4,
             subnet: '10.0.0.0/24',
             rangeFrom: '10.0.0.10',
             rangeTo: '10.0.0.200',
@@ -851,7 +860,7 @@ class SyncDhcpDataTest extends TestCase
         );
         $ipv6Range = new DhcpRange(
             interface: 'VLAN400_DHCPV6',
-            type: 'ipv6',
+            type: AddressFamily::IPv6,
             subnet: null,
             rangeFrom: null,
             rangeTo: null,
@@ -914,7 +923,7 @@ class SyncDhcpDataTest extends TestCase
 
         $ipv6Range = new DhcpRange(
             interface: 'VLAN400_DHCPV6',
-            type: 'ipv6',
+            type: AddressFamily::IPv6,
             subnet: null,
             rangeFrom: null,
             rangeTo: null,
@@ -954,7 +963,7 @@ class SyncDhcpDataTest extends TestCase
 
         $ipv6Range = new DhcpRange(
             interface: 'VLAN400_DHCPV6',
-            type: 'ipv6',
+            type: AddressFamily::IPv6,
             subnet: null,
             rangeFrom: null,
             rangeTo: null,
@@ -996,7 +1005,7 @@ class SyncDhcpDataTest extends TestCase
 
         $ipv6Range = new DhcpRange(
             interface: 'VLAN400_DHCPV6',
-            type: 'ipv6',
+            type: AddressFamily::IPv6,
             subnet: null,
             rangeFrom: null,
             rangeTo: null,
@@ -1039,7 +1048,7 @@ class SyncDhcpDataTest extends TestCase
 
         $ipv6Range = new DhcpRange(
             interface: 'VLAN400_DHCPV6',
-            type: 'ipv6',
+            type: AddressFamily::IPv6,
             subnet: null,
             rangeFrom: null,
             rangeTo: null,
@@ -1090,7 +1099,7 @@ class SyncDhcpDataTest extends TestCase
 
         $ipv6Range = new DhcpRange(
             interface: 'VLAN400_DHCPV6',
-            type: 'ipv6',
+            type: AddressFamily::IPv6,
             subnet: null,
             rangeFrom: null,
             rangeTo: null,
@@ -1136,28 +1145,28 @@ class SyncDhcpDataTest extends TestCase
 
     public function test_removes_ipv6_pool_status_when_ipv6_fetch_succeeds_with_no_pools(): void
     {
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
         DhcpPoolStatusRecord::create([
             'integration' => 'kea', 'address_family' => 'ipv6', 'total' => '100', 'used' => '10',
             'available' => '90', 'utilisation' => '0.1000', 'synced_at' => now(),
         ]);
         $this->bindDhcpServiceWithFetchStatus([], [], new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0), ['ipv4' => true, 'ipv6' => true]);
 
-        (new SyncDhcpData)->handle(resolve(DhcpInterface::class));
+        (new SyncDhcpData)->handle(resolve(DhcpInterface::class), resolve(DhcpSyncService::class));
 
         $this->assertDatabaseMissing('dhcp_pool_statuses', ['integration' => 'kea', 'address_family' => 'ipv6']);
     }
 
     public function test_keeps_ipv6_pool_status_when_ipv6_fetch_failed(): void
     {
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
         DhcpPoolStatusRecord::create([
             'integration' => 'kea', 'address_family' => 'ipv6', 'total' => '100', 'used' => '10',
             'available' => '90', 'utilisation' => '0.1000', 'synced_at' => now(),
         ]);
         $this->bindDhcpServiceWithFetchStatus([], [], new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0), ['ipv4' => true, 'ipv6' => false]);
 
-        (new SyncDhcpData)->handle(resolve(DhcpInterface::class));
+        (new SyncDhcpData)->handle(resolve(DhcpInterface::class), resolve(DhcpSyncService::class));
 
         $this->assertDatabaseHas('dhcp_pool_statuses', ['integration' => 'kea', 'address_family' => 'ipv6']);
     }

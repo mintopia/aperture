@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
@@ -37,7 +38,7 @@ class IntegrationControllerTest extends TestCase
         $admin = $this->createAdminUser();
 
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.example.com');
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         ConnectionTestLog::record('opnsense', true, 'Connected successfully');
 
         $response = $this->actingAs($admin)->get('/admin/settings/integrations/opnsense');
@@ -108,7 +109,7 @@ class IntegrationControllerTest extends TestCase
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
         $response = $this->actingAs($admin)->putJson('/admin/settings/capabilities', [
             'capability' => 'dhcp',

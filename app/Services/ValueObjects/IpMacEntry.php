@@ -6,7 +6,7 @@ namespace App\Services\ValueObjects;
 
 use App\Models\IpAddress;
 
-readonly class ArpEntry
+readonly class IpMacEntry
 {
     public string $ip;
 

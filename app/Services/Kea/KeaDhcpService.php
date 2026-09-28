@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Kea;
 
+use App\Enums\AddressFamily;
+use App\Services\Dhcp\RangeUsageCalculator;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\ValueObjects\DhcpFetchStatus;
 use App\Services\ValueObjects\DhcpLease;
-use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
+use App\Services\ValueObjects\DhcpSnapshot;
 use App\Support\Duid;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
@@ -33,152 +36,121 @@ class KeaDhcpService implements DhcpInterface
      */
     private const MAX_PAGES = 10_000;
 
-    /**
-     * @var array{ipv4: Collection<int, DhcpLease>, ipv6: Collection<int, DhcpLease>, ranges: Collection<int, DhcpRange>|null}|null
-     */
-    private ?array $snapshot = null;
-
-    /**
-     * Declined leases hold an address without being a host lease, so they count towards pool usage only.
-     *
-     * @var array{ipv4: Collection<int, DhcpLease>, ipv6: Collection<int, DhcpLease>}
-     */
-    private array $declined;
-
-    /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool} */
-    private array $fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true, 'ipv6_ranges' => true];
-
     public function __construct(
         private readonly ?KeaClient $ipv4Client,
         private readonly ?KeaClient $ipv6Client = null,
-    ) {
-        $this->declined = ['ipv4' => collect(), 'ipv6' => collect()];
-    }
+    ) {}
 
-    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
+    public function snapshot(): DhcpSnapshot
     {
-        $ranges = $this->getRanges()->filter(fn (DhcpRange $range): bool => $range->type === $family);
+        $now = Date::now()->getTimestamp();
 
-        $totalSum = '0';
-        $used = 0;
+        /** @var array<string, Collection<int, DhcpLease>> $leases */
+        $leases = [];
+        /** @var array<string, Collection<int, DhcpLease>> $declined */
+        $declined = [];
+        /** @var array<string, bool> $leasesOk */
+        $leasesOk = [];
 
-        foreach ($ranges as $range) {
-            $totalSum = bcadd($totalSum, $range->totalAddresses ?? '0', 0);
-            $used += $range->usedAddresses ?? 0;
-        }
+        foreach (AddressFamily::cases() as $family) {
+            $leases[$family->value] = collect();
+            $declined[$family->value] = collect();
+            $client = $this->client($family);
 
-        $total = $this->capNumericStringToPhpIntMax($totalSum);
+            if (! $client instanceof KeaClient) {
+                $leasesOk[$family->value] = true;
 
-        return new DhcpPoolStatus(
-            total: $total,
-            used: $used,
-            available: max(0, $total - $used),
-            utilisation: $total > 0 ? round($used / $total, 4) : 0.0,
-        );
-    }
+                continue;
+            }
 
-    /**
-     * @param  numeric-string  $numericString
-     */
-    private function capNumericStringToPhpIntMax(string $numericString): int
-    {
-        return bccomp($numericString, (string) PHP_INT_MAX, 0) > 0 ? PHP_INT_MAX : (int) $numericString;
-    }
-
-    /** @return Collection<int, DhcpRange> */
-    public function getRanges(): Collection
-    {
-        $this->ensureSnapshot();
-
-        $ipv4Client = $this->usableIpv4RangeClient();
-        $ipv6Client = $this->usableIpv6RangeClient();
-
-        if (! $ipv4Client instanceof KeaClient && ! $ipv6Client instanceof KeaClient) {
-            return collect();
-        }
-
-        /** @var Collection<int, DhcpRange>|null $cached */
-        $cached = $this->snapshot['ranges'] ?? null;
-
-        if ($cached !== null) {
-            return $cached;
+            try {
+                $leases[$family->value] = $this->fetchFamilyLeases($client, $family, $now, $declined[$family->value]);
+                $leasesOk[$family->value] = true;
+            } catch (Throwable $e) {
+                Log::warning(sprintf('Kea %s lease fetch failed', $this->label($family)), ['error' => $e->getMessage()]);
+                $leasesOk[$family->value] = false;
+            }
         }
 
         $ranges = collect();
+        /** @var array<string, bool> $rangesOk */
+        $rangesOk = [];
 
-        if ($ipv4Client instanceof KeaClient) {
-            $ranges = $ranges->concat($this->fetchIpv4Ranges($ipv4Client));
+        foreach (AddressFamily::cases() as $family) {
+            $rangesOk[$family->value] = true;
+            $client = $this->client($family);
+
+            if (! $client instanceof KeaClient || ! $leasesOk[$family->value]) {
+                continue;
+            }
+
+            $usageIps = $leases[$family->value]->concat($declined[$family->value])
+                ->map(fn (DhcpLease $lease): string => $lease->ip);
+
+            $fetched = $this->fetchRanges($client, $family, $usageIps);
+
+            if ($fetched === null) {
+                $rangesOk[$family->value] = false;
+
+                continue;
+            }
+
+            $ranges = $ranges->concat($fetched);
         }
 
-        if ($ipv6Client instanceof KeaClient) {
-            $ranges = $ranges->concat($this->fetchIpv6Ranges($ipv6Client));
-        }
-
-        return $this->cacheRanges($ranges->values());
-    }
-
-    /** @return Collection<int, DhcpRange> */
-    private function fetchIpv4Ranges(KeaClient $client): Collection
-    {
-        return $this->fetchFamilyRanges(
-            client: $client,
-            protocolKey: 'Dhcp4',
-            subnetKey: 'subnet4',
-            snapshotKey: 'ipv4',
-            rangesStatusKey: 'ipv4_ranges',
-            logMessage: 'Kea config-get failed',
-            buildRange: $this->buildRange(...),
-            enrichRange: $this->enrichRangeWithUsage(...),
+        return DhcpSnapshot::create(
+            $leases[AddressFamily::IPv4->value]->concat($leases[AddressFamily::IPv6->value]),
+            $ranges,
+            new DhcpFetchStatus($leasesOk[AddressFamily::IPv4->value], $rangesOk[AddressFamily::IPv4->value]),
+            new DhcpFetchStatus($leasesOk[AddressFamily::IPv6->value], $rangesOk[AddressFamily::IPv6->value]),
         );
     }
 
-    /** @return Collection<int, DhcpRange> */
-    private function fetchIpv6Ranges(KeaClient $client): Collection
+    public function getLease(string $ipAddress): ?DhcpLease
     {
-        return $this->fetchFamilyRanges(
-            client: $client,
-            protocolKey: 'Dhcp6',
-            subnetKey: 'subnet6',
-            snapshotKey: 'ipv6',
-            rangesStatusKey: 'ipv6_ranges',
-            logMessage: 'Kea IPv6 config-get failed',
-            buildRange: $this->buildIpv6Range(...),
-            enrichRange: $this->enrichIpv6RangeWithUsage(...),
-        );
+        $family = match (true) {
+            filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false => AddressFamily::IPv4,
+            filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false => AddressFamily::IPv6,
+            default => null,
+        };
+
+        if ($family === null) {
+            return null;
+        }
+
+        return $this->fetchSingleLease($family, $ipAddress);
+    }
+
+    private function client(AddressFamily $family): ?KeaClient
+    {
+        return $family === AddressFamily::IPv4 ? $this->ipv4Client : $this->ipv6Client;
+    }
+
+    private function label(AddressFamily $family): string
+    {
+        return $family === AddressFamily::IPv4 ? 'IPv4' : 'IPv6';
     }
 
     /**
-     * @param  'ipv4_ranges'|'ipv6_ranges'  $rangesStatusKey
-     * @param  callable(mixed, string, string, ?string): ?DhcpRange  $buildRange
-     * @param  callable(DhcpRange, Collection<int, DhcpLease>): DhcpRange  $enrichRange
-     * @return Collection<int, DhcpRange>
+     * @param  Collection<int, string>  $usageIps
+     * @return Collection<int, DhcpRange>|null null when config-get failed
      */
-    private function fetchFamilyRanges(
-        KeaClient $client,
-        string $protocolKey,
-        string $subnetKey,
-        string $snapshotKey,
-        string $rangesStatusKey,
-        string $logMessage,
-        callable $buildRange,
-        callable $enrichRange,
-    ): Collection {
+    private function fetchRanges(KeaClient $client, AddressFamily $family, Collection $usageIps): ?Collection
+    {
+        $isV4 = $family === AddressFamily::IPv4;
+        $protocolKey = $isV4 ? 'Dhcp4' : 'Dhcp6';
+        $subnetKey = $isV4 ? 'subnet4' : 'subnet6';
+
         try {
             $entry = $client->sendCommand('config-get');
         } catch (Throwable $throwable) {
-            Log::warning($logMessage, ['error' => $throwable->getMessage()]);
-            $this->fetchStatus[$rangesStatusKey] = false;
+            Log::warning($isV4 ? 'Kea config-get failed' : 'Kea IPv6 config-get failed', ['error' => $throwable->getMessage()]);
 
-            return collect();
+            return null;
         }
 
         $arguments = $entry['arguments'] ?? null;
-
-        if (! is_array($arguments)) {
-            return collect();
-        }
-
-        $protocolConfig = $arguments[$protocolKey] ?? null;
+        $protocolConfig = is_array($arguments) ? ($arguments[$protocolKey] ?? null) : null;
 
         if (! is_array($protocolConfig)) {
             return collect();
@@ -186,7 +158,7 @@ class KeaDhcpService implements DhcpInterface
 
         $ranges = collect();
 
-        $this->collectSubnets($ranges, $protocolConfig[$subnetKey] ?? [], '', $buildRange);
+        $this->collectSubnets($ranges, $protocolConfig[$subnetKey] ?? [], '', $family);
 
         $sharedNetworks = $protocolConfig['shared-networks'] ?? [];
 
@@ -199,98 +171,24 @@ class KeaDhcpService implements DhcpInterface
                 $name = $sharedNetwork['name'] ?? null;
                 $fallbackInterface = is_string($name) && $name !== '' ? $name : '';
 
-                $this->collectSubnets($ranges, $sharedNetwork[$subnetKey] ?? [], $fallbackInterface, $buildRange);
+                $this->collectSubnets($ranges, $sharedNetwork[$subnetKey] ?? [], $fallbackInterface, $family);
             }
         }
 
-        if ($ranges->isEmpty()) {
-            return $ranges;
-        }
-
-        /** @var Collection<int, DhcpLease> $leases */
-        $leases = $this->snapshot[$snapshotKey] ?? collect();
-        $usage = $leases->concat($this->declined[$snapshotKey]);
-
-        return $ranges->map(fn (DhcpRange $range): DhcpRange => $enrichRange($range, $usage))->values();
+        return $ranges->map(fn (DhcpRange $range): DhcpRange => RangeUsageCalculator::enrich($range, $usageIps))->values();
     }
 
-    private function usableIpv4RangeClient(): ?KeaClient
+    private function fetchSingleLease(AddressFamily $family, string $ipAddress): ?DhcpLease
     {
-        if (! $this->ipv4Client instanceof KeaClient || ! $this->fetchStatus['ipv4']) {
-            return null;
-        }
+        $client = $this->client($family);
 
-        return $this->ipv4Client;
-    }
-
-    private function usableIpv6RangeClient(): ?KeaClient
-    {
-        if (! $this->ipv6Client instanceof KeaClient || ! $this->fetchStatus['ipv6']) {
-            return null;
-        }
-
-        return $this->ipv6Client;
-    }
-
-    /**
-     * @param  Collection<int, DhcpRange>  $ranges
-     * @return Collection<int, DhcpRange>
-     */
-    private function cacheRanges(Collection $ranges): Collection
-    {
-        if ($this->snapshot !== null) {
-            $this->snapshot['ranges'] = $ranges;
-        }
-
-        return $ranges;
-    }
-
-    /** @return Collection<int, DhcpLease> */
-    public function getLeases(): Collection
-    {
-        $this->refreshSnapshot();
-
-        /** @var Collection<int, DhcpLease> $ipv4 */
-        $ipv4 = $this->snapshot['ipv4'] ?? collect();
-        /** @var Collection<int, DhcpLease> $ipv6 */
-        $ipv6 = $this->snapshot['ipv6'] ?? collect();
-
-        return $ipv4->concat($ipv6)->values();
-    }
-
-    public function getLease(string $ipAddress): ?DhcpLease
-    {
-        if ($this->isIpv4Address($ipAddress)) {
-            return $this->fetchSingleLease(
-                $this->ipv4Client,
-                'lease4-get',
-                ['ip-address' => $ipAddress],
-                $ipAddress,
-                isIpv6: false,
-            );
-        }
-
-        if (! $this->isIpv6Address($ipAddress)) {
-            return null;
-        }
-
-        return $this->fetchSingleLease(
-            $this->ipv6Client,
-            'lease6-get',
-            ['ip-address' => $ipAddress, 'type' => 'IA_NA'],
-            $ipAddress,
-            isIpv6: true,
-        );
-    }
-
-    /**
-     * @param  array<string, mixed>  $arguments
-     */
-    private function fetchSingleLease(?KeaClient $client, string $command, array $arguments, string $ipAddress, bool $isIpv6): ?DhcpLease
-    {
         if (! $client instanceof KeaClient) {
             return null;
         }
+
+        $isV4 = $family === AddressFamily::IPv4;
+        $command = $isV4 ? 'lease4-get' : 'lease6-get';
+        $arguments = $isV4 ? ['ip-address' => $ipAddress] : ['ip-address' => $ipAddress, 'type' => 'IA_NA'];
 
         try {
             $entry = $client->sendCommand($command, $arguments);
@@ -320,104 +218,18 @@ class KeaDhcpService implements DhcpInterface
             return null;
         }
 
-        return $this->buildLease($lease, $ipAddress, $expiresAt, $isIpv6);
-    }
-
-    private function isIpv4Address(string $ipAddress): bool
-    {
-        return filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
-    }
-
-    private function isIpv6Address(string $ipAddress): bool
-    {
-        return filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
-    }
-
-    public function resetSnapshot(): void
-    {
-        $this->snapshot = null;
-        $this->declined = ['ipv4' => collect(), 'ipv6' => collect()];
-        $this->fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true, 'ipv6_ranges' => true];
-    }
-
-    private function refreshSnapshot(): void
-    {
-        $this->resetSnapshot();
-        $this->ensureSnapshot();
+        return $this->buildLease($lease, $ipAddress, $expiresAt, $family);
     }
 
     /**
-     * @return array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool}
-     */
-    public function getFetchStatus(): array
-    {
-        $this->ensureSnapshot();
-
-        return $this->fetchStatus;
-    }
-
-    private function ensureSnapshot(): void
-    {
-        if ($this->snapshot !== null) {
-            return;
-        }
-
-        $this->fetchSnapshot();
-    }
-
-    private function fetchSnapshot(): void
-    {
-        $now = Date::now()->getTimestamp();
-
-        /** @var Collection<int, DhcpLease> $ipv4Leases */
-        $ipv4Leases = collect();
-        /** @var Collection<int, DhcpLease> $ipv6Leases */
-        $ipv6Leases = collect();
-
-        if (! $this->ipv4Client instanceof KeaClient) {
-            $this->markFamilyAsDeliberatelyUnconfigured('ipv4');
-        } else {
-            try {
-                $ipv4Leases = $this->fetchFamilyLeases($this->ipv4Client, 'lease4-get-page', $now, isIpv6: false);
-                $this->fetchStatus['ipv4'] = true;
-            } catch (Throwable $e) {
-                Log::warning('Kea IPv4 lease fetch failed', ['error' => $e->getMessage()]);
-                $this->fetchStatus['ipv4'] = false;
-            }
-        }
-
-        if (! $this->ipv6Client instanceof KeaClient) {
-            $this->markFamilyAsDeliberatelyUnconfigured('ipv6');
-        } else {
-            try {
-                $ipv6Leases = $this->fetchFamilyLeases($this->ipv6Client, 'lease6-get-page', $now, isIpv6: true);
-                $this->fetchStatus['ipv6'] = true;
-            } catch (Throwable $e) {
-                Log::warning('Kea IPv6 lease fetch failed', ['error' => $e->getMessage()]);
-                $this->fetchStatus['ipv6'] = false;
-            }
-        }
-
-        $this->snapshot = [
-            'ipv4' => $ipv4Leases,
-            'ipv6' => $ipv6Leases,
-            'ranges' => null,
-        ];
-    }
-
-    /**
-     * @param  'ipv4'|'ipv6'  $family
-     */
-    private function markFamilyAsDeliberatelyUnconfigured(string $family): void
-    {
-        $this->fetchStatus[$family] = true;
-    }
-
-    /**
+     * Declined leases hold an address without being a host lease, so they are collected into $declined for pool usage only.
+     *
+     * @param  Collection<int, DhcpLease>  $declined
      * @return Collection<int, DhcpLease>
      */
-    private function fetchFamilyLeases(KeaClient $client, string $command, int $now, bool $isIpv6): Collection
+    private function fetchFamilyLeases(KeaClient $client, AddressFamily $family, int $now, Collection $declined): Collection
     {
+        $command = $family === AddressFamily::IPv4 ? 'lease4-get-page' : 'lease6-get-page';
         $leases = collect();
         $cursor = self::FIRST_PAGE_CURSOR;
 
@@ -440,7 +252,7 @@ class KeaDhcpService implements DhcpInterface
                 break;
             }
 
-            $lastIp = $this->processPage($pageLeases, $leases, $now, $isIpv6);
+            $lastIp = $this->processPage($pageLeases, $leases, $declined, $now, $family);
 
             if ($lastIp === null || $lastIp === $cursor) {
                 break;
@@ -455,8 +267,9 @@ class KeaDhcpService implements DhcpInterface
     /**
      * @param  array<int|string, mixed>  $pageLeases
      * @param  Collection<int, DhcpLease>  $leases
+     * @param  Collection<int, DhcpLease>  $declined
      */
-    private function processPage(array $pageLeases, Collection $leases, int $now, bool $isIpv6 = false): ?string
+    private function processPage(array $pageLeases, Collection $leases, Collection $declined, int $now, AddressFamily $family): ?string
     {
         $lastIp = null;
 
@@ -473,12 +286,12 @@ class KeaDhcpService implements DhcpInterface
 
             $lastIp = $ip;
 
-            if ($isIpv6 && $this->isPrefixDelegation($lease)) {
+            if ($family === AddressFamily::IPv6 && $this->isPrefixDelegation($lease)) {
                 continue;
             }
 
             if ($this->isDeclined($lease, $now)) {
-                $this->declined[$isIpv6 ? 'ipv6' : 'ipv4']->push($this->mapLease($lease, $ip, $isIpv6));
+                $declined->push($this->buildLease($lease, $ip, $this->expiresAt($lease), $family));
 
                 continue;
             }
@@ -487,7 +300,7 @@ class KeaDhcpService implements DhcpInterface
                 continue;
             }
 
-            $leases->push($this->mapLease($lease, $ip, $isIpv6));
+            $leases->push($this->buildLease($lease, $ip, $this->expiresAt($lease), $family));
         }
 
         return $lastIp;
@@ -537,46 +350,38 @@ class KeaDhcpService implements DhcpInterface
     /**
      * @param  array<string, mixed>  $lease
      */
-    private function mapLease(array $lease, string $ip, bool $isIpv6 = false): DhcpLease
-    {
-        return $this->buildLease($lease, $ip, $this->expiresAt($lease), $isIpv6);
-    }
-
-    /**
-     * @param  array<string, mixed>  $lease
-     */
-    private function buildLease(array $lease, string $ip, int $expiresAt, bool $isIpv6): DhcpLease
+    private function buildLease(array $lease, string $ip, int $expiresAt, AddressFamily $family): DhcpLease
     {
         $hostname = $lease['hostname'] ?? null;
 
         return new DhcpLease(
             ip: $ip,
-            mac: $this->deriveMac($lease, $isIpv6),
+            mac: $this->deriveMac($lease, $family),
             hostname: is_string($hostname) ? $hostname : '',
             expires: Date::createFromTimestamp($expiresAt)->toIso8601String(),
-            macFromDuid: $this->macIsDuidDerived($lease, $isIpv6),
+            macFromDuid: $this->macIsDuidDerived($lease, $family),
         );
     }
 
     /**
      * @param  array<string, mixed>  $lease
      */
-    private function macIsDuidDerived(array $lease, bool $isIpv6): bool
+    private function macIsDuidDerived(array $lease, AddressFamily $family): bool
     {
         $hw = $lease['hw-address'] ?? null;
 
-        return $isIpv6 && ! (is_string($hw) && $hw !== '') && $this->deriveMac($lease, $isIpv6) !== null;
+        return $family === AddressFamily::IPv6 && ! (is_string($hw) && $hw !== '') && $this->deriveMac($lease, $family) !== null;
     }
 
     /**
      * @param  array<string, mixed>  $lease
      */
-    private function deriveMac(array $lease, bool $isIpv6): ?string
+    private function deriveMac(array $lease, AddressFamily $family): ?string
     {
         $mac = $lease['hw-address'] ?? null;
         $mac = is_string($mac) && $mac !== '' ? $mac : null;
 
-        if ($mac === null && $isIpv6) {
+        if ($mac === null && $family === AddressFamily::IPv6) {
             $duid = $lease['duid'] ?? null;
 
             if (is_string($duid) && $duid !== '') {
@@ -589,24 +394,22 @@ class KeaDhcpService implements DhcpInterface
 
     /**
      * @param  Collection<int, DhcpRange>  $ranges
-     * @param  callable(mixed, string, string, ?string): ?DhcpRange  $buildRange
      */
-    private function collectSubnets(Collection $ranges, mixed $subnets, string $fallbackInterface, callable $buildRange): void
+    private function collectSubnets(Collection $ranges, mixed $subnets, string $fallbackInterface, AddressFamily $family): void
     {
         if (! is_array($subnets)) {
             return;
         }
 
         foreach ($subnets as $subnet) {
-            $this->collectSubnetRanges($ranges, $subnet, $fallbackInterface, $buildRange);
+            $this->collectSubnetRanges($ranges, $subnet, $fallbackInterface, $family);
         }
     }
 
     /**
      * @param  Collection<int, DhcpRange>  $ranges
-     * @param  callable(mixed, string, string, ?string): ?DhcpRange  $buildRange
      */
-    private function collectSubnetRanges(Collection $ranges, mixed $subnet, string $fallbackInterface, callable $buildRange): void
+    private function collectSubnetRanges(Collection $ranges, mixed $subnet, string $fallbackInterface, AddressFamily $family): void
     {
         if (! is_array($subnet)) {
             return;
@@ -629,7 +432,7 @@ class KeaDhcpService implements DhcpInterface
         $subnetLabel = $this->contextName($subnet['user-context'] ?? null);
 
         foreach ($pools as $pool) {
-            $range = $buildRange($pool, $cidr, $interface, $subnetLabel);
+            $range = $this->buildRange($family, $pool, $cidr, $interface, $subnetLabel);
 
             if ($range instanceof DhcpRange) {
                 $ranges->push($range);
@@ -637,7 +440,7 @@ class KeaDhcpService implements DhcpInterface
         }
     }
 
-    private function buildRange(mixed $pool, string $cidr, string $interface, ?string $subnetLabel): ?DhcpRange
+    private function buildRange(AddressFamily $family, mixed $pool, string $cidr, string $interface, ?string $subnetLabel): ?DhcpRange
     {
         if (! is_array($pool)) {
             return null;
@@ -649,7 +452,9 @@ class KeaDhcpService implements DhcpInterface
             return null;
         }
 
-        $bounds = $this->parseRangeBounds($poolString);
+        $bounds = $family === AddressFamily::IPv4
+            ? $this->parseRangeBounds($poolString)
+            : $this->parseIpv6RangeBounds($poolString);
 
         if ($bounds === null) {
             return null;
@@ -659,7 +464,7 @@ class KeaDhcpService implements DhcpInterface
 
         return new DhcpRange(
             interface: $interface,
-            type: 'ipv4',
+            type: $family,
             subnet: $cidr,
             rangeFrom: $from,
             rangeTo: $to,
@@ -744,73 +549,6 @@ class KeaDhcpService implements DhcpInterface
     }
 
     /**
-     * @param  Collection<int, DhcpLease>  $leases
-     */
-    private function enrichRangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
-    {
-        $fromLong = ip2long((string) $range->rangeFrom);
-        $toLong = ip2long((string) $range->rangeTo);
-
-        if ($fromLong === false || $toLong === false) {
-            return $range; // @codeCoverageIgnore
-        }
-
-        $total = $toLong - $fromLong + 1;
-
-        $used = $leases->filter(function (DhcpLease $lease) use ($fromLong, $toLong): bool {
-            $leaseLong = ip2long($lease->ip);
-
-            return $leaseLong !== false && $leaseLong >= $fromLong && $leaseLong <= $toLong;
-        })->count();
-
-        return new DhcpRange(
-            interface: $range->interface,
-            type: $range->type,
-            subnet: $range->subnet,
-            rangeFrom: $range->rangeFrom,
-            rangeTo: $range->rangeTo,
-            prefix: $range->prefix,
-            gateway: $range->gateway,
-            description: $range->description,
-            totalAddresses: (string) $total,
-            usedAddresses: $used,
-            utilisation: $total > 0 ? round($used / $total, 4) : 0.0,
-        );
-    }
-
-    private function buildIpv6Range(mixed $pool, string $cidr, string $interface, ?string $subnetLabel): ?DhcpRange
-    {
-        if (! is_array($pool)) {
-            return null;
-        }
-
-        $poolString = $pool['pool'] ?? null;
-
-        if (! is_string($poolString) || $poolString === '') {
-            return null;
-        }
-
-        $bounds = $this->parseIpv6RangeBounds($poolString);
-
-        if ($bounds === null) {
-            return null;
-        }
-
-        [$from, $to] = $bounds;
-
-        return new DhcpRange(
-            interface: $interface,
-            type: 'ipv6',
-            subnet: $cidr,
-            rangeFrom: $from,
-            rangeTo: $to,
-            prefix: null,
-            gateway: null,
-            description: $this->poolLabel($pool, $subnetLabel, $cidr, $from, $to),
-        );
-    }
-
-    /**
      * @return array{0: string, 1: string}|null
      */
     private function parseIpv6RangeBounds(string $pool): ?array
@@ -884,62 +622,5 @@ class KeaDhcpService implements DhcpInterface
         }
 
         return [$fromAddress, $toAddress];
-    }
-
-    /**
-     * @param  Collection<int, DhcpLease>  $leases
-     */
-    private function enrichIpv6RangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
-    {
-        $fromPacked = inet_pton((string) $range->rangeFrom);
-        $toPacked = inet_pton((string) $range->rangeTo);
-
-        if ($fromPacked === false || $toPacked === false) {
-            return $range; // @codeCoverageIgnore
-        }
-
-        $total = $this->ipv6AddressCount($fromPacked, $toPacked);
-
-        $used = $leases->filter(function (DhcpLease $lease) use ($fromPacked, $toPacked): bool {
-            $leasePacked = inet_pton($lease->ip);
-
-            return $leasePacked !== false && $leasePacked >= $fromPacked && $leasePacked <= $toPacked;
-        })->count();
-
-        return new DhcpRange(
-            interface: $range->interface,
-            type: $range->type,
-            subnet: $range->subnet,
-            rangeFrom: $range->rangeFrom,
-            rangeTo: $range->rangeTo,
-            prefix: $range->prefix,
-            gateway: $range->gateway,
-            description: $range->description,
-            totalAddresses: $total,
-            usedAddresses: $used,
-            utilisation: (float) bcdiv((string) $used, $total, 6),
-        );
-    }
-
-    /**
-     * @return numeric-string
-     */
-    private function ipv6AddressCount(string $fromPacked, string $toPacked): string
-    {
-        return bcadd(bcsub($this->ipv6ToDecimal($toPacked), $this->ipv6ToDecimal($fromPacked)), '1');
-    }
-
-    /**
-     * @return numeric-string
-     */
-    private function ipv6ToDecimal(string $packed): string
-    {
-        $decimal = '0';
-
-        for ($i = 0; $i < 16; $i++) {
-            $decimal = bcadd(bcmul($decimal, '256'), (string) ord($packed[$i]));
-        }
-
-        return $decimal;
     }
 }

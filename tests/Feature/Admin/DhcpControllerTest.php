@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
 use App\Models\DhcpRangeRecord;
@@ -35,7 +36,7 @@ class DhcpControllerTest extends TestCase
     public function test_index_page_renders_ranges_from_database(): void
     {
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'vyos',
         ]);
 
@@ -72,7 +73,7 @@ class DhcpControllerTest extends TestCase
     public function test_index_passes_huge_ipv6_totals_as_exact_strings(): void
     {
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 
@@ -101,7 +102,7 @@ class DhcpControllerTest extends TestCase
     public function test_index_passes_null_usage_fields_when_unknown(): void
     {
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 
@@ -142,7 +143,7 @@ class DhcpControllerTest extends TestCase
     public function test_leases_page_renders_leases_from_database(): void
     {
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'vyos',
         ]);
 
@@ -172,7 +173,7 @@ class DhcpControllerTest extends TestCase
     public function test_leases_shows_mac_from_ip_association_when_lease_has_no_mac(): void
     {
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 
@@ -204,7 +205,7 @@ class DhcpControllerTest extends TestCase
     public function test_leases_ranges_include_prefix_and_type(): void
     {
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 
@@ -250,7 +251,7 @@ class DhcpControllerTest extends TestCase
     public function test_only_active_integration_data_shown(): void
     {
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'vyos',
         ]);
 
@@ -280,7 +281,7 @@ class DhcpControllerTest extends TestCase
     public function test_index_shows_last_synced_timestamp(): void
     {
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'vyos',
         ]);
 

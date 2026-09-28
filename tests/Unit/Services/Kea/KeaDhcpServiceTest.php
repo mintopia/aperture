@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Kea;
 
+use App\Enums\AddressFamily;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Kea\KeaClient;
 use App\Services\Kea\KeaDhcpService;
@@ -16,6 +17,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\DhcpFetchStatusArray;
 use Tests\TestCase;
 
 class KeaDhcpServiceTest extends TestCase
@@ -46,7 +48,7 @@ class KeaDhcpServiceTest extends TestCase
     {
         $this->fakeConfigGet(['result' => 3, 'text' => 'no config']);
 
-        $status = $this->service->getPoolStatus();
+        $status = $this->service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertInstanceOf(DhcpPoolStatus::class, $status);
         $this->assertSame(0, $status->total);
@@ -62,7 +64,7 @@ class KeaDhcpServiceTest extends TestCase
             'arguments' => ['Dhcp4' => ['subnet4' => []]],
         ]);
 
-        $ranges = $this->service->getRanges();
+        $ranges = $this->service->snapshot()->ranges;
 
         $this->assertInstanceOf(Collection::class, $ranges);
         $this->assertTrue($ranges->isEmpty());
@@ -72,7 +74,7 @@ class KeaDhcpServiceTest extends TestCase
     {
         $this->fakeConfigGet(['result' => 3]);
 
-        $this->service->getRanges();
+        $this->service->snapshot()->ranges;
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();
@@ -88,7 +90,7 @@ class KeaDhcpServiceTest extends TestCase
             'arguments' => ['SomethingElse' => []],
         ]);
 
-        $this->assertTrue($this->service->getRanges()->isEmpty());
+        $this->assertTrue($this->service->snapshot()->ranges->isEmpty());
     }
 
     public function test_dhcp4_non_array_returns_empty_collection(): void
@@ -98,7 +100,7 @@ class KeaDhcpServiceTest extends TestCase
             'arguments' => ['Dhcp4' => 'not-an-array'],
         ]);
 
-        $this->assertTrue($this->service->getRanges()->isEmpty());
+        $this->assertTrue($this->service->snapshot()->ranges->isEmpty());
     }
 
     public function test_ignores_non_array_subnet4_and_shared_networks(): void
@@ -113,7 +115,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         ]);
 
-        $this->assertTrue($this->service->getRanges()->isEmpty());
+        $this->assertTrue($this->service->snapshot()->ranges->isEmpty());
     }
 
     public function test_parses_range_format_pool_with_and_without_spaces(): void
@@ -136,7 +138,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         ]);
 
-        $ranges = $this->service->getRanges()->values()->all();
+        $ranges = $this->service->snapshot()->ranges->values()->all();
 
         $this->assertCount(2, $ranges);
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
@@ -167,7 +169,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         ]);
 
-        $ranges = $this->service->getRanges()->values()->all();
+        $ranges = $this->service->snapshot()->ranges->values()->all();
 
         $this->assertCount(3, $ranges);
         $this->assertSame('10.0.0.64', $ranges[0]->rangeFrom);
@@ -214,7 +216,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         ]);
 
-        $ranges = $this->service->getRanges()->values()->all();
+        $ranges = $this->service->snapshot()->ranges->values()->all();
 
         $this->assertCount(3, $ranges);
         $this->assertSame('office-network', $ranges[0]->interface);
@@ -250,7 +252,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         ]);
 
-        $ranges = $this->service->getRanges()->values()->all();
+        $ranges = $this->service->snapshot()->ranges->values()->all();
 
         $this->assertCount(4, $ranges);
         $this->assertSame('pool-name', $ranges[0]->description);
@@ -276,7 +278,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         ]);
 
-        $ranges = $this->service->getRanges()->values()->all();
+        $ranges = $this->service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
@@ -316,7 +318,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         ]);
 
-        $ranges = $this->service->getRanges()->values()->all();
+        $ranges = $this->service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
         $this->assertSame('10.0.1.10', $ranges[0]->rangeFrom);
@@ -354,7 +356,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $this->service->getRanges()->values()->all();
+        $ranges = $this->service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
         $this->assertSame('5', $ranges[0]->totalAddresses);
@@ -383,9 +385,10 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $this->assertCount(1, $this->service->getLeases());
-        $this->assertSame(2, $this->service->getRanges()->first()->usedAddresses);
-        $this->assertSame(2, $this->service->getPoolStatus()->used);
+        $snapshot = $this->service->snapshot();
+        $this->assertCount(1, $snapshot->leases);
+        $this->assertSame(2, $snapshot->ranges->first()->usedAddresses);
+        $this->assertSame(2, $snapshot->poolStatus(AddressFamily::IPv4)->used);
     }
 
     public function test_get_pool_status_aggregates_across_multiple_ranges(): void
@@ -421,7 +424,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $status = $this->service->getPoolStatus();
+        $status = $this->service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertSame(9, $status->total);
         $this->assertSame(2, $status->used);
@@ -433,10 +436,11 @@ class KeaDhcpServiceTest extends TestCase
     {
         Http::fake(['kea.local' => Http::response('Unauthorized', 401)]);
 
-        $ranges = $this->service->getRanges();
+        $snapshot = $this->service->snapshot();
+        $ranges = $snapshot->ranges;
 
         $this->assertTrue($ranges->isEmpty());
-        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
+        $this->assertFalse(DhcpFetchStatusArray::of($snapshot)['ipv4']);
     }
 
     public function test_get_leases_returns_empty_collection_when_kea_reports_result_three(): void
@@ -447,7 +451,7 @@ class KeaDhcpServiceTest extends TestCase
             ]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertInstanceOf(Collection::class, $leases);
         $this->assertTrue($leases->isEmpty());
@@ -461,7 +465,7 @@ class KeaDhcpServiceTest extends TestCase
             ]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertTrue($leases->isEmpty());
     }
@@ -474,7 +478,7 @@ class KeaDhcpServiceTest extends TestCase
             ]),
         ]);
 
-        $this->service->getLeases();
+        $this->service->snapshot()->leases;
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();
@@ -514,7 +518,7 @@ class KeaDhcpServiceTest extends TestCase
                 ]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertCount(3, $leases);
         $this->assertSame(['10.0.0.1', '10.0.0.2', '10.0.0.3'], $leases->pluck('ip')->all());
@@ -548,7 +552,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertTrue($leases->isEmpty());
     }
@@ -570,7 +574,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertTrue($leases->isEmpty());
     }
@@ -599,7 +603,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertTrue($leases->isEmpty());
     }
@@ -628,7 +632,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
 
@@ -665,7 +669,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertNull($this->assertLease($leases->first())->hostname);
@@ -694,7 +698,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertNull($this->assertLease($leases->first())->mac);
@@ -720,7 +724,7 @@ class KeaDhcpServiceTest extends TestCase
             ]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertTrue($leases->isEmpty());
     }
@@ -743,7 +747,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $this->service->getLeases();
+        $leases = $this->service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertSame('10.0.0.7', $this->assertLease($leases->first())->ip);
@@ -768,10 +772,11 @@ class KeaDhcpServiceTest extends TestCase
     {
         $fakeHttp();
 
-        $leases = $this->service->getLeases();
+        $snapshot = $this->service->snapshot();
+        $leases = $snapshot->leases;
 
         $this->assertTrue($leases->isEmpty());
-        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
+        $this->assertFalse(DhcpFetchStatusArray::of($snapshot)['ipv4']);
     }
 
     public function test_get_lease_returns_lease_for_active_lease(): void
@@ -1288,7 +1293,7 @@ class KeaDhcpServiceTest extends TestCase
             'kea6.local' => Http::response([['result' => 3]]),
         ]);
 
-        $service->getLeases();
+        $service->snapshot()->leases;
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();
@@ -1326,7 +1331,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertSame(['2001:db8::1', '2001:db8::2', '2001:db8::3'], $leases->pluck('ip')->all());
     }
@@ -1357,7 +1362,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertTrue($leases->isEmpty());
     }
@@ -1381,12 +1386,12 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertSame('2001:db8::2', $this->assertLease($leases->first())->ip);
 
-        Http::assertSentCount(3);
+        $this->assertCount(2, Http::recorded(fn ($request): bool => str_contains($request->body(), 'lease6-get-page')));
     }
 
     public function test_ipv6_mac_uses_hw_address_when_present(): void
@@ -1407,7 +1412,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertSame('AA:BB:CC:00:00:01', $this->assertLease($leases->first())->mac);
     }
@@ -1430,7 +1435,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertSame('EE:FF:00:11:AA:BB', $this->assertLease($leases->first())->mac);
     }
@@ -1453,7 +1458,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertSame('AA:BB:CC:DD:EE:FF', $this->assertLease($leases->first())->mac);
     }
@@ -1482,7 +1487,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases()->keyBy('ip');
+        $leases = $service->snapshot()->leases->keyBy('ip');
 
         $this->assertNull($this->assertLease($leases['2001:db8::1'])->mac);
         $this->assertNull($this->assertLease($leases['2001:db8::2'])->mac);
@@ -1509,7 +1514,7 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(2, $leases);
         $this->assertSame(['10.0.0.1', '2001:db8::1'], $leases->pluck('ip')->all());
@@ -1526,7 +1531,7 @@ class KeaDhcpServiceTest extends TestCase
 
         $this->assertSame(
             ['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true],
-            $service->getFetchStatus(),
+            DhcpFetchStatusArray::of($service->snapshot()),
         );
     }
 
@@ -1544,8 +1549,9 @@ class KeaDhcpServiceTest extends TestCase
             'kea6.local' => Http::response('Unauthorized', 401),
         ]);
 
-        $leases = $service->getLeases();
-        $status = $service->getFetchStatus();
+        $snapshot = $service->snapshot();
+        $leases = $snapshot->leases;
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertSame(['10.0.0.1'], $leases->pluck('ip')->all());
         $this->assertTrue($status['ipv4']);
@@ -1566,8 +1572,9 @@ class KeaDhcpServiceTest extends TestCase
                 ->push([['result' => 3]]),
         ]);
 
-        $leases = $service->getLeases();
-        $status = $service->getFetchStatus();
+        $snapshot = $service->snapshot();
+        $leases = $snapshot->leases;
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertSame(['2001:db8::1'], $leases->pluck('ip')->all());
         $this->assertFalse($status['ipv4']);
@@ -1581,28 +1588,14 @@ class KeaDhcpServiceTest extends TestCase
             'kea6.local' => Http::response([['result' => 3]]),
         ]);
 
-        $status = $this->service->getFetchStatus();
+        $snapshot = $this->service->snapshot();
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertTrue($status['ipv4']);
         $this->assertTrue($status['ipv6']);
-        $this->assertTrue($this->service->getLeases()->isEmpty());
+        $this->assertTrue($snapshot->leases->isEmpty());
 
         Http::assertNotSent(fn ($request): bool => $request->url() === 'https://kea6.local');
-    }
-
-    public function test_reset_snapshot_clears_cache_and_a_subsequent_call_refetches(): void
-    {
-        Http::fake(['kea.local' => Http::response([['result' => 3]])]);
-
-        $this->service->getFetchStatus();
-        Http::assertSentCount(1);
-
-        $this->service->getFetchStatus();
-        Http::assertSentCount(1);
-
-        $this->service->resetSnapshot();
-        $this->service->getFetchStatus();
-        Http::assertSentCount(2);
     }
 
     public function test_get_ranges_then_get_pool_status_only_sends_config_get_once(): void
@@ -1612,8 +1605,8 @@ class KeaDhcpServiceTest extends TestCase
             'arguments' => ['Dhcp4' => ['subnet4' => []]],
         ]);
 
-        $this->service->getRanges();
-        $this->service->getPoolStatus();
+        $snapshot = $this->service->snapshot();
+        $snapshot->poolStatus(AddressFamily::IPv4);
 
         $configGetCount = 0;
         Http::assertSent(function ($request) use (&$configGetCount): bool {
@@ -1641,8 +1634,9 @@ class KeaDhcpServiceTest extends TestCase
             },
         ]);
 
-        $ranges = $this->service->getRanges();
-        $status = $this->service->getFetchStatus();
+        $snapshot = $this->service->snapshot();
+        $ranges = $snapshot->ranges;
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertTrue($ranges->isEmpty());
         $this->assertFalse($status['ipv4_ranges']);
@@ -1671,9 +1665,10 @@ class KeaDhcpServiceTest extends TestCase
             },
         ]);
 
-        $leases = $this->service->getLeases();
-        $ranges = $this->service->getRanges();
-        $status = $this->service->getFetchStatus();
+        $snapshot = $this->service->snapshot();
+        $leases = $snapshot->leases;
+        $ranges = $snapshot->ranges;
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertSame(['10.0.0.1'], $leases->pluck('ip')->all());
         $this->assertTrue($ranges->isEmpty());
@@ -1687,7 +1682,7 @@ class KeaDhcpServiceTest extends TestCase
 
         $service = new KeaDhcpService(null);
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertTrue($ranges->isEmpty());
         Http::assertNothingSent();
@@ -1727,10 +1722,10 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges()->values()->all();
+        $ranges = $service->snapshot()->ranges->values()->all();
 
         $this->assertCount(2, $ranges);
-        $this->assertSame('ipv6', $ranges[0]->type);
+        $this->assertSame(AddressFamily::IPv6, $ranges[0]->type);
         $this->assertSame('eth6', $ranges[0]->interface);
         $this->assertSame('2001:db8:1::/64', $ranges[0]->subnet);
         $this->assertSame('2001:db8:1::10', $ranges[0]->rangeFrom);
@@ -1762,7 +1757,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges()->values()->all();
+        $ranges = $service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
         $this->assertSame('2001:db8::10', $ranges[0]->rangeFrom);
@@ -1797,7 +1792,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges()->values()->all();
+        $ranges = $service->snapshot()->ranges->values()->all();
 
         $this->assertCount(3, $ranges);
         $this->assertSame('pool-name', $ranges[0]->description);
@@ -1845,7 +1840,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges()->values()->all();
+        $ranges = $service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
         $this->assertSame('2001:db8:1::10', $ranges[0]->rangeFrom);
@@ -1873,7 +1868,7 @@ class KeaDhcpServiceTest extends TestCase
             },
         ]);
 
-        $this->assertTrue($service->getRanges()->isEmpty());
+        $this->assertTrue($service->snapshot()->ranges->isEmpty());
     }
 
     public function test_ipv6_dhcp6_missing_or_non_array_returns_empty_ipv6_ranges(): void
@@ -1885,16 +1880,15 @@ class KeaDhcpServiceTest extends TestCase
             ['SomethingElse' => []],
         );
 
-        $this->assertTrue($service->getRanges()->isEmpty());
-
-        $service->resetSnapshot();
+        $snapshot = $service->snapshot();
+        $this->assertTrue($snapshot->ranges->isEmpty());
 
         $this->fakeDualStackConfigGet(
             ['Dhcp4' => ['subnet4' => []]],
             ['Dhcp6' => 'not-an-array'],
         );
 
-        $this->assertTrue($service->getRanges()->isEmpty());
+        $this->assertTrue($service->snapshot()->ranges->isEmpty());
     }
 
     public function test_ipv6_get_ranges_returns_ipv4_only_when_no_ipv6_subnets_configured(): void
@@ -1912,10 +1906,10 @@ class KeaDhcpServiceTest extends TestCase
             ['Dhcp6' => ['subnet6' => []]],
         );
 
-        $ranges = $service->getRanges()->values()->all();
+        $ranges = $service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
-        $this->assertSame('ipv4', $ranges[0]->type);
+        $this->assertSame(AddressFamily::IPv4, $ranges[0]->type);
     }
 
     public function test_ipv6_computes_used_addresses_within_pool_bounds_not_whole_subnet(): void
@@ -1950,7 +1944,7 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges()->values()->all();
+        $ranges = $service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
         $this->assertSame('5', $ranges[0]->totalAddresses);
@@ -2002,20 +1996,21 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges()->values()->all();
-        $ipv6Range = collect($ranges)->firstOrFail(fn (DhcpRange $range): bool => $range->type === 'ipv6');
+        $snapshot = $service->snapshot();
+        $ranges = $snapshot->ranges->values()->all();
+        $ipv6Range = collect($ranges)->firstOrFail(fn (DhcpRange $range): bool => $range->type === AddressFamily::IPv6);
 
         $this->assertCount(2, $ranges);
         $this->assertSame('18446744073709551616', $ipv6Range->totalAddresses);
         $this->assertSame(1, $ipv6Range->usedAddresses);
 
-        $ipv6Status = $service->getPoolStatus('ipv6');
+        $ipv6Status = $snapshot->poolStatus(AddressFamily::IPv6);
 
-        $this->assertSame(PHP_INT_MAX, $ipv6Status->total);
+        $this->assertSame('18446744073709551616', $ipv6Status->total);
         $this->assertSame(1, $ipv6Status->used);
-        $this->assertSame(PHP_INT_MAX - 1, $ipv6Status->available);
+        $this->assertSame('18446744073709551615', $ipv6Status->available);
 
-        $ipv4Status = $service->getPoolStatus('ipv4');
+        $ipv4Status = $snapshot->poolStatus(AddressFamily::IPv4);
 
         $this->assertSame(5, $ipv4Status->total);
         $this->assertSame(1, $ipv4Status->used);
@@ -2062,14 +2057,15 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $ipv4Status = $service->getPoolStatus('ipv4');
+        $snapshot = $service->snapshot();
+        $ipv4Status = $snapshot->poolStatus(AddressFamily::IPv4);
 
         $this->assertSame(5, $ipv4Status->total);
         $this->assertSame(1, $ipv4Status->used);
         $this->assertSame(4, $ipv4Status->available);
         $this->assertSame(0.2, $ipv4Status->utilisation);
 
-        $ipv6Status = $service->getPoolStatus('ipv6');
+        $ipv6Status = $snapshot->poolStatus(AddressFamily::IPv6);
 
         $this->assertSame(5, $ipv6Status->total);
         $this->assertSame(1, $ipv6Status->used);
@@ -2116,7 +2112,8 @@ class KeaDhcpServiceTest extends TestCase
             ],
         );
 
-        $this->assertEquals($service->getPoolStatus('ipv4'), $service->getPoolStatus());
+        $snapshot = $service->snapshot();
+        $this->assertEquals($snapshot->poolStatus(AddressFamily::IPv4), $snapshot->poolStatus(AddressFamily::IPv4));
     }
 
     public function test_ipv6_config_get_failure_returns_empty_ipv6_ranges_without_breaking_ipv4(): void
@@ -2149,11 +2146,12 @@ class KeaDhcpServiceTest extends TestCase
             },
         ]);
 
-        $ranges = $service->getRanges()->values()->all();
-        $status = $service->getFetchStatus();
+        $snapshot = $service->snapshot();
+        $ranges = $snapshot->ranges->values()->all();
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertCount(1, $ranges);
-        $this->assertSame('ipv4', $ranges[0]->type);
+        $this->assertSame(AddressFamily::IPv4, $ranges[0]->type);
         $this->assertFalse($status['ipv6_ranges']);
         $this->assertTrue($status['ipv4_ranges']);
     }
@@ -2184,9 +2182,10 @@ class KeaDhcpServiceTest extends TestCase
             },
         ]);
 
-        $leases = $service->getLeases();
-        $ranges = $service->getRanges();
-        $status = $service->getFetchStatus();
+        $snapshot = $service->snapshot();
+        $leases = $snapshot->leases;
+        $ranges = $snapshot->ranges;
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertSame(['2001:db8::1'], $leases->pluck('ip')->all());
         $this->assertTrue($ranges->isEmpty());
@@ -2217,10 +2216,10 @@ class KeaDhcpServiceTest extends TestCase
             },
         ]);
 
-        $ranges = $this->service->getRanges()->values()->all();
+        $ranges = $this->service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
-        $this->assertSame('ipv4', $ranges[0]->type);
+        $this->assertSame(AddressFamily::IPv4, $ranges[0]->type);
     }
 
     public function test_ipv6_ranges_skipped_when_ipv6_lease_fetch_failed(): void
@@ -2247,10 +2246,10 @@ class KeaDhcpServiceTest extends TestCase
             'kea6.local' => Http::response('Unauthorized', 401),
         ]);
 
-        $ranges = $service->getRanges()->values()->all();
+        $ranges = $service->snapshot()->ranges->values()->all();
 
         $this->assertCount(1, $ranges);
-        $this->assertSame('ipv4', $ranges[0]->type);
+        $this->assertSame(AddressFamily::IPv4, $ranges[0]->type);
 
         Http::assertNotSent(function ($request): bool {
             return $request->url() === 'https://kea6.local'

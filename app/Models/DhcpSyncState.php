@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\AddressFamily;
 use Database\Factories\DhcpSyncStateFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $integration
- * @property string $address_family
+ * @property AddressFamily $address_family
  * @property string $dataset
  * @property int $empty_count
  * @property Carbon|null $last_attempt_at
@@ -37,6 +38,7 @@ class DhcpSyncState extends Model
     protected function casts(): array
     {
         return [
+            'address_family' => AddressFamily::class,
             'last_attempt_at' => 'datetime',
             'last_success_at' => 'datetime',
         ];

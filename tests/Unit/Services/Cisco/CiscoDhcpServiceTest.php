@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Cisco;
 
+use App\Enums\AddressFamily;
 use App\Services\Cisco\CiscoDhcpService;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\IosOutputParser;
@@ -13,6 +14,7 @@ use App\Services\ValueObjects\DhcpRange;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
+use Tests\Support\DhcpFetchStatusArray;
 use Tests\TestCase;
 
 class CiscoDhcpServiceTest extends TestCase
@@ -151,7 +153,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall();
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(3, $leases); // 2 IPv4 + 1 IPv6
         $ipv4Leases = $leases->filter(fn (DhcpLease $l): bool => str_contains($l->ip, '.'));
@@ -175,7 +177,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(ipv6: true);
 
         $service = $this->createService(ipv6Enabled: true);
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $ipv6Leases = $leases->filter(fn (DhcpLease $l): bool => str_contains($l->ip, ':'));
 
@@ -195,7 +197,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(ipv6: false);
 
         $service = $this->createService(ipv6Enabled: false);
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(2, $leases);
         $leases->each(function (DhcpLease $l): void {
@@ -212,12 +214,12 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertNotEmpty($ranges);
         $first = $ranges->first();
         $this->assertInstanceOf(DhcpRange::class, $first);
-        $this->assertSame('ipv4', $first->type);
+        $this->assertSame(AddressFamily::IPv4, $first->type);
         $this->assertSame('LAN', $first->interface);
         $this->assertSame('10.0.0.0/24', $first->subnet);
         $this->assertSame('10.0.0.10', $first->rangeFrom);
@@ -234,9 +236,9 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
-        $ipv4Range = $ranges->first(fn (DhcpRange $r): bool => $r->type === 'ipv4');
+        $ipv4Range = $ranges->first(fn (DhcpRange $r): bool => $r->type === AddressFamily::IPv4);
 
         $this->assertInstanceOf(DhcpRange::class, $ipv4Range);
         // Bindings 10.0.0.50 and 10.0.0.51 fall within 10.0.0.10–10.0.0.254
@@ -278,7 +280,7 @@ class CiscoDhcpServiceTest extends TestCase
             ->once();
 
         $service = new CiscoDhcpService($this->transport, $parser, '0', false);
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $broken = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'BROKEN');
         $this->assertInstanceOf(DhcpRange::class, $broken);
@@ -319,7 +321,7 @@ class CiscoDhcpServiceTest extends TestCase
             ->once();
 
         $service = new CiscoDhcpService($this->transport, $parser, '0', false);
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $empty = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'EMPTY');
         $this->assertInstanceOf(DhcpRange::class, $empty);
@@ -346,7 +348,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(outputs: $outputs);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         // Pool without an "address prefix" line → prefix null → totalAddresses null
         $noPrefix = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'NOPREFIX6');
@@ -373,7 +375,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
         $this->assertInstanceOf(DhcpRange::class, $lan6);
@@ -418,7 +420,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(outputs: $outputs);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
         $this->assertInstanceOf(DhcpRange::class, $lan6);
@@ -441,7 +443,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(outputs: $outputs);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $empty6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'EMPTY6');
         $this->assertInstanceOf(DhcpRange::class, $empty6);
@@ -464,7 +466,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(outputs: $outputs);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         // Network part is not a valid IPv6 address → unknown usage
         $garbage = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'GARBAGE6');
@@ -496,7 +498,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(outputs: $outputs);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
         $this->assertInstanceOf(DhcpRange::class, $lan6);
@@ -528,7 +530,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(outputs: $outputs);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $tiny6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'TINY6');
         $this->assertInstanceOf(DhcpRange::class, $tiny6);
@@ -560,24 +562,24 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(outputs: $outputs);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $small = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'SMALL6');
         $this->assertInstanceOf(DhcpRange::class, $small);
-        $this->assertSame('ipv6', $small->type);
+        $this->assertSame(AddressFamily::IPv6, $small->type);
         // /120 → 2^8 = 256 addresses
         $this->assertSame('256', $small->totalAddresses);
 
         // /96 → 2^32 addresses, exact via BCMath
         $wide = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'WIDE6');
         $this->assertInstanceOf(DhcpRange::class, $wide);
-        $this->assertSame('ipv6', $wide->type);
+        $this->assertSame(AddressFamily::IPv6, $wide->type);
         $this->assertSame('4294967296', $wide->totalAddresses);
 
         // /64 → 2^64 addresses, exact via BCMath (the old null cap is gone)
         $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
         $this->assertInstanceOf(DhcpRange::class, $lan6);
-        $this->assertSame('ipv6', $lan6->type);
+        $this->assertSame(AddressFamily::IPv6, $lan6->type);
         $this->assertSame('18446744073709551616', $lan6->totalAddresses);
     }
 
@@ -591,7 +593,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $lan6 = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'LAN6');
         $this->assertInstanceOf(DhcpRange::class, $lan6);
@@ -607,7 +609,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall();
 
         $service = $this->createService(poolSize: '0');
-        $status = $service->getPoolStatus();
+        $status = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertInstanceOf(DhcpPoolStatus::class, $status);
         // Pool stats says total=254, leased=2
@@ -626,7 +628,7 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall();
 
         $service = $this->createService(poolSize: '500');
-        $status = $service->getPoolStatus();
+        $status = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertSame(500, $status->total);
         $this->assertSame(2, $status->used);
@@ -634,15 +636,17 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertEqualsWithDelta(round(2 / 500, 4), $status->utilisation, 0.0001);
     }
 
-    public function test_get_pool_status_ipv6_returns_zeroed_status(): void
+    public function test_get_pool_status_ipv6_is_exact_from_prefix_size(): void
     {
+        $this->expectTransportCall();
+
         $service = $this->createService(poolSize: '254');
-        $status = $service->getPoolStatus('ipv6');
+        $status = $service->snapshot()->poolStatus(AddressFamily::IPv6);
 
         $this->assertInstanceOf(DhcpPoolStatus::class, $status);
-        $this->assertSame(0, $status->total);
-        $this->assertSame(0, $status->used);
-        $this->assertSame(0, $status->available);
+        $this->assertSame('18446744073709551616', $status->total);
+        $this->assertSame(1, $status->used);
+        $this->assertSame('18446744073709551615', $status->available);
         $this->assertSame(0.0, $status->utilisation);
     }
 
@@ -694,30 +698,6 @@ class CiscoDhcpServiceTest extends TestCase
     // resetSnapshot() — clears cached data and re-fetches
     // -------------------------------------------------------------------------
 
-    public function test_reset_snapshot_clears_cache_and_re_fetches(): void
-    {
-        // Transport should be called twice: once for first fetch, once after reset
-        $this->transport
-            ->shouldReceive('executeMultiple')
-            ->twice()
-            ->andReturn($this->defaultCommandOutputs());
-
-        $this->transport
-            ->shouldReceive('disconnect')
-            ->twice();
-
-        $service = $this->createService();
-
-        // First call fetches
-        $service->getLeases();
-
-        // Reset clears cache
-        $service->resetSnapshot();
-
-        // Second call fetches again
-        $service->getLeases();
-    }
-
     // -------------------------------------------------------------------------
     // IPv6 failure doesn't block IPv4
     // -------------------------------------------------------------------------
@@ -746,11 +726,12 @@ class CiscoDhcpServiceTest extends TestCase
         $service = $this->createService(ipv6Enabled: true);
 
         // IPv4 leases still available
-        $leases = $service->getLeases();
+        $snapshot = $service->snapshot();
+        $leases = $snapshot->leases;
         $this->assertCount(2, $leases);
 
         // IPv6 fetch status is false
-        $status = $service->getFetchStatus();
+        $status = DhcpFetchStatusArray::of($snapshot);
         $this->assertTrue($status['ipv4']);
         $this->assertFalse($status['ipv6']);
     }
@@ -764,9 +745,10 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall();
 
         $service = $this->createService();
-        $service->getLeases(); // trigger snapshot
+        $snapshot = $service->snapshot();
+        $snapshot->leases; // trigger snapshot
 
-        $status = $service->getFetchStatus();
+        $status = DhcpFetchStatusArray::of($snapshot);
 
         $this->assertArrayHasKey('ipv4', $status);
         $this->assertArrayHasKey('ipv6', $status);
@@ -792,7 +774,7 @@ class CiscoDhcpServiceTest extends TestCase
         $service = $this->createService();
 
         $this->expectException(RuntimeException::class);
-        $service->getLeases();
+        $service->snapshot()->leases;
     }
 
     // -------------------------------------------------------------------------
@@ -820,7 +802,7 @@ class CiscoDhcpServiceTest extends TestCase
             ->once();
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(0, $leases);
     }
@@ -834,10 +816,9 @@ class CiscoDhcpServiceTest extends TestCase
         $this->expectTransportCall(); // exactly once
 
         $service = $this->createService();
-        $service->getLeases();
-        $service->getRanges();
-        $service->getPoolStatus();
-        $service->getLease('10.0.0.50');
+        $snapshot = $service->snapshot();
+        $snapshot->poolStatus(AddressFamily::IPv4);
+        $snapshot->leases->firstWhere('ip', '10.0.0.50');
     }
 
     // -------------------------------------------------------------------------
@@ -871,12 +852,13 @@ class CiscoDhcpServiceTest extends TestCase
 
         $service = new CiscoDhcpService($this->transport, $parser, '0', true);
 
-        $leases = $service->getLeases();
+        $snapshot = $service->snapshot();
+        $leases = $snapshot->leases;
 
         // IPv4 leases still returned
         $this->assertCount(2, $leases);
 
-        $status = $service->getFetchStatus();
+        $status = DhcpFetchStatusArray::of($snapshot);
         $this->assertTrue($status['ipv4']);
         $this->assertFalse($status['ipv6']);
     }

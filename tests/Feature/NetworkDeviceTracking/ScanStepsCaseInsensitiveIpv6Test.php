@@ -7,12 +7,13 @@ namespace Tests\Feature\NetworkDeviceTracking;
 use App\Events\IpMacLinked;
 use App\Jobs\NetworkScan\LinkIpMacStep;
 use App\Jobs\NetworkScan\PersistIpsStep;
-use App\Jobs\SyncDhcpData;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Services\Dhcp\DhcpSyncService;
 use App\Services\NetworkRangeService;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
+use App\Services\ValueObjects\DhcpSnapshot;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\Feature\Concerns\CreatesAdminUsers;
@@ -60,7 +61,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step = new PersistIpsStep;
         $step(
             collect(),
-            collect([new ArpEntry(self::UPPER, 'AA:BB:CC:DD:EE:01')]),
+            collect([new IpMacEntry(self::UPPER, 'AA:BB:CC:DD:EE:01')]),
             resolve(NetworkRangeService::class),
         );
 
@@ -160,7 +161,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step = new LinkIpMacStep;
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
-            collect([new ArpEntry('2a0f:85c1:d91:2100::dead', 'AA:BB:CC:DD:EE:02')]),
+            collect([new IpMacEntry('2a0f:85c1:d91:2100::dead', 'AA:BB:CC:DD:EE:02')]),
             resolve(NetworkRangeService::class),
         );
 
@@ -174,10 +175,9 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $ip = IpAddress::factory()->create(['address' => self::LOWER]);
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:01']);
 
-        (new SyncDhcpData)->performLeaseSync(
+        (new DhcpSyncService)->syncLeases(
             'cisco',
-            collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]),
-            ['ipv4' => true, 'ipv6' => true],
+            DhcpSnapshot::create(collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]), collect()),
         );
 
         $this->assertSame(1, IpAddress::count());

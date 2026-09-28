@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\AddressFamily;
 use Database\Factories\DhcpRangeRecordFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +15,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string|null $integration
  * @property string $interface
- * @property string $type
+ * @property AddressFamily $type
  * @property string $subnet
  * @property string $range_from
  * @property string $range_to
@@ -45,4 +46,11 @@ class DhcpRangeRecord extends Model
 {
     /** @use HasFactory<DhcpRangeRecordFactory> */
     use HasFactory;
+
+    protected function casts(): array
+    {
+        return [
+            'type' => AddressFamily::class,
+        ];
+    }
 }

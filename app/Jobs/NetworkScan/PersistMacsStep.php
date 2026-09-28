@@ -6,19 +6,19 @@ namespace App\Jobs\NetworkScan;
 
 use App\Models\AuditLog;
 use App\Models\MacAddress;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 
 final class PersistMacsStep
 {
     /**
      * @param  Collection<int, DhcpLease>  $leases
-     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, IpMacEntry>  $entries
      * @param  Collection<int, ForwardingEntry>  $forwardingEntries
      */
-    public function __invoke(Collection $leases, Collection $arpEntries, Collection $forwardingEntries): void
+    public function __invoke(Collection $leases, Collection $entries, Collection $forwardingEntries): void
     {
         /** @var Collection<string, string> $allMacs */
         $allMacs = collect();
@@ -30,8 +30,8 @@ final class PersistMacsStep
             }
         }
 
-        foreach ($arpEntries as $arp) {
-            $normalized = MacAddress::normalize($arp->mac);
+        foreach ($entries as $entry) {
+            $normalized = MacAddress::normalize($entry->mac);
             if ($normalized !== null && ! $allMacs->has($normalized)) {
                 $allMacs->put($normalized, 'arp');
             }

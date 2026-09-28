@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\ValueObjects;
 
+use App\Enums\AddressFamily;
+
 readonly class DhcpRange
 {
     /**
@@ -12,7 +14,7 @@ readonly class DhcpRange
      */
     public function __construct(
         public string $interface,
-        public string $type,
+        public AddressFamily $type,
         public ?string $subnet,
         public ?string $rangeFrom,
         public ?string $rangeTo,

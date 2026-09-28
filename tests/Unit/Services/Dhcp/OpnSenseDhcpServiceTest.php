@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\AddressFamily;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\ConnectionException;
 use ReflectionClass;
+use Tests\Support\DhcpFetchStatusArray;
 use Tests\Support\Fake;
 use Tests\TestCase;
 use Throwable;
@@ -38,7 +40,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ])),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(2, $leases);
         $this->assertEquals('10.0.0.10', $leases[0]->ip);
@@ -58,7 +60,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ])),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
         $this->assertCount(0, $leases);
     }
 
@@ -77,7 +79,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ])),
         ], 254);
 
-        $pool = $service->getPoolStatus();
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertEquals(254, $pool->total);
         $this->assertEquals(2, $pool->used);
@@ -98,7 +100,7 @@ class OpnSenseDhcpServiceTest extends TestCase
 
         config(['aperture.dhcp.pool_size' => 0]);
 
-        $pool = $service->getPoolStatus();
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertEquals(0, $pool->total);
         $this->assertEquals(0, $pool->used);
@@ -110,7 +112,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         $service = $this->createServiceWithMock([], 254);
 
-        $pool = $service->getPoolStatus('ipv6');
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv6);
 
         $this->assertEquals(0, $pool->total);
         $this->assertEquals(0, $pool->used);
@@ -193,7 +195,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             leasesUsePost: true,
         );
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
         $this->assertCount(1, $leases);
         $this->assertEquals('10.0.0.5', $leases[0]->ip);
 
@@ -237,9 +239,9 @@ class OpnSenseDhcpServiceTest extends TestCase
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
-        $this->assertEquals('ipv4', $ranges[0]->type);
+        $this->assertEquals(AddressFamily::IPv4, $ranges[0]->type);
         $this->assertEquals('10.0.0.1', $ranges[0]->rangeFrom);
         $this->assertSame('254', $ranges[0]->totalAddresses);
         $this->assertEquals(1, $ranges[0]->usedAddresses);
@@ -279,9 +281,9 @@ class OpnSenseDhcpServiceTest extends TestCase
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
-        $this->assertEquals('ipv6', $ranges[0]->type);
+        $this->assertEquals(AddressFamily::IPv6, $ranges[0]->type);
         $this->assertEquals('fd00::1', $ranges[0]->rangeFrom);
         $this->assertGreaterThan(0, $ranges[0]->usedAddresses);
     }
@@ -295,7 +297,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             key: 'key',
             secret: 'secret', poolSize: 0);
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(0, $ranges);
     }
 
@@ -315,7 +317,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         );
 
         // Should return empty collection, not throw
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(0, $ranges);
     }
 
@@ -358,7 +360,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         $this->assertEquals('10.0.1.100', $ranges[0]->rangeFrom);
         $this->assertEquals('10.0.1.200', $ranges[0]->rangeTo);
@@ -405,7 +407,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // The subnet should be calculated from the IP + mask
         $this->assertNotNull($ranges[0]->subnet);
@@ -440,7 +442,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // prefix should have been constructed as "fd00::1/64"
         $this->assertEquals('fd00::1/64', $ranges[0]->prefix);
@@ -473,7 +475,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // Constructed from the raw (uppercase) start address, then normalized
         $this->assertSame('fd00:abcd::1/64', $ranges[0]->prefix);
@@ -519,7 +521,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // calculateSubnet returned null because ip2long('not-an-ip') returns false
         $this->assertNull($ranges[0]->subnet);
@@ -557,7 +559,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // rangeFrom is null because the key was absent; enrichRangeWithUsage returned early
         $this->assertNull($ranges[0]->rangeFrom);
@@ -594,7 +596,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // inet_pton failed, enrichment skipped
         $this->assertNull($ranges[0]->totalAddresses);
@@ -628,36 +630,10 @@ class OpnSenseDhcpServiceTest extends TestCase
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // ip2long returned false, so enrichment was skipped
         $this->assertNull($ranges[0]->totalAddresses);
-    }
-
-    public function test_ipv6_diff_returns_php_int_max_for_very_large_range(): void
-    {
-        // Covers ipv6Diff() line 326: return PHP_INT_MAX when the difference overflows
-        // We call ipv6Diff() directly via reflection to avoid downstream TypeError from +1.
-        Fake::sequence([]);
-
-        $service = new OpnSenseDhcpService(endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret', poolSize: 0);
-
-        $reflection = new ReflectionClass($service);
-        $method = $reflection->getMethod('ipv6Diff');
-
-        // Use from = ::1 and to = ffff::ffff:ffff:ffff:ffff:ffff:ffff
-        // The difference in the first byte alone (0xff vs 0x00) immediately causes overflow
-        $fromBin = inet_pton('::1');
-        $toBin = inet_pton('ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff');
-
-        $this->assertNotFalse($fromBin);
-        $this->assertNotFalse($toBin);
-
-        $result = $method->invoke($service, $fromBin, $toBin);
-
-        $this->assertSame(PHP_INT_MAX, $result);
     }
 
     public function test_subnet_mask_to_cidr_returns_null_for_invalid_mask(): void
@@ -708,23 +684,14 @@ class OpnSenseDhcpServiceTest extends TestCase
             ipv6RangesPath: '/api/dhcpv4/ranges', // Same path — should not fetch twice
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
     }
 
     public function test_get_fetch_status_reports_success(): void
     {
-        $service = $this->createServiceWithMock([]);
+        $service = $this->createServiceWithMock([Fake::response(200, [], (string) json_encode(['rows' => []]))]);
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], $service->getFetchStatus());
-    }
-
-    public function test_reset_snapshot_keeps_healthy_status(): void
-    {
-        $service = $this->createServiceWithMock([]);
-
-        $service->resetSnapshot();
-
-        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], $service->getFetchStatus());
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], DhcpFetchStatusArray::of($service->snapshot()));
     }
 }

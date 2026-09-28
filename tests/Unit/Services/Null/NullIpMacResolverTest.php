@@ -7,10 +7,10 @@ use PHPUnit\Framework\TestCase;
 
 class NullIpMacResolverTest extends TestCase
 {
-    public function test_get_arp_table_returns_empty_collection(): void
+    public function test_get_ip_mac_table_returns_empty_collection(): void
     {
         $provider = new NullIpMacResolver;
-        $result = $provider->getArpTable();
+        $result = $provider->getIpMacTable();
         $this->assertCount(0, $result);
     }
 }

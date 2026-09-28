@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Capability;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ToggleCapabilityRequest;
 use App\Http\Requests\Admin\UpdateIntegrationRequest;
@@ -112,7 +113,7 @@ class IntegrationController extends Controller
                 ], fn (mixed $v): bool => $v !== null))->values()->all(),
                 'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
                     'name' => $cap,
-                    'active' => $activeCapabilities->contains($cap),
+                    'active' => $activeCapabilities->contains(Capability::from($cap)),
                 ])->values()->all(),
                 'health' => $latestTest?->success,
                 'logs' => $this->serializeLogs($logs),
@@ -207,24 +208,25 @@ class IntegrationController extends Controller
     public function toggleCapability(ToggleCapabilityRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $capability = Capability::from($validated['capability']);
 
         $integrations = $this->integrations();
         $capabilities = $integrations[$validated['integration']]['capabilities'] ?? [];
 
-        if (! in_array($validated['capability'], $capabilities, true)) {
+        if (! in_array($capability->value, $capabilities, true)) {
             return response()->json([
                 'message' => sprintf(
                     'Integration %s does not support capability %s.',
                     $validated['integration'],
-                    $validated['capability']
+                    $capability->value
                 ),
             ], 422);
         }
 
         if ($validated['active']) {
-            CapabilityAssignment::assign($validated['capability'], $validated['integration']);
+            CapabilityAssignment::assign($capability, $validated['integration']);
         } else {
-            CapabilityAssignment::where('capability', $validated['capability'])
+            CapabilityAssignment::where('capability', $capability)
                 ->where('integration', $validated['integration'])
                 ->delete();
         }

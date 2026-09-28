@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\VyOs;
 
 use App\Services\Interfaces\IpMacResolverInterface;
-use App\Services\ValueObjects\ArpEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -16,18 +16,18 @@ class VyOsIpMacResolver implements IpMacResolverInterface
         private VyOsClient $client,
     ) {}
 
-    /** @return Collection<int, ArpEntry> */
-    public function getArpTable(): Collection
+    /** @return Collection<int, IpMacEntry> */
+    public function getIpMacTable(): Collection
     {
         $ipv4 = $this->fetchIpv4Neighbors();
         $ipv6 = $this->fetchIpv6Neighbors();
 
         return $ipv4->concat($ipv6)
-            ->unique(fn (ArpEntry $entry): string => $entry->ip.'|'.$entry->mac)
+            ->unique(fn (IpMacEntry $entry): string => $entry->ip.'|'.$entry->mac)
             ->values();
     }
 
-    /** @return Collection<int, ArpEntry> */
+    /** @return Collection<int, IpMacEntry> */
     private function fetchIpv4Neighbors(): Collection
     {
         try {
@@ -41,7 +41,7 @@ class VyOsIpMacResolver implements IpMacResolverInterface
         }
     }
 
-    /** @return Collection<int, ArpEntry> */
+    /** @return Collection<int, IpMacEntry> */
     private function fetchIpv6Neighbors(): Collection
     {
         try {
@@ -55,7 +55,7 @@ class VyOsIpMacResolver implements IpMacResolverInterface
         }
     }
 
-    /** @return Collection<int, ArpEntry> */
+    /** @return Collection<int, IpMacEntry> */
     private function parseNeighborText(string $text): Collection
     {
         $entries = collect();
@@ -69,7 +69,7 @@ class VyOsIpMacResolver implements IpMacResolverInterface
 
             // VyOS tabular: Address  Interface  Link-layer-address  State
             if (preg_match('/^(\S+)\s+\S+\s+([\da-f]{2}(?::[\da-f]{2}){5})\s+/i', $line, $matches)) {
-                $entries->push(new ArpEntry(
+                $entries->push(new IpMacEntry(
                     ip: $matches[1],
                     mac: strtolower($matches[2]),
                 ));

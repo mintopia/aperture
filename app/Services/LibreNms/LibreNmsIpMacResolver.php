@@ -6,7 +6,7 @@ namespace App\Services\LibreNms;
 
 use App\Models\IpAddress;
 use App\Services\Interfaces\IpMacResolverInterface;
-use App\Services\ValueObjects\ArpEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 
 class LibreNmsIpMacResolver implements IpMacResolverInterface
@@ -15,17 +15,17 @@ class LibreNmsIpMacResolver implements IpMacResolverInterface
         protected LibreNmsService $libreNms,
     ) {}
 
-    public function getArpTable(): Collection
+    public function getIpMacTable(): Collection
     {
-        $arp = $this->libreNms->getArpTable();
+        $arp = $this->libreNms->getIpMacTable();
         $ipv6 = $this->libreNms->getIpv6Neighbors();
 
         return $arp->concat($ipv6)
-            ->map(fn (ArpEntry $entry): ArpEntry => new ArpEntry(
+            ->map(fn (IpMacEntry $entry): IpMacEntry => new IpMacEntry(
                 ip: IpAddress::normalize($entry->ip),
                 mac: $entry->mac,
             ))
-            ->unique(fn (ArpEntry $entry): string => $entry->ip.'|'.$entry->mac)
+            ->unique(fn (IpMacEntry $entry): string => $entry->ip.'|'.$entry->mac)
             ->values();
     }
 }

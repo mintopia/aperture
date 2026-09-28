@@ -13,6 +13,7 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
+use App\Services\ValueObjects\DhcpSnapshot;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -37,7 +38,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
     {
         $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases): void {
             $mock->allows([
-                'getLeases' => collect($leases),
+                'snapshot' => DhcpSnapshot::create(collect($leases), collect()),
             ]);
         });
     }
@@ -46,7 +47,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
     {
         $this->mock(IpMacResolverInterface::class, function (MockInterface $mock): void {
             $mock->allows([
-                'getArpTable' => collect([]),
+                'getIpMacTable' => collect([]),
             ]);
         });
 

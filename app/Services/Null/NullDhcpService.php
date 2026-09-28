@@ -6,39 +6,17 @@ namespace App\Services\Null;
 
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpLease;
-use App\Services\ValueObjects\DhcpPoolStatus;
-use App\Services\ValueObjects\DhcpRange;
-use Illuminate\Support\Collection;
+use App\Services\ValueObjects\DhcpSnapshot;
 
 class NullDhcpService implements DhcpInterface
 {
-    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
+    public function snapshot(): DhcpSnapshot
     {
-        return new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
-    }
-
-    /** @return Collection<int, DhcpLease> */
-    public function getLeases(): Collection
-    {
-        return collect();
+        return DhcpSnapshot::unavailable();
     }
 
     public function getLease(string $ipAddress): ?DhcpLease
     {
         return null;
     }
-
-    /** @return Collection<int, DhcpRange> */
-    public function getRanges(): Collection
-    {
-        return collect();
-    }
-
-    /** @return array{ipv4: bool, ipv6: bool} */
-    public function getFetchStatus(): array
-    {
-        return ['ipv4' => true, 'ipv6' => true];
-    }
-
-    public function resetSnapshot(): void {}
 }

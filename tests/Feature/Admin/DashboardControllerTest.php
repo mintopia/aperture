@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\Capability;
 use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpRangeRecord;
@@ -104,7 +105,7 @@ class DashboardControllerTest extends TestCase
         $user = $this->createAdminUser();
 
         CapabilityAssignment::factory()->create([
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'cisco',
         ]);
 

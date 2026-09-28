@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dhcp;
 
+use App\Enums\Capability;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
@@ -70,7 +71,7 @@ class OpnSenseDhcpOutageTest extends TestCase
 
     private function bindService(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
         Http::fake(fn (Request $request): mixed => $this->respond($request));
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dhcp;
 
+use App\Enums\AddressFamily;
+use App\Enums\Capability;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
@@ -17,12 +19,16 @@ use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Cisco\CiscoDhcpService;
+use App\Services\Dhcp\DhcpSyncService;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\ValueObjects\DhcpFetchStatus;
+use App\Services\ValueObjects\DhcpSnapshot;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;
+use Tests\Support\DhcpFetchStatusArray;
 use Tests\TestCase;
 
 class CiscoDhcpIntegrationTest extends TestCase
@@ -174,7 +180,7 @@ class CiscoDhcpIntegrationTest extends TestCase
         IntegrationConfig::setValue('cisco', 'pool_size', '0');
         IntegrationConfig::setValue('cisco', 'ipv6_enabled', $ipv6Enabled);
 
-        CapabilityAssignment::assign('dhcp', 'cisco');
+        CapabilityAssignment::assign(Capability::Dhcp, 'cisco');
 
         return $switchConfig;
     }
@@ -280,12 +286,12 @@ class CiscoDhcpIntegrationTest extends TestCase
         ]);
 
         // Verify DhcpPoolStatusRecord created
-        $this->assertDatabaseCount('dhcp_pool_statuses', 1);
-        $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail();
+        $this->assertDatabaseCount('dhcp_pool_statuses', 2);
+        $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->where('address_family', 'ipv4')->firstOrFail();
         $this->assertEquals('254', $poolStatus->total);
         $this->assertEquals('2', $poolStatus->used);
         $this->assertEquals('252', $poolStatus->available);
-        $this->assertSame('ipv4', $poolStatus->address_family);
+        $this->assertSame(AddressFamily::IPv4, $poolStatus->address_family);
 
         // Verify DhcpSyncState updated
         $syncStates = DhcpSyncState::where('integration', 'cisco')->get();
@@ -437,7 +443,7 @@ class CiscoDhcpIntegrationTest extends TestCase
         // Pool status still created (IPv4 only)
         $this->assertDatabaseCount('dhcp_pool_statuses', 1);
         $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail();
-        $this->assertSame('ipv4', $poolStatus->address_family);
+        $this->assertSame(AddressFamily::IPv4, $poolStatus->address_family);
         $this->assertEquals('254', $poolStatus->total);
 
         // Verify controller works with IPv4-only data
@@ -493,11 +499,11 @@ class CiscoDhcpIntegrationTest extends TestCase
         $this->transport->shouldReceive('executeMultiple')->once()->andReturn($this->manualBindingOutputs());
         $this->transport->shouldReceive('disconnect')->once();
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
         $this->assertCount(1, $leases);
         $this->assertNull($leases->first()->expires);
 
-        (new SyncDhcpData)->performLeaseSync('cisco', $leases, ['ipv4' => true, 'ipv6' => false]);
+        (new DhcpSyncService)->syncLeases('cisco', DhcpSnapshot::create($leases, collect(), ipv6: new DhcpFetchStatus(leases: false)));
 
         $ip = IpAddress::where('address', '10.0.0.60')->firstOrFail();
         $mac = MacAddress::where('mac_address', '00:11:22:33:44:66')->firstOrFail();
@@ -521,8 +527,9 @@ class CiscoDhcpIntegrationTest extends TestCase
         $this->transport->shouldReceive('executeMultiple')->once()->andReturn($outputs);
         $this->transport->shouldReceive('disconnect')->once();
 
-        $this->assertFalse($service->getFetchStatus()['ipv4']);
-        $this->assertCount(0, $service->getLeases());
+        $snapshot = $service->snapshot();
+        $this->assertFalse(DhcpFetchStatusArray::of($snapshot)['ipv4']);
+        $this->assertCount(0, $snapshot->leases);
     }
 
     public function test_ipv4_missing_result_is_reported_as_failed_fetch(): void
@@ -537,7 +544,7 @@ class CiscoDhcpIntegrationTest extends TestCase
         $this->transport->shouldReceive('executeMultiple')->once()->andReturn($outputs);
         $this->transport->shouldReceive('disconnect')->once();
 
-        $this->assertFalse($service->getFetchStatus()['ipv4']);
+        $this->assertFalse(DhcpFetchStatusArray::of($service->snapshot())['ipv4']);
     }
 
     public function test_repeated_ipv4_error_outputs_never_delete_stored_data(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\AddressFamily;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Tests\Support\Fake;
@@ -62,7 +63,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
         // Totals are exact decimal numeric strings on the DhcpRange VO
@@ -90,7 +91,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertEquals(3, $ranges->first()->usedAddresses);
     }
@@ -115,7 +116,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertSame('10', $ranges->first()->totalAddresses);
         $this->assertEquals(3, $ranges->first()->usedAddresses);
@@ -136,7 +137,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
         $this->assertNull($ranges->first()->totalAddresses);
@@ -165,7 +166,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(2, $ranges);
 
@@ -192,7 +193,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertSame('101', $ranges->first()->totalAddresses);
         $this->assertEquals(0, $ranges->first()->usedAddresses);
@@ -213,8 +214,8 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
-        $this->assertEquals('ipv4', $ranges->first()->type);
+        $ranges = $service->snapshot()->ranges;
+        $this->assertEquals(AddressFamily::IPv4, $ranges->first()->type);
     }
 
     public function test_detects_ipv6_type_from_subnet_containing_colon(): void
@@ -231,8 +232,8 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
-        $this->assertEquals('ipv6', $ranges->first()->type);
+        $ranges = $service->snapshot()->ranges;
+        $this->assertEquals(AddressFamily::IPv6, $ranges->first()->type);
     }
 
     public function test_detects_ipv6_type_from_range_from_containing_colon(): void
@@ -249,8 +250,8 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
 
-        $ranges = $service->getRanges();
-        $this->assertEquals('ipv6', $ranges->first()->type);
+        $ranges = $service->snapshot()->ranges;
+        $this->assertEquals(AddressFamily::IPv6, $ranges->first()->type);
     }
 
     public function test_ipv6_ranges_from_ipv4_endpoint_detected_correctly(): void
@@ -268,11 +269,11 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(2, $ranges);
-        $this->assertEquals('ipv4', $ranges[0]->type);
-        $this->assertEquals('ipv6', $ranges[1]->type);
+        $this->assertEquals(AddressFamily::IPv4, $ranges[0]->type);
+        $this->assertEquals(AddressFamily::IPv6, $ranges[1]->type);
     }
 
     public function test_dnsmasq_ranges_calculate_usage_with_mapped_fields(): void
@@ -310,7 +311,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             rangeFieldMap: $dnsmasqRangeMap,
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
         $this->assertSame('101', $ranges->first()->totalAddresses);
@@ -326,7 +327,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv6RangesPath: '',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -350,7 +351,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertEquals(0, $ranges->first()->usedAddresses);
     }
@@ -373,7 +374,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertSame('1', $ranges->first()->totalAddresses);
         $this->assertEquals(1, $ranges->first()->usedAddresses);
@@ -400,9 +401,9 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
-        $this->assertEquals('ipv6', $ranges->first()->type);
+        $this->assertEquals(AddressFamily::IPv6, $ranges->first()->type);
         $this->assertSame('17', $ranges->first()->totalAddresses);
         $this->assertEquals(2, $ranges->first()->usedAddresses);
     }
