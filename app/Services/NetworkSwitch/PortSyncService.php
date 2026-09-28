@@ -132,7 +132,6 @@ class PortSyncService
         $upsertedIds = [];
 
         foreach ($bindings as $binding) {
-            // Normalize IPv6 addresses to lowercase (observations bypass the IpAddress model)
             $ip = IpAddress::normalize($binding['ip']);
             $mac = MacAddress::normalize($binding['mac']);
             if ($mac === null) {

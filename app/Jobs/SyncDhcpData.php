@@ -209,11 +209,6 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
         return count($upsertedIds);
     }
 
-    /**
-     * The only place dhcp_leases rows are written. Keyed on the unique
-     * (ip_address_id, mac_address_id) columns; a concurrent insert that wins
-     * the race is updated instead of aborting the sync.
-     */
     private function upsertLease(string $integration, int $ipAddressId, ?int $macAddressId, DhcpLease $lease): DhcpLeaseModel
     {
         $key = ['ip_address_id' => $ipAddressId, 'mac_address_id' => $macAddressId];

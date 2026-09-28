@@ -96,8 +96,6 @@ class IpAddress extends Model
     }
 
     /**
-     * Store addresses in canonical form.
-     *
      * @return Attribute<string, string>
      */
     protected function address(): Attribute
