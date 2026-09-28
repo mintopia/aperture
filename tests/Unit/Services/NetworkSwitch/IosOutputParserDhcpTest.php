@@ -938,4 +938,26 @@ class IosOutputParserDhcpTest extends TestCase
 
         $this->assertSame([], $result);
     }
+
+    public function test_parse_classic_ios_four_column_binding_table(): void
+    {
+        $output = implode("\r\n", [
+            'Bindings from all pools not associated with VRF:',
+            'IP address      Client-ID/              Lease expiration        Type',
+            '                Hardware address/',
+            '                User name',
+            '10.0.0.50       0100.1122.3344.55       Jun 08 2026 12:00 AM    Automatic',
+            '10.0.0.60       0100.1122.3344.66       Infinite                Manual',
+        ]);
+
+        $result = $this->parser->parseDhcpBindingTable($output);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('10.0.0.50', $result[0]['ip']);
+        $this->assertSame('00:11:22:33:44:55', $result[0]['mac']);
+        $this->assertSame('Jun 08 2026 12:00 AM', $result[0]['expires']);
+        $this->assertSame('Automatic', $result[0]['type']);
+        $this->assertSame('Infinite', $result[1]['expires']);
+        $this->assertSame('Manual', $result[1]['type']);
+    }
 }

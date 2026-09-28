@@ -42,7 +42,7 @@ final class PersistDhcpLeasesStep
                 [
                     'integration' => $integration,
                     'hostname' => $lease->hostname !== '' ? $lease->hostname : null,
-                    'expires_at' => $lease->expires !== '' ? $lease->expires : null,
+                    'expires_at' => $lease->expires,
                 ],
             );
         }

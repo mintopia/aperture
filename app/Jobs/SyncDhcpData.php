@@ -355,6 +355,10 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
         }
 
         if ($this->shouldSkipUnconfiguredIpv6PoolStatus($addressFamily, $familyIsConfigured)) {
+            DhcpPoolStatusRecord::where('integration', $integration)
+                ->where('address_family', $addressFamily)
+                ->delete();
+
             return 0;
         }
 

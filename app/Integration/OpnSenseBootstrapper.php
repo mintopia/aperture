@@ -88,7 +88,8 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
             default => [
                 'leases' => '/api/dhcpv4/leases/search_lease',
                 'ipv4_ranges' => '',
-                'ipv6_ranges' => '/api/dhcpv6/leases/search_lease',
+                // The ISC DHCPv6 API only exposes leases, so there is no ranges endpoint to poll.
+                'ipv6_ranges' => '',
             ],
         };
         $leaseFieldMap = match ($dhcpServer) {
@@ -147,6 +148,8 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
         };
         $client = new Client([
             'verify' => (bool) ($opnsenseConfig['verify_ssl'] ?? true),
+            'timeout' => 30,
+            'connect_timeout' => 5,
             'base_uri' => $opnsenseConfig['endpoint'] ?? '',
             'auth' => [
                 $opnsenseConfig['key'] ?? '',

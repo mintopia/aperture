@@ -20,6 +20,8 @@ class KeaDhcpService implements DhcpInterface
 
     private const LEASE_STATE_ACTIVE = 0;
 
+    private const LEASE_STATE_DECLINED = 1;
+
     /**
      * Kea's documented keyword for the first `lease{4,6}-get-page` request.
      */
@@ -36,13 +38,22 @@ class KeaDhcpService implements DhcpInterface
      */
     private ?array $snapshot = null;
 
+    /**
+     * Declined leases hold an address without being a host lease, so they count towards pool usage only.
+     *
+     * @var array{ipv4: Collection<int, DhcpLease>, ipv6: Collection<int, DhcpLease>}
+     */
+    private array $declined;
+
     /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool} */
     private array $fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true, 'ipv6_ranges' => true];
 
     public function __construct(
         private readonly ?KeaClient $ipv4Client,
         private readonly ?KeaClient $ipv6Client = null,
-    ) {}
+    ) {
+        $this->declined = ['ipv4' => collect(), 'ipv6' => collect()];
+    }
 
     public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
     {
@@ -198,8 +209,9 @@ class KeaDhcpService implements DhcpInterface
 
         /** @var Collection<int, DhcpLease> $leases */
         $leases = $this->snapshot[$snapshotKey] ?? collect();
+        $usage = $leases->concat($this->declined[$snapshotKey]);
 
-        return $ranges->map(fn (DhcpRange $range): DhcpRange => $enrichRange($range, $leases))->values();
+        return $ranges->map(fn (DhcpRange $range): DhcpRange => $enrichRange($range, $usage))->values();
     }
 
     private function usableIpv4RangeClient(): ?KeaClient
@@ -324,6 +336,7 @@ class KeaDhcpService implements DhcpInterface
     public function resetSnapshot(): void
     {
         $this->snapshot = null;
+        $this->declined = ['ipv4' => collect(), 'ipv6' => collect()];
         $this->fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true, 'ipv6_ranges' => true];
     }
 
@@ -464,6 +477,12 @@ class KeaDhcpService implements DhcpInterface
                 continue;
             }
 
+            if ($this->isDeclined($lease, $now)) {
+                $this->declined[$isIpv6 ? 'ipv6' : 'ipv4']->push($this->mapLease($lease, $ip, $isIpv6));
+
+                continue;
+            }
+
             if (! $this->isKeepable($lease, $now)) {
                 continue;
             }
@@ -483,6 +502,14 @@ class KeaDhcpService implements DhcpInterface
     private function isPrefixDelegation(array $lease): bool
     {
         return ($lease['type'] ?? null) === 'IA_PD';
+    }
+
+    /**
+     * @param  array<string, mixed>  $lease
+     */
+    private function isDeclined(array $lease, int $now): bool
+    {
+        return (int) ($lease['state'] ?? -1) === self::LEASE_STATE_DECLINED && $this->expiresAt($lease) > $now;
     }
 
     /**

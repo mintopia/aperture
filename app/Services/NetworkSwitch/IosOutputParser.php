@@ -249,7 +249,7 @@ class IosOutputParser
                 continue;
             }
 
-            if (! preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)\s+(.+?)\s{2,}(\S+)\s+(\S+)\s+(\S+)\s*$/', $line, $matches)) {
+            if (! preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)\s+(.+?)\s{2,}(\S+)(?:\s+(\S+)\s+(\S+))?\s*$/', $line, $matches)) {
                 $current = null;
 
                 continue;
@@ -260,8 +260,8 @@ class IosOutputParser
                 'clientId' => $matches[2],
                 'expires' => trim($matches[3]),
                 'type' => $matches[4],
-                'state' => $matches[5],
-                'interface' => $matches[6],
+                'state' => $matches[5] ?? '',
+                'interface' => $matches[6] ?? '',
             ];
             $current = count($records) - 1;
         }

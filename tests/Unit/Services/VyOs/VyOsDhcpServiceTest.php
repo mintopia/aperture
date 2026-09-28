@@ -891,15 +891,15 @@ class VyOsDhcpServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], $service->getFetchStatus());
     }
 
-    public function test_reset_snapshot_is_a_no_op(): void
+    public function test_reset_snapshot_keeps_healthy_status(): void
     {
         $service = $this->createService();
 
         $service->resetSnapshot();
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], $service->getFetchStatus());
     }
 }

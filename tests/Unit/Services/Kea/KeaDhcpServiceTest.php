@@ -360,6 +360,32 @@ class KeaDhcpServiceTest extends TestCase
         $this->assertSame(0.4, $ranges[0]->utilisation);
     }
 
+    public function test_declined_leases_count_towards_used_but_are_not_returned_as_leases(): void
+    {
+        $this->fakeConfigGet(
+            [
+                'result' => 0,
+                'arguments' => ['Dhcp4' => ['subnet4' => [
+                    ['subnet' => '10.0.0.0/24', 'pools' => [['pool' => '10.0.0.10 - 10.0.0.14']]],
+                ]]],
+            ],
+            [
+                [
+                    'result' => 0,
+                    'arguments' => ['leases' => [
+                        $this->keaLease('10.0.0.11', 'AA:BB:CC:00:00:01', 'active'),
+                        $this->keaLease('10.0.0.12', 'AA:BB:CC:00:00:02', 'declined', state: 1),
+                    ]],
+                ],
+                ['result' => 3],
+            ],
+        );
+
+        $this->assertCount(1, $this->service->getLeases());
+        $this->assertSame(2, $this->service->getRanges()->first()->usedAddresses);
+        $this->assertSame(2, $this->service->getPoolStatus()->used);
+    }
+
     public function test_get_pool_status_aggregates_across_multiple_ranges(): void
     {
         $this->fakeConfigGet(

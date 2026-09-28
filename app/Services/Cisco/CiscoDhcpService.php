@@ -323,18 +323,26 @@ class CiscoDhcpService implements DhcpInterface
 
             $this->snapshot = [];
 
-            // Parse IPv4
-            $this->snapshot['ipv4_bindings'] = $this->parser->parseDhcpBindingTable(
-                $results['show ip dhcp binding'] ?? ''
-            );
-            $this->snapshot['pool_stats'] = $this->parser->parseDhcpPoolStats(
-                $results['show ip dhcp pool'] ?? ''
-            );
-            $this->snapshot['pool_config'] = $this->parser->parseDhcpPoolConfig(
-                $results['show running-config | section ip dhcp'] ?? ''
-            );
+            $ipv4BindingOutput = $results['show ip dhcp binding'] ?? '';
 
-            $this->fetchStatus['ipv4'] = true;
+            // A missing or error result is a failed fetch, not an empty one.
+            if (! array_key_exists('show ip dhcp binding', $results)
+                || $this->parser->isErrorOutput($ipv4BindingOutput)) {
+                Log::warning('CiscoDhcpService: IPv4 fetch failed — missing or error output from switch');
+                $this->snapshot['ipv4_bindings'] = [];
+                $this->snapshot['pool_stats'] = [];
+                $this->snapshot['pool_config'] = ['pools' => [], 'excluded' => []];
+            } else {
+                $this->snapshot['ipv4_bindings'] = $this->parser->parseDhcpBindingTable($ipv4BindingOutput);
+                $this->snapshot['pool_stats'] = $this->parser->parseDhcpPoolStats(
+                    $results['show ip dhcp pool'] ?? ''
+                );
+                $this->snapshot['pool_config'] = $this->parser->parseDhcpPoolConfig(
+                    $results['show running-config | section ip dhcp'] ?? ''
+                );
+
+                $this->fetchStatus['ipv4'] = true;
+            }
 
             // Parse IPv6 (failure here does not block IPv4)
             if ($this->ipv6Enabled) {

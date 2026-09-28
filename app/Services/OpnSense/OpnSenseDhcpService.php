@@ -12,10 +12,21 @@ use App\Services\ValueObjects\DhcpRange;
 use GuzzleHttp\Client;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Psr\Http\Message\ResponseInterface;
 use Throwable;
+use UnexpectedValueException;
 
 class OpnSenseDhcpService implements DhcpInterface
 {
+    private const LEASE_PAGE_SIZE = 100;
+
+    private const MAX_LEASE_PAGES = 200;
+
+    private const HEALTHY = ['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true];
+
+    /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool} */
+    private array $fetchStatus = self::HEALTHY;
+
     /**
      * @param  array{ip: string, mac: string, hostname: string, expires: string, status: string}  $leaseFieldMap
      * @param  array{interface: string, subnet: string, range_from: string, range_to: string, gateway: string, description: string, prefix: string, subnet_mask?: string, pools?: string}  $rangeFieldMap
@@ -98,33 +109,11 @@ class OpnSenseDhcpService implements DhcpInterface
         $ranges = collect();
 
         if ($this->ipv4RangesPath !== '') {
-            try {
-                $response = $this->client->get($this->ipv4RangesPath);
-
-                /** @var array{rows?: list<array<string, mixed>>} $data */
-                $data = json_decode($response->getBody()->getContents(), true);
-
-                foreach ($data['rows'] ?? [] as $row) {
-                    $ranges->push($this->buildRangeFromRow($row));
-                }
-            } catch (Throwable $e) {
-                Log::warning('Failed to fetch IPv4 DHCP ranges', ['error' => $e->getMessage(), 'path' => $this->ipv4RangesPath]);
-            }
+            $ranges = $ranges->concat($this->fetchRangesFrom($this->ipv4RangesPath, 'IPv4', $this->ipv4RangesPath === $this->ipv6RangesPath ? ['ipv4_ranges', 'ipv6_ranges'] : ['ipv4_ranges']));
         }
 
         if ($this->ipv6RangesPath !== '' && $this->ipv6RangesPath !== $this->ipv4RangesPath) {
-            try {
-                $response = $this->client->get($this->ipv6RangesPath);
-
-                /** @var array{rows?: list<array<string, mixed>>} $data */
-                $data = json_decode($response->getBody()->getContents(), true);
-
-                foreach ($data['rows'] ?? [] as $row) {
-                    $ranges->push($this->buildRangeFromRow($row));
-                }
-            } catch (Throwable $e) {
-                Log::warning('Failed to fetch IPv6 DHCP ranges', ['error' => $e->getMessage(), 'path' => $this->ipv6RangesPath]);
-            }
+            $ranges = $ranges->concat($this->fetchRangesFrom($this->ipv6RangesPath, 'IPv6', ['ipv6_ranges']));
         }
 
         if ($ranges->isEmpty()) {
@@ -134,6 +123,34 @@ class OpnSenseDhcpService implements DhcpInterface
         $leases = $this->fetchLeases();
 
         return $ranges->map(fn (DhcpRange $range): DhcpRange => $this->enrichRangeWithUsage($range, $leases));
+    }
+
+    /**
+     * @param  list<'ipv4_ranges'|'ipv6_ranges'>  $statusKeys
+     * @return Collection<int, DhcpRange>
+     */
+    private function fetchRangesFrom(string $path, string $label, array $statusKeys): Collection
+    {
+        try {
+            $data = json_decode($this->client->get($path)->getBody()->getContents(), true);
+
+            if (! is_array($data) || ! is_array($data['rows'] ?? null)) {
+                throw new UnexpectedValueException('Unexpected ranges response');
+            }
+
+            /** @var list<array<string, mixed>> $rows */
+            $rows = $data['rows'];
+
+            return collect($rows)->map(fn (array $row): DhcpRange => $this->buildRangeFromRow($row))->values();
+        } catch (Throwable $e) {
+            foreach ($statusKeys as $key) {
+                $this->fetchStatus[$key] = false;
+            }
+
+            Log::warning(sprintf('Failed to fetch %s DHCP ranges', $label), ['error' => $e->getMessage(), 'path' => $path]);
+
+            return collect();
+        }
     }
 
     /**
@@ -329,22 +346,24 @@ class OpnSenseDhcpService implements DhcpInterface
     }
 
     /**
+     * A failed fetch yields an empty collection and marks both families failed
+     * (the leases endpoint is shared, so the affected family is unknown).
+     *
      * @return Collection<int, array{address: string, mac: string, hostname: string, ends: string, status: string}>
      */
     protected function fetchLeases(): Collection
     {
-        if ($this->leasesUsePost) {
-            $response = $this->client->post($this->leasesPath, [
-                'json' => ['current' => 1, 'rowCount' => 100],
-            ]);
-        } else {
-            $response = $this->client->get($this->leasesPath);
+        try {
+            $rows = $this->leasesUsePost ? $this->fetchAllLeaseRows() : $this->fetchLeaseRows($this->client->get($this->leasesPath))['rows'];
+        } catch (Throwable $e) {
+            $this->fetchStatus['ipv4'] = false;
+            $this->fetchStatus['ipv6'] = false;
+            Log::warning('Failed to fetch DHCP leases', ['error' => $e->getMessage(), 'path' => $this->leasesPath]);
+
+            return collect();
         }
 
-        /** @var array{rows?: list<array<string, mixed>>} $data */
-        $data = json_decode($response->getBody()->getContents(), true);
-
-        return collect($data['rows'] ?? [])->map(fn (array $row): array => [
+        return collect($rows)->map(fn (array $row): array => [
             'address' => (string) ($row[$this->leaseFieldMap['ip']] ?? ''),
             'mac' => (string) ($row[$this->leaseFieldMap['mac']] ?? ''),
             'hostname' => (string) ($row[$this->leaseFieldMap['hostname']] ?? ''),
@@ -353,11 +372,56 @@ class OpnSenseDhcpService implements DhcpInterface
         ]);
     }
 
-    /** @return array{ipv4: bool, ipv6: bool} */
-    public function getFetchStatus(): array
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchAllLeaseRows(): array
     {
-        return ['ipv4' => true, 'ipv6' => true];
+        $all = [];
+
+        for ($page = 1; $page <= self::MAX_LEASE_PAGES; $page++) {
+            $result = $this->fetchLeaseRows($this->client->post($this->leasesPath, [
+                'json' => ['current' => $page, 'rowCount' => self::LEASE_PAGE_SIZE],
+            ]));
+            $all = array_merge($all, $result['rows']);
+
+            $done = $result['total'] !== null
+                ? count($all) >= $result['total'] || $result['rows'] === []
+                : count($result['rows']) < self::LEASE_PAGE_SIZE;
+
+            if ($done) {
+                return $all;
+            }
+        }
+
+        throw new UnexpectedValueException('Lease pagination exceeded '.self::MAX_LEASE_PAGES.' pages');
     }
 
-    public function resetSnapshot(): void {}
+    /**
+     * @return array{rows: list<array<string, mixed>>, total: int|null}
+     */
+    private function fetchLeaseRows(ResponseInterface $response): array
+    {
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        if (! is_array($data) || ! is_array($data['rows'] ?? null)) {
+            throw new UnexpectedValueException('Unexpected leases response');
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $data['rows'];
+
+        return ['rows' => $rows, 'total' => isset($data['total']) && is_numeric($data['total']) ? (int) $data['total'] : null];
+    }
+
+    /** @return array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool} */
+    public function getFetchStatus(): array
+    {
+        return $this->fetchStatus;
+    }
+
+    public function resetSnapshot(): void
+    {
+        $this->fetchStatus = self::HEALTHY;
+    }
 }
