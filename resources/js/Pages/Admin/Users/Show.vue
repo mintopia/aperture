@@ -377,6 +377,7 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
                         <Link
                             v-if="row.mac_address"
                             :href="route('admin.macs.show', row.mac_address)"
+                            data-testid="device-mac-link"
                             class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
                         >
                             {{ row.mac_address }}
@@ -387,6 +388,7 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
                         <Link
                             v-if="row.ip_address"
                             :href="route('admin.ips.show', row.ip_address)"
+                            data-testid="device-ip-link"
                             class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
                         >
                             {{ row.ip_address }}
@@ -400,6 +402,7 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
                         <template v-if="row.switch_name && row.port_name">
                             <Link
                                 :href="route('admin.switches.ports.show', [row.switch_id, row.port_name])"
+                                data-testid="device-switch-port-link"
                                 class="text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)]"
                             >
                                 {{ row.switch_name }} / {{ row.port_name }}

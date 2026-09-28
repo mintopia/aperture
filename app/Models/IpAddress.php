@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property string $address
+ * @property string|null $address_sort
  * @property bool|null $internet_enabled
  * @property bool $rate_limit_enabled
  * @property bool $dns_filtering_enabled
@@ -101,8 +102,27 @@ class IpAddress extends Model
     protected function address(): Attribute
     {
         return Attribute::make(
-            set: fn (string $value): string => self::normalize($value),
+            set: fn (string $value): array => [
+                'address' => $normalized = self::normalize($value),
+                'address_sort' => self::sortKey($normalized),
+            ],
         );
+    }
+
+    // Fixed-width hex of the 16-byte form (IPv4 as ::ffff:a.b.c.d) so a plain ORDER BY is numeric on any driver.
+    public static function sortKey(string $address): ?string
+    {
+        $packed = @inet_pton($address);
+
+        if ($packed === false) {
+            return null;
+        }
+
+        if (strlen($packed) === 4) {
+            $packed = str_repeat("\0", 10)."\xff\xff".$packed;
+        }
+
+        return bin2hex($packed);
     }
 
     /**

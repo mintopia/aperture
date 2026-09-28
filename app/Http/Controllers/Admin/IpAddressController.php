@@ -78,7 +78,7 @@ class IpAddressController extends Controller
 
         $filters->direction = $direction;
 
-        $ips = $query->with('macAddresses')->orderBy($order, $direction)->paginate($filters->perPage)->appends((array) $filters);
+        $ips = $query->with('macAddresses')->orderBy($order === 'address' ? 'address_sort' : $order, $direction)->orderBy('id', $direction)->paginate($filters->perPage)->appends((array) $filters);
         $ips->through(function (IpAddress $ip): IpAddress {
             $currentMac = $ip->macAddresses
                 ->sortByDesc(fn (MacAddress $mac) => $mac->pivot->last_seen_at)

@@ -103,6 +103,30 @@ class IpAddressControllerTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_ip_index_sorts_addresses_numerically(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser();
+
+        foreach (['2001:db8::10', '10.0.0.10', '2001:db8::2', '10.0.0.2', '::1', '10.0.0.1'] as $address) {
+            $ip = new IpAddress;
+            $ip->address = $address;
+            $ip->last_seen_at = Carbon::now();
+            $ip->save();
+        }
+
+        $asc = ['::1', '10.0.0.1', '10.0.0.2', '10.0.0.10', '2001:db8::2', '2001:db8::10'];
+
+        $listed = fn (string $direction): array => array_column(
+            $this->actingAs($admin)->get('/admin/ips?order=address&direction='.$direction)
+                ->viewData('page')['props']['ips']['data'],
+            'address',
+        );
+
+        $this->assertSame($asc, $listed('asc'));
+        $this->assertSame(array_reverse($asc), $listed('desc'));
+    }
+
     public function test_admin_can_filter_ips_by_address(): void
     {
         Queue::fake();
