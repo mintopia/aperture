@@ -23,13 +23,6 @@ type KeepaliveChecker interface {
 	SendKeepalive() error
 }
 
-// HealthChecker is implemented by connections that support a lightweight
-// health probe. The pool can optionally check health before reusing a
-// connection to detect stale connections early.
-type HealthChecker interface {
-	CheckHealth() error
-}
-
 // Entry represents a pooled connection for a single hostname+channel pair.
 type Entry struct {
 	Hostname      string
@@ -67,20 +60,10 @@ func PoolKey(hostname, channel string) string {
 }
 
 // New creates a connection pool that evicts idle connections after idleTimeout.
-// No keepalive is configured; use NewWithKeepalive for keepalive support.
-func New(idleTimeout time.Duration) *Pool {
-	return &Pool{
-		entries:     make(map[string]*Entry),
-		idleTimeout: idleTimeout,
-		startedAt:   time.Now(),
-	}
-}
-
-// NewWithKeepalive creates a connection pool with periodic SSH keepalive.
-// Connections that implement KeepaliveChecker will receive keepalive requests
-// at the specified interval. If a keepalive fails, the connection is marked
-// dead and will be evicted on the next Acquire or SweepIdle call.
-func NewWithKeepalive(idleTimeout, keepaliveInterval time.Duration) *Pool {
+// Connections that implement KeepaliveChecker receive keepalive requests at
+// keepaliveInterval (zero disables keepalive). If a keepalive fails, the
+// connection is marked dead and evicted on the next Acquire or SweepIdle call.
+func New(idleTimeout, keepaliveInterval time.Duration) *Pool {
 	return &Pool{
 		entries:           make(map[string]*Entry),
 		idleTimeout:       idleTimeout,
@@ -102,11 +85,7 @@ func (p *Pool) Acquire(hostname, channel string) (*Entry, bool, error) {
 	entry, exists := p.entries[key]
 	if exists {
 		if entry.Dead {
-			p.stopKeepaliveLocked(entry)
-			if entry.Conn != nil {
-				entry.Conn.Close()
-			}
-			delete(p.entries, key)
+			p.removeLocked(key, entry)
 		} else {
 			if entry.Locked {
 				return nil, false, ErrHostLocked
@@ -126,77 +105,6 @@ func (p *Pool) Acquire(hostname, channel string) (*Entry, bool, error) {
 	}
 	p.entries[key] = entry
 	return entry, true, nil
-}
-
-// AcquireWithHealthCheck works like Acquire but additionally runs a health
-// check on existing connections that implement HealthChecker. If the check
-// fails, the stale connection is evicted and a fresh entry is returned
-// (isNew=true) so the caller can establish a new connection.
-func (p *Pool) AcquireWithHealthCheck(hostname, channel string) (*Entry, bool, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	key := PoolKey(hostname, channel)
-	entry, exists := p.entries[key]
-	if exists {
-		if entry.Dead {
-			p.stopKeepaliveLocked(entry)
-			if entry.Conn != nil {
-				entry.Conn.Close()
-			}
-			delete(p.entries, key)
-		} else {
-			if entry.Locked {
-				return nil, false, ErrHostLocked
-			}
-
-			// Run health check if the connection supports it.
-			if entry.Conn != nil {
-				if checker, ok := entry.Conn.(HealthChecker); ok {
-					if err := checker.CheckHealth(); err != nil {
-						// Connection is stale — evict it.
-						p.stopKeepaliveLocked(entry)
-						entry.Conn.Close()
-						delete(p.entries, key)
-						// Fall through to create a new entry.
-						goto createNew
-					}
-				}
-			}
-
-			entry.Locked = true
-			entry.LastUsed = time.Now()
-			return entry, false, nil
-		}
-	}
-
-createNew:
-	entry = &Entry{
-		Hostname:  hostname,
-		Channel:   channel,
-		Locked:    true,
-		CreatedAt: time.Now(),
-		LastUsed:  time.Now(),
-	}
-	p.entries[key] = entry
-	return entry, true, nil
-}
-
-// Evict forcibly removes and closes the entry for the given hostname and
-// channel, regardless of its lock state. Use this to recover from a stale
-// connection detected during command execution.
-func (p *Pool) Evict(hostname, channel string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	key := PoolKey(hostname, channel)
-	if entry, ok := p.entries[key]; ok {
-		p.stopKeepaliveLocked(entry)
-		if entry.Conn != nil {
-			entry.Conn.Close()
-		}
-		delete(p.entries, key)
-	}
 }
 
 // Release unlocks the entry for the given hostname and channel.
@@ -235,18 +143,15 @@ func (p *Pool) SetConnection(hostname, channel string, conn io.Closer) {
 }
 
 // Remove closes and removes the entry for the given hostname and channel,
-// stopping its keepalive goroutine if one is running.
+// regardless of its lock state, stopping its keepalive goroutine if one is
+// running.
 func (p *Pool) Remove(hostname, channel string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	key := PoolKey(hostname, channel)
 	if entry, ok := p.entries[key]; ok {
-		p.stopKeepaliveLocked(entry)
-		if entry.Conn != nil {
-			entry.Conn.Close()
-		}
-		delete(p.entries, key)
+		p.removeLocked(key, entry)
 	}
 }
 
@@ -303,12 +208,18 @@ func (p *Pool) DisconnectAll() {
 	defer p.mu.Unlock()
 
 	for key, entry := range p.entries {
-		p.stopKeepaliveLocked(entry)
-		if entry.Conn != nil {
-			entry.Conn.Close()
-		}
-		delete(p.entries, key)
+		p.removeLocked(key, entry)
 	}
+}
+
+// removeLocked stops keepalive, closes the connection and deletes the entry.
+// Must be called with p.mu held.
+func (p *Pool) removeLocked(key string, entry *Entry) {
+	p.stopKeepaliveLocked(entry)
+	if entry.Conn != nil {
+		entry.Conn.Close()
+	}
+	delete(p.entries, key)
 }
 
 // stopKeepaliveLocked signals the keepalive goroutine for an entry to stop.
