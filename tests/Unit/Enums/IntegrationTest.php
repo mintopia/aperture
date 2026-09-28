@@ -23,11 +23,17 @@ class IntegrationTest extends TestCase
         $this->assertContains('seatpicker', $values);
         $this->assertContains('vyos', $values);
         $this->assertContains('cisco', $values);
+        $this->assertContains('kea', $values);
     }
 
     public function test_cisco_integration_exists(): void
     {
         $this->assertSame('cisco', Integration::Cisco->value);
+    }
+
+    public function test_kea_integration_exists(): void
+    {
+        $this->assertSame('kea', Integration::Kea->value);
     }
 
     public function test_capability_enum_has_known_capabilities(): void

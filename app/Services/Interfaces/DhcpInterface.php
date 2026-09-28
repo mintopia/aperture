@@ -11,7 +11,8 @@ use Illuminate\Support\Collection;
 
 interface DhcpInterface
 {
-    public function getPoolStatus(): DhcpPoolStatus;
+    /** @param  'ipv4'|'ipv6'  $family */
+    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus;
 
     /** @return Collection<int, DhcpLease> */
     public function getLeases(): Collection;
@@ -20,4 +21,9 @@ interface DhcpInterface
 
     /** @return Collection<int, DhcpRange> */
     public function getRanges(): Collection;
+
+    /** @return array{ipv4: bool, ipv6: bool, ...} */
+    public function getFetchStatus(): array;
+
+    public function resetSnapshot(): void;
 }

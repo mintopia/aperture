@@ -45,8 +45,12 @@ class OpnSenseDhcpService implements DhcpInterface
         protected bool $leasesUsePost = false,
     ) {}
 
-    public function getPoolStatus(): DhcpPoolStatus
+    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
     {
+        if ($family !== 'ipv4') {
+            return new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
+        }
+
         $leases = $this->fetchLeases();
         $activeCount = $leases->where('status', 'active')->count();
 
@@ -348,4 +352,12 @@ class OpnSenseDhcpService implements DhcpInterface
             'status' => (string) ($row[$this->leaseFieldMap['status']] ?? 'active'),
         ]);
     }
+
+    /** @return array{ipv4: bool, ipv6: bool} */
+    public function getFetchStatus(): array
+    {
+        return ['ipv4' => true, 'ipv6' => true];
+    }
+
+    public function resetSnapshot(): void {}
 }

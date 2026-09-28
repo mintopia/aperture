@@ -509,6 +509,18 @@ class VyOsDhcpServiceTest extends TestCase
         $this->assertSame(0.0, $pool->utilisation);
     }
 
+    public function test_get_pool_status_ipv6_returns_zeroed_status(): void
+    {
+        $service = $this->createService(254);
+
+        $pool = $service->getPoolStatus('ipv6');
+
+        $this->assertSame(0, $pool->total);
+        $this->assertSame(0, $pool->used);
+        $this->assertSame(0, $pool->available);
+        $this->assertSame(0.0, $pool->utilisation);
+    }
+
     public function test_get_ranges_subnet_without_range_key_is_skipped(): void
     {
         $this->client->shouldReceive('retrieve')
@@ -873,5 +885,21 @@ class VyOsDhcpServiceTest extends TestCase
 
         $this->assertCount(1, $ranges);
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
+    }
+
+    public function test_get_fetch_status_reports_success(): void
+    {
+        $service = $this->createService();
+
+        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+    }
+
+    public function test_reset_snapshot_is_a_no_op(): void
+    {
+        $service = $this->createService();
+
+        $service->resetSnapshot();
+
+        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
     }
 }

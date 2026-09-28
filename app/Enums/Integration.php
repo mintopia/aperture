@@ -14,4 +14,5 @@ enum Integration: string
     case Seatpicker = 'seatpicker';
     case VyOs = 'vyos';
     case Cisco = 'cisco';
+    case Kea = 'kea';
 }

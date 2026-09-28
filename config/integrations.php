@@ -370,4 +370,57 @@ return [
             'ipv6_enabled' => 'nullable|string|in:0,1',
         ],
     ],
+    'kea' => [
+        'name' => 'Kea',
+        'description' => 'ISC Kea DHCP server providing DHCP leases, ranges and IP-MAC resolution via its native REST API.',
+        'capabilities' => ['dhcp', 'ip-mac'],
+        'fields' => [
+            'endpoint_v4' => [
+                'type' => 'url',
+                'label' => 'IPv4 Endpoint',
+                'placeholder' => 'https://kea.local:8000',
+                'help' => 'kea-dhcp4 control agent or daemon HTTP API.',
+            ],
+            'username_v4' => [
+                'type' => 'text',
+                'label' => 'IPv4 Username',
+                'help' => 'Optional HTTP Basic auth username for the IPv4 Endpoint.',
+            ],
+            'password_v4' => [
+                'type' => 'password',
+                'label' => 'IPv4 Password',
+                'help' => 'Optional HTTP Basic auth password for the IPv4 Endpoint.',
+            ],
+            'endpoint_v6' => [
+                'type' => 'url',
+                'label' => 'IPv6 Endpoint',
+                'placeholder' => 'https://kea.local:8000',
+                'help' => 'kea-dhcp6 control agent or daemon HTTP API.',
+            ],
+            'username_v6' => [
+                'type' => 'text',
+                'label' => 'IPv6 Username',
+                'help' => 'Optional HTTP Basic auth username for the IPv6 Endpoint.',
+            ],
+            'password_v6' => [
+                'type' => 'password',
+                'label' => 'IPv6 Password',
+                'help' => 'Optional HTTP Basic auth password for the IPv6 Endpoint.',
+            ],
+            'verify_ssl' => [
+                'type' => 'toggle',
+                'label' => 'Verify SSL',
+                'help' => 'Verify the SSL certificate when connecting to the Endpoint.',
+            ],
+        ],
+        'validation' => [
+            'endpoint_v4' => 'nullable|url|max:500|required_without:config.endpoint_v6',
+            'username_v4' => 'nullable|string|max:255|required_with:config.password_v4',
+            'password_v4' => 'nullable|string|max:500|required_with:config.username_v4',
+            'endpoint_v6' => 'nullable|url|max:500|required_without:config.endpoint_v4',
+            'username_v6' => 'nullable|string|max:255|required_with:config.password_v6',
+            'password_v6' => 'nullable|string|max:500|required_with:config.username_v6',
+            'verify_ssl' => 'nullable|string|in:0,1',
+        ],
+    ],
 ];

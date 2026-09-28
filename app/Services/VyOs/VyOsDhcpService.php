@@ -20,8 +20,12 @@ class VyOsDhcpService implements DhcpInterface
         private int $poolSize = 0,
     ) {}
 
-    public function getPoolStatus(): DhcpPoolStatus
+    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
     {
+        if ($family !== 'ipv4') {
+            return new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
+        }
+
         $leaseCount = $this->getLeases()->count();
 
         return new DhcpPoolStatus(
@@ -358,4 +362,12 @@ class VyOsDhcpService implements DhcpInterface
 
         return $rows;
     }
+
+    /** @return array{ipv4: bool, ipv6: bool} */
+    public function getFetchStatus(): array
+    {
+        return ['ipv4' => true, 'ipv6' => true];
+    }
+
+    public function resetSnapshot(): void {}
 }
