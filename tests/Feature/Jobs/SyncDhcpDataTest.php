@@ -1133,4 +1133,32 @@ class SyncDhcpDataTest extends TestCase
             return $event->addressFamily === 'ipv6' && $event->usage === 0.85;
         });
     }
+
+    public function test_removes_ipv6_pool_status_when_ipv6_fetch_succeeds_with_no_pools(): void
+    {
+        CapabilityAssignment::assign('dhcp', 'kea');
+        DhcpPoolStatusRecord::create([
+            'integration' => 'kea', 'address_family' => 'ipv6', 'total' => '100', 'used' => '10',
+            'available' => '90', 'utilisation' => '0.1000', 'synced_at' => now(),
+        ]);
+        $this->bindDhcpServiceWithFetchStatus([], [], new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0), ['ipv4' => true, 'ipv6' => true]);
+
+        (new SyncDhcpData)->handle(app(DhcpInterface::class));
+
+        $this->assertDatabaseMissing('dhcp_pool_statuses', ['integration' => 'kea', 'address_family' => 'ipv6']);
+    }
+
+    public function test_keeps_ipv6_pool_status_when_ipv6_fetch_failed(): void
+    {
+        CapabilityAssignment::assign('dhcp', 'kea');
+        DhcpPoolStatusRecord::create([
+            'integration' => 'kea', 'address_family' => 'ipv6', 'total' => '100', 'used' => '10',
+            'available' => '90', 'utilisation' => '0.1000', 'synced_at' => now(),
+        ]);
+        $this->bindDhcpServiceWithFetchStatus([], [], new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0), ['ipv4' => true, 'ipv6' => false]);
+
+        (new SyncDhcpData)->handle(app(DhcpInterface::class));
+
+        $this->assertDatabaseHas('dhcp_pool_statuses', ['integration' => 'kea', 'address_family' => 'ipv6']);
+    }
 }

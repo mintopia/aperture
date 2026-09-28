@@ -12,9 +12,15 @@ use App\Services\ValueObjects\DhcpRange;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
+use UnexpectedValueException;
 
 class VyOsDhcpService implements DhcpInterface
 {
+    private const HEALTHY = ['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true];
+
+    /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool} */
+    private array $fetchStatus = self::HEALTHY;
+
     public function __construct(
         private VyOsClient $client,
         private int $poolSize = 0,
@@ -87,6 +93,7 @@ class VyOsDhcpService implements DhcpInterface
                     expires: $row['lease expiration'] ?? '',
                 ))->values();
         } catch (Throwable $throwable) {
+            $this->fetchStatus['ipv4'] = false;
             Log::warning('Failed to fetch VyOS DHCPv4 leases', ['error' => $throwable->getMessage()]);
 
             return collect();
@@ -109,6 +116,7 @@ class VyOsDhcpService implements DhcpInterface
                     expires: $row['lease expiration'] ?? '',
                 ))->values();
         } catch (Throwable $throwable) {
+            $this->fetchStatus['ipv6'] = false;
             Log::warning('Failed to fetch VyOS DHCPv6 leases', ['error' => $throwable->getMessage()]);
 
             return collect();
@@ -124,6 +132,7 @@ class VyOsDhcpService implements DhcpInterface
 
             return $this->parseRangesFromConfig($networks, 'ipv4');
         } catch (Throwable $throwable) {
+            $this->fetchStatus['ipv4_ranges'] = false;
             Log::warning('Failed to fetch VyOS DHCPv4 ranges', ['error' => $throwable->getMessage()]);
 
             return collect();
@@ -139,6 +148,7 @@ class VyOsDhcpService implements DhcpInterface
 
             return $this->parseRangesFromConfig($networks, 'ipv6');
         } catch (Throwable $throwable) {
+            $this->fetchStatus['ipv6_ranges'] = false;
             Log::warning('Failed to fetch VyOS DHCPv6 ranges', ['error' => $throwable->getMessage()]);
 
             return collect();
@@ -310,6 +320,7 @@ class VyOsDhcpService implements DhcpInterface
      */
     private function parseTextTable(string $text): array
     {
+        $sawSeparator = false;
         $lines = explode("\n", $text);
         /** @var list<string> $headers */
         $headers = [];
@@ -321,6 +332,7 @@ class VyOsDhcpService implements DhcpInterface
         foreach ($lines as $i => $line) {
             if (! $separatorFound && preg_match('/^[-\s]+$/', $line) && trim($line) !== '') {
                 $separatorFound = true;
+                $sawSeparator = true;
                 preg_match_all('/(-+)/', $line, $matches, PREG_OFFSET_CAPTURE);
 
                 foreach ($matches[1] as $match) {
@@ -360,14 +372,22 @@ class VyOsDhcpService implements DhcpInterface
             $rows[] = $row;
         }
 
+        // Blank output is a valid empty table; anything else without a header separator is not.
+        if (! $sawSeparator && trim($text) !== '') {
+            throw new UnexpectedValueException('Unparseable DHCP lease table');
+        }
+
         return $rows;
     }
 
-    /** @return array{ipv4: bool, ipv6: bool} */
+    /** @return array{ipv4: bool, ipv6: bool, ipv4_ranges: bool, ipv6_ranges: bool} */
     public function getFetchStatus(): array
     {
-        return ['ipv4' => true, 'ipv6' => true];
+        return $this->fetchStatus;
     }
 
-    public function resetSnapshot(): void {}
+    public function resetSnapshot(): void
+    {
+        $this->fetchStatus = self::HEALTHY;
+    }
 }

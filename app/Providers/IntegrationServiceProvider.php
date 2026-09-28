@@ -77,6 +77,8 @@ class IntegrationServiceProvider extends ServiceProvider
 
             $client = new Client([
                 'verify' => (bool) ($dbConfig['verify_ssl'] ?? true),
+                'timeout' => 30,
+                'connect_timeout' => 5,
                 'base_uri' => $dbConfig['endpoint'] ?? '',
                 'auth' => [$dbConfig['key'] ?? '', $dbConfig['secret'] ?? ''],
             ]);
