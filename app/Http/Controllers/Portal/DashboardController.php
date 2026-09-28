@@ -11,9 +11,9 @@ use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Ipv6JwtService;
 use App\Services\UserNetworkAssociationService;
 use Illuminate\Http\Request;
-use App\Services\Ipv6JwtService;
 use Inertia\Inertia;
 use Inertia\Response;
 
