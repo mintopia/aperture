@@ -8,7 +8,6 @@ use App\Http\Requests\Admin\UpdateDnsDetectionSettingsRequest;
 use App\Http\Requests\Admin\UpdateGeneralSettingsRequest;
 use App\Http\Requests\Admin\UpdateIpv6DetectionSettingsRequest;
 use App\Http\Requests\Admin\UpdateNetworkSettingsRequest;
-use App\Http\Requests\Admin\UpdateThemeSettingsRequest;
 use App\Rules\SafeCss;
 use Closure;
 use Tests\TestCase;
@@ -124,34 +123,6 @@ class SettingsFormRequestTest extends TestCase
     public function test_general_settings_request_has_safe_css_rule(): void
     {
         $request = new UpdateGeneralSettingsRequest;
-        $rules = $request->rules();
-
-        $this->assertIsArray($rules['custom_css']);
-        $safeCssRules = array_filter($rules['custom_css'], fn ($rule): bool => $rule instanceof SafeCss);
-        $this->assertCount(1, $safeCssRules);
-    }
-
-    public function test_theme_settings_request_authorizes(): void
-    {
-        $request = new UpdateThemeSettingsRequest;
-        $this->assertTrue($request->authorize());
-    }
-
-    public function test_theme_settings_request_rules(): void
-    {
-        $request = new UpdateThemeSettingsRequest;
-        $rules = $request->rules();
-
-        $this->assertArrayHasKey('theme_mode', $rules);
-        $this->assertArrayHasKey('accent_hue', $rules);
-        $this->assertArrayHasKey('accent_chroma', $rules);
-        $this->assertArrayHasKey('accent_lightness', $rules);
-        $this->assertArrayHasKey('custom_css', $rules);
-    }
-
-    public function test_theme_settings_request_has_safe_css_rule(): void
-    {
-        $request = new UpdateThemeSettingsRequest;
         $rules = $request->rules();
 
         $this->assertIsArray($rules['custom_css']);

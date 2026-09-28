@@ -98,7 +98,6 @@ class CircuitBreakerTest extends TestCase
         $this->circuitBreaker->recordSuccess($switch);
 
         $this->assertTrue($this->circuitBreaker->isAvailable($switch));
-        $this->assertSame(0, $this->circuitBreaker->getFailureCount($switch));
     }
 
     public function test_manual_reset_re_enables_switch(): void
@@ -116,7 +115,6 @@ class CircuitBreakerTest extends TestCase
         $this->circuitBreaker->reset($switch);
 
         $this->assertTrue($this->circuitBreaker->isAvailable($switch));
-        $this->assertSame(0, $this->circuitBreaker->getFailureCount($switch));
     }
 
     public function test_failure_tracking_is_per_switch(): void
@@ -165,19 +163,6 @@ class CircuitBreakerTest extends TestCase
         $this->circuitBreaker->recordFailure($switch);
 
         $this->assertTrue($circuitBreaker->isAvailable($switch));
-    }
-
-    public function test_get_failure_count_returns_current_count(): void
-    {
-        $switch = SwitchConfig::factory()->create();
-
-        $this->assertSame(0, $this->circuitBreaker->getFailureCount($switch));
-
-        $this->circuitBreaker->recordFailure($switch);
-        $this->assertSame(1, $this->circuitBreaker->getFailureCount($switch));
-
-        $this->circuitBreaker->recordFailure($switch);
-        $this->assertSame(2, $this->circuitBreaker->getFailureCount($switch));
     }
 
     public function test_success_after_circuit_opens_resets_and_re_enables(): void

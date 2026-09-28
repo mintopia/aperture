@@ -212,32 +212,6 @@ class PrometheusServiceTest extends TestCase
         });
     }
 
-    public function test_get_device_bandwidth_sums_all_interfaces(): void
-    {
-        Http::fake([
-            '*' => Http::response([
-                'status' => 'success',
-                'data' => ['resultType' => 'matrix', 'result' => []],
-            ]),
-        ]);
-
-        $this->service->getDeviceBandwidth('switch1', 1000.0, 2000.0);
-
-        Http::assertSent(function (Request $request): bool {
-            return str_contains(
-                urldecode($request->url()),
-                'query=sum(rate(ifHCInOctets{instance=~"switch1.*"}[5m])) * 8 or sum(rate(ifInOctets{instance=~"switch1.*"}[5m])) * 8',
-            );
-        });
-        Http::assertSent(function (Request $request): bool {
-            return str_contains(
-                urldecode($request->url()),
-                'query=sum(rate(ifHCOutOctets{instance=~"switch1.*"}[5m])) * 8 or sum(rate(ifOutOctets{instance=~"switch1.*"}[5m])) * 8',
-            );
-        });
-        Http::assertSentCount(2);
-    }
-
     public function test_sends_bearer_token_when_configured(): void
     {
         Http::fake(['*' => Http::response(['status' => 'success', 'data' => []])]);

@@ -37,24 +37,6 @@ class AuthServiceProviderTest extends TestCase
         $this->assertFalse(Gate::forUser($user)->allows('admin'));
     }
 
-    public function test_view_web_sockets_dashboard_gate_for_admin(): void
-    {
-        $user = User::factory()->create();
-        $role = new Role;
-        $role->name = 'Admin';
-        $role->code = 'admin';
-        $role->save();
-        $user->roles()->attach($role);
-
-        $this->assertTrue(Gate::forUser($user)->allows('viewWebSocketsDashboard'));
-    }
-
-    public function test_view_web_sockets_dashboard_gate_for_non_admin(): void
-    {
-        $user = User::factory()->create();
-        $this->assertFalse(Gate::forUser($user)->allows('viewWebSocketsDashboard'));
-    }
-
     public function test_user_policy_is_registered(): void
     {
         $this->assertInstanceOf(UserPolicy::class, Gate::getPolicyFor(User::class));

@@ -28,12 +28,6 @@ class NullCaptivePortalTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function test_add_allowed_hostnames_is_noop(): void
-    {
-        $this->provider->addAllowedHostnames(['example.com']);
-        $this->assertTrue(true);
-    }
-
     public function test_reconcile_returns_empty_result(): void
     {
         $result = $this->provider->reconcile();

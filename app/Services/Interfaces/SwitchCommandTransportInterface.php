@@ -14,7 +14,5 @@ interface SwitchCommandTransportInterface
      */
     public function executeMultiple(array $commands): array;
 
-    public function isConnected(): bool;
-
     public function disconnect(): void;
 }

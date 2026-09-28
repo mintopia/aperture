@@ -50,14 +50,6 @@ class CapabilityAssignment extends Model
     }
 
     /**
-     * Remove the active provider for a capability.
-     */
-    public static function unassign(string $capability): void
-    {
-        static::where('capability', $capability)->delete();
-    }
-
-    /**
      * Get the integration currently assigned as the active provider for a capability.
      */
     public static function activeIntegration(string $capability): ?string

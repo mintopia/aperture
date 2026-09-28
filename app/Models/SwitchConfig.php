@@ -113,12 +113,6 @@ class SwitchConfig extends Model
         return $this->hasMany(SwitchPort::class);
     }
 
-    /** @return HasMany<SwitchSyncRun, $this> */
-    public function switchSyncRuns(): HasMany
-    {
-        return $this->hasMany(SwitchSyncRun::class);
-    }
-
     /** @return HasOne<SwitchSyncRun, $this> */
     public function latestSyncRun(): HasOne
     {

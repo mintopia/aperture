@@ -36,12 +36,4 @@ class BandwidthAnomalyDetector
 
         return $shortTermAvg / $longTermAvg;
     }
-
-    /**
-     * Get the configured threshold.
-     */
-    public function getThreshold(): float
-    {
-        return $this->threshold;
-    }
 }

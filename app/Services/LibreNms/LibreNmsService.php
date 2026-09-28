@@ -6,7 +6,6 @@ namespace App\Services\LibreNms;
 
 use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\ForwardingEntry;
-use App\Services\ValueObjects\NetworkDevice;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Http\Client\PendingRequest;
@@ -82,21 +81,6 @@ class LibreNmsService
             port: $fdb->port,
             switch: '',
         );
-    }
-
-    /** @return Collection<int, NetworkDevice> */
-    public function getDeviceList(): Collection
-    {
-        $data = $this->fetch('/api/v0/devices');
-
-        return collect(array_map(
-            fn (array $device): NetworkDevice => new NetworkDevice(
-                hostname: (string) ($device['hostname'] ?? ''),
-                ip: (string) ($device['ip'] ?? ''),
-                type: (string) ($device['type'] ?? ''),
-            ),
-            $data['devices'] ?? [],
-        ));
     }
 
     public function getPortDetail(string $portId): ?PortDetail

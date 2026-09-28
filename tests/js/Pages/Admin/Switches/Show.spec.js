@@ -308,7 +308,7 @@ describe('Show.vue - broken template references', () => {
 
 // useAdminChannel's own subscribe/listen/leave behavior is covered generically by
 // tests/js/composables/useAdminChannel.spec.js; these cover Show's own handler logic:
-// the switch_config_id guard on SwitchSyncCompleted, and the unconditional refresh on
+// the unconditional refresh on
 // PortStateChanged.
 describe('Show Echo integration', () => {
     let originalEcho;
@@ -339,32 +339,6 @@ describe('Show Echo integration', () => {
 
     afterEach(() => {
         window.Echo = originalEcho;
-    });
-
-    it('refreshes when SwitchSyncCompleted matches this switch', async () => {
-        const { router } = await import('@inertiajs/vue3');
-        const echo = createMockEcho();
-        window.Echo = echo;
-
-        mountShow();
-        router.reload.mockClear();
-
-        echo._channels['admin.events']._listeners['SwitchSyncCompleted']({ switch_config_id: 1 });
-
-        expect(router.reload).toHaveBeenCalled();
-    });
-
-    it('does not refresh when SwitchSyncCompleted is for a different switch', async () => {
-        const { router } = await import('@inertiajs/vue3');
-        const echo = createMockEcho();
-        window.Echo = echo;
-
-        mountShow();
-        router.reload.mockClear();
-
-        echo._channels['admin.events']._listeners['SwitchSyncCompleted']({ switch_config_id: 999 });
-
-        expect(router.reload).not.toHaveBeenCalled();
     });
 
     it('refreshes on PortStateChanged', async () => {

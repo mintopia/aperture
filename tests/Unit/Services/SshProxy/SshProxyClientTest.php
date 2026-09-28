@@ -5,8 +5,6 @@ namespace Tests\Unit\Services\SshProxy;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
-use App\Services\SshProxy\ConnectionStatus;
-use App\Services\SshProxy\ProxyStatus;
 use App\Services\SshProxy\SshProxyClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
@@ -125,68 +123,6 @@ class SshProxyClientTest extends TestCase
             'password',
             [['command' => 'show version']],
         );
-    }
-
-    public function test_status_sends_get_request(): void
-    {
-        $statusResponse = [
-            'uptime_seconds' => 3600,
-            'connections' => [
-                [
-                    'hostname' => '192.168.1.1',
-                    'connected_seconds' => 120,
-                    'last_used_seconds_ago' => 5,
-                    'locked' => false,
-                ],
-            ],
-        ];
-
-        $proxyClient = $this->createClientWithFakes([
-            Http::response(json_encode($statusResponse), 200),
-        ]);
-
-        $result = $proxyClient->status();
-
-        $this->assertInstanceOf(ProxyStatus::class, $result);
-        $this->assertSame(3600, $result->uptimeSeconds);
-        $this->assertCount(1, $result->connections);
-        $this->assertInstanceOf(ConnectionStatus::class, $result->connections[0]);
-        $this->assertSame('192.168.1.1', $result->connections[0]->hostname);
-        $this->assertFalse($result->connections[0]->locked);
-    }
-
-    public function test_status_returns_parsed_response(): void
-    {
-        $statusResponse = [
-            'uptime_seconds' => 7200,
-            'connections' => [
-                [
-                    'hostname' => '10.0.0.1',
-                    'connected_seconds' => 300,
-                    'last_used_seconds_ago' => 10,
-                    'locked' => true,
-                ],
-                [
-                    'hostname' => '10.0.0.2',
-                    'connected_seconds' => 60,
-                    'last_used_seconds_ago' => 2,
-                    'locked' => false,
-                ],
-            ],
-        ];
-
-        $proxyClient = $this->createClientWithFakes([
-            Http::response(json_encode($statusResponse), 200),
-        ]);
-
-        $result = $proxyClient->status();
-
-        $this->assertInstanceOf(ProxyStatus::class, $result);
-        $this->assertSame(7200, $result->uptimeSeconds);
-        $this->assertCount(2, $result->connections);
-        $this->assertInstanceOf(ConnectionStatus::class, $result->connections[0]);
-        $this->assertTrue($result->connections[0]->locked);
-        $this->assertFalse($result->connections[1]->locked);
     }
 
     public function test_container_binding_resolves_correctly(): void

@@ -53,10 +53,4 @@ class BandwidthAnomalyDetectorTest extends TestCase
         $this->assertSame($expected, $ratio);
     }
 
-    public function test_get_threshold_returns_configured_threshold(): void
-    {
-        $detector = new BandwidthAnomalyDetector(threshold: 4.5);
-
-        $this->assertSame(4.5, $detector->getThreshold());
-    }
 }
