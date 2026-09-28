@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit\Http;
 
 use App\Http\Controllers\Admin\IntegrationController;
+use App\Http\Requests\Admin\UpdateIntegrationRequest;
 use App\Models\IntegrationConfig;
 use App\Services\Integration\IntegrationConfigMerger;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Http\Request;
 use Mockery;
 use Tests\TestCase;
 
@@ -19,7 +19,7 @@ use Tests\TestCase;
  *
  * This branch is unreachable via HTTP because Laravel's validate() strips
  * keys that have no declared rule. We must call the controller directly with
- * a crafted Request whose validate() returns extra, undeclared keys.
+ * a crafted request whose validated() returns extra, undeclared keys.
  */
 class IntegrationControllerUpdateTest extends TestCase
 {
@@ -27,12 +27,10 @@ class IntegrationControllerUpdateTest extends TestCase
 
     public function test_update_skips_config_key_not_in_validation_rules(): void
     {
-        // Craft a Request subclass whose validate() returns a config that
-        // includes 'unknown_extra_key' not present in the integration's validationRules
-        $request = new class extends Request
+        $request = new class extends UpdateIntegrationRequest
         {
             /** @return array<string, mixed> */
-            public function validate(array $rules, ...$params): array
+            public function validated($key = null, $default = null): array
             {
                 return [
                     'config' => [

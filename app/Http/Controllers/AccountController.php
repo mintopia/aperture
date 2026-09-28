@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AccountCreatePasswordRequest;
+use App\Http\Requests\AccountUpdatePasswordRequest;
+use App\Http\Requests\AccountVerifyRequest;
 use App\Models\AuditLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,14 +39,12 @@ class AccountController extends Controller
         ]);
     }
 
-    public function verify(Request $request): RedirectResponse
+    public function verify(AccountVerifyRequest $request): RedirectResponse
     {
         $user = $request->user();
         if (! $user) {
             abort(403); // Required for PHPStan level 8 null-safety
         }
-
-        $request->validate(['password' => ['required', 'string']]);
 
         if ($user->password === null || ! Hash::check($request->string('password')->value(), $user->password)) {
             return back()->withErrors(['password' => 'Incorrect password.']);
@@ -54,7 +55,7 @@ class AccountController extends Controller
         return back();
     }
 
-    public function createPassword(Request $request): RedirectResponse
+    public function createPassword(AccountCreatePasswordRequest $request): RedirectResponse
     {
         $user = $request->user();
         if (! $user) {
@@ -64,10 +65,6 @@ class AccountController extends Controller
         if ($user->password !== null) {
             abort(403);
         }
-
-        $request->validate([
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
 
         $user->update(['password' => Hash::make($request->string('password')->value())]);
 
@@ -83,16 +80,12 @@ class AccountController extends Controller
         return back()->with('success', 'Password created.');
     }
 
-    public function updatePassword(Request $request): RedirectResponse
+    public function updatePassword(AccountUpdatePasswordRequest $request): RedirectResponse
     {
         $user = $request->user();
         if (! $user) {
             abort(403); // Required for PHPStan level 8 null-safety
         }
-
-        $request->validate([
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
 
         $user->password = $request->password;
         $user->save();

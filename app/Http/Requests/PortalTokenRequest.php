@@ -7,7 +7,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class IpAddressStoreRequest extends FormRequest
+class PortalTokenRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -15,13 +15,12 @@ class IpAddressStoreRequest extends FormRequest
     }
 
     /**
-     * @return array<string, ValidationRule|array<int, string>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'address' => 'required|ipv4|unique:\App\Models\IpAddress,address',
-            'comment' => 'max:100',
+            'token' => 'required|string',
         ];
     }
 }

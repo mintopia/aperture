@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ToggleCapabilityRequest;
+use App\Http\Requests\Admin\UpdateIntegrationRequest;
 use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
@@ -125,17 +126,12 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $service): RedirectResponse
+    public function update(UpdateIntegrationRequest $request, string $service): RedirectResponse
     {
         $meta = $this->resolveIntegration($service);
 
         $validationRules = $meta['validation'] ?? [];
-        $rules = ['config' => 'required|array'];
-        foreach ($validationRules as $field => $rule) {
-            $rules['config.'.$field] = $rule;
-        }
-
-        $validated = $request->validate($rules);
+        $validated = $request->validated();
 
         /** @var IntegrationConfig|null $lastConfig */
         $lastConfig = null;

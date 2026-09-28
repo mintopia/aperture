@@ -7,21 +7,22 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class IpAddressStoreRequest extends FormRequest
+class AccountCreatePasswordRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->password === null;
     }
 
     /**
-     * @return array<string, ValidationRule|array<int, string>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'address' => 'required|ipv4|unique:\App\Models\IpAddress,address',
-            'comment' => 'max:100',
+            'password' => 'required|string|min:8|confirmed',
         ];
     }
 }

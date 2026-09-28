@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateCoverImageRequest;
 use App\Http\Requests\Admin\UpdateGeneralSettingsRequest;
+use App\Http\Requests\Admin\UpdateLogoRequest;
 use App\Models\AuditLog;
 use App\Models\Page;
 use App\Models\Setting;
 use App\Services\CoverImageService;
 use App\Services\LogoService;
-use Closure;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Validation\Rules\File;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -77,36 +75,8 @@ class GeneralSettingsController extends Controller
         return back()->with('success', 'Settings updated.');
     }
 
-    public function updateLogo(Request $request): RedirectResponse
+    public function updateLogo(UpdateLogoRequest $request): RedirectResponse
     {
-        $request->validate([
-            'logo' => [
-                'required',
-                File::image()->types(['png', 'jpg', 'jpeg', 'webp'])->max(2048),
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    if (! $value instanceof UploadedFile) {
-                        return;
-                    }
-
-                    $size = @getimagesize($value->getRealPath());
-                    if ($size === false) {
-                        $fail('The logo must be a valid image.');
-
-                        return;
-                    }
-
-                    [$width, $height] = $size;
-                    if ($width !== $height) {
-                        $fail('The logo must be square (1:1 aspect ratio).');
-                    }
-
-                    if ($width < 64 || $height < 64) {
-                        $fail('The logo must be at least 64x64 pixels.');
-                    }
-                },
-            ],
-        ]);
-
         $this->logoService->store($request->file('logo'));
 
         AuditLog::record(
@@ -125,32 +95,8 @@ class GeneralSettingsController extends Controller
         return back()->with('success', 'Logo removed.');
     }
 
-    public function updateCoverImage(Request $request): RedirectResponse
+    public function updateCoverImage(UpdateCoverImageRequest $request): RedirectResponse
     {
-        $request->validate([
-            'cover_image' => [
-                'required',
-                File::image()->types(['png', 'jpg', 'jpeg', 'webp'])->max(5120),
-                function (string $attribute, mixed $value, Closure $fail): void {
-                    if (! $value instanceof UploadedFile) {
-                        return;
-                    }
-
-                    $size = @getimagesize($value->getRealPath());
-                    if ($size === false) {
-                        $fail('The cover image must be a valid image.');
-
-                        return;
-                    }
-
-                    [$width] = $size;
-                    if ($width < 600) {
-                        $fail('The cover image must be at least 600 pixels wide.');
-                    }
-                },
-            ],
-        ]);
-
         $this->coverImageService->store($request->file('cover_image'));
 
         AuditLog::record(
