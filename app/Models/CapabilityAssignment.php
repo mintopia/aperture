@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\Capability;
 use Database\Factories\CapabilityAssignmentFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +15,7 @@ use Illuminate\Support\Collection;
 
 /**
  * @property int $id
- * @property string $capability
+ * @property Capability $capability
  * @property string $integration
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -30,18 +32,25 @@ use Illuminate\Support\Collection;
  *
  * @mixin \Eloquent
  */
+#[Fillable(['capability', 'integration'])]
 class CapabilityAssignment extends Model
 {
     /** @use HasFactory<CapabilityAssignmentFactory> */
     use HasFactory;
 
-    protected $fillable = ['capability', 'integration'];
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return ['capability' => Capability::class];
+    }
 
     /**
      * Assign an integration as the active provider for a capability.
      * If another integration was assigned, it is replaced.
      */
-    public static function assign(string $capability, string $integration): self
+    public static function assign(Capability $capability, string $integration): self
     {
         return static::updateOrCreate(
             ['capability' => $capability],
@@ -52,7 +61,7 @@ class CapabilityAssignment extends Model
     /**
      * Remove the active provider for a capability.
      */
-    public static function unassign(string $capability): void
+    public static function unassign(Capability $capability): void
     {
         static::where('capability', $capability)->delete();
     }
@@ -60,7 +69,7 @@ class CapabilityAssignment extends Model
     /**
      * Get the integration currently assigned as the active provider for a capability.
      */
-    public static function activeIntegration(string $capability): ?string
+    public static function activeIntegration(Capability $capability): ?string
     {
         return static::where('capability', $capability)->first()?->integration;
     }
@@ -68,7 +77,7 @@ class CapabilityAssignment extends Model
     /**
      * Check if a given integration is the active provider for a capability.
      */
-    public static function isActiveProvider(string $integration, string $capability): bool
+    public static function isActiveProvider(string $integration, Capability $capability): bool
     {
         return static::where('capability', $capability)
             ->where('integration', $integration)
@@ -78,7 +87,7 @@ class CapabilityAssignment extends Model
     /**
      * Get all capabilities assigned to an integration.
      *
-     * @return Collection<int, string>
+     * @return Collection<int, Capability>
      */
     public static function getForIntegration(string $integration): Collection
     {

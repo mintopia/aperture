@@ -6,8 +6,10 @@ namespace App\Jobs;
 
 use App\Models\IpAddress;
 use App\Services\IpAddressActionService;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -21,8 +23,9 @@ class SyncInternetAccessJob implements ShouldQueue
 
     public function __construct(
         public readonly IpAddress $ip,
-        public readonly bool $enabled,
-    ) {}
+    ) {
+        $this->onQueue(Queues::ACCESS);
+    }
 
     /**
      * @return list<int>
@@ -32,12 +35,25 @@ class SyncInternetAccessJob implements ShouldQueue
         return [2, 10, 30];
     }
 
+    /**
+     * @return list<WithoutOverlapping>
+     */
+    public function middleware(): array
+    {
+        return [(new WithoutOverlapping(static::class.':'.$this->ip->address))->releaseAfter(5)->expireAfter(60)];
+    }
+
     public function handle(IpAddressActionService $actionService): void
     {
-        if ($this->enabled) {
-            $actionService->enableInternet($this->ip);
+        $ip = $this->ip->fresh();
+        if ($ip === null) {
+            return;
+        }
+
+        if ((bool) $ip->internet_enabled) {
+            $actionService->enableInternet($ip);
         } else {
-            $actionService->disableInternet($this->ip);
+            $actionService->disableInternet($ip);
         }
     }
 
@@ -45,7 +61,6 @@ class SyncInternetAccessJob implements ShouldQueue
     {
         Log::error('SyncInternetAccessJob failed', [
             'ip' => $this->ip->address,
-            'enabled' => $this->enabled,
             'error' => $exception->getMessage(),
         ]);
     }

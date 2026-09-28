@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Models\IpAddress;
 use App\Services\Interfaces\DnsFilteringInterface;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -20,8 +23,9 @@ class SyncDnsFilteringJob implements ShouldQueue
 
     public function __construct(
         public readonly string $ipAddress,
-        public readonly bool $enabled,
-    ) {}
+    ) {
+        $this->onQueue(Queues::ACCESS);
+    }
 
     /**
      * @return list<int>
@@ -31,9 +35,22 @@ class SyncDnsFilteringJob implements ShouldQueue
         return [2, 10, 30];
     }
 
+    /**
+     * @return list<WithoutOverlapping>
+     */
+    public function middleware(): array
+    {
+        return [(new WithoutOverlapping(static::class.':'.$this->ipAddress))->releaseAfter(5)->expireAfter(60)];
+    }
+
     public function handle(DnsFilteringInterface $dnsFiltering): void
     {
-        if ($this->enabled) {
+        $ip = IpAddress::where('address', $this->ipAddress)->first();
+        if ($ip === null) {
+            return;
+        }
+
+        if ($ip->dns_filtering_enabled) {
             $dnsFiltering->enableForIp($this->ipAddress);
         } else {
             $dnsFiltering->disableForIp($this->ipAddress);
@@ -44,7 +61,6 @@ class SyncDnsFilteringJob implements ShouldQueue
     {
         Log::error('SyncDnsFilteringJob failed', [
             'ip' => $this->ipAddress,
-            'enabled' => $this->enabled,
             'error' => $exception->getMessage(),
         ]);
     }

@@ -5,17 +5,21 @@ declare(strict_types=1);
 namespace App\Services\OpnSense;
 
 use App\Services\Firewalls\Exceptions\BackendException;
+use App\Services\Http\ExternalHttp;
 use Carbon\CarbonImmutable;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Client\HttpClientException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Log;
-use Psr\Http\Message\ResponseInterface;
 use stdClass;
 
 class OpnSenseClient
 {
     public function __construct(
-        protected Client $client,
+        protected string $endpoint,
+        protected string $key,
+        protected string $secret,
+        protected bool $verifySsl = true,
     ) {}
 
     /**
@@ -25,14 +29,13 @@ class OpnSenseClient
      */
     public function get(string $uri, array $query = []): stdClass
     {
-        $options = $this->makeOptions($query);
         try {
             Log::debug('[OpnSense] GET '.$uri);
-            $response = $this->client->get($uri, $options);
+            $response = $this->request()->get($uri, $query);
 
             return $this->decodeResponse($response);
-        } catch (GuzzleException $guzzleException) {
-            throw new BackendException('Error from Opnsense: '.$guzzleException->getMessage(), $guzzleException->getCode(), $guzzleException);
+        } catch (HttpClientException $httpClientException) {
+            throw new BackendException('Error from Opnsense: '.$httpClientException->getMessage(), $httpClientException->getCode(), $httpClientException);
         }
     }
 
@@ -44,14 +47,17 @@ class OpnSenseClient
      */
     public function post(string $uri, array $query = [], array|stdClass|null $payload = []): stdClass
     {
-        $options = $this->makeOptions($query, $payload);
         try {
             Log::debug('[OpnSense] POST '.$uri);
-            $response = $this->client->post($uri, $options);
+            $request = $this->request();
+            $target = $this->withQuery($uri, $query);
+            $response = $payload instanceof stdClass
+                ? $request->withBody(json_encode($payload, JSON_THROW_ON_ERROR), 'application/json')->post($target)
+                : $request->post($target, $payload ?? []);
 
             return $this->decodeResponse($response);
-        } catch (GuzzleException $guzzleException) {
-            throw new BackendException('Error from Opnsense: '.$guzzleException->getMessage(), $guzzleException->getCode(), $guzzleException);
+        } catch (HttpClientException $httpClientException) {
+            throw new BackendException('Error from Opnsense: '.$httpClientException->getMessage(), $httpClientException->getCode(), $httpClientException);
         }
     }
 
@@ -71,9 +77,9 @@ class OpnSenseClient
     /**
      * @throws BackendException
      */
-    protected function decodeResponse(ResponseInterface $response): stdClass
+    protected function decodeResponse(Response $response): stdClass
     {
-        $json = json_decode((string) $response->getBody());
+        $json = json_decode($response->body());
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new BackendException('Unable to decode response');
         }
@@ -81,22 +87,18 @@ class OpnSenseClient
         return (object) $json;
     }
 
+    protected function request(): PendingRequest
+    {
+        return ExternalHttp::request($this->endpoint, $this->verifySsl)
+            ->withBasicAuth($this->key, $this->secret)
+            ->throw();
+    }
+
     /**
      * @param  array<string, mixed>  $query
-     * @param  array<string, mixed>|stdClass|null  $payload
-     * @return array<string, mixed>
      */
-    protected function makeOptions(array $query = [], array|stdClass|null $payload = null): array
+    protected function withQuery(string $uri, array $query): string
     {
-        $options = [];
-        if ($query !== []) {
-            $options['query'] = $query;
-        }
-
-        if ($payload !== null) {
-            $options['json'] = $payload;
-        }
-
-        return $options;
+        return $query === [] ? $uri : $uri.(str_contains($uri, '?') ? '&' : '?').http_build_query($query);
     }
 }

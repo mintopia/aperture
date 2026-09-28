@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dhcp;
 
+use App\Enums\AddressFamily;
+use App\Enums\Capability;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
@@ -16,11 +18,17 @@ use App\Models\MacAddress;
 use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
+use App\Services\Cisco\CiscoDhcpService;
+use App\Services\Dhcp\DhcpSyncService;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
+use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\ValueObjects\DhcpFetchStatus;
+use App\Services\ValueObjects\DhcpSnapshot;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Mockery\MockInterface;
+use Tests\Support\DhcpFetchStatusArray;
 use Tests\TestCase;
 
 class CiscoDhcpIntegrationTest extends TestCase
@@ -172,7 +180,7 @@ class CiscoDhcpIntegrationTest extends TestCase
         IntegrationConfig::setValue('cisco', 'pool_size', '0');
         IntegrationConfig::setValue('cisco', 'ipv6_enabled', $ipv6Enabled);
 
-        CapabilityAssignment::assign('dhcp', 'cisco');
+        CapabilityAssignment::assign(Capability::Dhcp, 'cisco');
 
         return $switchConfig;
     }
@@ -278,12 +286,12 @@ class CiscoDhcpIntegrationTest extends TestCase
         ]);
 
         // Verify DhcpPoolStatusRecord created
-        $this->assertDatabaseCount('dhcp_pool_statuses', 1);
-        $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail();
+        $this->assertDatabaseCount('dhcp_pool_statuses', 2);
+        $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->where('address_family', 'ipv4')->firstOrFail();
         $this->assertEquals('254', $poolStatus->total);
         $this->assertEquals('2', $poolStatus->used);
         $this->assertEquals('252', $poolStatus->available);
-        $this->assertSame('ipv4', $poolStatus->address_family);
+        $this->assertSame(AddressFamily::IPv4, $poolStatus->address_family);
 
         // Verify DhcpSyncState updated
         $syncStates = DhcpSyncState::where('integration', 'cisco')->get();
@@ -435,7 +443,7 @@ class CiscoDhcpIntegrationTest extends TestCase
         // Pool status still created (IPv4 only)
         $this->assertDatabaseCount('dhcp_pool_statuses', 1);
         $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail();
-        $this->assertSame('ipv4', $poolStatus->address_family);
+        $this->assertSame(AddressFamily::IPv4, $poolStatus->address_family);
         $this->assertEquals('254', $poolStatus->total);
 
         // Verify controller works with IPv4-only data
@@ -453,5 +461,122 @@ class CiscoDhcpIntegrationTest extends TestCase
             ->component('Admin/Dhcp/Leases')
             ->has('leases', 2)
         );
+    }
+
+    private function manualBindingOutputs(): array
+    {
+        $outputs = $this->defaultCommandOutputs(ipv6: false);
+        $outputs['show ip dhcp binding'] = implode("\r\n", [
+            'Bindings from all pools not associated with VRF:',
+            'IP address          Client-ID/              Lease expiration        Type       State      Interface',
+            '                    Hardware address/',
+            '                    User name',
+            '10.0.0.60           0100.1122.3344.66       Infinite                Manual     Active     Vlan100',
+        ]);
+
+        return $outputs;
+    }
+
+    public function test_manual_infinite_binding_syncs_with_null_expiry(): void
+    {
+        $this->configureCiscoIntegration(ipv6Enabled: false);
+        $this->mockTransportInContainer();
+        $this->expectTransportCall($this->manualBindingOutputs(), ipv6: false);
+
+        $this->dispatchSyncJob();
+
+        $this->assertDatabaseCount('dhcp_leases', 1);
+        $this->assertDatabaseHas('dhcp_leases', ['integration' => 'cisco', 'expires_at' => null]);
+    }
+
+    public function test_lease_sync_persists_manual_infinite_binding_with_null_expiry(): void
+    {
+        $service = new CiscoDhcpService(
+            $this->transport,
+            new IosOutputParser,
+            ipv6Enabled: false,
+        );
+        $this->transport->shouldReceive('executeMultiple')->once()->andReturn($this->manualBindingOutputs());
+        $this->transport->shouldReceive('disconnect')->once();
+
+        $leases = $service->snapshot()->leases;
+        $this->assertCount(1, $leases);
+        $this->assertNull($leases->first()->expires);
+
+        (new DhcpSyncService)->syncLeases('cisco', DhcpSnapshot::create($leases, collect(), ipv6: new DhcpFetchStatus(leases: false)));
+
+        $ip = IpAddress::where('address', '10.0.0.60')->firstOrFail();
+        $mac = MacAddress::where('mac_address', '00:11:22:33:44:66')->firstOrFail();
+
+        $this->assertDatabaseHas('dhcp_leases', [
+            'ip_address_id' => $ip->id,
+            'mac_address_id' => $mac->id,
+            'expires_at' => null,
+        ]);
+    }
+
+    public function test_ipv4_error_output_is_reported_as_failed_fetch(): void
+    {
+        $outputs = $this->defaultCommandOutputs(ipv6: false);
+        $outputs['show ip dhcp binding'] = "% Invalid input detected at '^' marker.";
+        $service = new CiscoDhcpService(
+            $this->transport,
+            new IosOutputParser,
+            ipv6Enabled: false,
+        );
+        $this->transport->shouldReceive('executeMultiple')->once()->andReturn($outputs);
+        $this->transport->shouldReceive('disconnect')->once();
+
+        $snapshot = $service->snapshot();
+        $this->assertFalse(DhcpFetchStatusArray::of($snapshot)['ipv4']);
+        $this->assertCount(0, $snapshot->leases);
+    }
+
+    public function test_ipv4_missing_result_is_reported_as_failed_fetch(): void
+    {
+        $outputs = $this->defaultCommandOutputs(ipv6: false);
+        unset($outputs['show ip dhcp binding']);
+        $service = new CiscoDhcpService(
+            $this->transport,
+            new IosOutputParser,
+            ipv6Enabled: false,
+        );
+        $this->transport->shouldReceive('executeMultiple')->once()->andReturn($outputs);
+        $this->transport->shouldReceive('disconnect')->once();
+
+        $this->assertFalse(DhcpFetchStatusArray::of($service->snapshot())['ipv4']);
+    }
+
+    public function test_repeated_ipv4_error_outputs_never_delete_stored_data(): void
+    {
+        $this->configureCiscoIntegration(ipv6Enabled: false);
+        $this->mockTransportInContainer();
+        $this->expectTransportCall(ipv6: false);
+        $this->dispatchSyncJob();
+
+        $leases = DhcpLease::count();
+        $ranges = DhcpRangeRecord::count();
+        $pools = DhcpPoolStatusRecord::count();
+        $this->assertSame(2, $leases);
+        $this->assertGreaterThan(0, $ranges);
+        $this->assertSame(1, $pools);
+
+        $this->transport = Mockery::mock(SwitchCommandTransportInterface::class);
+        $this->mockTransportInContainer();
+        $bad = [
+            'show ip dhcp binding' => "% Invalid input detected at '^' marker.",
+            'show ip dhcp pool' => "% Invalid input detected at '^' marker.",
+            'show running-config | section ip dhcp' => '',
+        ];
+        $this->transport->shouldReceive('executeMultiple')->times(4)
+            ->andReturn($bad, $bad, ['show ip dhcp pool' => ''], $bad);
+        $this->transport->shouldReceive('disconnect')->times(4);
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->dispatchSyncJob();
+            $this->assertSame($leases, DhcpLease::count());
+            $this->assertSame($ranges, DhcpRangeRecord::count());
+            $this->assertSame($pools, DhcpPoolStatusRecord::count());
+        }
     }
 }

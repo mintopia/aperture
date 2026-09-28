@@ -4,6 +4,7 @@ import { router, useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
+import { switchTimezones as timezones } from '@/utils/switches';
 
 defineOptions({ layout: AdminLayout });
 
@@ -18,11 +19,16 @@ const form = reactive(
         hostname: props.switchConfig.hostname ?? '',
         type: props.switchConfig.type ?? '',
         username: props.switchConfig.username ?? '',
+        auth_method: props.switchConfig.has_private_key ? 'private_key' : 'password',
         password: '',
+        private_key: '',
+        passphrase: '',
+        clear_passphrase: false,
         enable_password: '',
         community: props.switchConfig.community ?? '',
         port: props.switchConfig.port ?? 22,
         timeout: props.switchConfig.timeout ?? 5,
+        timezone: props.switchConfig.timezone ?? 'UTC',
         enabled: props.switchConfig.enabled ?? true,
     }),
 );
@@ -56,8 +62,40 @@ watch(
     },
 );
 
+const authMethods = [
+    { value: 'password', label: 'Password' },
+    { value: 'private_key', label: 'Private key' },
+];
+
+watch(
+    () => form.auth_method,
+    (method) => {
+        if (method === 'password') {
+            form.private_key = '';
+            form.passphrase = '';
+            form.clear_passphrase = false;
+        } else {
+            form.password = '';
+        }
+    },
+);
+
 function submit() {
     form.put(route('admin.switches.update', props.switchConfig.id));
+}
+
+const showResetHostKeyModal = ref(false);
+const resettingHostKey = ref(false);
+
+function confirmResetHostKey() {
+    resettingHostKey.value = true;
+    router.delete(route('admin.switches.host-key.reset', props.switchConfig.id), {
+        preserveScroll: true,
+        onFinish: () => {
+            resettingHostKey.value = false;
+            showResetHostKeyModal.value = false;
+        },
+    });
 }
 
 const showDeleteModal = ref(false);
@@ -184,6 +222,17 @@ function confirmDelete() {
                             class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
+
+                    <FormField label="Switch timezone" name="timezone" :error="form.errors.timezone">
+                        <select
+                            id="timezone"
+                            v-model="form.timezone"
+                            data-testid="switch-timezone"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                        >
+                            <option v-for="zone in timezones" :key="zone" :value="zone">{{ zone }}</option>
+                        </select>
+                    </FormField>
                 </div>
             </div>
 
@@ -208,7 +257,42 @@ function confirmDelete() {
                         />
                     </FormField>
 
-                    <FormField label="Password" name="password" :error="form.errors.password">
+                    <FormField
+                        label="Authentication"
+                        name="auth_method"
+                        :error="form.errors.auth_method"
+                        class="sm:col-span-2"
+                    >
+                        <div role="radiogroup" aria-label="Authentication method" class="flex gap-2 pt-1">
+                            <label
+                                v-for="m in authMethods"
+                                :key="m.value"
+                                class="cursor-pointer rounded-md border px-3 py-[6px] text-[13px] font-semibold transition"
+                                :class="
+                                    form.auth_method === m.value
+                                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-bg)]'
+                                        : 'border-[var(--color-border-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                                "
+                            >
+                                <input
+                                    v-model="form.auth_method"
+                                    type="radio"
+                                    name="auth_method"
+                                    :value="m.value"
+                                    :data-testid="`switch-auth-${m.value.replace('_', '-')}`"
+                                    class="sr-only"
+                                />
+                                {{ m.label }}
+                            </label>
+                        </div>
+                    </FormField>
+
+                    <FormField
+                        v-if="form.auth_method === 'password'"
+                        label="Password"
+                        name="password"
+                        :error="form.errors.password"
+                    >
                         <input
                             id="password"
                             v-model="form.password"
@@ -219,6 +303,54 @@ function confirmDelete() {
                             class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
+
+                    <FormField
+                        v-if="form.auth_method === 'private_key'"
+                        label="Private Key"
+                        name="private_key"
+                        :error="form.errors.private_key"
+                        class="sm:col-span-2"
+                    >
+                        <textarea
+                            id="private_key"
+                            v-model="form.private_key"
+                            rows="6"
+                            spellcheck="false"
+                            data-testid="switch-private-key"
+                            autocomplete="off"
+                            :placeholder="
+                                switchConfig.has_private_key
+                                    ? 'Leave blank to keep current key'
+                                    : '-----BEGIN OPENSSH PRIVATE KEY-----'
+                            "
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                        />
+                    </FormField>
+
+                    <FormField
+                        v-if="form.auth_method === 'private_key'"
+                        label="Key Passphrase (optional)"
+                        name="passphrase"
+                        :error="form.errors.passphrase"
+                    >
+                        <input
+                            id="passphrase"
+                            v-model="form.passphrase"
+                            type="password"
+                            data-testid="switch-passphrase"
+                            autocomplete="new-password"
+                            placeholder="Leave blank to keep current"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                        />
+                    </FormField>
+
+                    <label
+                        v-if="form.auth_method === 'private_key' && switchConfig.has_passphrase"
+                        class="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)]"
+                    >
+                        <input v-model="form.clear_passphrase" type="checkbox" data-testid="switch-clear-passphrase" />
+                        Remove stored passphrase
+                    </label>
 
                     <FormField
                         v-if="showEnablePassword"
@@ -280,6 +412,57 @@ function confirmDelete() {
             </div>
         </form>
 
+        <div data-testid="host-key-panel" class="mt-8 border-t border-[var(--color-border)] pt-6">
+            <h2
+                class="font-heading mb-2 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
+                :style="{ fontVariationSettings: '\'opsz\' 16' }"
+            >
+                SSH Host Key
+            </h2>
+            <template v-if="switchConfig.host_key">
+                <p class="text-[13px] text-[var(--color-text-secondary)]">
+                    Connections are refused if the switch presents a different key.
+                </p>
+                <dl class="mt-3 space-y-2 text-[13px]">
+                    <div>
+                        <dt
+                            class="text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
+                        >
+                            Fingerprint
+                        </dt>
+                        <dd data-testid="host-key-fingerprint" class="font-mono text-[var(--color-text)]">
+                            {{ switchConfig.host_key_fingerprint ?? 'Unavailable' }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt
+                            class="text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
+                        >
+                            Public key
+                        </dt>
+                        <dd
+                            data-testid="host-key-text"
+                            class="font-mono text-[12px] break-all text-[var(--color-text-secondary)]"
+                        >
+                            {{ switchConfig.host_key }}
+                        </dd>
+                    </div>
+                </dl>
+                <button
+                    type="button"
+                    data-testid="host-key-reset"
+                    title="Forget the pinned key so the next connection pins the key the switch presents"
+                    class="mt-3 rounded-md border border-[var(--color-border-hover)] px-4 py-[7px] text-[13px] font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                    @click="showResetHostKeyModal = true"
+                >
+                    Reset host key
+                </button>
+            </template>
+            <p v-else data-testid="host-key-empty" class="text-[13px] text-[var(--color-text-secondary)]">
+                No host key pinned yet. The key is pinned on the first successful connection.
+            </p>
+        </div>
+
         <div data-testid="danger-zone-switch" class="mt-8 border-t border-[var(--color-border)] pt-6">
             <p class="mb-[3px] text-[11px] font-semibold tracking-[0.06em] text-[var(--color-danger)] uppercase">
                 Danger Zone
@@ -296,6 +479,17 @@ function confirmDelete() {
                 Delete Switch
             </button>
         </div>
+
+        <ConfirmModal
+            :show="showResetHostKeyModal"
+            title="Reset Host Key"
+            message="Forget the pinned host key? The next connection will trust and pin whatever key the switch presents, so only do this if you expect the key to have changed."
+            confirm-label="Reset host key"
+            variant="danger"
+            :loading="resettingHostKey"
+            @confirm="confirmResetHostKey"
+            @cancel="showResetHostKeyModal = false"
+        />
 
         <ConfirmModal
             :show="showDeleteModal"

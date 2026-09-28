@@ -27,12 +27,22 @@ class Ipv6JwtService
      * @throws RuntimeException When JWKS fetch fails
      * @throws SignatureInvalidException When signature verification fails
      * @throws ExpiredException When JWT has expired
+     * @throws InvalidArgumentException When exp is missing or the sid claim does not match the session
      */
-    public function verifyAndExtract(string $jwt, string $jwksUrl): string
+    public function verifyAndExtract(string $jwt, string $jwksUrl, string $sessionId): string
     {
         $jwksData = $this->fetchJwks($jwksUrl);
         $keys = JWK::parseKeySet($jwksData);
         $decoded = JWT::decode($jwt, $keys);
+
+        if (! isset($decoded->exp)) {
+            throw new InvalidArgumentException('JWT is missing the exp claim');
+        }
+
+        $sid = $decoded->sid ?? null;
+        if (! is_string($sid) || ! hash_equals(self::sessionBinding($sessionId), $sid)) {
+            throw new InvalidArgumentException('JWT is not bound to this session');
+        }
 
         $this->validateAudience($decoded);
         $this->validateIssuer($decoded);
@@ -43,6 +53,11 @@ class Ipv6JwtService
         }
 
         return $ipv6;
+    }
+
+    public static function sessionBinding(string $sessionId): string
+    {
+        return hash_hmac('sha256', $sessionId, (string) config('app.key'));
     }
 
     private function validateAudience(object $decoded): void

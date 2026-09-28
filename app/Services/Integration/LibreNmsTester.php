@@ -23,6 +23,7 @@ class LibreNmsTester implements TestableIntegration
             $url,
             fn () => Http::withHeaders(['X-Auth-Token' => $config['api_key'] ?? ''])
                 ->timeout(10)
+                ->connectTimeout(5)
                 ->get($url),
         );
     }

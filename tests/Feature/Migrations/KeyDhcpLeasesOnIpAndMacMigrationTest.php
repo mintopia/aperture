@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Migrations;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
@@ -66,7 +67,7 @@ class KeyDhcpLeasesOnIpAndMacMigrationTest extends TestCase
     {
         $this->dropNewUniqueIndex();
 
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
 
         $ip = IpAddress::factory()->create();
         $mac = MacAddress::factory()->create();

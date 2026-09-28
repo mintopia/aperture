@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,12 +18,7 @@ class CapabilityAssignmentFactory extends Factory
     public function definition(): array
     {
         return [
-            'capability' => fake()->unique()->randomElement([
-                'captive-portal', 'firewall', 'rate-limiting', 'dhcp',
-                'ip-to-mac', 'mac-to-port', 'port-bandwidth', 'device-list',
-                'user-bandwidth', 'top-talkers', 'aggregate-stats',
-                'dns-filtering',
-            ]),
+            'capability' => fake()->unique()->randomElement(Capability::cases()),
             'integration' => fake()->randomElement(['opnsense', 'librenms', 'ntopng', 'pihole']),
         ];
     }

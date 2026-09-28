@@ -37,9 +37,10 @@ class IpAddressActionService
 
         try {
             $mac = $this->macResolver->resolveIpToMac($ip->address);
-            if ($mac !== null) {
+            $normalizedMac = MacAddress::normalize($mac);
+            if ($normalizedMac !== null) {
                 $macAddress = MacAddress::firstOrCreate(
-                    ['mac_address' => MacAddress::normalize($mac)],
+                    ['mac_address' => $normalizedMac],
                     ['source' => 'auth'],
                 );
 
@@ -54,7 +55,7 @@ class IpAddressActionService
 
                 // Fires for both fresh links and refreshes, so links created
                 // here without a user association can heal later (ADR-011).
-                IpMacLinked::dispatch($ip, $macAddress, 'auth', 'auth');
+                event(new IpMacLinked($ip, $macAddress, 'auth', 'auth'));
             }
         } catch (Throwable $throwable) {
             // MAC resolution and ownership cascade are best-effort, but the

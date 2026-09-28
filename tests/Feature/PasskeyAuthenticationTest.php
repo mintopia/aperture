@@ -78,7 +78,7 @@ class PasskeyAuthenticationTest extends TestCase
 
     public function test_passkey_login_routes_have_throttle_middleware(): void
     {
-        $routes = app('router')->getRoutes();
+        $routes = resolve('router')->getRoutes();
 
         $loginOptions = $routes->getByName('passkeys.login.options');
         $this->assertNotNull($loginOptions, 'passkeys.login.options route should exist');
@@ -97,7 +97,7 @@ class PasskeyAuthenticationTest extends TestCase
 
     public function test_passkey_registration_routes_have_throttle_middleware(): void
     {
-        $routes = app('router')->getRoutes();
+        $routes = resolve('router')->getRoutes();
 
         $registerOptions = $routes->getByName('passkeys.register.options');
         $this->assertNotNull($registerOptions, 'passkeys.register.options route should exist');

@@ -24,7 +24,7 @@ class GrantNetworkAccessJobTest extends TestCase
         $ip->internet_enabled = false;
         $ip->save();
 
-        GrantNetworkAccess::dispatch($user, $ip);
+        dispatch(new GrantNetworkAccess($user, $ip));
 
         Queue::assertPushed(GrantNetworkAccess::class);
     }

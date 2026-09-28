@@ -7,17 +7,17 @@ namespace App\Jobs\NetworkScan;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Services\NetworkRangeService;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 
 final class PersistIpsStep
 {
     /**
      * @param  Collection<int, DhcpLease>  $leases
-     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, IpMacEntry>  $entries
      */
-    public function __invoke(Collection $leases, Collection $arpEntries, NetworkRangeService $rangeService): void
+    public function __invoke(Collection $leases, Collection $entries, NetworkRangeService $rangeService): void
     {
         /** @var Collection<string, string> $allIps */
         $allIps = collect();
@@ -29,8 +29,8 @@ final class PersistIpsStep
             }
         }
 
-        foreach ($arpEntries as $arp) {
-            $address = IpAddress::normalize($arp->ip);
+        foreach ($entries as $entry) {
+            $address = IpAddress::normalize($entry->ip);
             if ($address !== '' && ! $allIps->has($address)) {
                 $allIps->put($address, 'arp');
             }

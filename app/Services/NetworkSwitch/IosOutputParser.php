@@ -98,7 +98,7 @@ class IosOutputParser
                 continue;
             }
 
-            if (preg_match('/^(?P<interface>\S+)\s+(?P<description>.*?)\s+(?P<status>connected|notconnect|disabled|err-disabled|monitoring)\s+(?P<vlan>\S+)\s+(?P<duplex>\S+)\s+(?P<speed>\S+)/', $line, $matches)) {
+            if (preg_match('/^(?P<interface>\S+)\s+(?P<description>.*?)\s+(?P<status>connected|notconnect|disabled|err-disabled|monitoring|inactive|sfpAbsent|xcvrAbsen|suspnd|faulty)\s+(?P<vlan>\S+)\s+(?P<duplex>\S+)\s+(?P<speed>\S+)/', $line, $matches)) {
                 $nonNumericModes = ['trunk', 'routed', 'unassigned', 'suspended'];
                 $switchportMode = in_array($matches['vlan'], $nonNumericModes, true) ? $matches['vlan'] : 'access';
                 $vlan = $switchportMode === 'access' ? $matches['vlan'] : '';
@@ -130,7 +130,7 @@ class IosOutputParser
         $entries = [];
 
         foreach ($lines as $line) {
-            if (preg_match('/^\s*(\d+)\s+([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4})\s+\S+\s+(\S+)/', $line, $matches)) {
+            if (preg_match('/^\s*\*?\s*(\d+)\s+([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4})\s+\S+(?:\s+\S+)*?\s+(\S+)\s*$/', $line, $matches)) {
                 $entries[] = new ForwardingEntry(
                     mac: $matches[2],
                     port: $matches[3],
@@ -249,7 +249,7 @@ class IosOutputParser
                 continue;
             }
 
-            if (! preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)\s+(.+?)\s{2,}(\S+)\s+(\S+)\s+(\S+)\s*$/', $line, $matches)) {
+            if (! preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s+(\S+)\s+(.+?)\s{2,}(\S+)(?:\s+(\S+)\s+(\S+))?\s*$/', $line, $matches)) {
                 $current = null;
 
                 continue;
@@ -260,8 +260,8 @@ class IosOutputParser
                 'clientId' => $matches[2],
                 'expires' => trim($matches[3]),
                 'type' => $matches[4],
-                'state' => $matches[5],
-                'interface' => $matches[6],
+                'state' => $matches[5] ?? '',
+                'interface' => $matches[6] ?? '',
             ];
             $current = count($records) - 1;
         }

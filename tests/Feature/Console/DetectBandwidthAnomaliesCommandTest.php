@@ -8,6 +8,7 @@ use App\Events\BandwidthAnomalyDetected;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\UserNetworkAssociationService;
 use App\Services\ValueObjects\IpBandwidthResult;
 use App\Services\ValueObjects\TopTalker;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -27,7 +28,7 @@ class DetectBandwidthAnomaliesCommandTest extends TestCase
 
         $user = User::factory()->create(['nickname' => 'TestUser']);
         $ip = IpAddress::factory()->create(['address' => '10.0.0.50']);
-        $user->addIp($ip->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip->address);
 
         $shortTermResult = new IpBandwidthResult(
             received: 150000,
@@ -195,7 +196,7 @@ class DetectBandwidthAnomaliesCommandTest extends TestCase
 
         $user = User::factory()->create(['nickname' => 'JaneDoe']);
         $ip = IpAddress::factory()->create(['address' => '10.0.0.100']);
-        $user->addIp($ip->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip->address);
 
         $shortTermResult = new IpBandwidthResult(
             received: 300000,

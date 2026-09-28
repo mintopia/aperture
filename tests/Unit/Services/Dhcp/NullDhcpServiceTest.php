@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\AddressFamily;
 use App\Services\Null\NullDhcpService;
+use Tests\Support\DhcpFetchStatusArray;
 use Tests\TestCase;
 
 class NullDhcpServiceTest extends TestCase
@@ -13,7 +15,7 @@ class NullDhcpServiceTest extends TestCase
     {
         $service = new NullDhcpService;
 
-        $status = $service->getPoolStatus();
+        $status = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertEquals(0, $status->total);
         $this->assertEquals(0, $status->used);
@@ -25,7 +27,7 @@ class NullDhcpServiceTest extends TestCase
     {
         $service = new NullDhcpService;
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(0, $leases);
     }
@@ -43,7 +45,7 @@ class NullDhcpServiceTest extends TestCase
     {
         $service = new NullDhcpService;
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -52,15 +54,6 @@ class NullDhcpServiceTest extends TestCase
     {
         $service = new NullDhcpService;
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
-    }
-
-    public function test_reset_snapshot_is_a_no_op(): void
-    {
-        $service = new NullDhcpService;
-
-        $service->resetSnapshot();
-
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], DhcpFetchStatusArray::of($service->snapshot()));
     }
 }

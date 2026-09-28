@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dhcp;
 
+use App\Enums\Capability;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
@@ -16,7 +17,7 @@ use App\Models\MacAddress;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -27,7 +28,7 @@ class KeaDhcpIntegrationTest extends TestCase
 
     private function configureKeaIntegration(?string $endpointV4 = null, ?string $endpointV6 = null): void
     {
-        CapabilityAssignment::assign('dhcp', 'kea');
+        CapabilityAssignment::assign(Capability::Dhcp, 'kea');
 
         if ($endpointV4 !== null) {
             IntegrationConfig::setValue('kea', 'endpoint_v4', $endpointV4);
@@ -128,7 +129,7 @@ class KeaDhcpIntegrationTest extends TestCase
     {
         Queue::fake();
 
-        $now = Carbon::now()->getTimestamp();
+        $now = Date::now()->getTimestamp();
 
         $duid = $this->keaDuidLltHex(0xAABBCCDD, 'de:ad:be:ef:ca:fe');
 
@@ -172,14 +173,16 @@ class KeaDhcpIntegrationTest extends TestCase
             'ip_address_id' => $v6Ip->id,
             'mac_address_id' => $v6Mac->id,
         ]);
+        $this->assertSame('dhcp_duid', $v6Mac->source);
+        $this->assertSame('dhcp', $v4Mac->source);
     }
 
     public function test_ipv6_fetch_failure_updates_ipv4_and_keeps_ipv6_last_known_data(): void
     {
         Queue::fake();
 
-        $initial = Carbon::parse('2026-01-01 00:00:00');
-        Carbon::setTestNow($initial);
+        $initial = Date::parse('2026-01-01 00:00:00');
+        Date::setTestNow($initial);
 
         $existingIp = IpAddress::factory()->create(['address' => '2001:db8::99']);
         $existingMac = MacAddress::factory()->create(['mac_address' => 'AA:AA:AA:AA:AA:AA']);
@@ -200,7 +203,7 @@ class KeaDhcpIntegrationTest extends TestCase
         ]);
 
         $later = $initial->copy()->addMinutes(10);
-        Carbon::setTestNow($later);
+        Date::setTestNow($later);
 
         Http::fake([
             'kea4.local' => function (Request $request) use ($later): PromiseInterface {
@@ -251,8 +254,8 @@ class KeaDhcpIntegrationTest extends TestCase
     {
         Queue::fake();
 
-        $initial = Carbon::parse('2026-01-01 00:00:00');
-        Carbon::setTestNow($initial);
+        $initial = Date::parse('2026-01-01 00:00:00');
+        Date::setTestNow($initial);
 
         $existingIp = IpAddress::factory()->create(['address' => '10.30.0.77']);
         $existingMac = MacAddress::factory()->create(['mac_address' => 'BB:BB:BB:BB:BB:BB']);
@@ -297,7 +300,7 @@ class KeaDhcpIntegrationTest extends TestCase
         }
 
         $later = $initial->copy()->addMinutes(10);
-        Carbon::setTestNow($later);
+        Date::setTestNow($later);
 
         Http::fake([
             'kea4.local' => Http::response(['error' => 'Unauthorized'], 401),

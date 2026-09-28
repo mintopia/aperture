@@ -18,7 +18,9 @@ final class LinkSwitchPortMacsStep
     public function __invoke(Collection $forwardingEntries): void
     {
         /** @var Collection<string, ForwardingEntry> $normalizedFwdMacs */
-        $normalizedFwdMacs = $forwardingEntries->mapWithKeys(fn ($fwd): array => [MacAddress::normalize($fwd->mac) => $fwd]);
+        $normalizedFwdMacs = $forwardingEntries
+            ->mapWithKeys(fn ($fwd): array => [(string) MacAddress::normalize($fwd->mac) => $fwd])
+            ->forget('');
         $macRecords = MacAddress::whereIn('mac_address', $normalizedFwdMacs->keys())->get()->keyBy('mac_address');
 
         SwitchPortMac::whereIn('mac_address', $normalizedFwdMacs->keys())

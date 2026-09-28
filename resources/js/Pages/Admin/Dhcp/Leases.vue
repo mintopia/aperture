@@ -6,6 +6,8 @@ import FilterBar from '@/Components/UI/FilterBar.vue';
 import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import { normalizeMac } from '@/helpers.js';
 import { isIpInPrefix } from '@/utils/dhcp.js';
+import { compareIps, isIpInRange } from '@/utils/ip.js';
+import { formatDate, formatEpoch } from '@/utils/dates.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -100,9 +102,8 @@ const filteredLeases = computed(() => {
         const bVal = b[sortColumn.value] || '';
 
         if (sortColumn.value === 'ip') {
-            const aNum = aVal.includes(':') ? aVal : ipToNumber(aVal);
-            const bNum = bVal.includes(':') ? bVal : ipToNumber(bVal);
-            return sortDirection.value === 'asc' ? (aNum > bNum ? 1 : -1) : aNum < bNum ? 1 : -1;
+            const result = compareIps(aVal, bVal);
+            return sortDirection.value === 'asc' ? result : -result;
         }
 
         const comparison = aVal.toString().localeCompare(bVal.toString());
@@ -128,55 +129,10 @@ function showMore() {
     displayLimit.value += 50;
 }
 
-function isIpInRange(ip, start, end) {
-    if (!ip || !start || !end) return false;
-
-    if (ip.includes(':')) {
-        return ip >= start && ip <= end;
-    }
-
-    const ipNum = ipToNumber(ip);
-    const startNum = ipToNumber(start);
-    const endNum = ipToNumber(end);
-
-    return ipNum >= startNum && ipNum <= endNum;
-}
-
-function ipToNumber(ip) {
-    return ip.split('.').reduce((acc, octet) => acc * 256 + parseInt(octet, 10), 0);
-}
-
 function formatExpiry(expires) {
     if (!expires) return 'Never';
-
-    if (/^\d+$/.test(expires)) {
-        const timestamp = parseInt(expires, 10);
-        const ms = timestamp > 1e12 ? timestamp : timestamp * 1000;
-        return new Date(ms).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    }
-
-    try {
-        const date = new Date(expires);
-        if (!isNaN(date.getTime())) {
-            return date.toLocaleString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-        }
-    } catch {
-        // Fall through to return as-is
-    }
-
-    return expires;
+    if (/^\d+$/.test(expires)) return formatEpoch(expires);
+    return formatDate(expires);
 }
 </script>
 

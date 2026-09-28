@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\CaptivePortalInterface;
+use App\Services\UserNetworkAssociationService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Tests\Feature\Concerns\CreatesAdminUsers;
@@ -27,7 +28,7 @@ class UserLoginCascadeTest extends TestCase
         $mac = MacAddress::factory()->create(['user_id' => null]);
         $ip->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
 
-        $user->addIp('127.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
         $this->assertEquals($user->id, $mac->refresh()->user_id);
     }
@@ -40,7 +41,7 @@ class UserLoginCascadeTest extends TestCase
         $mac = MacAddress::factory()->create(['user_id' => $otherUser->id]);
         $ip->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
 
-        $user->addIp('127.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
         $this->assertEquals($otherUser->id, $mac->refresh()->user_id);
     }
@@ -55,7 +56,7 @@ class UserLoginCascadeTest extends TestCase
         $ipv4->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
         $ipv6->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
 
-        $user->addIp('127.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
         $this->assertTrue(
             UserIpAddress::where('user_id', $user->id)
@@ -82,7 +83,7 @@ class UserLoginCascadeTest extends TestCase
         $otherUserIp->last_seen_at = now();
         $otherUserIp->save();
 
-        $user->addIp('127.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
         // IPv6 should NOT be associated with this user
         $this->assertFalse(
@@ -107,7 +108,7 @@ class UserLoginCascadeTest extends TestCase
         $ip2->macAddresses()->attach($mac2, ['source' => 'arp', 'last_seen_at' => now()]);
         $ip3->macAddresses()->attach($mac2, ['source' => 'arp', 'last_seen_at' => now()]);
 
-        $user->addIp('127.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
         // ip2 should be cascaded (one hop)
         $this->assertTrue(
@@ -128,7 +129,7 @@ class UserLoginCascadeTest extends TestCase
         $ip->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
         $siblingIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
 
-        $user->addIp('127.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'mac.user_assigned',
@@ -158,7 +159,7 @@ class UserLoginCascadeTest extends TestCase
         $ipManaged->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
         $ipUnmanaged->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
 
-        $user->addIp('127.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
         // The unmanaged IP should not be cascaded because addIp checks managed ranges
         $this->assertFalse(
@@ -181,7 +182,7 @@ class UserLoginCascadeTest extends TestCase
         $captivePortal->shouldReceive('addIp')->with('10.0.0.2', Mockery::any())->once();
         $this->app->instance(CaptivePortalInterface::class, $captivePortal);
 
-        $user->addIp('10.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '10.0.0.1');
     }
 
     public function test_login_cascade_does_not_call_firewall_when_user_blocked(): void
@@ -202,6 +203,6 @@ class UserLoginCascadeTest extends TestCase
 
         $this->app->instance(CaptivePortalInterface::class, $captivePortal);
 
-        $user->addIp('10.0.0.1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '10.0.0.1');
     }
 }

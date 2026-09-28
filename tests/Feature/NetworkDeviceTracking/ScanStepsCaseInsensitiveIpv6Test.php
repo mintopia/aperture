@@ -6,13 +6,14 @@ namespace Tests\Feature\NetworkDeviceTracking;
 
 use App\Events\IpMacLinked;
 use App\Jobs\NetworkScan\LinkIpMacStep;
-use App\Jobs\NetworkScan\PersistDhcpLeasesStep;
 use App\Jobs\NetworkScan\PersistIpsStep;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Services\Dhcp\DhcpSyncService;
 use App\Services\NetworkRangeService;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
+use App\Services\ValueObjects\DhcpSnapshot;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\Feature\Concerns\CreatesAdminUsers;
@@ -38,7 +39,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
             collect(),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertSame(1, IpAddress::count());
@@ -60,8 +61,8 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step = new PersistIpsStep;
         $step(
             collect(),
-            collect([new ArpEntry(self::UPPER, 'AA:BB:CC:DD:EE:01')]),
-            app(NetworkRangeService::class),
+            collect([new IpMacEntry(self::UPPER, 'AA:BB:CC:DD:EE:01')]),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertSame(1, IpAddress::count());
@@ -84,7 +85,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
             collect(),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertDatabaseHas('ip_address_mac_address', [
@@ -118,7 +119,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
             collect(),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         // Still exactly one pivot row, but the event must fire on refresh too so
@@ -141,7 +142,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step(
             collect([new DhcpLeaseVO(self::UPPER, null, 'host', '2026-06-11')]),
             collect(),
-            app(NetworkRangeService::class),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertDatabaseCount('ip_address_mac_address', 0);
@@ -160,8 +161,8 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         $step = new LinkIpMacStep;
         $step(
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]),
-            collect([new ArpEntry('2a0f:85c1:d91:2100::dead', 'AA:BB:CC:DD:EE:02')]),
-            app(NetworkRangeService::class),
+            collect([new IpMacEntry('2a0f:85c1:d91:2100::dead', 'AA:BB:CC:DD:EE:02')]),
+            resolve(NetworkRangeService::class),
         );
 
         $this->assertDatabaseCount('ip_address_mac_address', 0);
@@ -169,44 +170,17 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         Event::assertNotDispatched(IpMacLinked::class);
     }
 
-    public function test_persist_dhcp_leases_step_skips_lease_with_null_mac(): void
-    {
-        IpAddress::factory()->create(['address' => self::LOWER]);
-
-        $step = new PersistDhcpLeasesStep;
-        $step(
-            collect([new DhcpLeaseVO(self::UPPER, null, 'my-device', '2026-06-11 12:00:00')]),
-            app(NetworkRangeService::class),
-        );
-
-        $this->assertDatabaseCount('dhcp_leases', 0);
-    }
-
-    public function test_persist_dhcp_leases_step_skips_lease_when_ip_or_mac_row_missing(): void
-    {
-        // IP row exists but the MAC row does not.
-        IpAddress::factory()->create(['address' => self::LOWER]);
-
-        $step = new PersistDhcpLeasesStep;
-        $step(
-            collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]),
-            app(NetworkRangeService::class),
-        );
-
-        $this->assertDatabaseCount('dhcp_leases', 0);
-    }
-
-    public function test_persist_dhcp_leases_step_matches_existing_lowercase_row_for_uppercase_lease(): void
+    public function test_sync_dhcp_data_matches_existing_lowercase_row_for_uppercase_lease(): void
     {
         $ip = IpAddress::factory()->create(['address' => self::LOWER]);
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:01']);
 
-        $step = new PersistDhcpLeasesStep;
-        $step(
-            collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]),
-            app(NetworkRangeService::class),
+        (new DhcpSyncService)->syncLeases(
+            'cisco',
+            DhcpSnapshot::create(collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]), collect()),
         );
 
+        $this->assertSame(1, IpAddress::count());
         $this->assertDatabaseHas('dhcp_leases', [
             'ip_address_id' => $ip->id,
             'mac_address_id' => $mac->id,

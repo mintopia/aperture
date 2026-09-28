@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\IpAddress;
 use App\Models\User;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +24,9 @@ class RevokeNetworkAccess implements ShouldQueue
     public function __construct(
         protected User $user,
         protected IpAddress $ipAddress,
-    ) {}
+    ) {
+        $this->onQueue(Queues::ACCESS);
+    }
 
     public function handle(): void
     {

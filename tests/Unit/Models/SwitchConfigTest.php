@@ -180,4 +180,34 @@ class SwitchConfigTest extends TestCase
         $this->assertFalse($switch->exists);
         $this->assertDatabaseCount('switch_configs', 0);
     }
+
+    public function test_private_key_and_passphrase_are_encrypted_at_rest_and_hidden(): void
+    {
+        $switch = SwitchConfig::factory()->withPrivateKey('-----BEGIN RSA PRIVATE KEY-----\nsecret\n-----END RSA PRIVATE KEY-----')->create(['passphrase' => 'pp-secret']);
+
+        $raw = DB::table('switch_configs')->where('id', $switch->id)->first();
+        $this->assertStringNotContainsString('secret', (string) $raw->private_key);
+        $this->assertStringNotContainsString('pp-secret', (string) $raw->passphrase);
+        $this->assertTrue($switch->refresh()->usesPrivateKey());
+        $this->assertSame('pp-secret', $switch->passphrase);
+        $this->assertArrayNotHasKey('private_key', $switch->toArray());
+        $this->assertArrayNotHasKey('passphrase', $switch->toArray());
+        $this->assertTrue($switch->toPublicArray()['has_private_key']);
+        $this->assertArrayNotHasKey('private_key', $switch->toPublicArray());
+    }
+
+    public function test_host_key_fingerprint(): void
+    {
+        $blob = 'blob-bytes';
+        $switch = SwitchConfig::factory()->make(['host_key' => 'ssh-ed25519 '.base64_encode($blob)]);
+
+        $this->assertSame('SHA256:'.rtrim(base64_encode(hash('sha256', $blob, true)), '='), $switch->hostKeyFingerprint());
+        $this->assertNull(SwitchConfig::factory()->make(['host_key' => null])->hostKeyFingerprint());
+        $this->assertNull(SwitchConfig::factory()->make(['host_key' => 'ssh-ed25519 !!notbase64'])->hostKeyFingerprint());
+    }
+
+    public function test_uses_private_key_false_without_key(): void
+    {
+        $this->assertFalse(SwitchConfig::factory()->make()->usesPrivateKey());
+    }
 }

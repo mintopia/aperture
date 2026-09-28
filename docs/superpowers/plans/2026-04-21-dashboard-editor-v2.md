@@ -1,6 +1,6 @@
 # Dashboard Editor V2 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Overhaul the Dashboard Content & Layout Editor — remove dead block types, fix markdown rendering, add settings-driven block configuration with template variables, and implement grid drag-reflow with resize handles.
 
@@ -19,7 +19,7 @@
 **Files:**
 - Create: `database/migrations/XXXX_XX_XX_XXXXXX_delete_removed_block_types.php` (use `php artisan make:migration`)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/Feature/Admin/ContentControllerTest.php`:
 
@@ -41,12 +41,12 @@ public function test_migration_removes_orphaned_block_types(): void
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test --compact --filter=test_migration_removes_orphaned_block_types`
 Expected: FAIL — migration doesn't exist yet
 
-- [ ] **Step 3: Create the migration**
+- [x] **Step 3: Create the migration**
 
 Run: `php artisan make:migration delete_removed_block_types --no-interaction`
 
@@ -74,12 +74,12 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test --compact --filter=test_migration_removes_orphaned_block_types`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add database/migrations/*_delete_removed_block_types.php tests/Feature/Admin/ContentControllerTest.php
@@ -91,7 +91,7 @@ git commit -m "feat: add migration to delete removed block types (event_info, ne
 **Files:**
 - Modify: `app/Models/ContentBlock.php:17-23`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `tests/Feature/Admin/ContentControllerTest.php`:
 
@@ -107,12 +107,12 @@ public function test_singleton_types_excludes_removed_types(): void
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test --compact --filter=test_singleton_types_excludes_removed_types`
 Expected: FAIL — `network_stats` and `connection_status` are still in the array
 
-- [ ] **Step 3: Update SINGLETON_TYPES**
+- [x] **Step 3: Update SINGLETON_TYPES**
 
 In `app/Models/ContentBlock.php`, replace the constant:
 
@@ -125,12 +125,12 @@ public const SINGLETON_TYPES = [
 ];
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `php artisan test --compact --filter=test_singleton_types_excludes_removed_types`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/Models/ContentBlock.php tests/Feature/Admin/ContentControllerTest.php
@@ -142,7 +142,7 @@ git commit -m "feat: remove event_info, network_stats, connection_status from SI
 **Files:**
 - Modify: `database/factories/ContentBlockFactory.php:21,42-47,85-89`
 
-- [ ] **Step 1: Update factory definition and remove dead states**
+- [x] **Step 1: Update factory definition and remove dead states**
 
 In `database/factories/ContentBlockFactory.php`:
 
@@ -155,12 +155,12 @@ Remove the `eventInfo()` state method entirely (lines 42–47).
 
 Remove the `networkStats()` state method entirely (lines 85–89).
 
-- [ ] **Step 2: Run existing tests to verify nothing breaks**
+- [x] **Step 2: Run existing tests to verify nothing breaks**
 
 Run: `php artisan test --compact --filter=ContentControllerTest`
 Expected: PASS (all existing tests still work)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add database/factories/ContentBlockFactory.php
@@ -172,7 +172,7 @@ git commit -m "refactor: remove deleted block types from ContentBlockFactory"
 **Files:**
 - Modify: `database/seeders/ContentBlockSeeder.php`
 
-- [ ] **Step 1: Remove event_info and network_stats blocks from seeder**
+- [x] **Step 1: Remove event_info and network_stats blocks from seeder**
 
 In `database/seeders/ContentBlockSeeder.php`, remove the `event_info` block (lines 24–33) and the `network_stats` block (lines 35–44) from the `$blocks` array. Update grid positions so remaining blocks fill naturally:
 
@@ -227,7 +227,7 @@ $blocks = [
 
 Note: The old `event_info` seed becomes a `custom_markdown` block with markdown content.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add database/seeders/ContentBlockSeeder.php
@@ -240,7 +240,7 @@ git commit -m "refactor: update ContentBlockSeeder to remove deleted block types
 - Modify: `routes/web.php:107`
 - Modify: `app/Http/Controllers/Admin/ContentController.php:17-42`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Update the existing test in `tests/Feature/Admin/ContentControllerTest.php`:
 
@@ -279,12 +279,12 @@ public function test_editor_route_no_longer_exists(): void
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `php artisan test --compact --filter="test_admin_can_view_content_blocks|test_editor_route_no_longer_exists"`
 Expected: FAIL — index still renders `Admin/Content/Index`, editor route still exists
 
-- [ ] **Step 3: Update controller — merge editor into index**
+- [x] **Step 3: Update controller — merge editor into index**
 
 In `app/Http/Controllers/Admin/ContentController.php`, replace the `index()` method and remove `editor()`:
 
@@ -307,7 +307,7 @@ public function index(): Response
 
 Remove the `editor()` method entirely.
 
-- [ ] **Step 4: Update routes — remove editor route**
+- [x] **Step 4: Update routes — remove editor route**
 
 In `routes/web.php`, remove the line:
 ```php
@@ -321,12 +321,12 @@ Route::put('/content/layout', [ContentController::class, 'updateLayout'])->name(
 Route::resource('content', ContentController::class)->except(['create', 'edit', 'show']);
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `php artisan test --compact --filter="test_admin_can_view_content_blocks|test_editor_route_no_longer_exists"`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/Http/Controllers/Admin/ContentController.php routes/web.php tests/Feature/Admin/ContentControllerTest.php
@@ -345,7 +345,7 @@ git commit -m "feat: consolidate content index and editor routes — editor beco
 - Modify: `resources/js/Components/Admin/Content/EditorSidePanel.vue:10`
 - Modify: `resources/js/Pages/Admin/Content/Editor.vue:134-140`
 
-- [ ] **Step 1: Update BlockGrid.vue — remove deleted imports and registry entries**
+- [x] **Step 1: Update BlockGrid.vue — remove deleted imports and registry entries**
 
 In `resources/js/Components/BlockGrid.vue`, replace the script imports and registry:
 
@@ -375,7 +375,7 @@ function templateContent(block) {
 }
 ```
 
-- [ ] **Step 2: Update EditorSidePanel.vue — remove event_info from textTypes**
+- [x] **Step 2: Update EditorSidePanel.vue — remove event_info from textTypes**
 
 In `resources/js/Components/Admin/Content/EditorSidePanel.vue`, replace line 10:
 
@@ -383,7 +383,7 @@ In `resources/js/Components/Admin/Content/EditorSidePanel.vue`, replace line 10:
 const textTypes = ['custom_markdown'];
 ```
 
-- [ ] **Step 3: Update Editor.vue — remove deleted types from blockTypeColors**
+- [x] **Step 3: Update Editor.vue — remove deleted types from blockTypeColors**
 
 In `resources/js/Pages/Admin/Content/Editor.vue`, replace the `blockTypeColors` object:
 
@@ -396,7 +396,7 @@ const blockTypeColors = {
 };
 ```
 
-- [ ] **Step 4: Delete removed component files**
+- [x] **Step 4: Delete removed component files**
 
 ```bash
 rm resources/js/Pages/Admin/Content/Index.vue
@@ -406,7 +406,7 @@ rm resources/js/Components/Blocks/ConnectionStatusBlock.vue
 rm tests/js/Pages/Admin/Content/Index.spec.js
 ```
 
-- [ ] **Step 5: Update JS test files — replace deleted type references**
+- [x] **Step 5: Update JS test files — replace deleted type references**
 
 In `tests/js/Components/BlockGrid.spec.js`, replace all `type: 'event_info'` with `type: 'custom_markdown'`. Update all `data-testid` assertions accordingly — change `block-event_info-wrapper` to `block-custom_markdown-wrapper`.
 
@@ -416,12 +416,12 @@ In `tests/js/Pages/Admin/Content/Editor.spec.js`, change the test block's type f
 
 In `tests/Feature/Portal/DashboardControllerTest.php`, replace all `'type' => 'event_info'` with `'type' => 'custom_markdown'` and `'type' => 'connection_status'` with `'type' => 'connection_strip'`.
 
-- [ ] **Step 6: Run all JS and PHP tests**
+- [x] **Step 6: Run all JS and PHP tests**
 
 Run: `npx vitest run` and `php artisan test --compact`
 Expected: All PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add -A
@@ -430,7 +430,7 @@ git commit -m "feat: delete removed block types and update all registries and te
 
 ### Task 7: Lint and format Phase 1
 
-- [ ] **Step 1: Run all formatters and linters**
+- [x] **Step 1: Run all formatters and linters**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -439,17 +439,17 @@ npx eslint resources/js/ --fix
 npx prettier --write resources/js/ resources/css/
 ```
 
-- [ ] **Step 2: Fix any issues reported by rector or phpstan**
+- [x] **Step 2: Fix any issues reported by rector or phpstan**
 
 Run: `vendor/bin/phpstan analyse`
 Fix any errors.
 
-- [ ] **Step 3: Run full test suite**
+- [x] **Step 3: Run full test suite**
 
 Run: `php artisan test --compact && npx vitest run`
 Expected: All PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -462,13 +462,13 @@ git commit -m "chore: lint and format Phase 1 changes"
 
 ### Task 8: Install marked and dompurify
 
-- [ ] **Step 1: Install npm dependencies**
+- [x] **Step 1: Install npm dependencies**
 
 ```bash
 npm install marked dompurify
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add package.json package-lock.json
@@ -481,7 +481,7 @@ git commit -m "deps: add marked and dompurify for markdown rendering"
 - Modify: `resources/js/Components/Blocks/CustomMarkdownBlock.vue`
 - Create: `tests/js/Components/Blocks/CustomMarkdownBlock.spec.js`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/js/Components/Blocks/CustomMarkdownBlock.spec.js`:
 
@@ -542,12 +542,12 @@ describe('CustomMarkdownBlock', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/js/Components/Blocks/CustomMarkdownBlock.spec.js`
 Expected: FAIL — no markdown rendering, no `data-testid="block-custom-markdown-content"`
 
-- [ ] **Step 3: Update CustomMarkdownBlock.vue**
+- [x] **Step 3: Update CustomMarkdownBlock.vue**
 
 Replace the entire file:
 
@@ -587,12 +587,12 @@ const renderedContent = computed(() => {
 
 Note: If `@tailwindcss/typography` is not installed, replace the `prose prose-sm` classes with scoped styles for headings, lists, links, and code blocks. Check `tailwind.config.js` for existing plugins first.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/js/Components/Blocks/CustomMarkdownBlock.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/js/Components/Blocks/CustomMarkdownBlock.vue tests/js/Components/Blocks/CustomMarkdownBlock.spec.js
@@ -609,7 +609,7 @@ git commit -m "feat: render markdown in CustomMarkdownBlock using marked + DOMPu
 - Modify: `resources/js/utils/contentTemplating.js`
 - Modify: `tests/js/utils/contentTemplating.spec.js`
 
-- [ ] **Step 1: Write failing tests for new patterns**
+- [x] **Step 1: Write failing tests for new patterns**
 
 Add to `tests/js/utils/contentTemplating.spec.js`:
 
@@ -658,12 +658,12 @@ const context = {
 
 Update existing `{ip}` tests to test `{ipv4}` instead. Move `seat` and `team` under `user.params` in existing tests.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/js/utils/contentTemplating.spec.js`
 Expected: FAIL — old patterns still in use
 
-- [ ] **Step 3: Update renderTemplate**
+- [x] **Step 3: Update renderTemplate**
 
 Replace `resources/js/utils/contentTemplating.js`:
 
@@ -694,12 +694,12 @@ export function renderTemplate(content, context) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/js/utils/contentTemplating.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/js/utils/contentTemplating.js tests/js/utils/contentTemplating.spec.js
@@ -712,7 +712,7 @@ git commit -m "feat: update renderTemplate with {ipv4}, {ipv6}, {user.params.*} 
 - Create: `resources/js/utils/templateVariables.js`
 - Create: `tests/js/utils/templateVariables.spec.js`
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 Create `tests/js/utils/templateVariables.spec.js`:
 
@@ -756,12 +756,12 @@ describe('templateVariables', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/js/utils/templateVariables.spec.js`
 Expected: FAIL — module doesn't exist
 
-- [ ] **Step 3: Create templateVariables.js**
+- [x] **Step 3: Create templateVariables.js**
 
 Create `resources/js/utils/templateVariables.js`:
 
@@ -778,12 +778,12 @@ export const TEMPLATE_VARIABLES = [
 export const TEMPLATE_VARIABLE_GROUPS = [...new Set(TEMPLATE_VARIABLES.map((v) => v.group))];
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/js/utils/templateVariables.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/js/utils/templateVariables.js tests/js/utils/templateVariables.spec.js
@@ -796,7 +796,7 @@ git commit -m "feat: add shared template variable definitions"
 - Modify: `resources/js/Components/Blocks/ConnectionStripBlock.vue`
 - Create: `tests/js/Components/Blocks/ConnectionStripBlock.spec.js`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Create `tests/js/Components/Blocks/ConnectionStripBlock.spec.js`:
 
@@ -868,12 +868,12 @@ describe('ConnectionStripBlock', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/js/Components/Blocks/ConnectionStripBlock.spec.js`
 Expected: FAIL — no settings-driven rendering
 
-- [ ] **Step 3: Update ConnectionStripBlock.vue**
+- [x] **Step 3: Update ConnectionStripBlock.vue**
 
 Replace the entire file:
 
@@ -932,21 +932,21 @@ function resolveValue(template) {
 </template>
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/js/Components/Blocks/ConnectionStripBlock.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Update BlockGrid.vue blockContext references**
+- [x] **Step 5: Update BlockGrid.vue blockContext references**
 
 If `BlockGrid.vue` passes `currentIp` to block context, update references to use `currentIpv4`/`currentIpv6`. Check the portal Dashboard controller that provides `blockContext` — if it sends `currentIp`, update the key name there too. Also update `tests/js/Components/BlockGrid.spec.js` context to use `currentIpv4`.
 
-- [ ] **Step 6: Run all tests**
+- [x] **Step 6: Run all tests**
 
 Run: `npx vitest run`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add resources/js/Components/Blocks/ConnectionStripBlock.vue tests/js/Components/Blocks/ConnectionStripBlock.spec.js resources/js/Components/BlockGrid.vue tests/js/Components/BlockGrid.spec.js
@@ -959,7 +959,7 @@ git commit -m "feat: connection strip renders fields from settings.fields with t
 - Modify: `resources/js/Components/Blocks/DnsFilterBlock.vue`
 - Create: `tests/js/Components/Blocks/DnsFilterBlock.spec.js`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Create `tests/js/Components/Blocks/DnsFilterBlock.spec.js`:
 
@@ -1031,12 +1031,12 @@ describe('DnsFilterBlock', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/js/Components/Blocks/DnsFilterBlock.spec.js`
 Expected: FAIL — settings not used for title/description
 
-- [ ] **Step 3: Update DnsFilterBlock.vue**
+- [x] **Step 3: Update DnsFilterBlock.vue**
 
 In `DnsFilterBlock.vue`, add computed properties for resolved title and description. In the `<script setup>`:
 
@@ -1056,12 +1056,12 @@ const displayDescription = computed(() => props.settings?.description || props.c
 
 In the template, replace `{{ title }}` with `{{ displayTitle }}` and `{{ content }}` with `{{ displayDescription }}`.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/js/Components/Blocks/DnsFilterBlock.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/js/Components/Blocks/DnsFilterBlock.vue tests/js/Components/Blocks/DnsFilterBlock.spec.js
@@ -1074,7 +1074,7 @@ git commit -m "feat: DnsFilterBlock uses settings.title and settings.description
 - Modify: `resources/js/Components/Admin/Content/EditorSidePanel.vue`
 - Modify: `tests/js/Components/Admin/Content/EditorSidePanel.spec.js`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add to `tests/js/Components/Admin/Content/EditorSidePanel.spec.js`:
 
@@ -1149,12 +1149,12 @@ it('emits save with settings for dns_filter', async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/js/Components/Admin/Content/EditorSidePanel.spec.js`
 Expected: FAIL — no settings forms exist
 
-- [ ] **Step 3: Update EditorSidePanel.vue**
+- [x] **Step 3: Update EditorSidePanel.vue**
 
 This is a significant update to the component. Key changes:
 
@@ -1224,12 +1224,12 @@ Update the `watch` to also sync settings refs when block changes.
 
 Remove the Column Span and Row Span sections entirely (change 9).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/js/Components/Admin/Content/EditorSidePanel.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/js/Components/Admin/Content/EditorSidePanel.vue tests/js/Components/Admin/Content/EditorSidePanel.spec.js
@@ -1238,7 +1238,7 @@ git commit -m "feat: add type-specific settings forms and template variable refe
 
 ### Task 15: Lint and format Phase 3
 
-- [ ] **Step 1: Run all formatters and linters**
+- [x] **Step 1: Run all formatters and linters**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -1246,12 +1246,12 @@ npx eslint resources/js/ --fix
 npx prettier --write resources/js/ resources/css/
 ```
 
-- [ ] **Step 2: Run full test suite**
+- [x] **Step 2: Run full test suite**
 
 Run: `php artisan test --compact && npx vitest run`
 Expected: All PASS
 
-- [ ] **Step 3: Commit if changes**
+- [x] **Step 3: Commit if changes**
 
 ```bash
 git add -A
@@ -1268,7 +1268,7 @@ git commit -m "chore: lint and format Phase 3 changes"
 - Modify: `resources/js/composables/useGridEditor.js`
 - Modify: `tests/js/composables/useGridEditor.spec.js`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add to `tests/js/composables/useGridEditor.spec.js`:
 
@@ -1315,12 +1315,12 @@ describe('computeDisplacement', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/js/composables/useGridEditor.spec.js`
 Expected: FAIL — `computeDisplacement` doesn't exist
 
-- [ ] **Step 3: Implement computeDisplacement**
+- [x] **Step 3: Implement computeDisplacement**
 
 Add to `useGridEditor.js` inside the composable function, before the return statement:
 
@@ -1378,12 +1378,12 @@ function computeDisplacement(draggedId, targetCol, targetRow, colSpan, rowSpan) 
 
 Add `computeDisplacement` to the return object.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/js/composables/useGridEditor.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/js/composables/useGridEditor.js tests/js/composables/useGridEditor.spec.js
@@ -1396,7 +1396,7 @@ git commit -m "feat: add computeDisplacement to useGridEditor for push-down refl
 - Modify: `resources/js/Pages/Admin/Content/Editor.vue`
 - Modify: `tests/js/Pages/Admin/Content/Editor.spec.js`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add to `tests/js/Pages/Admin/Content/Editor.spec.js`:
 
@@ -1419,12 +1419,12 @@ it('restores positions on drag cancel (Escape key)', async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/js/Pages/Admin/Content/Editor.spec.js`
 Expected: FAIL
 
-- [ ] **Step 3: Implement drag reflow in Editor.vue**
+- [x] **Step 3: Implement drag reflow in Editor.vue**
 
 Key changes to `Editor.vue`:
 
@@ -1519,12 +1519,12 @@ function blockStyle(block) {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/js/Pages/Admin/Content/Editor.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/js/Pages/Admin/Content/Editor.vue tests/js/Pages/Admin/Content/Editor.spec.js
@@ -1537,7 +1537,7 @@ git commit -m "feat: implement drag reflow with push-down preview and Escape to 
 - Modify: `resources/js/Pages/Admin/Content/Editor.vue`
 - Modify: `tests/js/Pages/Admin/Content/Editor.spec.js`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add to `tests/js/Pages/Admin/Content/Editor.spec.js`:
 
@@ -1556,12 +1556,12 @@ it('does not show col_span or row_span controls in side panel', async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run tests/js/Pages/Admin/Content/Editor.spec.js`
 Expected: FAIL — no resize handles exist
 
-- [ ] **Step 3: Add resize handles to Editor.vue**
+- [x] **Step 3: Add resize handles to Editor.vue**
 
 Inside each block `div` in the template, add a resize handle element:
 
@@ -1646,12 +1646,12 @@ function onResizeEnd() {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run tests/js/Pages/Admin/Content/Editor.spec.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/js/Pages/Admin/Content/Editor.vue tests/js/Pages/Admin/Content/Editor.spec.js
@@ -1660,7 +1660,7 @@ git commit -m "feat: add resize drag handles with push-down reflow support"
 
 ### Task 19: Lint, format, and final test run
 
-- [ ] **Step 1: Run all formatters and linters**
+- [x] **Step 1: Run all formatters and linters**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -1670,11 +1670,11 @@ npx eslint resources/js/ --fix
 npx prettier --write resources/js/ resources/css/
 ```
 
-- [ ] **Step 2: Fix any issues**
+- [x] **Step 2: Fix any issues**
 
 Address any linting, formatting, or static analysis issues.
 
-- [ ] **Step 3: Run full test suite**
+- [x] **Step 3: Run full test suite**
 
 ```bash
 php artisan test --compact
@@ -1683,7 +1683,7 @@ npx vitest run
 
 Expected: All PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A

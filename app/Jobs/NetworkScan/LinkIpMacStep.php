@@ -9,37 +9,33 @@ use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\NetworkRangeService;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 
 final class LinkIpMacStep
 {
     /**
      * @param  Collection<int, DhcpLease>  $leases
-     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, IpMacEntry>  $entries
      */
-    public function __invoke(Collection $leases, Collection $arpEntries, NetworkRangeService $rangeService): void
+    public function __invoke(Collection $leases, Collection $entries, NetworkRangeService $rangeService): void
     {
         /** @var list<array{ip: string, mac: string, source: string}> $pairs */
         $pairs = [];
 
         foreach ($leases as $lease) {
-            if ($lease->mac === null) {
-                continue;
-            }
-
             $normalized = MacAddress::normalize($lease->mac);
             $address = IpAddress::normalize($lease->ip);
-            if ($address !== '' && $normalized !== '') {
-                $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'dhcp'];
+            if ($address !== '' && $normalized !== null) {
+                $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => $lease->macFromDuid ? MacAddress::SOURCE_DHCP_DUID : 'dhcp'];
             }
         }
 
-        foreach ($arpEntries as $arp) {
-            $normalized = MacAddress::normalize($arp->mac);
-            $address = IpAddress::normalize($arp->ip);
-            if ($address !== '' && $normalized !== '') {
+        foreach ($entries as $entry) {
+            $normalized = MacAddress::normalize($entry->mac);
+            $address = IpAddress::normalize($entry->ip);
+            if ($address !== '' && $normalized !== null) {
                 $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'arp'];
             }
         }
@@ -83,7 +79,7 @@ final class LinkIpMacStep
 
             // Dispatch on refresh too, so existing links that never received a
             // user association can heal on the next scan (ADR-011).
-            IpMacLinked::dispatch($ip, $mac, $pair['source'], 'scan_network');
+            event(new IpMacLinked($ip, $mac, $pair['source'], 'scan_network'));
         }
     }
 }

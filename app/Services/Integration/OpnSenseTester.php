@@ -24,6 +24,7 @@ class OpnSenseTester implements TestableIntegration
             fn () => Http::withOptions(['verify' => (bool) ($config['verify_ssl'] ?? true)])
                 ->withBasicAuth($config['key'] ?? '', $config['secret'] ?? '')
                 ->timeout(10)
+                ->connectTimeout(5)
                 ->get($url),
             'Connected and authenticated successfully',
         );

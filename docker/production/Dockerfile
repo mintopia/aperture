@@ -33,13 +33,19 @@ RUN npm install --production=false && \
 FROM ghcr.io/mintopia/php-frankenphp-base:8.4.10
 LABEL org.opencontainers.image.authors="jess@mintopia.net"
 
-COPY --from=npm /app /app
+COPY --from=composer /app /app
+COPY --from=npm /app/public/build /app/public/build
 COPY docker/production/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
-    echo 'memory_limit = 512M' > /usr/local/etc/php/conf.d/memory_limit.ini
+    echo 'memory_limit = 512M' > /usr/local/etc/php/conf.d/memory_limit.ini && \
+    setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp && \
+    mkdir -p /data/caddy /config/caddy /app/storage /app/bootstrap/cache && \
+    chown -R www-data:www-data /data/caddy /config/caddy /app/storage /app/bootstrap/cache
 
 COPY docker/Caddyfile /
+
+USER www-data
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["php",  "artisan",  "octane:frankenphp", "--caddyfile=/Caddyfile", "--admin-host=0.0.0.0", "--port=80"]

@@ -101,7 +101,7 @@ class SetupCommand extends Command
                 'scope',
                 (string) IntegrationConfig::getWithFallback(Integration::Borealis->value, 'scope', 'discord')
             );
-            CapabilityAssignment::assign(Capability::Authentication->value, Integration::Borealis->value);
+            CapabilityAssignment::assign(Capability::Authentication, Integration::Borealis->value);
             $this->info('Saved Borealis OAuth settings.');
         } else {
             $this->warn('Borealis OAuth settings were not provided. Captive portal device auth will stay unavailable.');

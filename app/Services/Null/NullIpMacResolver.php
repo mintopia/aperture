@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 
 class NullIpMacResolver implements IpMacResolverInterface
 {
-    public function getArpTable(): Collection
+    public function getIpMacTable(): Collection
     {
         return collect();
     }

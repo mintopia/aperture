@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Events\InternetAccessChanged;
 use App\Models\IpAddress;
 use App\Models\User;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -24,14 +25,16 @@ class GrantNetworkAccess implements ShouldQueue
     public function __construct(
         protected User $user,
         protected IpAddress $ipAddress,
-    ) {}
+    ) {
+        $this->onQueue(Queues::ACCESS);
+    }
 
     public function handle(): void
     {
         $this->ipAddress->internet_enabled = true;
         $this->ipAddress->save();
 
-        InternetAccessChanged::dispatch($this->ipAddress, true, $this->user);
+        event(new InternetAccessChanged($this->ipAddress, true, $this->user));
 
         Log::info('Network access granted', [
             'user_id' => $this->user->id,

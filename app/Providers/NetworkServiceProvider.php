@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Integration\InstallGuard;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
@@ -11,12 +12,12 @@ use App\Services\Interfaces\MacAddressResolverInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\MacAddressResolver;
+use App\Services\NetworkScan\DhcpSnoopingResolver;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SshProxy\SshProxyClient;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
-use Throwable;
 
 class NetworkServiceProvider extends ServiceProvider
 {
@@ -65,27 +66,28 @@ class NetworkServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(function (Application $app): NetworkSwitchInterface {
+        $this->app->scoped(function (Application $app): NetworkSwitchInterface {
             return $app->make(SwitchServiceFactory::class)->make($this->getDefaultSwitchConfig());
         });
 
-        $this->app->singleton(function (Application $app): MacAddressResolverInterface {
+        $this->app->scoped(function (Application $app): MacAddressResolverInterface {
             return new MacAddressResolver(
                 $app->make(DhcpInterface::class),
                 $app->make(IpMacResolverInterface::class),
+                $app->make(DhcpSnoopingResolver::class),
             );
         });
     }
 
     protected function getDefaultSwitchConfig(): SwitchConfig
     {
-        try {
-            $switchConfig = SwitchConfig::query()->where('enabled', true)->orderBy('id')->first();
-            if ($switchConfig instanceof SwitchConfig) {
-                return $switchConfig;
-            }
-        } catch (Throwable) {
-            // DB not available — use config fallback
+        $switchConfig = InstallGuard::tolerateMissingTable(
+            fn (): ?SwitchConfig => SwitchConfig::query()->where('enabled', true)->orderBy('id')->first(),
+            null,
+        );
+
+        if ($switchConfig instanceof SwitchConfig) {
+            return $switchConfig;
         }
 
         return SwitchConfig::defaultFallback();

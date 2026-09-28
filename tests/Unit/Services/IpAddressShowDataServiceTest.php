@@ -19,6 +19,7 @@ use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Mockery\MockInterface;
@@ -409,5 +410,20 @@ class IpAddressShowDataServiceTest extends TestCase
         $this->assertSame($switchConfig->id, $result['switchInfo']['switchId']);
         $this->assertSame('core-sw.local', $result['switchInfo']['switchName']);
         $this->assertSame('Gi2/0/1', $result['switchInfo']['portId']);
+    }
+
+    public function test_resolve_port_info_logs_warning_when_libre_nms_lookup_fails(): void
+    {
+        $ip = IpAddress::factory()->create();
+        $this->libreNms->shouldReceive('resolveIpToPort')->andThrow(new RuntimeException('LibreNMS down'));
+
+        Log::spy();
+
+        $this->assertNull($this->service->resolvePortInfo($ip));
+
+        Log::shouldHaveReceived('warning')
+            ->once()
+            ->withArgs(fn (string $message, array $context): bool => $message === 'LibreNMS port lookup failed'
+                && $context['error'] === 'LibreNMS down');
     }
 }

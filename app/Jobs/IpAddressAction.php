@@ -6,20 +6,14 @@ namespace App\Jobs;
 
 use App\Models\IpAddress;
 use App\Services\IpAddressActionService;
-use Illuminate\Bus\Queueable;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class IpAddressAction implements ShouldQueue
 {
-    use Dispatchable;
-    use InteractsWithQueue;
-    use Queueable;
-    use SerializesModels;
+    use \Illuminate\Foundation\Queue\Queueable;
 
     public int $tries = 3;
 
@@ -38,6 +32,7 @@ class IpAddressAction implements ShouldQueue
      */
     public function __construct(protected IpAddress $ip, protected string $method)
     {
+        $this->onQueue(Queues::ACCESS);
         //
     }
 

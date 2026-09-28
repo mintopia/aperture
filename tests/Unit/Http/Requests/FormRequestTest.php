@@ -29,14 +29,14 @@ class FormRequestTest extends TestCase
         $this->assertTrue($request->authorize());
     }
 
-    public function test_ip_address_store_request_denies_for_non_admin(): void
+    public function test_ip_address_store_request_authorizes_any_user(): void
     {
         $user = User::factory()->create();
 
         $request = new IpAddressStoreRequest;
         $request->setUserResolver(fn () => $user);
 
-        $this->assertFalse($request->authorize());
+        $this->assertTrue($request->authorize());
     }
 
     public function test_ip_address_store_request_rules(): void

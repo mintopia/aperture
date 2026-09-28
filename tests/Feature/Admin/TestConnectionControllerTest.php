@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Interfaces\SshProxyClientInterface;
+use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
@@ -257,8 +258,8 @@ class TestConnectionControllerTest extends TestCase
         $mockProxy = Mockery::mock(SshProxyClientInterface::class);
         $mockProxy->shouldReceive('execute')
             ->once()
-            ->with($switch->hostname, $switch->username, $switch->password, Mockery::type('array'))
-            ->andReturn(new CommandResult(success: true, output: ['Switch> ']));
+            ->with($switch->hostname, $switch->username, $switch->password, Mockery::type('array'), 22, 'commands', null, null, null)
+            ->andReturn(new CommandResult(success: true, output: [new CommandOutput('terminal length 0', ''), new CommandOutput('show interface status', '')]));
 
         $this->app->instance(SshProxyClientInterface::class, $mockProxy);
 
@@ -301,7 +302,7 @@ class TestConnectionControllerTest extends TestCase
         $mockProxy = Mockery::mock(SshProxyClientInterface::class);
         $mockProxy->shouldReceive('execute')
             ->once()
-            ->andReturn(new CommandResult(success: true, output: ['Switch> ']));
+            ->andReturn(new CommandResult(success: true, output: [new CommandOutput('terminal length 0', ''), new CommandOutput('show interface status', '')]));
 
         $this->app->instance(SshProxyClientInterface::class, $mockProxy);
 
@@ -313,7 +314,7 @@ class TestConnectionControllerTest extends TestCase
 
         $log = ConnectionTestLog::where('integration', 'switch-'.$switch->hostname)->latest()->first();
         $this->assertNotNull($log->response_data);
-        $this->assertStringContainsString('Switch>', $log->response_data);
+        $this->assertStringContainsString('Found 0 ports', $log->response_data);
         $this->assertSame('SSH', $log->request_method);
         $this->assertSame($switch->hostname, $log->request_url);
     }
@@ -623,9 +624,9 @@ class TestConnectionControllerTest extends TestCase
         $response->assertOk();
         $response->assertJson([
             'success' => false,
-            'message' => 'SSH handshake failed',
+            'message' => 'Connection failed: SSH handshake failed',
         ]);
-        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url', 'output', 'details']);
+        $response->assertJsonStructure(['success', 'message', 'request_method', 'request_url']);
 
         $this->assertDatabaseHas('connection_test_logs', [
             'integration' => 'switch-'.$switch->hostname,

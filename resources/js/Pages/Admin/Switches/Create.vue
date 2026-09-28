@@ -4,6 +4,7 @@ import { useForm, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
+import { switchTimezones as timezones } from '@/utils/switches';
 
 defineOptions({ layout: AdminLayout });
 
@@ -16,11 +17,15 @@ const form = useForm({
     hostname: '',
     type: '',
     username: '',
+    auth_method: 'password',
     password: '',
+    private_key: '',
+    passphrase: '',
     enable_password: '',
     community: '',
     port: 22,
     timeout: 5,
+    timezone: 'UTC',
     enabled: true,
 });
 
@@ -49,6 +54,23 @@ watch(
 
         if (!['cisco', 'cisco_ios', 'cisco_nxos'].includes(type)) {
             form.enable_password = '';
+        }
+    },
+);
+
+const authMethods = [
+    { value: 'password', label: 'Password' },
+    { value: 'private_key', label: 'Private key' },
+];
+
+watch(
+    () => form.auth_method,
+    (method) => {
+        if (method === 'password') {
+            form.private_key = '';
+            form.passphrase = '';
+        } else {
+            form.password = '';
         }
     },
 );
@@ -159,6 +181,17 @@ function submit() {
                             class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />
                     </FormField>
+
+                    <FormField label="Switch timezone" name="timezone" :error="form.errors.timezone">
+                        <select
+                            id="timezone"
+                            v-model="form.timezone"
+                            data-testid="switch-timezone"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                        >
+                            <option v-for="zone in timezones" :key="zone" :value="zone">{{ zone }}</option>
+                        </select>
+                    </FormField>
                 </div>
             </div>
 
@@ -177,12 +210,82 @@ function submit() {
                         />
                     </FormField>
 
-                    <FormField label="Password" name="password" :error="form.errors.password">
+                    <FormField
+                        label="Authentication"
+                        name="auth_method"
+                        :error="form.errors.auth_method"
+                        class="sm:col-span-2"
+                    >
+                        <div role="radiogroup" aria-label="Authentication method" class="flex gap-2 pt-1">
+                            <label
+                                v-for="m in authMethods"
+                                :key="m.value"
+                                class="cursor-pointer rounded-md border px-3 py-[6px] text-[13px] font-semibold transition"
+                                :class="
+                                    form.auth_method === m.value
+                                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-bg)]'
+                                        : 'border-[var(--color-border-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                                "
+                            >
+                                <input
+                                    v-model="form.auth_method"
+                                    type="radio"
+                                    name="auth_method"
+                                    :value="m.value"
+                                    :data-testid="`switch-auth-${m.value.replace('_', '-')}`"
+                                    class="sr-only"
+                                />
+                                {{ m.label }}
+                            </label>
+                        </div>
+                    </FormField>
+
+                    <FormField
+                        v-if="form.auth_method === 'password'"
+                        label="Password"
+                        name="password"
+                        :error="form.errors.password"
+                    >
                         <input
                             id="password"
                             v-model="form.password"
                             type="password"
                             data-testid="switch-password"
+                            autocomplete="new-password"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                        />
+                    </FormField>
+
+                    <FormField
+                        v-if="form.auth_method === 'private_key'"
+                        label="Private Key"
+                        name="private_key"
+                        :error="form.errors.private_key"
+                        class="sm:col-span-2"
+                    >
+                        <textarea
+                            id="private_key"
+                            v-model="form.private_key"
+                            rows="6"
+                            spellcheck="false"
+                            data-testid="switch-private-key"
+                            autocomplete="off"
+                            placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                            class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
+                        />
+                    </FormField>
+
+                    <FormField
+                        v-if="form.auth_method === 'private_key'"
+                        label="Key Passphrase (optional)"
+                        name="passphrase"
+                        :error="form.errors.passphrase"
+                    >
+                        <input
+                            id="passphrase"
+                            v-model="form.passphrase"
+                            type="password"
+                            data-testid="switch-passphrase"
                             autocomplete="new-password"
                             class="w-full rounded border border-[var(--color-border-hover)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] text-[var(--color-text)] transition outline-none focus:border-[var(--color-primary)]"
                         />

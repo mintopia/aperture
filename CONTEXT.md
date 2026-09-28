@@ -39,9 +39,9 @@ _Avoid_: Pool usage, pool stats
 ### IP-MAC
 
 **IP-MAC Lookup**:
-Resolving an IP address to the MAC address of the device using it, via the DHCP Lease first and the IP-MAC Capability as fallback.
+Resolving an IP address to the MAC address of the device using it, via the DHCP Lease first, then the IP-MAC Capability, then DHCP snooping observations as the last fallback (ADR-015).
 _Avoid_: ARP lookup, MAC resolution
 
 **IP-MAC Table**:
-The full set of known IP-to-MAC pairs supplied by the Integration holding the IP-MAC Capability. May come from ARP (router, NMS) or from DHCP Leases (Kea).
+The full set of known IP-to-MAC pairs supplied by the Integration holding the IP-MAC Capability. May come from ARP (router, NMS) or from Kea's live DHCP Leases, independent of which Integration holds DHCP.
 _Avoid_: ARP table (unless the source really is ARP)

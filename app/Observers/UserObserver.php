@@ -6,8 +6,9 @@ namespace App\Observers;
 
 use App\Jobs\SyncUserPolicyJob;
 use App\Models\User;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class UserObserver
+class UserObserver implements ShouldHandleEventsAfterCommit
 {
     /** @var list<string> */
     protected array $policyFields = [
@@ -28,7 +29,7 @@ class UserObserver
         $userIps = $user->ips()->with('ip')->get();
 
         foreach ($userIps as $userIp) {
-            SyncUserPolicyJob::dispatch($user, $userIp->ip);
+            dispatch(new SyncUserPolicyJob($user, $userIp->ip));
         }
     }
 }

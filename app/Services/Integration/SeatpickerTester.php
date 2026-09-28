@@ -26,6 +26,7 @@ class SeatpickerTester implements TestableIntegration
                 ->withToken($config['api_key'] ?? '')
                 ->acceptJson()
                 ->timeout(10)
+                ->connectTimeout(5)
                 ->get($url),
         );
     }

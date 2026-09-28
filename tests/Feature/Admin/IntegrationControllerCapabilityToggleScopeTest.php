@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use App\Models\Role;
 use App\Models\User;
@@ -34,7 +35,7 @@ class IntegrationControllerCapabilityToggleScopeTest extends TestCase
 
         // Assign the same capability to two different integrations
         // opnsense owns 'dhcp', and we manually insert another row for a hypothetical second provider
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
         // Now request to deactivate 'dhcp' for opnsense specifically
         $response = $this->actingAs($admin)->putJson('/admin/settings/capabilities', [
@@ -58,7 +59,7 @@ class IntegrationControllerCapabilityToggleScopeTest extends TestCase
         $admin = $this->createAdminUser();
 
         // opnsense currently owns 'dhcp'
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
         // pihole requests to deactivate 'dhcp' — it should be rejected because
         // pihole does not support 'dhcp' (only 'dns-filtering' per config/integrations.php)

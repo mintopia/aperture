@@ -9,6 +9,7 @@ use App\Models\IntegrationConfig;
 use App\Services\Auth\AuthResult;
 use App\Services\Auth\DeviceFlowUserService;
 use App\Services\Interfaces\AuthProviderInterface;
+use App\Services\UserNetworkAssociationService;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Http\JsonResponse;
@@ -69,6 +70,7 @@ class CaptivePortalController extends Controller
         string $deviceCode,
         AuthProviderInterface $authProvider,
         DeviceFlowUserService $userService,
+        UserNetworkAssociationService $associations,
     ): JsonResponse {
         /** @var array{status: string, ip: string|null}|null $flowData */
         $flowData = Cache::get('device_flow:'.$deviceCode);
@@ -100,9 +102,10 @@ class CaptivePortalController extends Controller
             $user->save();
         }
 
-        $user->addIp($flowData['ip'] ?? $request->getClientIp() ?? '0.0.0.0');
+        $associations->addIp($user, $flowData['ip'] ?? $request->getClientIp() ?? '0.0.0.0');
 
         Auth::login($user);
+        $request->session()->regenerate();
 
         AuditLog::record(
             action: 'user.captive_login',

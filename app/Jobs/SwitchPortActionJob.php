@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -27,7 +28,9 @@ class SwitchPortActionJob implements ShouldQueue
         public SwitchConfig $switchConfig,
         public string $portId,
         public string $action,
-    ) {}
+    ) {
+        $this->onQueue(Queues::SWITCH);
+    }
 
     /**
      * @return list<int>

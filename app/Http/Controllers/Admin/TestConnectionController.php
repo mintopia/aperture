@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\SwitchHostKeyMismatchException;
 use App\Http\Controllers\Controller;
 use App\Models\ConnectionTestLog;
 use App\Models\SwitchConfig;
 use App\Services\Integration\IntegrationConfigMerger;
 use App\Services\Integration\IntegrationTesterRegistry;
-use App\Services\Interfaces\SshProxyClientInterface;
-use App\Services\SshProxy\CommandOutput;
+use App\Services\NetworkSwitch\SwitchConnectionTester;
 use App\Services\ValueObjects\TestConnectionResult;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Throwable;
 
 class TestConnectionController extends Controller
 {
@@ -40,65 +39,21 @@ class TestConnectionController extends Controller
         return $this->jsonResult($result);
     }
 
-    public function testSwitch(SwitchConfig $switchConfig, SshProxyClientInterface $proxyClient): JsonResponse
+    public function testSwitch(SwitchConfig $switchConfig, SwitchConnectionTester $tester): JsonResponse
     {
         $requestMethod = 'SSH';
         $requestUrl = $switchConfig->hostname;
+        $result = $tester->test($switchConfig);
 
-        try {
-            $result = $proxyClient->execute(
-                $switchConfig->hostname,
-                $switchConfig->username,
-                $switchConfig->password,
-                [['command' => '', 'expect' => '/^.*[>#]$/']],
-            );
-
-            $outputData = json_encode($result->output) ?: null;
-
-            if (! $result->success) {
-                $outputSummary = collect($result->output)
-                    ->map(fn (CommandOutput $o): string => $o->output)
-                    ->implode("\n");
-
-                Log::warning('Switch connection test failed', [
-                    'switch_id' => $switchConfig->id,
-                    'hostname' => $switchConfig->hostname,
-                    'error' => $result->error,
-                    'output' => $outputSummary,
-                ]);
-
-                $message = $result->error ?? 'Unknown error';
-
-                ConnectionTestLog::record(
-                    'switch-'.$switchConfig->hostname,
-                    false,
-                    $message,
-                    null,
-                    $outputData,
-                    $requestMethod,
-                    $requestUrl,
-                );
-
-                return response()->json([
-                    'success' => false,
-                    'message' => $message,
-                    'request_method' => $requestMethod,
-                    'request_url' => $requestUrl,
-                    'output' => $result->output,
-                    'details' => [
-                        'error' => $result->error,
-                        'output' => mb_substr($outputSummary, 0, 500),
-                        'hostname' => $switchConfig->hostname,
-                    ],
-                ]);
-            }
+        if ($result->success) {
+            $summary = sprintf('Found %d ports in %ss.', $result->portCount, $result->duration);
 
             ConnectionTestLog::record(
                 'switch-'.$switchConfig->hostname,
                 true,
                 'Connected successfully',
                 null,
-                $outputData,
+                $summary,
                 $requestMethod,
                 $requestUrl,
             );
@@ -108,59 +63,31 @@ class TestConnectionController extends Controller
                 'message' => 'Connected successfully',
                 'request_method' => $requestMethod,
                 'request_url' => $requestUrl,
-                'output' => $result->output,
+                'output' => $summary,
             ]);
-        } catch (ConnectException $connectException) {
-            Log::error('SSH proxy unreachable during switch test', [
-                'switch_id' => $switchConfig->id,
-                'hostname' => $switchConfig->hostname,
-                'error' => $connectException->getMessage(),
-            ]);
-
-            return $this->recordAndReturnError(
-                'switch',
-                $switchConfig->hostname,
-                'Could not reach SSH proxy: '.$connectException->getMessage(),
-                null,
-                $requestMethod,
-                $requestUrl,
-            );
-        } catch (RequestException $requestException) {
-            $response = $requestException->getResponse();
-            $statusCode = $response?->getStatusCode();
-
-            Log::error('SSH proxy request failed during switch test', [
-                'switch_id' => $switchConfig->id,
-                'hostname' => $switchConfig->hostname,
-                'error' => $requestException->getMessage(),
-                'status' => $statusCode,
-            ]);
-
-            return $this->recordAndReturnError(
-                'switch',
-                $switchConfig->hostname,
-                'SSH proxy error: '.$requestException->getMessage(),
-                $statusCode,
-                $requestMethod,
-                $requestUrl,
-            );
-        } catch (Throwable $throwable) {
-            Log::error('Switch connection test exception', [
-                'switch_id' => $switchConfig->id,
-                'hostname' => $switchConfig->hostname,
-                'error' => $throwable->getMessage(),
-                'trace' => $throwable->getTraceAsString(),
-            ]);
-
-            return $this->recordAndReturnError(
-                'switch',
-                $switchConfig->hostname,
-                'Connection failed: '.$throwable->getMessage(),
-                null,
-                $requestMethod,
-                $requestUrl,
-            );
         }
+
+        $throwable = $result->exception;
+        $statusCode = null;
+
+        Log::error('Switch connection test failed', [
+            'switch_id' => $switchConfig->id,
+            'hostname' => $switchConfig->hostname,
+            'error' => $throwable?->getMessage(),
+        ]);
+
+        if ($throwable instanceof ConnectException) {
+            $message = 'Could not reach SSH proxy: '.$throwable->getMessage();
+        } elseif ($throwable instanceof RequestException) {
+            $statusCode = $throwable->getResponse()?->getStatusCode();
+            $message = 'SSH proxy error: '.$throwable->getMessage();
+        } elseif ($throwable instanceof SwitchHostKeyMismatchException) {
+            $message = $throwable->getMessage();
+        } else {
+            $message = 'Connection failed: '.$throwable?->getMessage();
+        }
+
+        return $this->recordAndReturnError('switch', $switchConfig->hostname, $message, $statusCode, $requestMethod, $requestUrl);
     }
 
     /**

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SetupRequest;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -20,32 +20,29 @@ class SetupController extends Controller
     public function index(): Response|RedirectResponse
     {
         if (User::query()->exists()) {
-            return redirect()->route('login');
+            return to_route('login');
         }
 
         return Inertia::render('Setup/Index');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(SetupRequest $request): RedirectResponse
     {
         if ($this->usersExist()) {
-            return redirect()->route('login');
+            return to_route('login');
         }
 
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:12', 'confirmed'],
-        ]);
+        $validated = $request->validated();
 
         $lock = Cache::lock('aperture_setup', 10);
 
         if (! $lock->get()) {
-            return redirect()->route('login');
+            return to_route('login');
         }
 
         try {
             if ($this->usersExist()) {
-                return redirect()->route('login');
+                return to_route('login');
             }
 
             /** @var User $user */
@@ -79,7 +76,7 @@ class SetupController extends Controller
             Auth::login($user);
             $request->session()->regenerate();
 
-            return redirect()->route('admin.home');
+            return to_route('admin.home');
         } finally {
             $lock->release();
         }

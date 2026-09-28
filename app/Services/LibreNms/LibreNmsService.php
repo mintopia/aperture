@@ -4,35 +4,37 @@ declare(strict_types=1);
 
 namespace App\Services\LibreNms;
 
-use App\Services\ValueObjects\ArpEntry;
+use App\Services\Http\ExternalHttp;
 use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use App\Services\ValueObjects\NetworkDevice;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
-use GuzzleHttp\Client;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
 
 class LibreNmsService
 {
-    protected Client $client;
+    public function __construct(
+        protected string $endpoint,
+        protected string $apiToken,
+        protected bool $verifySsl = true,
+    ) {}
 
-    public function __construct(string $endpoint, string $apiToken)
+    protected function http(): PendingRequest
     {
-        $this->client = new Client([
-            'base_uri' => $endpoint,
-            'headers' => [
-                'X-Auth-Token' => $apiToken,
-                'Accept' => 'application/json',
-            ],
-        ]);
+        return ExternalHttp::request($this->endpoint, $this->verifySsl)
+            ->withHeaders(['X-Auth-Token' => $this->apiToken])
+            ->acceptJson()
+            ->throw();
     }
 
     /** @return Collection<int, ForwardingEntry> */
     public function getForwardingDatabase(): Collection
     {
-        $response = $this->client->get('/api/v0/resources/fdb');
+        $response = $this->http()->get('/api/v0/resources/fdb');
         /** @var array<string, mixed> $data */
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $response->json();
 
         return collect(array_map(
             fn (array $entry): ForwardingEntry => new ForwardingEntry(
@@ -44,15 +46,15 @@ class LibreNmsService
         ));
     }
 
-    /** @return Collection<int, ArpEntry> */
-    public function getArpTable(): Collection
+    /** @return Collection<int, IpMacEntry> */
+    public function getIpMacTable(): Collection
     {
-        $response = $this->client->get('/api/v0/resources/ip/arp');
+        $response = $this->http()->get('/api/v0/resources/ip/arp');
         /** @var array<string, mixed> $data */
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $response->json();
 
         return collect(array_map(
-            fn (array $entry): ArpEntry => new ArpEntry(
+            fn (array $entry): IpMacEntry => new IpMacEntry(
                 ip: (string) ($entry['ipv4_address'] ?? ''),
                 mac: (string) ($entry['mac_address'] ?? ''),
             ),
@@ -62,7 +64,7 @@ class LibreNmsService
 
     public function resolveIpToPort(string $ipAddress): ?ResolvedPort
     {
-        $arp = $this->getArpTable()->firstWhere('ip', $ipAddress);
+        $arp = $this->getIpMacTable()->firstWhere('ip', $ipAddress);
         if (! $arp) {
             return null;
         }
@@ -83,9 +85,9 @@ class LibreNmsService
     /** @return Collection<int, NetworkDevice> */
     public function getDeviceList(): Collection
     {
-        $response = $this->client->get('/api/v0/devices');
+        $response = $this->http()->get('/api/v0/devices');
         /** @var array<string, mixed> $data */
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $response->json();
 
         return collect(array_map(
             fn (array $device): NetworkDevice => new NetworkDevice(
@@ -99,9 +101,9 @@ class LibreNmsService
 
     public function getPortDetail(string $portId): ?PortDetail
     {
-        $response = $this->client->get('/api/v0/ports/'.$portId);
+        $response = $this->http()->get('/api/v0/ports/'.$portId);
         /** @var array<string, mixed> $data */
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $response->json();
 
         $port = $data['port'] ?? null;
         if ($port === null) {
@@ -109,9 +111,9 @@ class LibreNmsService
         }
 
         $deviceId = (string) ($port['device_id'] ?? '');
-        $deviceResponse = $this->client->get('/api/v0/devices/'.$deviceId);
+        $deviceResponse = $this->http()->get('/api/v0/devices/'.$deviceId);
         /** @var array<string, mixed> $deviceData */
-        $deviceData = json_decode((string) $deviceResponse->getBody(), true);
+        $deviceData = $deviceResponse->json();
 
         return new PortDetail(
             hostname: (string) ($deviceData['devices'][0]['hostname'] ?? ''),
@@ -122,15 +124,15 @@ class LibreNmsService
         );
     }
 
-    /** @return Collection<int, ArpEntry> */
+    /** @return Collection<int, IpMacEntry> */
     public function getIpv6Neighbors(): Collection
     {
-        $response = $this->client->get('/api/v0/resources/ip/arp');
+        $response = $this->http()->get('/api/v0/resources/ip/arp');
         /** @var array<string, mixed> $data */
-        $data = json_decode((string) $response->getBody(), true);
+        $data = $response->json();
 
         $entries = array_map(
-            fn (array $entry): ArpEntry => new ArpEntry(
+            fn (array $entry): IpMacEntry => new IpMacEntry(
                 ip: (string) ($entry['ipv4_address'] ?? ''),
                 mac: (string) ($entry['mac_address'] ?? ''),
             ),
@@ -139,7 +141,7 @@ class LibreNmsService
 
         return collect(array_values(array_filter(
             $entries,
-            fn (ArpEntry $entry): bool => str_contains($entry->ip, ':'),
+            fn (IpMacEntry $entry): bool => str_contains($entry->ip, ':'),
         )));
     }
 }

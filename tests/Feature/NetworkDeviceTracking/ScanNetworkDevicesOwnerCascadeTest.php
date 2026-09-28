@@ -13,6 +13,7 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
+use App\Services\ValueObjects\DhcpSnapshot;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery\MockInterface;
 use Tests\Feature\Concerns\CreatesAdminUsers;
@@ -40,7 +41,7 @@ class ScanNetworkDevicesOwnerCascadeTest extends TestCase
     {
         $this->mock(DhcpInterface::class, function (MockInterface $mock) use ($leases): void {
             $mock->allows([
-                'getLeases' => collect($leases),
+                'snapshot' => DhcpSnapshot::create(collect($leases), collect()),
             ]);
         });
     }
@@ -49,7 +50,7 @@ class ScanNetworkDevicesOwnerCascadeTest extends TestCase
     {
         $this->mock(IpMacResolverInterface::class, function (MockInterface $mock): void {
             $mock->allows([
-                'getArpTable' => collect(),
+                'getIpMacTable' => collect(),
             ]);
         });
 
@@ -69,7 +70,7 @@ class ScanNetworkDevicesOwnerCascadeTest extends TestCase
         $this->mockDhcp([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:10', 'owned-device', '2026-06-11')]);
         $this->mockInventory();
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
 
         // Exactly one row for the address: no case-variant duplicate created
         $this->assertSame(1, IpAddress::count());

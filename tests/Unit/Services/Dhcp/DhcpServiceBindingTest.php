@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
@@ -37,7 +38,7 @@ class DhcpServiceBindingTest extends TestCase
 
     public function test_resolves_opnsense_service_when_dhcp_server_is_isc(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 
@@ -48,7 +49,7 @@ class DhcpServiceBindingTest extends TestCase
 
     public function test_resolves_opnsense_service_when_dhcp_server_is_kea(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'kea');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 
@@ -59,7 +60,7 @@ class DhcpServiceBindingTest extends TestCase
 
     public function test_resolves_opnsense_service_when_dhcp_server_is_dnsmasq(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'dnsmasq');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 
@@ -70,7 +71,7 @@ class DhcpServiceBindingTest extends TestCase
 
     public function test_isc_binding_uses_correct_api_paths(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 
@@ -79,12 +80,12 @@ class DhcpServiceBindingTest extends TestCase
         $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
         $this->assertEquals('/api/dhcpv4/leases/search_lease', $this->getProtectedProperty($service, 'leasesPath'));
         $this->assertEquals('', $this->getProtectedProperty($service, 'ipv4RangesPath'));
-        $this->assertEquals('/api/dhcpv6/leases/search_lease', $this->getProtectedProperty($service, 'ipv6RangesPath'));
+        $this->assertEquals('', $this->getProtectedProperty($service, 'ipv6RangesPath'));
     }
 
     public function test_kea_binding_uses_correct_api_paths(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'kea');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 
@@ -98,7 +99,7 @@ class DhcpServiceBindingTest extends TestCase
 
     public function test_dnsmasq_binding_uses_correct_api_paths(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'dnsmasq');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 
@@ -112,7 +113,7 @@ class DhcpServiceBindingTest extends TestCase
 
     public function test_dnsmasq_binding_passes_correct_field_maps(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'dnsmasq');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 
@@ -135,7 +136,7 @@ class DhcpServiceBindingTest extends TestCase
 
     public function test_kea_binding_passes_correct_field_maps(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'kea');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 
@@ -152,7 +153,7 @@ class DhcpServiceBindingTest extends TestCase
 
     public function test_isc_binding_uses_default_field_maps(): void
     {
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
         IntegrationConfig::setValue('opnsense', 'dhcp_server', 'isc');
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
 

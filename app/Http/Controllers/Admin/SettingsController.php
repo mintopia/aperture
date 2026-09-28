@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Capability;
 use App\Http\Controllers\Controller;
 use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
@@ -24,7 +25,7 @@ class SettingsController extends Controller
             $activeCapabilities = CapabilityAssignment::getForIntegration($id);
             $capabilities = array_map(fn (string $cap): array => [
                 'name' => $cap,
-                'active' => $activeCapabilities->contains($cap),
+                'active' => ($capability = Capability::tryFrom($cap)) !== null && $activeCapabilities->contains($capability),
             ], $meta['capabilities']);
 
             return [

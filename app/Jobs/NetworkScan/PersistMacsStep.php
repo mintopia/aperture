@@ -6,44 +6,40 @@ namespace App\Jobs\NetworkScan;
 
 use App\Models\AuditLog;
 use App\Models\MacAddress;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 
 final class PersistMacsStep
 {
     /**
      * @param  Collection<int, DhcpLease>  $leases
-     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, IpMacEntry>  $entries
      * @param  Collection<int, ForwardingEntry>  $forwardingEntries
      */
-    public function __invoke(Collection $leases, Collection $arpEntries, Collection $forwardingEntries): void
+    public function __invoke(Collection $leases, Collection $entries, Collection $forwardingEntries): void
     {
         /** @var Collection<string, string> $allMacs */
         $allMacs = collect();
 
         foreach ($leases as $lease) {
-            if ($lease->mac === null) {
-                continue;
-            }
-
             $normalized = MacAddress::normalize($lease->mac);
-            if ($normalized !== '') {
+            if ($normalized !== null) {
                 $allMacs->put($normalized, 'dhcp');
             }
         }
 
-        foreach ($arpEntries as $arp) {
-            $normalized = MacAddress::normalize($arp->mac);
-            if ($normalized !== '' && ! $allMacs->has($normalized)) {
+        foreach ($entries as $entry) {
+            $normalized = MacAddress::normalize($entry->mac);
+            if ($normalized !== null && ! $allMacs->has($normalized)) {
                 $allMacs->put($normalized, 'arp');
             }
         }
 
         foreach ($forwardingEntries as $fwd) {
             $normalized = MacAddress::normalize($fwd->mac);
-            if ($normalized !== '' && ! $allMacs->has($normalized)) {
+            if ($normalized !== null && ! $allMacs->has($normalized)) {
                 $allMacs->put($normalized, 'switch');
             }
         }

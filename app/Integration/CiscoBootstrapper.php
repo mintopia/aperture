@@ -6,32 +6,31 @@ namespace App\Integration;
 
 use App\Enums\Capability;
 use App\Enums\Integration;
-use App\Models\CapabilityAssignment;
-use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
 use App\Services\Cisco\CiscoDhcpService;
-use App\Services\Interfaces\DhcpInterface;
 use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use Illuminate\Contracts\Foundation\Application;
-use Throwable;
 
 final class CiscoBootstrapper implements IntegrationBootstrapper
 {
-    public function register(Application $app): void
+    public function integration(): Integration
     {
-        $app->extend(DhcpInterface::class, function (DhcpInterface $service, Application $app): DhcpInterface {
-            if ($this->isActive(Capability::Dhcp->value)) {
-                return $this->buildDhcpService($app) ?? $service;
-            }
-
-            return $service;
-        });
+        return Integration::Cisco;
     }
 
-    private function buildDhcpService(Application $app): ?DhcpInterface
+    public function providers(): array
     {
-        $switchId = IntegrationConfig::getValue(Integration::Cisco->value, 'switch_id');
+        return [
+            Capability::Dhcp->value => fn (Application $app): ?CiscoDhcpService => $this->buildDhcpService($app),
+        ];
+    }
+
+    private function buildDhcpService(Application $app): ?CiscoDhcpService
+    {
+        $config = InstallGuard::config(Integration::Cisco->value);
+
+        $switchId = $config['switch_id'] ?? null;
         if ($switchId === null) {
             return null;
         }
@@ -41,23 +40,12 @@ final class CiscoBootstrapper implements IntegrationBootstrapper
             return null;
         }
 
-        $factory = $app->make(SwitchServiceFactory::class);
-        $transport = $factory->createTransport($switchConfig);
-
         return new CiscoDhcpService(
-            transport: $transport,
+            transport: $app->make(SwitchServiceFactory::class)->createTransport($switchConfig),
             parser: new IosOutputParser,
-            poolSize: (string) IntegrationConfig::getValue(Integration::Cisco->value, 'pool_size', '0'),
-            ipv6Enabled: (bool) IntegrationConfig::getValue(Integration::Cisco->value, 'ipv6_enabled', true),
+            poolSize: (string) ($config['pool_size'] ?? '0'),
+            ipv6Enabled: (bool) ($config['ipv6_enabled'] ?? true),
+            timezone: $switchConfig->timezone ?: 'UTC',
         );
-    }
-
-    private function isActive(string $capability): bool
-    {
-        try {
-            return CapabilityAssignment::isActiveProvider(Integration::Cisco->value, $capability);
-        } catch (Throwable) {
-            return false;
-        }
     }
 }

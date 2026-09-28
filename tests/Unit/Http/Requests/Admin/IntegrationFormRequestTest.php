@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Http\Requests\Admin;
 
 use App\Http\Requests\Admin\ToggleCapabilityRequest;
+use Illuminate\Validation\Rules\Enum;
 use Tests\TestCase;
 
 class IntegrationFormRequestTest extends TestCase
@@ -23,8 +24,8 @@ class IntegrationFormRequestTest extends TestCase
         $this->assertArrayHasKey('capability', $rules);
         $this->assertArrayHasKey('integration', $rules);
         $this->assertArrayHasKey('active', $rules);
-        $this->assertStringContainsString('required', $rules['capability']);
-        $this->assertStringContainsString('string', $rules['capability']);
+        $this->assertSame('required', $rules['capability'][0]);
+        $this->assertInstanceOf(Enum::class, $rules['capability'][1]);
         $this->assertStringContainsString('required', $rules['integration']);
         $this->assertStringContainsString('string', $rules['integration']);
         $this->assertStringContainsString('required', $rules['active']);

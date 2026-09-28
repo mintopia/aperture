@@ -27,8 +27,7 @@ class EnsureAccountSecurityVerified
                 return response()->json(['message' => 'Please create a password to manage passkeys.'], 403);
             }
 
-            return redirect()
-                ->route('account.settings')
+            return to_route('account.settings')
                 ->with('error', 'Please create a password to manage passkeys.');
         }
 
@@ -39,8 +38,7 @@ class EnsureAccountSecurityVerified
                 return response()->json(['message' => 'Please verify your account before managing passkeys.'], 403);
             }
 
-            return redirect()
-                ->route('account.settings')
+            return to_route('account.settings')
                 ->with('error', 'Please verify your account before managing passkeys.');
         }
 
