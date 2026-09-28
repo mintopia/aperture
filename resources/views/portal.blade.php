@@ -57,7 +57,7 @@
 @endsection
 
 @section('scripts')
-    <script>
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
     document.addEventListener("DOMContentLoaded", function() {
         var statusOK = document.getElementById('status-ok');
         var statusWaiting = document.getElementById('status-waiting');

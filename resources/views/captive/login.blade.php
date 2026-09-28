@@ -15,7 +15,7 @@
                     Please contact your administrator to configure the OAuth2 service.
                 </p>
                 <button
-                    onclick="window.location.reload()"
+                    data-reload
                     class="mt-4 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)]"
                 >
                     Try Again
@@ -104,13 +104,13 @@
                 <div id="status-expired" data-testid="captive-status-expired" class="hidden text-[13px] text-[var(--color-danger)]">
                     <p class="font-semibold">Your login code has expired</p>
                     <p class="mt-1 text-xs text-[var(--color-text-secondary)]">Please get a new code to continue.</p>
-                    <button onclick="window.location.reload()" class="mt-3 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)]" data-testid="captive-refresh">
+                    <button data-reload class="mt-3 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)]" data-testid="captive-refresh">
                         Get New Code
                     </button>
                 </div>
                 <div id="status-error" data-testid="captive-status-error" class="hidden text-[13px] text-[var(--color-danger)]">
                     <p>An error occurred.</p>
-                    <button onclick="window.location.reload()" class="mt-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)]">
+                    <button data-reload class="mt-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)]">
                         Try Again
                     </button>
                 </div>
@@ -121,7 +121,8 @@
 
 @section('scripts')
     @if (empty($serviceUnavailable))
-    <script>
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
+        document.querySelectorAll("[data-reload]").forEach((el) => el.addEventListener("click", () => window.location.reload()));
         (function() {
             var deviceCode = @json($deviceCode);
             var interval = Math.max({{ $interval }} * 1000, 3000);

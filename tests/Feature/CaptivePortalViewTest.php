@@ -40,6 +40,19 @@ class CaptivePortalViewTest extends TestCase
         $response->assertViewIs('captive.login');
     }
 
+    public function test_captive_login_inline_scripts_carry_csp_nonce_and_no_inline_handlers(): void
+    {
+        $this->mockAuthProvider();
+
+        $response = $this->get('/captive');
+
+        preg_match("/'nonce-([^']+)'/", $response->headers->get('Content-Security-Policy'), $m);
+        $html = $response->getContent();
+        $this->assertStringContainsString('<script nonce="'.$m[1].'">', $html);
+        $this->assertDoesNotMatchRegularExpression('/<script>/', $html);
+        $this->assertDoesNotMatchRegularExpression('/\sonclick=/', $html);
+    }
+
     public function test_captive_login_page_displays_user_code(): void
     {
         $this->mockAuthProvider();

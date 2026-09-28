@@ -37,7 +37,7 @@
         {{-- Error state with retry --}}
         <div id="status-error" data-testid="interstitial-error" class="mt-6 hidden text-[13px] text-[var(--color-danger)]">
             <p>Something went wrong granting access.</p>
-            <button onclick="window.location.reload()" class="mt-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)]">
+            <button data-reload class="mt-2 rounded-md bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:bg-[var(--color-primary-hover)]">
                 Retry
             </button>
         </div>
@@ -45,7 +45,8 @@
 @endsection
 
 @section('scripts')
-    <script>
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
+        document.querySelectorAll("[data-reload]").forEach((el) => el.addEventListener("click", () => window.location.reload()));
         (function() {
             var attempts = 0;
             var maxAttempts = 30;
