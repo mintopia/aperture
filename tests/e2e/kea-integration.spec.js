@@ -26,8 +26,27 @@ function closeStub(stub) {
 }
 
 test.describe('Kea Integration (IPv4)', () => {
-    // Tests share one persistent 'kea' integration row and depend on order.
+    // All e2e tests share one authenticated session (storageState), so concurrent
+    // requests from other workers can clobber this file's Inertia validation-error flash data.
     test.describe.configure({ mode: 'serial' });
+
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/admin/settings/integrations/kea');
+
+        await page.getByTestId('field-input-endpoint_v4').fill('');
+        await page.getByTestId('field-input-username_v4').fill('');
+        await page.getByTestId('field-input-password_v4').fill('');
+        await page.getByTestId('action-save').click();
+        await expect(page.getByTestId('form-field-error')).toHaveCount(0);
+
+        for (const testId of ['capability-dhcp', 'capability-ip-mac']) {
+            const toggle = page.getByTestId(testId);
+            if ((await toggle.innerText()).includes('On')) {
+                await toggle.click();
+                await expect(toggle).toContainText('Off');
+            }
+        }
+    });
 
     test('is reachable from the integrations list and shows its config page', async ({ page }) => {
         await page.goto('/admin/settings/integrations');
@@ -47,7 +66,6 @@ test.describe('Kea Integration (IPv4)', () => {
     });
 
     test('reports "no endpoint configured" when the IPv4 Endpoint is blank', async ({ page }) => {
-        // Must run before any test below saves an endpoint.
         await page.goto('/admin/settings/integrations/kea');
 
         await page.getByTestId('action-test-connection').click();

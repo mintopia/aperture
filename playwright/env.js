@@ -85,11 +85,6 @@ export function buildPlaywrightEnv(baseURL = resolveBaseUrl()) {
     // Keep Playwright on an isolated sqlite file by default. `:memory:` cannot be shared
     // between the setup artisan process and the long-lived web server process.
     const playwrightSqliteDatabase = process.env.PLAYWRIGHT_DB_DATABASE || path.resolve(process.cwd(), 'database', 'playwright.sqlite');
-    // The "array" driver never persists session data beyond a single request lifecycle, so
-    // a real browser flow that needs a session across two HTTP requests (e.g. GET /login to
-    // pick up a CSRF token, then POST /login) always fails with a 419 against the long-lived
-    // `php artisan serve` process. Use "file" by default so sessions survive between requests;
-    // PLAYWRIGHT_SESSION_DRIVER can still override this for other drivers.
     const playwrightSessionDriver = process.env.PLAYWRIGHT_SESSION_DRIVER || 'file';
     const playwrightCacheDriver = process.env.PLAYWRIGHT_CACHE_DRIVER || 'array';
     const playwrightQueueConnection = process.env.PLAYWRIGHT_QUEUE_CONNECTION || 'sync';
@@ -105,11 +100,6 @@ export function buildPlaywrightEnv(baseURL = resolveBaseUrl()) {
         QUEUE_CONNECTION: playwrightQueueConnection,
         REDIS_HOST: process.env.REDIS_HOST || readDotEnvValue('REDIS_HOST') || '127.0.0.1',
         REDIS_PORT: process.env.REDIS_PORT || readDotEnvValue('REDIS_PORT') || '6379',
-        // The default .env points at the docker-compose "reverb" hostname, which isn't
-        // resolvable when running Playwright against a bare `php artisan serve`. Broadcasting
-        // an event (e.g. the login audit log) would otherwise throw and turn every
-        // authenticated request into a 500. Mirror phpunit.xml's BROADCAST_DRIVER=log so
-        // broadcasts are swallowed to the log instead of attempting a real Reverb connection.
         BROADCAST_DRIVER: process.env.PLAYWRIGHT_BROADCAST_DRIVER || readDotEnvValue('PLAYWRIGHT_BROADCAST_DRIVER') || 'log',
     };
 }

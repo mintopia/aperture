@@ -7,15 +7,8 @@ namespace App\Services\Kea;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-/**
- * Deep module owning HTTP communication with a single Kea Control Agent / daemon
- * Endpoint for one Address Family (e.g. kea-dhcp4).
- */
 class KeaClient
 {
-    /**
-     * Kea result code meaning the command succeeded.
-     */
     private const RESULT_SUCCESS = 0;
 
     /**
@@ -80,8 +73,6 @@ class KeaClient
     }
 
     /**
-     * List the commands supported by the connected Kea daemon.
-     *
      * @return list<string>
      */
     public function listCommands(): array
