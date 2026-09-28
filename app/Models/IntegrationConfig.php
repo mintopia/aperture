@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 /**
  * @property int $id
@@ -128,11 +129,6 @@ class IntegrationConfig extends Model
         $config->save();
     }
 
-    public static function getWithFallback(string $integration, string $key, mixed $default = null): mixed
-    {
-        return static::getValue($integration, $key) ?? $default;
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -142,5 +138,17 @@ class IntegrationConfig extends Model
             ->get()
             ->mapWithKeys(fn (self $c): array => [$c->key => $c->value])
             ->toArray();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function safeGetAll(string $integration): array
+    {
+        try {
+            return static::getAll($integration);
+        } catch (Throwable) {
+            return [];
+        }
     }
 }

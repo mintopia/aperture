@@ -62,12 +62,9 @@ class Setting extends Model
 
     public static function get(string $code, mixed $default = null): mixed
     {
-        $setting = Setting::whereCode($code)->first();
-        if ($setting) {
-            return $setting->value;
-        }
+        $setting = static::query()->firstWhere('code', $code);
 
-        return $default;
+        return $setting instanceof self ? $setting->value : $default;
     }
 
     /**
@@ -80,13 +77,7 @@ class Setting extends Model
      */
     public static function set(string $code, string $name, mixed $value): void
     {
-        $setting = Setting::whereCode($code)->first();
-        if (! $setting) {
-            $setting = new Setting;
-            $setting->code = $code;
-            $setting->name = $name;
-        }
-
+        $setting = static::query()->firstOrNew(['code' => $code], ['name' => $name]);
         $setting->value = $value;
         $setting->save();
     }

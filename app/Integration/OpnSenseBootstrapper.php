@@ -18,7 +18,6 @@ use App\Services\OpnSense\OpnSenseCaptivePortal;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use App\Services\OpnSense\OpnSenseRateLimiter;
-use GuzzleHttp\Client;
 use Illuminate\Contracts\Foundation\Application;
 use Throwable;
 
@@ -72,7 +71,7 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
 
     private function buildDhcpService(): OpnSenseDhcpService
     {
-        $opnsenseConfig = $this->getIntegrationDbConfig();
+        $opnsenseConfig = IntegrationConfig::safeGetAll(Integration::OpnSense->value);
         $dhcpServer = (string) ($opnsenseConfig['dhcp_server'] ?? 'isc');
         $paths = match ($dhcpServer) {
             'kea' => [
@@ -145,17 +144,9 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
                 'prefix' => 'prefix',
             ],
         };
-        $client = new Client([
-            'verify' => (bool) ($opnsenseConfig['verify_ssl'] ?? true),
-            'base_uri' => $opnsenseConfig['endpoint'] ?? '',
-            'auth' => [
-                $opnsenseConfig['key'] ?? '',
-                $opnsenseConfig['secret'] ?? '',
-            ],
-        ]);
 
         return new OpnSenseDhcpService(
-            $client,
+            OpnSenseClient::fromConfig($opnsenseConfig)->request(),
             (int) ($opnsenseConfig['pool_size'] ?? 254),
             $paths['leases'],
             $paths['ipv4_ranges'],
@@ -164,17 +155,5 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
             $rangeFieldMap,
             $dhcpServer === 'kea',
         );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getIntegrationDbConfig(): array
-    {
-        try {
-            return IntegrationConfig::getAll(Integration::OpnSense->value);
-        } catch (Throwable) {
-            return [];
-        }
     }
 }

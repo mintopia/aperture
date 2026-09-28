@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Setting;
+use Symfony\Component\HttpFoundation\IpUtils;
 
 class NetworkRangeService
 {
@@ -19,15 +20,8 @@ class NetworkRangeService
         }
 
         $isV6 = str_contains($ip, ':');
-        $ranges = $this->getRanges($isV6);
 
-        foreach ($ranges as $cidr) {
-            if ($this->ipInCidr($binary, $cidr, $isV6)) {
-                return true;
-            }
-        }
-
-        return false;
+        return IpUtils::checkIp($ip, $this->getRanges($isV6));
     }
 
     /**
@@ -84,50 +78,5 @@ class NetworkRangeService
         $expectedLength = $family === 4 ? 4 : 16;
 
         return strlen($binary) === $expectedLength;
-    }
-
-    private function ipInCidr(string $ipBinary, string $cidr, bool $isV6): bool
-    {
-        $parts = explode('/', $cidr, 2);
-        if (count($parts) !== 2) {
-            return false;
-        }
-
-        [$subnet, $prefixStr] = $parts;
-        $prefix = (int) $prefixStr;
-
-        $subnetBinary = @inet_pton($subnet);
-        if ($subnetBinary === false) {
-            return false;
-        }
-
-        $expectedLength = $isV6 ? 16 : 4;
-        if (strlen($ipBinary) !== $expectedLength || strlen($subnetBinary) !== $expectedLength) {
-            return false;
-        }
-
-        $mask = $this->buildMask($prefix, $expectedLength);
-
-        return ($ipBinary & $mask) === ($subnetBinary & $mask);
-    }
-
-    private function buildMask(int $prefix, int $bytes): string
-    {
-        $mask = '';
-        $remaining = $prefix;
-
-        for ($i = 0; $i < $bytes; $i++) {
-            if ($remaining >= 8) {
-                $mask .= chr(255);
-                $remaining -= 8;
-            } elseif ($remaining > 0) {
-                $mask .= chr(256 - (1 << (8 - $remaining)));
-                $remaining = 0;
-            } else {
-                $mask .= chr(0);
-            }
-        }
-
-        return $mask;
     }
 }

@@ -4,29 +4,19 @@ namespace Tests\Unit\Services;
 
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\ResolvedPort;
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Response;
+use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
-use ReflectionClass;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class LibreNmsServiceTest extends TestCase
 {
     protected function createServiceWithMockClient(array $responses): LibreNmsService
     {
-        $mock = new MockHandler($responses);
-        $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack]);
+        Http::fake(['*' => Http::sequence($responses)]);
 
-        $service = new LibreNmsService('http://localhost', 'api-token');
-
-        $reflection = new ReflectionClass($service);
-        $prop = $reflection->getProperty('client');
-        $prop->setValue($service, $client);
-
-        return $service;
+        return new LibreNmsService('http://localhost', 'api-token');
     }
 
     public function test_get_forwarding_database_returns_collection(): void
@@ -39,7 +29,7 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
+            Http::response($responseBody),
         ]);
 
         $result = $service->getForwardingDatabase();
@@ -48,6 +38,9 @@ class LibreNmsServiceTest extends TestCase
         $this->assertEquals('aa:bb:cc:dd:ee:ff', $result[0]->mac);
         $this->assertEquals('1', $result[0]->port);
         $this->assertEquals(100, $result[0]->vlan);
+
+        Http::assertSent(fn (Request $request): bool => $request->url() === 'http://localhost/api/v0/resources/fdb'
+            && $request->hasHeader('X-Auth-Token', 'api-token'));
     }
 
     public function test_get_arp_table_returns_collection(): void
@@ -60,7 +53,7 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
+            Http::response($responseBody),
         ]);
 
         $result = $service->getArpTable();
@@ -84,8 +77,8 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $arpResponse),
-            new Response(200, [], $fdbResponse),
+            Http::response($arpResponse),
+            Http::response($fdbResponse),
         ]);
 
         $result = $service->resolveIpToPort('10.0.0.1');
@@ -100,7 +93,7 @@ class LibreNmsServiceTest extends TestCase
         $arpResponse = json_encode(['arp' => []]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $arpResponse),
+            Http::response($arpResponse),
         ]);
 
         $result = $service->resolveIpToPort('10.0.0.99');
@@ -117,8 +110,8 @@ class LibreNmsServiceTest extends TestCase
         $fdbResponse = json_encode(['fdb' => []]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $arpResponse),
-            new Response(200, [], $fdbResponse),
+            Http::response($arpResponse),
+            Http::response($fdbResponse),
         ]);
 
         $result = $service->resolveIpToPort('10.0.0.1');
@@ -134,7 +127,7 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
+            Http::response($responseBody),
         ]);
 
         $result = $service->getDeviceList();
@@ -154,7 +147,7 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
+            Http::response($responseBody),
         ]);
 
         $result = $service->getIpv6Neighbors();
@@ -176,7 +169,7 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
+            Http::response($responseBody),
         ]);
 
         $result = $service->getIpv6Neighbors();
@@ -189,7 +182,7 @@ class LibreNmsServiceTest extends TestCase
         $responseBody = json_encode(['arp' => []]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $responseBody),
+            Http::response($responseBody),
         ]);
 
         $result = $service->getIpv6Neighbors();
@@ -215,8 +208,8 @@ class LibreNmsServiceTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $portResponse),
-            new Response(200, [], $deviceResponse),
+            Http::response($portResponse),
+            Http::response($deviceResponse),
         ]);
 
         $result = $service->getPortDetail('42');
@@ -233,10 +226,20 @@ class LibreNmsServiceTest extends TestCase
         $portResponse = json_encode(['port' => null]);
 
         $service = $this->createServiceWithMockClient([
-            new Response(200, [], $portResponse),
+            Http::response($portResponse),
         ]);
 
         $result = $service->getPortDetail('999');
         $this->assertNull($result);
+    }
+
+    public function test_http_error_throws_request_exception(): void
+    {
+        $service = $this->createServiceWithMockClient([
+            Http::response('error', 500),
+        ]);
+
+        $this->expectException(RequestException::class);
+        $service->getDeviceList();
     }
 }

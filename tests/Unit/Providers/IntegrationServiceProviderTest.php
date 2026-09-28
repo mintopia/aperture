@@ -7,8 +7,6 @@ namespace Tests\Unit\Providers;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
-use App\Services\Firewalls\OpnSenseApiService;
-use App\Services\Integration\IntegrationTesterRegistry;
 use App\Services\Interfaces\CaptivePortalInterface;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\DnsFilteringInterface;
@@ -258,24 +256,6 @@ class IntegrationServiceProviderTest extends TestCase
         $service = $this->app->make($interface);
 
         $this->assertInstanceOf($expectedClass, $service);
-    }
-
-    // -------------------------------------------------------
-    // Non-capability bindings
-    // -------------------------------------------------------
-
-    public function test_integration_tester_registry_is_registered(): void
-    {
-        $registry = $this->app->make(IntegrationTesterRegistry::class);
-
-        $this->assertInstanceOf(IntegrationTesterRegistry::class, $registry);
-    }
-
-    public function test_opnsense_api_service_is_registered(): void
-    {
-        $service = $this->app->make(OpnSenseApiService::class);
-
-        $this->assertInstanceOf(OpnSenseApiService::class, $service);
     }
 
     // -------------------------------------------------------

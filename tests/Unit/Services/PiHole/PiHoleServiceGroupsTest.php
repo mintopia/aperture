@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\PiHole;
 
-use App\Services\PiHole\PiHoleApiService;
+use App\Services\PiHole\PiHoleService;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Tests\TestCase;
 
-class PiHoleApiServiceTest extends TestCase
+class PiHoleServiceGroupsTest extends TestCase
 {
     public function test_get_groups_returns_error_when_endpoint_is_empty(): void
     {
-        $result = PiHoleApiService::getGroups(['endpoint' => '', 'password' => 'secret']);
+        $result = PiHoleService::fromConfig(['endpoint' => '', 'password' => 'secret'])->getGroups();
 
         $this->assertSame([], $result['groups']);
         $this->assertStringContainsString('endpoint is not configured', $result['error']);
@@ -21,7 +21,7 @@ class PiHoleApiServiceTest extends TestCase
 
     public function test_get_groups_returns_error_when_password_is_empty(): void
     {
-        $result = PiHoleApiService::getGroups(['endpoint' => 'http://pihole.local', 'password' => '']);
+        $result = PiHoleService::fromConfig(['endpoint' => 'http://pihole.local', 'password' => ''])->getGroups();
 
         $this->assertSame([], $result['groups']);
         $this->assertStringContainsString('password is not configured', $result['error']);
@@ -33,11 +33,11 @@ class PiHoleApiServiceTest extends TestCase
             'pihole.local/api/auth' => Http::response(['error' => 'unauthorized'], 401),
         ]);
 
-        $result = PiHoleApiService::getGroups([
+        $result = PiHoleService::fromConfig([
             'endpoint' => 'http://pihole.local',
             'password' => 'wrong',
             'verify_ssl' => false,
-        ]);
+        ])->getGroups();
 
         $this->assertSame([], $result['groups']);
         $this->assertStringContainsString('authentication failed', strtolower($result['error']));
@@ -49,11 +49,11 @@ class PiHoleApiServiceTest extends TestCase
             'pihole.local/api/auth' => Http::response(['session' => ['sid' => '']], 200),
         ]);
 
-        $result = PiHoleApiService::getGroups([
+        $result = PiHoleService::fromConfig([
             'endpoint' => 'http://pihole.local',
             'password' => 'secret',
             'verify_ssl' => false,
-        ]);
+        ])->getGroups();
 
         $this->assertSame([], $result['groups']);
         $this->assertStringContainsString('session ID', $result['error']);
@@ -66,11 +66,11 @@ class PiHoleApiServiceTest extends TestCase
             'pihole.local/api/groups' => Http::response('Server Error', 500),
         ]);
 
-        $result = PiHoleApiService::getGroups([
+        $result = PiHoleService::fromConfig([
             'endpoint' => 'http://pihole.local',
             'password' => 'secret',
             'verify_ssl' => false,
-        ]);
+        ])->getGroups();
 
         $this->assertSame([], $result['groups']);
         $this->assertStringContainsString('Failed to fetch Pi-hole groups', $result['error']);
@@ -88,11 +88,11 @@ class PiHoleApiServiceTest extends TestCase
             ], 200),
         ]);
 
-        $result = PiHoleApiService::getGroups([
+        $result = PiHoleService::fromConfig([
             'endpoint' => 'http://pihole.local',
             'password' => 'secret',
             'verify_ssl' => false,
-        ]);
+        ])->getGroups();
 
         $this->assertSame([
             ['id' => 0, 'name' => 'Default', 'enabled' => true],
@@ -105,11 +105,11 @@ class PiHoleApiServiceTest extends TestCase
     {
         Http::fake(fn () => throw new RuntimeException('Connection refused'));
 
-        $result = PiHoleApiService::getGroups([
+        $result = PiHoleService::fromConfig([
             'endpoint' => 'http://pihole.local',
             'password' => 'secret',
             'verify_ssl' => false,
-        ]);
+        ])->getGroups();
 
         $this->assertSame([], $result['groups']);
         $this->assertStringContainsString('Connection refused', $result['error']);

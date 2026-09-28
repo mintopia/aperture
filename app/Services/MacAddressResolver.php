@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\MacAddress;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
@@ -20,12 +21,12 @@ class MacAddressResolver implements MacAddressResolverInterface
     {
         $lease = $this->dhcp->getLease($ipAddress);
         if ($lease instanceof DhcpLease && $lease->mac !== null && ($lease->mac !== '' && $lease->mac !== '0')) {
-            return $this->normalizeMac($lease->mac);
+            return MacAddress::normalize($lease->mac);
         }
 
         $arpEntry = $this->ipMac->getArpTable()->firstWhere('ip', $ipAddress);
         if ($arpEntry !== null && ! empty($arpEntry->mac)) {
-            return $this->normalizeMac($arpEntry->mac);
+            return MacAddress::normalize($arpEntry->mac);
         }
 
         return null;
@@ -34,22 +35,15 @@ class MacAddressResolver implements MacAddressResolverInterface
     /** @return array<int, array{ip: string, hostname: string}> */
     public function resolveMacToIps(string $macAddress): array
     {
-        $normalized = $this->normalizeMac($macAddress);
+        $normalized = MacAddress::normalize($macAddress);
 
         return $this->dhcp->getLeases()
-            ->filter(fn (DhcpLease $lease): bool => $lease->mac !== null && $this->normalizeMac($lease->mac) === $normalized)
+            ->filter(fn (DhcpLease $lease): bool => $lease->mac !== null && MacAddress::normalize($lease->mac) === $normalized)
             ->map(fn (DhcpLease $lease): array => [
                 'ip' => $lease->ip,
                 'hostname' => $lease->hostname,
             ])
             ->values()
             ->all();
-    }
-
-    private function normalizeMac(string $mac): string
-    {
-        $hex = strtoupper(preg_replace('/[^0-9A-Fa-f]/', '', $mac) ?? '');
-
-        return implode(':', str_split($hex, 2));
     }
 }

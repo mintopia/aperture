@@ -8,32 +8,21 @@ use App\Services\SshProxy\CommandResult;
 use App\Services\SshProxy\ConnectionStatus;
 use App\Services\SshProxy\ProxyStatus;
 use App\Services\SshProxy\SshProxyClient;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\ServerException;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Response;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
-use ReflectionClass;
 use RuntimeException;
 use Tests\TestCase;
 
 class SshProxyClientTest extends TestCase
 {
-    protected function createClientWithMockHandler(array $responses): SshProxyClient
+    protected function createClientWithFakes(array $responses): SshProxyClient
     {
-        $mock = new MockHandler($responses);
-        $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack]);
+        Http::fake(['*' => Http::sequence($responses)]);
 
-        $proxyClient = new SshProxyClient('http://localhost:8022', 'test-key');
-
-        $reflection = new ReflectionClass($proxyClient);
-        $prop = $reflection->getProperty('client');
-        $prop->setValue($proxyClient, $client);
-
-        return $proxyClient;
+        return new SshProxyClient('http://localhost:8022', 'test-key');
     }
 
     public function test_execute_sends_post_with_correct_payload(): void
@@ -45,8 +34,8 @@ class SshProxyClientTest extends TestCase
             ],
         ];
 
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(200, [], json_encode($expectedResponse)),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode($expectedResponse), 200),
         ]);
 
         $result = $proxyClient->execute(
@@ -62,6 +51,16 @@ class SshProxyClientTest extends TestCase
         $this->assertInstanceOf(CommandOutput::class, $result->output[0]);
         $this->assertSame('show version', $result->output[0]->command);
         $this->assertSame('OPNsense 23.7', $result->output[0]->output);
+
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
+            && $request->url() === 'http://localhost:8022/execute'
+            && $request->hasHeader('Authorization', 'Bearer test-key')
+            && $request['hostname'] === '192.168.1.1'
+            && $request['username'] === 'admin'
+            && $request['password'] === 'password123'
+            && $request['commands'] === [['command' => 'show version']]
+            && $request['port'] === 22
+            && $request['channel'] === 'commands');
     }
 
     public function test_execute_returns_parsed_json_response(): void
@@ -74,8 +73,8 @@ class SshProxyClientTest extends TestCase
             ],
         ];
 
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(200, [], json_encode($responseData)),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode($responseData), 200),
         ]);
 
         $result = $proxyClient->execute(
@@ -97,8 +96,8 @@ class SshProxyClientTest extends TestCase
 
     public function test_execute_throws_runtime_exception_on_409(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(409, [], json_encode(['error' => 'Host locked'])),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['error' => 'Host locked']), 409),
         ]);
 
         $this->expectException(RuntimeException::class);
@@ -114,11 +113,11 @@ class SshProxyClientTest extends TestCase
 
     public function test_execute_throws_on_other_http_errors(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(500, [], json_encode(['error' => 'Internal server error'])),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['error' => 'Internal server error']), 500),
         ]);
 
-        $this->expectException(ServerException::class);
+        $this->expectException(RequestException::class);
 
         $proxyClient->execute(
             '192.168.1.1',
@@ -142,8 +141,8 @@ class SshProxyClientTest extends TestCase
             ],
         ];
 
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(200, [], json_encode($statusResponse)),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode($statusResponse), 200),
         ]);
 
         $result = $proxyClient->status();
@@ -176,8 +175,8 @@ class SshProxyClientTest extends TestCase
             ],
         ];
 
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(200, [], json_encode($statusResponse)),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode($statusResponse), 200),
         ]);
 
         $result = $proxyClient->status();
@@ -203,54 +202,22 @@ class SshProxyClientTest extends TestCase
         $this->assertInstanceOf(SshProxyClient::class, $resolved);
     }
 
-    public function test_guzzle_client_has_timeout_configured(): void
+    public function test_connection_failure_throws_connection_exception(): void
     {
-        config([
-            'aperture.ssh_proxy.host' => '127.0.0.1',
-            'aperture.ssh_proxy.port' => 8022,
-            'aperture.ssh_proxy.api_key' => 'test-api-key',
-            'aperture.ssh_proxy.request_timeout' => 90,
-            'aperture.ssh_proxy.connect_timeout' => 10,
-        ]);
+        Http::fake(fn () => throw new ConnectionException('cURL error 7'));
 
-        // Clear the singleton so it gets re-resolved with new config
-        $this->app->forgetInstance(SshProxyClientInterface::class);
+        $this->expectException(ConnectionException::class);
 
-        $resolved = $this->app->make(SshProxyClientInterface::class);
-
-        $reflection = new ReflectionClass($resolved);
-        $clientProp = $reflection->getProperty('client');
-        /** @var Client $guzzleClient */
-        $guzzleClient = $clientProp->getValue($resolved);
-
-        $guzzleConfig = $guzzleClient->getConfig();
-
-        $this->assertSame(90, $guzzleConfig['timeout']);
-        $this->assertSame(10, $guzzleConfig['connect_timeout']);
-    }
-
-    public function test_guzzle_client_has_default_timeouts(): void
-    {
-        $proxyClient = new SshProxyClient('http://localhost:8022', 'test-key');
-
-        $reflection = new ReflectionClass($proxyClient);
-        $clientProp = $reflection->getProperty('client');
-        /** @var Client $guzzleClient */
-        $guzzleClient = $clientProp->getValue($proxyClient);
-
-        $guzzleConfig = $guzzleClient->getConfig();
-
-        $this->assertSame(60, $guzzleConfig['timeout']);
-        $this->assertSame(5, $guzzleConfig['connect_timeout']);
+        (new SshProxyClient('http://localhost:8022', 'test-key'))->status();
     }
 
     public function test_execute_rethrows_non_409_client_exception(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(403, [], json_encode(['error' => 'Forbidden'])),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['error' => 'Forbidden']), 403),
         ]);
 
-        $this->expectException(ClientException::class);
+        $this->expectException(RequestException::class);
 
         $proxyClient->execute(
             '192.168.1.1',

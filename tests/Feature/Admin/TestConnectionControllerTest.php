@@ -9,11 +9,11 @@ use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\SshProxy\CommandResult;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Psr7\Response as PsrResponse;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
@@ -642,10 +642,7 @@ class TestConnectionControllerTest extends TestCase
         $mockProxy = Mockery::mock(SshProxyClientInterface::class);
         $mockProxy->shouldReceive('execute')
             ->once()
-            ->andThrow(new ConnectException(
-                'Could not connect to proxy',
-                new Request('POST', 'http://proxy.local')
-            ));
+            ->andThrow(new ConnectionException('Could not connect to proxy'));
 
         $this->app->instance(SshProxyClientInterface::class, $mockProxy);
 
@@ -669,16 +666,10 @@ class TestConnectionControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
-        $request = new Request('POST', 'http://proxy.local');
-        $guzzleResponse = new Response(503, [], 'Service Unavailable');
         $mockProxy = Mockery::mock(SshProxyClientInterface::class);
         $mockProxy->shouldReceive('execute')
             ->once()
-            ->andThrow(new RequestException(
-                'Proxy returned 503',
-                $request,
-                $guzzleResponse
-            ));
+            ->andThrow(new RequestException(new Response(new PsrResponse(503, [], 'Service Unavailable'))));
 
         $this->app->instance(SshProxyClientInterface::class, $mockProxy);
 

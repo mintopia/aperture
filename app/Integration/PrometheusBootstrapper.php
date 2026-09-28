@@ -28,7 +28,7 @@ final class PrometheusBootstrapper implements IntegrationBootstrapper
         // ip-bandwidth
         $app->bind(function (Application $app): IpBandwidthInterface {
             if ($this->isActive(Capability::IpBandwidth->value)) {
-                $config = $this->getIntegrationDbConfig();
+                $config = IntegrationConfig::safeGetAll(Integration::Prometheus->value);
 
                 return new PrometheusIpBandwidth(
                     $app->make(PrometheusService::class),
@@ -70,18 +70,6 @@ final class PrometheusBootstrapper implements IntegrationBootstrapper
             return CapabilityAssignment::isActiveProvider(Integration::Prometheus->value, $capability);
         } catch (Throwable) {
             return false;
-        }
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getIntegrationDbConfig(): array
-    {
-        try {
-            return IntegrationConfig::getAll(Integration::Prometheus->value);
-        } catch (Throwable) {
-            return [];
         }
     }
 }

@@ -11,9 +11,9 @@ use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
-use App\Services\Firewalls\OpnSenseApiService;
 use App\Services\Integration\IntegrationConfigMerger;
-use App\Services\PiHole\PiHoleApiService;
+use App\Services\OpnSense\OpnSenseClient;
+use App\Services\PiHole\PiHoleService;
 use App\Services\Seatpicker\SeatpickerApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -247,21 +247,21 @@ class IntegrationController extends Controller
 
     public function opnsenseShaperRules(Request $request): JsonResponse
     {
-        $service = new OpnSenseApiService($this->configMerger->merge('opnsense', $request));
+        $service = OpnSenseClient::fromConfig($this->configMerger->merge('opnsense', $request));
 
         return response()->json($service->getShaperRules());
     }
 
     public function opnsenseZones(Request $request): JsonResponse
     {
-        $service = new OpnSenseApiService($this->configMerger->merge('opnsense', $request));
+        $service = OpnSenseClient::fromConfig($this->configMerger->merge('opnsense', $request));
 
         return response()->json($service->getZones());
     }
 
     public function piholeGroups(Request $request): JsonResponse
     {
-        return response()->json(PiHoleApiService::getGroups($this->configMerger->merge('pihole', $request)));
+        return response()->json(PiHoleService::fromConfig($this->configMerger->merge('pihole', $request))->getGroups());
     }
 
     public function seatpickerEvents(Request $request): JsonResponse

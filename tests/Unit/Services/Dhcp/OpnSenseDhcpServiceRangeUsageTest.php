@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Services\OpnSense\OpnSenseDhcpService;
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class OpnSenseDhcpServiceRangeUsageTest extends TestCase
@@ -25,7 +23,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     ];
 
     /**
-     * @param  list<Response>  $responses
+     * @param  list<PromiseInterface>  $responses
      * @param  array<string, string>  $rangeFieldMap
      */
     private function createService(
@@ -35,9 +33,9 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
         string $ipv6RangesPath = '',
         array $rangeFieldMap = self::DEFAULT_RANGE_MAP,
     ): OpnSenseDhcpService {
-        $mock = new MockHandler($responses);
-        $handler = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handler]);
+        $mock = Http::sequence($responses);
+        Http::fake(['*' => $mock]);
+        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         return new OpnSenseDhcpService(
             client: $client,
@@ -53,12 +51,12 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200', 'subnet' => '10.0.0.0/24'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -74,19 +72,19 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200', 'subnet' => '10.0.0.0/24'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode([
+                ], 200),
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.100', 'mac' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '10.0.0.150', 'mac' => 'aa:bb:cc:00:00:02', 'hostname' => 'h2', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '10.0.0.200', 'mac' => 'aa:bb:cc:00:00:03', 'hostname' => 'h3', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '10.0.0.50', 'mac' => 'aa:bb:cc:00:00:04', 'hostname' => 'h4', 'ends' => '2026-01-01', 'status' => 'active'],
                     ],
-                ])),
+                ], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -100,18 +98,18 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.109', 'subnet' => '10.0.0.0/24'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode([
+                ], 200),
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.100', 'mac' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '10.0.0.105', 'mac' => 'aa:bb:cc:00:00:02', 'hostname' => 'h2', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '10.0.0.109', 'mac' => 'aa:bb:cc:00:00:03', 'hostname' => 'h3', 'ends' => '2026-01-01', 'status' => 'active'],
                     ],
-                ])),
+                ], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -127,12 +125,12 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'prefix' => 'fd00::/64', 'description' => 'LAN IPv6'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
@@ -149,19 +147,19 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200', 'subnet' => '10.0.0.0/24'],
                         ['interface' => 'guest', 'range_from' => '192.168.1.10', 'range_to' => '192.168.1.50', 'subnet' => '192.168.1.0/24'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode([
+                ], 200),
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.100', 'mac' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '10.0.0.150', 'mac' => 'aa:bb:cc:00:00:02', 'hostname' => 'h2', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '192.168.1.20', 'mac' => 'aa:bb:cc:00:00:03', 'hostname' => 'h3', 'ends' => '2026-01-01', 'status' => 'active'],
                     ],
-                ])),
+                ], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -183,12 +181,12 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200', 'subnet' => '10.0.0.0/24'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -204,12 +202,12 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200', 'subnet' => '10.0.0.0/24'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -222,12 +220,12 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'subnet' => 'fd00::/64', 'prefix' => 'fd00::/64', 'description' => 'LAN IPv6'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -240,12 +238,12 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => 'fd00::100', 'range_to' => 'fd00::200', 'description' => 'LAN IPv6'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
@@ -258,13 +256,13 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.200', 'subnet' => '10.0.0.0/24'],
                         ['interface' => 'lan', 'subnet' => 'fd00::/64', 'prefix' => 'fd00::/64'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode(['rows' => []])),
+                ], 200),
+                Http::response(['rows' => []], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -290,7 +288,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
 
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         [
                             'interface' => 'lan',
@@ -299,13 +297,13 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
                             'domain' => 'lan.local',
                         ],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode([
+                ], 200),
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.100', 'mac' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '10.0.0.150', 'mac' => 'aa:bb:cc:00:00:02', 'hostname' => 'h2', 'ends' => '2026-01-01', 'status' => 'active'],
                     ],
-                ])),
+                ], 200),
             ],
             ipv4RangesPath: '/api/dnsmasq/settings/search_range',
             rangeFieldMap: $dnsmasqRangeMap,
@@ -336,17 +334,17 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.110', 'subnet' => '10.0.0.0/24'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode([
+                ], 200),
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.50', 'mac' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => '10.0.0.250', 'mac' => 'aa:bb:cc:00:00:02', 'hostname' => 'h2', 'ends' => '2026-01-01', 'status' => 'active'],
                     ],
-                ])),
+                ], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -360,16 +358,16 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => '10.0.0.100', 'range_to' => '10.0.0.100', 'subnet' => '10.0.0.0/24'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode([
+                ], 200),
+                Http::response([
                     'rows' => [
                         ['address' => '10.0.0.100', 'mac' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active'],
                     ],
-                ])),
+                ], 200),
             ],
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
@@ -385,18 +383,18 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
     {
         $service = $this->createService(
             responses: [
-                new Response(200, [], (string) json_encode([
+                Http::response([
                     'rows' => [
                         ['interface' => 'lan', 'range_from' => 'fd00::100', 'range_to' => 'fd00::110', 'subnet' => 'fd00::/64'],
                     ],
-                ])),
-                new Response(200, [], (string) json_encode([
+                ], 200),
+                Http::response([
                     'rows' => [
                         ['address' => 'fd00::105', 'mac' => 'aa:bb:cc:00:00:01', 'hostname' => 'h1', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => 'fd00::108', 'mac' => 'aa:bb:cc:00:00:02', 'hostname' => 'h2', 'ends' => '2026-01-01', 'status' => 'active'],
                         ['address' => 'fd00::200', 'mac' => 'aa:bb:cc:00:00:03', 'hostname' => 'h3', 'ends' => '2026-01-01', 'status' => 'active'],
                     ],
-                ])),
+                ], 200),
             ],
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
