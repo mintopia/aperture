@@ -36,8 +36,8 @@ class KeaDhcpService implements DhcpInterface
      */
     private ?array $snapshot = null;
 
-    /** @var array{ipv4: bool, ipv6: bool} */
-    private array $fetchStatus = ['ipv4' => false, 'ipv6' => false];
+    /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges: bool} */
+    private array $fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true];
 
     public function __construct(
         private readonly ?KeaClient $ipv4Client,
@@ -71,7 +71,7 @@ class KeaDhcpService implements DhcpInterface
 
         $client = $this->usableIpv4RangeClient();
 
-        if ($client === null) {
+        if (! $client instanceof KeaClient) {
             return collect();
         }
 
@@ -86,7 +86,7 @@ class KeaDhcpService implements DhcpInterface
             $entry = $client->sendCommand('config-get');
         } catch (Throwable $throwable) {
             Log::warning('Kea config-get failed', ['error' => $throwable->getMessage()]);
-            $this->fetchStatus['ipv4'] = false;
+            $this->fetchStatus['ipv4_ranges'] = false;
 
             return $this->cacheRanges(collect());
         }
@@ -175,7 +175,7 @@ class KeaDhcpService implements DhcpInterface
             return null;
         }
 
-        if (! self::isIpv4Address($ipAddress)) {
+        if (! $this->isIpv4Address($ipAddress)) {
             return null;
         }
 
@@ -218,7 +218,7 @@ class KeaDhcpService implements DhcpInterface
         );
     }
 
-    private static function isIpv4Address(string $ipAddress): bool
+    private function isIpv4Address(string $ipAddress): bool
     {
         return filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
     }
@@ -226,7 +226,7 @@ class KeaDhcpService implements DhcpInterface
     public function resetSnapshot(): void
     {
         $this->snapshot = null;
-        $this->fetchStatus = ['ipv4' => false, 'ipv6' => false];
+        $this->fetchStatus = ['ipv4' => false, 'ipv6' => false, 'ipv4_ranges' => true];
     }
 
     private function refreshSnapshot(): void
@@ -236,7 +236,7 @@ class KeaDhcpService implements DhcpInterface
     }
 
     /**
-     * @return array{ipv4: bool, ipv6: bool}
+     * @return array{ipv4: bool, ipv6: bool, ipv4_ranges: bool}
      */
     public function getFetchStatus(): array
     {

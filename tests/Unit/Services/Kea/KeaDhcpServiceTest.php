@@ -1336,7 +1336,7 @@ class KeaDhcpServiceTest extends TestCase
             'kea6.local' => Http::response([['result' => 3]]),
         ]);
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true], $service->getFetchStatus());
     }
 
     public function test_ipv6_failure_does_not_block_or_corrupt_ipv4(): void
@@ -1451,9 +1451,43 @@ class KeaDhcpServiceTest extends TestCase
         ]);
 
         $ranges = $this->service->getRanges();
+        $status = $this->service->getFetchStatus();
 
         $this->assertTrue($ranges->isEmpty());
-        $this->assertFalse($this->service->getFetchStatus()['ipv4']);
+        $this->assertFalse($status['ipv4_ranges']);
+    }
+
+    public function test_config_get_failure_does_not_corrupt_already_fetched_ipv4_lease_status(): void
+    {
+        $leasePageQueue = [[
+            'result' => 0,
+            'arguments' => ['leases' => [$this->keaLease('10.0.0.1', 'AA:BB:CC:00:00:01', 'v4-host')]],
+        ]];
+
+        Http::fake([
+            'kea.local' => function ($request) use (&$leasePageQueue) {
+                $command = $request->data()['command'] ?? null;
+
+                if ($command === 'config-get') {
+                    return Http::response('Unauthorized', 401);
+                }
+
+                if ($command === 'lease4-get-page') {
+                    return Http::response([array_shift($leasePageQueue) ?? ['result' => 3]]);
+                }
+
+                return Http::response([['result' => 3]]);
+            },
+        ]);
+
+        $leases = $this->service->getLeases();
+        $ranges = $this->service->getRanges();
+        $status = $this->service->getFetchStatus();
+
+        $this->assertSame(['10.0.0.1'], $leases->pluck('ip')->all());
+        $this->assertTrue($ranges->isEmpty());
+        $this->assertTrue($status['ipv4']);
+        $this->assertFalse($status['ipv4_ranges']);
     }
 
     public function test_get_ranges_returns_empty_without_request_when_ipv4_client_is_null(): void

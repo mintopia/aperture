@@ -71,7 +71,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
         $ranges = $dhcp->getRanges();
         $poolStatus = $dhcp->getPoolStatus();
 
-        /** @var array{ipv4: bool, ipv6: bool} $fetchStatus */
+        /** @var array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool} $fetchStatus */
         $fetchStatus = method_exists($dhcp, 'getFetchStatus')
             ? $dhcp->getFetchStatus()
             : ['ipv4' => true, 'ipv6' => true];
@@ -131,7 +131,7 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
     /**
      * @param  Collection<int, DhcpLease>  $leases
-     * @param  array{ipv4: bool, ipv6: bool}  $fetchStatus
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
      */
     public function performLeaseSync(string $integration, Collection $leases, array $fetchStatus): int
     {
@@ -241,13 +241,13 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
 
     /**
      * @param  Collection<int, DhcpRange>  $ranges
-     * @param  array{ipv4: bool, ipv6: bool}  $fetchStatus
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
      */
     public function performRangeSync(string $integration, Collection $ranges, array $fetchStatus): int
     {
         $addressFamily = 'ipv4';
 
-        if (! $fetchStatus[$addressFamily]) {
+        if (! $this->rangesFetchSucceeded($fetchStatus)) {
             $this->recordFailedAttempt($integration, $addressFamily, 'ranges');
 
             return 0;
@@ -305,13 +305,13 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * @param  array{ipv4: bool, ipv6: bool}  $fetchStatus
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
      */
     public function performPoolStatusSync(string $integration, DhcpPoolStatus $poolStatus, array $fetchStatus): int
     {
         $addressFamily = 'ipv4';
 
-        if (! $fetchStatus[$addressFamily]) {
+        if (! $this->rangesFetchSucceeded($fetchStatus)) {
             $this->recordFailedAttempt($integration, $addressFamily, 'pool_status');
 
             return 0;
@@ -364,6 +364,14 @@ class SyncDhcpData implements ShouldBeUnique, ShouldQueue
         $syncState->save();
 
         return 1;
+    }
+
+    /**
+     * @param  array{ipv4: bool, ipv6: bool, ipv4_ranges?: bool}  $fetchStatus
+     */
+    private function rangesFetchSucceeded(array $fetchStatus): bool
+    {
+        return $fetchStatus['ipv4'] && ($fetchStatus['ipv4_ranges'] ?? true);
     }
 
     private function recordFailedAttempt(string $integration, string $addressFamily, string $dataset): void
