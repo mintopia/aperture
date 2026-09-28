@@ -31,23 +31,18 @@ A captive portal system designed for LAN parties. Aperture provides an easy way 
 
 ## Local Development
 
-Use the scripts in `bin/` to manage the full dev stack (app, Vite HMR, Reverb, SSH proxy, Horizon, scheduler):
+Thin wrappers over `docker compose` manage the full dev stack (app, Vite HMR, Reverb, SSH proxy, Horizon, scheduler):
 
 ```bash
-bin/dev-start.sh      # Start all services
-bin/dev-stop.sh       # Stop all services
-bin/dev-restart.sh    # Restart all services
-bin/dev-health.sh     # Check service health
-bin/dev-status.sh     # Show service status table
+bin/dev-start.sh      # docker compose up -d --build --wait
+bin/dev-stop.sh       # docker compose down
+bin/dev-restart.sh    # down, then up
+bin/dev-status.sh     # docker compose ps (includes health)
 ```
 
-`bin/dev-start.sh` auto-detects the environment:
+Health comes from the compose healthchecks; `--wait` blocks until they pass. Traefik mode (HTTPS hostnames) is used when a `traefik` container is running, otherwise local ports (`http://127.0.0.1:8000`, `:5173`, `:8080`). Force one with `DEV_START_MODE=traefik` or `DEV_START_MODE=ports`.
 
-- **Traefik running** — starts with HTTPS hostnames
-- **Traefik missing** — falls back to local ports (`http://127.0.0.1:8000`, `:5173`, `:8080`)
-- **Docker unavailable** — runs services directly on the host, managing PIDs under `.dev-env/`
-
-Force a mode with `DEV_START_MODE=traefik` or `DEV_START_MODE=ports`.
+Run one-off tools with `docker compose run --rm`, e.g. `docker compose run --rm aperture php artisan tinker`, `docker compose run --rm aperture composer install`, `docker compose run --rm aperture vendor/bin/phpunit`, `docker compose run --rm vite npm install`. Pass `-f docker-compose.yaml` to skip the Traefik override.
 
 ## Quality Checks
 
