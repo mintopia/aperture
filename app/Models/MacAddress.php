@@ -122,11 +122,30 @@ class MacAddress extends Model
         return $this->morphMany(AuditLog::class, 'subject');
     }
 
-    public static function normalize(string $mac): string
+    /**
+     * Canonical form is AA:BB:CC:DD:EE:FF. Returns null for blank input or
+     * anything that is not exactly 12 hex digits. Colon/dash separated input
+     * with unpadded octets (e.g. 0:1:2:3:4:5) is zero-padded per octet.
+     */
+    public static function normalize(?string $mac): ?string
     {
-        $hex = strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $mac));
+        $mac = trim((string) $mac);
+        if ($mac === '') {
+            return null;
+        }
 
-        return implode(':', str_split($hex, 2));
+        if (preg_match('/^[0-9A-Fa-f]{1,2}([:-])[0-9A-Fa-f]{1,2}(?:\1[0-9A-Fa-f]{1,2}){4}$/', $mac) === 1) {
+            $mac = implode('', array_map(
+                fn (string $octet): string => str_pad($octet, 2, '0', STR_PAD_LEFT),
+                preg_split('/[:-]/', $mac) ?: [],
+            ));
+        }
+
+        if (preg_match('/^(?:[0-9A-Fa-f]{2}[:-]?){5}[0-9A-Fa-f]{2}$|^(?:[0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$|^[0-9A-Fa-f]{12}$/', $mac) !== 1) {
+            return null;
+        }
+
+        return implode(':', str_split(strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $mac)), 2));
     }
 
     public function currentIp(): ?IpAddress

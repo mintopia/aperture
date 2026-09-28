@@ -6,8 +6,8 @@ namespace Tests\Feature\NetworkDeviceTracking;
 
 use App\Events\IpMacLinked;
 use App\Jobs\NetworkScan\LinkIpMacStep;
-use App\Jobs\NetworkScan\PersistDhcpLeasesStep;
 use App\Jobs\NetworkScan\PersistIpsStep;
+use App\Jobs\SyncDhcpData;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\NetworkRangeService;
@@ -169,44 +169,18 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         Event::assertNotDispatched(IpMacLinked::class);
     }
 
-    public function test_persist_dhcp_leases_step_skips_lease_with_null_mac(): void
-    {
-        IpAddress::factory()->create(['address' => self::LOWER]);
-
-        $step = new PersistDhcpLeasesStep;
-        $step(
-            collect([new DhcpLeaseVO(self::UPPER, null, 'my-device', '2026-06-11 12:00:00')]),
-            app(NetworkRangeService::class),
-        );
-
-        $this->assertDatabaseCount('dhcp_leases', 0);
-    }
-
-    public function test_persist_dhcp_leases_step_skips_lease_when_ip_or_mac_row_missing(): void
-    {
-        // IP row exists but the MAC row does not.
-        IpAddress::factory()->create(['address' => self::LOWER]);
-
-        $step = new PersistDhcpLeasesStep;
-        $step(
-            collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]),
-            app(NetworkRangeService::class),
-        );
-
-        $this->assertDatabaseCount('dhcp_leases', 0);
-    }
-
-    public function test_persist_dhcp_leases_step_matches_existing_lowercase_row_for_uppercase_lease(): void
+    public function test_sync_dhcp_data_matches_existing_lowercase_row_for_uppercase_lease(): void
     {
         $ip = IpAddress::factory()->create(['address' => self::LOWER]);
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:01']);
 
-        $step = new PersistDhcpLeasesStep;
-        $step(
+        (new SyncDhcpData)->performLeaseSync(
+            'cisco',
             collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]),
-            app(NetworkRangeService::class),
+            ['ipv4' => true, 'ipv6' => true],
         );
 
+        $this->assertSame(1, IpAddress::count());
         $this->assertDatabaseHas('dhcp_leases', [
             'ip_address_id' => $ip->id,
             'mac_address_id' => $mac->id,

@@ -131,26 +131,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         ]);
     }
 
-    public function test_discovery_persists_dhcp_leases_with_hostname(): void
-    {
-        $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'my-laptop', '2026-05-01 12:00:00')]);
-        $this->mockInventory();
-
-        (new ScanNetworkDevices)->handle();
-
-        $ip = IpAddress::where('address', '127.0.0.1')->first();
-        $mac = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:01')->first();
-
-        $this->assertNotNull($ip);
-        $this->assertNotNull($mac);
-        $this->assertDatabaseHas('dhcp_leases', [
-            'ip_address_id' => $ip->id,
-            'mac_address_id' => $mac->id,
-            'hostname' => 'my-laptop',
-        ]);
-    }
-
-    public function test_discovery_persists_dhcp_leases_with_active_integration(): void
+    public function test_discovery_does_not_write_dhcp_leases(): void
     {
         CapabilityAssignment::assign('dhcp', 'kea');
 
@@ -159,16 +140,9 @@ class ScanNetworkDevicesRefactorTest extends TestCase
 
         (new ScanNetworkDevices)->handle();
 
-        $ip = IpAddress::where('address', '127.0.0.1')->first();
-        $mac = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:01')->first();
-
-        $this->assertNotNull($ip);
-        $this->assertNotNull($mac);
-        $this->assertDatabaseHas('dhcp_leases', [
-            'ip_address_id' => $ip->id,
-            'mac_address_id' => $mac->id,
-            'integration' => 'kea',
-        ]);
+        $this->assertNotNull(IpAddress::where('address', '127.0.0.1')->first());
+        $this->assertNotNull(MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:01')->first());
+        $this->assertDatabaseCount('dhcp_leases', 0);
     }
 
     public function test_discovery_links_switch_port_mac_fk(): void

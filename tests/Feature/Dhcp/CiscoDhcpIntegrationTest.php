@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Dhcp;
 
-use App\Jobs\NetworkScan\PersistDhcpLeasesStep;
 use App\Jobs\SyncDhcpData;
 use App\Models\CapabilityAssignment;
 use App\Models\DhcpLease;
@@ -19,7 +18,6 @@ use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Services\Cisco\CiscoDhcpService;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
-use App\Services\NetworkRangeService;
 use App\Services\NetworkSwitch\IosOutputParser;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -485,7 +483,7 @@ class CiscoDhcpIntegrationTest extends TestCase
         $this->assertDatabaseHas('dhcp_leases', ['integration' => 'cisco', 'expires_at' => null]);
     }
 
-    public function test_network_scan_persists_manual_infinite_binding_with_null_expiry(): void
+    public function test_lease_sync_persists_manual_infinite_binding_with_null_expiry(): void
     {
         $service = new CiscoDhcpService(
             $this->transport,
@@ -499,14 +497,10 @@ class CiscoDhcpIntegrationTest extends TestCase
         $this->assertCount(1, $leases);
         $this->assertNull($leases->first()->expires);
 
-        $ip = IpAddress::factory()->create(['address' => '10.0.0.60']);
-        $mac = MacAddress::factory()->create(['mac_address' => '00:11:22:33:44:66']);
+        (new SyncDhcpData)->performLeaseSync('cisco', $leases, ['ipv4' => true, 'ipv6' => false]);
 
-        (new PersistDhcpLeasesStep)(
-            $leases,
-            Mockery::mock(NetworkRangeService::class, fn ($m) => $m->shouldReceive('isManaged')->andReturn(true)),
-            'cisco',
-        );
+        $ip = IpAddress::where('address', '10.0.0.60')->firstOrFail();
+        $mac = MacAddress::where('mac_address', '00:11:22:33:44:66')->firstOrFail();
 
         $this->assertDatabaseHas('dhcp_leases', [
             'ip_address_id' => $ip->id,

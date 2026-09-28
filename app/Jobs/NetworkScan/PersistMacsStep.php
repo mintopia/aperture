@@ -24,26 +24,22 @@ final class PersistMacsStep
         $allMacs = collect();
 
         foreach ($leases as $lease) {
-            if ($lease->mac === null) {
-                continue;
-            }
-
             $normalized = MacAddress::normalize($lease->mac);
-            if ($normalized !== '') {
+            if ($normalized !== null) {
                 $allMacs->put($normalized, 'dhcp');
             }
         }
 
         foreach ($arpEntries as $arp) {
             $normalized = MacAddress::normalize($arp->mac);
-            if ($normalized !== '' && ! $allMacs->has($normalized)) {
+            if ($normalized !== null && ! $allMacs->has($normalized)) {
                 $allMacs->put($normalized, 'arp');
             }
         }
 
         foreach ($forwardingEntries as $fwd) {
             $normalized = MacAddress::normalize($fwd->mac);
-            if ($normalized !== '' && ! $allMacs->has($normalized)) {
+            if ($normalized !== null && ! $allMacs->has($normalized)) {
                 $allMacs->put($normalized, 'switch');
             }
         }

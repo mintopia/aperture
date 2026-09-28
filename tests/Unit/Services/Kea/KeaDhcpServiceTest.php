@@ -667,7 +667,7 @@ class KeaDhcpServiceTest extends TestCase
         $leases = $this->service->getLeases();
 
         $this->assertCount(1, $leases);
-        $this->assertSame('', $this->assertLease($leases->first())->hostname);
+        $this->assertNull($this->assertLease($leases->first())->hostname);
     }
 
     public function test_maps_missing_mac_to_null(): void
@@ -952,7 +952,7 @@ class KeaDhcpServiceTest extends TestCase
 
         $this->assertInstanceOf(DhcpLease::class, $lease);
         $this->assertNull($lease->mac);
-        $this->assertSame('', $lease->hostname);
+        $this->assertNull($lease->hostname);
     }
 
     public function test_get_lease_mac_is_null_when_hw_address_is_empty_string(): void
