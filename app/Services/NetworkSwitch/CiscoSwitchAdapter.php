@@ -13,6 +13,7 @@ use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Support\Collection;
+use RuntimeException;
 
 class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperations, SupportsDhcpSnooping, SupportsInterfaceOutputCapture
 {
@@ -188,7 +189,13 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperatio
     public function getDhcpSnoopingBindings(): Collection
     {
         $output = $this->transport->execute('show ip dhcp snooping binding');
+        $bindings = $this->parser->parseDhcpSnoopingTable($output);
 
-        return collect($this->parser->parseDhcpSnoopingTable($output));
+        // An empty result is only trusted when the switch printed a real table.
+        if ($bindings === [] && ($this->parser->isErrorOutput($output) || ! str_contains($output, 'MacAddress'))) {
+            throw new RuntimeException('Unexpected DHCP snooping binding output');
+        }
+
+        return collect($bindings);
     }
 }

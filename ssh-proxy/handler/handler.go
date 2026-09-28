@@ -25,7 +25,7 @@ const (
 var Version = "dev"
 
 // Connector creates SSH sessions for a given host.
-type Connector func(ctx context.Context, hostname string, port int, username, password string) (ssh.Session, error)
+type Connector func(ctx context.Context, params ssh.ConnectParams) (ssh.Session, error)
 
 // CommandExecutor runs commands on an SSH session.
 type CommandExecutor interface {

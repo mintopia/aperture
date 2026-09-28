@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Models;
 
+use App\Enums\Capability;
 use App\Models\CapabilityAssignment;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -17,11 +18,11 @@ class CapabilityAssignmentTest extends TestCase
     {
         Queue::fake();
 
-        $assignment = CapabilityAssignment::assign('dhcp', 'opnsense');
+        $assignment = CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
         $this->assertInstanceOf(CapabilityAssignment::class, $assignment);
         $this->assertDatabaseHas('capability_assignments', [
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'opnsense',
         ]);
     }
@@ -30,49 +31,61 @@ class CapabilityAssignmentTest extends TestCase
     {
         Queue::fake();
 
-        CapabilityAssignment::assign('dhcp', 'opnsense');
-        CapabilityAssignment::assign('dhcp', 'pihole');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'pihole');
 
-        $this->assertTrue(CapabilityAssignment::isActiveProvider('pihole', 'dhcp'));
-        $this->assertFalse(CapabilityAssignment::isActiveProvider('opnsense', 'dhcp'));
+        $this->assertTrue(CapabilityAssignment::isActiveProvider('pihole', Capability::Dhcp));
+        $this->assertFalse(CapabilityAssignment::isActiveProvider('opnsense', Capability::Dhcp));
         $this->assertDatabaseHas('capability_assignments', [
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'pihole',
         ]);
         $this->assertDatabaseMissing('capability_assignments', [
-            'capability' => 'dhcp',
+            'capability' => Capability::Dhcp,
             'integration' => 'opnsense',
         ]);
-        $this->assertSame(1, CapabilityAssignment::query()->where('capability', 'dhcp')->count());
+        $this->assertSame(1, CapabilityAssignment::query()->where('capability', Capability::Dhcp)->count());
+    }
+
+    public function test_can_unassign_capability(): void
+    {
+        Queue::fake();
+
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
+        CapabilityAssignment::unassign(Capability::Dhcp);
+
+        $this->assertDatabaseMissing('capability_assignments', [
+            'capability' => Capability::Dhcp,
+        ]);
     }
 
     public function test_is_active_provider_returns_true_when_assigned(): void
     {
         Queue::fake();
 
-        CapabilityAssignment::assign('dhcp', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
-        $this->assertTrue(CapabilityAssignment::isActiveProvider('opnsense', 'dhcp'));
+        $this->assertTrue(CapabilityAssignment::isActiveProvider('opnsense', Capability::Dhcp));
     }
 
     public function test_is_active_provider_returns_false_when_not_assigned(): void
     {
         Queue::fake();
 
-        $this->assertFalse(CapabilityAssignment::isActiveProvider('opnsense', 'dhcp'));
+        $this->assertFalse(CapabilityAssignment::isActiveProvider('opnsense', Capability::Dhcp));
     }
 
     public function test_get_for_integration_returns_all_capabilities(): void
     {
         Queue::fake();
 
-        CapabilityAssignment::assign('dhcp', 'opnsense');
-        CapabilityAssignment::assign('firewall', 'opnsense');
+        CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
+        CapabilityAssignment::assign(Capability::Authentication, 'opnsense');
 
         $capabilities = CapabilityAssignment::getForIntegration('opnsense');
 
         $this->assertCount(2, $capabilities);
-        $this->assertEqualsCanonicalizing(['dhcp', 'firewall'], $capabilities->all());
+        $this->assertEqualsCanonicalizing([Capability::Dhcp, Capability::Authentication], $capabilities->all());
     }
 
     public function test_get_for_integration_returns_empty_when_none(): void

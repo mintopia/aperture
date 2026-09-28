@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\IntegrationConfigFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -34,6 +36,7 @@ use Throwable;
  *
  * @mixin \Eloquent
  */
+#[Fillable(['integration', 'key', 'value', 'encrypted'])]
 class IntegrationConfig extends Model
 {
     /** @use HasFactory<IntegrationConfigFactory> */
@@ -73,8 +76,6 @@ class IntegrationConfig extends Model
         });
     }
 
-    protected $fillable = ['integration', 'key', 'value', 'encrypted'];
-
     protected function casts(): array
     {
         return [
@@ -82,32 +83,56 @@ class IntegrationConfig extends Model
         ];
     }
 
-    public function getValueAttribute(?string $raw): mixed
+    private bool $valuePlain = false;
+
+    protected static function booted(): void
     {
-        if ($raw === null) {
-            return null;
-        }
-
-        $decoded = json_decode($raw, true);
-        $val = $decoded['v'] ?? null;
-
-        if ($this->encrypted && $val !== null) {
-            return decrypt($val);
-        }
-
-        return $val;
+        static::saving(function (self $config): void {
+            $config->sealPlainValue();
+        });
     }
 
-    public function setValueAttribute(mixed $value): void
+    /** @return Attribute<mixed, mixed> */
+    protected function value(): Attribute
     {
-        if ($value === null) {
-            $this->attributes['value'] = null;
+        return Attribute::make(
+            get: function (?string $raw): mixed {
+                if ($raw === null) {
+                    return null;
+                }
 
+                $decoded = json_decode($raw, true);
+                $val = $decoded['v'] ?? null;
+
+                if ($val !== null && $this->encrypted && ! $this->valuePlain) {
+                    return decrypt($val);
+                }
+
+                return $val;
+            },
+            set: function (mixed $value): array {
+                $this->valuePlain = $value !== null;
+
+                return ['value' => $value === null ? null : json_encode(['v' => $value])];
+            },
+        );
+    }
+
+    private function sealPlainValue(): void
+    {
+        if (! $this->valuePlain) {
             return;
         }
 
-        $stored = $this->encrypted ? encrypt($value) : $value;
-        $this->attributes['value'] = json_encode(['v' => $stored]);
+        $this->valuePlain = false;
+
+        if (! $this->encrypted) {
+            return;
+        }
+
+        /** @var array{v: mixed} $decoded */
+        $decoded = json_decode((string) $this->attributes['value'], true);
+        $this->attributes['value'] = json_encode(['v' => encrypt($decoded['v'])]);
     }
 
     public static function getValue(string $integration, string $key, mixed $default = null): mixed

@@ -12,10 +12,10 @@
     @else
         <link rel="icon" type="image/svg+xml" href="{{ route('favicon') }}">
     @endif
-    <script>
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
         window.__reverb = @json(config('reverb.frontend'));
     </script>
-    @routes
+    @routes(null, \Illuminate\Support\Facades\Vite::cspNonce())
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
     @if($customCss ?? null)<style>{!! $customCss !!}</style>@endif

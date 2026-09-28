@@ -16,7 +16,7 @@ class ThemeServiceTest extends TestCase
         // Remove migration-seeded settings to test defaults
         Setting::whereIn('code', ['theme.name', 'theme.mode'])->delete();
 
-        $service = app(ThemeService::class);
+        $service = resolve(ThemeService::class);
         $theme = $service->getTheme();
 
         $this->assertEquals(config('aperture.theme.mode'), $theme['mode']);
@@ -36,7 +36,7 @@ class ThemeServiceTest extends TestCase
         $this->saveSetting('theme.custom_css', 'Custom CSS', 'body { color: red; }');
         $this->saveSetting('general.site_title', 'Site Title', 'My App');
 
-        $service = app(ThemeService::class);
+        $service = resolve(ThemeService::class);
         $theme = $service->getTheme();
 
         $this->assertEquals('light', $theme['mode']);
@@ -49,7 +49,7 @@ class ThemeServiceTest extends TestCase
 
     public function test_caches_result_on_subsequent_calls(): void
     {
-        $service = app(ThemeService::class);
+        $service = resolve(ThemeService::class);
 
         $first = $service->getTheme();
         $second = $service->getTheme();
@@ -59,8 +59,8 @@ class ThemeServiceTest extends TestCase
 
     public function test_scoped_singleton_returns_same_instance(): void
     {
-        $first = app(ThemeService::class);
-        $second = app(ThemeService::class);
+        $first = resolve(ThemeService::class);
+        $second = resolve(ThemeService::class);
 
         $this->assertSame($first, $second);
     }
@@ -75,7 +75,7 @@ class ThemeServiceTest extends TestCase
         config(['aperture.theme.accent_chroma' => 0.25]);
         config(['aperture.theme.accent_lightness' => 80]);
 
-        $service = app(ThemeService::class);
+        $service = resolve(ThemeService::class);
         $theme = $service->getTheme();
 
         $this->assertEquals('light', $theme['mode']);

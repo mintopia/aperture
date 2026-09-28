@@ -151,7 +151,17 @@ describe('IntegrationShow.vue', () => {
 
         expect(wrapper.find('[data-testid="config-form"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="field-input-endpoint"]').element.value).toBe('https://opnsense.example.com');
-        expect(wrapper.find('[data-testid="field-input-key"]').element.value).toBe('test-key');
+        expect(wrapper.find('[data-testid="field-input-key"]').element.value).toBe('');
+    });
+
+    it('never prefills password fields and shows set status', () => {
+        const service = structuredClone(defaultService);
+        service.config.key = '';
+        service.fields.find((f) => f.key === 'key').is_set = true;
+        const wrapper = mountPage({ service });
+
+        expect(wrapper.find('[data-testid="field-input-key"]').element.value).toBe('');
+        expect(wrapper.find('[data-testid="field-secret-status-key"]').text()).toBe('A value is currently set.');
     });
 
     it('renders url input for url-type fields', () => {
@@ -228,7 +238,7 @@ describe('IntegrationShow.vue', () => {
             expect.stringContaining('admin.settings.test'),
             expect.objectContaining({
                 endpoint: 'https://opnsense.example.com',
-                key: 'test-key',
+                key: '',
                 verify_ssl: '1',
             }),
             expect.any(Object),
@@ -735,7 +745,7 @@ describe('IntegrationShow.vue', () => {
 
                 const [, data] = remoteCalls[0];
                 expect(data).toHaveProperty('endpoint', 'https://pihole.test');
-                expect(data).toHaveProperty('password', 'secret');
+                expect(data).toHaveProperty('password', '');
             });
         });
 

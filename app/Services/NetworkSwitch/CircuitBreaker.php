@@ -42,7 +42,7 @@ class CircuitBreaker
             Cache::put($this->openKey($switch), true, $this->cooldown);
 
             if ($count === $this->failureThreshold) {
-                SwitchUnreachable::dispatch($switch, $count);
+                event(new SwitchUnreachable($switch, $count));
             }
         }
     }

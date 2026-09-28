@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Capability;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BandwidthRequest;
+use App\Http\Requests\Admin\ResetApertureRequest;
 use App\Http\Resources\BandwidthResource;
 use App\Jobs\ResetAperture;
 use App\Models\AuditLog;
@@ -15,11 +17,10 @@ use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\AuditLog\AuditLogDescriptionGenerator;
 use App\Services\Interfaces\IpBandwidthInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,7 +30,7 @@ class HomeController extends Controller
     {
         return Inertia::render('Admin/Dashboard', [
             'totalUsers' => User::count(),
-            'onlineUsers' => User::whereHas('ips', fn ($q) => $q->whereHas('ip', fn ($q2) => $q2->where('internet_enabled', true)))->count(), // @phpstan-ignore argument.templateType
+            'onlineUsers' => User::whereHas('ips', fn (Builder $q) => $q->whereHas('ip', fn (Builder $q2) => $q2->where('internet_enabled', true)))->count(),
             'activeIps' => IpAddress::where('internet_enabled', true)->count(),
             'blockedUsers' => User::where('internet_blocked', true)->count(),
             'dhcpPools' => Inertia::defer(fn (): array => $this->getDhcpPools()),
@@ -63,22 +64,10 @@ class HomeController extends Controller
         return BandwidthResource::make($bandwidth)->response();
     }
 
-    public function reset(Request $request): RedirectResponse
+    public function reset(ResetApertureRequest $request): RedirectResponse
     {
-        $request->validate([
-            'password' => ['required', 'string'],
-        ]);
-
         /** @var User $user */
         $user = $request->user();
-
-        if ($user->password === null) {
-            return back()->withErrors(['password' => 'Password required for destructive operations.']);
-        }
-
-        if (! Hash::check($request->string('password')->value(), $user->password)) {
-            return back()->withErrors(['password' => 'The provided password is incorrect.']);
-        }
 
         AuditLog::record(
             action: 'portal.reset',
@@ -88,15 +77,15 @@ class HomeController extends Controller
             metadata: ['ip' => $request->getClientIp()],
         );
 
-        ResetAperture::dispatch();
+        dispatch(new ResetAperture);
 
-        return redirect()->route('admin.home')->with('success', 'Portal reset initiated.');
+        return to_route('admin.home')->with('success', 'Portal reset initiated.');
     }
 
     /** @return list<array{name: string, network: string|null, used: int, total: string, utilisation: float}> */
     private function getDhcpPools(): array
     {
-        $integration = CapabilityAssignment::activeIntegration('dhcp');
+        $integration = CapabilityAssignment::activeIntegration(Capability::Dhcp);
 
         return array_values(DhcpRangeRecord::where('integration', $integration)
             ->get()
@@ -116,9 +105,8 @@ class HomeController extends Controller
     private function getRecentUsers(): LengthAwarePaginator
     {
         return User::query()
-            ->select('users.*')
-            ->selectRaw('(SELECT COUNT(*) FROM user_ip_addresses WHERE user_ip_addresses.user_id = users.id) as ips_count')
-            ->selectRaw('(SELECT MAX(user_ip_addresses.last_seen_at) FROM user_ip_addresses WHERE user_ip_addresses.user_id = users.id) as last_seen')
+            ->withCount('ips')
+            ->withMax('ips as last_seen', 'last_seen_at')
             ->orderByDesc('users.weekly_bandwidth')
             ->orderByDesc('last_seen')
             ->paginate(25);

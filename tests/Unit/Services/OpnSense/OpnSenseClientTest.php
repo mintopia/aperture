@@ -9,6 +9,7 @@ use App\Services\OpnSense\OpnSenseClient;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use stdClass;
 use Tests\TestCase;
 
 class OpnSenseClientTest extends TestCase
@@ -45,6 +46,15 @@ class OpnSenseClientTest extends TestCase
         Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
             && $request->url() === 'http://opnsense.local/api/test?q=1'
             && $request->data() === ['data' => 'value']);
+    }
+
+    public function test_post_encodes_std_class_payload_as_json_object(): void
+    {
+        Http::fake(['*' => Http::response('{"result":"saved"}')]);
+
+        $this->client()->post('/api/test', [], new stdClass);
+
+        Http::assertSent(fn (Request $request): bool => $request->body() === '{}');
     }
 
     public function test_invalid_json_throws_backend_exception(): void

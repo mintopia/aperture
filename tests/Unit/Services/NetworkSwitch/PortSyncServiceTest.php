@@ -24,6 +24,7 @@ use App\Services\NetworkSwitch\SyncResult;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
@@ -996,8 +997,9 @@ class PortSyncServiceTest extends TestCase
         $this->assertDatabaseCount('switch_ports', 0);
     }
 
-    public function test_sync_handles_empty_mac_table(): void
+    public function test_sync_skips_mac_cleanup_and_warns_on_empty_mac_table(): void
     {
+        Log::spy();
         // Pre-create a port with an existing MAC
         $port = SwitchPort::factory()->create([
             'switch_config_id' => $this->switchConfig->id,
@@ -1019,8 +1021,8 @@ class PortSyncServiceTest extends TestCase
 
         $this->assertSame('completed', $syncRun->status);
 
-        // Stale MACs should still be removed after a successful sync with empty table
-        $this->assertDatabaseMissing('switch_port_macs', ['id' => $existingMac->id]);
+        $this->assertDatabaseHas('switch_port_macs', ['id' => $existingMac->id]);
+        Log::shouldHaveReceived('warning')->withArgs(fn (string $message): bool => str_contains($message, 'MAC'))->once();
     }
 
     public function test_sync_cleans_up_stale_running_runs(): void

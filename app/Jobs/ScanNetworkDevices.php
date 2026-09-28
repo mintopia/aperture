@@ -6,8 +6,6 @@ namespace App\Jobs;
 
 use App\Events\IpMacLinked;
 use App\Models\AuditLog;
-use App\Models\CapabilityAssignment;
-use App\Models\DhcpLease;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
@@ -16,22 +14,32 @@ use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
 use App\Services\NetworkRangeService;
-use App\Services\ValueObjects\ArpEntry;
+use App\Services\NetworkScan\DhcpSnoopingResolver;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
 use App\Services\ValueObjects\ForwardingEntry;
+use App\Services\ValueObjects\IpMacEntry;
+use App\Support\Queues;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class ScanNetworkDevices implements ShouldQueue
+class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
     public int $tries = 3;
 
     public int $timeout = 120;
+
+    public int $uniqueFor = 300;
+
+    public function __construct()
+    {
+        $this->onQueue(Queues::SYNC);
+    }
 
     /**
      * @return list<int>
@@ -42,73 +50,51 @@ class ScanNetworkDevices implements ShouldQueue
     }
 
     public function handle(
-        ?DhcpInterface $dhcp = null,
-        ?IpMacResolverInterface $ipMac = null,
-        ?PortMacInterface $portMac = null,
-        ?NetworkRangeService $rangeService = null,
+        DhcpInterface $dhcp,
+        IpMacResolverInterface $ipMac,
+        DhcpSnoopingResolver $snooping,
+        PortMacInterface $portMac,
+        NetworkRangeService $rangeService,
     ): void {
-        $dhcp ??= app(DhcpInterface::class);
-        $ipMac ??= app(IpMacResolverInterface::class);
-        $portMac ??= app(PortMacInterface::class);
-        $rangeService ??= app(NetworkRangeService::class);
 
-        $leases = $dhcp->getLeases();
-        $arpEntries = $ipMac->getArpTable();
+        $leases = $dhcp->snapshot()->leases;
+        $entries = $snooping->supplement($ipMac->getIpMacTable());
         $forwardingEntries = $portMac->getForwardingDatabase();
 
-        $this->persistMacs($leases, $arpEntries, $forwardingEntries);
-        $this->persistIps($leases, $arpEntries, $rangeService);
-        $this->linkIpMac($leases, $arpEntries, $rangeService);
-        $this->persistDhcpLeases($leases, $rangeService, $this->activeDhcpIntegration());
+        $this->persistMacs($leases, $entries, $forwardingEntries);
+        $this->persistIps($leases, $entries, $rangeService);
+        $this->linkIpMac($leases, $entries, $rangeService);
         $this->linkSwitchPortMacs($forwardingEntries);
         $this->applyOuiPolicy();
     }
 
     /**
-     * Resolve the active DHCP integration for stamping persisted leases.
-     * Defensive against a missing capability_assignments table (fresh
-     * installs mid-migration), mirroring DhcpController::activeIntegration().
-     */
-    private function activeDhcpIntegration(): ?string
-    {
-        try {
-            return CapabilityAssignment::activeIntegration('dhcp');
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    /**
      * @param  Collection<int, DhcpLeaseVO>  $leases
-     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, IpMacEntry>  $entries
      * @param  Collection<int, ForwardingEntry>  $forwardingEntries
      */
-    private function persistMacs(Collection $leases, Collection $arpEntries, Collection $forwardingEntries): void
+    private function persistMacs(Collection $leases, Collection $entries, Collection $forwardingEntries): void
     {
         /** @var Collection<string, string> $allMacs */
         $allMacs = collect();
 
         foreach ($leases as $lease) {
-            if ($lease->mac === null) {
-                continue;
-            }
-
             $normalized = MacAddress::normalize($lease->mac);
-            if ($normalized !== '') {
+            if ($normalized !== null) {
                 $allMacs->put($normalized, 'dhcp');
             }
         }
 
-        foreach ($arpEntries as $arp) {
-            $normalized = MacAddress::normalize($arp->mac);
-            if ($normalized !== '' && ! $allMacs->has($normalized)) {
+        foreach ($entries as $entry) {
+            $normalized = MacAddress::normalize($entry->mac);
+            if ($normalized !== null && ! $allMacs->has($normalized)) {
                 $allMacs->put($normalized, 'arp');
             }
         }
 
         foreach ($forwardingEntries as $fwd) {
             $normalized = MacAddress::normalize($fwd->mac);
-            if ($normalized !== '' && ! $allMacs->has($normalized)) {
+            if ($normalized !== null && ! $allMacs->has($normalized)) {
                 $allMacs->put($normalized, 'switch');
             }
         }
@@ -135,9 +121,9 @@ class ScanNetworkDevices implements ShouldQueue
 
     /**
      * @param  Collection<int, DhcpLeaseVO>  $leases
-     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, IpMacEntry>  $entries
      */
-    private function persistIps(Collection $leases, Collection $arpEntries, NetworkRangeService $rangeService): void
+    private function persistIps(Collection $leases, Collection $entries, NetworkRangeService $rangeService): void
     {
         /** @var Collection<string, string> $allIps */
         $allIps = collect();
@@ -149,8 +135,8 @@ class ScanNetworkDevices implements ShouldQueue
             }
         }
 
-        foreach ($arpEntries as $arp) {
-            $address = IpAddress::normalize($arp->ip);
+        foreach ($entries as $entry) {
+            $address = IpAddress::normalize($entry->ip);
             if ($address !== '' && ! $allIps->has($address)) {
                 $allIps->put($address, 'arp');
             }
@@ -186,29 +172,25 @@ class ScanNetworkDevices implements ShouldQueue
 
     /**
      * @param  Collection<int, DhcpLeaseVO>  $leases
-     * @param  Collection<int, ArpEntry>  $arpEntries
+     * @param  Collection<int, IpMacEntry>  $entries
      */
-    private function linkIpMac(Collection $leases, Collection $arpEntries, NetworkRangeService $rangeService): void
+    private function linkIpMac(Collection $leases, Collection $entries, NetworkRangeService $rangeService): void
     {
         /** @var list<array{ip: string, mac: string, source: string}> $pairs */
         $pairs = [];
 
         foreach ($leases as $lease) {
-            if ($lease->mac === null) {
-                continue;
-            }
-
             $normalized = MacAddress::normalize($lease->mac);
             $address = IpAddress::normalize($lease->ip);
-            if ($address !== '' && $normalized !== '') {
-                $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'dhcp'];
+            if ($address !== '' && $normalized !== null) {
+                $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => $lease->macFromDuid ? MacAddress::SOURCE_DHCP_DUID : 'dhcp'];
             }
         }
 
-        foreach ($arpEntries as $arp) {
-            $normalized = MacAddress::normalize($arp->mac);
-            $address = IpAddress::normalize($arp->ip);
-            if ($address !== '' && $normalized !== '') {
+        foreach ($entries as $entry) {
+            $normalized = MacAddress::normalize($entry->mac);
+            $address = IpAddress::normalize($entry->ip);
+            if ($address !== '' && $normalized !== null) {
                 $pairs[] = ['ip' => $address, 'mac' => $normalized, 'source' => 'arp'];
             }
         }
@@ -250,42 +232,8 @@ class ScanNetworkDevices implements ShouldQueue
                 );
             }
 
-            IpMacLinked::dispatch($ip, $mac, $pair['source'], 'scan_network');
-        }
-    }
-
-    /**
-     * @param  Collection<int, DhcpLeaseVO>  $leases
-     */
-    private function persistDhcpLeases(Collection $leases, NetworkRangeService $rangeService, ?string $integration = null): void
-    {
-        $ips = IpAddress::whereIn('address', $leases->map(fn ($l): string => IpAddress::normalize($l->ip)))->get()->keyBy('address');
-        $macs = MacAddress::whereIn('mac_address', $leases->filter(fn ($l): bool => $l->mac !== null)->map(fn ($l): string => MacAddress::normalize((string) $l->mac)))->get()->keyBy('mac_address');
-
-        foreach ($leases as $lease) {
-            if (! $rangeService->isManaged($lease->ip)) {
-                continue;
-            }
-
-            if ($lease->mac === null) {
-                continue;
-            }
-
-            $ip = $ips->get(IpAddress::normalize($lease->ip));
-            $mac = $macs->get(MacAddress::normalize($lease->mac));
-
-            if ($ip === null || $mac === null) {
-                continue;
-            }
-
-            DhcpLease::updateOrCreate(
-                ['ip_address_id' => $ip->id, 'mac_address_id' => $mac->id],
-                [
-                    'integration' => $integration,
-                    'hostname' => $lease->hostname !== '' ? $lease->hostname : null,
-                    'expires_at' => $lease->expires !== '' ? $lease->expires : null,
-                ],
-            );
+            // Dispatch on refresh too so links that never got a user association can heal (ADR-011).
+            event(new IpMacLinked($ip, $mac, $pair['source'], 'scan_network'));
         }
     }
 
@@ -295,7 +243,9 @@ class ScanNetworkDevices implements ShouldQueue
     private function linkSwitchPortMacs(Collection $forwardingEntries): void
     {
         /** @var Collection<string, ForwardingEntry> $normalizedFwdMacs */
-        $normalizedFwdMacs = $forwardingEntries->mapWithKeys(fn ($fwd): array => [MacAddress::normalize($fwd->mac) => $fwd]);
+        $normalizedFwdMacs = $forwardingEntries
+            ->mapWithKeys(fn ($fwd): array => [(string) MacAddress::normalize($fwd->mac) => $fwd])
+            ->forget('');
         $macRecords = MacAddress::whereIn('mac_address', $normalizedFwdMacs->keys())->get()->keyBy('mac_address');
 
         SwitchPortMac::whereIn('mac_address', $normalizedFwdMacs->keys())

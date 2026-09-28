@@ -43,9 +43,11 @@ func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 	output := make([]CommandOutput, 0, len(commands))
 
 	logger := e.logger()
+	prompt := &promptTracker{}
 
 	logger.Debug("reading initial prompt")
 	lastOutput := session.Read(e.ReadTimeout)
+	prompt.learn(lastOutput)
 	logger.Debug("initial prompt received",
 		"output_length", len(lastOutput),
 		"last_line", getLastLine(lastOutput),
@@ -62,7 +64,7 @@ func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 
 		if cmd.If != "" {
 			lastLine := getLastLine(lastOutput)
-			matches := matchesCondition(lastLine, cmd.If)
+			matches := matchesCondition(lastLine, prompt.expand(cmd.If))
 			logger.Debug("if condition check",
 				"condition", cmd.If,
 				"last_line", lastLine,
@@ -94,7 +96,7 @@ func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 				"expect", cmd.Expect,
 				"timeout", e.CommandTimeout,
 			)
-			result, err := e.readUntilExpect(session, cmd.Expect)
+			result, err := e.readUntilExpect(session, cmd.Expect, prompt)
 			if err != nil {
 				logger.Error("expect pattern timeout",
 					"index", i,
@@ -143,11 +145,12 @@ func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 // readUntilExpect reads from the session in a loop until the last line
 // of accumulated output matches the expect pattern, or the command timeout
 // is exceeded.
-func (e *Executor) readUntilExpect(session Session, expect string) (string, error) {
+func (e *Executor) readUntilExpect(session Session, expect string, prompt *promptTracker) (string, error) {
 	var buffer strings.Builder
 	deadline := time.Now().Add(e.CommandTimeout)
 	iterations := 0
 	logger := e.logger()
+	expect = prompt.expand(expect)
 
 	for time.Now().Before(deadline) {
 		remaining := time.Until(deadline)
@@ -187,6 +190,30 @@ func (e *Executor) readUntilExpect(session Session, expect string) (string, erro
 		"raw_tail", safeTail(buffer.String(), 200),
 	)
 	return buffer.String(), fmt.Errorf("Timeout waiting for expected pattern: %s", expect)
+}
+
+const promptPlaceholder = "{prompt}"
+
+var promptLineRe = regexp.MustCompile(`^([^\s()#>]+)(?:\([^)]*\))?[>#]\s*$`)
+
+// promptTracker remembers the device hostname so prompt patterns can be
+// anchored to it instead of matching any line ending in # or >.
+type promptTracker struct {
+	hostname string
+}
+
+func (p *promptTracker) learn(output string) {
+	if m := promptLineRe.FindStringSubmatch(getLastLine(output)); m != nil {
+		p.hostname = m[1]
+	}
+}
+
+func (p *promptTracker) expand(pattern string) string {
+	host := `[^\s()#>]+`
+	if p.hostname != "" {
+		host = regexp.QuoteMeta(p.hostname)
+	}
+	return strings.ReplaceAll(pattern, promptPlaceholder, host)
 }
 
 // getLastLine returns the last non-empty line from the output.

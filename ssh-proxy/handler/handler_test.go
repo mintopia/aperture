@@ -59,13 +59,13 @@ func (m *mockExecutor) Execute(_ ssh.Session, _ []ssh.Command) *ssh.CommandResul
 }
 
 func mockConnectorSuccess(session ssh.Session) Connector {
-	return func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	return func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return session, nil
 	}
 }
 
 func mockConnectorFailure(errMsg string) Connector {
-	return func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	return func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return nil, fmt.Errorf("%s", errMsg)
 	}
 }
@@ -145,9 +145,9 @@ func TestStatus_Empty(t *testing.T) {
 
 func TestStatus_WithConnections(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
-	_, _, _ = p.Acquire("switch1.local", pool.DefaultChannel)
-	p.SetConnection("switch1.local", pool.DefaultChannel, newMockSession())
-	p.Release("switch1.local", pool.DefaultChannel)
+	_, _, _ = p.Acquire(testKey("switch1.local", pool.DefaultChannel))
+	p.SetConnection(testKey("switch1.local", pool.DefaultChannel), newMockSession())
+	p.Release(testKey("switch1.local", pool.DefaultChannel))
 
 	h := testHandler(p, nil, nil)
 
@@ -260,12 +260,12 @@ func TestExecute_MissingFields(t *testing.T) {
 func TestExecute_HostLocked(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 	// Lock the host on the default channel
-	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
+	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
 	// Don't release — it stays locked
 
 	h := testHandler(p, nil, nil)
 
-	body := `{"hostname":"switch1","username":"admin","commands":[{"command":"show ver"}]}`
+	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -312,12 +312,12 @@ func TestExecute_ReusesPooledConnection(t *testing.T) {
 	session := newMockSession("Switch#", "output\nSwitch#")
 
 	// Pre-populate the pool with default channel
-	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
-	p.SetConnection("switch1", pool.DefaultChannel, session)
-	p.Release("switch1", pool.DefaultChannel)
+	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
+	p.SetConnection(testKey("switch1", pool.DefaultChannel), session)
+	p.Release(testKey("switch1", pool.DefaultChannel))
 
 	connectorCalled := false
-	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		connectorCalled = true
 		return nil, fmt.Errorf("should not be called")
 	}
@@ -350,8 +350,8 @@ func TestExecute_DefaultPort(t *testing.T) {
 	session := newMockSession("Switch#")
 
 	var capturedPort int
-	connector := func(_ context.Context, _ string, port int, _, _ string) (ssh.Session, error) {
-		capturedPort = port
+	connector := func(_ context.Context, cp ssh.ConnectParams) (ssh.Session, error) {
+		capturedPort = cp.Port
 		return session, nil
 	}
 
@@ -377,8 +377,8 @@ func TestExecute_CustomPort(t *testing.T) {
 	session := newMockSession("Switch#")
 
 	var capturedPort int
-	connector := func(_ context.Context, _ string, port int, _, _ string) (ssh.Session, error) {
-		capturedPort = port
+	connector := func(_ context.Context, cp ssh.ConnectParams) (ssh.Session, error) {
+		capturedPort = cp.Port
 		return session, nil
 	}
 
@@ -471,11 +471,11 @@ func TestExecute_ReleasesLockOnSuccess(t *testing.T) {
 	h.Execute(w, req)
 
 	// Try to acquire again — should succeed (lock was released)
-	_, _, err := p.Acquire("switch1", pool.DefaultChannel)
+	_, _, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
 	if err != nil {
 		t.Errorf("expected lock to be released, got error: %v", err)
 	}
-	p.Release("switch1", pool.DefaultChannel)
+	p.Release(testKey("switch1", pool.DefaultChannel))
 }
 
 // --- Request ID tests ---
@@ -822,7 +822,7 @@ func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
 	session2 := newMockSession("Switch#")
 
 	connectorCallCount := 0
-	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		connectorCallCount++
 		if connectorCallCount == 1 {
 			return session1, nil
@@ -873,12 +873,12 @@ func TestExecute_ChannelReusesPooledConnection(t *testing.T) {
 	session := newMockSession("Switch#", "output\nSwitch#")
 
 	// Pre-populate the pool with the polling channel
-	_, _, _ = p.Acquire("switch1", "polling")
-	p.SetConnection("switch1", "polling", session)
-	p.Release("switch1", "polling")
+	_, _, _ = p.Acquire(testKey("switch1", "polling"))
+	p.SetConnection(testKey("switch1", "polling"), session)
+	p.Release(testKey("switch1", "polling"))
 
 	connectorCalled := false
-	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		connectorCalled = true
 		return nil, fmt.Errorf("should not be called")
 	}
@@ -987,15 +987,15 @@ func TestExecute_RetryOnStaleConnection(t *testing.T) {
 
 	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
-	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
-	p.SetConnection("switch1", pool.DefaultChannel, staleSession)
-	p.Release("switch1", pool.DefaultChannel)
+	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
+	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
+	p.Release(testKey("switch1", pool.DefaultChannel))
 
 	// Fresh session for the retry.
 	freshSession := newMockSession("Switch#", "output\nSwitch#")
 
 	connectorCallCount := 0
-	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		connectorCallCount++
 		return freshSession, nil
 	}
@@ -1084,9 +1084,9 @@ func TestExecute_RetryReconnectFailure(t *testing.T) {
 
 	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
-	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
-	p.SetConnection("switch1", pool.DefaultChannel, staleSession)
-	p.Release("switch1", pool.DefaultChannel)
+	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
+	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
+	p.Release(testKey("switch1", pool.DefaultChannel))
 
 	// Connector fails on retry reconnect.
 	connector := mockConnectorFailure("connection refused")
@@ -1126,12 +1126,12 @@ func TestExecute_RetryNotTriggeredOnNonConnectionError(t *testing.T) {
 
 	// Pre-populate pool with an existing connection.
 	session := newMockSession("Switch#")
-	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
-	p.SetConnection("switch1", pool.DefaultChannel, session)
-	p.Release("switch1", pool.DefaultChannel)
+	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
+	p.SetConnection(testKey("switch1", pool.DefaultChannel), session)
+	p.Release(testKey("switch1", pool.DefaultChannel))
 
 	connectorCalled := false
-	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		connectorCalled = true
 		return nil, fmt.Errorf("should not be called")
 	}
@@ -1176,12 +1176,12 @@ func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
 
 	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
-	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
-	p.SetConnection("switch1", pool.DefaultChannel, staleSession)
-	p.Release("switch1", pool.DefaultChannel)
+	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
+	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
+	p.Release(testKey("switch1", pool.DefaultChannel))
 
 	freshSession := newMockSession("Switch#", "output\nSwitch#")
-	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return freshSession, nil
 	}
 
@@ -1260,12 +1260,12 @@ func TestExecute_RetryReleasesLock(t *testing.T) {
 
 	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
-	_, _, _ = p.Acquire("switch1", pool.DefaultChannel)
-	p.SetConnection("switch1", pool.DefaultChannel, staleSession)
-	p.Release("switch1", pool.DefaultChannel)
+	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
+	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
+	p.Release(testKey("switch1", pool.DefaultChannel))
 
 	freshSession := newMockSession("Switch#", "output\nSwitch#")
-	connector := func(_ context.Context, _ string, _ int, _, _ string) (ssh.Session, error) {
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return freshSession, nil
 	}
 
@@ -1290,17 +1290,17 @@ func TestExecute_RetryReleasesLock(t *testing.T) {
 	h.Execute(w, req)
 
 	// After the execute (including retry), the lock should be released.
-	_, _, err := p.Acquire("switch1", pool.DefaultChannel)
+	_, _, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
 	if err != nil {
 		t.Errorf("expected lock to be released after retry, got error: %v", err)
 	}
-	p.Release("switch1", pool.DefaultChannel)
+	p.Release(testKey("switch1", pool.DefaultChannel))
 }
 
 func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 	// Lock the host on the commands channel
-	_, _, _ = p.Acquire("switch1", "commands")
+	_, _, _ = p.Acquire(testKey("switch1", "commands"))
 
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
@@ -1329,4 +1329,8 @@ func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 	if w2.Code != http.StatusOK {
 		t.Errorf("polling channel: expected 200 (not locked), got %d", w2.Code)
 	}
+}
+
+func testKey(hostname, channel string) pool.Key {
+	return pool.NewKey(hostname, 22, "admin", channel, "pass", "", "")
 }

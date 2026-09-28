@@ -8,6 +8,9 @@ use App\Enums\FirewallAction;
 use App\Jobs\SyncDnsFilteringJob;
 use App\Jobs\SyncFirewallJob;
 use App\Models\IpAddress;
+use App\Observers\IpAddressObserver;
+use App\Observers\UserObserver;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -26,7 +29,7 @@ class IpAddressObserverTest extends TestCase
         $ip->save();
 
         Queue::assertPushed(SyncFirewallJob::class, function (SyncFirewallJob $job) use ($ip): bool {
-            return $job->ip->is($ip) && $job->action === FirewallAction::Internet && $job->enabled;
+            return $job->ip->is($ip) && $job->action === FirewallAction::Internet;
         });
     }
 
@@ -40,7 +43,7 @@ class IpAddressObserverTest extends TestCase
         $ip->save();
 
         Queue::assertPushed(SyncFirewallJob::class, function (SyncFirewallJob $job) use ($ip): bool {
-            return $job->ip->is($ip) && $job->action === FirewallAction::RateLimit && $job->enabled;
+            return $job->ip->is($ip) && $job->action === FirewallAction::RateLimit;
         });
     }
 
@@ -54,7 +57,7 @@ class IpAddressObserverTest extends TestCase
         $ip->save();
 
         Queue::assertPushed(SyncDnsFilteringJob::class, function (SyncDnsFilteringJob $job) use ($ip): bool {
-            return $job->ipAddress === $ip->address && $job->enabled;
+            return $job->ipAddress === $ip->address;
         });
     }
 
@@ -88,5 +91,11 @@ class IpAddressObserverTest extends TestCase
 
         Queue::assertNotPushed(SyncFirewallJob::class);
         Queue::assertNotPushed(SyncDnsFilteringJob::class);
+    }
+
+    public function test_observers_that_dispatch_jobs_run_after_commit(): void
+    {
+        $this->assertInstanceOf(ShouldHandleEventsAfterCommit::class, new IpAddressObserver);
+        $this->assertInstanceOf(ShouldHandleEventsAfterCommit::class, new UserObserver);
     }
 }

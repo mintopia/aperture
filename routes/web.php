@@ -157,6 +157,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/switches/{switchConfig}', [SwitchManagementController::class, 'destroy'])->name('switches.destroy');
         Route::post('/switches/{switchConfig}/sync', [SwitchManagementController::class, 'sync'])->name('switches.sync');
         Route::post('/switches/{switchConfig}/test', [SwitchManagementController::class, 'testConnection'])->name('switches.test-connection');
+        Route::delete('/switches/{switchConfig}/host-key', [SwitchManagementController::class, 'resetHostKey'])->name('switches.host-key.reset');
         Route::get('/switches/{switchConfig}/config', [SwitchManagementController::class, 'config'])->name('switches.config');
 
         // Switch Port Management

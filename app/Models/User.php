@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Traits\ToString;
-use App\Services\UserNetworkAssociationService;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -78,6 +79,22 @@ use Laragear\WebAuthn\WebAuthnData;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'nickname',
+    'email',
+    'password',
+    'internet_blocked',
+    'internet_enabled',
+    'rate_limit_enabled',
+    'dns_filtering_enabled',
+    'external_id',
+    'avatar_url',
+])]
+#[Hidden([
+    'password',
+    'access_token',
+    'refresh_token',
+])]
 class User extends Authenticatable implements WebAuthnAuthenticatableContract
 {
     /** @use HasFactory<UserFactory> */
@@ -87,31 +104,10 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
     use ToString;
     use WebAuthnAuthentication;
 
-    protected string $stringDescriptionProperty = 'nickname';
-
-    /**
-     * @var list<string>
-     */
-    protected $fillable = [
-        'nickname',
-        'email',
-        'password',
-        'internet_blocked',
-        'internet_enabled',
-        'rate_limit_enabled',
-        'dns_filtering_enabled',
-        'external_id',
-        'avatar_url',
-    ];
-
-    /**
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'access_token',
-        'refresh_token',
-    ];
+    protected function getStringDescription(): ?string
+    {
+        return $this->nickname;
+    }
 
     /**
      * @return array<string, string>
@@ -141,7 +137,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
     /** @return HasMany<UserIpAddress, $this> */
     public function ips(): HasMany
     {
-        return $this->hasMany(UserIpAddress::class)->orderBy('last_seen_at', 'desc');
+        return $this->hasMany(UserIpAddress::class)->latest('last_seen_at');
     }
 
     /** @return HasMany<MacAddress, $this> */
@@ -171,10 +167,5 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
         }
 
         return $this->roles->contains('code', $code);
-    }
-
-    public function addIp(string $clientIp, bool $cascade = true): ?IpAddress
-    {
-        return app(UserNetworkAssociationService::class)->addIp($this, $clientIp, $cascade);
     }
 }

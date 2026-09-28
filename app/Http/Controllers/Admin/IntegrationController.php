@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Capability;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ToggleCapabilityRequest;
+use App\Http\Requests\Admin\UpdateIntegrationRequest;
 use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
@@ -95,7 +97,7 @@ class IntegrationController extends Controller
                 'name' => $meta['name'],
                 'description' => $meta['description'] ?? '',
                 'config' => collect($meta['fields'] ?? [])->mapWithKeys(fn (array $field, string $key): array => [
-                    $key => $config[$key] ?? '',
+                    $key => ($field['type'] === 'password') ? '' : ($config[$key] ?? ''),
                 ])->all(),
                 'fields' => collect($meta['fields'] ?? [])->map(fn (array $field, string $key): array => array_filter([
                     'key' => $key,
@@ -108,10 +110,11 @@ class IntegrationController extends Controller
                     'remote_label' => $field['remote_label'] ?? null,
                     'remote_value' => $field['remote_value'] ?? null,
                     'options' => $this->resolveFieldOptions($field['options'] ?? null),
+                    'is_set' => $field['type'] === 'password' ? ($config[$key] ?? '') !== '' : null,
                 ], fn (mixed $v): bool => $v !== null))->values()->all(),
                 'capabilities' => collect($capabilities)->map(fn (string $cap): array => [
                     'name' => $cap,
-                    'active' => $activeCapabilities->contains($cap),
+                    'active' => $activeCapabilities->contains(Capability::from($cap)),
                 ])->values()->all(),
                 'health' => $latestTest?->success,
                 'logs' => $this->serializeLogs($logs),
@@ -125,22 +128,21 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $service): RedirectResponse
+    public function update(UpdateIntegrationRequest $request, string $service): RedirectResponse
     {
         $meta = $this->resolveIntegration($service);
 
         $validationRules = $meta['validation'] ?? [];
-        $rules = ['config' => 'required|array'];
-        foreach ($validationRules as $field => $rule) {
-            $rules['config.'.$field] = $rule;
-        }
-
-        $validated = $request->validate($rules);
+        $validated = $request->validated();
 
         /** @var IntegrationConfig|null $lastConfig */
         $lastConfig = null;
         foreach ($validated['config'] as $key => $value) {
             if (! array_key_exists($key, $validationRules)) {
+                continue;
+            }
+
+            if (($meta['fields'][$key]['type'] ?? null) === 'password' && ($value === null || $value === '')) {
                 continue;
             }
 
@@ -211,24 +213,25 @@ class IntegrationController extends Controller
     public function toggleCapability(ToggleCapabilityRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $capability = Capability::from($validated['capability']);
 
         $integrations = $this->integrations();
         $capabilities = $integrations[$validated['integration']]['capabilities'] ?? [];
 
-        if (! in_array($validated['capability'], $capabilities, true)) {
+        if (! in_array($capability->value, $capabilities, true)) {
             return response()->json([
                 'message' => sprintf(
                     'Integration %s does not support capability %s.',
                     $validated['integration'],
-                    $validated['capability']
+                    $capability->value
                 ),
             ], 422);
         }
 
         if ($validated['active']) {
-            CapabilityAssignment::assign($validated['capability'], $validated['integration']);
+            CapabilityAssignment::assign($capability, $validated['integration']);
         } else {
-            CapabilityAssignment::where('capability', $validated['capability'])
+            CapabilityAssignment::where('capability', $capability)
                 ->where('integration', $validated['integration'])
                 ->delete();
         }

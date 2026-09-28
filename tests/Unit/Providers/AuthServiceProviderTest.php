@@ -2,15 +2,8 @@
 
 namespace Tests\Unit\Providers;
 
-use App\Models\IntegrationConfig;
-use App\Models\IpAddress;
 use App\Models\Role;
-use App\Models\SwitchConfig;
 use App\Models\User;
-use App\Policies\IntegrationConfigPolicy;
-use App\Policies\IpAddressPolicy;
-use App\Policies\SwitchConfigPolicy;
-use App\Policies\UserPolicy;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
@@ -35,25 +28,5 @@ class AuthServiceProviderTest extends TestCase
     {
         $user = User::factory()->create();
         $this->assertFalse(Gate::forUser($user)->allows('admin'));
-    }
-
-    public function test_user_policy_is_registered(): void
-    {
-        $this->assertInstanceOf(UserPolicy::class, Gate::getPolicyFor(User::class));
-    }
-
-    public function test_ip_address_policy_is_registered(): void
-    {
-        $this->assertInstanceOf(IpAddressPolicy::class, Gate::getPolicyFor(IpAddress::class));
-    }
-
-    public function test_switch_config_policy_is_registered(): void
-    {
-        $this->assertInstanceOf(SwitchConfigPolicy::class, Gate::getPolicyFor(SwitchConfig::class));
-    }
-
-    public function test_integration_config_policy_is_registered(): void
-    {
-        $this->assertInstanceOf(IntegrationConfigPolicy::class, Gate::getPolicyFor(IntegrationConfig::class));
     }
 }

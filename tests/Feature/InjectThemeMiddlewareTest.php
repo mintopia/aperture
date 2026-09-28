@@ -18,7 +18,7 @@ class InjectThemeMiddlewareTest extends TestCase
 
     private function makeMiddleware(): InjectTheme
     {
-        return app(InjectTheme::class);
+        return resolve(InjectTheme::class);
     }
 
     public function test_theme_data_shared_with_blade_views(): void

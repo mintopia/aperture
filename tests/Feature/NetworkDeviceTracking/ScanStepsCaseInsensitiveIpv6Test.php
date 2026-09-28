@@ -8,11 +8,13 @@ use App\Events\IpMacLinked;
 use App\Jobs\ScanNetworkDevices;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
+use App\Services\Dhcp\DhcpSyncService;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\PortMacInterface;
-use App\Services\ValueObjects\ArpEntry;
 use App\Services\ValueObjects\DhcpLease as DhcpLeaseVO;
+use App\Services\ValueObjects\DhcpSnapshot;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Mockery\MockInterface;
@@ -30,15 +32,15 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
 
     /**
      * @param  list<DhcpLeaseVO>  $leases
-     * @param  list<ArpEntry>  $arp
+     * @param  list<IpMacEntry>  $entries
      */
-    private function scan(array $leases = [], array $arp = []): void
+    private function scan(array $leases = [], array $entries = []): void
     {
-        $this->mock(DhcpInterface::class, fn (MockInterface $m) => $m->allows(['getLeases' => collect($leases)]));
-        $this->mock(IpMacResolverInterface::class, fn (MockInterface $m) => $m->allows(['getArpTable' => collect($arp)]));
+        $this->mock(DhcpInterface::class, fn (MockInterface $m) => $m->allows(['snapshot' => DhcpSnapshot::create(collect($leases), collect())]));
+        $this->mock(IpMacResolverInterface::class, fn (MockInterface $m) => $m->allows(['getIpMacTable' => collect($entries)]));
         $this->mock(PortMacInterface::class, fn (MockInterface $m) => $m->allows(['getForwardingDatabase' => collect()]));
 
-        (new ScanNetworkDevices)->handle();
+        app()->call([new ScanNetworkDevices, 'handle']);
     }
 
     public function test_persist_ips_matches_existing_lowercase_row_for_uppercase_dhcp_lease(): void
@@ -66,7 +68,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
             'last_seen_at' => now()->subDays(7),
         ]);
 
-        $this->scan(arp: [new ArpEntry(self::UPPER, 'AA:BB:CC:DD:EE:01')]);
+        $this->scan(entries: [new IpMacEntry(self::UPPER, 'AA:BB:CC:DD:EE:01')]);
 
         $this->assertSame(1, IpAddress::count());
 
@@ -138,21 +140,15 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
         Event::assertNotDispatched(IpMacLinked::class);
     }
 
-    public function test_persist_dhcp_leases_skips_lease_with_null_mac(): void
-    {
-        IpAddress::factory()->create(['address' => self::LOWER]);
-
-        $this->scan([new DhcpLeaseVO(self::UPPER, null, 'my-device', '2026-06-11 12:00:00')]);
-
-        $this->assertDatabaseCount('dhcp_leases', 0);
-    }
-
-    public function test_persist_dhcp_leases_matches_existing_lowercase_row_for_uppercase_lease(): void
+    public function test_sync_dhcp_data_matches_existing_lowercase_row_for_uppercase_lease(): void
     {
         $ip = IpAddress::factory()->create(['address' => self::LOWER]);
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:01']);
 
-        $this->scan([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]);
+        (new DhcpSyncService)->syncLeases(
+            'cisco',
+            DhcpSnapshot::create(collect([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'my-device', '2026-06-11 12:00:00')]), collect()),
+        );
 
         $this->assertSame(1, IpAddress::count());
         $this->assertDatabaseHas('dhcp_leases', [

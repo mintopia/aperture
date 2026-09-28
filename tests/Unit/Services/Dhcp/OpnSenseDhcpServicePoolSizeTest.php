@@ -4,29 +4,28 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\AddressFamily;
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
-use Illuminate\Support\Facades\Http;
+use Tests\Support\Fake;
 use Tests\TestCase;
 
 class OpnSenseDhcpServicePoolSizeTest extends TestCase
 {
     public function test_pool_size_is_used_from_constructor(): void
     {
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.1', 'mac' => 'AA:BB:CC:DD:EE:01', 'hostname' => 'h1', 'status' => 'active', 'starts' => '', 'ends' => '', 'if' => 'lan'],
                     ['address' => '10.0.0.2', 'mac' => 'AA:BB:CC:DD:EE:02', 'hostname' => 'h2', 'status' => 'active', 'starts' => '', 'ends' => '', 'if' => 'lan'],
                 ],
                 'rowCount' => 2,
-            ], 200),
+            ])),
         ]);
+        $service = new OpnSenseDhcpService(OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), 100);
 
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
-        $service = new OpnSenseDhcpService($client, 100);
-
-        $status = $service->getPoolStatus();
+        $status = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertEquals(100, $status->total);
         $this->assertEquals(2, $status->used);

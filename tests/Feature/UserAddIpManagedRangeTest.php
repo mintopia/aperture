@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\IpAddress;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\UserNetworkAssociationService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
@@ -23,7 +24,7 @@ class UserAddIpManagedRangeTest extends TestCase
         Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['10.0.0.0/8']));
 
         $user = User::factory()->create();
-        $result = $user->addIp('10.0.0.1');
+        $result = resolve(UserNetworkAssociationService::class)->addIp($user, '10.0.0.1');
 
         $this->assertInstanceOf(IpAddress::class, $result);
         $this->assertSame('10.0.0.1', $result->address);
@@ -38,7 +39,7 @@ class UserAddIpManagedRangeTest extends TestCase
         Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['10.0.0.0/8']));
 
         $user = User::factory()->create();
-        $result = $user->addIp('192.168.1.1');
+        $result = resolve(UserNetworkAssociationService::class)->addIp($user, '192.168.1.1');
 
         $this->assertNull($result);
         $this->assertDatabaseMissing('ip_addresses', ['address' => '192.168.1.1']);
@@ -51,7 +52,7 @@ class UserAddIpManagedRangeTest extends TestCase
         Queue::fake();
         // No settings in DB — defaults to 0.0.0.0/0 and ::/0
         $user = User::factory()->create();
-        $result = $user->addIp('203.0.113.50');
+        $result = resolve(UserNetworkAssociationService::class)->addIp($user, '203.0.113.50');
 
         $this->assertInstanceOf(IpAddress::class, $result);
         $this->assertSame('203.0.113.50', $result->address);
@@ -64,7 +65,7 @@ class UserAddIpManagedRangeTest extends TestCase
         Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode([]));
 
         $user = User::factory()->create();
-        $result = $user->addIp('10.0.0.1');
+        $result = resolve(UserNetworkAssociationService::class)->addIp($user, '10.0.0.1');
 
         $this->assertNull($result);
     }

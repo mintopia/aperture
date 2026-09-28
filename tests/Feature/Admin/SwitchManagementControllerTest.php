@@ -11,8 +11,11 @@ use App\Models\SwitchPort;
 use App\Models\SwitchSyncRun;
 use App\Models\User;
 use App\Services\Interfaces\NetworkSwitchInterface;
+use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
+use App\Services\SshProxy\CommandOutput;
+use App\Services\SshProxy\CommandResult;
 use Closure;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -756,7 +759,7 @@ class SwitchManagementControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
-        $circuitBreaker = app(CircuitBreaker::class);
+        $circuitBreaker = resolve(CircuitBreaker::class);
         $circuitBreaker->recordFailure($switch);
         $circuitBreaker->recordFailure($switch);
         $circuitBreaker->recordFailure($switch);
@@ -877,5 +880,21 @@ class SwitchManagementControllerTest extends TestCase
             '/admin/switches/'.$switch->id.'/config',
             route('admin.switches.config', $switch)
         );
+    }
+
+    public function test_test_connection_uses_proxy_transport_with_configured_port(): void
+    {
+        $admin = $this->createAdminUser();
+        $switch = SwitchConfig::factory()->create(['port' => 2222, 'enable_password' => null]);
+        $proxy = Mockery::mock(SshProxyClientInterface::class);
+        $proxy->shouldReceive('execute')
+            ->once()
+            ->with($switch->hostname, Mockery::any(), Mockery::any(), Mockery::type('array'), 2222, 'commands', Mockery::any(), Mockery::any(), Mockery::any())
+            ->andReturn(new CommandResult(true, [new CommandOutput('terminal length 0', ''), new CommandOutput('show interface status', '')]));
+        $this->app->instance(SshProxyClientInterface::class, $proxy);
+
+        $this->actingAs($admin)->postJson('/admin/switches/'.$switch->id.'/test')
+            ->assertOk()
+            ->assertJson(['success' => true]);
     }
 }

@@ -126,12 +126,8 @@ class AppServiceProviderTest extends TestCase
         config(['app.debug' => false]);
     }
 
-    public function test_get_default_switch_config_returns_fallback_when_db_throws(): void
+    public function test_get_default_switch_config_propagates_non_missing_table_errors(): void
     {
-        // Covers AppServiceProvider::getDefaultSwitchConfig() line 325 — the catch(Throwable) block.
-        // We add an invalid database connection config, then set SwitchConfig to use it,
-        // so that when the Eloquent query runs it throws an exception caught by the catch block.
-
         config(['aperture.cisco.hostname' => 'fallback.local']);
         config(['database.connections.test_invalid' => [
             'driver' => 'sqlite',
@@ -153,16 +149,9 @@ class AppServiceProviderTest extends TestCase
             }
         });
 
-        try {
-            $reflection = new ReflectionClass($provider);
-            $method = $reflection->getMethod('getDefaultSwitchConfig');
+        $method = (new ReflectionClass($provider))->getMethod('getDefaultSwitchConfig');
 
-            $switchConfig = $method->invoke($provider);
-
-            $this->assertInstanceOf(SwitchConfig::class, $switchConfig);
-            $this->assertSame('fallback.local', $switchConfig->hostname);
-        } finally {
-            // DB::listen callbacks are cleared per test — no cleanup needed
-        }
+        $this->expectException(RuntimeException::class);
+        $method->invoke($provider);
     }
 }

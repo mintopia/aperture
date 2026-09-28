@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Services\PiHole;
 
 use App\Models\IpAddress;
+use App\Services\Http\ExternalHttp;
 use App\Services\Interfaces\DnsFilteringInterface;
 use App\Services\ValueObjects\ReconcileResult;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class PiHoleService implements DnsFilteringInterface
@@ -260,9 +260,7 @@ class PiHoleService implements DnsFilteringInterface
 
     protected function request(?int $timeout = null, ?string $sid = null): PendingRequest
     {
-        $request = Http::baseUrl($this->endpoint)
-            ->withOptions(['verify' => $this->verifySsl])
-            ->asJson();
+        $request = ExternalHttp::request($this->endpoint, $this->verifySsl)->asJson();
 
         if ($timeout !== null) {
             $request->timeout($timeout);

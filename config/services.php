@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'external_http' => [
+        'timeout' => (int) env('EXTERNAL_HTTP_TIMEOUT', 10),
+        'connect_timeout' => (int) env('EXTERNAL_HTTP_CONNECT_TIMEOUT', 5),
+    ],
+
 ];

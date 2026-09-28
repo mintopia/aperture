@@ -6,10 +6,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreContentRequest;
+use App\Http\Requests\Admin\UpdateContentLayoutRequest;
 use App\Http\Requests\Admin\UpdateContentRequest;
 use App\Models\ContentBlock;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -63,16 +63,9 @@ class ContentController extends Controller
         return response()->json(null, 204);
     }
 
-    public function updateLayout(Request $request): JsonResponse
+    public function updateLayout(UpdateContentLayoutRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'blocks' => 'required|array',
-            'blocks.*.id' => 'required|exists:content_blocks,id',
-            'blocks.*.grid_col' => 'required|integer|min:1|max:3',
-            'blocks.*.grid_row' => 'required|integer|min:1',
-            'blocks.*.col_span' => 'required|integer|min:1|max:3',
-            'blocks.*.row_span' => 'required|integer|min:1',
-        ]);
+        $validated = $request->validated();
 
         // Validate spans don't exceed grid bounds
         foreach ($validated['blocks'] as $blockData) {

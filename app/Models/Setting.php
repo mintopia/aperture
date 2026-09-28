@@ -6,11 +6,13 @@ namespace App\Models;
 
 use App\Casts\SettingValue;
 use App\Models\Traits\ToString;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * App\Models\Setting
@@ -36,13 +38,17 @@ use Illuminate\Support\Carbon;
  * @method static Builder|Setting whereUpdatedAt($value)
  * @method static Builder|Setting whereValue($value)
  *
- *
  * @property string $type
  *
  * @method static Builder<static>|Setting whereType($value)
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'code',
+    'name',
+    'value',
+])]
 class Setting extends Model
 {
     /** @use HasFactory<Factory<static>> */
@@ -50,21 +56,45 @@ class Setting extends Model
 
     use ToString;
 
-    protected $fillable = [
-        'code',
-        'name',
-        'value',
-    ];
+    public const CACHE_KEY = 'settings.all';
 
-    protected $casts = [
-        'value' => SettingValue::class,
-    ];
+    protected static function booted(): void
+    {
+        static::saved(static fn () => static::flushCache());
+        static::deleted(static fn () => static::flushCache());
+    }
+
+    public static function flushCache(): void
+    {
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @return SettingBuilder<Setting>
+     */
+    public function newEloquentBuilder($query): SettingBuilder
+    {
+        return new SettingBuilder($query);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function allCached(): array
+    {
+        /** @var array<string, mixed> */
+        return Cache::rememberForever(self::CACHE_KEY, static fn (): array => Setting::query()
+            ->get()
+            ->mapWithKeys(static fn (Setting $setting): array => [$setting->code => $setting->value])
+            ->all());
+    }
 
     public static function get(string $code, mixed $default = null): mixed
     {
-        $setting = static::query()->firstWhere('code', $code);
+        $all = static::allCached();
 
-        return $setting instanceof self ? $setting->value : $default;
+        return array_key_exists($code, $all) ? $all[$code] : $default;
     }
 
     /**
@@ -80,5 +110,12 @@ class Setting extends Model
         $setting = static::query()->firstOrNew(['code' => $code], ['name' => $name]);
         $setting->value = $value;
         $setting->save();
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'value' => SettingValue::class,
+        ];
     }
 }

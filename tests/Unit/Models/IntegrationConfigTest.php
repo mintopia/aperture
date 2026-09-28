@@ -7,6 +7,7 @@ namespace Tests\Unit\Models;
 use App\Models\IntegrationConfig;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -157,5 +158,36 @@ class IntegrationConfigTest extends TestCase
         DB::shouldReceive('connection')->andThrow(new RuntimeException('db down'));
 
         $this->assertSame([], IntegrationConfig::safeGetAll('kea'));
+    }
+
+    /**
+     * @return array<string, array{0: array<string, mixed>}>
+     */
+    public static function fillOrders(): array
+    {
+        return [
+            'value first' => [['value' => 'hunter2', 'encrypted' => true]],
+            'encrypted first' => [['encrypted' => true, 'value' => 'hunter2']],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    #[DataProvider('fillOrders')]
+    public function test_encryption_is_independent_of_fill_order(array $attributes): void
+    {
+        $config = new IntegrationConfig;
+        $config->fill(['integration' => 'opnsense', 'key' => 'api_key', ...$attributes]);
+
+        $this->assertSame('hunter2', $config->value);
+
+        $config->save();
+
+        $raw = (string) DB::table('integration_configs')->where('id', $config->id)->value('value');
+        $this->assertStringNotContainsString('hunter2', $raw);
+        $this->assertSame('hunter2', decrypt(json_decode($raw, true)['v']));
+        $this->assertSame('hunter2', $config->value);
+        $this->assertSame('hunter2', $config->fresh()->value);
     }
 }

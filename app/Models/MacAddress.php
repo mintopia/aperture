@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Casts\NormalizeMacAddress;
 use Database\Factories\MacAddressFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -49,18 +50,19 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'mac_address',
+    'user_id',
+    'source',
+    'description',
+])]
 class MacAddress extends Model
 {
     /** @use HasFactory<MacAddressFactory> */
     use HasFactory;
 
-    /** @var list<string> */
-    protected $fillable = [
-        'mac_address',
-        'user_id',
-        'source',
-        'description',
-    ];
+    /** Source of MACs derived from a DHCPv6 DUID; DUIDs can be shared by cloned images, so they never drive ownership. */
+    public const SOURCE_DHCP_DUID = 'dhcp_duid';
 
     public function getRouteKeyName(): string
     {
@@ -122,11 +124,30 @@ class MacAddress extends Model
         return $this->morphMany(AuditLog::class, 'subject');
     }
 
-    public static function normalize(string $mac): string
+    /**
+     * Canonical form is AA:BB:CC:DD:EE:FF. Returns null for blank input or
+     * anything that is not exactly 12 hex digits. Colon/dash separated input
+     * with unpadded octets (e.g. 0:1:2:3:4:5) is zero-padded per octet.
+     */
+    public static function normalize(?string $mac): ?string
     {
-        $hex = strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $mac));
+        $mac = trim((string) $mac);
+        if ($mac === '') {
+            return null;
+        }
 
-        return implode(':', str_split($hex, 2));
+        if (preg_match('/^[0-9A-Fa-f]{1,2}([:-])[0-9A-Fa-f]{1,2}(?:\1[0-9A-Fa-f]{1,2}){4}$/', $mac) === 1) {
+            $mac = implode('', array_map(
+                fn (string $octet): string => str_pad($octet, 2, '0', STR_PAD_LEFT),
+                preg_split('/[:-]/', $mac) ?: [],
+            ));
+        }
+
+        if (preg_match('/^(?:[0-9A-Fa-f]{2}[:-]?){5}[0-9A-Fa-f]{2}$|^(?:[0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$|^[0-9A-Fa-f]{12}$/', $mac) !== 1) {
+            return null;
+        }
+
+        return implode(':', str_split(strtoupper((string) preg_replace('/[^0-9A-Fa-f]/', '', $mac)), 2));
     }
 
     public function currentHostname(): ?string

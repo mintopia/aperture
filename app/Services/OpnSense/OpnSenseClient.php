@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Services\OpnSense;
 
 use App\Services\Firewalls\Exceptions\BackendException;
+use App\Services\Http\ExternalHttp;
 use Carbon\CarbonImmutable;
-use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\HttpClientException;
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use stdClass;
 use Throwable;
@@ -39,8 +38,7 @@ class OpnSenseClient
 
     public function request(?int $timeout = null): PendingRequest
     {
-        $request = Http::baseUrl($this->endpoint)
-            ->withOptions(['verify' => $this->verifySsl])
+        $request = ExternalHttp::request($this->endpoint, $this->verifySsl)
             ->withBasicAuth($this->key, $this->secret)
             ->throw();
 
@@ -62,8 +60,8 @@ class OpnSenseClient
             Log::debug('[OpnSense] GET '.$uri);
 
             return $this->decodeResponse($this->request()->get($uri, $query));
-        } catch (ConnectionException|RequestException $exception) {
-            throw new BackendException('Error from Opnsense: '.$exception->getMessage(), $exception->getCode(), $exception);
+        } catch (HttpClientException $httpClientException) {
+            throw new BackendException('Error from Opnsense: '.$httpClientException->getMessage(), $httpClientException->getCode(), $httpClientException);
         }
     }
 
@@ -77,13 +75,15 @@ class OpnSenseClient
     {
         try {
             Log::debug('[OpnSense] POST '.$uri);
-            $url = $query === [] ? $uri : $uri.'?'.http_build_query($query);
+            $request = $this->request();
+            $target = $this->withQuery($uri, $query);
+            $response = $payload instanceof stdClass
+                ? $request->withBody(json_encode($payload, JSON_THROW_ON_ERROR), 'application/json')->post($target)
+                : $request->post($target, $payload ?? []);
 
-            return $this->decodeResponse(
-                $this->request()->withBody((string) json_encode($payload ?? []), 'application/json')->post($url)
-            );
-        } catch (ConnectionException|RequestException $exception) {
-            throw new BackendException('Error from Opnsense: '.$exception->getMessage(), $exception->getCode(), $exception);
+            return $this->decodeResponse($response);
+        } catch (HttpClientException $httpClientException) {
+            throw new BackendException('Error from Opnsense: '.$httpClientException->getMessage(), $httpClientException->getCode(), $httpClientException);
         }
     }
 
@@ -188,5 +188,13 @@ class OpnSenseClient
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    protected function withQuery(string $uri, array $query): string
+    {
+        return $query === [] ? $uri : $uri.(str_contains($uri, '?') ? '&' : '?').http_build_query($query);
     }
 }

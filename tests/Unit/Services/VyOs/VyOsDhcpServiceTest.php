@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\VyOs;
 
+use App\Enums\AddressFamily;
 use App\Services\VyOs\VyOsClient;
 use App\Services\VyOs\VyOsDhcpService;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
+use Tests\Support\DhcpFetchStatusArray;
 use Tests\TestCase;
 
 class VyOsDhcpServiceTest extends TestCase
@@ -131,7 +133,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(2, $leases);
         $this->assertSame('192.168.1.100', $leases[0]->ip);
@@ -152,7 +154,7 @@ class VyOsDhcpServiceTest extends TestCase
             ]));
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertSame('2001:db8::100', $leases[0]->ip);
@@ -178,7 +180,7 @@ class VyOsDhcpServiceTest extends TestCase
             ]));
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(2, $leases);
         $this->assertSame('192.168.1.100', $leases[0]->ip);
@@ -191,7 +193,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(0, $leases);
     }
@@ -206,7 +208,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(0, $leases);
     }
@@ -299,10 +301,10 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
-        $this->assertSame('ipv4', $ranges[0]->type);
+        $this->assertSame(AddressFamily::IPv4, $ranges[0]->type);
         $this->assertSame('192.168.1.0/24', $ranges[0]->subnet);
         $this->assertSame('192.168.1.100', $ranges[0]->rangeFrom);
         $this->assertSame('192.168.1.200', $ranges[0]->rangeTo);
@@ -347,10 +349,10 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
-        $this->assertSame('ipv6', $ranges[0]->type);
+        $this->assertSame(AddressFamily::IPv6, $ranges[0]->type);
         $this->assertSame('2001:db8::/64', $ranges[0]->subnet);
         $this->assertSame('2001:db8::100', $ranges[0]->rangeFrom);
         $this->assertSame('2001:db8::200', $ranges[0]->rangeTo);
@@ -392,10 +394,10 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
-        $this->assertSame('ipv6', $ranges[0]->type);
+        $this->assertSame(AddressFamily::IPv6, $ranges[0]->type);
         $this->assertSame('2a0f:85c1:d91:2100::/64', $ranges[0]->prefix);
     }
 
@@ -429,7 +431,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(2, $ranges);
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
@@ -451,7 +453,7 @@ class VyOsDhcpServiceTest extends TestCase
             ->andReturn([]);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -469,7 +471,7 @@ class VyOsDhcpServiceTest extends TestCase
             ->andReturn([]);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -487,7 +489,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService(254);
-        $pool = $service->getPoolStatus();
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertSame(254, $pool->total);
         $this->assertSame(2, $pool->used);
@@ -501,7 +503,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService(0);
-        $pool = $service->getPoolStatus();
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertSame(0, $pool->total);
         $this->assertSame(0, $pool->used);
@@ -513,7 +515,7 @@ class VyOsDhcpServiceTest extends TestCase
     {
         $service = $this->createService(254);
 
-        $pool = $service->getPoolStatus('ipv6');
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv6);
 
         $this->assertSame(0, $pool->total);
         $this->assertSame(0, $pool->used);
@@ -544,7 +546,7 @@ class VyOsDhcpServiceTest extends TestCase
             ->andReturn([]);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -564,7 +566,7 @@ class VyOsDhcpServiceTest extends TestCase
             ->andThrow(new RuntimeException('DHCPv6 connection refused'));
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(1, $leases);
         $this->assertSame('192.168.1.1', $leases[0]->ip);
@@ -583,7 +585,7 @@ class VyOsDhcpServiceTest extends TestCase
             ->andThrow(new RuntimeException('DHCPv6 connection refused'));
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -612,7 +614,7 @@ class VyOsDhcpServiceTest extends TestCase
             ->andReturn([]);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -643,7 +645,7 @@ class VyOsDhcpServiceTest extends TestCase
             ->andReturn([]);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -686,7 +688,7 @@ class VyOsDhcpServiceTest extends TestCase
             ]));
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
         $this->assertSame(1, $ranges[0]->usedAddresses);
@@ -715,7 +717,7 @@ class VyOsDhcpServiceTest extends TestCase
             ]);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -751,7 +753,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
@@ -787,7 +789,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
@@ -799,7 +801,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(0, $leases);
     }
@@ -817,7 +819,7 @@ class VyOsDhcpServiceTest extends TestCase
             ->andReturn($this->dhcpv6LeaseText([]));
 
         $service = $this->createService();
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(0, $leases);
     }
@@ -849,7 +851,7 @@ class VyOsDhcpServiceTest extends TestCase
             ]);
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -881,7 +883,7 @@ class VyOsDhcpServiceTest extends TestCase
         $this->stubEmptyV6Leases();
 
         $service = $this->createService();
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
         $this->assertSame('10.0.0.10', $ranges[0]->rangeFrom);
@@ -889,17 +891,10 @@ class VyOsDhcpServiceTest extends TestCase
 
     public function test_get_fetch_status_reports_success(): void
     {
+        $this->client->shouldReceive('showText')->andReturn('');
+        $this->client->shouldReceive('retrieve')->andReturn([]);
         $service = $this->createService();
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
-    }
-
-    public function test_reset_snapshot_is_a_no_op(): void
-    {
-        $service = $this->createService();
-
-        $service->resetSnapshot();
-
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], DhcpFetchStatusArray::of($service->snapshot()));
     }
 }

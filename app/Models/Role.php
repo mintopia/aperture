@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Traits\ToString;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -31,18 +32,14 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'code',
+    'name',
+])]
 class Role extends Model
 {
     /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
     use ToString;
-
-    /**
-     * @var list<string>
-     */
-    protected $fillable = [
-        'code',
-        'name',
-    ];
 }

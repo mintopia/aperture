@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SearchRequest;
 use App\Models\AuditLog;
 use App\Models\DhcpLease;
 use App\Models\IpAddress;
@@ -13,16 +14,11 @@ use App\Models\SwitchConfig;
 use App\Models\User;
 use App\Support\SearchHelper;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class SearchController extends Controller
 {
-    public function search(Request $request): JsonResponse
+    public function search(SearchRequest $request): JsonResponse
     {
-        $request->validate([
-            'q' => 'required|string|min:2|max:100',
-        ]);
-
         $pattern = SearchHelper::toLikePattern($request->input('q'));
 
         $users = User::where('nickname', 'like', $pattern)

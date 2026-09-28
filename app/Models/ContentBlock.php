@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\ContentBlockFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -45,6 +46,17 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'type',
+    'title',
+    'content',
+    'grid_col',
+    'grid_row',
+    'col_span',
+    'row_span',
+    'is_active',
+    'settings',
+])]
 class ContentBlock extends Model
 {
     /** @use HasFactory<ContentBlockFactory> */
@@ -55,18 +67,6 @@ class ContentBlock extends Model
         'connection_strip',
         'bandwidth',
         'dns_filter',
-    ];
-
-    protected $fillable = [
-        'type',
-        'title',
-        'content',
-        'grid_col',
-        'grid_row',
-        'col_span',
-        'row_span',
-        'is_active',
-        'settings',
     ];
 
     /**

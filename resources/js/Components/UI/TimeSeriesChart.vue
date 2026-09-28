@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Chart } from 'chart.js/auto';
 import 'chartjs-adapter-date-fns';
+import { formatDate, formatTime } from '@/utils/dates.js';
 
 const props = defineProps({
     series: { type: Array, required: true },
@@ -37,7 +38,7 @@ function withAlpha(color, alpha) {
 }
 
 function formatTimestamp(value, options = { hour: '2-digit', minute: '2-digit' }) {
-    return new Date(value).toLocaleTimeString([], options);
+    return formatTime(value, options);
 }
 
 function formatValue(value) {
@@ -121,12 +122,7 @@ function buildChart() {
                                 return '';
                             }
 
-                            return new Date(items[0].parsed.x).toLocaleString([], {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                            });
+                            return formatDate(items[0].parsed.x, { year: undefined });
                         },
                         label(context) {
                             return `${context.dataset.label}: ${formatValue(context.parsed.y)}`;

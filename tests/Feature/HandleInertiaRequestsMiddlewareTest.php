@@ -16,7 +16,7 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
 
     private function makeMiddleware(): HandleInertiaRequests
     {
-        return app(HandleInertiaRequests::class);
+        return resolve(HandleInertiaRequests::class);
     }
 
     public function test_shares_auth_user_data(): void

@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Services\VyOs;
 
+use App\Enums\AddressFamily;
 use App\Models\IpAddress;
+use App\Services\Dhcp\RangeUsageCalculator;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\ValueObjects\DhcpFetchStatus;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
+use App\Services\ValueObjects\DhcpSnapshot;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
+use UnexpectedValueException;
 
 class VyOsDhcpService implements DhcpInterface
 {
@@ -20,128 +25,81 @@ class VyOsDhcpService implements DhcpInterface
         private int $poolSize = 0,
     ) {}
 
-    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
+    public function snapshot(): DhcpSnapshot
     {
-        if ($family !== 'ipv4') {
-            return new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
-        }
+        $v4Leases = $this->fetchLeases(AddressFamily::IPv4);
+        $v6Leases = $this->fetchLeases(AddressFamily::IPv6);
+        $v4Ranges = $this->fetchRanges(AddressFamily::IPv4);
+        $v6Ranges = $this->fetchRanges(AddressFamily::IPv6);
 
-        $leaseCount = $this->getLeases()->count();
+        $leases = ($v4Leases ?? collect())->concat($v6Leases ?? collect())->values();
+        $leaseIps = $leases->map(fn (DhcpLease $lease): string => $lease->ip);
 
-        return new DhcpPoolStatus(
-            total: $this->poolSize,
-            used: $leaseCount,
-            available: max(0, $this->poolSize - $leaseCount),
-            utilisation: $this->poolSize > 0 ? round($leaseCount / $this->poolSize, 4) : 0.0,
+        $ranges = ($v4Ranges ?? collect())->concat($v6Ranges ?? collect())
+            ->map(fn (DhcpRange $range): DhcpRange => RangeUsageCalculator::enrich($range, $leaseIps))
+            ->values();
+
+        $leaseCount = $leases->count();
+
+        return DhcpSnapshot::create(
+            $leases,
+            $ranges,
+            new DhcpFetchStatus($v4Leases !== null, $v4Ranges !== null),
+            new DhcpFetchStatus($v6Leases !== null, $v6Ranges !== null),
+            [AddressFamily::IPv4->value => new DhcpPoolStatus(
+                total: $this->poolSize,
+                used: $leaseCount,
+                available: max(0, $this->poolSize - $leaseCount),
+                utilisation: $this->poolSize > 0 ? round($leaseCount / $this->poolSize, 4) : 0.0,
+            )],
         );
-    }
-
-    /** @return Collection<int, DhcpLease> */
-    public function getLeases(): Collection
-    {
-        $v4Leases = $this->fetchDhcpv4Leases();
-        $v6Leases = $this->fetchDhcpv6Leases();
-
-        return $v4Leases->concat($v6Leases)->values();
     }
 
     public function getLease(string $ipAddress): ?DhcpLease
     {
         $needle = IpAddress::normalize($ipAddress);
 
-        return $this->getLeases()->first(fn (DhcpLease $lease): bool => IpAddress::normalize($lease->ip) === $needle);
+        return $this->snapshot()->leases->first(fn (DhcpLease $lease): bool => IpAddress::normalize($lease->ip) === $needle);
     }
 
-    /** @return Collection<int, DhcpRange> */
-    public function getRanges(): Collection
+    /** @return Collection<int, DhcpLease>|null */
+    private function fetchLeases(AddressFamily $family): ?Collection
     {
-        $ranges = collect();
+        $isV4 = $family === AddressFamily::IPv4;
+        $ipColumn = $isV4 ? 'ip address' : 'ipv6 address';
 
-        $v4Ranges = $this->fetchDhcpv4Ranges();
-        $v6Ranges = $this->fetchDhcpv6Ranges();
-
-        $ranges = $ranges->concat($v4Ranges)->concat($v6Ranges);
-
-        if ($ranges->isEmpty()) {
-            return $ranges;
-        }
-
-        $leases = $this->getLeases();
-
-        return $ranges->map(fn (DhcpRange $range): DhcpRange => $this->enrichRangeWithUsage($range, $leases))->values();
-    }
-
-    /** @return Collection<int, DhcpLease> */
-    private function fetchDhcpv4Leases(): Collection
-    {
         try {
-            $text = $this->client->showText(['dhcp', 'server', 'leases']);
-            $rows = $this->parseTextTable($text);
+            $text = $this->client->showText([$isV4 ? 'dhcp' : 'dhcpv6', 'server', 'leases']);
 
-            return collect($rows)
-                ->filter(fn (array $row): bool => ($row['ip address'] ?? '') !== '')
+            return collect($this->parseTextTable($text))
+                ->filter(fn (array $row): bool => ($row[$ipColumn] ?? '') !== '')
                 ->map(fn (array $row): DhcpLease => new DhcpLease(
-                    ip: $row['ip address'],
+                    ip: $row[$ipColumn],
                     mac: $row['mac address'] ?? '',
                     hostname: $row['hostname'] ?? '',
                     expires: $row['lease expiration'] ?? '',
                 ))->values();
         } catch (Throwable $throwable) {
-            Log::warning('Failed to fetch VyOS DHCPv4 leases', ['error' => $throwable->getMessage()]);
+            Log::warning(sprintf('Failed to fetch VyOS DHCPv%d leases', $isV4 ? 4 : 6), ['error' => $throwable->getMessage()]);
 
-            return collect();
+            return null;
         }
     }
 
-    /** @return Collection<int, DhcpLease> */
-    private function fetchDhcpv6Leases(): Collection
+    /** @return Collection<int, DhcpRange>|null */
+    private function fetchRanges(AddressFamily $family): ?Collection
     {
+        $isV4 = $family === AddressFamily::IPv4;
+
         try {
-            $text = $this->client->showText(['dhcpv6', 'server', 'leases']);
-            $rows = $this->parseTextTable($text);
-
-            return collect($rows)
-                ->filter(fn (array $row): bool => ($row['ipv6 address'] ?? '') !== '')
-                ->map(fn (array $row): DhcpLease => new DhcpLease(
-                    ip: $row['ipv6 address'],
-                    mac: $row['mac address'] ?? '',
-                    hostname: $row['hostname'] ?? '',
-                    expires: $row['lease expiration'] ?? '',
-                ))->values();
-        } catch (Throwable $throwable) {
-            Log::warning('Failed to fetch VyOS DHCPv6 leases', ['error' => $throwable->getMessage()]);
-
-            return collect();
-        }
-    }
-
-    /** @return Collection<int, DhcpRange> */
-    private function fetchDhcpv4Ranges(): Collection
-    {
-        try {
-            $data = $this->client->retrieve(['service', 'dhcp-server', 'shared-network-name']);
+            $data = $this->client->retrieve(['service', $isV4 ? 'dhcp-server' : 'dhcpv6-server', 'shared-network-name']);
             $networks = $data['shared-network-name'] ?? $data;
 
-            return $this->parseRangesFromConfig($networks, 'ipv4');
+            return $this->parseRangesFromConfig($networks, $family);
         } catch (Throwable $throwable) {
-            Log::warning('Failed to fetch VyOS DHCPv4 ranges', ['error' => $throwable->getMessage()]);
+            Log::warning(sprintf('Failed to fetch VyOS DHCPv%d ranges', $isV4 ? 4 : 6), ['error' => $throwable->getMessage()]);
 
-            return collect();
-        }
-    }
-
-    /** @return Collection<int, DhcpRange> */
-    private function fetchDhcpv6Ranges(): Collection
-    {
-        try {
-            $data = $this->client->retrieve(['service', 'dhcpv6-server', 'shared-network-name']);
-            $networks = $data['shared-network-name'] ?? $data;
-
-            return $this->parseRangesFromConfig($networks, 'ipv6');
-        } catch (Throwable $throwable) {
-            Log::warning('Failed to fetch VyOS DHCPv6 ranges', ['error' => $throwable->getMessage()]);
-
-            return collect();
+            return null;
         }
     }
 
@@ -149,7 +107,7 @@ class VyOsDhcpService implements DhcpInterface
      * @param  array<string, mixed>  $networkData
      * @return Collection<int, DhcpRange>
      */
-    private function parseRangesFromConfig(array $networkData, string $type): Collection
+    private function parseRangesFromConfig(array $networkData, AddressFamily $type): Collection
     {
         $ranges = collect();
 
@@ -174,7 +132,7 @@ class VyOsDhcpService implements DhcpInterface
      * @param  Collection<int, DhcpRange>  $ranges
      * @param  array<string, mixed>  $subnetConfig
      */
-    private function extractRanges(Collection $ranges, string $networkName, string $subnetCidr, array $subnetConfig, string $type): void
+    private function extractRanges(Collection $ranges, string $networkName, string $subnetCidr, array $subnetConfig, AddressFamily $type): void
     {
         $rangeData = $subnetConfig['range'] ?? [];
         if (! is_array($rangeData)) {
@@ -186,7 +144,7 @@ class VyOsDhcpService implements DhcpInterface
                 continue;
             }
 
-            $gateway = $type === 'ipv4'
+            $gateway = $type === AddressFamily::IPv4
                 ? ($subnetConfig['option']['default-router'] ?? null)
                 : null;
 
@@ -196,7 +154,7 @@ class VyOsDhcpService implements DhcpInterface
                 subnet: $subnetCidr,
                 rangeFrom: (string) $range['start'],
                 rangeTo: (string) $range['stop'],
-                prefix: $type === 'ipv6' ? IpAddress::normalize($subnetCidr) : null,
+                prefix: $type === AddressFamily::IPv6 ? IpAddress::normalize($subnetCidr) : null,
                 gateway: $gateway !== null ? (string) $gateway : null,
                 description: $networkName,
             ));
@@ -204,112 +162,11 @@ class VyOsDhcpService implements DhcpInterface
     }
 
     /**
-     * @param  Collection<int, DhcpLease>  $leases
-     */
-    private function enrichRangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
-    {
-        if ($range->rangeFrom === null || $range->rangeTo === null) {
-            return $range; // @codeCoverageIgnore
-        }
-
-        if ($range->type === 'ipv6') {
-            return $this->enrichIpv6RangeWithUsage($range, $leases);
-        }
-
-        return $this->enrichIpv4RangeWithUsage($range, $leases);
-    }
-
-    /**
-     * @param  Collection<int, DhcpLease>  $leases
-     */
-    private function enrichIpv4RangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
-    {
-        $fromLong = ip2long((string) $range->rangeFrom);
-        $toLong = ip2long((string) $range->rangeTo);
-
-        if ($fromLong === false || $toLong === false) {
-            return $range; // @codeCoverageIgnore
-        }
-
-        $totalAddresses = $toLong - $fromLong + 1;
-
-        $usedAddresses = $leases->filter(function (DhcpLease $lease) use ($fromLong, $toLong): bool {
-            $leaseIp = ip2long($lease->ip);
-
-            return $leaseIp !== false && $leaseIp >= $fromLong && $leaseIp <= $toLong;
-        })->count();
-
-        return new DhcpRange(
-            interface: $range->interface,
-            type: $range->type,
-            subnet: $range->subnet,
-            rangeFrom: $range->rangeFrom,
-            rangeTo: $range->rangeTo,
-            prefix: $range->prefix,
-            gateway: $range->gateway,
-            description: $range->description,
-            totalAddresses: (string) $totalAddresses,
-            usedAddresses: $usedAddresses,
-            utilisation: $totalAddresses > 0 ? round($usedAddresses / $totalAddresses, 4) : 0.0,
-        );
-    }
-
-    /**
-     * @param  Collection<int, DhcpLease>  $leases
-     */
-    private function enrichIpv6RangeWithUsage(DhcpRange $range, Collection $leases): DhcpRange
-    {
-        $fromBin = inet_pton((string) $range->rangeFrom);
-        $toBin = inet_pton((string) $range->rangeTo);
-
-        if ($fromBin === false || $toBin === false) {
-            return $range; // @codeCoverageIgnore
-        }
-
-        $totalAddresses = $this->ipv6Diff($fromBin, $toBin) + 1;
-
-        $usedAddresses = $leases->filter(function (DhcpLease $lease) use ($fromBin, $toBin): bool {
-            $leaseBin = inet_pton($lease->ip);
-
-            return $leaseBin !== false && $leaseBin >= $fromBin && $leaseBin <= $toBin;
-        })->count();
-
-        return new DhcpRange(
-            interface: $range->interface,
-            type: $range->type,
-            subnet: $range->subnet,
-            rangeFrom: $range->rangeFrom,
-            rangeTo: $range->rangeTo,
-            prefix: $range->prefix,
-            gateway: $range->gateway,
-            description: $range->description,
-            totalAddresses: (string) $totalAddresses,
-            usedAddresses: $usedAddresses,
-            utilisation: $totalAddresses > 0 ? round($usedAddresses / $totalAddresses, 4) : 0.0,
-        );
-    }
-
-    private function ipv6Diff(string $fromBin, string $toBin): int
-    {
-        $result = 0;
-
-        for ($i = 0; $i <= 15; $i++) {
-            $diff = ord($toBin[$i]) - ord($fromBin[$i]);
-            $result = ($result << 8) + $diff;
-
-            if ($result > PHP_INT_MAX >> 8) {
-                return PHP_INT_MAX; // @codeCoverageIgnore
-            }
-        }
-
-        return max(0, $result);
-    }
-
-    /**
      * @return list<array<string, string>>
      */
     private function parseTextTable(string $text): array
     {
+        $sawSeparator = false;
         $lines = explode("\n", $text);
         /** @var list<string> $headers */
         $headers = [];
@@ -321,6 +178,7 @@ class VyOsDhcpService implements DhcpInterface
         foreach ($lines as $i => $line) {
             if (! $separatorFound && preg_match('/^[-\s]+$/', $line) && trim($line) !== '') {
                 $separatorFound = true;
+                $sawSeparator = true;
                 preg_match_all('/(-+)/', $line, $matches, PREG_OFFSET_CAPTURE);
 
                 foreach ($matches[1] as $match) {
@@ -360,14 +218,11 @@ class VyOsDhcpService implements DhcpInterface
             $rows[] = $row;
         }
 
+        // Blank output is a valid empty table; anything else without a header separator is not.
+        if (! $sawSeparator && trim($text) !== '') {
+            throw new UnexpectedValueException('Unparseable DHCP lease table');
+        }
+
         return $rows;
     }
-
-    /** @return array{ipv4: bool, ipv6: bool} */
-    public function getFetchStatus(): array
-    {
-        return ['ipv4' => true, 'ipv6' => true];
-    }
-
-    public function resetSnapshot(): void {}
 }

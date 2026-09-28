@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Tests\Support\Fake;
 use Tests\TestCase;
 
 class OpnSenseDhcpServiceLoggingTest extends TestCase
@@ -22,21 +23,20 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
                     && $context['path'] === '/api/dhcpv4/ranges';
             });
 
-        $mock = Http::sequence([
-            Http::response('Internal Server Error', 500),
+        Fake::sequence([
+            Fake::response(500, [], 'Internal Server Error'),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 254,
             leasesPath: '/api/dhcpv4/leases/search_lease',
             ipv4RangesPath: '/api/dhcpv4/ranges',
             ipv6RangesPath: '',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }
@@ -52,21 +52,20 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
                     && $context['path'] === '/api/dhcpv6/ranges';
             });
 
-        $mock = Http::sequence([
-            Http::response('Internal Server Error', 500),
+        Fake::sequence([
+            Fake::response(500, [], 'Internal Server Error'),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 254,
             leasesPath: '/api/dhcpv4/leases/search_lease',
             ipv4RangesPath: '',
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(0, $ranges);
     }

@@ -7,6 +7,7 @@ namespace Tests\Feature\Console;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\UserNetworkAssociationService;
 use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
@@ -22,7 +23,7 @@ class SyncUserBandwidthCommandTest extends TestCase
     {
         $user = User::factory()->create();
         $ip = IpAddress::factory()->create(['address' => '10.0.0.1']);
-        $user->addIp($ip->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip->address);
 
         /** @var IpBandwidthInterface&MockInterface $mock */
         $mock = Mockery::mock(IpBandwidthInterface::class);
@@ -71,7 +72,7 @@ class SyncUserBandwidthCommandTest extends TestCase
     {
         $user = User::factory()->create(['weekly_bandwidth' => 100]);
         $ip = IpAddress::factory()->create(['address' => '10.0.0.2']);
-        $user->addIp($ip->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip->address);
 
         /** @var IpBandwidthInterface&MockInterface $mock */
         $mock = Mockery::mock(IpBandwidthInterface::class);
@@ -91,8 +92,8 @@ class SyncUserBandwidthCommandTest extends TestCase
         $user = User::factory()->create();
         $ip1 = IpAddress::factory()->create(['address' => '10.0.0.10']);
         $ip2 = IpAddress::factory()->create(['address' => '10.0.0.11']);
-        $user->addIp($ip1->address);
-        $user->addIp($ip2->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip1->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip2->address);
 
         /** @var IpBandwidthInterface&MockInterface $mock */
         $mock = Mockery::mock(IpBandwidthInterface::class);

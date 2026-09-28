@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Events;
 
+use App\Enums\AddressFamily;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -21,7 +22,7 @@ class DhcpPoolThresholdReached implements ShouldBroadcast
         public string $pool,
         public float $usage,
         public float $threshold,
-        public string $addressFamily = 'ipv4',
+        public string $addressFamily = AddressFamily::IPv4->value,
     ) {}
 
     /**

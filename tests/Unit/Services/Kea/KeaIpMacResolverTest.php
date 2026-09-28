@@ -4,27 +4,36 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Kea;
 
-use App\Enums\Integration;
-use App\Models\DhcpLease;
-use App\Models\IpAddress;
-use App\Models\MacAddress;
+use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Kea\KeaIpMacResolver;
-use App\Services\ValueObjects\ArpEntry;
-use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use App\Services\ValueObjects\DhcpLease;
+use App\Services\ValueObjects\DhcpSnapshot;
+use App\Services\ValueObjects\IpMacEntry;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class KeaIpMacResolverTest extends TestCase
 {
-    use LazilyRefreshDatabase;
-
-    private KeaIpMacResolver $resolver;
-
-    protected function setUp(): void
+    /** @param  list<DhcpLease>  $leases */
+    private function resolverWith(array $leases): KeaIpMacResolver
     {
-        parent::setUp();
-        $this->resolver = new KeaIpMacResolver;
+        $kea = new class(DhcpSnapshot::create(collect($leases), collect())) implements DhcpInterface
+        {
+            public function __construct(private readonly DhcpSnapshot $snapshot) {}
+
+            public function snapshot(): DhcpSnapshot
+            {
+                return $this->snapshot;
+            }
+
+            public function getLease(string $ipAddress): ?DhcpLease
+            {
+                return null;
+            }
+        };
+
+        return new KeaIpMacResolver($kea);
     }
 
     public function test_implements_ip_mac_resolver_interface(): void
@@ -32,103 +41,36 @@ class KeaIpMacResolverTest extends TestCase
         $this->assertInstanceOf(IpMacResolverInterface::class, new KeaIpMacResolver);
     }
 
-    public function test_get_arp_table_returns_empty_collection(): void
+    public function test_returns_empty_collection_when_kea_is_not_configured(): void
     {
-        $table = $this->resolver->getArpTable();
+        $table = (new KeaIpMacResolver)->getIpMacTable();
 
         $this->assertInstanceOf(Collection::class, $table);
         $this->assertTrue($table->isEmpty());
     }
 
-    public function test_includes_active_kea_lease_with_mac(): void
+    public function test_reads_ipv4_and_ipv6_leases_live_from_kea(): void
     {
-        $ip = IpAddress::factory()->create(['address' => '10.0.0.5']);
-        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:01']);
-        DhcpLease::factory()->create([
-            'integration' => Integration::Kea->value,
-            'ip_address_id' => $ip->id,
-            'mac_address_id' => $mac->id,
-            'expires_at' => now()->addHour(),
-        ]);
+        $table = $this->resolverWith([
+            new DhcpLease('10.0.0.5', 'AA:BB:CC:DD:EE:01', null, null),
+            new DhcpLease('2001:db8::1', 'AA:BB:CC:DD:EE:02', null, null),
+        ])->getIpMacTable();
 
-        $table = $this->resolver->getArpTable();
+        $this->assertCount(2, $table);
+        $this->assertContainsOnlyInstancesOf(IpMacEntry::class, $table);
+        $this->assertSame(['10.0.0.5', '2001:db8::1'], $table->pluck('ip')->all());
+        $this->assertSame(['AA:BB:CC:DD:EE:01', 'AA:BB:CC:DD:EE:02'], $table->pluck('mac')->all());
+    }
+
+    public function test_excludes_leases_without_mac_and_dedupes(): void
+    {
+        $table = $this->resolverWith([
+            new DhcpLease('10.0.0.5', null, null, null),
+            new DhcpLease('10.0.0.6', 'AA:BB:CC:DD:EE:03', null, null),
+            new DhcpLease('10.0.0.6', 'AA:BB:CC:DD:EE:03', null, null),
+        ])->getIpMacTable();
 
         $this->assertCount(1, $table);
-        $this->assertSame('10.0.0.5', $table->first()->ip);
-        $this->assertSame('AA:BB:CC:DD:EE:01', $table->first()->mac);
-    }
-
-    public function test_excludes_lease_without_mac(): void
-    {
-        DhcpLease::factory()->create([
-            'integration' => Integration::Kea->value,
-            'mac_address_id' => null,
-            'expires_at' => now()->addHour(),
-        ]);
-
-        $this->assertCount(0, $this->resolver->getArpTable());
-    }
-
-    public function test_includes_active_kea_ipv6_lease_with_mac(): void
-    {
-        $ip = IpAddress::factory()->create(['address' => '2001:db8::1']);
-        $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:02']);
-        DhcpLease::factory()->create([
-            'integration' => Integration::Kea->value,
-            'ip_address_id' => $ip->id,
-            'mac_address_id' => $mac->id,
-            'expires_at' => now()->addHour(),
-        ]);
-
-        $table = $this->resolver->getArpTable();
-
-        $this->assertCount(1, $table);
-        $entry = $table->first();
-        $this->assertInstanceOf(ArpEntry::class, $entry);
-        $this->assertSame('2001:db8::1', $entry->ip);
-        $this->assertSame('AA:BB:CC:DD:EE:02', $entry->mac);
-    }
-
-    public function test_excludes_ipv6_lease_without_mac(): void
-    {
-        $ip = IpAddress::factory()->create(['address' => '2001:db8::2']);
-        DhcpLease::factory()->create([
-            'integration' => Integration::Kea->value,
-            'ip_address_id' => $ip->id,
-            'mac_address_id' => null,
-            'expires_at' => now()->addHour(),
-        ]);
-
-        $this->assertCount(0, $this->resolver->getArpTable());
-    }
-
-    public function test_excludes_expired_lease(): void
-    {
-        DhcpLease::factory()->create([
-            'integration' => Integration::Kea->value,
-            'expires_at' => now()->subHour(),
-        ]);
-
-        $this->assertCount(0, $this->resolver->getArpTable());
-    }
-
-    public function test_includes_lease_with_null_expiry(): void
-    {
-        DhcpLease::factory()->create([
-            'integration' => Integration::Kea->value,
-            'expires_at' => null,
-        ]);
-
-        $this->assertCount(1, $this->resolver->getArpTable());
-    }
-
-    public function test_excludes_lease_from_other_integration(): void
-    {
-        DhcpLease::factory()->create([
-            'integration' => 'librenms',
-            'expires_at' => now()->addHour(),
-        ]);
-
-        $this->assertCount(0, $this->resolver->getArpTable());
+        $this->assertSame('10.0.0.6', $table->first()->ip);
     }
 }

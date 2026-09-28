@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Services\Borealis\RequestException;
+use App\Services\Http\ExternalHttp;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 use stdClass;
 
 class BorealisService
@@ -37,11 +37,12 @@ class BorealisService
     {
         $params['client_id'] = $this->clientId;
         $params['client_secret'] = $this->clientSecret;
-        $response = Http::baseUrl($this->endpoint)->asForm()->post($url, $params);
+
+        $response = ExternalHttp::request($this->endpoint)->asForm()->post($url, $params);
 
         if ($response->status() === 403) {
             $data = $this->decodeResponse($response);
-            throw new RequestException($data->error, 403);
+            throw new RequestException($data->error, 403, $response->toException());
         }
 
         $response->throw();

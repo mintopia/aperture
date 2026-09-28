@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\AddressFamily;
 use Database\Factories\DhcpRangeRecordFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -13,7 +15,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string|null $integration
  * @property string $interface
- * @property string $type
+ * @property AddressFamily $type
  * @property string $subnet
  * @property string $range_from
  * @property string $range_to
@@ -26,24 +28,29 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
+#[Fillable([
+    'integration',
+    'interface',
+    'type',
+    'subnet',
+    'range_from',
+    'range_to',
+    'prefix',
+    'gateway',
+    'description',
+    'total_addresses',
+    'used_addresses',
+    'utilisation',
+])]
 class DhcpRangeRecord extends Model
 {
     /** @use HasFactory<DhcpRangeRecordFactory> */
     use HasFactory;
 
-    /** @var list<string> */
-    protected $fillable = [
-        'integration',
-        'interface',
-        'type',
-        'subnet',
-        'range_from',
-        'range_to',
-        'prefix',
-        'gateway',
-        'description',
-        'total_addresses',
-        'used_addresses',
-        'utilisation',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'type' => AddressFamily::class,
+        ];
+    }
 }

@@ -33,6 +33,7 @@ const coverStyle = computed(() => {
 const liveContext = reactive({ ...props.blockContext });
 
 useIpv6Detection(props.ipv6Detection?.endpoint, {
+    sessionBinding: props.ipv6Detection?.sessionBinding,
     onDetected(data) {
         liveContext.currentIpv6 = data.ip;
         liveContext.internetEnabled = data.internetEnabled;

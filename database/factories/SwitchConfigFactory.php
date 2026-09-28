@@ -29,7 +29,13 @@ class SwitchConfigFactory extends Factory
             'enabled' => true,
             'port' => 22,
             'timeout' => 5,
+            'timezone' => 'UTC',
         ];
+    }
+
+    public function withPrivateKey(string $key = "-----BEGIN OPENSSH PRIVATE KEY-----\nfake\n-----END OPENSSH PRIVATE KEY-----\n"): static
+    {
+        return $this->state(fn (): array => ['password' => null, 'private_key' => $key]);
     }
 
     public function disabled(): static

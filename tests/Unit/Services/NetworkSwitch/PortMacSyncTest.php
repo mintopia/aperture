@@ -10,7 +10,7 @@ use App\Models\SwitchPortMac;
 use App\Services\NetworkSwitch\PortMacSync;
 use App\Services\ValueObjects\ForwardingEntry;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Tests\TestCase;
 
 class PortMacSyncTest extends TestCase
@@ -31,7 +31,7 @@ class PortMacSyncTest extends TestCase
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
         ]);
 
-        $result = $sync->sync($macEntries, $switchConfig, Carbon::now());
+        $result = $sync->sync($macEntries, $switchConfig, Date::now());
 
         $this->assertDatabaseHas('switch_port_macs', [
             'switch_port_id' => $port->id,
@@ -66,7 +66,7 @@ class PortMacSyncTest extends TestCase
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
         ]);
 
-        $result = $sync->sync($macEntries, $switchConfig, Carbon::now());
+        $result = $sync->sync($macEntries, $switchConfig, Date::now());
 
         $existingMac->refresh();
         $this->assertTrue($existingMac->last_seen_at->greaterThan($originalLastSeen));
@@ -88,7 +88,7 @@ class PortMacSyncTest extends TestCase
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
         ]);
 
-        $result = $sync->sync($macEntries, $switchConfig, Carbon::now());
+        $result = $sync->sync($macEntries, $switchConfig, Date::now());
 
         $this->assertDatabaseCount('switch_port_macs', 0);
         $this->assertSame(0, $result['created']);
@@ -103,7 +103,7 @@ class PortMacSyncTest extends TestCase
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/99', vlan: 100),
         ]);
 
-        $result = $sync->sync($macEntries, $switchConfig, Carbon::now());
+        $result = $sync->sync($macEntries, $switchConfig, Date::now());
 
         $this->assertDatabaseCount('switch_port_macs', 0);
         $this->assertSame(0, $result['created']);
@@ -165,7 +165,7 @@ class PortMacSyncTest extends TestCase
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
         ]);
 
-        $sync->sync($macEntries, $switchConfig, Carbon::now());
+        $sync->sync($macEntries, $switchConfig, Date::now());
 
         $this->assertDatabaseHas('mac_addresses', [
             'mac_address' => 'AA:BB:CC:DD:EE:01',

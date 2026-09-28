@@ -6,29 +6,24 @@ namespace App\Integration;
 
 use App\Enums\Capability;
 use App\Enums\Integration;
-use App\Models\CapabilityAssignment;
-use App\Models\IntegrationConfig;
-use App\Services\Interfaces\IpBandwidthInterface;
-use App\Services\Interfaces\PortBandwidthInterface;
-use App\Services\Interfaces\PortErrorsInterface;
-use App\Services\Null\NullIpBandwidth;
-use App\Services\Null\NullPortBandwidth;
-use App\Services\Null\NullPortErrors;
 use App\Services\Prometheus\PrometheusIpBandwidth;
 use App\Services\Prometheus\PrometheusPortBandwidth;
 use App\Services\Prometheus\PrometheusPortErrors;
 use App\Services\Prometheus\PrometheusService;
 use Illuminate\Contracts\Foundation\Application;
-use Throwable;
 
 final class PrometheusBootstrapper implements IntegrationBootstrapper
 {
-    public function register(Application $app): void
+    public function integration(): Integration
     {
-        // ip-bandwidth
-        $app->bind(function (Application $app): IpBandwidthInterface {
-            if ($this->isActive(Capability::IpBandwidth->value)) {
-                $config = IntegrationConfig::safeGetAll(Integration::Prometheus->value);
+        return Integration::Prometheus;
+    }
+
+    public function providers(): array
+    {
+        return [
+            Capability::IpBandwidth->value => function (Application $app): PrometheusIpBandwidth {
+                $config = InstallGuard::config(Integration::Prometheus->value);
 
                 return new PrometheusIpBandwidth(
                     $app->make(PrometheusService::class),
@@ -36,40 +31,13 @@ final class PrometheusBootstrapper implements IntegrationBootstrapper
                     (string) ($config['bandwidth_sent_metric'] ?? 'ntopng_host_bytes_sent'),
                     (string) ($config['bandwidth_ip_label'] ?? 'ip'),
                 );
-            }
-
-            return new NullIpBandwidth;
-        });
-
-        // port-bandwidth
-        $app->bind(function (Application $app): PortBandwidthInterface {
-            if ($this->isActive(Capability::PortBandwidth->value)) {
-                return new PrometheusPortBandwidth(
-                    $app->make(PrometheusService::class),
-                );
-            }
-
-            return new NullPortBandwidth;
-        });
-
-        // port-errors
-        $app->bind(function (Application $app): PortErrorsInterface {
-            if ($this->isActive(Capability::PortErrors->value)) {
-                return new PrometheusPortErrors(
-                    $app->make(PrometheusService::class),
-                );
-            }
-
-            return new NullPortErrors;
-        });
-    }
-
-    private function isActive(string $capability): bool
-    {
-        try {
-            return CapabilityAssignment::isActiveProvider(Integration::Prometheus->value, $capability);
-        } catch (Throwable) {
-            return false;
-        }
+            },
+            Capability::PortBandwidth->value => fn (Application $app): PrometheusPortBandwidth => new PrometheusPortBandwidth(
+                $app->make(PrometheusService::class),
+            ),
+            Capability::PortErrors->value => fn (Application $app): PrometheusPortErrors => new PrometheusPortErrors(
+                $app->make(PrometheusService::class),
+            ),
+        ];
     }
 }

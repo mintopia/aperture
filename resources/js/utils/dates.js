@@ -73,3 +73,20 @@ export function formatRelativeTime(dateString) {
 
     return `${diffDays}d`;
 }
+
+// Values above 1e12 are treated as milliseconds, otherwise seconds.
+export function formatEpoch(epoch, options = {}) {
+    const numeric = Number(epoch);
+    if (epoch === null || epoch === undefined || epoch === '' || !Number.isFinite(numeric)) return '';
+
+    const ms = numeric > 1e12 ? numeric : numeric * 1000;
+    return formatDate(new Date(ms).toISOString(), options);
+}
+
+export function formatTime(value, options = {}) {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return '';
+
+    const defaults = { hour: '2-digit', minute: '2-digit' };
+    return new Intl.DateTimeFormat('en-GB', { ...defaults, ...options }).format(date);
+}

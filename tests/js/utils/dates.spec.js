@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatDate, formatRelative, formatRelativeTime } from '@/utils/dates';
+import { formatDate, formatRelative, formatRelativeTime, formatEpoch, formatTime } from '@/utils/dates';
 
 describe('formatDate', () => {
     it.each([
@@ -88,5 +88,30 @@ describe('formatRelativeTime', () => {
         { name: 'days older than a day', input: '2026-04-14T12:00:00Z', expected: '2d' },
     ])('returns $expected for $name', ({ input, expected }) => {
         expect(formatRelativeTime(input)).toBe(expected);
+    });
+});
+
+describe('formatEpoch', () => {
+    it('formats seconds and milliseconds identically', () => {
+        expect(formatEpoch('1714000000')).toBe(formatEpoch('1714000000000'));
+        expect(formatEpoch('1714000000')).toMatch(/Apr 2024/);
+    });
+
+    it.each([null, undefined, '', 'abc'])('returns empty string for %s', (input) => {
+        expect(formatEpoch(input)).toBe('');
+    });
+});
+
+describe('formatTime', () => {
+    it('formats the time portion with en-GB 24h defaults', () => {
+        expect(formatTime('2026-04-16T12:33:00Z', { timeZone: 'UTC' })).toBe('12:33');
+    });
+
+    it('accepts epoch milliseconds and options overrides', () => {
+        expect(formatTime(Date.UTC(2026, 3, 16, 9, 5, 7), { timeZone: 'UTC', second: '2-digit' })).toBe('09:05:07');
+    });
+
+    it('returns empty string for invalid input', () => {
+        expect(formatTime('nope')).toBe('');
     });
 });

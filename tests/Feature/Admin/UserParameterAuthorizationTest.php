@@ -148,4 +148,14 @@ class UserParameterAuthorizationTest extends TestCase
             'id' => $param->id,
         ]);
     }
+
+    public function test_non_admins_get_403_on_admin_switch_ip_and_parameter_routes(): void
+    {
+        $user = User::factory()->create();
+        $target = User::factory()->create();
+
+        $this->actingAs($user)->post(route('admin.switches.store'), [])->assertForbidden();
+        $this->actingAs($user)->post(route('admin.ips.store'), [])->assertForbidden();
+        $this->actingAs($user)->post(route('admin.users.parameters.store', ['user' => $target->id]), [])->assertForbidden();
+    }
 }

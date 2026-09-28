@@ -7,6 +7,7 @@ namespace Tests\Feature\NetworkDeviceTracking;
 use App\Events\IpMacLinked;
 use App\Listeners\CascadeMacOwnershipOnLink;
 use App\Models\AuditLog;
+use App\Models\DhcpLease;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\User;
@@ -28,7 +29,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
     private function handleEvent(IpAddress $ip, MacAddress $mac, string $source = 'dhcp', string $process = 'scan_network'): void
     {
         /** @var CascadeMacOwnershipOnLink $listener */
-        $listener = app(CascadeMacOwnershipOnLink::class);
+        $listener = resolve(CascadeMacOwnershipOnLink::class);
         $listener->handle(new IpMacLinked($ip, $mac, $source, $process));
     }
 
@@ -101,7 +102,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
         $this->assertDatabaseMissing('audit_logs', ['action' => 'ip.user_cascaded']);
     }
 
-    public function test_does_nothing_when_ip_is_associated_with_a_different_user(): void
+    public function test_non_lease_evidence_does_not_reassign_ip_owned_by_a_different_user(): void
     {
         $owner = User::factory()->create(['internet_blocked' => false]);
         $otherUser = User::factory()->create();
@@ -114,7 +115,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
         $existing->last_seen_at = now();
         $existing->save();
 
-        $this->handleEvent($ip, $mac);
+        $this->handleEvent($ip, $mac, source: 'arp');
 
         $this->assertFalse(
             UserIpAddress::where('user_id', $owner->id)->where('ip_address_id', $ip->id)->exists()
@@ -163,7 +164,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
         $this->app->instance(MacAddressResolverInterface::class, $macResolver);
 
         /** @var IpAddressActionService $service */
-        $service = app(IpAddressActionService::class);
+        $service = resolve(IpAddressActionService::class);
         $service->enableInternet($ip);
 
         $this->assertTrue(
@@ -175,5 +176,88 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
             'subject_id' => $ip->id,
             'process' => 'auth',
         ]);
+    }
+
+    private function associate(User $user, IpAddress $ip): void
+    {
+        $link = new UserIpAddress;
+        $link->user()->associate($user);
+        $link->ip()->associate($ip);
+        $link->last_seen_at = now();
+        $link->save();
+    }
+
+    public function test_re_lease_to_another_users_mac_moves_ownership_and_applies_policy(): void
+    {
+        $previous = User::factory()->create();
+        $newOwner = User::factory()->create(['internet_blocked' => false, 'internet_enabled' => true]);
+        $ip = IpAddress::factory()->create(['address' => '2a0f:85c1:d91:2100::20', 'internet_enabled' => false]);
+        $oldMac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:10', 'user_id' => $previous->id]);
+        $newMac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:11', 'user_id' => $newOwner->id]);
+        $this->associate($previous, $ip);
+        DhcpLease::factory()->create(['ip_address_id' => $ip->id, 'mac_address_id' => $newMac->id]);
+
+        $this->handleEvent($ip, $newMac);
+
+        $this->assertFalse(UserIpAddress::where('user_id', $previous->id)->where('ip_address_id', $ip->id)->exists());
+        $this->assertTrue(UserIpAddress::where('user_id', $newOwner->id)->where('ip_address_id', $ip->id)->exists());
+        $this->assertTrue((bool) $ip->fresh()->internet_enabled);
+
+        $log = AuditLog::where('action', 'ip.user_reassigned')->firstOrFail();
+        $this->assertSame([$previous->id], $log->metadata['previous_user_ids']);
+        $this->assertSame($newOwner->id, $log->metadata['new_user_id']);
+        $this->assertNotNull($oldMac);
+    }
+
+    public function test_re_lease_to_unowned_mac_releases_ip_and_resets_policy(): void
+    {
+        $previous = User::factory()->create();
+        $ip = IpAddress::factory()->create(['address' => '2a0f:85c1:d91:2100::21', 'internet_enabled' => true]);
+        $newMac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:12', 'user_id' => null]);
+        $this->associate($previous, $ip);
+
+        $this->handleEvent($ip, $newMac);
+
+        $this->assertSame(0, UserIpAddress::where('ip_address_id', $ip->id)->count());
+        $this->assertFalse((bool) $ip->fresh()->internet_enabled);
+        $log = AuditLog::where('action', 'ip.user_reassigned')->firstOrFail();
+        $this->assertNull($log->metadata['new_user_id']);
+    }
+
+    public function test_ip_is_kept_while_previous_owners_mac_still_holds_a_lease(): void
+    {
+        $previous = User::factory()->create();
+        $newOwner = User::factory()->create();
+        $ip = IpAddress::factory()->create(['address' => '2a0f:85c1:d91:2100::22']);
+        $oldMac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:13', 'user_id' => $previous->id]);
+        $newMac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:14', 'user_id' => $newOwner->id]);
+        $this->associate($previous, $ip);
+        DhcpLease::factory()->create(['ip_address_id' => $ip->id, 'mac_address_id' => $oldMac->id]);
+
+        $this->handleEvent($ip, $newMac);
+
+        $this->assertTrue(UserIpAddress::where('user_id', $previous->id)->where('ip_address_id', $ip->id)->exists());
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'ip.user_reassigned']);
+    }
+
+    public function test_duid_derived_mac_never_triggers_cascade_or_reassignment(): void
+    {
+        $previous = User::factory()->create();
+        $cloneOwner = User::factory()->create();
+        $ip = IpAddress::factory()->create(['address' => '2a0f:85c1:d91:2100::23']);
+        $freeIp = IpAddress::factory()->create(['address' => '2a0f:85c1:d91:2100::24']);
+        $duidMac = MacAddress::factory()->create([
+            'mac_address' => 'AA:BB:CC:DD:EE:15',
+            'user_id' => $cloneOwner->id,
+            'source' => MacAddress::SOURCE_DHCP_DUID,
+        ]);
+        $this->associate($previous, $ip);
+
+        $this->handleEvent($ip, $duidMac, source: MacAddress::SOURCE_DHCP_DUID);
+        $this->handleEvent($freeIp, $duidMac, source: MacAddress::SOURCE_DHCP_DUID);
+
+        $this->assertTrue(UserIpAddress::where('user_id', $previous->id)->where('ip_address_id', $ip->id)->exists());
+        $this->assertSame(0, UserIpAddress::where('ip_address_id', $freeIp->id)->count());
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'ip.user_reassigned']);
     }
 }

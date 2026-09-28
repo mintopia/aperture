@@ -304,4 +304,29 @@ class GeneralSettingsControllerTest extends TestCase
         $setting->value = $value;
         $setting->save();
     }
+
+    public function test_custom_css_style_breakout_is_rejected(): void
+    {
+        $admin = $this->createAdminUser();
+
+        foreach (['</style><script>alert(1)</script>', 'a{} </STYLE >', 'a{} <img src=x>'] as $payload) {
+            $response = $this->actingAs($admin)->put('/admin/content/settings', $this->validPayload([
+                'custom_css' => $payload,
+            ]));
+
+            $response->assertSessionHasErrors('custom_css');
+        }
+
+        $this->assertNull(Setting::get('theme.custom_css'));
+    }
+
+    public function test_stored_breakout_css_is_neutralised_at_render(): void
+    {
+        Setting::set('theme.custom_css', 'Custom CSS', 'body{color:red}</style><script>alert(1)</script>');
+
+        $response = $this->get('/login');
+
+        $response->assertDontSee('<script>alert(1)</script>', false);
+        $response->assertDontSee('</style><script>', false);
+    }
 }

@@ -213,4 +213,77 @@ class SshProxyClientTest extends TestCase
             'contains scheme and userinfo style host' => ['http://user@10.0.0.5'],
         ];
     }
+
+    public function test_execute_sends_key_auth_and_pinned_host_key_and_parses_observed_key(): void
+    {
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['success' => true, 'output' => [], 'host_key' => 'ssh-ed25519 AAAA']), 200),
+        ]);
+
+        $result = $proxyClient->execute('h', 'u', '', [], 22, 'commands', 'PEM', 'pp', 'ssh-ed25519 PIN');
+
+        Http::assertSent(fn (Request $request): bool => $request['private_key'] === 'PEM'
+            && $request['passphrase'] === 'pp'
+            && $request['host_key'] === 'ssh-ed25519 PIN');
+        $this->assertSame('ssh-ed25519 AAAA', $result->hostKey);
+        $this->assertNull($result->errorCode);
+    }
+
+    public function test_execute_defaults_key_fields_to_empty_strings(): void
+    {
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['success' => true, 'output' => []]), 200),
+        ]);
+
+        $proxyClient->execute('h', 'u', 'p', []);
+
+        Http::assertSent(fn (Request $request): bool => $request['private_key'] === ''
+            && $request['passphrase'] === ''
+            && $request['host_key'] === '');
+    }
+
+    public function test_execute_returns_result_for_host_key_mismatch_error_code(): void
+    {
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode([
+                'success' => false,
+                'output' => [],
+                'error' => 'SSH connection failed: host key mismatch',
+                'error_code' => 'host_key_mismatch',
+            ]), 500),
+        ]);
+
+        $result = $proxyClient->execute('h', 'u', 'p', [], 22, 'commands', null, null, 'ssh-ed25519 PIN');
+
+        $this->assertFalse($result->success);
+        $this->assertSame(CommandResult::HOST_KEY_MISMATCH, $result->errorCode);
+        $this->assertStringContainsString('host key mismatch', $result->failureMessage());
+    }
+
+    public function test_execute_returns_result_for_invalid_private_key_error_code(): void
+    {
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode([
+                'success' => false,
+                'output' => [],
+                'error' => 'SSH connection failed: invalid private key: bad',
+                'error_code' => 'invalid_private_key',
+            ]), 400),
+        ]);
+
+        $result = $proxyClient->execute('h', 'u', '', [], 22, 'commands', 'garbage');
+
+        $this->assertSame(CommandResult::INVALID_PRIVATE_KEY, $result->errorCode);
+        $this->assertStringContainsString('private key', $result->failureMessage());
+    }
+
+    public function test_execute_still_throws_for_errors_without_error_code(): void
+    {
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['success' => false, 'error' => 'dial failed']), 500),
+        ]);
+
+        $this->expectException(RequestException::class);
+        $proxyClient->execute('h', 'u', 'p', []);
+    }
 }

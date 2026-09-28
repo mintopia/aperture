@@ -4,43 +4,62 @@ declare(strict_types=1);
 
 namespace App\Services\Cisco;
 
+use App\Enums\AddressFamily;
 use App\Models\IpAddress;
+use App\Services\Dhcp\RangeUsageCalculator;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\NetworkSwitch\IosOutputParser;
+use App\Services\ValueObjects\DhcpFetchStatus;
 use App\Services\ValueObjects\DhcpLease;
 use App\Services\ValueObjects\DhcpPoolStatus;
 use App\Services\ValueObjects\DhcpRange;
+use App\Services\ValueObjects\DhcpSnapshot;
 use App\Support\Ipv6Prefix;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class CiscoDhcpService implements DhcpInterface
 {
-    /** @var array<string, mixed>|null */
-    private ?array $snapshot = null;
-
-    /** @var array{ipv4: bool, ipv6: bool} */
-    private array $fetchStatus = ['ipv4' => false, 'ipv6' => false];
-
     public function __construct(
         private SwitchCommandTransportInterface $transport,
         private IosOutputParser $parser,
         private string $poolSize = '0',
         private bool $ipv6Enabled = true,
+        private string $timezone = 'UTC',
     ) {}
 
-    public function getPoolStatus(string $family = 'ipv4'): DhcpPoolStatus
+    public function snapshot(): DhcpSnapshot
     {
-        if ($family !== 'ipv4') {
-            return new DhcpPoolStatus(total: 0, used: 0, available: 0, utilisation: 0.0);
-        }
+        ['data' => $data, 'ipv4' => $ipv4Ok, 'ipv6' => $ipv6Ok] = $this->fetch();
 
-        $this->ensureSnapshot();
+        $ipv6Active = $this->ipv6Enabled && $ipv6Ok;
 
+        return DhcpSnapshot::create(
+            $this->buildLeases($data, $ipv6Active),
+            $this->buildRanges($data, $ipv6Active),
+            new DhcpFetchStatus($ipv4Ok),
+            new DhcpFetchStatus($ipv6Ok),
+            [AddressFamily::IPv4->value => $this->ipv4PoolStatus($data)],
+        );
+    }
+
+    public function getLease(string $ipAddress): ?DhcpLease
+    {
+        $needle = IpAddress::normalize($ipAddress);
+
+        return $this->snapshot()->leases->first(fn (DhcpLease $lease): bool => IpAddress::normalize($lease->ip) === $needle);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function ipv4PoolStatus(array $data): DhcpPoolStatus
+    {
         /** @var array<int, array{name: string, total: string, leased: string}> $poolStats */
-        $poolStats = $this->snapshot['pool_stats'] ?? [];
+        $poolStats = $data['pool_stats'] ?? [];
 
         $poolSizeInt = (int) $this->poolSize;
 
@@ -71,33 +90,32 @@ class CiscoDhcpService implements DhcpInterface
     }
 
     /**
+     * @param  array<string, mixed>  $data
      * @return Collection<int, DhcpLease>
      */
-    public function getLeases(): Collection
+    private function buildLeases(array $data, bool $ipv6Active): Collection
     {
-        $this->ensureSnapshot();
-
         /** @var array<int, array{ip: string, mac: string|null, expires: string}> $ipv4Bindings */
-        $ipv4Bindings = $this->snapshot['ipv4_bindings'] ?? [];
+        $ipv4Bindings = $data['ipv4_bindings'] ?? [];
 
         $leases = collect($ipv4Bindings)
             ->map(fn (array $binding): DhcpLease => new DhcpLease(
                 ip: $binding['ip'],
                 mac: $binding['mac'],
                 hostname: '',
-                expires: $binding['expires'],
+                expires: $this->toUtc($binding['expires']),
             ));
 
-        if ($this->ipv6Enabled && $this->fetchStatus['ipv6']) {
+        if ($ipv6Active) {
             /** @var array<int, array{ip: string, mac: string|null, expires: string}> $ipv6Bindings */
-            $ipv6Bindings = $this->snapshot['ipv6_bindings'] ?? [];
+            $ipv6Bindings = $data['ipv6_bindings'] ?? [];
 
             $ipv6Leases = collect($ipv6Bindings)
                 ->map(fn (array $binding): DhcpLease => new DhcpLease(
                     ip: $binding['ip'],
                     mac: $binding['mac'],
                     hostname: '',
-                    expires: $binding['expires'],
+                    expires: $this->toUtc($binding['expires']),
                 ));
 
             $leases = $leases->concat($ipv6Leases);
@@ -106,40 +124,41 @@ class CiscoDhcpService implements DhcpInterface
         return $leases->values();
     }
 
-    public function getLease(string $ipAddress): ?DhcpLease
+    private function toUtc(string $expires): string
     {
-        $needle = IpAddress::normalize($ipAddress);
+        try {
+            $local = Carbon::createFromFormat('M d Y h:i A', trim($expires), $this->timezone);
+        } catch (Throwable) {
+            return $expires;
+        }
 
-        return $this->getLeases()->first(fn (DhcpLease $lease): bool => IpAddress::normalize($lease->ip) === $needle);
+        return $local instanceof Carbon ? $local->utc()->format('Y-m-d H:i:s') : $expires;
     }
 
     /**
+     * @param  array<string, mixed>  $data
      * @return Collection<int, DhcpRange>
      */
-    public function getRanges(): Collection
+    private function buildRanges(array $data, bool $ipv6Active): Collection
     {
-        $this->ensureSnapshot();
-
         /** @var array{pools: array<int, array{name: string, network: string, mask: string, gateway: string}>, excluded: array<int, array{start: string, end: string}>} $poolConfig */
-        $poolConfig = $this->snapshot['pool_config'] ?? ['pools' => [], 'excluded' => []];
+        $poolConfig = $data['pool_config'] ?? ['pools' => [], 'excluded' => []];
 
         $effectiveRanges = $this->parser->computeEffectiveRanges($poolConfig);
 
         /** @var array<int, array{ip: string, mac: string|null, expires: string}> $ipv4Bindings */
-        $ipv4Bindings = $this->snapshot['ipv4_bindings'] ?? [];
+        $ipv4Bindings = $data['ipv4_bindings'] ?? [];
 
         $ranges = collect($effectiveRanges)
             ->map(function (array $range) use ($ipv4Bindings): DhcpRange {
                 /** @var numeric-string $total */
                 $total = $range['total_addresses'];
                 $used = $this->countBindingsInRange($ipv4Bindings, $range['range_from'], $range['range_to']);
-                $utilisation = bccomp($total, '0', 0) === 1
-                    ? (float) bcdiv((string) $used, $total, 6)
-                    : 0.0;
+                $utilisation = RangeUsageCalculator::utilisation($used, $total);
 
                 return new DhcpRange(
                     interface: $range['name'],
-                    type: 'ipv4',
+                    type: AddressFamily::IPv4,
                     subnet: $range['subnet'],
                     rangeFrom: $range['range_from'],
                     rangeTo: $range['range_to'],
@@ -152,25 +171,25 @@ class CiscoDhcpService implements DhcpInterface
                 );
             });
 
-        if ($this->ipv6Enabled && $this->fetchStatus['ipv6']) {
+        if ($ipv6Active) {
             /** @var array{pools: array<int, array{name: string, prefix: string}>} $ipv6Config */
-            $ipv6Config = $this->snapshot['ipv6_pool_config'] ?? ['pools' => []];
+            $ipv6Config = $data['ipv6_pool_config'] ?? ['pools' => []];
 
             /** @var array<int, array{ip: string, mac: string|null, expires: string}> $ipv6Bindings */
-            $ipv6Bindings = $this->snapshot['ipv6_bindings'] ?? [];
+            $ipv6Bindings = $data['ipv6_bindings'] ?? [];
 
             $ipv6Ranges = collect($ipv6Config['pools'])
                 ->map(function (array $pool) use ($ipv6Bindings): DhcpRange {
                     $prefix = $pool['prefix'] !== '' ? IpAddress::normalize($pool['prefix']) : null;
                     $total = $prefix !== null ? Ipv6Prefix::totalAddresses($prefix) : null;
                     $used = $this->countIpv6BindingsInPrefix($ipv6Bindings, $prefix);
-                    $utilisation = $total !== null && $used !== null && bccomp($total, '0', 0) === 1
-                        ? (float) bcdiv((string) $used, $total, 6)
+                    $utilisation = $total !== null && $used !== null
+                        ? RangeUsageCalculator::utilisation($used, $total)
                         : null;
 
                     return new DhcpRange(
                         interface: $pool['name'],
-                        type: 'ipv6',
+                        type: AddressFamily::IPv6,
                         subnet: null,
                         rangeFrom: null,
                         rangeTo: null,
@@ -279,31 +298,9 @@ class CiscoDhcpService implements DhcpInterface
     }
 
     /**
-     * @return array{ipv4: bool, ipv6: bool}
+     * @return array{data: array<string, mixed>, ipv4: bool, ipv6: bool}
      */
-    public function getFetchStatus(): array
-    {
-        $this->ensureSnapshot();
-
-        return $this->fetchStatus;
-    }
-
-    public function resetSnapshot(): void
-    {
-        $this->snapshot = null;
-        $this->fetchStatus = ['ipv4' => false, 'ipv6' => false];
-    }
-
-    private function ensureSnapshot(): void
-    {
-        if ($this->snapshot !== null) {
-            return;
-        }
-
-        $this->fetchSnapshot();
-    }
-
-    private function fetchSnapshot(): void
+    private function fetch(): array
     {
         $commands = [
             'show ip dhcp binding',
@@ -321,20 +318,30 @@ class CiscoDhcpService implements DhcpInterface
             /** @var array<string, string> $results */
             $results = $this->transport->executeMultiple($commands);
 
-            $this->snapshot = [];
+            $data = [];
+            $ipv4Ok = false;
+            $ipv6Ok = false;
 
-            // Parse IPv4
-            $this->snapshot['ipv4_bindings'] = $this->parser->parseDhcpBindingTable(
-                $results['show ip dhcp binding'] ?? ''
-            );
-            $this->snapshot['pool_stats'] = $this->parser->parseDhcpPoolStats(
-                $results['show ip dhcp pool'] ?? ''
-            );
-            $this->snapshot['pool_config'] = $this->parser->parseDhcpPoolConfig(
-                $results['show running-config | section ip dhcp'] ?? ''
-            );
+            $ipv4BindingOutput = $results['show ip dhcp binding'] ?? '';
 
-            $this->fetchStatus['ipv4'] = true;
+            // A missing or error result is a failed fetch, not an empty one.
+            if (! array_key_exists('show ip dhcp binding', $results)
+                || $this->parser->isErrorOutput($ipv4BindingOutput)) {
+                Log::warning('CiscoDhcpService: IPv4 fetch failed — missing or error output from switch');
+                $data['ipv4_bindings'] = [];
+                $data['pool_stats'] = [];
+                $data['pool_config'] = ['pools' => [], 'excluded' => []];
+            } else {
+                $data['ipv4_bindings'] = $this->parser->parseDhcpBindingTable($ipv4BindingOutput);
+                $data['pool_stats'] = $this->parser->parseDhcpPoolStats(
+                    $results['show ip dhcp pool'] ?? ''
+                );
+                $data['pool_config'] = $this->parser->parseDhcpPoolConfig(
+                    $results['show running-config | section ip dhcp'] ?? ''
+                );
+
+                $ipv4Ok = true;
+            }
 
             // Parse IPv6 (failure here does not block IPv4)
             if ($this->ipv6Enabled) {
@@ -343,28 +350,30 @@ class CiscoDhcpService implements DhcpInterface
 
                     if ($this->parser->isErrorOutput($ipv6BindingOutput)) {
                         Log::warning('CiscoDhcpService: IPv6 fetch failed — error output from switch');
-                        $this->snapshot['ipv6_bindings'] = [];
-                        $this->snapshot['ipv6_pool_stats'] = [];
-                        $this->snapshot['ipv6_pool_config'] = ['pools' => []];
-                        $this->fetchStatus['ipv6'] = false;
+                        $data['ipv6_bindings'] = [];
+                        $data['ipv6_pool_stats'] = [];
+                        $data['ipv6_pool_config'] = ['pools' => []];
+                        $ipv6Ok = false;
                     } else {
-                        $this->snapshot['ipv6_bindings'] = $this->parser->parseDhcpv6BindingTable($ipv6BindingOutput);
-                        $this->snapshot['ipv6_pool_stats'] = $this->parser->parseDhcpv6PoolStats(
+                        $data['ipv6_bindings'] = $this->parser->parseDhcpv6BindingTable($ipv6BindingOutput);
+                        $data['ipv6_pool_stats'] = $this->parser->parseDhcpv6PoolStats(
                             $results['show ipv6 dhcp pool'] ?? ''
                         );
-                        $this->snapshot['ipv6_pool_config'] = $this->parser->parseDhcpv6PoolConfig(
+                        $data['ipv6_pool_config'] = $this->parser->parseDhcpv6PoolConfig(
                             $results['show running-config | section ipv6 dhcp pool'] ?? ''
                         );
 
-                        $this->fetchStatus['ipv6'] = true;
+                        $ipv6Ok = true;
                     }
                 } catch (Throwable $e) {
                     Log::warning('CiscoDhcpService: IPv6 fetch failed', ['error' => $e->getMessage()]);
-                    $this->fetchStatus['ipv6'] = false;
+                    $ipv6Ok = false;
                 }
             }
         } finally {
             $this->transport->disconnect();
         }
+
+        return ['data' => $data, 'ipv4' => $ipv4Ok, 'ipv6' => $ipv6Ok];
     }
 }

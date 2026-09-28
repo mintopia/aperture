@@ -15,19 +15,58 @@ import (
 
 // executeRequest matches the PHP client's POST /execute JSON body.
 type executeRequest struct {
-	Hostname string        `json:"hostname"`
-	Username string        `json:"username"`
-	Password string        `json:"password"`
-	Commands []ssh.Command `json:"commands"`
-	Port     int           `json:"port"`
-	Channel  string        `json:"channel"`
+	Hostname   string        `json:"hostname"`
+	Username   string        `json:"username"`
+	Password   string        `json:"password"`
+	PrivateKey string        `json:"private_key"`
+	Passphrase string        `json:"passphrase"`
+	HostKey    string        `json:"host_key"`
+	Commands   []ssh.Command `json:"commands"`
+	Port       int           `json:"port"`
+	Channel    string        `json:"channel"`
+}
+
+const (
+	errCodeHostKeyMismatch   = "host_key_mismatch"
+	errCodeInvalidPrivateKey = "invalid_private_key"
+)
+
+type hostKeyer interface{ HostKey() string }
+
+func hostKeyOf(s ssh.Session) string {
+	if hk, ok := s.(hostKeyer); ok {
+		return hk.HostKey()
+	}
+	return ""
+}
+
+func connectFailure(err error) (int, string) {
+	switch {
+	case errors.Is(err, ssh.ErrHostKeyMismatch):
+		return http.StatusInternalServerError, errCodeHostKeyMismatch
+	case errors.Is(err, ssh.ErrInvalidPrivateKey):
+		return http.StatusBadRequest, errCodeInvalidPrivateKey
+	}
+	return http.StatusInternalServerError, ""
+}
+
+func writeConnectFailure(w http.ResponseWriter, err error) {
+	status, code := connectFailure(err)
+	writeJSON(w, status, executeResponse{
+		Success:   false,
+		Output:    make([]ssh.CommandOutput, 0),
+		Error:     fmt.Sprintf("SSH connection failed: %s", err),
+		ErrorCode: code,
+	})
 }
 
 // executeResponse matches the PHP API's success response shape.
 type executeResponse struct {
-	Success bool                `json:"success"`
-	Output  []ssh.CommandOutput `json:"output"`
-	Error   string              `json:"error,omitempty"`
+	Success   bool                `json:"success"`
+	Output    []ssh.CommandOutput `json:"output"`
+	Error     string              `json:"error,omitempty"`
+	HostKey   string              `json:"host_key,omitempty"`
+	ErrorCode string              `json:"error_code,omitempty"`
 }
 
 // Execute handles POST /execute — runs commands on a network switch via SSH.
@@ -75,8 +114,22 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		"request_id", requestID,
 	)
 
-	// Acquire a pool slot for this hostname+channel.
-	entry, isNew, err := h.pool.Acquire(req.Hostname, req.Channel)
+	key := pool.NewKey(req.Hostname, req.Port, req.Username, req.Channel, req.Password, req.PrivateKey, req.Passphrase)
+	params := ssh.ConnectParams{
+		Hostname:   req.Hostname,
+		Port:       req.Port,
+		Username:   req.Username,
+		Password:   req.Password,
+		PrivateKey: req.PrivateKey,
+		Passphrase: req.Passphrase,
+		HostKey:    req.HostKey,
+	}
+
+	entry, isNew, err := h.pool.Acquire(key)
+	if err == nil && !isNew && entry.HostKey != "" && (req.HostKey == "" || !ssh.HostKeysEqual(req.HostKey, entry.HostKey)) {
+		h.pool.Remove(key)
+		entry, isNew, err = h.pool.Acquire(key)
+	}
 	if err != nil {
 		if errors.Is(err, pool.ErrHostLocked) {
 			log.Warn("host is locked")
@@ -94,15 +147,18 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 
 	// If the connection is new, establish the SSH session.
 	var session ssh.Session
+	var observedKey string
 	if isNew {
-		conn, connErr := h.connect(r.Context(), log, req, "SSH connection failed")
+		conn, connErr := h.connect(r.Context(), log, params, "SSH connection failed")
 		if connErr != nil {
 			// Clean up the placeholder entry.
-			h.pool.Remove(req.Hostname, req.Channel)
-			writeConnectError(w, connErr)
+			h.pool.Remove(key)
+			writeConnectFailure(w, connErr)
 			return
 		}
-		h.pool.SetConnection(req.Hostname, req.Channel, conn)
+		h.pool.SetConnection(key, conn)
+		observedKey = hostKeyOf(conn)
+		h.pool.SetHostKey(key, observedKey)
 		session = conn
 	} else {
 		// Reuse existing connection — the entry.Conn is an io.Closer,
@@ -111,7 +167,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		session, ok = entry.Conn.(ssh.Session)
 		if !ok || session == nil {
 			log.Error("pooled connection is not a valid session")
-			h.pool.Remove(req.Hostname, req.Channel)
+			h.pool.Remove(key)
 			writeJSON(w, http.StatusInternalServerError, executeResponse{
 				Success: false,
 				Output:  make([]ssh.CommandOutput, 0),
@@ -119,11 +175,15 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+		observedKey = entry.HostKey
+		if observedKey == "" {
+			observedKey = hostKeyOf(session)
+		}
 		log.Debug("reusing pooled connection")
 	}
 
 	// Execute commands — always release the lock afterwards.
-	defer h.pool.Release(req.Hostname, req.Channel)
+	defer h.pool.Release(key)
 
 	log.Info("executing commands",
 		"command_count", len(req.Commands),
@@ -141,16 +201,16 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			"original_error", result.Error,
 		)
 
-		h.pool.Remove(req.Hostname, req.Channel)
+		h.pool.Remove(key)
 
-		retryConn, retryErr := h.connect(r.Context(), log, req, "retry reconnection failed")
+		retryConn, retryErr := h.connect(r.Context(), log, params, "retry reconnection failed")
 		if retryErr != nil {
-			writeConnectError(w, retryErr)
+			writeConnectFailure(w, retryErr)
 			return
 		}
 
 		// Re-acquire a pool slot, store the new connection, and retry.
-		if _, _, acquireErr := h.pool.Acquire(req.Hostname, req.Channel); acquireErr != nil {
+		if _, _, acquireErr := h.pool.Acquire(key); acquireErr != nil {
 			retryConn.Close()
 			log.Error("retry pool acquire failed", "error", acquireErr)
 			writeJSON(w, http.StatusInternalServerError, executeResponse{
@@ -160,7 +220,9 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		h.pool.SetConnection(req.Hostname, req.Channel, retryConn)
+		h.pool.SetConnection(key, retryConn)
+		observedKey = hostKeyOf(retryConn)
+		h.pool.SetHostKey(key, observedKey)
 
 		log.Info("retrying commands after reconnection")
 
@@ -183,6 +245,7 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			Success: result.Success,
 			Output:  result.Output,
 			Error:   result.Error,
+			HostKey: observedKey,
 		})
 		return
 	}
@@ -200,31 +263,24 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		Success: result.Success,
 		Output:  result.Output,
 		Error:   result.Error,
+		HostKey: observedKey,
 	})
 }
 
 // connect dials the switch within the connect timeout, logging the attempt
 // and, on failure, the error under failMsg.
-func (h *Handler) connect(ctx context.Context, log *slog.Logger, req executeRequest, failMsg string) (ssh.Session, error) {
+func (h *Handler) connect(ctx context.Context, log *slog.Logger, params ssh.ConnectParams, failMsg string) (ssh.Session, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.connectTimeout)
 	defer cancel()
 
-	log.Info("connecting to host", "port", req.Port)
-	conn, err := h.connector(ctx, req.Hostname, req.Port, req.Username, req.Password)
+	log.Info("connecting to host", "port", params.Port)
+	conn, err := h.connector(ctx, params)
 	if err != nil {
-		log.Error(failMsg, "port", req.Port, "error", err)
+		log.Error(failMsg, "port", params.Port, "error", err)
 		return nil, err
 	}
-	log.Info("connected to host", "port", req.Port)
+	log.Info("connected to host", "port", params.Port)
 	return conn, nil
-}
-
-func writeConnectError(w http.ResponseWriter, err error) {
-	writeJSON(w, http.StatusInternalServerError, executeResponse{
-		Success: false,
-		Output:  make([]ssh.CommandOutput, 0),
-		Error:   fmt.Sprintf("SSH connection failed: %s", err),
-	})
 }
 
 // NotFound handles unmatched routes.

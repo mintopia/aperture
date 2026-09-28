@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ClearIpMacMappingsRequest;
 use App\Http\Requests\Admin\UpdateNetworkSettingsRequest;
 use App\Models\AuditLog;
 use App\Models\IpAddressMacAddress;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,25 +65,12 @@ class NetworkSettingsController extends Controller
         return back()->with('success', 'Network settings updated.');
     }
 
-    public function clearIpMacMappings(Request $request): RedirectResponse
+    public function clearIpMacMappings(ClearIpMacMappingsRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'days' => ['required', 'integer', 'min:1', 'max:3650'],
-            'password' => ['required', 'string'],
-        ]);
-
         /** @var User $user */
         $user = $request->user();
 
-        if ($user->password === null) {
-            return back()->withErrors(['password' => 'Password required for destructive operations.']);
-        }
-
-        if (! Hash::check($request->string('password')->value(), $user->password)) {
-            return back()->withErrors(['password' => 'The provided password is incorrect.']);
-        }
-
-        $days = (int) $validated['days'];
+        $days = $request->integer('days');
 
         $deleted = IpAddressMacAddress::where('last_seen_at', '<', now()->subDays($days))->delete();
 

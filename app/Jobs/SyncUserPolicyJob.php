@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Models\IpAddress;
 use App\Models\User;
 use App\Services\IpPolicyService;
+use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +24,9 @@ class SyncUserPolicyJob implements ShouldQueue
     public function __construct(
         public readonly User $user,
         public readonly IpAddress $ip,
-    ) {}
+    ) {
+        $this->onQueue(Queues::ACCESS);
+    }
 
     /**
      * @return list<int>

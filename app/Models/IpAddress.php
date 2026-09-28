@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Traits\ToString;
 use App\Services\NetworkRangeService;
 use Database\Factories\IpAddressFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property string $address
+ * @property string|null $address_sort
  * @property bool|null $internet_enabled
  * @property bool $rate_limit_enabled
  * @property bool $dns_filtering_enabled
@@ -58,6 +60,15 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'address',
+    'internet_enabled',
+    'rate_limit_enabled',
+    'dns_filtering_enabled',
+    'comment',
+    'last_seen_at',
+    'expires_at',
+])]
 class IpAddress extends Model
 {
     /** @use HasFactory<Factory<static>> */
@@ -65,20 +76,10 @@ class IpAddress extends Model
 
     use ToString;
 
-    protected string $stringDescriptionProperty = 'address';
-
-    /**
-     * @var list<string>
-     */
-    protected $fillable = [
-        'address',
-        'internet_enabled',
-        'rate_limit_enabled',
-        'dns_filtering_enabled',
-        'comment',
-        'last_seen_at',
-        'expires_at',
-    ];
+    protected function getStringDescription(): ?string
+    {
+        return $this->address;
+    }
 
     /**
      * @return array<string, string>
@@ -95,23 +96,48 @@ class IpAddress extends Model
     }
 
     /**
-     * Normalize IPv6 addresses to lowercase on storage.
-     *
      * @return Attribute<string, string>
      */
     protected function address(): Attribute
     {
         return Attribute::make(
-            set: fn (string $value): string => self::normalize($value),
+            set: fn (string $value): array => [
+                'address' => $normalized = self::normalize($value),
+                'address_sort' => self::sortKey($normalized),
+            ],
         );
     }
 
+    // Fixed-width hex of the 16-byte form (IPv4 as ::ffff:a.b.c.d) so a plain ORDER BY is numeric on any driver.
+    public static function sortKey(string $address): ?string
+    {
+        $packed = @inet_pton($address);
+
+        if ($packed === false) {
+            return null;
+        }
+
+        if (strlen($packed) === 4) {
+            $packed = str_repeat("\0", 10)."\xff\xff".$packed;
+        }
+
+        return bin2hex($packed);
+    }
+
     /**
-     * Normalize an IP address for storage and lookups: IPv6 addresses are
-     * lowercased, IPv4 addresses are returned unchanged.
+     * Canonical form for storage and lookups: both families round-trip through
+     * inet_pton/inet_ntop (IPv6 compressed and lowercased). Input that is not
+     * a valid address is returned trimmed, with IPv6-looking input lowercased.
      */
     public static function normalize(string $address): string
     {
+        $address = trim($address);
+        $packed = @inet_pton($address);
+
+        if ($packed !== false) {
+            return (string) inet_ntop($packed);
+        }
+
         return str_contains($address, ':') ? strtolower($address) : $address;
     }
 
@@ -133,7 +159,7 @@ class IpAddress extends Model
             return $existing;
         }
 
-        if (! app(NetworkRangeService::class)->isManaged((string) $value)) {
+        if (! resolve(NetworkRangeService::class)->isManaged((string) $value)) {
             return null;
         }
 
@@ -146,7 +172,7 @@ class IpAddress extends Model
     /** @return HasMany<UserIpAddress, $this> */
     public function users(): HasMany
     {
-        return $this->hasMany(UserIpAddress::class, 'ip_address_id')->orderBy('last_seen_at', 'desc');
+        return $this->hasMany(UserIpAddress::class, 'ip_address_id')->latest('last_seen_at');
     }
 
     /** @return BelongsToMany<MacAddress, $this, IpAddressMacAddress> */

@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserIpAddress;
 use App\Services\Interfaces\IpBandwidthInterface;
+use App\Services\UserNetworkAssociationService;
 use App\Services\ValueObjects\IpBandwidthResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -202,7 +203,7 @@ class UserControllerTest extends TestCase
         $ip->last_seen_at = now();
         $ip->save();
 
-        $user->addIp('10.0.0.99');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '10.0.0.99');
 
         $response = $this->actingAs($admin)->get('/admin/users?ip=10.0.0.99');
 
@@ -221,7 +222,7 @@ class UserControllerTest extends TestCase
         $ip->last_seen_at = now();
         $ip->save();
 
-        $user->addIp('2001:db8::1');
+        resolve(UserNetworkAssociationService::class)->addIp($user, '2001:db8::1');
 
         $response = $this->actingAs($admin)->get('/admin/users?ip='.urlencode('2001:DB8::1'));
 
@@ -237,8 +238,8 @@ class UserControllerTest extends TestCase
 
         $ip1 = IpAddress::factory()->create(['internet_enabled' => false]);
         $ip2 = IpAddress::factory()->create(['internet_enabled' => false]);
-        $user->addIp($ip1->address);
-        $user->addIp($ip2->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip1->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip2->address);
 
         $response = $this->actingAs($admin)->post(route('admin.users.internet', $user), ['enable' => true]);
 
@@ -254,7 +255,7 @@ class UserControllerTest extends TestCase
         $user = User::factory()->create();
 
         $ip = IpAddress::factory()->create(['internet_enabled' => true]);
-        $user->addIp($ip->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip->address);
 
         $response = $this->actingAs($admin)->post(route('admin.users.internet', $user), ['enable' => false]);
 
@@ -270,8 +271,8 @@ class UserControllerTest extends TestCase
 
         $ip1 = IpAddress::factory()->create(['rate_limit_enabled' => false]);
         $ip2 = IpAddress::factory()->create(['rate_limit_enabled' => false]);
-        $user->addIp($ip1->address);
-        $user->addIp($ip2->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip1->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip2->address);
 
         $response = $this->actingAs($admin)->post(route('admin.users.limit', $user), ['limit' => true]);
 
@@ -287,7 +288,7 @@ class UserControllerTest extends TestCase
         $user = User::factory()->create();
 
         $ip = IpAddress::factory()->create(['rate_limit_enabled' => true]);
-        $user->addIp($ip->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip->address);
 
         $response = $this->actingAs($admin)->post(route('admin.users.limit', $user), ['limit' => false]);
 
@@ -573,8 +574,8 @@ class UserControllerTest extends TestCase
 
         $ip1 = IpAddress::factory()->create(['internet_enabled' => false]);
         $ip2 = IpAddress::factory()->create(['internet_enabled' => false]);
-        $user->addIp($ip1->address);
-        $user->addIp($ip2->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip1->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip2->address);
 
         $this->actingAs($admin)->post(route('admin.users.internet', $user), ['enable' => 1]);
 
@@ -601,8 +602,8 @@ class UserControllerTest extends TestCase
 
         $ip1 = IpAddress::factory()->create(['rate_limit_enabled' => false]);
         $ip2 = IpAddress::factory()->create(['rate_limit_enabled' => false]);
-        $user->addIp($ip1->address);
-        $user->addIp($ip2->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip1->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip2->address);
 
         $this->actingAs($admin)->post(route('admin.users.limit', $user), ['limit' => 1]);
 
@@ -628,7 +629,7 @@ class UserControllerTest extends TestCase
         $user = User::factory()->create();
 
         $ip = IpAddress::factory()->create(['internet_enabled' => false]);
-        $user->addIp($ip->address);
+        resolve(UserNetworkAssociationService::class)->addIp($user, $ip->address);
 
         $this->actingAs($admin)->post(route('admin.users.internet', $user), ['enable' => 1]);
 

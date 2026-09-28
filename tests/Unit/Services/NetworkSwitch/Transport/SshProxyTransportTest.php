@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\NetworkSwitch\Transport;
 
+use App\Exceptions\SwitchHostKeyMismatchException;
 use App\Models\SwitchConfig;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\Transport\SshProxyTransport;
@@ -15,6 +16,51 @@ use Tests\TestCase;
 
 class SshProxyTransportTest extends TestCase
 {
+    private function withHost(string $pattern, string $host = 'switch'): string
+    {
+        return str_replace('{prompt}', preg_quote($host, '/'), $pattern);
+    }
+
+    public function test_prompt_patterns_are_anchored_to_hostname_and_reject_content_lines(): void
+    {
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->with('switch.local', 'admin', 'password', Mockery::on(function (array $commands): bool {
+                foreach ($commands as $command) {
+                    $pattern = $this->withHost($command['expect']);
+
+                    $this->assertSame(1, preg_match($pattern, 'switch(config)#'));
+                    $this->assertSame(0, preg_match($pattern, 'description uplink #'));
+                    $this->assertSame(0, preg_match($pattern, '! some comment >'));
+                    $this->assertSame(0, preg_match($pattern, 'other#'));
+                }
+
+                return true;
+            }), 22, 'commands', null, null, null)
+            ->andReturn(new CommandResult(success: true, output: [
+                new CommandOutput('terminal length 0', ''),
+                new CommandOutput('show version', 'ok'),
+            ]));
+
+        $switchConfig = SwitchConfig::factory()->make(['hostname' => 'switch.local', 'username' => 'admin', 'password' => 'password', 'enable_password' => null]);
+
+        $this->assertSame('ok', (new SshProxyTransport($proxyClient, $switchConfig))->execute('show version'));
+    }
+
+    public function test_output_ending_in_non_prompt_hash_line_is_not_stripped(): void
+    {
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')->once()->andReturn(new CommandResult(success: true, output: [
+            new CommandOutput('terminal length 0', ''),
+            new CommandOutput('show run', "show run\r\nbanner motd ^C\r\n welcome #\r\nsw1#"),
+        ]));
+
+        $out = (new SshProxyTransport($proxyClient, SwitchConfig::factory()->make(['enable_password' => null])))->execute('show run');
+
+        $this->assertSame("banner motd ^C\r\n welcome #", $out);
+    }
+
     public function test_execute_sends_commands_via_proxy_client(): void
     {
         $switchConfig = SwitchConfig::factory()->make([
@@ -33,7 +79,7 @@ class SshProxyTransportTest extends TestCase
                 'password',
                 Mockery::on(function (array $commands): bool {
                     return $commands[0]['command'] === 'en'
-                        && $commands[0]['if'] === '/>\s*$/'
+                        && $commands[0]['if'] === '/^{prompt}>\s*$/'
                         && $commands[1]['command'] === 'enable-pass'
                         && $commands[1]['if'] === '/Password:/'
                         && $commands[2]['command'] === 'terminal length 0'
@@ -41,6 +87,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -110,11 +159,14 @@ class SshProxyTransportTest extends TestCase
                 'admin',
                 'password',
                 [
-                    ['command' => 'terminal length 0', 'expect' => '/^.*[>#]\s*$/'],
-                    ['command' => 'show interface status', 'expect' => '/^.*[>#]\s*$/'],
+                    ['command' => 'terminal length 0', 'expect' => '/^{prompt}(\([^)]*\))?[>#]\s*$/'],
+                    ['command' => 'show interface status', 'expect' => '/^{prompt}(\([^)]*\))?[>#]\s*$/'],
                 ],
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -147,16 +199,19 @@ class SshProxyTransportTest extends TestCase
                 'password',
                 Mockery::on(function (array $commands): bool {
                     $this->assertSame([
-                        ['command' => 'en', 'if' => '/>\s*$/', 'expect' => '/Password:/'],
-                        ['command' => 'enable-pass', 'if' => '/Password:/', 'expect' => '/^.*#\s*$/'],
-                        ['command' => 'terminal length 0', 'expect' => '/^.*#\s*$/'],
-                        ['command' => 'show interface status', 'expect' => '/^.*#\s*$/'],
+                        ['command' => 'en', 'if' => '/^{prompt}>\s*$/', 'expect' => '/Password:/'],
+                        ['command' => 'enable-pass', 'if' => '/Password:/', 'expect' => '/^{prompt}(\([^)]*\))?#\s*$/'],
+                        ['command' => 'terminal length 0', 'expect' => '/^{prompt}(\([^)]*\))?#\s*$/'],
+                        ['command' => 'show interface status', 'expect' => '/^{prompt}(\([^)]*\))?#\s*$/'],
                     ], $commands);
 
                     return true;
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -191,12 +246,12 @@ class SshProxyTransportTest extends TestCase
                 'password',
                 Mockery::on(function (array $commands): bool {
                     // en command must have 'if' to skip when already in enable mode
-                    $this->assertSame('/>\s*$/', $commands[0]['if']);
+                    $this->assertSame('/^{prompt}>\s*$/', $commands[0]['if']);
                     $this->assertSame('/Password:/', $commands[0]['expect']);
 
                     // password command must have 'if' to skip when en was skipped
                     $this->assertSame('/Password:/', $commands[1]['if']);
-                    $this->assertSame('/^.*#\s*$/', $commands[1]['expect']);
+                    $this->assertSame('/^{prompt}(\([^)]*\))?#\s*$/', $commands[1]['expect']);
 
                     // terminal length 0 must not have 'if' — always runs
                     $this->assertArrayNotHasKey('if', $commands[2]);
@@ -205,6 +260,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -241,12 +299,12 @@ class SshProxyTransportTest extends TestCase
 
                         $this->assertSame(
                             1,
-                            preg_match($expectPattern, 'switch#   '),
+                            preg_match($this->withHost($expectPattern), 'switch#   '),
                             sprintf('Expected [%s] to match prompt with trailing spaces.', $expectPattern),
                         );
                         $this->assertSame(
                             1,
-                            preg_match($expectPattern, "switch>\t\n"),
+                            preg_match($this->withHost($expectPattern), "switch>\t\n"),
                             sprintf('Expected [%s] to match prompt with trailing whitespace/newline.', $expectPattern),
                         );
                     }
@@ -255,6 +313,9 @@ class SshProxyTransportTest extends TestCase
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -291,31 +352,34 @@ class SshProxyTransportTest extends TestCase
 
                     $this->assertSame(
                         1,
-                        preg_match($postEnablePromptRegex, 'switch#   '),
+                        preg_match($this->withHost($postEnablePromptRegex), 'switch#   '),
                         sprintf('Expected [%s] to match prompt with trailing spaces.', $postEnablePromptRegex),
                     );
                     $this->assertSame(
                         1,
-                        preg_match($postEnablePromptRegex, "switch# \n"),
+                        preg_match($this->withHost($postEnablePromptRegex), "switch# \n"),
                         sprintf('Expected [%s] to match prompt with trailing whitespace/newline.', $postEnablePromptRegex),
                     );
 
                     $this->assertSame(
                         1,
-                        preg_match($commandPromptRegex, 'switch#   '),
+                        preg_match($this->withHost($commandPromptRegex), 'switch#   '),
                         sprintf('Expected [%s] to match prompt with trailing spaces.', $commandPromptRegex),
                     );
                     $this->assertSame(
                         1,
-                        preg_match($commandPromptRegex, "switch#\t\n"),
+                        preg_match($this->withHost($commandPromptRegex), "switch#\t\n"),
                         sprintf('Expected [%s] to match prompt with trailing whitespace/newline.', $commandPromptRegex),
                     );
-                    $this->assertSame(0, preg_match($commandPromptRegex, "switch>\t\n"));
+                    $this->assertSame(0, preg_match($this->withHost($commandPromptRegex), "switch>\t\n"));
 
                     return true;
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -349,7 +413,7 @@ class SshProxyTransportTest extends TestCase
                 'admin',
                 'password',
                 Mockery::on(function (array $commands): bool {
-                    $privilegedPromptRegex = '/^.*#\s*$/';
+                    $privilegedPromptRegex = '/^{prompt}(\([^)]*\))?#\s*$/';
 
                     // Once enable is requested, prompt expectations must require privileged mode (#).
                     $this->assertSame($privilegedPromptRegex, $commands[1]['expect']);
@@ -357,19 +421,22 @@ class SshProxyTransportTest extends TestCase
                     $this->assertSame($privilegedPromptRegex, $commands[3]['expect']);
 
                     // Optional trailing whitespace should be allowed.
-                    $this->assertSame(1, preg_match($commands[1]['expect'], "switch# \n"));
-                    $this->assertSame(1, preg_match($commands[2]['expect'], "switch#\t"));
-                    $this->assertSame(1, preg_match($commands[3]['expect'], 'switch#   '));
+                    $this->assertSame(1, preg_match($this->withHost($commands[1]['expect']), "switch# \n"));
+                    $this->assertSame(1, preg_match($this->withHost($commands[2]['expect']), "switch#\t"));
+                    $this->assertSame(1, preg_match($this->withHost($commands[3]['expect']), 'switch#   '));
 
                     // Non-privileged prompt must not satisfy post-enable expectations.
-                    $this->assertSame(0, preg_match($commands[1]['expect'], 'switch>'));
-                    $this->assertSame(0, preg_match($commands[2]['expect'], 'switch>   '));
-                    $this->assertSame(0, preg_match($commands[3]['expect'], "switch>\n"));
+                    $this->assertSame(0, preg_match($this->withHost($commands[1]['expect']), 'switch>'));
+                    $this->assertSame(0, preg_match($this->withHost($commands[2]['expect']), 'switch>   '));
+                    $this->assertSame(0, preg_match($this->withHost($commands[3]['expect']), "switch>\n"));
 
                     return true;
                 }),
                 22,
                 'commands',
+                null,
+                null,
+                null,
             )
             ->andReturn(new CommandResult(
                 success: true,
@@ -550,5 +617,58 @@ class SshProxyTransportTest extends TestCase
         $this->expectExceptionMessage('Missing output for switch command [show version].');
 
         $transport->execute('show version');
+    }
+
+    public function test_execute_passes_private_key_passphrase_and_host_key_to_proxy(): void
+    {
+        $switchConfig = SwitchConfig::factory()->withPrivateKey('PEM')->make([
+            'hostname' => 'switch.local',
+            'enable_password' => null,
+            'passphrase' => 'pp',
+            'host_key' => 'ssh-ed25519 PIN',
+        ]);
+
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')
+            ->once()
+            ->with('switch.local', 'admin', '', Mockery::type('array'), 22, 'commands', 'PEM', 'pp', 'ssh-ed25519 PIN')
+            ->andReturn(new CommandResult(success: true, output: [
+                new CommandOutput('terminal length 0', ''),
+                new CommandOutput('show version', 'ok'),
+            ]));
+
+        $this->assertSame('ok', (new SshProxyTransport($proxyClient, $switchConfig))->execute('show version'));
+    }
+
+    public function test_host_key_mismatch_throws_dedicated_exception_with_clear_message(): void
+    {
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')->once()->andReturn(new CommandResult(
+            success: false,
+            output: [],
+            error: 'expected SHA256:a but got SHA256:b',
+            errorCode: CommandResult::HOST_KEY_MISMATCH,
+        ));
+
+        $this->expectException(SwitchHostKeyMismatchException::class);
+        $this->expectExceptionMessage('SSH host key mismatch');
+
+        (new SshProxyTransport($proxyClient, SwitchConfig::factory()->make()))->execute('show version');
+    }
+
+    public function test_invalid_private_key_error_is_reported(): void
+    {
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldReceive('execute')->once()->andReturn(new CommandResult(
+            success: false,
+            output: [],
+            error: 'bad pem',
+            errorCode: CommandResult::INVALID_PRIVATE_KEY,
+        ));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('private key or passphrase is invalid');
+
+        (new SshProxyTransport($proxyClient, SwitchConfig::factory()->make()))->execute('show version');
     }
 }

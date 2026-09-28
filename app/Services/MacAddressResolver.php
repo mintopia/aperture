@@ -8,6 +8,7 @@ use App\Models\MacAddress;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
+use App\Services\NetworkScan\DhcpSnoopingResolver;
 use App\Services\ValueObjects\DhcpLease;
 
 class MacAddressResolver implements MacAddressResolverInterface
@@ -15,6 +16,7 @@ class MacAddressResolver implements MacAddressResolverInterface
     public function __construct(
         protected DhcpInterface $dhcp,
         protected IpMacResolverInterface $ipMac,
+        protected ?DhcpSnoopingResolver $snooping = null,
     ) {}
 
     public function resolveIpToMac(string $ipAddress): ?string
@@ -24,9 +26,11 @@ class MacAddressResolver implements MacAddressResolverInterface
             return MacAddress::normalize($lease->mac);
         }
 
-        $arpEntry = $this->ipMac->getArpTable()->firstWhere('ip', $ipAddress);
-        if ($arpEntry !== null && ! empty($arpEntry->mac)) {
-            return MacAddress::normalize($arpEntry->mac);
+        $table = $this->ipMac->getIpMacTable();
+        $table = $this->snooping instanceof DhcpSnoopingResolver ? $this->snooping->supplement($table) : $table;
+        $entry = $table->firstWhere('ip', $ipAddress);
+        if ($entry !== null && ! empty($entry->mac)) {
+            return MacAddress::normalize($entry->mac);
         }
 
         return null;

@@ -6,40 +6,29 @@ namespace App\Integration;
 
 use App\Enums\Capability;
 use App\Enums\Integration;
-use App\Models\CapabilityAssignment;
-use App\Models\IntegrationConfig;
 use App\Services\Interfaces\DhcpInterface;
-use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Kea\KeaClient;
 use App\Services\Kea\KeaDhcpService;
 use App\Services\Kea\KeaIpMacResolver;
-use Illuminate\Contracts\Foundation\Application;
-use Throwable;
 
 final class KeaBootstrapper implements IntegrationBootstrapper
 {
-    public function register(Application $app): void
+    public function integration(): Integration
     {
-        $app->extend(DhcpInterface::class, function (DhcpInterface $service, Application $app): DhcpInterface {
-            if ($this->isActive(Capability::Dhcp->value)) {
-                return $this->buildDhcpService() ?? $service;
-            }
+        return Integration::Kea;
+    }
 
-            return $service;
-        });
-
-        $app->extend(IpMacResolverInterface::class, function (IpMacResolverInterface $service, Application $app): IpMacResolverInterface {
-            if ($this->isActive(Capability::IpMac->value)) {
-                return new KeaIpMacResolver;
-            }
-
-            return $service;
-        });
+    public function providers(): array
+    {
+        return [
+            Capability::Dhcp->value => fn (): ?DhcpInterface => $this->buildDhcpService(),
+            Capability::IpMac->value => fn (): KeaIpMacResolver => new KeaIpMacResolver($this->buildDhcpService()),
+        ];
     }
 
     private function buildDhcpService(): ?DhcpInterface
     {
-        $config = IntegrationConfig::safeGetAll(Integration::Kea->value);
+        $config = InstallGuard::config(Integration::Kea->value);
 
         $ipv4Client = $this->buildClient($config, 'v4', 'dhcp4');
         $ipv6Client = $this->buildClient($config, 'v6', 'dhcp6');
@@ -49,15 +38,6 @@ final class KeaBootstrapper implements IntegrationBootstrapper
         }
 
         return new KeaDhcpService($ipv4Client, $ipv6Client);
-    }
-
-    private function isActive(string $capability): bool
-    {
-        try {
-            return CapabilityAssignment::isActiveProvider(Integration::Kea->value, $capability);
-        } catch (Throwable) {
-            return false;
-        }
     }
 
     /**

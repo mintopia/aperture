@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\SwitchHostKeyMismatchException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ResetSwitchHostKeyRequest;
 use App\Http\Requests\Admin\StoreSwitchRequest;
 use App\Http\Requests\Admin\UpdateSwitchRequest;
 use App\Http\Resources\SwitchConfigResource;
@@ -13,6 +15,7 @@ use App\Jobs\SyncSwitchPortsJob;
 use App\Models\AuditLog;
 use App\Models\SwitchConfig;
 use App\Services\NetworkSwitch\CircuitBreaker;
+use App\Services\NetworkSwitch\SwitchConnectionTester;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SwitchIndexDataService;
 use Illuminate\Http\JsonResponse;
@@ -57,7 +60,7 @@ class SwitchManagementController extends Controller
 
     public function store(StoreSwitchRequest $request): RedirectResponse
     {
-        $switchConfig = SwitchConfig::create($request->validated());
+        $switchConfig = SwitchConfig::create($request->switchAttributes());
 
         AuditLog::record(
             action: 'switch.created',
@@ -66,7 +69,7 @@ class SwitchManagementController extends Controller
             metadata: ['ip' => $request->getClientIp()],
         );
 
-        return redirect()->route('admin.switches.show', $switchConfig)
+        return to_route('admin.switches.show', $switchConfig)
             ->with('success', 'Switch created successfully.');
     }
 
@@ -106,21 +109,7 @@ class SwitchManagementController extends Controller
 
     public function update(UpdateSwitchRequest $request, SwitchConfig $switchConfig): RedirectResponse
     {
-        $validated = $request->validated();
-
-        if (empty($validated['username'])) {
-            unset($validated['username']);
-        }
-
-        if (empty($validated['password'])) {
-            unset($validated['password']);
-        }
-
-        if (empty($validated['enable_password'])) {
-            unset($validated['enable_password']);
-        }
-
-        $switchConfig->update($validated);
+        $switchConfig->update($request->switchAttributes($switchConfig));
 
         AuditLog::record(
             action: 'switch.updated',
@@ -130,6 +119,20 @@ class SwitchManagementController extends Controller
         );
 
         return back()->with('success', 'Switch updated successfully.');
+    }
+
+    public function resetHostKey(ResetSwitchHostKeyRequest $request, SwitchConfig $switchConfig): RedirectResponse
+    {
+        $switchConfig->update(['host_key' => null]);
+
+        AuditLog::record(
+            action: 'switch.host_key_reset',
+            subject: $switchConfig,
+            process: 'admin',
+            metadata: ['ip' => $request->getClientIp()],
+        );
+
+        return back()->with('success', 'Pinned host key cleared. The next connection will pin the key the switch presents.');
     }
 
     public function destroy(Request $request, SwitchConfig $switchConfig): RedirectResponse
@@ -143,7 +146,7 @@ class SwitchManagementController extends Controller
 
         $switchConfig->delete();
 
-        return redirect()->route('admin.switches.index')
+        return to_route('admin.switches.index')
             ->with('success', 'Switch deleted successfully.');
     }
 
@@ -151,29 +154,31 @@ class SwitchManagementController extends Controller
     {
         $circuitBreaker->reset($switchConfig);
 
-        SyncSwitchPortsJob::dispatch($switchConfig);
+        dispatch(new SyncSwitchPortsJob($switchConfig));
 
         return back()->with('success', 'Switch sync has been queued.');
     }
 
-    public function testConnection(SwitchConfig $switchConfig): JsonResponse
+    public function testConnection(SwitchConfig $switchConfig, SwitchConnectionTester $tester): JsonResponse
     {
-        try {
-            $adapter = $this->factory->make($switchConfig);
-            $adapter->getAllPorts();
+        $result = $tester->test($switchConfig);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Connection successful.',
-            ]);
-        } catch (Throwable $throwable) {
-            Log::warning('Switch connection test failed', ['switch' => $switchConfig->id, 'error' => $throwable->getMessage()]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Connection test failed. Check the switch configuration and try again.',
-            ]);
+        if ($result->success) {
+            return response()->json(['success' => true, 'message' => 'Connection successful.']);
         }
+
+        if ($result->exception instanceof SwitchHostKeyMismatchException) {
+            Log::warning('Switch host key mismatch', ['switch' => $switchConfig->id]);
+
+            return response()->json(['success' => false, 'message' => $result->exception->getMessage()]);
+        }
+
+        Log::warning('Switch connection test failed', ['switch' => $switchConfig->id, 'error' => $result->exception?->getMessage()]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Connection test failed. Check the switch configuration and try again.',
+        ]);
     }
 
     public function config(SwitchConfig $switchConfig): Response

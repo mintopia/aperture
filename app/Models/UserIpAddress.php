@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -33,25 +34,15 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'user_id',
+    'ip_address_id',
+    'last_seen_at',
+])]
 class UserIpAddress extends Model
 {
     /** @use HasFactory<Factory<self>> */
     use HasFactory;
-
-    /**
-     * @var list<string>
-     */
-    protected $fillable = [
-        'user_id',
-        'ip_address_id',
-        'last_seen_at',
-    ];
-
-    protected $casts = [
-        'last_seen_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
@@ -63,5 +54,14 @@ class UserIpAddress extends Model
     public function ip(): BelongsTo
     {
         return $this->belongsTo(IpAddress::class, 'ip_address_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'last_seen_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
     }
 }

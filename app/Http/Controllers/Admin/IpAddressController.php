@@ -6,6 +6,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BandwidthRequest;
+use App\Http\Requests\Admin\IpDnsFilterRequest;
+use App\Http\Requests\Admin\IpInternetRequest;
+use App\Http\Requests\Admin\IpRateLimitRequest;
 use App\Http\Requests\IpAddressStoreRequest;
 use App\Http\Resources\BandwidthResource;
 use App\Models\AuditLog;
@@ -78,7 +81,7 @@ class IpAddressController extends Controller
 
         $filters->direction = $direction;
 
-        $ips = $query->with('macAddresses')->orderBy($order, $direction)->paginate($filters->perPage)->appends((array) $filters);
+        $ips = $query->with('macAddresses')->orderBy($order === 'address' ? 'address_sort' : $order, $direction)->orderBy('id', $direction)->paginate($filters->perPage)->appends((array) $filters);
         $ips->through(function (IpAddress $ip): IpAddress {
             $currentMac = $ip->macAddresses
                 ->sortByDesc(fn (MacAddress $mac) => $mac->pivot->last_seen_at)
@@ -112,10 +115,8 @@ class IpAddressController extends Controller
         ]);
     }
 
-    public function limit(Request $request, IpAddress $ip): RedirectResponse
+    public function limit(IpRateLimitRequest $request, IpAddress $ip): RedirectResponse
     {
-        $request->validate(['limit' => 'required|boolean']);
-
         $ip->rate_limit_enabled = $request->boolean('limit');
         $ip->save();
 
@@ -131,10 +132,8 @@ class IpAddressController extends Controller
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
 
-    public function internet(Request $request, IpAddress $ip): RedirectResponse
+    public function internet(IpInternetRequest $request, IpAddress $ip): RedirectResponse
     {
-        $request->validate(['allow' => 'required|boolean']);
-
         $ip->internet_enabled = $request->boolean('allow');
         $ip->save();
 
@@ -150,10 +149,8 @@ class IpAddressController extends Controller
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }
 
-    public function dnsFilter(Request $request, IpAddress $ip): RedirectResponse
+    public function dnsFilter(IpDnsFilterRequest $request, IpAddress $ip): RedirectResponse
     {
-        $request->validate(['filter' => 'required|boolean']);
-
         $ip->dns_filtering_enabled = $request->boolean('filter');
         $ip->save();
 

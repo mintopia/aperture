@@ -47,3 +47,5 @@ GEMINI.md
 /PLAN-REVIEW-LOG.md
 /hot
 docker-compose.override.yml
+/test-results-*/
+/database/pw*.sqlite

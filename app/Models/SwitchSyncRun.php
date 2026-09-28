@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\SwitchSyncRunFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -45,23 +46,21 @@ use Illuminate\Support\Carbon;
  *
  * @mixin \Eloquent
  */
+#[Fillable([
+    'switch_config_id',
+    'status',
+    'started_at',
+    'finished_at',
+    'error',
+    'ports_created',
+    'ports_updated',
+    'macs_created',
+    'macs_updated',
+])]
 class SwitchSyncRun extends Model
 {
     /** @use HasFactory<SwitchSyncRunFactory> */
     use HasFactory;
-
-    /** @var list<string> */
-    protected $fillable = [
-        'switch_config_id',
-        'status',
-        'started_at',
-        'finished_at',
-        'error',
-        'ports_created',
-        'ports_updated',
-        'macs_created',
-        'macs_updated',
-    ];
 
     /**
      * @return array<string, mixed>

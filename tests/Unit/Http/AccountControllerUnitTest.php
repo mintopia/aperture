@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Http;
 
 use App\Http\Controllers\AccountController;
+use App\Http\Requests\AccountCreatePasswordRequest;
+use App\Http\Requests\AccountUpdatePasswordRequest;
+use App\Http\Requests\AccountVerifyRequest;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -19,9 +22,15 @@ use Tests\TestCase;
  */
 class AccountControllerUnitTest extends TestCase
 {
-    private function makeNullUserRequest(string $uri = '/account/settings', string $method = 'GET', array $data = []): Request
+    /**
+     * @template T of Request
+     *
+     * @param  class-string<T>  $class
+     * @return T
+     */
+    private function makeNullUserRequest(string $uri = '/account/settings', string $method = 'GET', array $data = [], string $class = Request::class): Request
     {
-        $request = Request::create($uri, $method, $data);
+        $request = $class::createFromBase(Request::create($uri, $method, $data));
         $request->setUserResolver(fn (): null => null);
 
         return $request;
@@ -40,7 +49,7 @@ class AccountControllerUnitTest extends TestCase
         $this->expectException(HttpException::class);
 
         $controller = new AccountController;
-        $controller->verify($this->makeNullUserRequest('/account/settings/verify', 'POST', ['password' => 'test']));
+        $controller->verify($this->makeNullUserRequest('/account/settings/verify', 'POST', ['password' => 'test'], AccountVerifyRequest::class));
     }
 
     public function test_update_password_aborts_403_when_user_is_null(): void
@@ -51,7 +60,7 @@ class AccountControllerUnitTest extends TestCase
         $controller->updatePassword($this->makeNullUserRequest('/account/settings/password', 'PUT', [
             'password' => 'newpassword123',
             'password_confirmation' => 'newpassword123',
-        ]));
+        ], AccountUpdatePasswordRequest::class));
     }
 
     public function test_create_password_aborts_403_when_user_is_null(): void
@@ -62,7 +71,7 @@ class AccountControllerUnitTest extends TestCase
         $controller->createPassword($this->makeNullUserRequest('/account/password/create', 'POST', [
             'password' => 'newpassword123',
             'password_confirmation' => 'newpassword123',
-        ]));
+        ], AccountCreatePasswordRequest::class));
     }
 
     public function test_clear_password_aborts_403_when_user_is_null(): void

@@ -11,7 +11,7 @@ class UpdateUserParameterRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('admin') ?? false;
+        return true;
     }
 
     /**

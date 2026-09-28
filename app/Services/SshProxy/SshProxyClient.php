@@ -29,7 +29,7 @@ class SshProxyClient implements SshProxyClientInterface
             ->asJson();
     }
 
-    public function execute(string $hostname, string $username, string $password, array $commands, int $port = 22, string $channel = 'commands'): CommandResult
+    public function execute(string $hostname, string $username, string $password, array $commands, int $port = 22, string $channel = 'commands', ?string $privateKey = null, ?string $passphrase = null, ?string $hostKey = null): CommandResult
     {
         try {
             $response = $this->request()->post('execute', [
@@ -39,9 +39,12 @@ class SshProxyClient implements SshProxyClientInterface
                 'commands' => $commands,
                 'port' => $port,
                 'channel' => $channel,
+                'private_key' => $privateKey ?? '',
+                'passphrase' => $passphrase ?? '',
+                'host_key' => $hostKey ?? '',
             ])->throw();
 
-            /** @var array{success: bool, output: array<int, array{command: string, output: string}>, error?: string} $data */
+            /** @var array{success: bool, output: array<int, array{command: string, output: string}>, error?: string, error_code?: string, host_key?: string} $data */
             $data = $response->json();
 
             return new CommandResult(
@@ -51,13 +54,32 @@ class SshProxyClient implements SshProxyClientInterface
                     $data['output'],
                 ),
                 error: $data['error'] ?? null,
+                hostKey: filled($data['host_key'] ?? null) ? $data['host_key'] : null,
+                errorCode: filled($data['error_code'] ?? null) ? $data['error_code'] : null,
             );
         } catch (RequestException $requestException) {
             if ($requestException->response->status() === 409) {
                 throw new RuntimeException('Host is currently locked by another request', $requestException->getCode(), $requestException);
             }
 
-            throw $requestException;
+            return $this->resultFromErrorResponse($requestException) ?? throw $requestException;
         }
+    }
+
+    private function resultFromErrorResponse(RequestException $exception): ?CommandResult
+    {
+        /** @var array{error?: string, error_code?: string}|null $data */
+        $data = $exception->response->json();
+
+        if (! is_array($data) || blank($data['error_code'] ?? null)) {
+            return null;
+        }
+
+        return new CommandResult(
+            success: false,
+            output: [],
+            error: $data['error'] ?? null,
+            errorCode: $data['error_code'],
+        );
     }
 }

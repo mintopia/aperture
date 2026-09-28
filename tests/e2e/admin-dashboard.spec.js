@@ -7,17 +7,19 @@ test.describe('Admin Dashboard (S4)', () => {
         await expect(statCards.first()).toBeVisible();
     });
 
-    test('sidebar has 172px width on desktop', async ({ page }) => {
+    test('sidebar has 220px width on desktop', async ({ page }) => {
         await page.goto('/admin');
         const sidebar = page.getByTestId('admin-sidebar');
         const box = await sidebar.boundingBox();
-        expect(box.width).toBe(172);
+        expect(box.width).toBe(220);
     });
 
-    test('sidebar collapses to horizontal nav at 1024px', async ({ page }) => {
+    test('sidebar collapses to a drawer at 1024px', async ({ page }) => {
         await page.setViewportSize({ width: 1024, height: 768 });
         await page.goto('/admin');
-        await expect(page.getByTestId('admin-nav-horizontal')).toBeVisible();
+        await expect(page.getByTestId('admin-sidebar')).toHaveCount(0);
+        await page.getByTestId('admin-menu-toggle').click();
+        await expect(page.getByTestId('admin-drawer')).toBeVisible();
     });
 
     test('admin header is visible', async ({ page }) => {

@@ -4,31 +4,33 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Enums\AddressFamily;
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
-use Illuminate\Http\Client\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\ConnectionException;
 use ReflectionClass;
+use Tests\Support\DhcpFetchStatusArray;
+use Tests\Support\Fake;
 use Tests\TestCase;
+use Throwable;
 
 class OpnSenseDhcpServiceTest extends TestCase
 {
     /**
-     * @param  array<int, PromiseInterface>  $responses
+     * @param  array<int, PromiseInterface|Throwable>  $responses
      */
     private function createServiceWithMock(array $responses, int $poolSize = 0): OpnSenseDhcpService
     {
-        $mock = Http::sequence($responses);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
+        Fake::sequence($responses);
 
-        return new OpnSenseDhcpService($client, $poolSize);
+        return new OpnSenseDhcpService(OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), $poolSize);
     }
 
     public function test_get_leases_returns_collection(): void
     {
         $service = $this->createServiceWithMock([
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'device1', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                     ['address' => '10.0.0.11', 'mac' => '11:22:33:44:55:66', 'hostname' => 'device2', 'ends' => '2026-04-15 13:00:00', 'status' => 'active'],
@@ -36,10 +38,10 @@ class OpnSenseDhcpServiceTest extends TestCase
                 'rowCount' => 2,
                 'total' => 2,
                 'current' => 1,
-            ], 200),
+            ])),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
 
         $this->assertCount(2, $leases);
         $this->assertEquals('10.0.0.10', $leases[0]->ip);
@@ -51,22 +53,22 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_leases_returns_empty_collection(): void
     {
         $service = $this->createServiceWithMock([
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [],
                 'rowCount' => 0,
                 'total' => 0,
                 'current' => 1,
-            ], 200),
+            ])),
         ]);
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
         $this->assertCount(0, $leases);
     }
 
     public function test_get_pool_status_returns_stats(): void
     {
         $service = $this->createServiceWithMock([
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'a', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                     ['address' => '10.0.0.11', 'mac' => '11:22:33:44:55:66', 'hostname' => 'b', 'ends' => '2026-04-15 13:00:00', 'status' => 'active'],
@@ -75,10 +77,10 @@ class OpnSenseDhcpServiceTest extends TestCase
                 'rowCount' => 3,
                 'total' => 3,
                 'current' => 1,
-            ], 200),
+            ])),
         ], 254);
 
-        $pool = $service->getPoolStatus();
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertEquals(254, $pool->total);
         $this->assertEquals(2, $pool->used);
@@ -89,17 +91,17 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_pool_status_handles_zero_pool_size(): void
     {
         $service = $this->createServiceWithMock([
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [],
                 'rowCount' => 0,
                 'total' => 0,
                 'current' => 1,
-            ], 200),
+            ])),
         ]);
 
         config(['aperture.dhcp.pool_size' => 0]);
 
-        $pool = $service->getPoolStatus();
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 
         $this->assertEquals(0, $pool->total);
         $this->assertEquals(0, $pool->used);
@@ -111,7 +113,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         $service = $this->createServiceWithMock([], 254);
 
-        $pool = $service->getPoolStatus('ipv6');
+        $pool = $service->snapshot()->poolStatus(AddressFamily::IPv6);
 
         $this->assertEquals(0, $pool->total);
         $this->assertEquals(0, $pool->used);
@@ -122,14 +124,14 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_lease_returns_matching_lease(): void
     {
         $service = $this->createServiceWithMock([
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'device1', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
                 'rowCount' => 1,
                 'total' => 1,
                 'current' => 1,
-            ], 200),
+            ])),
         ]);
 
         $lease = $service->getLease('10.0.0.10');
@@ -142,12 +144,12 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_lease_returns_null_when_not_found(): void
     {
         $service = $this->createServiceWithMock([
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [],
                 'rowCount' => 0,
                 'total' => 0,
                 'current' => 1,
-            ], 200),
+            ])),
         ]);
 
         $lease = $service->getLease('10.0.0.99');
@@ -157,14 +159,14 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_lease_matches_ipv6_address_case_insensitively(): void
     {
         $service = $this->createServiceWithMock([
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '2001:DB8::100', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'v6device', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
                 'rowCount' => 1,
                 'total' => 1,
                 'current' => 1,
-            ], 200),
+            ])),
         ]);
 
         $lease = $service->getLease('2001:db8::100');
@@ -177,36 +179,37 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_fetch_leases_uses_post_when_leases_use_post_is_true(): void
     {
         // Covers lines 338-341: fetchLeases POST branch (leasesUsePost = true)
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.5', 'mac' => 'aa:bb:cc:dd:ee:01', 'hostname' => 'dev1', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
-            ], 200),
+            ])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 10,
             leasesPath: '/api/dhcpv4/leases/search_lease',
             leasesUsePost: true,
         );
 
-        $leases = $service->getLeases();
+        $leases = $service->snapshot()->leases;
         $this->assertCount(1, $leases);
         $this->assertEquals('10.0.0.5', $leases[0]->ip);
 
-        Http::assertSent(fn (Request $request): bool => $request->method() === 'POST');
+        // Confirm POST was used (MockHandler would throw on wrong method)
+        $lastRequest = Fake::requests()[0] ?? null;
+        $this->assertNotNull($lastRequest);
+        $this->assertEquals('POST', $lastRequest->method());
     }
 
     public function test_get_ranges_returns_ipv4_ranges_with_usage_stats(): void
     {
         // Covers getRanges() with ipv4RangesPath set, buildRangeFromRow(), enrichRangeWithUsage()
-        $mock = Http::sequence([
+        Fake::sequence([
             // First call: IPv4 ranges
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -218,26 +221,24 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'prefix' => '',
                     ],
                 ],
-            ], 200),
+            ])),
             // Second call: leases (for enrichment)
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'device1', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
-            ], 200),
+            ])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
-        $this->assertEquals('ipv4', $ranges[0]->type);
+        $this->assertEquals(AddressFamily::IPv4, $ranges[0]->type);
         $this->assertEquals('10.0.0.1', $ranges[0]->rangeFrom);
         $this->assertSame('254', $ranges[0]->totalAddresses);
         $this->assertEquals(1, $ranges[0]->usedAddresses);
@@ -246,9 +247,9 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_ranges_returns_ipv6_ranges_with_usage_stats(): void
     {
         // Covers getRanges() with ipv6RangesPath set and IPv6 enrichment
-        $mock = Http::sequence([
+        Fake::sequence([
             // IPv6 ranges
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -260,26 +261,24 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'prefix' => '',
                     ],
                 ],
-            ], 200),
+            ])),
             // Leases for enrichment
-            Http::response([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => 'fd00::10', 'mac' => 'aa:bb:cc:dd:ee:ff', 'hostname' => 'ipv6device', 'ends' => '2026-04-15 12:00:00', 'status' => 'active'],
                 ],
-            ], 200),
+            ])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
-        $this->assertEquals('ipv6', $ranges[0]->type);
+        $this->assertEquals(AddressFamily::IPv6, $ranges[0]->type);
         $this->assertEquals('fd00::1', $ranges[0]->rangeFrom);
         $this->assertGreaterThan(0, $ranges[0]->usedAddresses);
     }
@@ -287,39 +286,37 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_get_ranges_returns_empty_collection_when_ranges_path_not_set(): void
     {
         // When ipv4RangesPath and ipv6RangesPath are both empty, no HTTP calls are made
-        $mock = Http::sequence([]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
+        Fake::sequence([]);
 
-        $service = new OpnSenseDhcpService(client: $client, poolSize: 0);
+        $service = new OpnSenseDhcpService(client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), poolSize: 0);
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(0, $ranges);
     }
 
     public function test_get_ranges_handles_fetch_exception_gracefully(): void
     {
         // Covers the catch(Throwable) in getRanges() when HTTP request fails
-        $mock = Http::sequence()->pushFailedConnection('Connection refused');
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
+        Fake::sequence([
+            new ConnectionException('Connection refused'),
+        ]);
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
 
         // Should return empty collection, not throw
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(0, $ranges);
     }
 
     public function test_build_range_from_row_uses_kea_pools_format(): void
     {
         // Covers lines 143-148: Kea pools "START - END" format parsing
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -332,14 +329,12 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'pools' => '10.0.1.100 - 10.0.1.200',
                     ],
                 ],
-            ], 200),
-            Http::response(['rows' => []], 200),
+            ])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -354,7 +349,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         $this->assertEquals('10.0.1.100', $ranges[0]->rangeFrom);
         $this->assertEquals('10.0.1.200', $ranges[0]->rangeTo);
@@ -365,8 +360,8 @@ class OpnSenseDhcpServiceTest extends TestCase
         // Covers lines 152-156: calculateSubnet() from subnet_mask field (dnsmasq IPv4)
         // The subnet field must NOT be present in the row (or must be absent) so that
         // $subnet remains null and the calculateSubnet branch executes.
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -379,14 +374,12 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'subnet_mask' => '255.255.255.0',
                     ],
                 ],
-            ], 200),
-            Http::response(['rows' => []], 200),
+            ])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -401,7 +394,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // The subnet should be calculated from the IP + mask
         $this->assertNotNull($ranges[0]->subnet);
@@ -411,8 +404,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_build_range_from_row_handles_ipv6_prefix_construction(): void
     {
         // Covers lines 160-165: IPv6 prefix construction from start_addr and prefix_len
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -424,19 +417,17 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'prefix' => '64',
                     ],
                 ],
-            ], 200),
-            Http::response(['rows' => []], 200),
+            ])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // prefix should have been constructed as "fd00::1/64"
         $this->assertEquals('fd00::1/64', $ranges[0]->prefix);
@@ -444,8 +435,8 @@ class OpnSenseDhcpServiceTest extends TestCase
 
     public function test_get_ranges_normalizes_ipv6_prefix_to_lowercase(): void
     {
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -457,19 +448,17 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'prefix' => '64',
                     ],
                 ],
-            ], 200),
-            Http::response(['rows' => []], 200),
+            ])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // Constructed from the raw (uppercase) start address, then normalized
         $this->assertSame('fd00:abcd::1/64', $ranges[0]->prefix);
@@ -479,8 +468,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         // Covers line 185-186 in calculateSubnet(): ip2long returns false for invalid IP
         // The subnet field must NOT be present so $subnet remains null and calculateSubnet is called
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -493,14 +482,12 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'subnet_mask' => '255.255.255.0',
                     ],
                 ],
-            ], 200),
-            Http::response(['rows' => []], 200),
+            ])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -515,7 +502,7 @@ class OpnSenseDhcpServiceTest extends TestCase
             ],
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // calculateSubnet returned null because ip2long('not-an-ip') returns false
         $this->assertNull($ranges[0]->subnet);
@@ -525,8 +512,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         // Covers enrichRangeWithUsage() line 232-233: returns $range early when rangeFrom/rangeTo null
         // To get rangeFrom === null, the 'range_from' key must be absent from the row so isset() returns false
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -537,23 +524,21 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'prefix' => '',
                     ],
                 ],
-            ], 200),
-            Http::response([
+            ])),
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     ['address' => '10.0.0.10', 'mac' => 'aa:bb', 'hostname' => 'h', 'ends' => '', 'status' => 'active'],
                 ],
-            ], 200),
+            ])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // rangeFrom is null because the key was absent; enrichRangeWithUsage returned early
         $this->assertNull($ranges[0]->rangeFrom);
@@ -565,8 +550,8 @@ class OpnSenseDhcpServiceTest extends TestCase
         // Covers enrichIpv6RangeWithUsage() line 288-289: inet_pton() returns false for invalid IPv6
         // A range with ':' in rangeFrom triggers ipv6 detection, but if the address is invalid
         // inet_pton() returns false and the range is returned unchanged.
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -578,19 +563,17 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'prefix' => '',
                     ],
                 ],
-            ], 200),
-            Http::response(['rows' => []], 200),
+            ])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // inet_pton failed, enrichment skipped
         $this->assertNull($ranges[0]->totalAddresses);
@@ -599,8 +582,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_enrich_ipv4_range_returns_unchanged_when_range_from_is_invalid_ip(): void
     {
         // Covers enrichIpv4RangeWithUsage() line 251-252: ip2long returns false
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -612,59 +595,29 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'prefix' => '',
                     ],
                 ],
-            ], 200),
-            Http::response(['rows' => []], 200),
+            ])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         // ip2long returned false, so enrichment was skipped
         $this->assertNull($ranges[0]->totalAddresses);
-    }
-
-    public function test_ipv6_diff_returns_php_int_max_for_very_large_range(): void
-    {
-        // Covers ipv6Diff() line 326: return PHP_INT_MAX when the difference overflows
-        // We call ipv6Diff() directly via reflection to avoid downstream TypeError from +1.
-        $mock = Http::sequence([]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
-
-        $service = new OpnSenseDhcpService(client: $client, poolSize: 0);
-
-        $reflection = new ReflectionClass($service);
-        $method = $reflection->getMethod('ipv6Diff');
-
-        // Use from = ::1 and to = ffff::ffff:ffff:ffff:ffff:ffff:ffff
-        // The difference in the first byte alone (0xff vs 0x00) immediately causes overflow
-        $fromBin = inet_pton('::1');
-        $toBin = inet_pton('ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff');
-
-        $this->assertNotFalse($fromBin);
-        $this->assertNotFalse($toBin);
-
-        $result = $method->invoke($service, $fromBin, $toBin);
-
-        $this->assertSame(PHP_INT_MAX, $result);
     }
 
     public function test_subnet_mask_to_cidr_returns_null_for_invalid_mask(): void
     {
         // Covers subnetMaskToCidr() line 199: return null when ip2long($subnetMask) is false
         // This method is private so we access it via reflection
-        $mock = Http::sequence([]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
+        Fake::sequence([]);
 
-        $service = new OpnSenseDhcpService(client: $client, poolSize: 0);
+        $service = new OpnSenseDhcpService(client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), poolSize: 0);
 
         $reflection = new ReflectionClass($service);
         $method = $reflection->getMethod('subnetMaskToCidr');
@@ -678,8 +631,8 @@ class OpnSenseDhcpServiceTest extends TestCase
     public function test_both_ipv4_and_ipv6_paths_deduplicated_when_same(): void
     {
         // When ipv4RangesPath === ipv6RangesPath, only one request is made (second is skipped)
-        $mock = Http::sequence([
-            Http::response([
+        Fake::sequence([
+            Fake::response(200, [], (string) json_encode([
                 'rows' => [
                     [
                         'interface' => 'em0',
@@ -691,36 +644,25 @@ class OpnSenseDhcpServiceTest extends TestCase
                         'prefix' => '',
                     ],
                 ],
-            ], 200),
-            Http::response(['rows' => []], 200),
+            ])),
+            Fake::response(200, [], (string) json_encode(['rows' => []])),
         ]);
-        Http::fake(['*' => $mock]);
-        $client = Http::baseUrl('http://opnsense.local')->throw();
 
         $service = new OpnSenseDhcpService(
-            client: $client,
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             ipv6RangesPath: '/api/dhcpv4/ranges', // Same path — should not fetch twice
         );
 
-        $ranges = $service->getRanges();
+        $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
     }
 
     public function test_get_fetch_status_reports_success(): void
     {
-        $service = $this->createServiceWithMock([]);
+        $service = $this->createServiceWithMock([Fake::response(200, [], (string) json_encode(['rows' => []]))]);
 
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
-    }
-
-    public function test_reset_snapshot_is_a_no_op(): void
-    {
-        $service = $this->createServiceWithMock([]);
-
-        $service->resetSnapshot();
-
-        $this->assertSame(['ipv4' => true, 'ipv6' => true], $service->getFetchStatus());
+        $this->assertSame(['ipv4' => true, 'ipv6' => true, 'ipv4_ranges' => true, 'ipv6_ranges' => true], DhcpFetchStatusArray::of($service->snapshot()));
     }
 }

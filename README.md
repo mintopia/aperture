@@ -7,10 +7,10 @@ A captive portal system designed for LAN parties. Aperture provides an easy way 
 - **Authentication** — OAuth2 Device Flow via external provider (Borealis), supporting Discord and other social providers
 - **Captive Portal** — IPv4 and IPv6 support with OpnSense integration and industry-standard captive portal detection
 - **User Dashboard** — Opt-in to PiHole ad blocking, bandwidth graphs, content pages, connection status
-- **Admin Panel** — User/IP lookup, blocking, rate limiting, DHCP pool status, content editing, event feed
+- **Admin Panel** — User/IP lookup, blocking, rate limiting, DHCP pool status, content editing, audit log
 - **Switch Management** — Cisco switch integration via SSH proxy, port controls (shut/unshut), FDB/ARP tables, port statistics
 - **DNS Detection** — LANCache/DNS server detection and user warnings
-- **Real-time Events** — WebSocket-driven event feed via Laravel Reverb
+- **Real-time Events** — WebSocket-driven live updates via Laravel Reverb
 
 ## User Flow
 
