@@ -80,6 +80,9 @@ export function resolveBaseUrl() {
     return LOCAL_BASE_URL;
 }
 
+export const sshProxyStubPort = process.env.PLAYWRIGHT_SSH_PROXY_PORT || '8029';
+export const sshProxyStubApiKey = process.env.PLAYWRIGHT_SSH_PROXY_API_KEY || 'playwright-ssh-proxy-key';
+
 export function buildPlaywrightEnv(baseURL = resolveBaseUrl()) {
     const playwrightDbConnection = process.env.PLAYWRIGHT_DB_CONNECTION || 'sqlite';
     // Keep Playwright on an isolated sqlite file by default. `:memory:` cannot be shared
@@ -100,6 +103,9 @@ export function buildPlaywrightEnv(baseURL = resolveBaseUrl()) {
         QUEUE_CONNECTION: playwrightQueueConnection,
         REDIS_HOST: process.env.REDIS_HOST || readDotEnvValue('REDIS_HOST') || '127.0.0.1',
         REDIS_PORT: process.env.REDIS_PORT || readDotEnvValue('REDIS_PORT') || '6379',
+        APERTURE_SSH_PROXY_HOST: '127.0.0.1',
+        APERTURE_SSH_PROXY_PORT: sshProxyStubPort,
+        APERTURE_SSH_PROXY_API_KEY: sshProxyStubApiKey,
         BROADCAST_DRIVER: process.env.PLAYWRIGHT_BROADCAST_DRIVER || readDotEnvValue('PLAYWRIGHT_BROADCAST_DRIVER') || 'log',
     };
 }

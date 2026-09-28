@@ -1,4 +1,5 @@
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
+import { promisify } from 'node:util';
 import { buildPlaywrightEnv, resolveBaseUrl } from '../../../playwright/env.js';
 
 export function artisan(...args) {
@@ -6,6 +7,14 @@ export function artisan(...args) {
         cwd: process.cwd(),
         env: { ...process.env, ...buildPlaywrightEnv(resolveBaseUrl()) },
         stdio: 'pipe',
+    });
+}
+
+// Non-blocking, so in-process HTTP stubs can answer while artisan runs.
+export function artisanAsync(...args) {
+    return promisify(execFile)('php', ['artisan', ...args, '--no-interaction'], {
+        cwd: process.cwd(),
+        env: { ...process.env, ...buildPlaywrightEnv(resolveBaseUrl()) },
     });
 }
 
