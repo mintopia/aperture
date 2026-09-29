@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Providers;
 
+use App\Models\SwitchConfig;
 use App\Providers\AppServiceProvider;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\CiscoSwitchAdapter;
+use App\Services\NetworkSwitch\DefaultSwitchConfigResolver;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SshProxy\SshProxyClient;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Tests\TestCase;
 
 class AppServiceProviderTest extends TestCase
@@ -121,28 +123,25 @@ class AppServiceProviderTest extends TestCase
         config(['app.debug' => false]);
     }
 
-    public function test_network_switch_resolution_propagates_non_missing_table_errors(): void
+    public function test_network_switch_resolution_propagates_resolver_errors(): void
     {
-        $originalDefault = config('database.default');
-        config([
-            'database.connections.test_invalid' => [
-                'driver' => 'sqlite',
-                'database' => '/nonexistent/path/that/does/not/exist.sqlite',
-                'prefix' => '',
-                'foreign_key_constraints' => false,
-            ],
-            'database.default' => 'test_invalid',
-        ]);
+        $resolver = $this->createStub(DefaultSwitchConfigResolver::class);
+        $resolver->method('resolve')->willThrowException(new RuntimeException('database unavailable'));
+        $this->app->instance(DefaultSwitchConfigResolver::class, $resolver);
 
-        $this->app->forgetInstance(NetworkSwitchInterface::class);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('database unavailable');
 
-        $this->expectException(QueryException::class);
+        $this->app->make(NetworkSwitchInterface::class);
+    }
 
-        try {
-            $this->app->make(NetworkSwitchInterface::class);
-        } finally {
-            config(['database.default' => $originalDefault]);
-            $this->app->forgetInstance(NetworkSwitchInterface::class);
-        }
+    public function test_network_switch_resolution_uses_resolved_switch_config(): void
+    {
+        $config = SwitchConfig::defaultFallback();
+        $resolver = $this->createStub(DefaultSwitchConfigResolver::class);
+        $resolver->method('resolve')->willReturn($config);
+        $this->app->instance(DefaultSwitchConfigResolver::class, $resolver);
+
+        $this->assertInstanceOf(NetworkSwitchInterface::class, $this->app->make(NetworkSwitchInterface::class));
     }
 }

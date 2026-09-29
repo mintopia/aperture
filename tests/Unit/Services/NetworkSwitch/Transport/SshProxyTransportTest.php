@@ -48,6 +48,16 @@ class SshProxyTransportTest extends TestCase
         $this->assertSame('ok', (new SshProxyTransport($proxyClient, $switchConfig))->execute('show version'));
     }
 
+    public function test_disconnect_does_not_contact_the_proxy(): void
+    {
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldNotReceive('execute');
+
+        (new SshProxyTransport($proxyClient, SwitchConfig::factory()->make()))->disconnect();
+
+        $proxyClient->shouldNotHaveReceived('execute');
+    }
+
     public function test_output_ending_in_non_prompt_hash_line_is_not_stripped(): void
     {
         $proxyClient = Mockery::mock(SshProxyClientInterface::class);
