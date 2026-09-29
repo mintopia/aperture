@@ -84,4 +84,34 @@ class PiHoleTesterTest extends TestCase
 
         Http::assertSent(fn ($req): bool => str_contains($req->url(), 'https://pihole.local/api/auth'));
     }
+
+    public function test_non_json_success_response_is_a_failure(): void
+    {
+        Http::fake(['*' => Http::response('<html><body>Login</body></html>', 200, ['Content-Type' => 'text/html; charset=UTF-8'])]);
+
+        $result = $this->tester->connect(['endpoint' => 'https://x.local']);
+
+        $this->assertFalse($result->success);
+        $this->assertSame('Pi-hole returned a non-JSON response (text/html) — is a captive portal or proxy intercepting requests?', $result->message);
+        $this->assertSame(200, $result->responseStatus);
+    }
+
+    public function test_json_response_missing_expected_fields_is_a_failure(): void
+    {
+        Http::fake(['*' => Http::response(['error' => 'nope'], 200)]);
+
+        $result = $this->tester->connect(['endpoint' => 'https://x.local']);
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('Pi-hole returned an unexpected response', $result->message);
+    }
+
+    public function test_expected_json_response_is_a_success(): void
+    {
+        Http::fake(['*' => Http::response(['session' => ['sid' => 'abc']], 200)]);
+
+        $result = $this->tester->connect(['endpoint' => 'https://x.local']);
+
+        $this->assertTrue($result->success);
+    }
 }

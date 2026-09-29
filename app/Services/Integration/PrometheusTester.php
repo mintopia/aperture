@@ -28,6 +28,8 @@ class PrometheusTester implements TestableIntegration
             'GET',
             $url,
             fn () => $this->client($config)->get($url),
+            requiredJsonKeys: ['status'],
+            service: 'Prometheus',
         );
 
         if (! $result->success) {

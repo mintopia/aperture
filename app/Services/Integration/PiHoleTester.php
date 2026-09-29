@@ -27,6 +27,8 @@ class PiHoleTester implements TestableIntegration
                 ->connectTimeout(5)
                 ->post($url, ['password' => $config['password'] ?? '']),
             'Connected and authenticated successfully',
+            ['session'],
+            'Pi-hole',
         );
     }
 }
