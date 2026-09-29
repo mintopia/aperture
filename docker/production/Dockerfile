@@ -36,7 +36,8 @@ LABEL org.opencontainers.image.authors="jess@mintopia.net"
 COPY --from=composer /app /app
 COPY --from=npm /app/public/build /app/public/build
 COPY docker/production/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && \
+RUN apk add --no-cache su-exec && \
+    chmod +x /entrypoint.sh && \
     mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
     echo 'memory_limit = 512M' > /usr/local/etc/php/conf.d/memory_limit.ini && \
     setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp && \
@@ -45,7 +46,9 @@ RUN chmod +x /entrypoint.sh && \
 
 COPY docker/Caddyfile /
 
-USER www-data
+# The entrypoint starts as root, hands writable paths to PUID:PGID, then drops privileges
+ENV PUID=82 \
+    PGID=82
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["php",  "artisan",  "octane:frankenphp", "--caddyfile=/Caddyfile", "--admin-host=0.0.0.0", "--port=80"]
