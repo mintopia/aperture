@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 
 async function openUser(page, nickname) {
     await page.goto(`/admin/users?search=${nickname}`);

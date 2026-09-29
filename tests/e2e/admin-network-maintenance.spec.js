@@ -1,8 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 
 const adminPassword = process.env.PLAYWRIGHT_ADMIN_PASSWORD || 'playwright-password';
-
-test.describe.configure({ mode: 'default' });
 
 test.describe('Network Settings Maintenance — Clear Stale IP to MAC Mappings', () => {
     test('admin can clear stale mappings after confirming with their password', async ({ page }) => {

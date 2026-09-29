@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 
 test.describe('Admin IP Index (extended)', () => {
     test('index page has create IP button', async ({ page }) => {
@@ -24,31 +24,19 @@ test.describe('Admin IP Index (extended)', () => {
 });
 
 test.describe('Admin IP Show Page', () => {
-    test('show page is reachable from list when IPs exist', async ({ page }) => {
+    test('show page is reachable from the seeded IP list', async ({ page }) => {
         await page.goto('/admin/ips');
         const firstRow = page.locator('[data-testid="data-table-row"]').first();
-        const hasRows = await firstRow.isVisible().catch(() => false);
-
-        if (!hasRows) {
-            test.skip();
-            return;
-        }
-
+        await expect(firstRow).toBeVisible();
         await firstRow.click();
         await expect(page).toHaveURL(/\/admin\/ips\//);
         await expect(page.getByTestId('page-title')).toBeVisible();
     });
 
-    test('show page renders IP sections when IP exists', async ({ page }) => {
+    test('show page renders IP sections for a seeded IP', async ({ page }) => {
         await page.goto('/admin/ips');
         const firstRow = page.locator('[data-testid="data-table-row"]').first();
-        const hasRows = await firstRow.isVisible().catch(() => false);
-
-        if (!hasRows) {
-            test.skip();
-            return;
-        }
-
+        await expect(firstRow).toBeVisible();
         await firstRow.click();
         await expect(page.getByTestId('ip-macs-section')).toBeVisible();
         await expect(page.getByTestId('ip-dhcp-section')).toBeVisible();
