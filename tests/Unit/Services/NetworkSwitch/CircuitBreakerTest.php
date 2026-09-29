@@ -7,6 +7,7 @@ namespace Tests\Unit\Services\NetworkSwitch;
 use App\Events\SwitchUnreachable;
 use App\Models\SwitchConfig;
 use App\Services\NetworkSwitch\CircuitBreaker;
+use App\Services\NetworkSwitch\CircuitState;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
@@ -226,6 +227,72 @@ class CircuitBreakerTest extends TestCase
         $this->travel(301)->seconds();
 
         $this->assertTrue($circuitBreaker->isAvailable($switch));
+    }
+
+    public function test_states_and_transitions_are_explicit(): void
+    {
+        Event::fake([SwitchUnreachable::class]);
+
+        config(['aperture.circuit_breaker.cooldown' => 300]);
+        $circuitBreaker = new CircuitBreaker;
+        $switch = SwitchConfig::factory()->create();
+
+        $this->assertSame(CircuitState::Closed, $circuitBreaker->state($switch));
+
+        $circuitBreaker->recordFailure($switch);
+        $circuitBreaker->recordFailure($switch);
+        $this->assertSame(CircuitState::Closed, $circuitBreaker->state($switch));
+
+        $circuitBreaker->recordFailure($switch);
+        $this->assertSame(CircuitState::Open, $circuitBreaker->state($switch));
+
+        $this->travel(299)->seconds();
+        $this->assertSame(CircuitState::Open, $circuitBreaker->state($switch));
+
+        $this->travel(2)->seconds();
+        $this->assertSame(CircuitState::HalfOpen, $circuitBreaker->state($switch));
+        $this->assertTrue($circuitBreaker->isAvailable($switch));
+    }
+
+    public function test_half_open_closes_on_success(): void
+    {
+        Event::fake([SwitchUnreachable::class]);
+
+        $circuitBreaker = new CircuitBreaker;
+        $switch = SwitchConfig::factory()->create();
+
+        foreach (range(1, 3) as $ignored) {
+            $circuitBreaker->recordFailure($switch);
+        }
+        $this->travel(301)->seconds();
+        $this->assertSame(CircuitState::HalfOpen, $circuitBreaker->state($switch));
+
+        $circuitBreaker->recordSuccess($switch);
+
+        $this->assertSame(CircuitState::Closed, $circuitBreaker->state($switch));
+
+        $circuitBreaker->recordFailure($switch);
+        $this->assertSame(CircuitState::Closed, $circuitBreaker->state($switch));
+    }
+
+    public function test_half_open_reopens_on_single_failure_without_new_event(): void
+    {
+        Event::fake([SwitchUnreachable::class]);
+
+        $circuitBreaker = new CircuitBreaker;
+        $switch = SwitchConfig::factory()->create();
+
+        foreach (range(1, 3) as $ignored) {
+            $circuitBreaker->recordFailure($switch);
+        }
+        $this->travel(301)->seconds();
+        $this->assertSame(CircuitState::HalfOpen, $circuitBreaker->state($switch));
+
+        $circuitBreaker->recordFailure($switch);
+
+        $this->assertSame(CircuitState::Open, $circuitBreaker->state($switch));
+        $this->assertFalse($circuitBreaker->isAvailable($switch));
+        Event::assertDispatchedTimes(SwitchUnreachable::class, 1);
     }
 
     public function test_default_cooldown_is_300_seconds(): void
