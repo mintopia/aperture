@@ -16,4 +16,5 @@ enum Capability: string
     case IpMac = 'ip-mac';
     case PortMac = 'port-mac';
     case Authentication = 'authentication';
+    case SeatPicker = 'seat-picker';
 }
