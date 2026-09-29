@@ -56,7 +56,6 @@ class SecurityHeaders
             "default-src 'self'",
             'script-src '.implode(' ', $script),
             'style-src '.implode(' ', $style),
-            "style-src-attr 'unsafe-inline'",
             "img-src 'self' data: blob: https: http:",
             "media-src 'self' data: blob: https: http:",
             "font-src 'self' data: https: http:",

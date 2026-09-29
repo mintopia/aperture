@@ -100,7 +100,7 @@ class SecurityHeadersTest extends TestCase
         $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
 
         $this->assertMatchesRegularExpression("/style-src 'self' 'nonce-[A-Za-z0-9+\\/=]+'(;|$)/", $csp);
-        $this->assertStringContainsString("style-src-attr 'unsafe-inline'", $csp);
+        $this->assertStringNotContainsString("'unsafe-inline'", $csp);
     }
 
     public function test_app_shell_exposes_csp_nonce_meta_matching_header(): void
