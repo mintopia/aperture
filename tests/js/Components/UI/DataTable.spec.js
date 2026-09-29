@@ -460,4 +460,16 @@ describe('DataTable', () => {
             expect.soft(cls).toContain('focus-visible:ring-2');
         });
     });
+
+    describe('columns validator', () => {
+        const validate = DataTable.props.columns.validator;
+
+        it('accepts columns with string key and label', () => {
+            expect(validate([{ key: 'a', label: 'A', sortable: true }])).toBe(true);
+        });
+
+        it.each([[[{ label: 'A' }]], [[{ key: 'a' }]], [[null]], [['a']]])('rejects %j', (value) => {
+            expect(validate(value)).toBe(false);
+        });
+    });
 });

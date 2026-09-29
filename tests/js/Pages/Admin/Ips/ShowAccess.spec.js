@@ -21,7 +21,6 @@ vi.stubGlobal('route', (name) => `/mocked/${name}`);
 describe('Admin IP Show access confirmation modal integration', () => {
     const defaultProps = {
         ip: { id: 1, address: '192.168.1.10', internet_enabled: true, comment: 'Test IP' },
-        port: { interface: 'Gi1/0/1' },
         switchInfo: null,
         users: [
             { user: { id: 1, nickname: 'Alice' }, last_seen_at: '2024-01-01T00:00:00Z' },

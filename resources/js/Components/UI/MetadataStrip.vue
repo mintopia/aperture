@@ -5,6 +5,7 @@ defineProps({
     items: {
         type: Array,
         required: true,
+        validator: (v) => v.every((i) => i && typeof i === 'object' && typeof i.label === 'string'),
     },
 });
 </script>

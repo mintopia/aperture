@@ -7,7 +7,7 @@ import MetadataStrip from '@/Components/UI/MetadataStrip.vue';
 import { normalizeMac } from '@/helpers.js';
 import { isIpInPrefix } from '@/utils/dhcp.js';
 import { compareIps, isIpInRange } from '@/utils/ip.js';
-import { formatDate, formatEpoch } from '@/utils/dates.js';
+import { formatDate, formatEpochSeconds } from '@/utils/dates.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -59,6 +59,7 @@ function applyRangeFilter(leases) {
     }
 
     if (range.prefix) {
+        if (range.prefix.endsWith('/0')) return [];
         return leases.filter((lease) => isIpInPrefix(lease.ip, range.prefix));
     }
 
@@ -127,7 +128,7 @@ function showMore() {
 
 function formatExpiry(expires) {
     if (!expires) return 'Never';
-    if (/^\d+$/.test(expires)) return formatEpoch(expires);
+    if (/^\d+$/.test(expires)) return formatEpochSeconds(expires);
     return formatDate(expires);
 }
 </script>

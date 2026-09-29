@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ipToBigInt, compareIps, isIpInRange } from '@/utils/ip';
+import { ipToBigInt, compareIps, ipSortKey, isIpInRange } from '@/utils/ip';
 
 describe('ipToBigInt', () => {
     it.each([
@@ -22,6 +22,23 @@ describe('ipToBigInt', () => {
             expect(ipToBigInt(ip)).toBeNull();
         },
     );
+});
+
+describe('ipSortKey', () => {
+    it('maps IPv4 to its IPv4-mapped IPv6 key', () => {
+        expect(ipSortKey('1.2.3.4')).toBe(ipSortKey('::ffff:1.2.3.4'));
+        expect(ipSortKey('1.2.3.4')).toBe(0xffff01020304n);
+    });
+
+    it('orders IPv4 above ::1 and below addresses past ::ffff:255.255.255.255', () => {
+        expect(ipSortKey('::1')).toBeLessThan(ipSortKey('0.0.0.0'));
+        expect(ipSortKey('255.255.255.255')).toBeLessThan(ipSortKey('::1:0:0:0'));
+    });
+
+    it('returns null for invalid input', () => {
+        expect(ipSortKey('bad')).toBeNull();
+        expect(ipSortKey('')).toBeNull();
+    });
 });
 
 describe('compareIps', () => {

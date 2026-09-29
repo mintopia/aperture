@@ -61,6 +61,12 @@ describe('RecentActivity', () => {
         expect(dots[1].attributes('data-severity')).toBe('info');
     });
 
+    it('colours critical severity with the danger theme token', () => {
+        const wrapper = mountComponent();
+        const dot = wrapper.find('[data-severity="critical"]');
+        expect(dot.attributes('style')).toContain('var(--color-danger)');
+    });
+
     it('shows the empty state when there are no events', () => {
         const wrapper = mountComponent({ events: [] });
         expect(wrapper.find('[data-testid="recent-activity-empty"]').exists()).toBe(true);

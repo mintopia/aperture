@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatDate, formatRelative, formatEpoch, formatTime } from '@/utils/dates';
+import { formatDate, formatRelative, formatEpochSeconds, formatEpochMillis, formatTime } from '@/utils/dates';
 
 describe('formatDate', () => {
     it.each([
@@ -66,14 +66,19 @@ describe('formatRelative', () => {
         expect(formatRelative(input)).toBe(expected);
     });
 });
-describe('formatEpoch', () => {
-    it('formats seconds and milliseconds identically', () => {
-        expect(formatEpoch('1714000000')).toBe(formatEpoch('1714000000000'));
-        expect(formatEpoch('1714000000')).toMatch(/Apr 2024/);
+describe('formatEpochSeconds / formatEpochMillis', () => {
+    it('formats explicit units identically', () => {
+        expect(formatEpochSeconds('1714000000')).toBe(formatEpochMillis('1714000000000'));
+        expect(formatEpochSeconds('1714000000')).toMatch(/Apr 2024/);
+    });
+
+    it('does not guess the unit from magnitude', () => {
+        expect(formatEpochMillis(1714000000)).toMatch(/Jan 1970/);
     });
 
     it.each([null, undefined, '', 'abc'])('returns empty string for %s', (input) => {
-        expect(formatEpoch(input)).toBe('');
+        expect(formatEpochSeconds(input)).toBe('');
+        expect(formatEpochMillis(input)).toBe('');
     });
 });
 

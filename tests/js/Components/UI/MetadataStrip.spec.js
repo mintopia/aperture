@@ -126,4 +126,16 @@ describe('MetadataStrip', () => {
         expect(wrapper.find('a').exists()).toBe(false);
         expect(wrapper.text()).toContain('Active');
     });
+
+    describe('items validator', () => {
+        const validate = MetadataStrip.props.items.validator;
+
+        it('accepts items with a string label', () => {
+            expect(validate([{ label: 'Status', value: 'Active' }])).toBe(true);
+        });
+
+        it.each([[[{ value: 'x' }]], [[{ label: 1 }]], [[null]]])('rejects %j', (value) => {
+            expect(validate(value)).toBe(false);
+        });
+    });
 });

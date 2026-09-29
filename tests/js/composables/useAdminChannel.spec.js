@@ -203,6 +203,20 @@ describe('useAdminChannel', () => {
     });
 
     describe('fallback polling', () => {
+        it('is not connected and polls when Echo has no pusher connector', () => {
+            window.Echo = createMockEcho(undefined);
+            const poll = vi.fn();
+
+            const wrapper = mount(
+                createTestComponent({ events: { SwitchSyncCompleted: vi.fn() }, poll, pollInterval: 30000 }),
+            );
+
+            expect(wrapper.vm.connected).toBe(false);
+
+            vi.advanceTimersByTime(30000);
+            expect(poll).toHaveBeenCalledTimes(1);
+        });
+
         it('starts fallback polling when Echo is not available', () => {
             window.Echo = undefined;
             const poll = vi.fn();

@@ -91,7 +91,8 @@ export function useAdminChannel({ events = {}, poll = null, pollInterval = 30000
                     startFallbackPolling();
                 }
             } else {
-                connected.value = true;
+                connected.value = false;
+                startFallbackPolling();
             }
 
             connectionCheckTimer = setInterval(checkConnection, 10000);
