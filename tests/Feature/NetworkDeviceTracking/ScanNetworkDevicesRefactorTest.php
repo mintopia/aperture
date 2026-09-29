@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\NetworkDeviceTracking;
 
 use App\Enums\Capability;
+use App\Enums\InternetState;
 use App\Jobs\ScanNetworkDevices;
 use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
@@ -190,7 +191,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertTrue($ip->internet_enabled);
+        $this->assertTrue($ip->isInternetAllowed());
     }
 
     public function test_oui_policy_does_not_enable_for_non_matching_mac(): void
@@ -204,7 +205,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertNull($ip->internet_enabled);
+        $this->assertSame(InternetState::Undecided, $ip->internet_enabled);
     }
 
     public function test_oui_policy_skipped_when_no_prefixes_configured(): void
@@ -216,7 +217,7 @@ class ScanNetworkDevicesRefactorTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertNull($ip->internet_enabled);
+        $this->assertSame(InternetState::Undecided, $ip->internet_enabled);
     }
 
     public function test_discovery_creates_audit_logs(): void

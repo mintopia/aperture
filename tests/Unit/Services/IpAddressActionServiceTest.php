@@ -113,7 +113,7 @@ class IpAddressActionServiceTest extends TestCase
         $service->enableInternet($ip);
 
         $ip->refresh();
-        $this->assertFalse($ip->internet_enabled);
+        $this->assertFalse($ip->isInternetAllowed());
         $this->assertEquals($originalUpdatedAt, $ip->updated_at);
     }
 
@@ -148,7 +148,7 @@ class IpAddressActionServiceTest extends TestCase
         $service->disableInternet($ip);
 
         $ip->refresh();
-        $this->assertTrue($ip->internet_enabled);
+        $this->assertTrue($ip->isInternetAllowed());
         $this->assertEquals($originalUpdatedAt, $ip->updated_at);
     }
 

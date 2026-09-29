@@ -6,7 +6,7 @@ namespace App\Providers;
 
 use App\Events\BandwidthAnomalyDetected;
 use App\Events\DhcpPoolThresholdReached;
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Events\SwitchUnreachable;
 use App\Http\Controllers\E2e\DeviceApprovalController;
 use App\Integration\InstallGuard;
@@ -86,7 +86,7 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerEventListeners(): void
     {
-        Event::listen(IpMacLinked::class, CascadeMacOwnershipOnLink::class);
+        Event::listen(IpMacObserved::class, CascadeMacOwnershipOnLink::class);
         Event::listen(SwitchUnreachable::class, RecordSwitchUnreachable::class);
         Event::listen(BandwidthAnomalyDetected::class, RecordBandwidthAnomaly::class);
         Event::listen(DhcpPoolThresholdReached::class, RecordDhcpPoolThreshold::class);

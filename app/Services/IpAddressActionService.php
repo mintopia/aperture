@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\UserIpAddress;
@@ -53,7 +53,7 @@ class IpAddressActionService
                     $macAddress->save();
                 }
 
-                event(new IpMacLinked($ip, $macAddress, 'auth', 'auth'));
+                event(new IpMacObserved($ip, $macAddress, 'auth', 'auth'));
             }
         } catch (Throwable $throwable) {
             Log::warning('MAC resolution/cascade failed during enableInternet', [

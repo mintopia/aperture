@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Models\AuditLog;
 use App\Models\DhcpLease;
 use App\Models\IpAddress;
@@ -21,7 +21,7 @@ class CascadeMacOwnershipOnLink
         private readonly IpPolicyService $policyService,
     ) {}
 
-    public function handle(IpMacLinked $event): void
+    public function handle(IpMacObserved $event): void
     {
         if ($event->source === MacAddress::SOURCE_DHCP_DUID) {
             return;
@@ -61,7 +61,7 @@ class CascadeMacOwnershipOnLink
         }
     }
 
-    private function previousOwnerStillHoldsLease(IpMacLinked $event, int $previousUserId): bool
+    private function previousOwnerStillHoldsLease(IpMacObserved $event, int $previousUserId): bool
     {
         return DhcpLease::where('ip_address_id', $event->ip->id)
             ->where('mac_address_id', '!=', $event->mac->id)
@@ -69,7 +69,7 @@ class CascadeMacOwnershipOnLink
             ->exists();
     }
 
-    private function reassign(IpMacLinked $event, ?User $newOwner): void
+    private function reassign(IpMacObserved $event, ?User $newOwner): void
     {
         $previousUserIds = UserIpAddress::where('ip_address_id', $event->ip->id)->pluck('user_id')->all();
         UserIpAddress::where('ip_address_id', $event->ip->id)->delete();

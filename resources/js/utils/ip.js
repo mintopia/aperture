@@ -1,5 +1,9 @@
 const V4_MAPPED_PREFIX = 0xffffn << 32n;
 
+export function ipv4MappedSortValue(v4Value) {
+    return v4Value | V4_MAPPED_PREFIX;
+}
+
 function ipv4ToBigInt(address) {
     const octets = address.split('.');
     if (octets.length !== 4) return null;
@@ -54,11 +58,11 @@ export function ipToBigInt(ip) {
     return trimmed.includes(':') ? ipv6ToBigInt(trimmed) : ipv4ToBigInt(trimmed);
 }
 
-// Mirrors IpAddress::sortKey (IPv4 sorts as IPv4-mapped IPv6).
+// Mirrors IpAddress::sortKey; both use the IPv4-mapped IPv6 rule.
 export function ipSortKey(ip) {
     const value = ipToBigInt(ip);
     if (value === null) return null;
-    return ip.includes(':') ? value : value | V4_MAPPED_PREFIX;
+    return ip.includes(':') ? value : ipv4MappedSortValue(value);
 }
 
 export function compareIps(a, b) {

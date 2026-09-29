@@ -46,7 +46,7 @@ class UserNetworkAssociationService
 
         $this->policyService->applyUserPolicy($user, $ip);
 
-        if ($ip->internet_enabled) {
+        if ($ip->isInternetAllowed()) {
             try {
                 $this->actionService->enableInternet($ip);
             } catch (Throwable $e) {

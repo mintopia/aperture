@@ -202,7 +202,7 @@ class UserController extends Controller
                     action: 'ip.internet_toggled',
                     subject: $userIp->ip,
                     process: 'admin',
-                    metadata: ['enabled' => $userIp->ip->internet_enabled],
+                    metadata: ['enabled' => $userIp->ip->isInternetAllowed()],
                 );
             });
 

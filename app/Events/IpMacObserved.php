@@ -9,7 +9,7 @@ use App\Models\MacAddress;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class IpMacLinked
+class IpMacObserved
 {
     use Dispatchable;
     use SerializesModels;
