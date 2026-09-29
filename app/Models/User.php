@@ -59,7 +59,6 @@ use Laragear\WebAuthn\WebAuthnData;
  * @method static Builder|User whereExternalId($value)
  * @method static Builder|User whereUpdatedAt($value)
  *
- *
  * @property string|null $password
  * @property-read Collection<int, MacAddress> $macAddresses
  * @property-read int|null $mac_addresses_count

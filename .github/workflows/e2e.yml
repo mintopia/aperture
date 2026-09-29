@@ -39,16 +39,17 @@ jobs:
           node-version: '22'
           cache: npm
 
+      - name: Copy environment file
+        run: cp .env.example .env
+
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Generate application key
+        run: php artisan key:generate --force
+
       - name: Install Node dependencies
         run: npm ci
-
-      - name: Prepare environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate --force
 
       - name: Build assets
         run: npm run build

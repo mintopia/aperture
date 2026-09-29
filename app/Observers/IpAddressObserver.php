@@ -16,15 +16,15 @@ class IpAddressObserver implements ShouldHandleEventsAfterCommit
     {
         if ($ip->wasChanged('internet_enabled')) {
             // null (no explicit decision) is enforced as blocked — deny-by-default.
-            SyncFirewallJob::dispatch($ip, FirewallAction::Internet);
+            dispatch(new SyncFirewallJob($ip, FirewallAction::Internet));
         }
 
         if ($ip->wasChanged('rate_limit_enabled')) {
-            SyncFirewallJob::dispatch($ip, FirewallAction::RateLimit);
+            dispatch(new SyncFirewallJob($ip, FirewallAction::RateLimit));
         }
 
         if ($ip->wasChanged('dns_filtering_enabled')) {
-            SyncDnsFilteringJob::dispatch($ip->address);
+            dispatch(new SyncDnsFilteringJob($ip->address));
         }
     }
 }

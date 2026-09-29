@@ -317,7 +317,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), 254);
-        $service->snapshot()->leases;
+        $service->snapshot();
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('', Fake::requests()[0]->body());
@@ -334,7 +334,7 @@ class OpnSenseDhcpServiceFieldMapTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), 254, ipv4RangesPath: '/api/kea/dhcpv4/search_subnet');
-        $service->snapshot()->ranges;
+        $service->snapshot();
 
         $this->assertCount(2, Fake::requests());
         $this->assertEquals('', Fake::requests()[0]->body());

@@ -42,6 +42,25 @@ function setDialog(el) {
     }
 }
 
+const FOCUSABLE =
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function trapFocus(event) {
+    const items = [...dialogRef.value.querySelectorAll(FOCUSABLE)];
+    if (!items.length) {
+        event.preventDefault();
+        return;
+    }
+    const active = document.activeElement;
+    if (event.shiftKey && (active === items[0] || active === dialogRef.value)) {
+        event.preventDefault();
+        items.at(-1).focus();
+    } else if (!event.shiftKey && active === items.at(-1)) {
+        event.preventDefault();
+        items[0].focus();
+    }
+}
+
 function onClose() {
     if (props.show && dialogRef.value && !dialogRef.value.open) dialogRef.value.showModal();
 }
@@ -62,6 +81,7 @@ function onAfterLeave() {
             :aria-describedby="descriptionId"
             class="m-auto w-full max-w-md rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-0 text-[var(--color-text)] shadow-xl backdrop:bg-black/50 backdrop:backdrop-blur-[1px] focus:outline-none"
             @cancel.prevent="emit('cancel')"
+            @keydown.tab="trapFocus"
             @close="onClose"
             @click.self="emit('cancel')"
         >

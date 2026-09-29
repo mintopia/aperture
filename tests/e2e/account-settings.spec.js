@@ -102,6 +102,7 @@ test.describe('Account settings journey', () => {
 
         await page.getByTestId('password-clear').click();
         await page.getByTestId('confirm-modal-confirm').click();
+        await expect(page.getByTestId('confirm-modal')).toHaveCount(0);
         await expect(page.getByTestId('create-password-section')).toBeVisible();
         await expect(page.getByTestId('passkey-section')).toHaveCount(0);
 

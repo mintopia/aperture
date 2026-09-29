@@ -363,7 +363,7 @@ class IosOutputParserTest extends TestCase
 
         $this->assertSame(
             ['inactive', 'sfpAbsent', 'xcvrAbsen', 'suspnd', 'faulty', 'connected'],
-            array_map(fn ($p) => $p->status, $ports),
+            array_map(fn (PortStatus $p): string => $p->status, $ports),
         );
         $this->assertSame('routed', $ports[5]->switchportMode);
     }

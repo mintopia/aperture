@@ -64,12 +64,7 @@ class DhcpSyncService
 
         $wasBelowThreshold = $previousUtilisation === null || $previousUtilisation < self::UTILISATION_THRESHOLD;
         if ($wasBelowThreshold) {
-            DhcpPoolThresholdReached::dispatch(
-                pool: $integration,
-                usage: $currentUtilisation,
-                threshold: self::UTILISATION_THRESHOLD,
-                addressFamily: $addressFamily->value,
-            );
+            event(new DhcpPoolThresholdReached(pool: $integration, usage: $currentUtilisation, threshold: self::UTILISATION_THRESHOLD, addressFamily: $addressFamily->value));
         }
     }
 

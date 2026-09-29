@@ -578,5 +578,4 @@ describe('Show — Echo event handler guards', () => {
 
         expect(router.reload).not.toHaveBeenCalled();
     });
-
 });

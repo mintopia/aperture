@@ -29,7 +29,8 @@ const themeColors = computed(() => {
 function portColor(port) {
     if (['err-disabled', 'faulty'].includes(port.status)) return themeColors.value.danger;
     if (port.admin_status === 'down') return themeColors.value.muted;
-    if (['notconnect', 'down', 'inactive', 'sfpAbsent', 'xcvrAbsen', 'suspnd'].includes(port.status)) return themeColors.value.border;
+    if (['notconnect', 'down', 'inactive', 'sfpAbsent', 'xcvrAbsen', 'suspnd'].includes(port.status))
+        return themeColors.value.border;
 
     const speed = parseSpeed(port.speed);
     if (speed >= 1000) return themeColors.value.success;

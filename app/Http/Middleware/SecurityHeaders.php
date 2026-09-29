@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\IntegrationConfig;
+use App\Models\Setting;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class SecurityHeaders
 {
@@ -40,7 +43,7 @@ class SecurityHeaders
 
     private function policy(string $nonce): string
     {
-        $script = ["'self'", "'nonce-{$nonce}'"];
+        $script = ["'self'", sprintf("'nonce-%s'", $nonce)];
         $connect = ["'self'"];
         $style = ["'self'", "'unsafe-inline'"];
         $font = ["'self'", 'data:'];
@@ -50,8 +53,10 @@ class SecurityHeaders
         if (is_string($reverbHost) && $reverbHost !== '') {
             $scheme = config('reverb.frontend.scheme') === 'http' ? 'ws' : 'wss';
             $port = (int) config('reverb.frontend.port');
-            $connect[] = "{$scheme}://{$reverbHost}".($port > 0 ? ":{$port}" : '');
+            $connect[] = sprintf('%s://%s', $scheme, $reverbHost).($port > 0 ? ':'.$port : '');
         }
+
+        array_push($connect, ...$this->detectionOrigins());
 
         $hot = public_path('hot');
         if (is_file($hot)) {
@@ -60,11 +65,13 @@ class SecurityHeaders
             if (isset($parts['scheme'], $parts['host'])) {
                 $hostPort = $parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
                 $ws = ($parts['scheme'] === 'https' ? 'wss' : 'ws').'://'.$hostPort;
-                array_push($script, $origin, "'unsafe-eval'");
-                array_push($style, $origin);
-                array_push($font, $origin);
-                array_push($img, $origin);
-                array_push($connect, $origin, $ws);
+                $script[] = $origin;
+                $script[] = "'unsafe-eval'";
+                $style[] = $origin;
+                $font[] = $origin;
+                $img[] = $origin;
+                $connect[] = $origin;
+                $connect[] = $ws;
             }
         }
 
@@ -81,5 +88,58 @@ class SecurityHeaders
             "form-action 'self'",
             "frame-ancestors 'none'",
         ]);
+    }
+
+    /**
+     * Portal scripts fetch the operator-configured DNS and IPv6 detection URLs directly from the browser.
+     *
+     * @return list<string>
+     */
+    private function detectionOrigins(): array
+    {
+        try {
+            $urls = [
+                Setting::get('dns.check_url', ''),
+                IntegrationConfig::getValue('ipv6', 'detection_endpoint', ''),
+            ];
+        } catch (Throwable) {
+            return [];
+        }
+
+        $origins = [];
+        foreach ($urls as $url) {
+            $origin = is_string($url) ? $this->originOf($url) : null;
+            if ($origin !== null) {
+                $origins[] = $origin;
+            }
+        }
+
+        return array_values(array_unique($origins));
+    }
+
+    private function originOf(string $url): ?string
+    {
+        $placeholder = 'uuid-placeholder';
+        $parts = parse_url(str_replace('{uuid}', $placeholder, $url));
+        $scheme = $parts['scheme'] ?? null;
+        $host = $parts['host'] ?? null;
+        if (! in_array($scheme, ['http', 'https'], true) || ! is_string($host) || $host === '') {
+            return null;
+        }
+
+        $labels = explode('.', $host);
+        foreach ($labels as $i => $label) {
+            if (! str_contains($label, $placeholder)) {
+                continue;
+            }
+
+            if ($i !== 0 || $label !== $placeholder) {
+                return null;
+            }
+
+            $labels[$i] = '*';
+        }
+
+        return $scheme.'://'.implode('.', $labels).(isset($parts['port']) ? ':'.$parts['port'] : '');
     }
 }

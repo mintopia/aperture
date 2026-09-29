@@ -74,7 +74,7 @@ class KeaDhcpServiceTest extends TestCase
     {
         $this->fakeConfigGet(['result' => 3]);
 
-        $this->service->snapshot()->ranges;
+        $this->service->snapshot();
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();
@@ -478,7 +478,7 @@ class KeaDhcpServiceTest extends TestCase
             ]),
         ]);
 
-        $this->service->snapshot()->leases;
+        $this->service->snapshot();
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();
@@ -1293,7 +1293,7 @@ class KeaDhcpServiceTest extends TestCase
             'kea6.local' => Http::response([['result' => 3]]),
         ]);
 
-        $service->snapshot()->leases;
+        $service->snapshot();
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();

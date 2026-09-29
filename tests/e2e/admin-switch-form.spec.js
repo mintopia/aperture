@@ -102,9 +102,9 @@ test.describe('Switch timezone', () => {
 
         await page.getByTestId('switch-timezone').selectOption('America/New_York');
         await page.getByTestId('action-save').click();
-        await expect(page).toHaveURL(/\/admin\/switches\/\d+$/);
+        await expect(page.getByTestId('flash-message-success')).toContainText('Switch updated successfully');
 
-        await page.goto(`${page.url()}/edit`);
+        await page.reload();
         await expect(page.getByTestId('switch-timezone')).toHaveValue('America/New_York');
     });
 });

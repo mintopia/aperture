@@ -37,7 +37,7 @@ class ResetCommand extends Command
             return self::SUCCESS;
         }
 
-        ResetAperture::dispatchSync();
+        dispatch_sync(new ResetAperture);
 
         $this->output->writeln('Finished');
 

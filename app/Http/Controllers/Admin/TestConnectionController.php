@@ -27,7 +27,7 @@ class TestConnectionController extends Controller
         }
 
         $config = $this->configMerger->merge($service, $request);
-        $tester = app($testerClass);
+        $tester = resolve($testerClass);
         assert($tester instanceof TestableIntegration);
         $result = $tester->connect($config);
 

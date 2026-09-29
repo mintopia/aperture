@@ -31,7 +31,7 @@ class SetupRequest extends FormRequest
     protected function failedValidation(Validator $validator): void
     {
         if (User::query()->exists()) {
-            throw new HttpResponseException(redirect()->route('login'));
+            throw new HttpResponseException(to_route('login'));
         }
 
         parent::failedValidation($validator);

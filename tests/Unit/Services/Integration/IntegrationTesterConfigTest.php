@@ -16,8 +16,8 @@ class IntegrationTesterConfigTest extends TestCase
         $this->assertIsArray($integrations);
 
         foreach ($integrations as $key => $definition) {
-            $this->assertArrayHasKey('tester', $definition, "Integration [{$key}] has no tester");
-            $this->assertInstanceOf(TestableIntegration::class, app($definition['tester']), "Integration [{$key}]");
+            $this->assertArrayHasKey('tester', $definition, sprintf('Integration [%s] has no tester', $key));
+            $this->assertInstanceOf(TestableIntegration::class, resolve($definition['tester']), sprintf('Integration [%s]', $key));
         }
     }
 }

@@ -274,7 +274,10 @@ test.describe('MAC address filters', () => {
 
 test.describe('DHCP pages', () => {
     test.beforeEach(() => {
-        artisan('tinker', '--execute=\\App\\Models\\CapabilityAssignment::assign("dhcp", "kea");');
+        artisan(
+            'tinker',
+            '--execute=\\App\\Models\\CapabilityAssignment::assign(\\App\\Enums\\Capability::Dhcp, "kea");',
+        );
     });
 
     const leaseRow = (page, ip) => page.getByTestId('data-table-row').filter({ hasText: ip });

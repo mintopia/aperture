@@ -124,6 +124,22 @@ describe('ConfirmModal', () => {
         wrapper.unmount();
     });
 
+    it('wraps Tab from the last button to the first and Shift+Tab back', async () => {
+        const wrapper = mountComponent({}, { attachTo: document.body });
+        const cancel = wrapper.find('[data-testid="confirm-modal-cancel"]').element;
+        const confirm = wrapper.find('[data-testid="confirm-modal-confirm"]').element;
+        const dialog = wrapper.find('dialog');
+
+        confirm.focus();
+        await dialog.trigger('keydown', { key: 'Tab' });
+        expect(document.activeElement).toBe(cancel);
+
+        await dialog.trigger('keydown', { key: 'Tab', shiftKey: true });
+        expect(document.activeElement).toBe(confirm);
+
+        wrapper.unmount();
+    });
+
     it('emits cancel and keeps the dialog open on the native cancel event', async () => {
         const wrapper = mountComponent();
         const event = new Event('cancel', { cancelable: true });

@@ -15,7 +15,7 @@ test.describe('User List', () => {
         await page.goto('/admin/users');
         const row = page.locator('[data-testid="data-table-row"]').first();
         await row.hover();
-        const cursor = await row.evaluate(el => getComputedStyle(el).cursor);
+        const cursor = await row.evaluate((el) => getComputedStyle(el).cursor);
         expect(cursor).toBe('pointer');
     });
 });

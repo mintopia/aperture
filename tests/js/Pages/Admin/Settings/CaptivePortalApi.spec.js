@@ -87,12 +87,8 @@ describe('CaptivePortalApi.vue', () => {
             venue_info_url: 'https://venue.example.com',
             can_extend_session: true,
         });
-        expect(wrapper.find('[data-testid="input-user-portal-url"]').element.value).toBe(
-            'https://portal.example.com',
-        );
-        expect(wrapper.find('[data-testid="input-venue-info-url"]').element.value).toBe(
-            'https://venue.example.com',
-        );
+        expect(wrapper.find('[data-testid="input-user-portal-url"]').element.value).toBe('https://portal.example.com');
+        expect(wrapper.find('[data-testid="input-venue-info-url"]').element.value).toBe('https://venue.example.com');
         expect(wrapper.find('[data-testid="toggle-can-extend-session"]').element.checked).toBe(true);
     });
 
@@ -115,9 +111,7 @@ describe('CaptivePortalApi.vue', () => {
     it('copies API URL to clipboard', async () => {
         const wrapper = mountPage({}, 'https://test.example.com/api/captive-portal');
         await wrapper.find('[data-testid="copy-api-url"]').trigger('click');
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-            'https://test.example.com/api/captive-portal',
-        );
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith('https://test.example.com/api/captive-portal');
     });
 
     it('renders section headings', () => {

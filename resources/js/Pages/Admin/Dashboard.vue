@@ -335,7 +335,7 @@ function confirmReset() {
                                 data-testid="user-last-seen"
                                 class="py-[10px] font-mono text-[12px] text-[var(--color-text-muted)]"
                             >
-                                {{ (formatRelative(row.last_seen) || '—') }}
+                                {{ formatRelative(row.last_seen) || '—' }}
                             </td>
                         </template>
                     </DataTable>

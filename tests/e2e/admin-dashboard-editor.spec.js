@@ -84,8 +84,19 @@ test.describe('Dashboard editor', () => {
         const current = Object.keys(await readLayout(page)).map(Number);
         await page.evaluate(
             async ({ keep, current, original }) => {
+                const send = (method, url, body) =>
+                    fetch(url, {
+                        method,
+                        headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: body === undefined ? undefined : JSON.stringify(body),
+                    });
                 for (const id of current.filter((id) => !keep.includes(id))) {
-                    await window.axios.delete(`/admin/content/${id}`);
+                    await send('DELETE', `/admin/content/${id}`);
                 }
                 const blocks = keep.map((id) => ({
                     id,
@@ -94,9 +105,9 @@ test.describe('Dashboard editor', () => {
                     col_span: original[id].colSpan,
                     row_span: original[id].rowSpan,
                 }));
-                await window.axios.put('/admin/content/layout', { blocks });
+                await send('PUT', '/admin/content/layout', { blocks });
             },
-            { keep, current, original }
+            { keep, current, original },
         );
     });
 
@@ -156,7 +167,9 @@ test.describe('Dashboard editor', () => {
         expect(moved[first].row).toBeGreaterThan(original[first].row);
         expect(overlaps(moved)).toBe(false);
 
-        const saved = page.waitForResponse((r) => r.url().endsWith('/admin/content/layout') && r.request().method() === 'PUT');
+        const saved = page.waitForResponse(
+            (r) => r.url().endsWith('/admin/content/layout') && r.request().method() === 'PUT',
+        );
         await page.getByTestId('action-save-layout').click();
         expect((await saved).ok()).toBe(true);
         await expect(page.getByTestId('action-save-layout')).toBeDisabled();
@@ -195,7 +208,9 @@ test.describe('Dashboard editor', () => {
 
         await resizeBy(page, first, 0, 80 + 12);
 
-        await expect(page.getByTestId(`editor-block-${first}`)).toContainText(`${original[first].colSpan}×${original[first].rowSpan + 1}`);
+        await expect(page.getByTestId(`editor-block-${first}`)).toContainText(
+            `${original[first].colSpan}×${original[first].rowSpan + 1}`,
+        );
         await expect(page.getByTestId('action-save-layout')).toBeEnabled();
         const resized = await readLayout(page);
         expect(resized[first].rowSpan).toBe(original[first].rowSpan + 1);
@@ -203,7 +218,9 @@ test.describe('Dashboard editor', () => {
         expect(resized[third].row).toBeGreaterThan(original[third].row);
         expect(overlaps(resized)).toBe(false);
 
-        const saved = page.waitForResponse((r) => r.url().endsWith('/admin/content/layout') && r.request().method() === 'PUT');
+        const saved = page.waitForResponse(
+            (r) => r.url().endsWith('/admin/content/layout') && r.request().method() === 'PUT',
+        );
         await page.getByTestId('action-save-layout').click();
         expect((await saved).ok()).toBe(true);
 
@@ -232,7 +249,9 @@ test.describe('Dashboard editor', () => {
 
         await page.locator(GRID).focus();
         await resizeBy(page, first, 0, 92, { drop: false });
-        await expect(page.getByTestId(`editor-block-${first}`)).toContainText(`${original[first].colSpan}×${original[first].rowSpan + 1}`);
+        await expect(page.getByTestId(`editor-block-${first}`)).toContainText(
+            `${original[first].colSpan}×${original[first].rowSpan + 1}`,
+        );
         await page.keyboard.press('Escape');
 
         await page.mouse.up();

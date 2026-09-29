@@ -52,5 +52,4 @@ class BandwidthAnomalyDetectorTest extends TestCase
 
         $this->assertSame($expected, $ratio);
     }
-
 }

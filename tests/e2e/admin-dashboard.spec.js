@@ -63,10 +63,23 @@ test.describe('Native-platform refactor rendering', () => {
     });
 
     test('bandwidth chart canvas renders', async ({ page }) => {
+        const now = Math.floor(Date.now() / 1000);
+        await page.route('**/admin/bandwidth*', (route) =>
+            route.fulfill({
+                json: {
+                    timestamps: [now - 120, now - 60, now],
+                    download: [1000, 2000, 3000],
+                    upload: [100, 200, 300],
+                    totalReceived: 5 * 1024 * 1024,
+                    totalSent: 2 * 1024 * 1024,
+                },
+            }),
+        );
         await page.goto('/admin');
         const chart = page.getByTestId('bandwidth-chart');
         await expect(chart).toBeVisible();
-        const box = await chart.locator('canvas').first().boundingBox();
+        await expect(chart.getByTestId('chart-canvas')).toBeVisible();
+        const box = await chart.getByTestId('chart-canvas').boundingBox();
         expect(box.width).toBeGreaterThan(100);
         expect(box.height).toBeGreaterThan(50);
     });

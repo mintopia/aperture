@@ -89,7 +89,7 @@ class KeaDhcpService implements DhcpInterface
 
             $fetched = $this->fetchRanges($client, $family, $usageIps);
 
-            if ($fetched === null) {
+            if (! $fetched instanceof Collection) {
                 $rangesOk[$family->value] = false;
 
                 continue;

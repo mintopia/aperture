@@ -110,7 +110,7 @@ class KeaBootstrapperTest extends TestCase
         $this->assertNull($service->getLease('192.168.1.50'));
         Http::assertNothingSent();
 
-        $service->snapshot()->leases;
+        $service->snapshot();
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();
@@ -140,7 +140,7 @@ class KeaBootstrapperTest extends TestCase
         $service = $this->app->make(DhcpInterface::class);
         $this->assertInstanceOf(KeaDhcpService::class, $service);
 
-        $service->snapshot()->leases;
+        $service->snapshot();
 
         Http::assertSent(function ($request): bool {
             $data = $request->data();

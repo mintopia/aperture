@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Middleware;
 
+use App\Models\IntegrationConfig;
+use App\Models\Setting;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class SecurityHeadersTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_x_content_type_options_header_is_present(): void
     {
         $response = $this->get('/');
@@ -65,7 +70,7 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("object-src 'none'", $csp);
         $this->assertStringContainsString("frame-ancestors 'none'", $csp);
         $this->assertStringContainsString('wss://ws.example.com:443', $csp);
-        $this->assertStringContainsString('img-src \'self\' data:', $csp);
+        $this->assertStringContainsString("img-src 'self' data:", $csp);
         $this->assertStringNotContainsString('localhost:5173', $csp);
     }
 
@@ -90,5 +95,27 @@ class SecurityHeadersTest extends TestCase
 
         $this->assertStringContainsString('http://localhost:5173', $csp);
         $this->assertStringContainsString('ws://localhost:5173', $csp);
+    }
+
+    public function test_csp_connect_src_allows_configured_detection_origins(): void
+    {
+        Setting::set('dns.check_url', 'DNS check URL', 'https://{uuid}.dns.example.com/check');
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://v6.example.net:8443/{uuid}');
+
+        $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString('https://*.dns.example.com', $csp);
+        $this->assertStringContainsString('https://v6.example.net:8443', $csp);
+    }
+
+    public function test_csp_connect_src_ignores_unusable_detection_urls(): void
+    {
+        Setting::set('dns.check_url', 'DNS check URL', 'https://dns-{uuid}.example.com/');
+        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'not a url');
+
+        $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
+
+        $this->assertStringNotContainsString('example.com', $csp);
+        $this->assertStringNotContainsString('not a url', $csp);
     }
 }

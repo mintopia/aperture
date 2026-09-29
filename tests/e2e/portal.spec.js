@@ -140,7 +140,13 @@ test.describe('Attendee portal', () => {
             expect(response.status()).toBe(200);
             expect(response.headers()['cache-control']).toContain('no-store');
             const body = await response.json();
-            expect(Object.keys(body).sort()).toEqual(['download', 'timestamps', 'totalReceived', 'totalSent', 'upload']);
+            expect(Object.keys(body).sort()).toEqual([
+                'download',
+                'timestamps',
+                'totalReceived',
+                'totalSent',
+                'upload',
+            ]);
         });
 
         test('renders totals and chart from returned samples', async ({ page }) => {
@@ -166,7 +172,9 @@ test.describe('Attendee portal', () => {
             await page.goto('/portal');
             await expect(page.getByTestId('chart-empty')).toBeVisible();
 
-            const ranged = page.waitForRequest((r) => r.url().includes('/portal/stats/bandwidth') && r.url().includes('range=24h'));
+            const ranged = page.waitForRequest(
+                (r) => r.url().includes('/portal/stats/bandwidth') && r.url().includes('range=24h'),
+            );
             await page.getByTestId('bandwidth-range-24h').click();
             await ranged;
         });
@@ -219,22 +227,24 @@ test.describe('Attendee IPv6 registration', () => {
 
     const ipv6Address = '2001:db8::e2e';
     let jwksServer;
-    let token;
+    let privateKey;
 
     const tinker = (code) => artisan('tinker', '--execute', code);
 
-    function signToken(privateKey) {
+    function signToken(sid) {
         const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
         const header = encode({ alg: 'RS256', typ: 'JWT', kid: 'e2e' });
-        const payload = encode({ sub: ipv6Address, exp: Math.floor(Date.now() / 1000) + 3600 });
-        const signature = crypto.sign('RSA-SHA256', Buffer.from(`${header}.${payload}`), privateKey).toString('base64url');
+        const payload = encode({ sub: ipv6Address, sid, exp: Math.floor(Date.now() / 1000) + 3600 });
+        const signature = crypto
+            .sign('RSA-SHA256', Buffer.from(`${header}.${payload}`), privateKey)
+            .toString('base64url');
         return `${header}.${payload}.${signature}`;
     }
 
     test.beforeAll(async ({ browser }) => {
-        const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+        const { publicKey, privateKey: signingKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
         const jwks = { keys: [{ ...publicKey.export({ format: 'jwk' }), kid: 'e2e', alg: 'RS256', use: 'sig' }] };
-        token = signToken(privateKey);
+        privateKey = signingKey;
 
         jwksServer = http.createServer((_req, res) => {
             res.setHeader('Content-Type', 'application/json');
@@ -257,7 +267,9 @@ test.describe('Attendee IPv6 registration', () => {
     });
 
     test('dashboard detects and registers the device IPv6 address', async ({ page }) => {
-        await page.route(ipv6CheckUrl, (route) => route.fulfill({ json: { token } }));
+        await page.route(ipv6CheckUrl, (route) =>
+            route.fulfill({ json: { token: signToken(new URL(route.request().url()).searchParams.get('sid')) } }),
+        );
         const registered = page.waitForResponse((r) => r.url().endsWith('/ipv6') && r.request().method() === 'POST');
         await page.goto('/portal');
 
@@ -268,10 +280,15 @@ test.describe('Attendee IPv6 registration', () => {
     });
 
     test('rejects a token that fails signature verification', async ({ page }) => {
-        const [header, payload] = token.split('.');
+        const [header, payload] = signToken('unbound').split('.');
         const response = await page.request.post('/ipv6', { data: { token: `${header}.${payload}.invalid` } });
         expect(response.status()).toBe(422);
         expect(await response.json()).toEqual({ error: 'Invalid token' });
+    });
+
+    test('rejects a validly signed token that is not bound to the session', async ({ page }) => {
+        const response = await page.request.post('/ipv6', { data: { token: signToken('someone-elses-session') } });
+        expect(response.status()).toBe(422);
     });
 
     test('requires a token', async ({ page }) => {

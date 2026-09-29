@@ -18,6 +18,7 @@ use App\Services\ValueObjects\DhcpSnapshot;
 use App\Support\Ipv6Prefix;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -127,7 +128,7 @@ class CiscoDhcpService implements DhcpInterface
     private function toUtc(string $expires): string
     {
         try {
-            $local = Carbon::createFromFormat('M d Y h:i A', trim($expires), $this->timezone);
+            $local = Date::createFromFormat('M d Y h:i A', trim($expires), $this->timezone);
         } catch (Throwable) {
             return $expires;
         }

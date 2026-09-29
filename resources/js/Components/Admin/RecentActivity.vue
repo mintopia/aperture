@@ -67,7 +67,7 @@ function severityColor(severity) {
                         data-testid="recent-activity-timestamp"
                         class="shrink-0 font-mono text-[11px] text-[var(--color-text-secondary)]"
                     >
-                        {{ (formatRelative(event.created_at) || '—') }}
+                        {{ formatRelative(event.created_at) || '—' }}
                     </span>
                     <span class="text-[13px] text-[var(--color-text)]">
                         {{ event.description }}

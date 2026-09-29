@@ -73,7 +73,7 @@ class RangeUsageCalculatorTest extends TestCase
         $status = RangeUsageCalculator::poolStatus([
             $this->range(AddressFamily::IPv4, null, null, '100', 30),
             $this->range(AddressFamily::IPv4, null, null, '100', 20),
-            $this->range(AddressFamily::IPv4, null, null, null, null),
+            $this->range(AddressFamily::IPv4, null, null),
         ]);
 
         $this->assertSame(200, $status->total);

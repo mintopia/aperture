@@ -42,7 +42,7 @@ setup('prepare deterministic e2e fixtures and sign in as admin', async ({ reques
             `--password=${adminPassword}`,
             '--nickname=playwright-admin',
             '--no-interaction',
-        ].join(' ')
+        ].join(' '),
     );
 
     const loginPage = await request.get('/login');

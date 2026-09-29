@@ -85,13 +85,17 @@ test.describe('IP enforcement actions', () => {
         await toggleWithModal(page, 'action-revoke', 'action-grant');
 
         await page.goto(`/admin/ips?address=${ip}`);
-        await expect(page.getByTestId('data-table-row').filter({ hasText: ip }).getByTestId('ip-status')).toHaveText('Blocked');
+        await expect(page.getByTestId('data-table-row').filter({ hasText: ip }).getByTestId('ip-status')).toHaveText(
+            'Blocked',
+        );
 
         await page.goto(`/admin/ips/${ip}`);
         await toggleWithModal(page, 'action-grant', 'action-revoke');
 
         await page.goto(`/admin/ips?address=${ip}`);
-        await expect(page.getByTestId('data-table-row').filter({ hasText: ip }).getByTestId('ip-status')).toHaveText('Allowed');
+        await expect(page.getByTestId('data-table-row').filter({ hasText: ip }).getByTestId('ip-status')).toHaveText(
+            'Allowed',
+        );
     });
 
     test('enable and disable rate limit persists', async ({ page }) => {

@@ -46,7 +46,7 @@ export function resetGeneralSettings() {
     tinker(
         "App\\Models\\Setting::where('code', 'like', 'general.%')->orWhere('code', 'like', 'theme.%')->get()->each->delete();" +
             'app(App\\Services\\LogoService::class)->delete();' +
-            'app(App\\Services\\CoverImageService::class)->delete();'
+            'app(App\\Services\\CoverImageService::class)->delete();',
     );
 }
 
@@ -55,6 +55,6 @@ export function restoreDetectionSettings() {
         "App\\Models\\Setting::set('dns.check_url', 'DNS check URL', 'http://dns-check.e2e.invalid/{uuid}');" +
             "App\\Models\\Setting::set('dns.warning_message', 'DNS warning message', 'Playwright DNS warning');" +
             "foreach (['detection_endpoint' => 'http://ipv6-check.e2e.invalid/{uuid}', 'jwks_url' => '', 'jwt_audience' => '', 'jwt_issuer' => ''] as $k => $v) { App\\Models\\IntegrationConfig::setValue('ipv6', $k, $v); }" +
-            "App\\Models\\Setting::where('code', 'like', 'captive%')->get()->each->delete();"
+            "App\\Models\\Setting::where('code', 'like', 'captive%')->get()->each->delete();",
     );
 }

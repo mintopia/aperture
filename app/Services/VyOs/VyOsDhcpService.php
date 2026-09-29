@@ -44,8 +44,8 @@ class VyOsDhcpService implements DhcpInterface
         return DhcpSnapshot::create(
             $leases,
             $ranges,
-            new DhcpFetchStatus($v4Leases !== null, $v4Ranges !== null),
-            new DhcpFetchStatus($v6Leases !== null, $v6Ranges !== null),
+            new DhcpFetchStatus($v4Leases instanceof Collection, $v4Ranges instanceof Collection),
+            new DhcpFetchStatus($v6Leases instanceof Collection, $v6Ranges instanceof Collection),
             [AddressFamily::IPv4->value => new DhcpPoolStatus(
                 total: $this->poolSize,
                 used: $leaseCount,

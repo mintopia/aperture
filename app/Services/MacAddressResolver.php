@@ -28,6 +28,7 @@ class MacAddressResolver implements MacAddressResolverInterface
 
         $table = $this->ipMac->getIpMacTable();
         $table = $this->snooping instanceof DhcpSnoopingResolver ? $this->snooping->supplement($table) : $table;
+
         $entry = $table->firstWhere('ip', $ipAddress);
         if ($entry !== null && ! empty($entry->mac)) {
             return MacAddress::normalize($entry->mac);

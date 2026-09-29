@@ -25,7 +25,9 @@ test.describe('Detection and captive API settings', () => {
 
         await page.getByTestId('detection-endpoint-input').fill('http://insecure.e2e.invalid/{uuid}');
         await save(page);
-        await expect(page.getByTestId('ipv6-settings-form')).toContainText('detection endpoint field format is invalid');
+        await expect(page.getByTestId('ipv6-settings-form')).toContainText(
+            'detection endpoint field format is invalid',
+        );
 
         await page.getByTestId('detection-endpoint-input').fill('https://ipv6.e2e.invalid/check/{uuid}');
         await page.getByTestId('jwks-url-input').fill('https://ipv6.e2e.invalid/.well-known/jwks.json');
@@ -83,7 +85,9 @@ test.describe('Detection and captive API settings', () => {
 
     test('captive portal API rejects malformed URLs', async ({ page }) => {
         await page.goto('/admin/settings/captive-portal-api');
-        await page.getByTestId('input-user-portal-url').evaluate((el) => el.closest('form').setAttribute('novalidate', ''));
+        await page
+            .getByTestId('input-user-portal-url')
+            .evaluate((el) => el.closest('form').setAttribute('novalidate', ''));
         await page.getByTestId('input-user-portal-url').fill('not a url');
         await save(page);
         await expect(page.getByTestId('captive-portal-api-form')).toContainText(/valid URL/i);
@@ -107,29 +111,47 @@ test.describe('General settings: custom CSS, logo and cover image', () => {
 
         await page.reload({ waitUntil: 'networkidle' });
         await expect(page.getByTestId('input-custom_css')).toHaveValue(':root { --e2e-marker: applied; }');
-        expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--e2e-marker').trim())).toBe('applied');
+        expect(
+            await page.evaluate(() =>
+                getComputedStyle(document.documentElement).getPropertyValue('--e2e-marker').trim(),
+            ),
+        ).toBe('applied');
 
         await page.goto('/admin');
-        expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--e2e-marker').trim())).toBe('applied');
+        expect(
+            await page.evaluate(() =>
+                getComputedStyle(document.documentElement).getPropertyValue('--e2e-marker').trim(),
+            ),
+        ).toBe('applied');
 
         await openSettings(page);
         await page.getByTestId('input-custom_css').fill('');
         await save(page);
         await page.reload({ waitUntil: 'networkidle' });
         await expect(page.getByTestId('input-custom_css')).toHaveValue('');
-        expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--e2e-marker').trim())).toBe('');
+        expect(
+            await page.evaluate(() =>
+                getComputedStyle(document.documentElement).getPropertyValue('--e2e-marker').trim(),
+            ),
+        ).toBe('');
     });
 
     test('logo upload persists across reload, rejects tiny images and can be removed', async ({ page }) => {
         await openSettings(page);
         await expect(page.getByTestId('logo-preview')).toHaveCount(0);
 
-        await page.getByTestId('input-logo').setInputFiles({ name: 'tiny.png', mimeType: 'image/png', buffer: makePng(32, 32) });
+        await page
+            .getByTestId('input-logo')
+            .setInputFiles({ name: 'tiny.png', mimeType: 'image/png', buffer: makePng(32, 32) });
         await expect(page.getByText(/64/).first()).toBeVisible();
         await expect(page.getByTestId('logo-preview')).toHaveCount(0);
 
-        const upload = page.waitForResponse((r) => r.url().endsWith('/admin/content/settings/logo') && r.request().method() === 'POST');
-        await page.getByTestId('input-logo').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: makePng(128, 128) });
+        const upload = page.waitForResponse(
+            (r) => r.url().endsWith('/admin/content/settings/logo') && r.request().method() === 'POST',
+        );
+        await page
+            .getByTestId('input-logo')
+            .setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: makePng(128, 128) });
         await upload;
         await expect(page.getByTestId('logo-preview')).toBeVisible();
 
@@ -149,12 +171,18 @@ test.describe('General settings: custom CSS, logo and cover image', () => {
         await openSettings(page);
         await expect(page.getByTestId('cover-image-preview')).toHaveCount(0);
 
-        await page.getByTestId('input-cover-image').setInputFiles({ name: 'narrow.png', mimeType: 'image/png', buffer: makePng(300, 100) });
+        await page
+            .getByTestId('input-cover-image')
+            .setInputFiles({ name: 'narrow.png', mimeType: 'image/png', buffer: makePng(300, 100) });
         await expect(page.getByText(/600/).first()).toBeVisible();
         await expect(page.getByTestId('cover-image-preview')).toHaveCount(0);
 
-        const upload = page.waitForResponse((r) => r.url().endsWith('/admin/content/settings/cover-image') && r.request().method() === 'POST');
-        await page.getByTestId('input-cover-image').setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: makePng(800, 300, [40, 90, 200]) });
+        const upload = page.waitForResponse(
+            (r) => r.url().endsWith('/admin/content/settings/cover-image') && r.request().method() === 'POST',
+        );
+        await page
+            .getByTestId('input-cover-image')
+            .setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: makePng(800, 300, [40, 90, 200]) });
         await upload;
         await expect(page.getByTestId('cover-image-preview')).toBeVisible();
 

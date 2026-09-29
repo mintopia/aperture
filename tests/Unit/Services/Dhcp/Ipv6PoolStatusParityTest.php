@@ -15,7 +15,7 @@ use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use App\Services\VyOs\VyOsClient;
 use App\Services\VyOs\VyOsDhcpService;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -29,12 +29,12 @@ class Ipv6PoolStatusParityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Carbon::setTestNow(Carbon::createFromTimestamp(2_000_000_000));
+        Date::setTestNow(Date::createFromTimestamp(2_000_000_000));
     }
 
     protected function tearDown(): void
     {
-        Carbon::setTestNow();
+        Date::setTestNow();
         parent::tearDown();
     }
 

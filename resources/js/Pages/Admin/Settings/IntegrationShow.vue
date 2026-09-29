@@ -22,7 +22,6 @@ const form = useForm({
     config: initialConfig,
 });
 
-
 const testingConnection = ref(false);
 const testResult = ref(null);
 const expandedLogIds = ref(new Set());
@@ -370,8 +369,7 @@ function formatTestOutput(output) {
                 <pre
                     data-testid="test-output-content"
                     class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-3 font-mono text-[12px] leading-[1.7] text-[var(--color-text-secondary)]"
-                    >{{ formatTestOutput(testResult.output) }}</pre
-                >
+                    >{{ formatTestOutput(testResult.output) }}</pre>
             </details>
         </div>
 
@@ -496,8 +494,7 @@ function formatTestOutput(output) {
                                     v-if="expandedLogIds.has(log.id) && log.response_data"
                                     :data-testid="`log-output-content-${index}`"
                                     class="mt-2 max-h-64 overflow-x-auto overflow-y-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4 font-mono text-[12px] leading-[1.7] text-[var(--color-text-secondary)]"
-                                    >{{ formatLogOutput(log.response_data) }}</pre
-                                >
+                                    >{{ formatLogOutput(log.response_data) }}</pre>
                             </td>
                             <td class="px-4 py-3 text-[var(--color-text-secondary)]">
                                 {{ formatRelative(log.tested_at) }}

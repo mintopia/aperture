@@ -65,7 +65,7 @@ class OpnSenseDhcpService implements DhcpInterface
             $shared = $this->ipv4RangesPath === $this->ipv6RangesPath;
             $fetched = $this->fetchRangesFrom($this->ipv4RangesPath, 'IPv4');
 
-            if ($fetched === null) {
+            if (! $fetched instanceof Collection) {
                 $ipv4RangesOk = false;
                 $ipv6RangesOk = $shared ? false : $ipv6RangesOk;
             } else {
@@ -76,7 +76,7 @@ class OpnSenseDhcpService implements DhcpInterface
         if ($this->ipv6RangesPath !== '' && $this->ipv6RangesPath !== $this->ipv4RangesPath) {
             $fetched = $this->fetchRangesFrom($this->ipv6RangesPath, 'IPv6');
 
-            if ($fetched === null) {
+            if (! $fetched instanceof Collection) {
                 $ipv6RangesOk = false;
             } else {
                 $ranges = $ranges->concat($fetched);

@@ -89,7 +89,7 @@ class ThemeServiceTest extends TestCase
         config(['aperture.theme.mode' => 'light']);
         $this->saveSetting('theme.mode', 'Theme Mode', 'dark');
 
-        $service = app(ThemeService::class);
+        $service = resolve(ThemeService::class);
         $theme = $service->getTheme();
 
         $this->assertEquals('dark', $theme['mode']);

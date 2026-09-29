@@ -37,7 +37,9 @@ test('registers a passkey and signs back in with it', async ({ page }) => {
     await expect(page.getByTestId('passkey-list')).toBeVisible();
     await expect(page.getByTestId('passkey-error')).toHaveCount(0);
 
-    await expect.poll(async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length).toBe(1);
+    await expect
+        .poll(async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length)
+        .toBe(1);
 
     await page.getByTestId('user-menu-trigger').click();
     await page.getByTestId('user-menu-logout').click();

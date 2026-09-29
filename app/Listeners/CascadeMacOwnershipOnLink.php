@@ -86,7 +86,7 @@ class CascadeMacOwnershipOnLink
         $previousUserIds = UserIpAddress::where('ip_address_id', $event->ip->id)->pluck('user_id')->all();
         UserIpAddress::where('ip_address_id', $event->ip->id)->delete();
 
-        if ($newOwner === null) {
+        if (! $newOwner instanceof User) {
             $this->policyService->applyDefaults($event->ip);
         } else {
             $this->associationService->addIp($newOwner, $event->ip->address, cascade: false);

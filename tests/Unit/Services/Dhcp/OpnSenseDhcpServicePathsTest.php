@@ -41,7 +41,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             leasesPath: '/api/kea/leases/search',
         );
 
-        $service->snapshot()->leases;
+        $service->snapshot();
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('/api/kea/leases/search', parse_url(Fake::requests()[0]->url(), PHP_URL_PATH));
@@ -56,7 +56,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ipv4RangesPath: '/api/kea/dhcpv4/search_subnet',
         );
 
-        $service->snapshot()->ranges;
+        $service->snapshot();
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('/api/kea/dhcpv4/search_subnet', parse_url(Fake::requests()[0]->url(), PHP_URL_PATH));
@@ -71,7 +71,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ipv6RangesPath: '/api/kea/dhcpv6/search_subnet',
         );
 
-        $service->snapshot()->ranges;
+        $service->snapshot();
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('/api/kea/dhcpv6/search_subnet', parse_url(Fake::requests()[0]->url(), PHP_URL_PATH));
@@ -147,7 +147,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
             ],
         );
 
-        $service->snapshot()->leases;
+        $service->snapshot();
 
         $this->assertCount(1, Fake::requests());
         $this->assertEquals('GET', Fake::requests()[0]->method());

@@ -4,12 +4,14 @@ import { mount } from '@vue/test-utils';
 import Create from '@/Pages/Admin/Switches/Create.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
-    useForm: vi.fn((initial) => reactive({
-        ...initial,
-        errors: {},
-        processing: false,
-        post: vi.fn(),
-    })),
+    useForm: vi.fn((initial) =>
+        reactive({
+            ...initial,
+            errors: {},
+            processing: false,
+            post: vi.fn(),
+        }),
+    ),
     Link: {
         template: '<a :href="href"><slot /></a>',
         props: ['href'],

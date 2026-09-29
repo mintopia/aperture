@@ -773,7 +773,7 @@ class CiscoDhcpServiceTest extends TestCase
         $service = $this->createService();
 
         $this->expectException(RuntimeException::class);
-        $service->snapshot()->leases;
+        $service->snapshot();
     }
 
     // -------------------------------------------------------------------------
