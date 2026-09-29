@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 
 test.describe('Admin Dashboard (S4)', () => {
     test('renders stat cards', async ({ page }) => {

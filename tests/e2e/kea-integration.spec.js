@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { execSync } from 'node:child_process';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 import { buildPlaywrightEnv, resolveBaseUrl } from '../../playwright/env.js';
 
 const playwrightEnv = buildPlaywrightEnv(resolveBaseUrl());

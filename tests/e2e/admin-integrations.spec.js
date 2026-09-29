@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 import { startHttpStub } from './support/http-stub.js';
 import { createSwitch, uniqueSwitch } from './support/switches.js';
 

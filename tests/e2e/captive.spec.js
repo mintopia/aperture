@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 
 test.describe('Captive Portal Login (S1)', () => {
     test('renders QR code and device code', async ({ page }) => {

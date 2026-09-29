@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 import { artisan } from './support/fixtures.js';
 
 async function openUserEdit(page, nickname) {

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 import { prepareFixtures, saveLoginState } from './support/fixtures.js';
 
 const email = 'playwright-account@example.test';

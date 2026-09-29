@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 
 const email = 'playwright-passkey@example.test';
 const password = 'playwright-passkey-password';

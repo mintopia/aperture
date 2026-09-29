@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 
 test.describe('Admin IP Index (extended)', () => {
     test('index page has create IP button', async ({ page }) => {

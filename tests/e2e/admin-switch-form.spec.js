@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 
 test.describe('Switch form authentication method', () => {
     test('create form defaults to password and toggles to private key', async ({ page }) => {
