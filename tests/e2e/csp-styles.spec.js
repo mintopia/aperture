@@ -24,4 +24,20 @@ test.describe('Content Security Policy styles', () => {
         await page.getByTestId('input-custom_css').fill('');
         await page.getByTestId('action-save').click();
     });
+
+    test('Tiptap editor styles are applied under the nonce-based policy', async ({ page }) => {
+        const violations = [];
+        page.on('console', (msg) => {
+            if (/Content Security Policy/i.test(msg.text())) {
+                violations.push(msg.text());
+            }
+        });
+
+        await page.goto('/admin/content/pages/create');
+        await expect(page.getByTestId('markdown-editor')).toBeVisible();
+
+        const tiptapStyleNonce = await page.evaluate(() => document.querySelector('style[data-tiptap-style]')?.nonce ?? '');
+        expect(tiptapStyleNonce).not.toBe('');
+        expect(violations).toEqual([]);
+    });
 });

@@ -6,6 +6,7 @@ namespace Tests\Feature\Middleware;
 
 use App\Models\IntegrationConfig;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -126,5 +127,15 @@ class SecurityHeadersTest extends TestCase
 
         $this->assertMatchesRegularExpression("/style-src 'self' 'nonce-[A-Za-z0-9+\\/=]+'(;|$)/", $csp);
         $this->assertStringNotContainsString("'unsafe-inline'", $csp);
+    }
+
+    public function test_app_shell_exposes_csp_nonce_meta_matching_header(): void
+    {
+        User::factory()->create();
+        $response = $this->get('/login');
+        preg_match("/'nonce-([^']+)'/", (string) $response->headers->get('Content-Security-Policy'), $m);
+
+        $this->assertNotEmpty($m[1] ?? null);
+        $response->assertSee('<meta name="csp-nonce" content="'.$m[1].'">', false);
     }
 }
