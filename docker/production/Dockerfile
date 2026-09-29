@@ -41,6 +41,7 @@ RUN apk add --no-cache su-exec && \
     mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" && \
     echo 'memory_limit = 512M' > /usr/local/etc/php/conf.d/memory_limit.ini && \
     setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp && \
+    cp /app/vendor/laravel/octane/src/Commands/stubs/frankenphp-worker.php /app/public/frankenphp-worker.php && \
     mkdir -p /data/caddy /config/caddy /app/storage /app/bootstrap/cache && \
     chown -R www-data:www-data /data/caddy /config/caddy /app/storage /app/bootstrap/cache
 

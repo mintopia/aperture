@@ -11,7 +11,7 @@
         "inertiajs/inertia-laravel": "^3.0",
         "laragear/webauthn": "^5.0",
         "laravel/framework": "^13.0",
-        "laravel/horizon": "^5.34",
+        "laravel/horizon": "^5.47",
         "laravel/octane": "^2.12",
         "laravel/reverb": "^1.5",
         "laravel/tinker": "^3.0",
