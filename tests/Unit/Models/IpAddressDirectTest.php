@@ -18,65 +18,57 @@ class IpAddressDirectTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    private IpAddressActionService $service;
-
-    protected function setUp(): void
+    private function makeIp(string $address, array $attrs = []): IpAddress
     {
-        parent::setUp();
+        $ip = new IpAddress;
+        $ip->address = $address;
+        $ip->last_seen_at = now();
+        foreach ($attrs as $k => $v) {
+            $ip->{$k} = $v;
+        }
+        $ip->save();
 
-        $captivePortal = Mockery::mock(CaptivePortalInterface::class);
-        $captivePortal->shouldReceive('addIp')->andReturnNull();
-        $captivePortal->shouldReceive('removeIp')->andReturnNull();
+        return $ip;
+    }
 
-        $rateLimiter = Mockery::mock(RateLimitingInterface::class);
-        $rateLimiter->shouldReceive('limitIp')->andReturnNull();
-        $rateLimiter->shouldReceive('unlimitIp')->andReturnNull();
-
+    private function makeService(?CaptivePortalInterface $portal = null, ?RateLimitingInterface $limiter = null): IpAddressActionService
+    {
         $macResolver = Mockery::mock(MacAddressResolverInterface::class);
         $macResolver->shouldReceive('resolveIpToMac')->andReturn(null);
 
-        $factory = Mockery::mock(SwitchServiceFactory::class);
-
-        $this->service = new IpAddressActionService($captivePortal, $rateLimiter, $factory, $macResolver);
+        return new IpAddressActionService(
+            $portal ?? $this->createStub(CaptivePortalInterface::class),
+            $limiter ?? $this->createStub(RateLimitingInterface::class),
+            $this->createStub(SwitchServiceFactory::class),
+            $macResolver,
+        );
     }
 
     public function test_enable_rate_limit_updates_firewall(): void
     {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.50';
-        $ip->last_seen_at = now();
-        $ip->rate_limit_enabled = false;
-        $ip->save();
+        $limiter = Mockery::mock(RateLimitingInterface::class);
+        $limiter->shouldReceive('limitIp')->once()->with('10.0.0.50');
+        $limiter->shouldNotReceive('unlimitIp');
 
-        $this->service->enableRateLimit($ip);
-
-        $this->assertTrue(true);
+        $this->makeService(limiter: $limiter)->enableRateLimit($this->makeIp('10.0.0.50', ['rate_limit_enabled' => false]));
     }
 
     public function test_disable_rate_limit_updates_firewall(): void
     {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.51';
-        $ip->last_seen_at = now();
-        $ip->rate_limit_enabled = true;
-        $ip->save();
+        $limiter = Mockery::mock(RateLimitingInterface::class);
+        $limiter->shouldReceive('unlimitIp')->once()->with('10.0.0.51');
+        $limiter->shouldNotReceive('limitIp');
 
-        $this->service->disableRateLimit($ip);
-
-        $this->assertTrue(true);
+        $this->makeService(limiter: $limiter)->disableRateLimit($this->makeIp('10.0.0.51', ['rate_limit_enabled' => true]));
     }
 
     public function test_enable_internet_updates_firewall(): void
     {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.52';
-        $ip->last_seen_at = now();
-        $ip->internet_enabled = false;
-        $ip->save();
+        $portal = Mockery::mock(CaptivePortalInterface::class);
+        $portal->shouldReceive('addIp')->once()->with('10.0.0.52', Mockery::any());
+        $portal->shouldNotReceive('removeIp');
 
-        $this->service->enableInternet($ip);
-
-        $this->assertTrue(true);
+        $this->makeService(portal: $portal)->enableInternet($this->makeIp('10.0.0.52', ['internet_enabled' => false]));
     }
 
     public function test_enable_internet_uses_user_nickname_as_description(): void
@@ -113,14 +105,10 @@ class IpAddressDirectTest extends TestCase
 
     public function test_disable_internet_updates_firewall(): void
     {
-        $ip = new IpAddress;
-        $ip->address = '10.0.0.54';
-        $ip->last_seen_at = now();
-        $ip->internet_enabled = true;
-        $ip->save();
+        $portal = Mockery::mock(CaptivePortalInterface::class);
+        $portal->shouldReceive('removeIp')->once()->with('10.0.0.54');
+        $portal->shouldNotReceive('addIp');
 
-        $this->service->disableInternet($ip);
-
-        $this->assertTrue(true);
+        $this->makeService(portal: $portal)->disableInternet($this->makeIp('10.0.0.54', ['internet_enabled' => true]));
     }
 }

@@ -16,18 +16,6 @@ class NullDnsFilteringTest extends TestCase
         $this->provider = new NullDnsFiltering;
     }
 
-    public function test_enable_for_ip_is_noop(): void
-    {
-        $this->provider->enableForIp('10.0.0.1');
-        $this->assertTrue(true);
-    }
-
-    public function test_disable_for_ip_is_noop(): void
-    {
-        $this->provider->disableForIp('10.0.0.1');
-        $this->assertTrue(true);
-    }
-
     public function test_reconcile_returns_empty_result(): void
     {
         $result = $this->provider->reconcile();

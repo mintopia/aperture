@@ -214,12 +214,8 @@ class CiscoDhcpService implements DhcpInterface
      */
     private function countBindingsInRange(array $bindings, string $rangeFrom, string $rangeTo): int
     {
-        $start = ip2long($rangeFrom);
-        $end = ip2long($rangeTo);
-
-        if ($start === false || $end === false) {
-            return 0;
-        }
+        $start = (int) ip2long($rangeFrom);
+        $end = (int) ip2long($rangeTo);
 
         return count(array_filter($bindings, function (array $binding) use ($start, $end): bool {
             $ip = ip2long($binding['ip']);
@@ -329,29 +325,23 @@ class CiscoDhcpService implements DhcpInterface
             }
 
             if ($this->ipv6Enabled) {
-                try {
-                    $ipv6BindingOutput = $results['show ipv6 dhcp binding'] ?? '';
+                $ipv6BindingOutput = $results['show ipv6 dhcp binding'] ?? '';
 
-                    if ($this->parser->isErrorOutput($ipv6BindingOutput)) {
-                        Log::warning('CiscoDhcpService: IPv6 fetch failed — error output from switch');
-                        $data['ipv6_bindings'] = [];
-                        $data['ipv6_pool_stats'] = [];
-                        $data['ipv6_pool_config'] = ['pools' => []];
-                        $ipv6Ok = false;
-                    } else {
-                        $data['ipv6_bindings'] = $this->parser->parseDhcpv6BindingTable($ipv6BindingOutput);
-                        $data['ipv6_pool_stats'] = $this->parser->parseDhcpv6PoolStats(
-                            $results['show ipv6 dhcp pool'] ?? ''
-                        );
-                        $data['ipv6_pool_config'] = $this->parser->parseDhcpv6PoolConfig(
-                            $results['show running-config | section ipv6 dhcp pool'] ?? ''
-                        );
+                if ($this->parser->isErrorOutput($ipv6BindingOutput)) {
+                    Log::warning('CiscoDhcpService: IPv6 fetch failed — error output from switch');
+                    $data['ipv6_bindings'] = [];
+                    $data['ipv6_pool_stats'] = [];
+                    $data['ipv6_pool_config'] = ['pools' => []];
+                } else {
+                    $data['ipv6_bindings'] = $this->parser->parseDhcpv6BindingTable($ipv6BindingOutput);
+                    $data['ipv6_pool_stats'] = $this->parser->parseDhcpv6PoolStats(
+                        $results['show ipv6 dhcp pool'] ?? ''
+                    );
+                    $data['ipv6_pool_config'] = $this->parser->parseDhcpv6PoolConfig(
+                        $results['show running-config | section ipv6 dhcp pool'] ?? ''
+                    );
 
-                        $ipv6Ok = true;
-                    }
-                } catch (Throwable $e) {
-                    Log::warning('CiscoDhcpService: IPv6 fetch failed', ['error' => $e->getMessage()]);
-                    $ipv6Ok = false;
+                    $ipv6Ok = true;
                 }
             }
         } finally {

@@ -15,7 +15,7 @@ class CiscoSwitchAdapterSnoopingTest extends TestCase
 {
     public function test_implements_supports_dhcp_snooping(): void
     {
-        $transport = $this->createMock(SwitchCommandTransportInterface::class);
+        $transport = $this->createStub(SwitchCommandTransportInterface::class);
         $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
 
         $this->assertInstanceOf(SupportsDhcpSnooping::class, $adapter);
@@ -23,7 +23,7 @@ class CiscoSwitchAdapterSnoopingTest extends TestCase
 
     public function test_get_dhcp_snooping_bindings_returns_collection(): void
     {
-        $transport = $this->createMock(SwitchCommandTransportInterface::class);
+        $transport = $this->createStub(SwitchCommandTransportInterface::class);
         $transport->method('execute')
             ->willReturn(implode("\r\n", [
                 'MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface',
@@ -46,7 +46,7 @@ class CiscoSwitchAdapterSnoopingTest extends TestCase
 
     public function test_get_dhcp_snooping_bindings_throws_on_error_output(): void
     {
-        $transport = $this->createMock(SwitchCommandTransportInterface::class);
+        $transport = $this->createStub(SwitchCommandTransportInterface::class);
         $transport->method('execute')
             ->willReturn("% Invalid input detected at '^' marker.");
 
@@ -58,7 +58,7 @@ class CiscoSwitchAdapterSnoopingTest extends TestCase
 
     public function test_get_dhcp_snooping_bindings_throws_on_unparseable_output(): void
     {
-        $transport = $this->createMock(SwitchCommandTransportInterface::class);
+        $transport = $this->createStub(SwitchCommandTransportInterface::class);
         $transport->method('execute')->willReturn('DHCP snooping is not configured');
 
         $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
@@ -69,7 +69,7 @@ class CiscoSwitchAdapterSnoopingTest extends TestCase
 
     public function test_get_dhcp_snooping_bindings_returns_empty_for_valid_empty_table(): void
     {
-        $transport = $this->createMock(SwitchCommandTransportInterface::class);
+        $transport = $this->createStub(SwitchCommandTransportInterface::class);
         $transport->method('execute')
             ->willReturn(implode("\r\n", [
                 'MacAddress          IpAddress        Lease(sec)  Type           VLAN  Interface',

@@ -234,19 +234,13 @@ class OpnSenseDhcpService implements DhcpInterface
         }
 
         $network = $ip & $mask;
-        $cidr = $this->subnetMaskToCidr($subnetMask);
 
-        return long2ip($network).($cidr !== null ? '/'.$cidr : '');
+        return long2ip($network).'/'.$this->subnetMaskToCidr($mask);
     }
 
-    private function subnetMaskToCidr(string $subnetMask): ?int
+    private function subnetMaskToCidr(int $mask): int
     {
-        $long = ip2long($subnetMask);
-        if ($long === false) {
-            return null;
-        }
-
-        return (int) (32 - log(($long ^ 0xFFFFFFFF) + 1, 2));
+        return (int) (32 - log(($mask ^ 0xFFFFFFFF) + 1, 2));
     }
 
     private function detectAddressFamily(?string $subnet, ?string $rangeFrom, ?string $prefix): AddressFamily

@@ -35,13 +35,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
 
     public function execute(string $command): string
     {
-        $outputs = $this->executeMultiple([$command]);
-
-        if (! array_key_exists($command, $outputs)) {
-            throw new RuntimeException(sprintf('Missing output for switch command [%s].', $command));
-        }
-
-        return $outputs[$command];
+        return $this->executeMultiple([$command])[$command];
     }
 
     public function executeMultiple(array $commands): array

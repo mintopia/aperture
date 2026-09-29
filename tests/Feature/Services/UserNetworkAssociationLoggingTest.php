@@ -21,10 +21,10 @@ class UserNetworkAssociationLoggingTest extends TestCase
 
     public function test_firewall_enable_failure_is_logged_as_warning_and_association_continues(): void
     {
-        $rangeService = $this->createMock(NetworkRangeService::class);
+        $rangeService = $this->createStub(NetworkRangeService::class);
         $rangeService->method('isManaged')->willReturn(true);
 
-        $actionService = $this->createMock(IpAddressActionService::class);
+        $actionService = $this->createStub(IpAddressActionService::class);
         $actionService->method('enableInternet')->willThrowException(new RuntimeException('firewall unreachable'));
 
         $user = User::factory()->create();
@@ -34,7 +34,7 @@ class UserNetworkAssociationLoggingTest extends TestCase
 
         $service = new UserNetworkAssociationService(
             $rangeService,
-            $this->createMock(IpPolicyService::class),
+            $this->createStub(IpPolicyService::class),
             $actionService,
         );
 
