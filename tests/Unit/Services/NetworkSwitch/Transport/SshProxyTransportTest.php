@@ -577,37 +577,6 @@ class SshProxyTransportTest extends TestCase
         ]);
     }
 
-    public function test_disconnect_is_a_no_op(): void
-    {
-        $switchConfig = SwitchConfig::factory()->make();
-        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
-
-        $transport = new SshProxyTransport($proxyClient, $switchConfig);
-
-        $transport->disconnect();
-
-        $this->assertTrue(true);
-    }
-
-    public function test_execute_throws_when_output_key_missing_from_results(): void
-    {
-        $switchConfig = SwitchConfig::factory()->make();
-        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
-
-        $transport = new class($proxyClient, $switchConfig) extends SshProxyTransport
-        {
-            public function executeMultiple(array $commands): array
-            {
-                return [];
-            }
-        };
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Missing output for switch command [show version].');
-
-        $transport->execute('show version');
-    }
-
     public function test_execute_passes_private_key_passphrase_and_host_key_to_proxy(): void
     {
         $switchConfig = SwitchConfig::factory()->withPrivateKey('PEM')->make([

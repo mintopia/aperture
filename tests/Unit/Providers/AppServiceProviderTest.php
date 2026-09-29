@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Providers;
 
 use App\Providers\AppServiceProvider;
-use App\Providers\NetworkServiceProvider;
 use App\Services\Interfaces\AuthProviderInterface;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SshProxyClientInterface;
@@ -13,12 +12,9 @@ use App\Services\NetworkSwitch\CiscoSwitchAdapter;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SshProxy\SshProxyClient;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use ReflectionClass;
-use RuntimeException;
 use Tests\TestCase;
 
 class AppServiceProviderTest extends TestCase
@@ -125,30 +121,28 @@ class AppServiceProviderTest extends TestCase
         config(['app.debug' => false]);
     }
 
-    public function test_get_default_switch_config_propagates_non_missing_table_errors(): void
+    public function test_network_switch_resolution_propagates_non_missing_table_errors(): void
     {
-        config(['aperture.cisco.hostname' => 'fallback.local']);
-        config(['database.connections.test_invalid' => [
-            'driver' => 'sqlite',
-            'database' => '/nonexistent/path/that/does/not/exist.sqlite',
-            'prefix' => '',
-            'foreign_key_constraints' => false,
-        ]]);
+        $originalDefault = config('database.default');
+        config([
+            'database.connections.test_invalid' => [
+                'driver' => 'sqlite',
+                'database' => '/nonexistent/path/that/does/not/exist.sqlite',
+                'prefix' => '',
+                'foreign_key_constraints' => false,
+            ],
+            'database.default' => 'test_invalid',
+        ]);
 
-        $provider = collect($this->app->getProviders(NetworkServiceProvider::class))->first();
-        $this->assertNotNull($provider, 'NetworkServiceProvider should be registered');
+        $this->app->forgetInstance(NetworkSwitchInterface::class);
 
-        $thrown = false;
-        DB::listen(function (QueryExecuted $event) use (&$thrown): void {
-            if (str_contains($event->sql, 'switch_configs') && ! $thrown) {
-                $thrown = true;
-                throw new RuntimeException('Simulated DB failure for line 325 coverage');
-            }
-        });
+        $this->expectException(QueryException::class);
 
-        $method = (new ReflectionClass($provider))->getMethod('getDefaultSwitchConfig');
-
-        $this->expectException(RuntimeException::class);
-        $method->invoke($provider);
+        try {
+            $this->app->make(NetworkSwitchInterface::class);
+        } finally {
+            config(['database.default' => $originalDefault]);
+            $this->app->forgetInstance(NetworkSwitchInterface::class);
+        }
     }
 }

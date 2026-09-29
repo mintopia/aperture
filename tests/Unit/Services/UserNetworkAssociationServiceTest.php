@@ -9,25 +9,25 @@ use App\Services\IpAddressActionService;
 use App\Services\IpPolicyService;
 use App\Services\NetworkRangeService;
 use App\Services\UserNetworkAssociationService;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 class UserNetworkAssociationServiceTest extends TestCase
 {
-    private NetworkRangeService&MockObject $rangeService;
+    private NetworkRangeService&Stub $rangeService;
 
-    private IpPolicyService&MockObject $policyService;
+    private IpPolicyService&Stub $policyService;
 
-    private IpAddressActionService&MockObject $actionService;
+    private IpAddressActionService&Stub $actionService;
 
     private UserNetworkAssociationService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->rangeService = $this->createMock(NetworkRangeService::class);
-        $this->policyService = $this->createMock(IpPolicyService::class);
-        $this->actionService = $this->createMock(IpAddressActionService::class);
+        $this->rangeService = $this->createStub(NetworkRangeService::class);
+        $this->policyService = $this->createStub(IpPolicyService::class);
+        $this->actionService = $this->createStub(IpAddressActionService::class);
         $this->service = new UserNetworkAssociationService(
             $this->rangeService,
             $this->policyService,
@@ -37,10 +37,12 @@ class UserNetworkAssociationServiceTest extends TestCase
 
     public function test_add_ip_returns_null_when_not_managed(): void
     {
-        $this->rangeService->method('isManaged')->with('10.0.0.1')->willReturn(false);
-        $user = $this->createMock(User::class);
+        $rangeService = $this->createMock(NetworkRangeService::class);
+        $rangeService->expects($this->once())->method('isManaged')->with('10.0.0.1')->willReturn(false);
+        $service = new UserNetworkAssociationService($rangeService, $this->policyService, $this->actionService);
+        $user = $this->createStub(User::class);
 
-        $result = $this->service->addIp($user, '10.0.0.1');
+        $result = $service->addIp($user, '10.0.0.1');
         $this->assertNull($result);
     }
 
