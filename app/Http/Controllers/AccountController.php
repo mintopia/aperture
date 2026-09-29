@@ -8,6 +8,7 @@ use App\Http\Requests\AccountCreatePasswordRequest;
 use App\Http\Requests\AccountUpdatePasswordRequest;
 use App\Http\Requests\AccountVerifyRequest;
 use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,10 +19,8 @@ class AccountController extends Controller
 {
     public function show(Request $request): Response
     {
+        /** @var User $user */
         $user = $request->user();
-        if (! $user) {
-            abort(403);
-        }
 
         return Inertia::render('Account/Settings', [
             'user' => [
@@ -41,10 +40,8 @@ class AccountController extends Controller
 
     public function verify(AccountVerifyRequest $request): RedirectResponse
     {
+        /** @var User $user */
         $user = $request->user();
-        if (! $user) {
-            abort(403);
-        }
 
         if ($user->password === null || ! Hash::check($request->string('password')->value(), $user->password)) {
             return back()->withErrors(['password' => 'Incorrect password.']);
@@ -57,10 +54,8 @@ class AccountController extends Controller
 
     public function createPassword(AccountCreatePasswordRequest $request): RedirectResponse
     {
+        /** @var User $user */
         $user = $request->user();
-        if (! $user) {
-            abort(403);
-        }
 
         if ($user->password !== null) {
             abort(403);
@@ -82,10 +77,8 @@ class AccountController extends Controller
 
     public function updatePassword(AccountUpdatePasswordRequest $request): RedirectResponse
     {
+        /** @var User $user */
         $user = $request->user();
-        if (! $user) {
-            abort(403);
-        }
 
         $user->password = $request->password;
         $user->save();
@@ -102,10 +95,8 @@ class AccountController extends Controller
 
     public function clearPassword(Request $request): RedirectResponse
     {
+        /** @var User $user */
         $user = $request->user();
-        if (! $user) {
-            abort(403);
-        }
 
         $user->password = null;
         $user->save();

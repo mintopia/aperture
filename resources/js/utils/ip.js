@@ -54,16 +54,21 @@ export function ipToBigInt(ip) {
     return trimmed.includes(':') ? ipv6ToBigInt(trimmed) : ipv4ToBigInt(trimmed);
 }
 
+// Mirrors IpAddress::sortKey (IPv4 sorts as IPv4-mapped IPv6).
+export function ipSortKey(ip) {
+    const value = ipToBigInt(ip);
+    if (value === null) return null;
+    return ip.includes(':') ? value : value | V4_MAPPED_PREFIX;
+}
+
 export function compareIps(a, b) {
-    const aNum = ipToBigInt(a);
-    const bNum = ipToBigInt(b);
-    if (aNum === null || bNum === null) {
-        if (aNum === bNum) return 0;
-        return aNum === null ? 1 : -1;
+    const aKey = ipSortKey(a);
+    const bKey = ipSortKey(b);
+    if (aKey === null || bKey === null) {
+        if (aKey === bKey) return 0;
+        return aKey === null ? 1 : -1;
     }
 
-    const aKey = a.includes(':') ? aNum : aNum | V4_MAPPED_PREFIX;
-    const bKey = b.includes(':') ? bNum : bNum | V4_MAPPED_PREFIX;
     if (aKey === bKey) return 0;
     return aKey < bKey ? -1 : 1;
 }

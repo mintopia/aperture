@@ -308,7 +308,6 @@ class IpAddressControllerTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Ips/Show')
-            ->where('port', null)
             ->where('switchInfo', null)
         );
     }
@@ -437,7 +436,6 @@ class IpAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Ips/Show')
             ->has('ip')
-            ->has('port')
             ->has('switchInfo')
             ->where('switchInfo.switchName', 'switch01')
             ->where('switchInfo.portId', 'Gi0/1')
@@ -489,7 +487,6 @@ class IpAddressControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Admin/Ips/Show')
             ->has('ip')
-            ->has('port')
             ->has('switchInfo')
             ->where('switchInfo.switchName', 'fallback-switch.local')
             ->where('switchInfo.portId', 'Gi0/1')

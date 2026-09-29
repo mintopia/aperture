@@ -48,12 +48,17 @@ export function formatRelative(dateString) {
     return formatDate(dateString);
 }
 
-export function formatEpoch(epoch, options = {}) {
-    const numeric = Number(epoch);
-    if (epoch === null || epoch === undefined || epoch === '' || !Number.isFinite(numeric)) return '';
+export function formatEpochMillis(epochMillis, options = {}) {
+    const numeric = Number(epochMillis);
+    if (epochMillis === null || epochMillis === undefined || epochMillis === '' || !Number.isFinite(numeric)) return '';
 
-    const ms = numeric > 1e12 ? numeric : numeric * 1000;
-    return formatDate(new Date(ms).toISOString(), options);
+    return formatDate(new Date(numeric).toISOString(), options);
+}
+
+export function formatEpochSeconds(epochSeconds, options = {}) {
+    if (epochSeconds === null || epochSeconds === undefined || epochSeconds === '') return '';
+
+    return formatEpochMillis(Number(epochSeconds) * 1000, options);
 }
 
 export function formatTime(value, options = {}) {

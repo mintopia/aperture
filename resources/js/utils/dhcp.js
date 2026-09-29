@@ -44,7 +44,7 @@ export function isIpInPrefix(ip, prefix) {
     if (slash === -1) return false;
 
     const length = Number(prefix.slice(slash + 1));
-    if (!Number.isInteger(length) || length < 1 || length > 128) return false;
+    if (!Number.isInteger(length) || length < 0 || length > 128) return false;
 
     const ipValue = ipv6ToBigInt(ip);
     const networkValue = ipv6ToBigInt(prefix.slice(0, slash));

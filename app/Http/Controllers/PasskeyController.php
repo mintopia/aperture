@@ -26,17 +26,15 @@ class PasskeyController extends Controller
     {
         $request->save();
 
-        /** @var User|null $user */
+        /** @var User $user */
         $user = $request->user();
 
-        if ($user) {
-            AuditLog::record(
-                action: 'user.passkey_registered',
-                subject: $user,
-                process: 'account',
-                metadata: ['ip' => $request->getClientIp()],
-            );
-        }
+        AuditLog::record(
+            action: 'user.passkey_registered',
+            subject: $user,
+            process: 'account',
+            metadata: ['ip' => $request->getClientIp()],
+        );
 
         return response()->json(['success' => true]);
     }
@@ -61,15 +59,12 @@ class PasskeyController extends Controller
 
     public function destroy(Request $request, string $credentialId): JsonResponse
     {
+        /** @var User $user */
         $user = $request->user();
-        if (! $user) {
-            return response()->json(['success' => false], 403);
-        }
 
         $deleted = $user->webAuthnCredentials()->where('id', $credentialId)->delete();
 
         if ($deleted > 0) {
-            /** @var User $user */
             AuditLog::record(
                 action: 'user.passkey_deleted',
                 subject: $user,

@@ -76,4 +76,27 @@ describe('Pagination', () => {
         expect(activePage).toBeDefined();
         expect(activePage.classes()).toContain('font-semibold');
     });
+
+    describe('paginator validator', () => {
+        const validate = Pagination.props.paginator.validator;
+
+        it('accepts a complete paginator', () => {
+            expect(validate(makePaginator())).toBe(true);
+        });
+
+        it('accepts null from/to for empty result sets', () => {
+            expect(validate(makePaginator({ from: null, to: null }))).toBe(true);
+        });
+
+        it.each([
+            ['missing last_page', { last_page: undefined }],
+            ['string total', { total: '45' }],
+            ['non-array links', { links: null }],
+            ['link without label', { links: [{ url: null, active: false }] }],
+            ['link with numeric url', { links: [{ label: '1', url: 5, active: false }] }],
+            ['link without active', { links: [{ label: '1', url: null }] }],
+        ])('rejects %s', (_, overrides) => {
+            expect(validate(makePaginator(overrides))).toBe(false);
+        });
+    });
 });

@@ -61,7 +61,7 @@ function mountPage(settings = {}) {
     });
 }
 
-const clearForm = () => forms[1];
+const clearForm = () => forms.find((f) => 'days' in f && 'password' in f);
 
 describe('Network settings page', () => {
     beforeEach(() => {

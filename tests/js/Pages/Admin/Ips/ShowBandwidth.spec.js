@@ -28,7 +28,6 @@ const defaultBandwidthResponse = {
 
 const defaultProps = {
     ip: { id: 1, address: '10.0.0.1', internet_enabled: true, comment: 'Test' },
-    port: null,
     switchInfo: null,
     users: [],
 };
