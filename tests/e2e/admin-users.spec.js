@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 
 test.describe('User List', () => {
     test('renders user table', async ({ page }) => {

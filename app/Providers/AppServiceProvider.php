@@ -53,7 +53,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->environment('playwright')) {
-            config(['cache.default' => 'file', 'cache.stores.file.path' => storage_path('framework/cache/playwright')]);
             Route::middleware('api')->post('/api/e2e/device/approve', DeviceApprovalController::class);
         }
 

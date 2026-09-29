@@ -1,10 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 import { sshProxyStubPort } from '../../playwright/env.js';
 import { createSwitch, uniqueSwitch } from './support/switches.js';
 
 const proxyUrl = `http://127.0.0.1:${sshProxyStubPort}`;
-
-test.describe.configure({ mode: 'default' });
 
 async function syncSwitch(page) {
     await page.getByTestId('action-sync').click();

@@ -130,25 +130,8 @@ class PrepareE2eCommand extends Command
             RateLimiter::clear('login-attempt:'.Str::lower($email).'|'.$ip);
         }
 
-        AuditLog::create([
-            'action' => 'user.login',
-            'subject_type' => $admin->getMorphClass(),
-            'subject_id' => $admin->getKey(),
-            'actor_type' => $admin->getMorphClass(),
-            'actor_id' => $admin->getKey(),
-            'process' => 'e2e',
-            'severity' => 'info',
-        ]);
-
-        AuditLog::create([
-            'action' => 'switch.synced',
-            'subject_type' => $switch->getMorphClass(),
-            'subject_id' => $switch->getKey(),
-            'actor_type' => $admin->getMorphClass(),
-            'actor_id' => $admin->getKey(),
-            'process' => 'e2e',
-            'severity' => 'warning',
-        ]);
+        AuditLog::write('user.login', subject: $admin, actor: $admin, process: 'e2e');
+        AuditLog::write('switch.synced', subject: $switch, actor: $admin, process: 'e2e', severity: 'warning');
 
         $this->info(sprintf('Playwright fixtures prepared. Admin=%s, Switch=%s', $email, $switch->hostname));
 
@@ -249,6 +232,7 @@ class PrepareE2eCommand extends Command
 
             $makeUser('pw-block-user');
             $makeUser('pw-edit-user');
+            $makeUser('pw-param-user');
             $netUser = $makeUser('pw-net-user');
 
             $ipA = $makeIp('10.99.0.11', false);
