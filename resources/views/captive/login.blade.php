@@ -33,7 +33,7 @@
             </div>
 
             <div class="captive-reveal">
-                <h1 class="font-heading text-2xl font-bold tracking-tight" style="font-variation-settings: 'opsz' 32;">Connect to Network</h1>
+                <h1 class="font-heading text-2xl font-bold tracking-tight [font-variation-settings:'opsz'_32]">Connect to Network</h1>
                 <p class="mt-1.5 text-sm text-[var(--color-text-secondary)]">Scan the QR code or enter the code below</p>
             </div>
 

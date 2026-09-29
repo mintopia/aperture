@@ -34,6 +34,7 @@ function htmlToMarkdown(html) {
 }
 
 const editor = useEditor({
+    injectNonce: document.querySelector('meta[name="csp-nonce"]')?.content,
     content: markdownToHtml(props.modelValue),
     extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3] }, dropcursor: false }),
