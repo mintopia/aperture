@@ -1,0 +1,27 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('Content Security Policy styles', () => {
+    test('admin custom CSS and Vue style bindings render without CSP violations', async ({ page }) => {
+        const violations = [];
+        page.on('console', (msg) => {
+            if (/Content Security Policy/i.test(msg.text())) {
+                violations.push(msg.text());
+            }
+        });
+
+        const response = await page.goto('/admin/content/settings');
+        expect(response.headers()['content-security-policy']).not.toContain("'unsafe-inline'");
+
+        await page.getByTestId('input-custom_css').fill(':root { --e2e-csp-marker: applied; }');
+        await page.getByTestId('action-save').click();
+        await page.reload();
+
+        const marker = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--e2e-csp-marker').trim());
+        expect(marker).toBe('applied');
+        await expect(page.getByTestId('accent-hue-slider')).toBeVisible();
+        expect(violations).toEqual([]);
+
+        await page.getByTestId('input-custom_css').fill('');
+        await page.getByTestId('action-save').click();
+    });
+});

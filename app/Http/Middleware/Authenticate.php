@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Inertia\Inertia;
 
 class Authenticate extends Middleware
 {
@@ -21,7 +22,7 @@ class Authenticate extends Middleware
     protected function unauthenticated($request, array $guards): never
     {
         if ($request->inertia()) {
-            abort(Response::HTTP_CONFLICT, '', ['X-Inertia-Location' => route('login')]);
+            throw new HttpResponseException(Inertia::location(route('login')));
         }
 
         parent::unauthenticated($request, $guards);

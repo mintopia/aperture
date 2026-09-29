@@ -9,6 +9,7 @@ use App\Http\Requests\AccountUpdatePasswordRequest;
 use App\Http\Requests\AccountVerifyRequest;
 use App\Models\AuditLog;
 use App\Models\User;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -17,11 +18,8 @@ use Inertia\Response;
 
 class AccountController extends Controller
 {
-    public function show(Request $request): Response
+    public function show(Request $request, #[CurrentUser] User $user): Response
     {
-        /** @var User $user */
-        $user = $request->user();
-
         return Inertia::render('Account/Settings', [
             'user' => [
                 'id' => $user->id,
@@ -38,11 +36,8 @@ class AccountController extends Controller
         ]);
     }
 
-    public function verify(AccountVerifyRequest $request): RedirectResponse
+    public function verify(AccountVerifyRequest $request, #[CurrentUser] User $user): RedirectResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
         if ($user->password === null || ! Hash::check($request->string('password')->value(), $user->password)) {
             return back()->withErrors(['password' => 'Incorrect password.']);
         }
@@ -52,11 +47,8 @@ class AccountController extends Controller
         return back();
     }
 
-    public function createPassword(AccountCreatePasswordRequest $request): RedirectResponse
+    public function createPassword(AccountCreatePasswordRequest $request, #[CurrentUser] User $user): RedirectResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
         if ($user->password !== null) {
             abort(403);
         }
@@ -75,11 +67,8 @@ class AccountController extends Controller
         return back()->with('success', 'Password created.');
     }
 
-    public function updatePassword(AccountUpdatePasswordRequest $request): RedirectResponse
+    public function updatePassword(AccountUpdatePasswordRequest $request, #[CurrentUser] User $user): RedirectResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
         $user->password = $request->password;
         $user->save();
 
@@ -93,11 +82,8 @@ class AccountController extends Controller
         return back()->with('success', 'Password updated.');
     }
 
-    public function clearPassword(Request $request): RedirectResponse
+    public function clearPassword(Request $request, #[CurrentUser] User $user): RedirectResponse
     {
-        /** @var User $user */
-        $user = $request->user();
-
         $user->password = null;
         $user->save();
 

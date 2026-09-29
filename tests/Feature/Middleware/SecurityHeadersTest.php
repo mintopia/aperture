@@ -119,4 +119,12 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringNotContainsString('*.example.com', $csp);
         $this->assertStringNotContainsString('not a url', $csp);
     }
+
+    public function test_csp_style_src_uses_nonce_instead_of_unsafe_inline(): void
+    {
+        $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
+
+        $this->assertMatchesRegularExpression("/style-src 'self' 'nonce-[A-Za-z0-9+\\/=]+'(;|$)/", $csp);
+        $this->assertStringNotContainsString("'unsafe-inline'", $csp);
+    }
 }

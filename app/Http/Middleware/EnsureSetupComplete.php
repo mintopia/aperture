@@ -6,9 +6,9 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use Closure;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 class EnsureSetupComplete
 {
@@ -43,7 +43,7 @@ class EnsureSetupComplete
     {
         try {
             return User::query()->doesntExist();
-        } catch (Throwable) {
+        } catch (QueryException) {
             return false;
         }
     }

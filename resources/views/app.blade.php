@@ -18,7 +18,7 @@
     @routes(null, \Illuminate\Support\Facades\Vite::cspNonce())
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
-    @if($customCss ?? null)<style>{!! $customCss !!}</style>@endif
+    @if($customCss ?? null)<style nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">{!! $customCss !!}</style>@endif
 </head>
 <body class="bg-[var(--color-bg)] text-[var(--color-text)]">
     @inertia

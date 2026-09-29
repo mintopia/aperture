@@ -66,6 +66,8 @@ Route::middleware(['guest', 'throttle:login'])->prefix('passkeys')->group(functi
     Route::post('/login', [PasskeyController::class, 'login'])->name('passkeys.login');
 });
 
+Route::pattern('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [PortalController::class, 'index'])->name('home');
     Route::get('/status', [PortalController::class, 'status'])->name('status');
@@ -126,7 +128,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/content/settings/cover-image', [GeneralSettingsController::class, 'updateCoverImage'])->name('content.settings.cover-image.update');
         Route::delete('/content/settings/cover-image', [GeneralSettingsController::class, 'deleteCoverImage'])->name('content.settings.cover-image.delete');
 
-        Route::resource('content', ContentController::class)->except(['create', 'edit', 'show']);
+        Route::resource('content', ContentController::class)->except(['create', 'edit', 'show'])->whereNumber('content');
 
         Route::resource('content/pages', PageController::class)
             ->except(['show'])
@@ -144,10 +146,10 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/switches/{switchConfig}/host-key', [SwitchManagementController::class, 'resetHostKey'])->name('switches.host-key.reset');
         Route::get('/switches/{switchConfig}/config', [SwitchManagementController::class, 'config'])->name('switches.config');
 
-        Route::get('/switches/{switchConfig}/ports/{portId}', [SwitchPortController::class, 'show'])->name('switches.ports.show')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
-        Route::post('/switches/{switchConfig}/ports/{portId}/refresh', [SwitchPortController::class, 'refresh'])->name('switches.ports.refresh')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
-        Route::post('/switches/{switchConfig}/ports/{portId}/shutdown', [SwitchPortController::class, 'shutdown'])->name('switches.ports.shutdown')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
-        Route::post('/switches/{switchConfig}/ports/{portId}/enable', [SwitchPortController::class, 'enable'])->name('switches.ports.enable')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
+        Route::get('/switches/{switchConfig}/ports/{portId}', [SwitchPortController::class, 'show'])->name('switches.ports.show');
+        Route::post('/switches/{switchConfig}/ports/{portId}/refresh', [SwitchPortController::class, 'refresh'])->name('switches.ports.refresh');
+        Route::post('/switches/{switchConfig}/ports/{portId}/shutdown', [SwitchPortController::class, 'shutdown'])->name('switches.ports.shutdown');
+        Route::post('/switches/{switchConfig}/ports/{portId}/enable', [SwitchPortController::class, 'enable'])->name('switches.ports.enable');
         Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
         Route::get('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'show'])->name('settings.ipv6-detection');
         Route::put('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'update'])->name('settings.ipv6-detection.update');

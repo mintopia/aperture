@@ -46,6 +46,7 @@ class AuthenticateMiddlewareTest extends TestCase
         ]);
 
         $response->assertStatus(409);
+        $this->assertSame(route('login'), $response->headers->get('X-Inertia-Location'));
         $response->assertHeader('X-Inertia-Location', route('login'));
     }
 
