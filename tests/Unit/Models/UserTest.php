@@ -165,21 +165,17 @@ class UserTest extends TestCase
         $this->assertNotContains('token_expires_at', $fillable, 'token_expires_at should not be in $fillable');
     }
 
-    public function test_oauth_tokens_can_be_set_via_direct_assignment(): void
+    public function test_oauth_tokens_assigned_directly_are_encrypted_at_rest(): void
     {
         $user = new User;
-        $user->setRawAttributes([
-            'access_token' => 'raw-token-value',
-            'refresh_token' => 'raw-refresh-value',
-            'token_expires_at' => '2099-01-01 00:00:00',
-        ]);
+        $user->access_token = 'plain-token-value';
+        $user->refresh_token = 'plain-refresh-value';
 
         $attributes = $user->getAttributes();
-        $this->assertArrayHasKey('access_token', $attributes, 'access_token should be settable on the model');
-        $this->assertArrayHasKey('refresh_token', $attributes, 'refresh_token should be settable on the model');
-        $this->assertArrayHasKey('token_expires_at', $attributes, 'token_expires_at should be settable on the model');
-        $this->assertEquals('raw-token-value', $attributes['access_token']);
-        $this->assertEquals('raw-refresh-value', $attributes['refresh_token']);
+        $this->assertNotSame('plain-token-value', $attributes['access_token']);
+        $this->assertNotSame('plain-refresh-value', $attributes['refresh_token']);
+        $this->assertSame('plain-token-value', $user->access_token);
+        $this->assertSame('plain-refresh-value', $user->refresh_token);
     }
 
     public function test_mass_assignment_does_not_set_oauth_tokens(): void
