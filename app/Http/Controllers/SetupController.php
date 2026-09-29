@@ -1,0 +1,92 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\SetupRequest;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class SetupController extends Controller
+{
+    public function index(): Response|RedirectResponse
+    {
+        if (User::query()->exists()) {
+            return to_route('login');
+        }
+
+        return Inertia::render('Setup/Index');
+    }
+
+    public function store(SetupRequest $request): RedirectResponse
+    {
+        if ($this->usersExist()) {
+            return to_route('login');
+        }
+
+        $validated = $request->validated();
+
+        $lock = Cache::lock('aperture_setup', 10);
+
+        if (! $lock->get()) {
+            return to_route('login');
+        }
+
+        try {
+            if ($this->usersExist()) {
+                return to_route('login');
+            }
+
+            /** @var User $user */
+            $user = DB::transaction(function () use ($validated): User {
+                $adminRole = Role::query()->firstOrCreate(
+                    ['code' => 'admin'],
+                    ['name' => 'Admin']
+                );
+
+                $userRole = Role::query()->firstOrCreate(
+                    ['code' => 'user'],
+                    ['name' => 'User']
+                );
+
+                $nickname = Str::before($validated['email'], '@');
+                if ($nickname === '') {
+                    $nickname = 'admin';
+                }
+
+                $user = new User;
+                $user->email = $validated['email'];
+                $user->nickname = $nickname;
+                $user->password = $validated['password'];
+                $user->save();
+
+                $user->roles()->syncWithoutDetaching([$adminRole->id, $userRole->id]);
+
+                return $user;
+            });
+
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            return to_route('admin.home');
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * @phpstan-impure
+     */
+    private function usersExist(): bool
+    {
+        return User::query()->exists();
+    }
+}

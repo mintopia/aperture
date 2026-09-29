@@ -1,0 +1,82 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use App\Enums\Capability;
+use Database\Factories\CapabilityAssignmentFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+
+/**
+ * @property int $id
+ * @property Capability $capability
+ * @property string $integration
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ *
+ * @method static CapabilityAssignmentFactory factory($count = null, $state = [])
+ * @method static Builder<static>|CapabilityAssignment newModelQuery()
+ * @method static Builder<static>|CapabilityAssignment newQuery()
+ * @method static Builder<static>|CapabilityAssignment query()
+ * @method static Builder<static>|CapabilityAssignment whereCapability($value)
+ * @method static Builder<static>|CapabilityAssignment whereCreatedAt($value)
+ * @method static Builder<static>|CapabilityAssignment whereId($value)
+ * @method static Builder<static>|CapabilityAssignment whereIntegration($value)
+ * @method static Builder<static>|CapabilityAssignment whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
+#[Fillable(['capability', 'integration'])]
+class CapabilityAssignment extends Model
+{
+    /** @use HasFactory<CapabilityAssignmentFactory> */
+    use HasFactory;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return ['capability' => Capability::class];
+    }
+
+    public static function assign(Capability $capability, string $integration): self
+    {
+        return static::updateOrCreate(
+            ['capability' => $capability],
+            ['integration' => $integration]
+        );
+    }
+
+    public static function unassign(Capability $capability): void
+    {
+        static::where('capability', $capability)->delete();
+    }
+
+    public static function activeIntegration(Capability $capability): ?string
+    {
+        return static::where('capability', $capability)->first()?->integration;
+    }
+
+    public static function isActiveProvider(string $integration, Capability $capability): bool
+    {
+        return static::where('capability', $capability)
+            ->where('integration', $integration)
+            ->exists();
+    }
+
+    /**
+     * @return Collection<int, Capability>
+     */
+    public static function getForIntegration(string $integration): Collection
+    {
+        return static::where('integration', $integration)
+            ->pluck('capability');
+    }
+}

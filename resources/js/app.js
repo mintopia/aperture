@@ -1,2 +1,28 @@
 import './bootstrap';
-import './highlight.min.js'
+import '../css/app.css';
+
+import { createApp, h } from 'vue';
+import { createInertiaApp } from '@inertiajs/vue3';
+import { ZiggyVue } from 'ziggy-js';
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+createInertiaApp({
+    nonce: document.querySelector('meta[name="csp-nonce"]')?.content,
+    defaults: {
+        visitOptions: (href, options) => ({
+            viewTransition: options.method === 'get' && !options.only?.length && !reducedMotion.matches,
+        }),
+    },
+    title: (title) => (title ? `${title} - Aperture` : 'Aperture'),
+    resolve: (name) => {
+        const pages = import.meta.glob('./Pages/**/*.vue', { eager: true });
+        return pages[`./Pages/${name}.vue`];
+    },
+    setup({ el, App, props, plugin }) {
+        createApp({ render: () => h(App, props) })
+            .use(plugin)
+            .use(ZiggyVue)
+            .mount(el);
+    },
+});

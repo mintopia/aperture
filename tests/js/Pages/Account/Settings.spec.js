@@ -1,0 +1,380 @@
+import { mount } from '@vue/test-utils';
+import { describe, it, expect, vi } from 'vitest';
+import Settings from '@/Pages/Account/Settings.vue';
+
+vi.mock('@inertiajs/vue3', () => ({
+    useForm: vi.fn((initialData) => ({
+        ...initialData,
+        errors: {},
+        processing: false,
+        post: vi.fn(),
+        put: vi.fn(),
+        reset: vi.fn(),
+    })),
+    router: {
+        delete: vi.fn(),
+        reload: vi.fn(),
+    },
+    Link: {
+        name: 'Link',
+        props: ['href'],
+        template: '<a :href="href"><slot /></a>',
+    },
+    usePage: () => ({
+        props: {
+            auth: {
+                user: {
+                    is_admin: true,
+                },
+            },
+        },
+    }),
+}));
+
+vi.mock('@/Layouts/PortalLayout.vue', () => ({
+    default: {
+        name: 'PortalLayout',
+        template: '<div data-testid="portal-layout-mock"><slot /></div>',
+    },
+}));
+
+vi.mock('@/Layouts/AdminLayout.vue', () => ({
+    default: {
+        name: 'AdminLayout',
+        template: '<div data-testid="admin-layout-mock"><slot /></div>',
+    },
+}));
+
+vi.mock('@/Components/UI/ConfirmModal.vue', () => ({
+    default: {
+        name: 'ConfirmModal',
+        props: ['show', 'title', 'message', 'confirmLabel', 'cancelLabel', 'variant', 'loading'],
+        emits: ['confirm', 'cancel'],
+        template: `
+            <div v-if="show" data-testid="confirm-modal">
+                <span data-testid="confirm-modal-title">{{ title }}</span>
+                <span data-testid="confirm-modal-message">{{ message }}</span>
+                <button data-testid="confirm-modal-cancel" type="button" @click="$emit('cancel')">{{ cancelLabel ?? 'Cancel' }}</button>
+                <button data-testid="confirm-modal-confirm" type="button" @click="$emit('confirm')">{{ confirmLabel ?? 'Confirm' }}</button>
+            </div>
+        `,
+    },
+}));
+
+const mockRoute = (name) => `/${name.replace(/\./g, '/')}`;
+globalThis.route = mockRoute;
+
+globalThis.fetch = vi.fn(() =>
+    Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true }),
+    }),
+);
+
+const userWithPassword = {
+    id: 1,
+    nickname: 'TestUser',
+    email: 'test@example.com',
+    has_password: true,
+    passkeys: [],
+};
+
+const userWithPasskeys = {
+    id: 2,
+    nickname: 'PasskeyUser',
+    email: 'pk@example.com',
+    has_password: false,
+    passkeys: [
+        { id: 'pk-1', name: 'My Passkey', created_at: '2024-01-01 00:00:00' },
+        { id: 'pk-2', name: 'Backup Key', created_at: '2024-02-01 00:00:00' },
+    ],
+};
+
+const userWithNeither = {
+    id: 3,
+    nickname: 'FreshUser',
+    email: 'fresh@example.com',
+    has_password: false,
+    passkeys: [],
+};
+
+describe('Account/Settings', () => {
+    function mountComponent(user = userWithPassword, verified = false) {
+        return mount(Settings, {
+            props: { user, verified },
+            global: {
+                config: {
+                    globalProperties: {
+                        route: mockRoute,
+                    },
+                },
+            },
+        });
+    }
+
+    it('renders the settings page wrapper', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="settings-page"]').exists()).toBe(true);
+    });
+
+    it.each([
+        { name: 'user has password, not verified', user: userWithPassword, verified: false, expected: true },
+        { name: 'user has passkeys, not verified', user: userWithPasskeys, verified: false, expected: true },
+        { name: 'user has password, verified', user: userWithPassword, verified: true, expected: false },
+    ])('verify-form: $name', ({ user, verified, expected }) => {
+        const wrapper = mountComponent(user, verified);
+        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(expected);
+    });
+
+    it('shows create password section when user has neither password nor passkeys', () => {
+        const wrapper = mountComponent(userWithNeither, false);
+        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="create-password-section"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(false);
+    });
+
+    it('shows verify password input in verification form', () => {
+        const wrapper = mountComponent(userWithPassword, false);
+        expect(wrapper.find('[data-testid="verify-password"]').exists()).toBe(true);
+    });
+
+    it('shows verify submit button in verification form', () => {
+        const wrapper = mountComponent(userWithPassword, false);
+        expect(wrapper.find('[data-testid="verify-submit"]').exists()).toBe(true);
+    });
+
+    it('shows password section when verified', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(true);
+    });
+
+    it('shows new password input in password section', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="password-new"]').exists()).toBe(true);
+    });
+
+    it('shows confirm password input in password section', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="password-confirm"]').exists()).toBe(true);
+    });
+
+    it('shows save password button', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="password-save"]').exists()).toBe(true);
+    });
+
+    it.each([
+        { name: 'user has a password', user: userWithPassword, verified: true, expected: true },
+        { name: 'user has no password', user: userWithNeither, verified: false, expected: false },
+    ])('password-clear button: $name', ({ user, verified, expected }) => {
+        const wrapper = mountComponent(user, verified);
+        expect(wrapper.find('[data-testid="password-clear"]').exists()).toBe(expected);
+    });
+
+    it('renders with admin layout when user is admin', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="admin-layout-mock"]').exists()).toBe(true);
+    });
+
+    it.each([
+        { name: 'verification gate active', user: userWithPassword, verified: false, expected: false },
+        { name: 'verified', user: userWithPassword, verified: true, expected: true },
+        { name: 'neither password nor passkeys', user: userWithNeither, verified: false, expected: false },
+    ])('passkey-section: $name', ({ user, verified, expected }) => {
+        const wrapper = mountComponent(user, verified);
+        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(expected);
+    });
+
+    it('renders passkey register button when verified', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="passkey-register"]').exists()).toBe(true);
+    });
+
+    it('passkey register button is enabled by default', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        const btn = wrapper.find('[data-testid="passkey-register"]');
+        expect(btn.attributes('disabled')).toBeUndefined();
+    });
+
+    it.each([
+        { name: 'user has passkeys', user: userWithPasskeys, verified: true, expected: true },
+        { name: 'user has no passkeys', user: userWithNeither, verified: false, expected: false },
+    ])('passkey-list: $name', ({ user, verified, expected }) => {
+        const wrapper = mountComponent(user, verified);
+        expect(wrapper.find('[data-testid="passkey-list"]').exists()).toBe(expected);
+    });
+
+    it('renders an item and delete button for each passkey, with names shown in the list', () => {
+        const wrapper = mountComponent(userWithPasskeys, true);
+        expect.soft(wrapper.find('[data-testid="passkey-item-pk-1"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-item-pk-2"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-delete-pk-1"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-delete-pk-2"]').exists()).toBe(true);
+        expect.soft(wrapper.find('[data-testid="passkey-list"]').text()).toContain('My Passkey');
+        expect.soft(wrapper.find('[data-testid="passkey-list"]').text()).toContain('Backup Key');
+    });
+
+    it('does not show passkey-error by default', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="passkey-error"]').exists()).toBe(false);
+    });
+
+    it('shows passkey-error when passkeyError is set', async () => {
+        const wrapper = mountComponent(userWithPassword, true);
+
+        globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
+        await wrapper.find('[data-testid="passkey-register"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(wrapper.find('[data-testid="passkey-error"]').exists()).toBe(true);
+    });
+
+    it('shows friendly error when passkey register response is not valid JSON', async () => {
+        const wrapper = mountComponent(userWithPassword, true);
+
+        globalThis.fetch = vi
+            .fn()
+            .mockResolvedValueOnce({
+                ok: true,
+                json: () =>
+                    Promise.resolve({
+                        challenge: 'Y2hhbGxlbmdl',
+                        user: { id: 'dXNlci1pZA' },
+                        excludeCredentials: [],
+                    }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON at position 0')),
+            });
+
+        globalThis.navigator.credentials = {
+            create: vi.fn(() =>
+                Promise.resolve({
+                    id: 'cred-id',
+                    rawId: new Uint8Array([1, 2, 3]).buffer,
+                    type: 'public-key',
+                    response: {
+                        attestationObject: new Uint8Array([4, 5, 6]).buffer,
+                        clientDataJSON: new Uint8Array([7, 8, 9]).buffer,
+                    },
+                }),
+            ),
+        };
+
+        await wrapper.find('[data-testid="passkey-register"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 10));
+
+        const error = wrapper.find('[data-testid="passkey-error"]');
+        expect(error.exists()).toBe(true);
+        expect(error.text()).not.toContain('Unexpected token');
+    });
+
+    it('shows empty state text when no passkeys registered', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        const section = wrapper.find('[data-testid="passkey-section"]');
+        expect(section.text()).toContain('No passkeys registered yet');
+    });
+
+    it('hides both sections when user has neither password nor passkeys', () => {
+        const wrapper = mountComponent(userWithNeither, false);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="passkey-section"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="create-password-section"]').exists()).toBe(true);
+    });
+
+    it('does not show clear-password confirm modal by default', () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+    });
+
+    it('shows clear-password confirm modal when Remove Password is clicked', async () => {
+        const wrapper = mountComponent(userWithPassword, true);
+        await wrapper.find('[data-testid="password-clear"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="confirm-modal-title"]').text()).toBe('Remove Password?');
+    });
+
+    it('closes clear-password modal when cancel is clicked without deleting password', async () => {
+        const { router } = await import('@inertiajs/vue3');
+        router.delete.mockClear();
+
+        const wrapper = mountComponent(userWithPassword, true);
+        await wrapper.find('[data-testid="password-clear"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+        expect(router.delete).not.toHaveBeenCalled();
+    });
+
+    it('calls router.delete when clear-password modal is confirmed', async () => {
+        const { router } = await import('@inertiajs/vue3');
+        router.delete.mockClear();
+
+        const wrapper = mountComponent(userWithPassword, true);
+        await wrapper.find('[data-testid="password-clear"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(router.delete).toHaveBeenCalledWith('/account/password/clear');
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+    });
+
+    it('reactively hides verify-form and shows password-section when verified prop changes to true', async () => {
+        const wrapper = mountComponent(userWithPassword, false);
+
+        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(false);
+
+        await wrapper.setProps({ verified: true });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[data-testid="verify-form"]').exists()).toBe(false);
+        expect(wrapper.find('[data-testid="password-section"]').exists()).toBe(true);
+    });
+
+    it('shows delete-passkey confirm modal when Remove is clicked', async () => {
+        const wrapper = mountComponent(userWithPasskeys, true);
+        await wrapper.find('[data-testid="passkey-delete-pk-1"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="confirm-modal-title"]').text()).toBe('Remove Passkey?');
+    });
+
+    it('closes delete-passkey modal when cancel is clicked without deleting', async () => {
+        const wrapper = mountComponent(userWithPasskeys, true);
+        await wrapper.find('[data-testid="passkey-delete-pk-1"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.find('[data-testid="confirm-modal-cancel"]').trigger('click');
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
+    });
+
+    it('calls fetch DELETE when delete-passkey modal is confirmed', async () => {
+        globalThis.fetch = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve({ success: true }),
+            }),
+        );
+
+        const wrapper = mountComponent(userWithPasskeys, true);
+        await wrapper.find('[data-testid="passkey-delete-pk-1"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(globalThis.fetch).toHaveBeenCalledWith(
+            expect.stringContaining('/passkeys/'),
+            expect.objectContaining({ method: 'DELETE' }),
+        );
+    });
+});

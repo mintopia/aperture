@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Console\Commands;
+
+use App\Models\AuditLog;
+use App\Models\IpAddress;
+use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+
+class ExpireSessionsCommand extends Command
+{
+    protected $signature = 'aperture:expire-sessions';
+
+    protected $description = 'Expire IP sessions that have passed their TTL';
+
+    public function handle(): int
+    {
+        $count = 0;
+
+        IpAddress::query()
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', now())
+            ->chunk(100, function (Collection $ips) use (&$count): void {
+                foreach ($ips as $ip) {
+                    /** @var IpAddress $ip */
+                    if ($ip->rate_limit_enabled) {
+                        $ip->rate_limit_enabled = false;
+                        $ip->saveQuietly();
+                    }
+
+                    $ip->internet_enabled = false;
+                    $ip->saveQuietly();
+
+                    AuditLog::record(
+                        action: 'ip.session_expired',
+                        subject: $ip,
+                        process: 'system',
+                        metadata: ['reason' => 'session_timeout'],
+                    );
+
+                    $ip->delete();
+                    $count++;
+                }
+            });
+
+        Log::info('Expired sessions', ['count' => $count]);
+
+        return self::SUCCESS;
+    }
+}

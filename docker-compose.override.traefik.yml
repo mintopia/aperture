@@ -2,7 +2,43 @@ services:
   aperture:
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nginx-aperture.rule=Host(`aperture.local.js42.io`)"
+      - "traefik.http.routers.aperture-app.rule=Host(`${PUBLIC_APP_HOSTNAME:-hallowed-rincewind.ws.cloudagent.mintopia.net}`)"
+      - "traefik.http.routers.aperture-app.entrypoints=websecure"
+      - "traefik.http.routers.aperture-app.tls=true"
+      - "traefik.http.services.aperture-app.loadbalancer.server.port=80"
+    networks:
+      - default
+      - frontend
+
+  reverb:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.aperture-reverb.rule=Host(`${PUBLIC_REVERB_HOSTNAME:-reverb.hallowed-rincewind.ws.cloudagent.mintopia.net}`)"
+      - "traefik.http.routers.aperture-reverb.entrypoints=websecure"
+      - "traefik.http.routers.aperture-reverb.tls=true"
+      - "traefik.http.services.aperture-reverb.loadbalancer.server.port=8080"
+    networks:
+      - default
+      - frontend
+
+  vite:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.aperture-vite.rule=Host(`${PUBLIC_VITE_HOSTNAME:-vite.hallowed-rincewind.ws.cloudagent.mintopia.net}`)"
+      - "traefik.http.routers.aperture-vite.entrypoints=websecure"
+      - "traefik.http.routers.aperture-vite.tls=true"
+      - "traefik.http.services.aperture-vite.loadbalancer.server.port=5173"
+    networks:
+      - default
+      - frontend
+
+  ssh-proxy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.aperture-ssh-proxy.rule=Host(`${PUBLIC_SSH_PROXY_HOSTNAME:-ssh-proxy.hallowed-rincewind.ws.cloudagent.mintopia.net}`)"
+      - "traefik.http.routers.aperture-ssh-proxy.entrypoints=websecure"
+      - "traefik.http.routers.aperture-ssh-proxy.tls=true"
+      - "traefik.http.services.aperture-ssh-proxy.loadbalancer.server.port=8022"
     networks:
       - default
       - frontend

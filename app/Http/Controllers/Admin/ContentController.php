@@ -1,0 +1,148 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreContentRequest;
+use App\Http\Requests\Admin\UpdateContentLayoutRequest;
+use App\Http\Requests\Admin\UpdateContentRequest;
+use App\Models\ContentBlock;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class ContentController extends Controller
+{
+    public function index(): Response
+    {
+        $blocks = ContentBlock::orderBy('grid_row')->orderBy('grid_col')->get();
+
+        return Inertia::render('Admin/Content/Editor', [
+            'blocks' => $blocks,
+            'singletonTypes' => ContentBlock::SINGLETON_TYPES,
+            'existingTypes' => ContentBlock::pluck('type')->unique()->values(),
+            'breadcrumbs' => [
+                ['label' => 'Admin', 'href' => route('admin.home')],
+                ['label' => 'Content', 'href' => route('admin.content.index')],
+                ['label' => 'Dashboard Editor'],
+            ],
+        ]);
+    }
+
+    public function store(StoreContentRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $position = $this->findFirstAvailablePosition();
+        $validated['grid_col'] = $position['col'];
+        $validated['grid_row'] = $position['row'];
+
+        $block = ContentBlock::create($validated);
+        $block->refresh();
+
+        return response()->json($block, 201);
+    }
+
+    public function update(UpdateContentRequest $request, ContentBlock $content): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $content->update($validated);
+
+        return response()->json($content);
+    }
+
+    public function destroy(ContentBlock $content): JsonResponse
+    {
+        $content->delete();
+
+        return response()->json(null, 204);
+    }
+
+    public function updateLayout(UpdateContentLayoutRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        foreach ($validated['blocks'] as $blockData) {
+            if ($blockData['grid_col'] + $blockData['col_span'] - 1 > 3) {
+                return response()->json([
+                    'message' => 'Block exceeds grid width.',
+                    'errors' => ['blocks' => ['A block exceeds the 3-column grid width.']],
+                ], 422);
+            }
+        }
+
+        if ($this->hasOverlaps($validated['blocks'])) {
+            return response()->json([
+                'message' => 'Blocks overlap.',
+                'errors' => ['blocks' => ['Two or more blocks overlap in the grid.']],
+            ], 422);
+        }
+
+        DB::transaction(function () use ($validated): void {
+            foreach ($validated['blocks'] as $blockData) {
+                ContentBlock::where('id', $blockData['id'])->update([
+                    'grid_col' => $blockData['grid_col'],
+                    'grid_row' => $blockData['grid_row'],
+                    'col_span' => $blockData['col_span'],
+                    'row_span' => $blockData['row_span'],
+                ]);
+            }
+        });
+
+        return response()->json(['message' => 'Layout updated.']);
+    }
+
+    /**
+     * @param  array<int, array{grid_col: int, grid_row: int, col_span: int, row_span: int}>  $blocks
+     */
+    private function hasOverlaps(array $blocks): bool
+    {
+        $occupied = [];
+
+        foreach ($blocks as $block) {
+            for ($c = $block['grid_col']; $c < $block['grid_col'] + $block['col_span']; $c++) {
+                for ($r = $block['grid_row']; $r < $block['grid_row'] + $block['row_span']; $r++) {
+                    $key = sprintf('%d,%d', $c, $r);
+                    if (isset($occupied[$key])) {
+                        return true;
+                    }
+
+                    $occupied[$key] = true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{col: int, row: int}
+     */
+    private function findFirstAvailablePosition(): array
+    {
+        $blocks = ContentBlock::all();
+        $occupied = [];
+
+        foreach ($blocks as $block) {
+            for ($c = $block->grid_col; $c < $block->grid_col + $block->col_span; $c++) {
+                for ($r = $block->grid_row; $r < $block->grid_row + $block->row_span; $r++) {
+                    $occupied[sprintf('%d,%d', $c, $r)] = true;
+                }
+            }
+        }
+
+        for ($row = 1; $row <= 100; $row++) {
+            for ($col = 1; $col <= 3; $col++) {
+                if (! isset($occupied[sprintf('%d,%d', $col, $row)])) {
+                    return ['col' => $col, 'row' => $row];
+                }
+            }
+        }
+
+        return ['col' => 1, 'row' => 1];
+    }
+}

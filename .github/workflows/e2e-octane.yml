@@ -1,0 +1,80 @@
+name: E2E (Octane, long-lived workers)
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+jobs:
+  e2e-octane:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      APP_ENV: playwright
+      APP_DEBUG: "false"
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ${{ github.workspace }}/database/playwright.sqlite
+      # file cache so every Octane worker shares one settings cache (array is per-worker)
+      CACHE_STORE: file
+      CACHE_DRIVER: file
+      PLAYWRIGHT_CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      BROADCAST_DRIVER: log
+      OCTANE_SERVER: frankenphp
+      # Octane starts outside Playwright's webServer, so point it at the ssh-proxy stub Playwright launches
+      APERTURE_SSH_PROXY_HOST: 127.0.0.1
+      APERTURE_SSH_PROXY_PORT: "8029"
+      APERTURE_SSH_PROXY_API_KEY: playwright-ssh-proxy-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, pdo_sqlite, sqlite3, intl, zip, bcmath, pcntl
+          tools: composer
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: cp .env.example .env
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: php artisan key:generate --force
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+
+      - name: Prepare database
+        run: |
+          touch "$DB_DATABASE"
+          php artisan migrate:fresh --force --no-interaction
+
+      - name: Start Octane (no --max-requests, no --watch)
+        run: |
+          php artisan octane:install --server=frankenphp --no-interaction
+          nohup php artisan octane:start --server=frankenphp --host=127.0.0.1 --port=8000 --workers=2 > octane.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS -o /dev/null http://127.0.0.1:8000/login && exit 0
+            sleep 2
+          done
+          cat octane.log
+          exit 1
+
+      - name: Run Playwright against Octane
+        run: npx playwright test --project=chromium --project=setup
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
+
+      - name: Show Octane log
+        if: failure()
+        run: cat octane.log
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: storage/playwright-report

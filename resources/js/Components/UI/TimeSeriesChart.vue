@@ -1,0 +1,208 @@
+<script setup>
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { Chart } from 'chart.js/auto';
+import { formatDate } from '@/utils/dates';
+
+const props = defineProps({
+    series: { type: Array, required: true },
+    yAxisLabel: { type: String, default: '' },
+    yAxisFormatter: { type: Function, default: null },
+    height: { type: String, default: '200px' },
+    loading: { type: Boolean, default: false },
+    emptyMessage: { type: String, default: 'No data available' },
+});
+
+const canvas = ref(null);
+
+let chart = null;
+
+const hasData = computed(() => {
+    return props.series.some((series) => Array.isArray(series.data) && series.data.length > 0);
+});
+
+function getComputedColor(varName, fallback = '') {
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || fallback;
+}
+
+function resolveColor(color) {
+    const match = color && color.match(/^var\(--([^)]+)\)$/);
+    if (match) {
+        return getComputedColor(`--${match[1]}`, color);
+    }
+    return color;
+}
+
+function withAlpha(color, alpha) {
+    return `oklch(from ${color} l c h / ${alpha})`;
+}
+
+const TIME_ONLY = { day: undefined, month: undefined, year: undefined };
+const DAY_AND_TIME = { year: undefined };
+
+function formatValue(value) {
+    const numericValue = Number(value);
+
+    if (props.yAxisFormatter) {
+        return props.yAxisFormatter(numericValue);
+    }
+
+    if (numericValue >= 1e9) return `${(numericValue / 1e9).toFixed(1)} Gbps`;
+    if (numericValue >= 1e6) return `${(numericValue / 1e6).toFixed(1)} Mbps`;
+    if (numericValue >= 1e3) return `${(numericValue / 1e3).toFixed(1)} Kbps`;
+
+    return numericValue.toFixed(1);
+}
+
+function destroyChart() {
+    if (chart) {
+        chart.destroy();
+        chart = null;
+    }
+}
+
+function buildChart() {
+    if (!canvas.value || props.loading || !hasData.value) {
+        destroyChart();
+        return;
+    }
+
+    destroyChart();
+
+    const textColor = getComputedColor('--color-text-muted', '#888888');
+    const bodyColor = getComputedColor('--color-text', '#ffffff');
+    const surfaceColor = getComputedColor('--color-surface', '#1a1a2e');
+    const gridColor = getComputedColor('--color-border', '#333333');
+
+    const datasets = props.series
+        .filter((series) => Array.isArray(series.data) && series.data.length > 0)
+        .map((series) => {
+            const color = resolveColor(series.color);
+            return {
+                label: series.label,
+                data: series.data.map((point) => ({ x: point.timestamp * 1000, y: point.value })),
+                borderColor: color,
+                backgroundColor: series.fill ? withAlpha(color, 0.12) : 'transparent',
+                fill: Boolean(series.fill),
+                tension: 0.3,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                borderWidth: 2,
+            };
+        });
+
+    chart = new Chart(canvas.value, {
+        type: 'line',
+        data: { datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    display: datasets.length > 1,
+                    labels: {
+                        color: textColor,
+                        boxWidth: 12,
+                        padding: 16,
+                        font: { size: 11 },
+                    },
+                },
+                tooltip: {
+                    backgroundColor: surfaceColor,
+                    titleColor: textColor,
+                    bodyColor,
+                    borderColor: gridColor,
+                    borderWidth: 1,
+                    padding: 10,
+                    callbacks: {
+                        title(items) {
+                            if (!items.length) {
+                                return '';
+                            }
+
+                            return formatDate(items[0].parsed.x, DAY_AND_TIME);
+                        },
+                        label(context) {
+                            return `${context.dataset.label}: ${formatValue(context.parsed.y)}`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    ticks: {
+                        color: textColor,
+                        maxTicksLimit: 8,
+                        font: { size: 10 },
+                        callback: (value) => formatDate(value, TIME_ONLY),
+                    },
+                    grid: {
+                        color: withAlpha(gridColor, 0.25),
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: Boolean(props.yAxisLabel),
+                        text: props.yAxisLabel,
+                        color: textColor,
+                        font: { size: 11 },
+                    },
+                    ticks: {
+                        color: textColor,
+                        font: { size: 10 },
+                        callback: (value) => formatValue(value),
+                    },
+                    grid: {
+                        color: withAlpha(gridColor, 0.25),
+                    },
+                },
+            },
+        },
+    });
+}
+
+onMounted(() => {
+    nextTick(() => buildChart());
+});
+
+onUnmounted(() => {
+    destroyChart();
+});
+
+watch(
+    () => [props.series, props.loading, props.yAxisLabel, props.yAxisFormatter],
+    () => {
+        nextTick(() => buildChart());
+    },
+    { deep: true },
+);
+</script>
+
+<template>
+    <div data-testid="time-series-chart" :style="{ height }">
+        <div
+            v-if="loading"
+            data-testid="chart-loading"
+            class="flex h-full items-center justify-center rounded border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]"
+        >
+            <div class="flex flex-col items-center gap-2">
+                <div
+                    class="h-6 w-6 animate-spin rounded-full border-2 border-[var(--color-primary)] border-t-transparent motion-reduce:animate-none"
+                ></div>
+                <span class="text-xs text-[var(--color-text-muted)]">Loading chart data…</span>
+            </div>
+        </div>
+        <div
+            v-else-if="!hasData"
+            data-testid="chart-empty"
+            class="flex h-full items-center justify-center rounded border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]"
+        >
+            <span class="text-sm text-[var(--color-text-muted)]">{{ emptyMessage }}</span>
+        </div>
+        <div v-else class="h-full rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
+            <canvas ref="canvas" data-testid="chart-canvas" role="img" :aria-label="yAxisLabel || 'Chart'"></canvas>
+        </div>
+    </div>
+</template>

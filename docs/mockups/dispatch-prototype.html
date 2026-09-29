@@ -1,0 +1,2653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aperture Admin — "Dispatch" Design Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================
+     DISPATCH — Design Direction Prototype
+     ============================================
+     Aesthetic: Operations console / dispatch room
+     Physical metaphor: F1 pit wall, broadcast control room
+     Color carries meaning. Structure comes from typography.
+     No decorative elements. Every pixel works.
+  */
+
+  :root {
+    /* Warm charcoal base — NOT blue-tinted slate */
+    --bg:              oklch(13% 0.006 60);
+    --surface-1:       oklch(17% 0.006 60);
+    --surface-2:       oklch(21% 0.006 60);
+    --surface-3:       oklch(25% 0.006 60);
+
+    /* Text hierarchy — warm whites, boosted contrast */
+    --text:            oklch(95% 0.006 60);
+    --text-2:          oklch(75% 0.006 60);
+    --text-3:          oklch(55% 0.006 60);
+
+    /* Hairline structure */
+    --divider:         oklch(26% 0.004 60);
+    --divider-strong:  oklch(33% 0.004 60);
+
+    /* Semantic color — meaning only, never decoration */
+    --up:              oklch(72% 0.17 155);
+    --down:            oklch(65% 0.2 25);
+    --warn:            oklch(78% 0.15 85);
+    --info:            oklch(70% 0.1 240);
+
+    /* Primary action — tangerine (admin-configurable hue) */
+    --accent:          oklch(76% 0.16 55);
+    --accent-hover:    oklch(69% 0.19 55);
+    --accent-dim:      oklch(76% 0.16 55 / 0.14);
+    --accent-text:     oklch(98% 0.01 55);
+
+    /* Fonts */
+    --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-body:    'Hanken Grotesk', system-ui, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- LAYOUT SHELL ---- */
+  .shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---- TOP BAR ---- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px;
+    padding: 0 24px;
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--divider);
+  }
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+  .topbar-brand svg {
+    color: var(--accent);
+  }
+  .topbar-breadcrumb {
+    font-size: 13px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-weight: 400;
+  }
+  .topbar-breadcrumb a {
+    color: var(--text-2);
+    text-decoration: none;
+  }
+  .topbar-breadcrumb a:hover {
+    color: var(--text);
+  }
+  .topbar-breadcrumb span { color: var(--text-3); }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .topbar-right kbd {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    border: 1px solid var(--divider-strong);
+    border-radius: 4px;
+    color: var(--text-3);
+  }
+  .user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.1s;
+  }
+  .user-menu:hover {
+    background: var(--surface-2);
+  }
+  .user-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--bg);
+  }
+  .user-name {
+    font-size: 12px;
+    color: var(--text-2);
+    font-weight: 500;
+  }
+
+  /* ---- SIDEBAR ---- */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface-1);
+    border-right: 1px solid var(--divider);
+    padding: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .sidebar-section-label {
+    padding: 0 20px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+  .sidebar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    font-size: 14px;
+    color: var(--text-2);
+    text-decoration: none;
+    transition: all 0.1s;
+    cursor: pointer;
+  }
+  .sidebar-item:hover {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+  .sidebar-item.active {
+    color: var(--accent);
+    background: var(--accent-dim);
+    font-weight: 600;
+  }
+  .sidebar-item svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
+  }
+  .sidebar-item.active svg {
+    opacity: 1;
+  }
+
+  /* ---- MAIN CONTENT ---- */
+  .main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .content {
+    flex: 1;
+    padding: 32px 40px 64px;
+    max-width: 1400px;
+  }
+
+  /* ---- PAGE HEADER ---- */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 8px;
+  }
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    font-variation-settings: 'opsz' 48;
+  }
+  .page-context {
+    font-size: 13px;
+    color: var(--text-2);
+    margin-bottom: 4px;
+  }
+  .page-context a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .page-context a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+  }
+  .page-context .muted { color: var(--text-3); }
+  .page-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .page-nav a {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-3);
+    text-decoration: none;
+    transition: color 0.1s;
+  }
+  .page-nav a:hover { color: var(--text); }
+
+  /* ---- ACTIONS ---- */
+  .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--divider-strong);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .btn:hover {
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--text-3);
+  }
+  .btn-danger {
+    border-color: oklch(65% 0.2 25 / 0.4);
+    color: var(--down);
+  }
+  .btn-danger:hover {
+    background: oklch(65% 0.2 25 / 0.12);
+    border-color: var(--down);
+  }
+  .last-updated {
+    font-size: 12px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+  }
+
+  /* ---- METADATA ROW ---- */
+  .metadata {
+    display: flex;
+    gap: 0;
+    margin: 24px 0 28px;
+    border-bottom: 1px solid var(--divider);
+    padding-bottom: 20px;
+  }
+  .meta-item {
+    flex: 0 0 auto;
+    padding-right: 32px;
+    margin-right: 32px;
+    border-right: 1px solid var(--divider);
+  }
+  .meta-item:last-child {
+    border-right: none;
+    margin-right: 0;
+    padding-right: 0;
+  }
+  .meta-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 3px;
+  }
+  .meta-value {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .meta-value.mono {
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+  .status-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--up);
+    box-shadow: 0 0 6px oklch(72% 0.17 155 / 0.5);
+  }
+  .status-dot.down { background: var(--down); box-shadow: 0 0 6px oklch(65% 0.2 25 / 0.5); }
+  .status-text.up { color: var(--up); }
+  .status-text.down { color: var(--down); }
+
+  /* ---- TWO COLUMN LAYOUT ---- */
+  .columns {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 40px;
+  }
+
+  /* ---- SECTION ---- */
+  .section {
+    margin-bottom: 32px;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: 12px;
+    font-variation-settings: 'opsz' 16;
+  }
+
+  /* ---- TABLE ---- */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--divider-strong);
+  }
+  .data-table tbody td {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--divider);
+    vertical-align: top;
+  }
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .data-table .cell-mono {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+  }
+  .data-table .cell-link {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .data-table .cell-link:hover {
+    text-decoration: underline;
+  }
+  .data-table .cell-muted {
+    color: var(--text-3);
+  }
+  .data-table th:not(:first-child),
+  .data-table td:not(:first-child) {
+    padding-left: 24px;
+  }
+
+  /* Interactive table rows */
+  .switch-row {
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .switch-row:hover {
+    background: var(--surface-2);
+  }
+  .switch-row:focus-visible {
+    background: var(--surface-2);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  /* Filter toggle */
+  .filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .filter-toggle input[type="checkbox"] {
+    accent-color: var(--accent);
+  }
+
+  /* ---- BANDWIDTH BLOCK ---- */
+  .bandwidth-header {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    margin-bottom: 16px;
+  }
+  .bw-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .bw-direction {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-3);
+  }
+  .bw-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 32;
+  }
+  .bw-value.in { color: var(--up); }
+  .bw-value.out { color: var(--info); }
+  .bw-unit {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
+  }
+
+  /* Chart placeholder */
+  .chart-area {
+    height: 180px;
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    background: var(--surface-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-3);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Fake chart line */
+  .chart-area::before {
+    content: '';
+    position: absolute;
+    bottom: 20%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--up) 10%,
+      var(--up) 30%,
+      oklch(72% 0.17 155 / 0.6) 50%,
+      var(--up) 60%,
+      oklch(72% 0.17 155 / 0.8) 80%,
+      var(--up) 100%
+    );
+    opacity: 0.4;
+  }
+  .chart-area::after {
+    content: '';
+    position: absolute;
+    bottom: 15%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--info) 15%,
+      oklch(70% 0.1 240 / 0.5) 40%,
+      var(--info) 55%,
+      oklch(70% 0.1 240 / 0.7) 75%,
+      var(--info) 100%
+    );
+    opacity: 0.3;
+  }
+  .chart-label {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---- ERRORS BLOCK ---- */
+  .errors-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    margin-bottom: 16px;
+  }
+  .error-stat {
+    padding: 8px 0;
+  }
+  .error-stat:nth-child(odd) { padding-right: 16px; }
+  .error-stat:nth-child(even) { padding-left: 16px; border-left: 1px solid var(--divider); }
+  .error-stat:nth-child(-n+2) { border-bottom: 1px solid var(--divider); padding-bottom: 12px; margin-bottom: 4px; }
+  .error-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 2px;
+  }
+  .error-count {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    font-variation-settings: 'opsz' 28;
+  }
+  .error-count.zero { color: var(--text-3); }
+  .clean-status {
+    font-size: 11px;
+    color: var(--up);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* ---- CONFIG BLOCK ---- */
+  .config-block {
+    background: var(--surface-1);
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text-2);
+    overflow-x: auto;
+  }
+  .config-block .kw { color: var(--accent); font-weight: 500; }
+  .config-block .val { color: var(--up); }
+  .config-block .num { color: var(--info); }
+  .config-block {
+    color: var(--text-2);
+  }
+
+  /* ---- COLLAPSIBLE ---- */
+  .collapsible {
+    border-top: 1px solid var(--divider);
+    margin-top: 4px;
+  }
+  .collapsible summary {
+    padding: 10px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-3);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .collapsible summary:hover { color: var(--text-2); }
+  .collapsible summary::before {
+    content: '>';
+    font-family: var(--font-mono);
+    font-size: 10px;
+    transition: transform 0.15s;
+  }
+  .collapsible[open] summary::before {
+    transform: rotate(90deg);
+  }
+
+  /* ---- ANNOTATIONS / NOTES ---- */
+  .design-note {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: oklch(45% 0.12 55);
+    color: oklch(15% 0.02 55);
+    padding: 10px 24px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-display);
+    text-align: center;
+    z-index: 100;
+    letter-spacing: -0.01em;
+  }
+  .design-note a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  /* Offset for the note bar */
+  body { padding-top: 38px; }
+
+  /* ---- COMPARISON SECTION ---- */
+  .comparison {
+    padding: 64px 40px;
+    border-top: 2px solid var(--divider-strong);
+    margin-top: 64px;
+  }
+  .comparison h2 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 32;
+  }
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 48px;
+  }
+  .comp-col h3 {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+    font-variation-settings: 'opsz' 14;
+  }
+  .comp-col.before h3 { color: var(--down); }
+  .comp-col.after h3 { color: var(--up); }
+
+  .swatch-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    border: 1px solid var(--divider);
+    position: relative;
+  }
+  .swatch-label {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-3);
+    margin-top: 4px;
+    text-align: center;
+  }
+
+  .type-sample {
+    margin-bottom: 24px;
+  }
+  .type-sample h4 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .type-sample .display {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    font-variation-settings: 'opsz' 48;
+  }
+  .type-sample .body-text {
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-2);
+    max-width: 45ch;
+  }
+  .type-sample .mono-text {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .principle {
+    margin-bottom: 20px;
+  }
+  .principle-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    font-variation-settings: 'opsz' 16;
+  }
+  .principle-desc {
+    font-size: 13px;
+    color: var(--text-2);
+    max-width: 60ch;
+    line-height: 1.6;
+  }
+
+  /* References section */
+  .references {
+    margin-top: 48px;
+  }
+  .references h3 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-variation-settings: 'opsz' 16;
+  }
+  .ref-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .ref-card {
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    padding: 16px;
+    background: var(--surface-1);
+  }
+  .ref-card h4 {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .ref-card p {
+    font-size: 12px;
+    color: var(--text-2);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .ref-card a {
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    font-family: var(--font-mono);
+  }
+  .ref-card a:hover { text-decoration: underline; }
+
+  .ref-card .what-to-see {
+    font-size: 11px;
+    color: var(--text-3);
+    font-style: italic;
+  }
+
+  /* ---- ACCENT SELECTOR ---- */
+  .accent-picker {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 200;
+    background: var(--surface-1);
+    border: 1px solid var(--divider-strong);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 8px 32px oklch(0% 0 0 / 0.5);
+    min-width: 200px;
+  }
+  .accent-picker-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-2);
+  }
+  .accent-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .accent-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .accent-swatch:hover {
+    transform: scale(1.15);
+  }
+  .accent-swatch.active {
+    border-color: var(--text);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text-3);
+  }
+  .accent-swatch-label {
+    font-size: 10px;
+    color: var(--text-3);
+    text-align: center;
+    margin-top: 2px;
+    font-family: var(--font-mono);
+  }
+  .accent-swatch-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .accent-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid var(--divider);
+    padding-top: 10px;
+  }
+  .accent-custom-row label {
+    font-size: 11px;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+  .accent-hue-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 10px;
+    border-radius: 5px;
+    outline: none;
+    cursor: pointer;
+    background: linear-gradient(to right,
+      hsl(0,80%,65%),
+      hsl(30,80%,65%),
+      hsl(60,80%,65%),
+      hsl(90,80%,65%),
+      hsl(120,80%,65%),
+      hsl(150,80%,65%),
+      hsl(180,80%,65%),
+      hsl(210,80%,65%),
+      hsl(240,80%,65%),
+      hsl(270,80%,65%),
+      hsl(300,80%,65%),
+      hsl(330,80%,65%),
+      hsl(360,80%,65%)
+    );
+  }
+  .accent-hue-slider::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 5px;
+  }
+  .accent-hue-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--text-3), 0 2px 6px rgba(0,0,0,0.4);
+    cursor: grab;
+    margin-top: -5px;
+  }
+  .accent-hue-slider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+  }
+  .accent-hue-slider::-moz-range-track {
+    height: 10px;
+    border-radius: 5px;
+    background: transparent;
+  }
+  .accent-hue-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--text-3), 0 2px 6px rgba(0,0,0,0.4);
+    cursor: grab;
+  }
+  .accent-hue-value {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    min-width: 32px;
+    text-align: right;
+  }
+  .accent-note {
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.4;
+    border-top: 1px solid var(--divider);
+    padding-top: 10px;
+  }
+
+  /* ---- FILTER BAR ---- */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-search {
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+    position: relative;
+  }
+  .filter-search input {
+    width: 100%;
+    padding: 7px 12px 7px 32px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    background: var(--surface-1);
+    border: 1px solid var(--divider-strong);
+    border-radius: 4px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .filter-search input:focus {
+    border-color: var(--accent);
+  }
+  .filter-search input::placeholder {
+    color: var(--text-3);
+  }
+  .filter-search svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: var(--text-3);
+  }
+  .filter-select {
+    padding: 7px 28px 7px 10px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--surface-1);
+    border: 1px solid var(--divider-strong);
+    border-radius: 4px;
+    color: var(--text-2);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b6b6b' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.15s;
+  }
+  .filter-select:focus {
+    border-color: var(--accent);
+  }
+  .filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-radius: 4px;
+    cursor: default;
+  }
+  .filter-pill-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    transition: background 0.1s;
+  }
+  .filter-pill-remove:hover {
+    background: oklch(76% 0.16 55 / 0.25);
+  }
+  .filter-count {
+    font-size: 11px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    margin-left: auto;
+  }
+
+  /* ---- STAT ROW (Dashboard) ---- */
+  .stat-row {
+    display: flex;
+    gap: 0;
+    margin: 24px 0 28px;
+    border-bottom: 1px solid var(--divider);
+    padding-bottom: 20px;
+  }
+  .stat-item {
+    flex: 1;
+    padding-right: 32px;
+    margin-right: 32px;
+    border-right: 1px solid var(--divider);
+  }
+  .stat-item:last-child {
+    border-right: none;
+    margin-right: 0;
+    padding-right: 0;
+  }
+  .stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 3px;
+  }
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 36;
+  }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 2px;
+    font-family: var(--font-mono);
+  }
+
+  /* ---- PROGRESS BAR (DHCP) ---- */
+  .pool-bar-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface-2);
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .pool-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+</style>
+</head>
+<body>
+
+<div class="design-note">
+  DISPATCH — Design Direction Prototype for Aperture Admin &middot; Scroll for: Port Show, Switch List, Integrations, Integration Config, Admin Dashboard
+</div>
+
+<!-- ======== PROTOTYPE: PORT SHOW PAGE ======== -->
+<div class="shell">
+  <div class="sidebar">
+    <div style="padding: 0 20px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent)">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 0 1 7.145 4.125m-2.53 9.98A8.214 8.214 0 0 1 12 20.25m-7.145-4.125A8.214 8.214 0 0 1 3.75 12m2.53-5.855A8.214 8.214 0 0 1 12 3.75m0 4.125A4.125 4.125 0 1 1 7.875 12 4.125 4.125 0 0 1 12 7.875Zm0-4.125v4.125m8.25 4.125h-4.125M12 20.25v-4.125M3.75 12h4.125"/>
+        </svg>
+        <span style="font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -0.02em;">Aperture</span>
+      </div>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Overview</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        Dashboard
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Management</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+        Users
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"/></svg>
+        IP Addresses
+      </a>
+      <a class="sidebar-item active" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"/></svg>
+        Switches
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+        DHCP
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Tools</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+        Stats
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+        Content
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+        Settings
+      </a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <a href="#">Admin</a> <span>/</span>
+        <a href="#">Switches</a> <span>/</span>
+        <a href="#">Core-SW-01</a> <span>/</span>
+        Gi1/0/24
+      </div>
+      <div class="topbar-right">
+        <span class="last-updated">updated 12s ago</span>
+        <kbd>&#8984;K</kbd>
+        <div class="user-menu">
+          <div class="user-avatar">JC</div>
+          <span class="user-name">Jess</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-3)"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Gi1/0/24</h1>
+          <div class="page-nav">
+            <a href="#">&larr; Gi1/0/23</a>
+            <a href="#">Gi1/0/25 &rarr;</a>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn">Refresh</button>
+          <button class="btn btn-danger">Shut</button>
+        </div>
+      </div>
+
+      <!-- Metadata Strip -->
+      <div class="metadata">
+        <div class="meta-item">
+          <div class="meta-label">Interface</div>
+          <div class="meta-value mono">Gi1/0/24</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Description</div>
+          <div class="meta-value">Seat 24 &mdash; Row A</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Status</div>
+          <div class="meta-value">
+            <span class="status-inline">
+              <span class="status-dot"></span>
+              <span class="status-text up">Up / Up</span>
+            </span>
+          </div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Speed</div>
+          <div class="meta-value">1 Gbps Full</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">VLAN</div>
+          <div class="meta-value mono">100 (Users)</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">POE</div>
+          <div class="meta-value">Off</div>
+        </div>
+      </div>
+
+      <!-- Two Column Layout -->
+      <div class="columns">
+        <!-- LEFT COLUMN -->
+        <div>
+          <!-- Connected Devices -->
+          <div class="section">
+            <div class="section-title">Connected Devices (2)</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>MAC Address</th>
+                  <th>IPv4</th>
+                  <th>IPv6</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="cell-mono">AA:BB:CC:DD:EE:42</td>
+                  <td><a class="cell-link" href="#">10.0.1.42</a></td>
+                  <td><a class="cell-link" href="#">fe80::1:42</a></td>
+                </tr>
+                <tr>
+                  <td class="cell-mono">AA:BB:CC:DD:EE:F0</td>
+                  <td><a class="cell-link" href="#">10.0.2.24</a></td>
+                  <td class="cell-muted">&mdash;</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Interface Output -->
+          <div class="section">
+            <div class="section-title">Interface Output</div>
+            <div class="config-block">
+GigabitEthernet1/0/24 is up, line protocol is up (connected)
+  Hardware is Gigabit Ethernet, address is aa.bb.cc.dd.ee.24
+  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec
+  Full-duplex, 1000Mb/s, media type is 10/100/1000BaseTX
+  input flow-control is off, output flow-control is unsupported</div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+          <!-- Bandwidth -->
+          <div class="section">
+            <div class="section-title">Bandwidth &mdash; Last 24h</div>
+            <div class="bandwidth-header">
+              <div class="bw-stat">
+                <span class="bw-direction">In</span>
+                <span class="bw-value in">2.1</span>
+                <span class="bw-unit">GB</span>
+              </div>
+              <div class="bw-stat">
+                <span class="bw-direction">Out</span>
+                <span class="bw-value out">780</span>
+                <span class="bw-unit">MB</span>
+              </div>
+            </div>
+            <div class="chart-area">
+              <span class="chart-label">[ Chart.js area chart renders here ]</span>
+            </div>
+          </div>
+
+          <!-- Interface Errors -->
+          <div class="section">
+            <div class="section-title">Interface Errors &mdash; Last 24h</div>
+            <div class="chart-area" style="height: 140px;">
+              <span class="chart-label">[ Error rate chart renders here ]</span>
+            </div>
+          </div>
+
+          <!-- Running Config -->
+          <div class="section">
+            <div class="section-title">Running Config</div>
+            <div class="config-block">
+<span class="kw">interface</span> GigabitEthernet1/0/24
+ <span class="kw">description</span> <span class="val">Seat 24 - Row A</span>
+ <span class="kw">switchport</span> access vlan <span class="num">100</span>
+ <span class="kw">switchport</span> mode access
+ <span class="kw">spanning-tree</span> portfast
+ <span class="kw">no</span> shutdown
+!</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ======== PROTOTYPE: SWITCH LIST PAGE ======== -->
+<div class="shell" id="switches-page" style="border-top: 2px solid var(--divider-strong);">
+  <div class="sidebar">
+    <div style="padding: 0 20px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent)">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 0 1 7.145 4.125m-2.53 9.98A8.214 8.214 0 0 1 12 20.25m-7.145-4.125A8.214 8.214 0 0 1 3.75 12m2.53-5.855A8.214 8.214 0 0 1 12 3.75m0 4.125A4.125 4.125 0 1 1 7.875 12 4.125 4.125 0 0 1 12 7.875Zm0-4.125v4.125m8.25 4.125h-4.125M12 20.25v-4.125M3.75 12h4.125"/>
+        </svg>
+        <span style="font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -0.02em;">Aperture</span>
+      </div>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Overview</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        Dashboard
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Management</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+        Users
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"/></svg>
+        IP Addresses
+      </a>
+      <a class="sidebar-item active" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"/></svg>
+        Switches
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+        DHCP
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Tools</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+        Stats
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+        Content
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+        Settings
+      </a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <a href="#">Admin</a> <span>/</span>
+        Switches
+      </div>
+      <div class="topbar-right">
+        <kbd>&#8984;K</kbd>
+        <div class="user-menu">
+          <div class="user-avatar">JC</div>
+          <span class="user-name">Jess</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-3)"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Switches</h1>
+          <p style="font-size: 13px; color: var(--text-2); margin-top: 4px;">Manage configured network switches.</p>
+        </div>
+        <div class="actions">
+          <button class="btn" style="background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700;" onclick="void(0)">Add Switch</button>
+        </div>
+      </div>
+
+      <!-- Summary strip — replaces the 4 stat cards -->
+      <div class="metadata">
+        <div class="meta-item">
+          <div class="meta-label">Total</div>
+          <div class="meta-value mono" style="font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variation-settings: 'opsz' 28;">6</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Enabled</div>
+          <div class="meta-value" style="font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variation-settings: 'opsz' 28; color: var(--up);">5</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Disabled</div>
+          <div class="meta-value" style="font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variation-settings: 'opsz' 28; color: var(--text-3);">1</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Never Synced</div>
+          <div class="meta-value" style="font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variation-settings: 'opsz' 28; color: var(--warn);">1</div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="section">
+        <div class="section-title">Configured Switches</div>
+        <div class="filter-bar">
+          <div class="filter-search">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+            <input type="text" placeholder="Search switches…" value="">
+          </div>
+          <select class="filter-select">
+            <option>All Types</option>
+            <option>Cisco IOS</option>
+            <option>Aruba</option>
+            <option>Juniper</option>
+          </select>
+          <select class="filter-select">
+            <option>All Status</option>
+            <option selected>Enabled</option>
+            <option>Disabled</option>
+          </select>
+          <select class="filter-select">
+            <option>All Sync</option>
+            <option>Completed</option>
+            <option>Running</option>
+            <option>Failed</option>
+            <option>Never Synced</option>
+          </select>
+          <span class="filter-pill">
+            Status: Enabled
+            <button class="filter-pill-remove" title="Remove filter">&times;</button>
+          </span>
+          <span class="filter-count">5 of 6</span>
+        </div>
+        <table class="data-table" style="cursor: default;">
+          <thead>
+            <tr>
+              <th style="cursor: pointer;">Name <span style="color: var(--accent); margin-left: 2px;">&#8593;</span></th>
+              <th style="cursor: pointer;">Hostname</th>
+              <th style="cursor: pointer;">Type</th>
+              <th style="cursor: pointer;">Status</th>
+              <th style="cursor: pointer;">Ports</th>
+              <th style="cursor: pointer;">Sync</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="switch-row" tabindex="0">
+              <td style="font-weight: 600;">Core-SW-01</td>
+              <td class="cell-mono">core-sw-01.lan</td>
+              <td><span style="font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Cisco IOS</span></td>
+              <td>
+                <span class="status-inline" style="font-size: 13px;">
+                  <span class="status-dot"></span>
+                  <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                </span>
+              </td>
+              <td>
+                <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px;">
+                  <span style="color: var(--up);">22&#8593;</span>
+                  <span style="color: var(--text-3);">2&#8595;</span>
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot"></span>
+                    <span style="color: var(--up); font-size: 12px; font-weight: 600;">Completed</span>
+                  </span>
+                  <span style="font-size: 11px; color: var(--text-3); font-family: var(--font-mono);">2 min ago</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td style="font-weight: 600;">Core-SW-02</td>
+              <td class="cell-mono">core-sw-02.lan</td>
+              <td><span style="font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Cisco IOS</span></td>
+              <td>
+                <span class="status-inline" style="font-size: 13px;">
+                  <span class="status-dot"></span>
+                  <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                </span>
+              </td>
+              <td>
+                <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px;">
+                  <span style="color: var(--up);">24&#8593;</span>
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot"></span>
+                    <span style="color: var(--up); font-size: 12px; font-weight: 600;">Completed</span>
+                  </span>
+                  <span style="font-size: 11px; color: var(--text-3); font-family: var(--font-mono);">5 min ago</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td style="font-weight: 600;">Dist-SW-A1</td>
+              <td class="cell-mono">dist-a1.lan</td>
+              <td><span style="font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Cisco IOS</span></td>
+              <td>
+                <span class="status-inline" style="font-size: 13px;">
+                  <span class="status-dot"></span>
+                  <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                </span>
+              </td>
+              <td>
+                <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px;">
+                  <span style="color: var(--up);">46&#8593;</span>
+                  <span style="color: var(--text-3);">1&#8595;</span>
+                  <span style="color: var(--down);">1&#9888;</span>
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot" style="background: var(--warn); box-shadow: 0 0 6px oklch(78% 0.15 85 / 0.5);"></span>
+                    <span style="color: var(--warn); font-size: 12px; font-weight: 600;">Running</span>
+                  </span>
+                  <span style="font-size: 11px; color: var(--text-3); font-family: var(--font-mono);">12 min ago</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td style="font-weight: 600;">Edge-SW-B2</td>
+              <td class="cell-mono">edge-b2.lan</td>
+              <td><span style="font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Aruba</span></td>
+              <td>
+                <span class="status-inline" style="font-size: 13px;">
+                  <span class="status-dot"></span>
+                  <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                </span>
+              </td>
+              <td>
+                <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px;">
+                  <span style="color: var(--up);">8&#8593;</span>
+                  <span style="color: var(--text-3);">16&#8595;</span>
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot"></span>
+                    <span style="color: var(--up); font-size: 12px; font-weight: 600;">Completed</span>
+                  </span>
+                  <span style="font-size: 11px; color: var(--text-3); font-family: var(--font-mono);">8 min ago</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td style="font-weight: 600;">Lab-SW-01</td>
+              <td class="cell-mono">lab-sw-01.lan</td>
+              <td><span style="font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Juniper</span></td>
+              <td>
+                <span class="status-inline" style="font-size: 13px;">
+                  <span class="status-dot" style="background: var(--text-3); box-shadow: none;"></span>
+                  <span style="color: var(--text-3); font-size: 12px; font-weight: 600;">Disabled</span>
+                </span>
+              </td>
+              <td>
+                <span style="color: var(--text-3);">&mdash;</span>
+              </td>
+              <td>
+                <span style="color: var(--text-3); font-size: 12px;">Never synced</span>
+              </td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td style="font-weight: 600;">Edge-SW-C3</td>
+              <td class="cell-mono">edge-c3.lan</td>
+              <td><span style="font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Cisco IOS</span></td>
+              <td>
+                <span class="status-inline" style="font-size: 13px;">
+                  <span class="status-dot"></span>
+                  <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                </span>
+              </td>
+              <td>
+                <span style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px;">
+                  <span style="color: var(--up);">12&#8593;</span>
+                  <span style="color: var(--text-3);">12&#8595;</span>
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot" style="background: var(--down); box-shadow: 0 0 6px oklch(65% 0.2 25 / 0.5);"></span>
+                    <span style="color: var(--down); font-size: 12px; font-weight: 600;">Failed</span>
+                  </span>
+                  <span style="font-size: 11px; color: var(--text-3); font-family: var(--font-mono);">1 hr ago</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== PROTOTYPE: INTEGRATIONS LIST PAGE ======== -->
+<div class="shell" id="integrations-page" style="border-top: 2px solid var(--divider-strong);">
+  <div class="sidebar">
+    <div style="padding: 0 20px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent)">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 0 1 7.145 4.125m-2.53 9.98A8.214 8.214 0 0 1 12 20.25m-7.145-4.125A8.214 8.214 0 0 1 3.75 12m2.53-5.855A8.214 8.214 0 0 1 12 3.75m0 4.125A4.125 4.125 0 1 1 7.875 12 4.125 4.125 0 0 1 12 7.875Zm0-4.125v4.125m8.25 4.125h-4.125M12 20.25v-4.125M3.75 12h4.125"/>
+        </svg>
+        <span style="font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -0.02em;">Aperture</span>
+      </div>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Overview</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        Dashboard
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Management</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+        Users
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"/></svg>
+        Switches
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Tools</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+        Stats
+      </a>
+      <a class="sidebar-item active" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+        Settings
+      </a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <a href="#">Admin</a> <span>/</span>
+        <a href="#">Settings</a> <span>/</span>
+        Integrations
+      </div>
+      <div class="topbar-right">
+        <kbd>&#8984;K</kbd>
+        <div class="user-menu">
+          <div class="user-avatar">JC</div>
+          <span class="user-name">Jess</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-3)"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex: 1;">
+      <!-- Settings Sub-nav -->
+      <div style="width: 180px; flex-shrink: 0; border-right: 1px solid var(--divider); padding: 24px 0;">
+        <div class="sidebar-group">
+          <div class="sidebar-section-label">Integrations</div>
+          <a class="sidebar-item active" href="#" style="padding: 6px 20px; font-size: 13px;">Services</a>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">Switches</a>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">IPv6 Detection</a>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">DNS Detection</a>
+        </div>
+        <div class="sidebar-group" style="margin-top: 24px;">
+          <div class="sidebar-section-label">Appearance</div>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">Theme</a>
+        </div>
+        <div class="sidebar-group" style="margin-top: 24px;">
+          <div class="sidebar-section-label">General</div>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">Event</a>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">Portal</a>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content" style="padding: 32px 40px 64px;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Integrations</h1>
+            <p style="font-size: 13px; color: var(--text-2); margin-top: 4px;">Review service status, connection health, and active capabilities.</p>
+          </div>
+        </div>
+
+        <!-- Integrations Table -->
+        <div class="section" style="margin-top: 28px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Status</th>
+                <th>Health</th>
+                <th>Capabilities</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="switch-row" tabindex="0">
+                <td style="font-weight: 600;">DHCP Server</td>
+                <td>
+                  <span class="status-inline" style="font-size: 13px;">
+                    <span class="status-dot"></span>
+                    <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="status-inline" style="font-size: 13px;">
+                    <span class="status-dot"></span>
+                    <span style="color: var(--text-2); font-size: 12px;">Healthy</span>
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">IP Lookup</span>
+                    <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">MAC Lookup</span>
+                  </div>
+                </td>
+              </tr>
+              <tr class="switch-row" tabindex="0">
+                <td style="font-weight: 600;">DNS Provider</td>
+                <td>
+                  <span class="status-inline" style="font-size: 13px;">
+                    <span class="status-dot"></span>
+                    <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="status-inline" style="font-size: 13px;">
+                    <span class="status-dot"></span>
+                    <span style="color: var(--text-2); font-size: 12px;">Healthy</span>
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">DNS Records</span>
+                    <span style="font-size: 11px; font-weight: 600; color: var(--text-3); background: var(--surface-2); padding: 2px 8px; border-radius: 4px;">Reverse DNS</span>
+                  </div>
+                </td>
+              </tr>
+              <tr class="switch-row" tabindex="0">
+                <td style="font-weight: 600;">Syslog Collector</td>
+                <td>
+                  <span class="status-inline" style="font-size: 13px;">
+                    <span class="status-dot"></span>
+                    <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="status-inline" style="font-size: 13px;">
+                    <span class="status-dot" style="background: var(--down); box-shadow: 0 0 6px oklch(65% 0.2 25 / 0.5);"></span>
+                    <span style="color: var(--text-2); font-size: 12px;">Unhealthy</span>
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Log Ingest</span>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-weight: 600;">NTP</span>
+                    <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); border: 1px solid var(--divider-strong); padding: 1px 6px; border-radius: 3px;">Read only</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-inline" style="font-size: 13px;">
+                    <span class="status-dot"></span>
+                    <span class="status-text up" style="font-size: 12px; font-weight: 600;">Enabled</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="status-inline" style="font-size: 13px;">
+                    <span class="status-dot" style="background: var(--text-3); box-shadow: none;"></span>
+                    <span style="color: var(--text-2); font-size: 12px;">Unknown</span>
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-size: 11px; font-weight: 600; color: var(--text-3); background: var(--surface-2); padding: 2px 8px; border-radius: 4px;">Time Sync</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Capabilities Reference -->
+        <div class="section" style="margin-top: 40px;">
+          <div class="section-title">Capabilities Reference</div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;">
+            <div style="padding: 12px 24px 12px 0; border-bottom: 1px solid var(--divider);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">IP Lookup</span>
+              <p style="font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.5;">Resolve IP addresses to hostnames and query DHCP lease data.</p>
+            </div>
+            <div style="padding: 12px 24px; border-bottom: 1px solid var(--divider); border-left: 1px solid var(--divider);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">MAC Lookup</span>
+              <p style="font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.5;">Look up MAC addresses across connected switches and DHCP leases.</p>
+            </div>
+            <div style="padding: 12px 0 12px 24px; border-bottom: 1px solid var(--divider); border-left: 1px solid var(--divider);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">DNS Records</span>
+              <p style="font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.5;">Create and manage DNS records for connected devices.</p>
+            </div>
+            <div style="padding: 12px 24px 12px 0;">
+              <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Reverse DNS</span>
+              <p style="font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.5;">Maintain PTR records for reverse DNS lookups automatically.</p>
+            </div>
+            <div style="padding: 12px 24px; border-left: 1px solid var(--divider);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Log Ingest</span>
+              <p style="font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.5;">Ingest syslog messages from network devices for analysis.</p>
+            </div>
+            <div style="padding: 12px 0 12px 24px; border-left: 1px solid var(--divider);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 4px;">Time Sync</span>
+              <p style="font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.5;">Provide NTP time synchronisation for network infrastructure.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== PROTOTYPE: INTEGRATION SHOW PAGE ======== -->
+<div class="shell" id="integration-show-page" style="border-top: 2px solid var(--divider-strong);">
+  <div class="sidebar">
+    <div style="padding: 0 20px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent)">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 0 1 7.145 4.125m-2.53 9.98A8.214 8.214 0 0 1 12 20.25m-7.145-4.125A8.214 8.214 0 0 1 3.75 12m2.53-5.855A8.214 8.214 0 0 1 12 3.75m0 4.125A4.125 4.125 0 1 1 7.875 12 4.125 4.125 0 0 1 12 7.875Zm0-4.125v4.125m8.25 4.125h-4.125M12 20.25v-4.125M3.75 12h4.125"/>
+        </svg>
+        <span style="font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -0.02em;">Aperture</span>
+      </div>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Overview</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        Dashboard
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Management</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+        Users
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"/></svg>
+        Switches
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Tools</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+        Stats
+      </a>
+      <a class="sidebar-item active" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+        Settings
+      </a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <a href="#">Admin</a> <span>/</span>
+        <a href="#">Settings</a> <span>/</span>
+        <a href="#">Integrations</a> <span>/</span>
+        DHCP Server
+      </div>
+      <div class="topbar-right">
+        <kbd>&#8984;K</kbd>
+        <div class="user-menu">
+          <div class="user-avatar">JC</div>
+          <span class="user-name">Jess</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-3)"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex: 1;">
+      <!-- Settings Sub-nav -->
+      <div style="width: 180px; flex-shrink: 0; border-right: 1px solid var(--divider); padding: 24px 0;">
+        <div class="sidebar-group">
+          <div class="sidebar-section-label">Integrations</div>
+          <a class="sidebar-item active" href="#" style="padding: 6px 20px; font-size: 13px;">Services</a>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">Switches</a>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">IPv6 Detection</a>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">DNS Detection</a>
+        </div>
+        <div class="sidebar-group" style="margin-top: 24px;">
+          <div class="sidebar-section-label">Appearance</div>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">Theme</a>
+        </div>
+        <div class="sidebar-group" style="margin-top: 24px;">
+          <div class="sidebar-section-label">General</div>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">Event</a>
+          <a class="sidebar-item" href="#" style="padding: 6px 20px; font-size: 13px;">Portal</a>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content" style="padding: 32px 40px 64px; max-width: 960px;">
+        <!-- Page Header with health indicator -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">DHCP Server</h1>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+              <span class="status-inline" style="font-size: 13px;">
+                <span class="status-dot"></span>
+                <span style="color: var(--text-2); font-size: 13px;">Healthy</span>
+              </span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" onclick="void(0)">Test Connection</button>
+            <button class="btn" style="background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700;" onclick="void(0)">Save</button>
+          </div>
+        </div>
+
+        <p style="font-size: 13px; color: var(--text-2); margin-top: 4px; max-width: 60ch; line-height: 1.6;">Provides DHCP lease data for IP and MAC address lookups. Connects to the ISC DHCP server REST API.</p>
+
+        <!-- Configuration Form -->
+        <div class="section" style="margin-top: 32px;">
+          <div class="section-title">Configuration</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px;">Server URL <span style="color: var(--down);">*</span></label>
+              <input type="url" value="https://dhcp.lan:8443/api" style="width: 100%; padding: 8px 12px; font-family: var(--font-mono); font-size: 13px; background: var(--surface-1); border: 1px solid var(--divider-strong); border-radius: 4px; color: var(--text); outline: none; transition: border-color 0.15s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--divider-strong)'">
+            </div>
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px;">API Key <span style="color: var(--down);">*</span></label>
+              <input type="password" value="sk-dhcp-xxxxxxxxxxxx" style="width: 100%; padding: 8px 12px; font-family: var(--font-mono); font-size: 13px; background: var(--surface-1); border: 1px solid var(--divider-strong); border-radius: 4px; color: var(--text); outline: none; transition: border-color 0.15s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--divider-strong)'">
+            </div>
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px;">Timeout (seconds)</label>
+              <input type="number" value="30" style="width: 100%; padding: 8px 12px; font-family: var(--font-mono); font-size: 13px; background: var(--surface-1); border: 1px solid var(--divider-strong); border-radius: 4px; color: var(--text); outline: none; transition: border-color 0.15s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--divider-strong)'">
+            </div>
+            <div>
+              <label style="display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px;">Verify SSL</label>
+              <div style="margin-top: 4px;">
+                <button type="button" style="position: relative; width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer; background: var(--accent); transition: background 0.2s;" onclick="void(0)">
+                  <span style="position: absolute; top: 2px; left: 22px; width: 20px; height: 20px; border-radius: 50%; background: white; transition: left 0.2s;"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Test Connection Result -->
+        <div class="section" style="margin-top: 8px;">
+          <div style="padding: 12px 16px; background: oklch(72% 0.17 155 / 0.08); border: 1px solid oklch(72% 0.17 155 / 0.2); border-radius: 4px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="status-dot"></span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--up);">Connected successfully</span>
+            </div>
+            <div style="margin-top: 6px; font-family: var(--font-mono); font-size: 12px; color: var(--text-2);">
+              <span style="font-weight: 600;">GET</span> https://dhcp.lan:8443/api/health &middot; Status <span style="color: var(--up);">200</span>
+            </div>
+            <details style="margin-top: 8px;">
+              <summary style="font-size: 11px; color: var(--text-3); cursor: pointer; list-style: none; display: flex; align-items: center; gap: 4px;">
+                <span style="font-family: var(--font-mono); font-size: 10px; transition: transform 0.15s; display: inline-block;">&#9656;</span> Show Output
+              </summary>
+              <pre style="margin-top: 8px; padding: 12px; background: var(--surface-1); border: 1px solid var(--divider); border-radius: 4px; font-family: var(--font-mono); font-size: 12px; color: var(--text-2); overflow-x: auto; line-height: 1.7;">{
+  "status": "ok",
+  "version": "4.4.3",
+  "leases": 142,
+  "uptime": "12d 4h 22m"
+}</pre>
+            </details>
+          </div>
+        </div>
+
+        <!-- Capabilities -->
+        <div class="section" style="margin-top: 32px;">
+          <div class="section-title">Capabilities</div>
+          <p style="font-size: 13px; color: var(--text-2); margin-bottom: 16px;">Toggle which features this service actively provides.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--accent-dim); border: 1px solid oklch(76% 0.16 55 / 0.3); border-radius: 4px; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: var(--font-body);">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent);"></span>
+              IP Lookup
+              <span style="font-size: 11px; color: var(--text-3); font-weight: 400;">On</span>
+            </button>
+            <button type="button" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--accent-dim); border: 1px solid oklch(76% 0.16 55 / 0.3); border-radius: 4px; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: var(--font-body);">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent);"></span>
+              MAC Lookup
+              <span style="font-size: 11px; color: var(--text-3); font-weight: 400;">On</span>
+            </button>
+            <button type="button" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: transparent; border: 1px solid var(--divider-strong); border-radius: 4px; color: var(--text-3); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: var(--font-body);">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); opacity: 0.4;"></span>
+              Lease History
+              <span style="font-size: 11px; font-weight: 400;">Off</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Connection Health Log -->
+        <div class="section" style="margin-top: 32px;">
+          <div class="section-title">Connection Health Log</div>
+          <p style="font-size: 13px; color: var(--text-2); margin-bottom: 16px;">Recent connectivity checks for this service.</p>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Request</th>
+                <th>Response</th>
+                <th>Message</th>
+                <th>Tested At</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot"></span>
+                    <span style="color: var(--up); font-size: 12px; font-weight: 600;">Success</span>
+                  </span>
+                </td>
+                <td class="cell-mono" style="font-size: 12px;">GET /api/health</td>
+                <td class="cell-mono" style="font-size: 12px;">200</td>
+                <td style="color: var(--text-2);">Connected</td>
+                <td style="color: var(--text-3); font-family: var(--font-mono); font-size: 12px;">2 min ago</td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot"></span>
+                    <span style="color: var(--up); font-size: 12px; font-weight: 600;">Success</span>
+                  </span>
+                </td>
+                <td class="cell-mono" style="font-size: 12px;">GET /api/health</td>
+                <td class="cell-mono" style="font-size: 12px;">200</td>
+                <td style="color: var(--text-2);">Connected</td>
+                <td style="color: var(--text-3); font-family: var(--font-mono); font-size: 12px;">32 min ago</td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot" style="background: var(--down); box-shadow: 0 0 6px oklch(65% 0.2 25 / 0.5);"></span>
+                    <span style="color: var(--down); font-size: 12px; font-weight: 600;">Failure</span>
+                  </span>
+                </td>
+                <td class="cell-mono" style="font-size: 12px;">GET /api/health</td>
+                <td class="cell-mono" style="font-size: 12px;">503</td>
+                <td>
+                  <span style="color: var(--text-2);">Service unavailable</span>
+                  <button style="display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); background: none; border: none; cursor: pointer; text-decoration: underline; font-family: var(--font-body); padding: 0;">Show Output</button>
+                </td>
+                <td style="color: var(--text-3); font-family: var(--font-mono); font-size: 12px;">1 hr ago</td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="status-inline" style="font-size: 12px;">
+                    <span class="status-dot"></span>
+                    <span style="color: var(--up); font-size: 12px; font-weight: 600;">Success</span>
+                  </span>
+                </td>
+                <td class="cell-mono" style="font-size: 12px;">GET /api/health</td>
+                <td class="cell-mono" style="font-size: 12px;">200</td>
+                <td style="color: var(--text-2);">Connected</td>
+                <td style="color: var(--text-3); font-family: var(--font-mono); font-size: 12px;">2 hr ago</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== PROTOTYPE: ADMIN DASHBOARD ======== -->
+<div class="shell" id="admin-dashboard" style="border-top: 2px solid var(--divider-strong);">
+  <div class="sidebar">
+    <div style="padding: 0 20px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--accent)">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75a8.25 8.25 0 0 1 7.145 4.125m-2.53 9.98A8.214 8.214 0 0 1 12 20.25m-7.145-4.125A8.214 8.214 0 0 1 3.75 12m2.53-5.855A8.214 8.214 0 0 1 12 3.75m0 4.125A4.125 4.125 0 1 1 7.875 12 4.125 4.125 0 0 1 12 7.875Zm0-4.125v4.125m8.25 4.125h-4.125M12 20.25v-4.125M3.75 12h4.125"/>
+        </svg>
+        <span style="font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -0.02em;">Aperture</span>
+      </div>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Overview</div>
+      <a class="sidebar-item active" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        Dashboard
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Management</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+        Users
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"/></svg>
+        IP Addresses
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z"/></svg>
+        Switches
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+        DHCP
+      </a>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="sidebar-section-label">Tools</div>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+        Stats
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+        Content
+      </a>
+      <a class="sidebar-item" href="#">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+        Settings
+      </a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <a href="#">Admin</a> <span>/</span>
+        Dashboard
+      </div>
+      <div class="topbar-right">
+        <kbd>&#8984;K</kbd>
+        <div class="user-menu">
+          <div class="user-avatar">JC</div>
+          <span class="user-name">Jess</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-3)"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+        </div>
+      </div>
+
+      <!-- Live Stats Strip -->
+      <div class="stat-row">
+        <div class="stat-item">
+          <div class="stat-label">
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--up); box-shadow: 0 0 6px oklch(72% 0.17 155 / 0.5); animation: pulse-dot 2s infinite;"></span>
+              Online Now
+            </span>
+          </div>
+          <div class="stat-value" style="color: var(--up);">47</div>
+          <div class="stat-sub">of 312 &middot; <span style="color: var(--up);">15%</span></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value">312</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">IPs Active</div>
+          <div class="stat-value">89</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Blocked</div>
+          <div class="stat-value" style="color: var(--down);">3</div>
+        </div>
+      </div>
+
+      <!-- Two Column: DHCP Pools + Port Errors -->
+      <div class="columns" style="grid-template-columns: 3fr 2fr; margin-bottom: 40px;">
+        <!-- DHCP Pools -->
+        <div class="section">
+          <div class="section-title">DHCP Pools</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Pool</th>
+                <th>Used</th>
+                <th>Total</th>
+                <th style="width: 120px;">Utilisation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600;">Users</td>
+                <td class="cell-mono">142</td>
+                <td class="cell-mono">254</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="pool-bar-track" style="flex: 1;">
+                      <div class="pool-bar-fill" style="width: 56%; background: var(--up);"></div>
+                    </div>
+                    <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-2); min-width: 32px; text-align: right;">56%</span>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Staff</td>
+                <td class="cell-mono">18</td>
+                <td class="cell-mono">62</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="pool-bar-track" style="flex: 1;">
+                      <div class="pool-bar-fill" style="width: 29%; background: var(--up);"></div>
+                    </div>
+                    <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-2); min-width: 32px; text-align: right;">29%</span>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Infrastructure</td>
+                <td class="cell-mono">31</td>
+                <td class="cell-mono">32</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="pool-bar-track" style="flex: 1;">
+                      <div class="pool-bar-fill" style="width: 97%; background: var(--down);"></div>
+                    </div>
+                    <span style="font-family: var(--font-mono); font-size: 11px; color: var(--down); min-width: 32px; text-align: right;">97%</span>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Guest WiFi</td>
+                <td class="cell-mono">6</td>
+                <td class="cell-mono">126</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="pool-bar-track" style="flex: 1;">
+                      <div class="pool-bar-fill" style="width: 5%; background: var(--up);"></div>
+                    </div>
+                    <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-2); min-width: 32px; text-align: right;">5%</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Port Errors -->
+        <div class="section">
+          <div class="section-title">Port Errors &mdash; Last 24h</div>
+          <div class="chart-area" style="height: 200px;">
+            <span class="chart-label">[ Port error rate chart renders here ]</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Users Table -->
+      <div class="section">
+        <div class="section-title">Top Bandwidth &amp; Recent Users</div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nickname</th>
+              <th>Email</th>
+              <th>IPs</th>
+              <th>Bandwidth</th>
+              <th>Status</th>
+              <th>Seen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="switch-row" tabindex="0">
+              <td><a class="cell-link" href="#">FragMaster</a></td>
+              <td style="color: var(--text-2);">alex@example.com</td>
+              <td class="cell-mono">3</td>
+              <td class="cell-mono">48.2 GB</td>
+              <td>
+                <span class="status-inline" style="font-size: 12px;">
+                  <span class="status-dot"></span>
+                  <span style="color: var(--up); font-size: 12px; font-weight: 600;">Active</span>
+                </span>
+              </td>
+              <td style="font-size: 12px; color: var(--text-3); font-family: var(--font-mono);">now</td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td><a class="cell-link" href="#">xX_Sniper_Xx</a></td>
+              <td style="color: var(--text-2);">jamie@example.com</td>
+              <td class="cell-mono">2</td>
+              <td class="cell-mono">31.7 GB</td>
+              <td>
+                <span class="status-inline" style="font-size: 12px;">
+                  <span class="status-dot"></span>
+                  <span style="color: var(--up); font-size: 12px; font-weight: 600;">Active</span>
+                </span>
+              </td>
+              <td style="font-size: 12px; color: var(--text-3); font-family: var(--font-mono);">2m</td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td><a class="cell-link" href="#">RocketGirl</a></td>
+              <td style="color: var(--text-2);">sam@example.com</td>
+              <td class="cell-mono">1</td>
+              <td class="cell-mono">22.4 GB</td>
+              <td>
+                <span class="status-inline" style="font-size: 12px;">
+                  <span class="status-dot"></span>
+                  <span style="color: var(--up); font-size: 12px; font-weight: 600;">Active</span>
+                </span>
+              </td>
+              <td style="font-size: 12px; color: var(--text-3); font-family: var(--font-mono);">5m</td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td><a class="cell-link" href="#">ToxicWaste</a></td>
+              <td style="color: var(--text-2);">toxic@example.com</td>
+              <td class="cell-mono">1</td>
+              <td class="cell-mono">18.9 GB</td>
+              <td>
+                <span class="status-inline" style="font-size: 12px;">
+                  <span class="status-dot" style="background: var(--down); box-shadow: 0 0 6px oklch(65% 0.2 25 / 0.5);"></span>
+                  <span style="color: var(--down); font-size: 12px; font-weight: 600;">Blocked</span>
+                </span>
+              </td>
+              <td style="font-size: 12px; color: var(--text-3); font-family: var(--font-mono);">12m</td>
+            </tr>
+            <tr class="switch-row" tabindex="0">
+              <td><a class="cell-link" href="#">CraftKing</a></td>
+              <td style="color: var(--text-2);">craft@example.com</td>
+              <td class="cell-mono">2</td>
+              <td class="cell-mono">14.1 GB</td>
+              <td>
+                <span class="status-inline" style="font-size: 12px;">
+                  <span class="status-dot"></span>
+                  <span style="color: var(--up); font-size: 12px; font-weight: 600;">Active</span>
+                </span>
+              </td>
+              <td style="font-size: 12px; color: var(--text-3); font-family: var(--font-mono);">8m</td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- Pagination -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--divider);">
+          <span style="font-size: 12px; color: var(--text-3); font-family: var(--font-mono);">1&ndash;5 of 312</span>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn" style="padding: 4px 10px; font-size: 12px; opacity: 0.4; cursor: default;">&larr;</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px; background: var(--accent-dim); border-color: oklch(76% 0.16 55 / 0.3); color: var(--accent);">1</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;">2</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;">3</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;">&hellip;</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;">63</button>
+            <button class="btn" style="padding: 4px 10px; font-size: 12px;">&rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== DESIGN DIRECTION NOTES ======== -->
+<div class="comparison">
+  <h2>Design Direction: Dispatch</h2>
+
+  <!-- Typography -->
+  <div style="margin-bottom: 48px;">
+    <div class="type-sample">
+      <h4>Display &mdash; Bricolage Grotesque</h4>
+      <div class="display">Gi1/0/24 &mdash; Seat 24, Row A</div>
+      <div class="display" style="font-size: 18px; font-weight: 600; font-variation-settings: 'opsz' 20; color: var(--text-2);">
+        Connected Devices &middot; Bandwidth &middot; Interface Errors
+      </div>
+    </div>
+    <div class="type-sample">
+      <h4>Body &mdash; Hanken Grotesk</h4>
+      <div class="body-text">
+        Toggle which features this service actively provides. Review service status, connection health, and active capabilities. All connected devices will lose connectivity.
+      </div>
+    </div>
+    <div class="type-sample">
+      <h4>Data &mdash; JetBrains Mono</h4>
+      <div class="mono-text">
+        AA:BB:CC:DD:EE:42 &nbsp;&middot;&nbsp; 10.0.1.42 &nbsp;&middot;&nbsp; fe80::1:42 &nbsp;&middot;&nbsp; VLAN 100 &nbsp;&middot;&nbsp; Gi1/0/24
+      </div>
+    </div>
+  </div>
+
+  <!-- Color Palette -->
+  <div style="margin-bottom: 48px;">
+    <div class="section-title" style="margin-bottom: 16px;">Color Palette &mdash; Warm Charcoal Base</div>
+    <div class="swatch-row">
+      <div>
+        <div class="swatch" style="background: oklch(13% 0.006 60);"></div>
+        <div class="swatch-label">bg</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(17% 0.006 60);"></div>
+        <div class="swatch-label">surf-1</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(21% 0.006 60);"></div>
+        <div class="swatch-label">surf-2</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(25% 0.006 60);"></div>
+        <div class="swatch-label">surf-3</div>
+      </div>
+      <div style="margin-left: 16px;">
+        <div class="swatch" style="background: oklch(95% 0.006 60);"></div>
+        <div class="swatch-label">text</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(75% 0.006 60);"></div>
+        <div class="swatch-label">text-2</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(55% 0.006 60);"></div>
+        <div class="swatch-label">text-3</div>
+      </div>
+    </div>
+    <div class="section-title" style="margin-bottom: 16px; margin-top: 24px;">Semantic Color &mdash; Meaning Only</div>
+    <div class="swatch-row">
+      <div>
+        <div class="swatch" style="background: oklch(76% 0.16 55);"></div>
+        <div class="swatch-label">accent</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(72% 0.17 155);"></div>
+        <div class="swatch-label">up</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(65% 0.2 25);"></div>
+        <div class="swatch-label">down</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(78% 0.15 85);"></div>
+        <div class="swatch-label">warn</div>
+      </div>
+      <div>
+        <div class="swatch" style="background: oklch(70% 0.1 240);"></div>
+        <div class="swatch-label">info</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Principles -->
+  <div style="margin-bottom: 48px;">
+    <div class="section-title" style="margin-bottom: 16px;">Core Principles</div>
+
+    <div class="principle">
+      <div class="principle-title">1. No containers — spacing is structure</div>
+      <div class="principle-desc">Sections separated by typography size and whitespace, not bordered cards. The interface reads like a well-set document, not a grid of boxes.</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">2. Color = meaning, never decoration</div>
+      <div class="principle-desc">Green means up. Red means down. Accent means action. Blue means data. The background is monochrome. Color is rare, so it's noticed. The accent hue is admin-configurable per event.</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">3. Dense but hierarchical</div>
+      <div class="principle-desc">More data visible per screen. Tight spacing on data, generous spacing between sections. The eye reads top-to-bottom, not card-to-card.</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">4. Purpose-built, not templated</div>
+      <div class="principle-desc">This doesn't look like "a web app." It looks like operations software — something built for a specific job by people who understand the domain.</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">5. Warm, not cold</div>
+      <div class="principle-desc">Charcoal blacks with sepia warmth instead of blue-tinted slate. Admin picks the accent hue per event &mdash; tangerine default, but a Quake tournament runs red, a Minecraft evening runs lime.</div>
+    </div>
+  </div>
+
+  <!-- Visual References -->
+  <div class="references">
+    <h3>Visual References &mdash; What to study</h3>
+    <div class="ref-grid">
+      <div class="ref-card">
+        <h4>Linear's Design Refresh</h4>
+        <p>Restrained hierarchy, warm neutrals, dimmed sidebar, structure through softened contrast rather than borders.</p>
+        <div class="what-to-see">Look at: sidebar dimming, tab compactness, the shift from cool to warm grays</div>
+        <br>
+        <a href="https://linear.app/now/behind-the-latest-design-refresh">linear.app &rarr;</a>
+      </div>
+      <div class="ref-card">
+        <h4>Bloomberg Terminal UX</h4>
+        <p>Maximum density, zero decoration. Color is semantic. Every element earns its pixel. The UI hides complexity through progressive disclosure.</p>
+        <div class="what-to-see">Look at: density, tabbed panels, color used only for data classification</div>
+        <br>
+        <a href="https://www.bloomberg.com/company/stories/innovating-a-modern-icon-how-bloomberg-keeps-the-terminal-cutting-edge/">bloomberg.com &rarr;</a>
+      </div>
+      <div class="ref-card">
+        <h4>F1 Pit Wall Telemetry</h4>
+        <p>Segmented zones, color-coded status, dense tables of timing data. Engineers process hundreds of data points per second — clarity under pressure.</p>
+        <div class="what-to-see">Look at: zone segmentation, how color signals status, extreme data density that remains readable</div>
+        <br>
+        <a href="https://medium.com/@eric.njuguna.mail/decoding-f1-telemetry-what-race-engineers-monitor-from-the-pit-wall-cebb16f77d49">medium.com &rarr;</a>
+      </div>
+      <div class="ref-card">
+        <h4>Bricolage Grotesque</h4>
+        <p>Variable font with optical size + width axes. At display sizes: confident, angular, distinctive. At text sizes: clean, readable.</p>
+        <div class="what-to-see">Look at: the 'g', 'a', 'R' letterforms. The way condensed widths feel anxious while regular widths feel assured.</div>
+        <br>
+        <a href="https://ateliertriay.github.io/bricolage/">ateliertriay.github.io &rarr;</a>
+      </div>
+      <div class="ref-card">
+        <h4>Hanken Grotesk</h4>
+        <p>Geometric but warm. Excellent at small sizes (13-14px). Professional without being cold. Wide weight range for hierarchy.</p>
+        <div class="what-to-see">Look at: readability at body sizes, the subtle geometric character, weight range</div>
+        <br>
+        <a href="https://fonts.google.com/specimen/Hanken+Grotesk">fonts.google.com &rarr;</a>
+      </div>
+      <div class="ref-card">
+        <h4>Datadog Dark Mode</h4>
+        <p>Observability dashboard with dark surfaces. Dense panels, charts, tables — all optimized for extended monitoring sessions.</p>
+        <div class="what-to-see">Look at: surface elevation without borders, chart styling on dark backgrounds, widget density</div>
+        <br>
+        <a href="https://www.datadoghq.com/blog/introducing-datadog-darkmode/">datadoghq.com &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== ACCENT PICKER ======== -->
+<div class="accent-picker" id="accentPicker">
+  <div class="accent-picker-title">Accent Color</div>
+  <div class="accent-options" id="accentOptions"></div>
+  <div class="accent-custom-row">
+    <label>Hue</label>
+    <input type="range" class="accent-hue-slider" id="hueSlider" min="0" max="360" value="55" oninput="onSliderInput(this.value)" onchange="onSliderInput(this.value)">
+    <span class="accent-hue-value" id="hueValue">55</span>
+  </div>
+  <div class="accent-note">
+    Admin-configurable: each event gets its own accent color. Stored as a single hue value in the theme system.
+  </div>
+</div>
+
+<script>
+const presets = [
+  { name: 'Pink',      hue: 350, l: 72, c: 0.19 },
+  { name: 'Coral',     hue: 20,  l: 73, c: 0.17 },
+  { name: 'Tangerine', hue: 55,  l: 76, c: 0.16 },
+  { name: 'Lime',      hue: 135, l: 80, c: 0.18 },
+  { name: 'Teal',      hue: 185, l: 76, c: 0.12 },
+  { name: 'Sky',       hue: 230, l: 72, c: 0.14 },
+  { name: 'Violet',    hue: 295, l: 70, c: 0.18 },
+  { name: 'Magenta',   hue: 325, l: 70, c: 0.2  },
+];
+
+const optionsEl = document.getElementById('accentOptions');
+const slider = document.getElementById('hueSlider');
+const hueLabel = document.getElementById('hueValue');
+
+// Build preset swatches
+presets.forEach(p => {
+  const wrap = document.createElement('div');
+  wrap.className = 'accent-swatch-wrap';
+
+  const swatch = document.createElement('div');
+  swatch.className = 'accent-swatch';
+  swatch.style.background = `oklch(${p.l}% ${p.c} ${p.hue})`;
+  swatch.dataset.hue = p.hue;
+  swatch.dataset.lightness = p.l;
+  swatch.dataset.chroma = p.c;
+  swatch.title = p.name;
+
+  const label = document.createElement('div');
+  label.className = 'accent-swatch-label';
+  label.textContent = p.name;
+
+  swatch.addEventListener('click', () => {
+    applyAccent(p.hue, p.l, p.c);
+    slider.value = p.hue;
+    hueLabel.textContent = p.hue;
+    setActive(swatch);
+  });
+
+  wrap.appendChild(swatch);
+  wrap.appendChild(label);
+  optionsEl.appendChild(wrap);
+});
+
+// Set initial active (Tangerine = index 2)
+setActive(optionsEl.querySelectorAll('.accent-swatch')[2]);
+
+function setActive(el) {
+  document.querySelectorAll('.accent-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function applyAccent(hue, l = 72, c = 0.19) {
+  const root = document.documentElement;
+  root.style.setProperty('--accent',       `oklch(${l}% ${c} ${hue})`);
+  root.style.setProperty('--accent-hover',  `oklch(${l - 7}% ${c + 0.03} ${hue})`);
+  root.style.setProperty('--accent-dim',    `oklch(${l}% ${c} ${hue} / 0.14)`);
+  root.style.setProperty('--accent-text',   `oklch(98% 0.01 ${hue})`);
+}
+
+function onSliderInput(val) {
+  var hue = parseInt(val);
+  document.getElementById('hueValue').textContent = hue;
+  applyAccent(hue, 72, 0.19);
+  document.querySelectorAll('.accent-swatch').forEach(function(s) { s.classList.remove('active'); });
+}
+
+// Fallback: also bind via addEventListener
+slider.addEventListener('input', function() { onSliderInput(this.value); });
+slider.addEventListener('change', function() { onSliderInput(this.value); });
+</script>
+
+</body>
+</html>
