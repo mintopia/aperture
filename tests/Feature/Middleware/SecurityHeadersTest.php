@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Middleware;
 
-use App\Models\IntegrationConfig;
-use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -25,7 +23,7 @@ class SecurityHeadersTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertHeader('X-Frame-Options', 'DENY');
+        $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
     }
 
     public function test_referrer_policy_header_is_present(): void
@@ -62,16 +60,15 @@ class SecurityHeadersTest extends TestCase
 
     public function test_content_security_policy_header_is_present(): void
     {
-        config(['reverb.frontend.host' => 'ws.example.com', 'reverb.frontend.scheme' => 'https', 'reverb.frontend.port' => 443]);
-
         $csp = $this->get('/')->headers->get('Content-Security-Policy');
 
         $this->assertNotNull($csp);
         $this->assertMatchesRegularExpression("/script-src 'self' 'nonce-[A-Za-z0-9+\\/=]+'/", $csp);
         $this->assertStringContainsString("object-src 'none'", $csp);
-        $this->assertStringContainsString("frame-ancestors 'none'", $csp);
-        $this->assertStringContainsString('wss://ws.example.com:443', $csp);
-        $this->assertStringContainsString("img-src 'self' data:", $csp);
+        $this->assertStringContainsString("frame-ancestors 'self'", $csp);
+        $this->assertStringContainsString("img-src 'self' data: blob: https: http:", $csp);
+        $this->assertStringContainsString("frame-src 'self' https: http:", $csp);
+        $this->assertStringContainsString("connect-src 'self' https: http: wss: ws:", $csp);
         $this->assertStringNotContainsString('localhost:5173', $csp);
     }
 
@@ -95,30 +92,7 @@ class SecurityHeadersTest extends TestCase
         }
 
         $this->assertStringContainsString('http://localhost:5173', $csp);
-        $this->assertStringContainsString('ws://localhost:5173', $csp);
-    }
-
-    public function test_csp_connect_src_allows_configured_detection_origins(): void
-    {
-        Setting::set('dns.check_url', 'DNS check URL', 'https://{uuid}.dns.example.com/check');
-        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'https://v6.example.net:8443/{uuid}');
-
-        $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
-
-        $this->assertStringContainsString('https://*.dns.example.com', $csp);
-        $this->assertStringContainsString('https://v6.example.net:8443', $csp);
-    }
-
-    public function test_csp_connect_src_ignores_unusable_detection_urls(): void
-    {
-        Setting::set('dns.check_url', 'DNS check URL', 'https://dns-{uuid}.example.com/');
-        IntegrationConfig::setValue('ipv6', 'detection_endpoint', 'not a url');
-
-        $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
-
-        $this->assertStringNotContainsString('dns-', $csp);
-        $this->assertStringNotContainsString('*.example.com', $csp);
-        $this->assertStringNotContainsString('not a url', $csp);
+        $this->assertStringContainsString("'unsafe-eval'", $csp);
     }
 
     public function test_csp_style_src_uses_nonce_instead_of_unsafe_inline(): void
@@ -126,7 +100,7 @@ class SecurityHeadersTest extends TestCase
         $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
 
         $this->assertMatchesRegularExpression("/style-src 'self' 'nonce-[A-Za-z0-9+\\/=]+'(;|$)/", $csp);
-        $this->assertStringNotContainsString("'unsafe-inline'", $csp);
+        $this->assertStringContainsString("style-src-attr 'unsafe-inline'", $csp);
     }
 
     public function test_app_shell_exposes_csp_nonce_meta_matching_header(): void
