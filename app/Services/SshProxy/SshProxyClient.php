@@ -39,6 +39,7 @@ class SshProxyClient implements SshProxyClientInterface
                 'commands' => $commands,
                 'port' => $port,
                 'channel' => $channel,
+                'auth_method' => filled($privateKey) ? 'private_key' : 'password',
                 'private_key' => $privateKey ?? '',
                 'passphrase' => $passphrase ?? '',
                 'host_key' => $hostKey ?? '',

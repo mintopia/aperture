@@ -4,9 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"io"
 	"sync"
 	"time"
+
+	"sshproxy/ssh"
 )
 
 const DefaultChannel = "commands"
@@ -44,7 +45,7 @@ type Entry struct {
 	Username      string
 	Channel       string
 	HostKey       string
-	Conn          io.Closer
+	Conn          ssh.Session
 	CreatedAt     time.Time
 	LastUsed      time.Time
 	Locked        bool
@@ -79,7 +80,21 @@ func New(idleTimeout, keepaliveInterval time.Duration) *Pool {
 	}
 }
 
-func (p *Pool) Acquire(key Key) (*Entry, bool, error) {
+type Lease struct {
+	pool  *Pool
+	key   Key
+	entry *Entry
+	isNew bool
+	once  sync.Once
+}
+
+func (l *Lease) IsNew() bool { return l.isNew }
+
+func (l *Lease) Conn() ssh.Session { return l.entry.Conn }
+
+func (l *Lease) HostKey() string { return l.entry.HostKey }
+
+func (p *Pool) Acquire(key Key) (*Lease, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -89,11 +104,11 @@ func (p *Pool) Acquire(key Key) (*Entry, bool, error) {
 			p.removeLocked(key, entry)
 		} else {
 			if entry.Locked {
-				return nil, false, ErrHostLocked
+				return nil, ErrHostLocked
 			}
 			entry.Locked = true
 			entry.LastUsed = time.Now()
-			return entry, false, nil
+			return &Lease{pool: p, key: key, entry: entry}, nil
 		}
 	}
 
@@ -107,44 +122,63 @@ func (p *Pool) Acquire(key Key) (*Entry, bool, error) {
 		LastUsed:  time.Now(),
 	}
 	p.entries[key] = entry
-	return entry, true, nil
+	return &Lease{pool: p, key: key, entry: entry, isNew: true}, nil
 }
 
-func (p *Pool) Release(key Key) {
+func (l *Lease) current() bool { return l.pool.entries[l.key] == l.entry }
+
+// Release is idempotent and a no-op once the entry has been removed or replaced.
+func (l *Lease) Release() {
+	l.once.Do(func() {
+		l.pool.mu.Lock()
+		defer l.pool.mu.Unlock()
+		if l.current() {
+			l.entry.Locked = false
+		}
+	})
+}
+
+func (l *Lease) Remove() {
+	p := l.pool
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
-	if entry, ok := p.entries[key]; ok {
-		entry.Locked = false
+	if l.current() {
+		p.removeLocked(l.key, l.entry)
 	}
 }
 
-func (p *Pool) SetConnection(key Key, conn io.Closer) {
+// SetConnection installs conn, closing any connection it replaces; if the lease is stale, it closes conn instead.
+func (l *Lease) SetConnection(conn ssh.Session) {
+	p := l.pool
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	entry, ok := p.entries[key]
-	if !ok {
+	if !l.current() {
+		conn.Close()
 		return
 	}
-
+	entry := l.entry
+	p.stopKeepaliveLocked(entry)
+	if entry.Conn != nil && entry.Conn != conn {
+		entry.Conn.Close()
+	}
 	entry.Conn = conn
+	entry.Dead = false
 
 	if p.keepaliveInterval > 0 {
 		if checker, ok := conn.(KeepaliveChecker); ok {
 			stopCh := make(chan struct{})
 			entry.keepaliveStop = stopCh
-			go p.keepaliveLoop(key, checker, stopCh)
+			go p.keepaliveLoop(l.key, checker, stopCh)
 		}
 	}
 }
 
-func (p *Pool) SetHostKey(key Key, hostKey string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if entry, ok := p.entries[key]; ok {
-		entry.HostKey = hostKey
+func (l *Lease) SetHostKey(hostKey string) {
+	l.pool.mu.Lock()
+	defer l.pool.mu.Unlock()
+	if l.current() {
+		l.entry.HostKey = hostKey
 	}
 }
 

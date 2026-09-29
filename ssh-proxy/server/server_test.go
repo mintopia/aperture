@@ -154,7 +154,7 @@ func TestRouting_Health_NoAuth(t *testing.T) {
 func TestRouting_Execute(t *testing.T) {
 	srv := testServer("test-key")
 
-	body := `{"hostname":"sw1","username":"admin","password":"pass","commands":[]}`
+	body := `{"hostname":"sw1","username":"admin","auth_method":"password","password":"pass","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer test-key")
 	w := httptest.NewRecorder()

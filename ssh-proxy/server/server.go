@@ -2,7 +2,6 @@ package server
 
 import (
 	"crypto/subtle"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"sshproxy/handler"
@@ -40,9 +39,7 @@ func authMiddleware(apiKey string, logger *slog.Logger, next http.HandlerFunc) h
 				"remote_addr", r.RemoteAddr,
 				"request_id", requestID,
 			)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Unauthorized"})
+			handler.WriteJSON(logger, w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 			return
 		}
 

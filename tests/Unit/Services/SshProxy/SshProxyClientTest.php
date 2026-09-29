@@ -61,6 +61,43 @@ class SshProxyClientTest extends TestCase
             && $request['channel'] === 'commands');
     }
 
+    public function test_execute_sends_matcher_objects_and_sensitive_flag_verbatim(): void
+    {
+        $proxyClient = $this->createClientWithFakes([Http::response(['success' => true, 'output' => []], 200)]);
+
+        $commands = [
+            ['command' => 'en', 'if' => ['type' => 'regex', 'value' => '^{prompt}>\s*$'], 'expect' => ['type' => 'literal', 'value' => 'Password:']],
+            ['command' => 'secret', 'sensitive' => true, 'if' => ['type' => 'literal', 'value' => 'Password:'], 'expect' => ['type' => 'regex', 'value' => '^{prompt}#\s*$']],
+            ['command' => 'show version', 'expect' => ['type' => 'regex', 'value' => '^{prompt}#\s*$']],
+        ];
+
+        $proxyClient->execute('h', 'u', 'p', $commands);
+
+        Http::assertSent(fn (Request $request): bool => $request['commands'] === $commands
+            && ! array_key_exists('sensitive', $request['commands'][0])
+            && $request['commands'][1]['sensitive'] === true);
+    }
+
+    public function test_execute_uses_password_auth_method_without_private_key(): void
+    {
+        $proxyClient = $this->createClientWithFakes([Http::response(['success' => true, 'output' => []], 200)]);
+
+        $proxyClient->execute('h', 'u', 'p', []);
+
+        Http::assertSent(fn (Request $request): bool => $request['auth_method'] === 'password' && $request['private_key'] === '');
+    }
+
+    public function test_execute_uses_private_key_auth_method_when_private_key_given(): void
+    {
+        $proxyClient = $this->createClientWithFakes([Http::response(['success' => true, 'output' => []], 200)]);
+
+        $proxyClient->execute('h', 'u', '', [], 22, 'commands', 'PEM', 'pp');
+
+        Http::assertSent(fn (Request $request): bool => $request['auth_method'] === 'private_key'
+            && $request['private_key'] === 'PEM'
+            && $request['passphrase'] === 'pp');
+    }
+
     public function test_execute_returns_parsed_json_response(): void
     {
         $responseData = [

@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"sshproxy/ssh"
 )
 
 type mockCloser struct {
@@ -17,6 +19,20 @@ type mockCloser struct {
 func (m *mockCloser) Close() error {
 	m.closed = true
 	return nil
+}
+
+func (m *mockCloser) Write(string) error { return nil }
+
+func (m *mockCloser) Read(time.Duration) string { return "" }
+
+func seed(t *testing.T, p *Pool, key Key, conn ssh.Session) {
+	t.Helper()
+	l, err := p.Acquire(key)
+	if err != nil {
+		t.Fatalf("seed acquire: %v", err)
+	}
+	l.SetConnection(conn)
+	l.Release()
 }
 
 type mockKeepaliveConn struct {
@@ -30,6 +46,10 @@ func (m *mockKeepaliveConn) Close() error {
 	m.closed = true
 	return nil
 }
+
+func (m *mockKeepaliveConn) Write(string) error { return nil }
+
+func (m *mockKeepaliveConn) Read(time.Duration) string { return "" }
 
 func (m *mockKeepaliveConn) SendKeepalive() error {
 	if m.shouldFail {
@@ -45,16 +65,14 @@ func (m *mockKeepaliveConn) SendKeepalive() error {
 func TestPool_AcquireNew(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	entry, isNew, err := p.Acquire(testKey("switch1.local", DefaultChannel))
+	lease, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !isNew {
+	if !lease.IsNew() {
 		t.Error("expected isNew to be true")
 	}
-	if entry == nil {
-		t.Fatal("expected non-nil entry")
-	}
+	entry := lease.entry
 	if !entry.Locked {
 		t.Error("expected entry to be locked")
 	}
@@ -69,22 +87,20 @@ func TestPool_AcquireNew(t *testing.T) {
 func TestPool_AcquireExisting(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 	conn := &mockCloser{}
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
-	entry, isNew, err := p.Acquire(testKey("switch1.local", DefaultChannel))
+	lease, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if isNew {
+	if lease.IsNew() {
 		t.Error("expected isNew to be false")
 	}
-	if entry.Conn != conn {
+	if lease.Conn() != conn {
 		t.Error("expected same connection to be reused")
 	}
-	if !entry.Locked {
+	if !lease.entry.Locked {
 		t.Error("expected entry to be locked after acquire")
 	}
 }
@@ -92,9 +108,9 @@ func TestPool_AcquireExisting(t *testing.T) {
 func TestPool_AcquireLocked(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
+	_, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 
-	_, _, err := p.Acquire(testKey("switch1.local", DefaultChannel))
+	_, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != ErrHostLocked {
 		t.Fatalf("expected ErrHostLocked, got %v", err)
 	}
@@ -103,27 +119,76 @@ func TestPool_AcquireLocked(t *testing.T) {
 func TestPool_Release(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.Release(testKey("switch1.local", DefaultChannel))
+	lease, _ := p.Acquire(testKey("switch1.local", DefaultChannel))
+	lease.Release()
 
-	_, _, err := p.Acquire(testKey("switch1.local", DefaultChannel))
+	_, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error after release: %v", err)
 	}
 }
 
-func TestPool_ReleaseNonExistent(t *testing.T) {
+func TestPool_LeaseReleaseIsIdempotentAndHeldLocks(t *testing.T) {
 	p := New(10*time.Minute, 0)
-	p.Release(testKey("nonexistent", DefaultChannel))
+	key := testKey("switch1.local", DefaultChannel)
+
+	lease, err := p.Acquire(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Acquire(key); !errors.Is(err, ErrHostLocked) {
+		t.Fatalf("expected ErrHostLocked while held, got %v", err)
+	}
+
+	lease.Release()
+	second, err := p.Acquire(key)
+	if err != nil {
+		t.Fatalf("expected acquire after release: %v", err)
+	}
+
+	lease.Release()
+	if _, err := p.Acquire(key); !errors.Is(err, ErrHostLocked) {
+		t.Fatalf("stale double release must not unlock a newer lease, got %v", err)
+	}
+	second.Release()
+}
+
+func TestPool_LeaseReleaseAfterRemoveDoesNotUnlockReplacement(t *testing.T) {
+	p := New(10*time.Minute, 0)
+	key := testKey("switch1.local", DefaultChannel)
+
+	old, _ := p.Acquire(key)
+	old.Remove()
+	replacement, err := p.Acquire(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	old.Release()
+	if _, err := p.Acquire(key); !errors.Is(err, ErrHostLocked) {
+		t.Fatalf("expected replacement to stay locked, got %v", err)
+	}
+	replacement.Release()
+}
+
+func TestPool_LeaseSetConnectionClosesReplacedConn(t *testing.T) {
+	p := New(10*time.Minute, 0)
+	lease, _ := p.Acquire(testKey("switch1.local", DefaultChannel))
+	first, second := &mockCloser{}, &mockCloser{}
+	lease.SetConnection(first)
+	lease.SetConnection(second)
+	if !first.closed || second.closed {
+		t.Errorf("expected only replaced conn closed: first=%v second=%v", first.closed, second.closed)
+	}
+	if lease.Conn() != second {
+		t.Error("expected new conn installed")
+	}
 }
 
 func TestPool_Remove(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 	conn := &mockCloser{}
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
 	p.Remove(testKey("switch1.local", DefaultChannel))
 
@@ -131,11 +196,11 @@ func TestPool_Remove(t *testing.T) {
 		t.Error("expected connection to be closed on remove")
 	}
 
-	_, isNew, err := p.Acquire(testKey("switch1.local", DefaultChannel))
+	lease, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !isNew {
+	if !lease.IsNew() {
 		t.Error("expected new entry after remove")
 	}
 }
@@ -148,15 +213,11 @@ func TestPool_RemoveNonExistent(t *testing.T) {
 func TestPool_SweepIdle(t *testing.T) {
 	p := New(50*time.Millisecond, 0)
 
-	_, _, _ = p.Acquire(testKey("idle-switch", DefaultChannel))
 	conn := &mockCloser{}
-	p.SetConnection(testKey("idle-switch", DefaultChannel), conn)
-	p.Release(testKey("idle-switch", DefaultChannel))
+	seed(t, p, testKey("idle-switch", DefaultChannel), conn)
 
-	_, _, _ = p.Acquire(testKey("active-switch", DefaultChannel))
 	activeConn := &mockCloser{}
-	p.SetConnection(testKey("active-switch", DefaultChannel), activeConn)
-	p.Release(testKey("active-switch", DefaultChannel))
+	seed(t, p, testKey("active-switch", DefaultChannel), activeConn)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -182,9 +243,9 @@ func TestPool_SweepIdle(t *testing.T) {
 func TestPool_SweepSkipsLocked(t *testing.T) {
 	p := New(1*time.Millisecond, 0)
 
-	_, _, _ = p.Acquire(testKey("locked-switch", DefaultChannel))
+	lease, _ := p.Acquire(testKey("locked-switch", DefaultChannel))
 	conn := &mockCloser{}
-	p.SetConnection(testKey("locked-switch", DefaultChannel), conn)
+	lease.SetConnection(conn)
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -200,9 +261,7 @@ func TestPool_SweepSkipsLocked(t *testing.T) {
 func TestPool_Status(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.SetConnection(testKey("switch1.local", DefaultChannel), &mockCloser{})
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), &mockCloser{})
 
 	uptime, infos := p.Status()
 
@@ -229,13 +288,9 @@ func TestPool_DisconnectAll(t *testing.T) {
 	conn1 := &mockCloser{}
 	conn2 := &mockCloser{}
 
-	_, _, _ = p.Acquire(testKey("switch1", DefaultChannel))
-	p.SetConnection(testKey("switch1", DefaultChannel), conn1)
-	p.Release(testKey("switch1", DefaultChannel))
+	seed(t, p, testKey("switch1", DefaultChannel), conn1)
 
-	_, _, _ = p.Acquire(testKey("switch2", DefaultChannel))
-	p.SetConnection(testKey("switch2", DefaultChannel), conn2)
-	p.Release(testKey("switch2", DefaultChannel))
+	seed(t, p, testKey("switch2", DefaultChannel), conn2)
 
 	p.DisconnectAll()
 
@@ -266,7 +321,7 @@ func TestPool_ConcurrentAccess(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			_, _, err := p.Acquire(testKey("shared-switch", DefaultChannel))
+			lease, err := p.Acquire(testKey("shared-switch", DefaultChannel))
 			if err == ErrHostLocked {
 				lockedMu.Lock()
 				lockedCount++
@@ -279,7 +334,7 @@ func TestPool_ConcurrentAccess(t *testing.T) {
 			}
 
 			time.Sleep(1 * time.Millisecond)
-			p.Release(testKey("shared-switch", DefaultChannel))
+			lease.Release()
 		}()
 	}
 
@@ -300,19 +355,19 @@ func TestPool_MultipleHostnames(t *testing.T) {
 	for _, host := range hosts {
 		go func(h string) {
 			defer wg.Done()
-			entry, isNew, err := p.Acquire(testKey(h, DefaultChannel))
+			lease, err := p.Acquire(testKey(h, DefaultChannel))
 			if err != nil {
 				t.Errorf("failed to acquire %s: %v", h, err)
 				return
 			}
-			if !isNew {
+			if !lease.IsNew() {
 				t.Errorf("expected new entry for %s", h)
 			}
-			if entry.Hostname != h {
-				t.Errorf("expected hostname %s, got %s", h, entry.Hostname)
+			if lease.entry.Hostname != h {
+				t.Errorf("expected hostname %s, got %s", h, lease.entry.Hostname)
 			}
-			p.SetConnection(testKey(h, DefaultChannel), &mockCloser{})
-			p.Release(testKey(h, DefaultChannel))
+			lease.SetConnection(&mockCloser{})
+			lease.Release()
 		}(host)
 	}
 
@@ -328,9 +383,7 @@ func TestPool_KeepaliveStartsOnSetConnection(t *testing.T) {
 	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{}
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
 	time.Sleep(150 * time.Millisecond)
 
@@ -346,9 +399,7 @@ func TestPool_KeepaliveMarksDeadOnFailure(t *testing.T) {
 	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{failAfter: 2}
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -367,21 +418,16 @@ func TestPool_AcquireEvictsDeadEntry(t *testing.T) {
 	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{shouldFail: true}
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
 	time.Sleep(100 * time.Millisecond)
 
-	entry, isNew, err := p.Acquire(testKey("switch1.local", DefaultChannel))
+	lease, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !isNew {
+	if !lease.IsNew() {
 		t.Error("expected isNew=true when acquiring dead entry")
-	}
-	if entry == nil {
-		t.Fatal("expected non-nil entry")
 	}
 	if !conn.closed {
 		t.Error("expected dead connection to be closed on eviction")
@@ -394,9 +440,7 @@ func TestPool_SweepEvictsDeadEntries(t *testing.T) {
 	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{shouldFail: true}
-	_, _, _ = p.Acquire(testKey("dead-switch", DefaultChannel))
-	p.SetConnection(testKey("dead-switch", DefaultChannel), conn)
-	p.Release(testKey("dead-switch", DefaultChannel))
+	seed(t, p, testKey("dead-switch", DefaultChannel), conn)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -413,9 +457,7 @@ func TestPool_KeepaliveStopsOnRemove(t *testing.T) {
 	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{}
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
 	time.Sleep(100 * time.Millisecond)
 	countBefore := conn.keepaliveCount.Load()
@@ -434,9 +476,7 @@ func TestPool_KeepaliveStopsOnDisconnectAll(t *testing.T) {
 	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{}
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
 	time.Sleep(100 * time.Millisecond)
 	countBefore := conn.keepaliveCount.Load()
@@ -455,9 +495,7 @@ func TestPool_NoKeepaliveWithZeroInterval(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
 	conn := &mockKeepaliveConn{}
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -473,9 +511,7 @@ func TestPool_KeepaliveDoesNotRunOnNonKeepaliveConn(t *testing.T) {
 	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockCloser{}
-	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
-	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
-	p.Release(testKey("switch1.local", DefaultChannel))
+	seed(t, p, testKey("switch1.local", DefaultChannel), conn)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -518,12 +554,13 @@ func TestNewKey_DiffersByEveryField(t *testing.T) {
 func TestPool_NoSharingAcrossCredentialsOrPort(t *testing.T) {
 	p := New(10*time.Minute, 0)
 	base := NewKey("sw", 22, "admin", "commands", "pw", "", "")
-	if _, _, err := p.Acquire(base); err != nil {
+	baseLease, err := p.Acquire(base)
+	if err != nil {
 		t.Fatal(err)
 	}
-	p.SetConnection(base, &mockCloser{})
-	p.SetHostKey(base, "ssh-ed25519 AAAA")
-	p.Release(base)
+	baseLease.SetConnection(&mockCloser{})
+	baseLease.SetHostKey("ssh-ed25519 AAAA")
+	baseLease.Release()
 
 	others := []Key{
 		NewKey("sw", 22, "admin", "commands", "wrong", "", ""),
@@ -533,25 +570,25 @@ func TestPool_NoSharingAcrossCredentialsOrPort(t *testing.T) {
 		NewKey("sw", 22, "root", "commands", "pw", "", ""),
 	}
 	for i, k := range others {
-		_, isNew, err := p.Acquire(k)
-		if err != nil || !isNew {
-			t.Fatalf("variant %d: expected fresh entry, isNew=%v err=%v", i, isNew, err)
+		l, err := p.Acquire(k)
+		if err != nil || !l.IsNew() {
+			t.Fatalf("variant %d: expected fresh entry, err=%v", i, err)
 		}
 	}
 
-	entry, isNew, err := p.Acquire(base)
-	if err != nil || isNew {
-		t.Fatalf("identical key must reuse: isNew=%v err=%v", isNew, err)
+	l, err := p.Acquire(base)
+	if err != nil || l.IsNew() {
+		t.Fatalf("identical key must reuse: err=%v", err)
 	}
-	if entry.HostKey != "ssh-ed25519 AAAA" {
-		t.Errorf("host key not remembered, got %q", entry.HostKey)
+	if l.HostKey() != "ssh-ed25519 AAAA" {
+		t.Errorf("host key not remembered, got %q", l.HostKey())
 	}
 }
 
 func TestPool_StatusIncludesPortAndUsername(t *testing.T) {
 	p := New(10*time.Minute, 0)
 	k := NewKey("sw", 2222, "admin", "commands", "secret")
-	_, _, _ = p.Acquire(k)
+	_, _ = p.Acquire(k)
 	_, infos := p.Status()
 	if len(infos) != 1 || infos[0].Port != 2222 || infos[0].Username != "admin" {
 		t.Fatalf("unexpected status: %+v", infos)
@@ -565,22 +602,24 @@ func TestPool_StatusIncludesPortAndUsername(t *testing.T) {
 func TestPool_DifferentChannelsSameHost(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	entry1, isNew1, err := p.Acquire(testKey("switch1", "commands"))
+	lease1, err := p.Acquire(testKey("switch1", "commands"))
 	if err != nil {
 		t.Fatalf("unexpected error acquiring commands channel: %v", err)
 	}
-	if !isNew1 {
+	entry1 := lease1.entry
+	if !lease1.IsNew() {
 		t.Error("expected isNew to be true for commands channel")
 	}
 	if entry1.Channel != "commands" {
 		t.Errorf("expected channel 'commands', got %q", entry1.Channel)
 	}
 
-	entry2, isNew2, err := p.Acquire(testKey("switch1", "polling"))
+	lease2, err := p.Acquire(testKey("switch1", "polling"))
 	if err != nil {
 		t.Fatalf("unexpected error acquiring polling channel: %v", err)
 	}
-	if !isNew2 {
+	entry2 := lease2.entry
+	if !lease2.IsNew() {
 		t.Error("expected isNew to be true for polling channel")
 	}
 	if entry2.Channel != "polling" {
@@ -594,14 +633,14 @@ func TestPool_DifferentChannelsSameHost(t *testing.T) {
 		t.Error("expected polling entry to be locked")
 	}
 
-	p.Release(testKey("switch1", "commands"))
+	lease1.Release()
 
-	_, _, err = p.Acquire(testKey("switch1", "commands"))
+	_, err = p.Acquire(testKey("switch1", "commands"))
 	if err != nil {
 		t.Fatalf("expected commands channel to be available after release: %v", err)
 	}
 
-	_, _, err = p.Acquire(testKey("switch1", "polling"))
+	_, err = p.Acquire(testKey("switch1", "polling"))
 	if err != ErrHostLocked {
 		t.Fatalf("expected polling channel to still be locked, got %v", err)
 	}
@@ -613,13 +652,9 @@ func TestPool_DifferentChannelsIndependentConnections(t *testing.T) {
 	conn1 := &mockCloser{}
 	conn2 := &mockCloser{}
 
-	_, _, _ = p.Acquire(testKey("switch1", "commands"))
-	p.SetConnection(testKey("switch1", "commands"), conn1)
-	p.Release(testKey("switch1", "commands"))
+	seed(t, p, testKey("switch1", "commands"), conn1)
 
-	_, _, _ = p.Acquire(testKey("switch1", "polling"))
-	p.SetConnection(testKey("switch1", "polling"), conn2)
-	p.Release(testKey("switch1", "polling"))
+	seed(t, p, testKey("switch1", "polling"), conn2)
 
 	p.Remove(testKey("switch1", "commands"))
 
@@ -630,14 +665,14 @@ func TestPool_DifferentChannelsIndependentConnections(t *testing.T) {
 		t.Error("expected polling connection to NOT be closed")
 	}
 
-	entry, isNew, err := p.Acquire(testKey("switch1", "polling"))
+	lease, err := p.Acquire(testKey("switch1", "polling"))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if isNew {
+	if lease.IsNew() {
 		t.Error("expected polling entry to still exist")
 	}
-	if entry.Conn != conn2 {
+	if lease.Conn() != conn2 {
 		t.Error("expected polling connection to be preserved")
 	}
 }
@@ -645,13 +680,9 @@ func TestPool_DifferentChannelsIndependentConnections(t *testing.T) {
 func TestPool_StatusReportsChannels(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	_, _, _ = p.Acquire(testKey("switch1", "commands"))
-	p.SetConnection(testKey("switch1", "commands"), &mockCloser{})
-	p.Release(testKey("switch1", "commands"))
+	seed(t, p, testKey("switch1", "commands"), &mockCloser{})
 
-	_, _, _ = p.Acquire(testKey("switch1", "polling"))
-	p.SetConnection(testKey("switch1", "polling"), &mockCloser{})
-	p.Release(testKey("switch1", "polling"))
+	seed(t, p, testKey("switch1", "polling"), &mockCloser{})
 
 	_, infos := p.Status()
 	if len(infos) != 2 {
@@ -677,15 +708,11 @@ func TestPool_StatusReportsChannels(t *testing.T) {
 func TestPool_SweepIdleWithChannels(t *testing.T) {
 	p := New(50*time.Millisecond, 0)
 
-	_, _, _ = p.Acquire(testKey("switch1", "commands"))
 	cmdConn := &mockCloser{}
-	p.SetConnection(testKey("switch1", "commands"), cmdConn)
-	p.Release(testKey("switch1", "commands"))
+	seed(t, p, testKey("switch1", "commands"), cmdConn)
 
-	_, _, _ = p.Acquire(testKey("switch1", "polling"))
 	pollConn := &mockCloser{}
-	p.SetConnection(testKey("switch1", "polling"), pollConn)
-	p.Release(testKey("switch1", "polling"))
+	seed(t, p, testKey("switch1", "polling"), pollConn)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -720,11 +747,11 @@ func TestPool_ConcurrentDifferentChannels(t *testing.T) {
 	for i, ch := range channels {
 		go func(idx int, channel string) {
 			defer wg.Done()
-			_, _, err := p.Acquire(testKey("switch1", channel))
+			lease, err := p.Acquire(testKey("switch1", channel))
 			errors[idx] = err
 			if err == nil {
 				time.Sleep(5 * time.Millisecond)
-				p.Release(testKey("switch1", channel))
+				lease.Release()
 			}
 		}(i, ch)
 	}
@@ -741,9 +768,9 @@ func TestPool_ConcurrentDifferentChannels(t *testing.T) {
 func TestPool_EntryHasChannel(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	entry, _, _ := p.Acquire(testKey("switch1", "polling"))
-	if entry.Channel != "polling" {
-		t.Errorf("expected channel 'polling', got %q", entry.Channel)
+	lease, _ := p.Acquire(testKey("switch1", "polling"))
+	if lease.entry.Channel != "polling" {
+		t.Errorf("expected channel 'polling', got %q", lease.entry.Channel)
 	}
 }
 
@@ -751,8 +778,8 @@ func TestPool_RemoveWhileLocked(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
 	conn := &mockCloser{}
-	_, _, _ = p.Acquire(testKey("switch1", DefaultChannel))
-	p.SetConnection(testKey("switch1", DefaultChannel), conn)
+	lease, _ := p.Acquire(testKey("switch1", DefaultChannel))
+	lease.SetConnection(conn)
 
 	p.Remove(testKey("switch1", DefaultChannel))
 
@@ -760,15 +787,12 @@ func TestPool_RemoveWhileLocked(t *testing.T) {
 		t.Error("expected connection to be closed on evict")
 	}
 
-	entry, isNew, err := p.Acquire(testKey("switch1", DefaultChannel))
+	fresh, err := p.Acquire(testKey("switch1", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !isNew {
+	if !fresh.IsNew() {
 		t.Error("expected new entry after evict")
-	}
-	if entry == nil {
-		t.Fatal("expected non-nil entry")
 	}
 }
 
