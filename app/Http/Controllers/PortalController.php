@@ -99,8 +99,6 @@ class PortalController extends Controller
                     );
                 }
 
-                // Dispatch on refresh too, so existing links can heal missing
-                // user associations (ADR-011).
                 event(new IpMacLinked($ip, $mac, 'ipv6_detection', 'ipv6_detection'));
             }
         }

@@ -33,7 +33,6 @@ const defaultProps = {
     users: [],
 };
 
-// TimeSeriesChart stub component — defined once so findComponent(TimeSeriesChartStub) works
 const TimeSeriesChartStub = {
     name: 'TimeSeriesChart',
     template: '<div data-testid="admin-bandwidth-chart" />',
@@ -93,7 +92,6 @@ describe('Admin IP Show bandwidth chart', () => {
 
         const wrapper = mountPage();
 
-        // Before fetch resolves, loading should be true
         const chart = wrapper.findComponent(TimeSeriesChartStub);
         expect(chart.props('loading')).toBe(true);
 
@@ -218,7 +216,6 @@ describe('Admin IP Show bandwidth chart', () => {
 
         expect(wrapper.find('[data-testid="bandwidth-error"]').exists()).toBe(true);
 
-        // Restore fetch to succeed and trigger a new range selection
         mockFetchSuccess();
 
         await wrapper.find('[data-testid="range-1h"]').trigger('click');

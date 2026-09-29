@@ -43,7 +43,6 @@ class PasskeyController extends Controller
 
     public function loginOptions(AssertionRequest $request): Responsable
     {
-        // CRITICAL: Must pass email to scope credentials to the user
         return $request->toVerify($request->only('email'));
     }
 

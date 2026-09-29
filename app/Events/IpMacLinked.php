@@ -14,12 +14,6 @@ class IpMacLinked
     use Dispatchable;
     use SerializesModels;
 
-    /**
-     * Create a new event instance.
-     *
-     * Dispatched whenever an IP↔MAC link is created or refreshed, so listeners
-     * can react to fresh evidence that a MAC currently holds an IP address.
-     */
     public function __construct(
         public IpAddress $ip,
         public MacAddress $mac,

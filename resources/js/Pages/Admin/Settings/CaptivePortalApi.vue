@@ -48,7 +48,6 @@ function submit() {
             whether they have internet access.
         </p>
 
-        <!-- API Endpoint -->
         <h2
             data-testid="section-heading-endpoint"
             class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -76,7 +75,6 @@ function submit() {
             responses. No authentication is required; the client is identified by source IP.
         </p>
 
-        <!-- DHCP Configuration -->
         <h2
             data-testid="section-heading-dhcp"
             class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -91,7 +89,6 @@ function submit() {
         </p>
 
         <div class="space-y-3" data-testid="dhcp-options">
-            <!-- DHCPv4 -->
             <div class="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                 <div class="flex items-start justify-between gap-4">
                     <div>
@@ -122,7 +119,6 @@ function submit() {
                 </div>
             </div>
 
-            <!-- DHCPv6 -->
             <div class="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                 <div class="flex items-start justify-between gap-4">
                     <div>
@@ -154,7 +150,6 @@ function submit() {
                 </div>
             </div>
 
-            <!-- IPv6 RA -->
             <div class="rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                 <div class="flex items-start justify-between gap-4">
                     <div>
@@ -185,7 +180,6 @@ function submit() {
             </div>
         </div>
 
-        <!-- Response Settings -->
         <h2
             data-testid="section-heading-response"
             class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -258,7 +252,6 @@ function submit() {
             </button>
         </form>
 
-        <!-- Example Response -->
         <h2
             data-testid="section-heading-example"
             class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"

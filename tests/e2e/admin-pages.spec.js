@@ -13,13 +13,9 @@ test.describe('IP Pages', () => {
         await expect(page.getByTestId('filter-search-input')).toBeVisible();
     });
 
-    test('IP list has pagination when multiple pages', async ({ page }) => {
+    test('IP list renders the data table', async ({ page }) => {
         await page.goto('/admin/ips');
-        // Pagination only renders when last_page > 1
-        const pagination = page.getByTestId('pagination');
-        // It may or may not exist depending on data volume
-        const tableExists = await page.getByTestId('data-table').isVisible();
-        expect(tableExists).toBe(true);
+        await expect(page.getByTestId('data-table')).toBeVisible();
     });
 
     test('IP create page renders form', async ({ page }) => {

@@ -1,5 +1,4 @@
 /**
- * Format a date string to a human-readable format.
  * @param {string|null} dateString - ISO 8601 or datetime string
  * @param {object} options - Intl.DateTimeFormat options override
  * @returns {string} Formatted date like "16 Apr 2026, 12:33"
@@ -24,8 +23,6 @@ export function formatDate(dateString, options = {}) {
 const relativeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'always', style: 'short' });
 
 /**
- * Format a date as relative time (e.g., "15 min. ago", "3 days ago").
- * Falls back to formatDate() for dates older than 7 days.
  * @param {string|null} dateString - ISO 8601 or datetime string
  * @returns {string} Relative time or formatted date
  */
@@ -51,7 +48,6 @@ export function formatRelative(dateString) {
     return formatDate(dateString);
 }
 
-// Values above 1e12 are treated as milliseconds, otherwise seconds.
 export function formatEpoch(epoch, options = {}) {
     const numeric = Number(epoch);
     if (epoch === null || epoch === undefined || epoch === '' || !Number.isFinite(numeric)) return '';

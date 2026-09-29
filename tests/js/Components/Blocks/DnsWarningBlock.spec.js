@@ -99,7 +99,6 @@ describe('DnsWarningBlock', () => {
         await flushPromises();
         expect(wrapper.find('[data-testid="block-dns-warning"]').exists()).toBe(true);
 
-        // Advance 60 seconds, trigger retry
         mockFetchResponse('event');
         vi.advanceTimersByTime(60000);
         await flushPromises();
@@ -151,7 +150,6 @@ describe('DnsWarningBlock', () => {
         await flushPromises();
         expect(fetchMock).toHaveBeenCalledTimes(1);
 
-        // Advancing time should NOT trigger another fetch
         vi.advanceTimersByTime(120000);
         await flushPromises();
         expect(fetchMock).toHaveBeenCalledTimes(1);

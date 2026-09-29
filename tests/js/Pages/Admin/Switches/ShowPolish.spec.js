@@ -29,7 +29,6 @@ vi.mock('@/utils/switches', () => ({
     formatVlan: vi.fn((vlan) => (vlan == null ? '—' : String(vlan))),
 }));
 
-// Set up global route function for script setup
 globalThis.route = (...args) => `/mocked/${args[0]}`;
 
 const defaultProps = {
@@ -88,12 +87,10 @@ describe('Show.vue - Polish', () => {
         it('action buttons have title attributes', () => {
             const wrapper = mountShow();
 
-            // Check sync button tooltip
             const syncButton = wrapper.find('[data-testid="action-sync"]');
             expect(syncButton.exists()).toBe(true);
             expect(syncButton.attributes('title')).toBe('Trigger a port sync from the switch');
 
-            // Check test button tooltip
             const testButton = wrapper.find('[data-testid="action-test"]');
             expect(testButton.exists()).toBe(true);
             expect(testButton.attributes('title')).toBe('Test SSH connectivity to this switch');

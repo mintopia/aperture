@@ -1,4 +1,3 @@
-# Use the FrankenPHP image for building/running composer
 FROM ghcr.io/mintopia/php-frankenphp-base:8.4.10 AS composer
 
 WORKDIR /app/
@@ -15,7 +14,6 @@ RUN composer install \
         --prefer-dist \
         --ignore-platform-reqs
 
-# Use the node24 LTS image to do an npm install
 FROM node:24-slim AS npm
 
 WORKDIR /app/
@@ -23,13 +21,11 @@ ENV HOME=/tmp
 RUN mkdir -p /app
 COPY --from=composer /app/ /app
 
-# Update npm within its current major to patch vulnerabilities
 RUN npm install -g npm@12
 
 RUN npm install --production=false && \
     npm run build
 
-# Now our final image
 FROM ghcr.io/mintopia/php-frankenphp-base:8.4.10
 LABEL org.opencontainers.image.authors="jess@mintopia.net"
 
@@ -47,7 +43,6 @@ RUN apk add --no-cache su-exec && \
 
 COPY docker/Caddyfile /
 
-# The entrypoint starts as root, hands writable paths to PUID:PGID, then drops privileges
 ENV PUID=82 \
     PGID=82
 

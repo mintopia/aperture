@@ -52,8 +52,6 @@ describe('Ips/Create', () => {
         expect(wrapper.find('[data-testid="field-limit"]').exists()).toBe(true);
     });
 
-    // ── Checkbox design-system styling ──────────────────────────────────────
-
     it('applies design-system classes to the allow checkbox', () => {
         const wrapper = mountPage();
         const checkbox = wrapper.find('[data-testid="field-allow"]');

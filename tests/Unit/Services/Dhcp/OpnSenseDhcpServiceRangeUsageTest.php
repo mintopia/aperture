@@ -65,7 +65,6 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
         $ranges = $service->snapshot()->ranges;
 
         $this->assertCount(1, $ranges);
-        // Totals are exact decimal numeric strings on the DhcpRange VO
         $this->assertSame('101', $ranges->first()->totalAddresses);
     }
 

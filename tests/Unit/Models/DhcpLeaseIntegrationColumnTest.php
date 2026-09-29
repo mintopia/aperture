@@ -62,9 +62,6 @@ class DhcpLeaseIntegrationColumnTest extends TestCase
 
         $this->expectException(QueryException::class);
 
-        // Identity is (ip_address_id, mac_address_id); integration is only
-        // a record of which integration reported the lease, so a second row
-        // for the same ip+mac still collides even under a different integration.
         DhcpLease::factory()->create([
             'integration' => 'vyos',
             'ip_address_id' => $ip->id,

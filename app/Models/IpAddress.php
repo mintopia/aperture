@@ -20,8 +20,6 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
 /**
- * App\Models\IpAddress
- *
  * @property int $id
  * @property string $address
  * @property string|null $address_sort
@@ -108,7 +106,6 @@ class IpAddress extends Model
         );
     }
 
-    // Fixed-width hex of the 16-byte form (IPv4 as ::ffff:a.b.c.d) so a plain ORDER BY is numeric on any driver.
     public static function sortKey(string $address): ?string
     {
         $packed = @inet_pton($address);

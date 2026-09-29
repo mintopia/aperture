@@ -150,7 +150,6 @@ class BroadcastChannelAuthorizationTest extends TestCase
             'channel_name' => 'private-admin.events',
         ]);
 
-        // Web middleware with auth redirects unauthenticated users
         $response->assertRedirect();
     }
 }

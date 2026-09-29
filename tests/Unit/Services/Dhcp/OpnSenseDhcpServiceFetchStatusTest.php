@@ -160,7 +160,6 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
 
     public function test_page_cap_marks_failed_instead_of_returning_partial_data(): void
     {
-        // total claims far more rows than the page cap allows
         $responses = array_fill(0, 500, $this->ok(['rows' => $this->rows(0, 100), 'total' => 1000000]));
         $service = $this->service($responses, post: true);
 

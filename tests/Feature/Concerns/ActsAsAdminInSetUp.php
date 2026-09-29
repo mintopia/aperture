@@ -8,12 +8,6 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
 
-/**
- * Shared setUp() boilerplate duplicated across several Admin settings-controller
- * Feature tests that eagerly authenticate as an admin for every test (as
- * opposed to CreatesAdminUsers, whose createAdminUser() is called per-test).
- * Not a test itself — consuming classes must still `use LazilyRefreshDatabase, ActsAsAdminInSetUp;`.
- */
 trait ActsAsAdminInSetUp
 {
     protected User $admin;

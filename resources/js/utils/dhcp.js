@@ -1,10 +1,4 @@
 /**
- * Expand an IPv6 address to its full 8-hextet form and return its value as a
- * 128-bit BigInt, or null if the address is not valid pure IPv6.
- *
- * Handles `::` zero-compression. IPv4 and IPv4-mapped forms (anything
- * containing a dot) are rejected.
- *
  * @param {string} address
  * @returns {bigint|null}
  */
@@ -39,21 +33,6 @@ function ipv6ToBigInt(address) {
 }
 
 /**
- * Check whether an IPv6 address falls within a CIDR prefix.
- *
- * Both the address and the prefix network are expanded from any compressed
- * form (`::`), converted to 128-bit values, masked by the prefix length, and
- * compared — so zero-compressed prefixes such as "2001:db8::/64" and
- * non-hextet-aligned lengths such as /63 are handled correctly. Matching is
- * case-insensitive and tolerant of non-canonical forms (e.g. leading zeros).
- *
- * Returns false for anything that cannot be evaluated as a pure-IPv6
- * containment check: null/empty inputs, a prefix without "/len", a length
- * outside 1-128, malformed addresses, and IPv4 or IPv4-mapped inputs.
- *
- * A /0 prefix also returns false: a degenerate "match everything" pool would
- * otherwise show every lease, which is never the intent of pool filtering.
- *
  * @param {string} ip
  * @param {string} prefix
  * @returns {boolean}

@@ -13,17 +13,11 @@ use Illuminate\Support\Collection;
 class PortStatusSync
 {
     /**
-     * Upsert pre-fetched port statuses into the database.
-     *
-     * Pre-loads all existing ports in one query (avoids N+1) and matches
-     * against the provided $portStatuses collection.
-     *
      * @param  Collection<int, PortStatus>  $portStatuses
      * @return array{created: int, updated: int, stateChanges: array<int, array{switchPort: SwitchPort, oldStatus: ?string, newStatus: string}>}
      */
     public function sync(Collection $portStatuses, SwitchConfig $switchConfig, Carbon $syncStartedAt): array
     {
-        // Pre-load all existing ports keyed by port_name to avoid N+1 queries.
         $existingPorts = SwitchPort::where('switch_config_id', $switchConfig->id)
             ->get()
             ->keyBy('port_name');

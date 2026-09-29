@@ -32,7 +32,6 @@ function submit() {
     <Head :title="`Edit ${user.nickname}`" />
 
     <div class="space-y-6">
-        <!-- Page Header -->
         <header class="mb-2 flex items-start justify-between gap-6">
             <div>
                 <h1
@@ -49,7 +48,6 @@ function submit() {
         </header>
 
         <form data-testid="edit-user-form" class="space-y-6" @submit.prevent="submit">
-            <!-- Basic Info -->
             <section>
                 <h2
                     class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -80,7 +78,6 @@ function submit() {
                 </div>
             </section>
 
-            <!-- Password Section -->
             <section>
                 <h2
                     class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -142,7 +139,6 @@ function submit() {
                 </div>
             </section>
 
-            <!-- Roles -->
             <section v-if="availableRoles.length > 0">
                 <h2
                     class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -171,7 +167,6 @@ function submit() {
                 </p>
             </section>
 
-            <!-- Actions -->
             <div class="flex items-center gap-3 pt-1">
                 <button
                     type="submit"

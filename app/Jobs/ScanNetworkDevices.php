@@ -232,7 +232,6 @@ class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
                 );
             }
 
-            // Dispatch on refresh too so links that never got a user association can heal (ADR-011).
             event(new IpMacLinked($ip, $mac, $pair['source'], 'scan_network'));
         }
     }

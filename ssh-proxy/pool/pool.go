@@ -1,4 +1,3 @@
-// Package pool provides a thread-safe SSH connection pool.
 package pool
 
 import (
@@ -10,19 +9,14 @@ import (
 	"time"
 )
 
-// DefaultChannel is the channel used when no channel is specified.
 const DefaultChannel = "commands"
 
 var ErrHostLocked = errors.New("host is currently locked by another request")
 
-// KeepaliveChecker is implemented by connections that support SSH keepalive.
-// The pool sends periodic keepalive requests to detect dead connections.
 type KeepaliveChecker interface {
 	SendKeepalive() error
 }
 
-// Key identifies a pooled connection. It is comparable and never exposes
-// the credentials it was derived from.
 type Key struct {
 	Hostname string
 	Port     int
@@ -31,8 +25,6 @@ type Key struct {
 	credHash [sha256.Size]byte
 }
 
-// NewKey builds a Key; creds (e.g. password, private key, passphrase) are
-// hashed positionally so different credentials never share a connection.
 func NewKey(hostname string, port int, username, channel string, creds ...string) Key {
 	h := sha256.New()
 	var n [8]byte
@@ -46,7 +38,6 @@ func NewKey(hostname string, port int, username, channel string, creds ...string
 	return k
 }
 
-// Entry represents a pooled connection for a single Key.
 type Entry struct {
 	Hostname      string
 	Port          int
@@ -61,7 +52,6 @@ type Entry struct {
 	keepaliveStop chan struct{}
 }
 
-// ConnectionInfo describes a pooled connection's current state for status reporting.
 type ConnectionInfo struct {
 	Hostname           string `json:"hostname"`
 	Port               int    `json:"port"`
@@ -72,7 +62,6 @@ type ConnectionInfo struct {
 	Locked             bool   `json:"locked"`
 }
 
-// All methods are safe for concurrent use.
 type Pool struct {
 	mu                sync.Mutex
 	entries           map[Key]*Entry
@@ -81,10 +70,6 @@ type Pool struct {
 	startedAt         time.Time
 }
 
-// New creates a connection pool that evicts idle connections after idleTimeout.
-// Connections that implement KeepaliveChecker receive keepalive requests at
-// keepaliveInterval (zero disables keepalive). If a keepalive fails, the
-// connection is marked dead and evicted on the next Acquire or SweepIdle call.
 func New(idleTimeout, keepaliveInterval time.Duration) *Pool {
 	return &Pool{
 		entries:           make(map[Key]*Entry),
@@ -94,9 +79,6 @@ func New(idleTimeout, keepaliveInterval time.Duration) *Pool {
 	}
 }
 
-// Dead entries are evicted and treated as new (requiring a fresh connection).
-// Returns the entry, whether it is new (needs a connection), and any error.
-// The returned entry is always locked — the caller must call Release when done.
 func (p *Pool) Acquire(key Key) (*Entry, bool, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -128,7 +110,6 @@ func (p *Pool) Acquire(key Key) (*Entry, bool, error) {
 	return entry, true, nil
 }
 
-// Release unlocks the entry for the given key.
 func (p *Pool) Release(key Key) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -138,9 +119,6 @@ func (p *Pool) Release(key Key) {
 	}
 }
 
-// SetConnection stores the SSH connection on an existing entry.
-// If the pool has a keepalive interval configured and the connection
-// implements KeepaliveChecker, a keepalive goroutine is started.
 func (p *Pool) SetConnection(key Key, conn io.Closer) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -170,8 +148,6 @@ func (p *Pool) SetHostKey(key Key, hostKey string) {
 	}
 }
 
-// Remove closes and removes the entry for the given key, regardless of its
-// lock state, stopping its keepalive goroutine if one is running.
 func (p *Pool) Remove(key Key) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -181,9 +157,6 @@ func (p *Pool) Remove(key Key) {
 	}
 }
 
-// SweepIdle removes and closes all unlocked connections that have been
-// idle longer than the pool's idle timeout, as well as any connections
-// marked dead by a failed keepalive. Returns the number removed.
 func (p *Pool) SweepIdle() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -207,7 +180,6 @@ func (p *Pool) SweepIdle() int {
 	return removed
 }
 
-// Status returns the server uptime in seconds and info about all pooled connections.
 func (p *Pool) Status() (int, []ConnectionInfo) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -229,8 +201,6 @@ func (p *Pool) Status() (int, []ConnectionInfo) {
 	return uptime, infos
 }
 
-// DisconnectAll closes and removes all pooled connections,
-// stopping all keepalive goroutines.
 func (p *Pool) DisconnectAll() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -240,8 +210,6 @@ func (p *Pool) DisconnectAll() {
 	}
 }
 
-// removeLocked stops keepalive, closes the connection and deletes the entry.
-// Must be called with p.mu held.
 func (p *Pool) removeLocked(key Key, entry *Entry) {
 	p.stopKeepaliveLocked(entry)
 	if entry.Conn != nil {
@@ -250,8 +218,6 @@ func (p *Pool) removeLocked(key Key, entry *Entry) {
 	delete(p.entries, key)
 }
 
-// stopKeepaliveLocked signals the keepalive goroutine for an entry to stop.
-// Must be called with p.mu held.
 func (p *Pool) stopKeepaliveLocked(entry *Entry) {
 	if entry.keepaliveStop != nil {
 		close(entry.keepaliveStop)
@@ -259,8 +225,6 @@ func (p *Pool) stopKeepaliveLocked(entry *Entry) {
 	}
 }
 
-// keepaliveLoop sends periodic keepalive requests to detect dead connections.
-// It marks the entry as Dead if a keepalive fails.
 func (p *Pool) keepaliveLoop(key Key, checker KeepaliveChecker, stopCh chan struct{}) {
 	ticker := time.NewTicker(p.keepaliveInterval)
 	defer ticker.Stop()

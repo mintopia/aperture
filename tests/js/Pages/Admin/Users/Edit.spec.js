@@ -89,8 +89,6 @@ describe('Edit User', () => {
         expect(wrapper.find('[data-testid="edit-user-cancel"]').exists()).toBe(true);
     });
 
-    // ── Checkbox design-system styling ──────────────────────────────────────
-
     it('applies design-system classes to the clear-password checkbox', () => {
         const wrapper = mountEdit({ ...defaultUser, has_password: true });
         const checkbox = wrapper.find('[data-testid="edit-user-clear-password"]');

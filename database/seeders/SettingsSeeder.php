@@ -7,9 +7,6 @@ use Illuminate\Database\Seeder;
 
 class SettingsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $settings = [
@@ -38,7 +35,6 @@ class SettingsSeeder extends Seeder
             if (! $setting) {
                 $setting = new Setting;
                 $setting->code = $config->code;
-                // Set value here only on creation to not override values
                 $setting->value = $config->value;
             }
             $setting->name = $config->name;

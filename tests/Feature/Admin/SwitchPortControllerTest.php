@@ -36,10 +36,6 @@ class SwitchPortControllerTest extends TestCase
         return $user;
     }
 
-    // -------------------------------------------------------------------------
-    // Authentication & Authorization
-    // -------------------------------------------------------------------------
-
     #[DataProvider('portRoutesProvider')]
     public function test_unauthenticated_user_is_redirected_from_port_route(string $method, string $pathSuffix): void
     {
@@ -78,10 +74,6 @@ class SwitchPortControllerTest extends TestCase
             'refresh' => ['post', '/refresh'],
         ];
     }
-
-    // -------------------------------------------------------------------------
-    // Show — data-testid: switch-port-show-page
-    // -------------------------------------------------------------------------
 
     public function test_admin_can_view_switch_port_details(): void
     {
@@ -247,10 +239,6 @@ class SwitchPortControllerTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Prev / Next Port Navigation
-    // -------------------------------------------------------------------------
-
     public function test_port_show_includes_prev_and_next_ports(): void
     {
         $admin = $this->createAdminUser();
@@ -323,10 +311,6 @@ class SwitchPortControllerTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Refresh — dispatches SyncSwitchPortsJob
-    // -------------------------------------------------------------------------
-
     public function test_admin_can_refresh_port(): void
     {
         Queue::fake();
@@ -339,10 +323,6 @@ class SwitchPortControllerTest extends TestCase
         $response->assertSessionHas('success');
         Queue::assertPushed(SyncSwitchPortsJob::class, fn (SyncSwitchPortsJob $job): bool => $job->switchConfig->id === $switch->id);
     }
-
-    // -------------------------------------------------------------------------
-    // Shutdown — dispatches SwitchPortActionJob
-    // -------------------------------------------------------------------------
 
     public function test_admin_can_shutdown_port(): void
     {
@@ -370,10 +350,6 @@ class SwitchPortControllerTest extends TestCase
         $response->assertRedirect();
     }
 
-    // -------------------------------------------------------------------------
-    // Enable — dispatches SwitchPortActionJob
-    // -------------------------------------------------------------------------
-
     public function test_admin_can_enable_port(): void
     {
         Queue::fake();
@@ -388,10 +364,6 @@ class SwitchPortControllerTest extends TestCase
             && $job->portId === 'Gi0/1'
             && $job->action === 'enable');
     }
-
-    // -------------------------------------------------------------------------
-    // Switch scoping — ensure port actions operate on the correct switch
-    // -------------------------------------------------------------------------
 
     public function test_port_actions_are_scoped_to_switch(): void
     {
@@ -429,10 +401,6 @@ class SwitchPortControllerTest extends TestCase
             && $job->action === 'shutdown');
     }
 
-    // -------------------------------------------------------------------------
-    // IP resolution
-    // -------------------------------------------------------------------------
-
     public function test_port_show_handles_mac_with_no_linked_record_gracefully(): void
     {
         $admin = $this->createAdminUser();
@@ -463,10 +431,6 @@ class SwitchPortControllerTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // toIso8601String
-    // -------------------------------------------------------------------------
-
     public function test_port_show_has_null_last_synced_at_when_not_set(): void
     {
         $admin = $this->createAdminUser();
@@ -488,10 +452,6 @@ class SwitchPortControllerTest extends TestCase
             ->where('port.last_synced_at', null)
         );
     }
-
-    // -------------------------------------------------------------------------
-    // MAC → IP → User resolution
-    // -------------------------------------------------------------------------
 
     public function test_port_show_includes_user_data_when_ip_user_relationship_exists(): void
     {
@@ -636,10 +596,6 @@ class SwitchPortControllerTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Route-level command injection prevention (#9)
-    // -------------------------------------------------------------------------
-
     #[DataProvider('showInjectionPayloadsProvider')]
     public function test_show_route_rejects_command_injection(string $encodedPortId): void
     {
@@ -687,8 +643,6 @@ class SwitchPortControllerTest extends TestCase
         $admin = $this->createAdminUser();
         $switch = SwitchConfig::factory()->create();
 
-        // The port_name below matches the route (404 would come from a missing
-        // port record, not from the route pattern rejecting the format).
         SwitchPort::factory()->create([
             'switch_config_id' => $switch->id,
             'port_name' => $portName,
@@ -707,10 +661,6 @@ class SwitchPortControllerTest extends TestCase
             'ten gigabit interface' => ['Te1/1/1', 'Te1%2F1%2F1'],
         ];
     }
-
-    // -------------------------------------------------------------------------
-    // Route names
-    // -------------------------------------------------------------------------
 
     public function test_route_names_for_switch_ports(): void
     {

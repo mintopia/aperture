@@ -1,6 +1,4 @@
 /**
- * Format a byte count into a human-readable string.
- *
  * @param {number} bytes
  * @returns {string}
  */
@@ -10,8 +8,6 @@ export function formatBytes(bytes) {
 }
 
 /**
- * Format a byte count into separate value and unit components.
- *
  * @param {number} bytes
  * @returns {{ value: string, unit: string }}
  */
@@ -23,13 +19,6 @@ export function formatBytesComponents(bytes) {
 }
 
 /**
- * Format a DHCP pool address total for display.
- *
- * Totals arrive as exact decimal numeric strings (they can exceed
- * Number.MAX_SAFE_INTEGER, e.g. 2^64 for an IPv6 /64). Totals below one
- * million render with locale grouping; larger totals render in scientific
- * notation with two significant digits (e.g. "1.8e19").
- *
  * @param {string|number} value
  * @returns {string}
  */
@@ -41,9 +30,6 @@ export function formatPoolTotal(value) {
 }
 
 /**
- * Normalize a MAC address to aa:bb:cc:dd:ee:ff format.
- * Handles colon-separated, hyphen-separated, Cisco dot notation, and bare hex.
- *
  * @param {string} mac
  * @returns {string}
  */

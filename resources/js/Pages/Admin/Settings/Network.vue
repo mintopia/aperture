@@ -72,7 +72,6 @@ function confirmClear() {
         </h1>
 
         <form class="space-y-4" data-testid="network-settings-form" @submit.prevent="submit">
-            <!-- Managed Network Ranges -->
             <h2
                 data-testid="section-heading-ranges"
                 class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -106,7 +105,6 @@ function confirmClear() {
                 />
             </FormField>
 
-            <!-- Network Defaults -->
             <h2
                 data-testid="section-heading-defaults"
                 class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -134,7 +132,6 @@ function confirmClear() {
                 </label>
             </FormField>
 
-            <!-- OUI Auto-Allow -->
             <h2
                 data-testid="section-heading-oui"
                 class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -168,7 +165,6 @@ function confirmClear() {
             </button>
         </form>
 
-        <!-- Maintenance -->
         <h2
             data-testid="section-heading-maintenance"
             class="font-heading mt-10 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -204,7 +200,6 @@ function confirmClear() {
             </button>
         </div>
 
-        <!-- Clear IP→MAC Mappings Confirmation Modal -->
         <ConfirmModal
             :show="showClearModal"
             title="Clear Stale IP to MAC Mappings"

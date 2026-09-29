@@ -11,9 +11,6 @@ use App\Models\SwitchConfig;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Generates human-readable descriptions for audit log entries.
- */
 final class AuditLogDescriptionGenerator
 {
     public static function generate(AuditLog $log): string

@@ -121,12 +121,9 @@ describe('MarkdownEditor', () => {
 
     describe('markdown conversion', () => {
         it('uses marked for markdown to HTML conversion (not bare regex)', async () => {
-            // marked handles complex markdown correctly, e.g. nested elements
             const wrapper = mount(MarkdownEditor, {
                 props: { modelValue: '**bold** and _italic_' },
             });
-            // If marked is used, the visual editor content will render correctly
-            // We verify the component mounts without error and the editor is present
             expect(wrapper.find('[data-testid="editor-visual"]').exists()).toBe(true);
         });
 
@@ -134,14 +131,12 @@ describe('MarkdownEditor', () => {
             const wrapper = mount(MarkdownEditor, {
                 props: { modelValue: '# Heading\n\nSome **bold** text' },
             });
-            // Switching to source should preserve markdown correctly
             await wrapper.find('[data-testid="editor-mode-source"]').trigger('click');
             const textarea = wrapper.find('[data-testid="editor-source"]');
             expect(textarea.exists()).toBe(true);
         });
     });
 
-    // --- Accessibility: aria-label on toolbar buttons (WCAG 4.1.2) ---
     describe('toolbar button aria-labels', () => {
         const toolbarButtons = [
             { testid: 'toolbar-bold', label: 'Bold' },

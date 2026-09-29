@@ -50,7 +50,6 @@ class UserAddIpManagedRangeTest extends TestCase
     public function add_ip_manages_all_when_no_settings_exist(): void
     {
         Queue::fake();
-        // No settings in DB — defaults to 0.0.0.0/0 and ::/0
         $user = User::factory()->create();
         $result = resolve(UserNetworkAssociationService::class)->addIp($user, '203.0.113.50');
 

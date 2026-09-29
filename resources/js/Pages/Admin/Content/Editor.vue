@@ -22,18 +22,15 @@ const addingBlock = ref(false);
 
 const { totalRows, moveBlock, computeDisplacement, cellFromPointer } = useGridEditor(localBlocks);
 
-// Drag state
 const dragging = ref(null);
 const dragGhostPos = ref(null);
 const positionSnapshot = ref(null);
 const previewDisplacement = ref({});
 
-// Resize state
 const resizing = ref(null);
 const resizeStartPos = ref(null);
 const justResized = ref(false);
 
-// Template ref for grid element
 const gridRef = ref(null);
 
 function getBlock(id) {
@@ -392,7 +389,6 @@ onBeforeUnmount(() => {
             }"
             @keydown.escape="cancelDrag"
         >
-            <!-- Ghost outline during drag -->
             <div
                 v-if="dragGhostPos"
                 data-testid="drag-ghost"
@@ -404,7 +400,6 @@ onBeforeUnmount(() => {
                 }"
             />
 
-            <!-- Rendered blocks -->
             <div
                 v-for="block in localBlocks"
                 :key="block.id"
@@ -418,7 +413,6 @@ onBeforeUnmount(() => {
                 }"
                 @click="selectBlock(block)"
             >
-                <!-- Drag handle bar -->
                 <div
                     :data-testid="'drag-handle-' + block.id"
                     class="absolute inset-x-0 top-0 flex h-6 cursor-grab items-center justify-center rounded-t-md opacity-30 transition-opacity hover:opacity-60"
@@ -440,7 +434,6 @@ onBeforeUnmount(() => {
                 <div class="absolute top-2 right-2 text-[10px] text-[var(--color-text-muted)]">
                     {{ block.col_span }}&times;{{ block.row_span }}
                 </div>
-                <!-- Resize handle — large hit area, small visual grip -->
                 <div
                     :data-testid="'resize-handle-' + block.id"
                     class="absolute right-0 bottom-0 h-8 w-8 cursor-se-resize"
@@ -456,7 +449,6 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <!-- Empty drop zones -->
             <template v-for="row in displayRows()" :key="'row-' + row">
                 <template v-for="col in 3" :key="'cell-' + col + '-' + row">
                     <div
@@ -476,7 +468,6 @@ onBeforeUnmount(() => {
             </template>
         </div>
 
-        <!-- Side Panel -->
         <EditorSidePanel
             v-if="selectedBlock"
             :block="selectedBlock"

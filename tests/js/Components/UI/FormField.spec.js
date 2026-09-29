@@ -72,7 +72,6 @@ describe('FormField', () => {
         expect(wrapper.find('input[type="email"]').exists()).toBe(true);
     });
 
-    // --- Accessibility: error association (WCAG 1.3.1 / 3.3.1) ---
     it('error element has data-testid="form-field-error"', () => {
         const wrapper = mount(FormField, {
             props: { label: 'Email', name: 'email', error: 'Required field' },

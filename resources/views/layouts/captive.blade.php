@@ -45,7 +45,6 @@
             overflow-x: hidden;
         }
 
-        /* Ambient gradient mesh — two drifting radial spots tied to accent hue */
         body::before {
             content: '';
             position: fixed;
@@ -67,7 +66,6 @@
 
         body > * { position: relative; z-index: 1; }
 
-        /* Content entrance stagger */
         .captive-reveal {
             animation: captive-fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
         }

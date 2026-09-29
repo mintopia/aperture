@@ -139,7 +139,6 @@ class PageControllerTest extends TestCase
         $page = Page::factory()->create(['slug' => 'my-slug']);
         Page::factory()->create(['slug' => 'other-slug']);
 
-        // Updating with same slug as another page should fail
         $response = $this->actingAs($admin)->put('/admin/content/pages/'.$page->id, [
             'title' => $page->title,
             'slug' => 'other-slug',

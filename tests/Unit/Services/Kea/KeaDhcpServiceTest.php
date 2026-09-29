@@ -1007,9 +1007,6 @@ class KeaDhcpServiceTest extends TestCase
 
     public function test_get_lease_returns_null_for_ipv6_input_when_ipv6_client_not_configured_without_sending_a_request(): void
     {
-        // Covers both "not an IPv4 address" and "no IPv6 client configured" for
-        // this input: the default setUp() service has no IPv6 endpoint, so a
-        // valid IPv6 address is rejected before any HTTP request is made.
         Http::fake();
 
         $this->assertNull($this->service->getLease('2001:db8::1'));

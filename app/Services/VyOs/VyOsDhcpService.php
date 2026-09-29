@@ -218,7 +218,6 @@ class VyOsDhcpService implements DhcpInterface
             $rows[] = $row;
         }
 
-        // Blank output is a valid empty table; anything else without a header separator is not.
         if (! $sawSeparator && trim($text) !== '') {
             throw new UnexpectedValueException('Unparseable DHCP lease table');
         }

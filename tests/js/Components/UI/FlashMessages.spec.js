@@ -238,12 +238,9 @@ describe('FlashMessages', () => {
         const wrapper = mount(FlashMessages);
         expect(wrapper.findAll('[role="alert"]')).toHaveLength(2);
 
-        // Unmount should clear timers without throwing
         wrapper.unmount();
 
-        // Advancing time after unmount should not cause errors
         vi.advanceTimersByTime(5000);
-        // No assertions needed beyond not throwing
     });
 
     it('renders animated SVG checkmark for success messages', () => {

@@ -131,8 +131,6 @@ function mountLeases(propsOverride = {}) {
     });
 }
 
-// Ranges/leases exercising the prefix-based (IPv6) branch of applyRangeFilter,
-// which the IPv4 start/end ranges above never reach.
 const prefixRanges = [{ network: '2001:db8:1::/64', start: null, end: null, prefix: '2001:db8:1::/64' }];
 const prefixLeases = [
     { ip: '10.0.0.50', mac: 'AA:BB:CC:DD:EE:01', hostname: 'host-v4', expires: '' },

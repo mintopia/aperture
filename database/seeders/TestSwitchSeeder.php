@@ -56,11 +56,9 @@ class TestSwitchSeeder extends Seeder
     private function portDefinitions(): array
     {
         return [
-            // Ports 1-2: Trunk uplinks (up)
             ['switchport_mode' => 'trunk', 'access_vlan' => null, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => 'Uplink to Core-SW1'],
             ['switchport_mode' => 'trunk', 'access_vlan' => null, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => 'Uplink to Core-SW2'],
 
-            // Ports 3-10: Active access ports, various VLANs (up)
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'Office - Desk 3A'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => '100', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'Office - Desk 3B'],
             ['switchport_mode' => 'access', 'access_vlan' => 200, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => 'Server Room - Rack 1'],
@@ -70,7 +68,6 @@ class TestSwitchSeeder extends Seeder
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'AP - Floor 2 East'],
             ['switchport_mode' => 'access', 'access_vlan' => 400, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => 'CCTV - Lobby'],
 
-            // Ports 11-16: Down (link down, admin up - nothing plugged in)
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'Office - Desk 4A'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'Office - Desk 4B'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => null],
@@ -78,7 +75,6 @@ class TestSwitchSeeder extends Seeder
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => null],
             ['switchport_mode' => 'access', 'access_vlan' => 300, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'VoIP - Spare'],
 
-            // Ports 17-22: Admin shutdown
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'down', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'DISABLED - Security incident'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'down', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'DISABLED - Decommissioned'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'down', 'duplex' => null, 'poe_status' => null, 'switch_description' => null],
@@ -86,7 +82,6 @@ class TestSwitchSeeder extends Seeder
             ['switchport_mode' => 'access', 'access_vlan' => 200, 'speed' => null, 'status' => 'down', 'admin_status' => 'down', 'duplex' => null, 'poe_status' => null, 'switch_description' => null],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'down', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'DISABLED - Unused'],
 
-            // Ports 23-30: More active access ports with varied configs
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'Office - Desk 5A'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => 'Office - Desk 5B'],
             ['switchport_mode' => 'access', 'access_vlan' => 500, 'speed' => '100', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'Printer - Floor 2'],
@@ -96,7 +91,6 @@ class TestSwitchSeeder extends Seeder
             ['switchport_mode' => 'access', 'access_vlan' => 300, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'VoIP Phone - Ext 203'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => 'Office - Desk 6A'],
 
-            // Ports 31-36: More down ports (unplugged)
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => null],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'Meeting Room A'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => null],
@@ -104,7 +98,6 @@ class TestSwitchSeeder extends Seeder
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'Meeting Room B'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => null],
 
-            // Ports 37-42: Active ports with admin notes
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'Office - Desk 7A', 'admin_notes' => 'New hire starting Monday'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => 'Office - Desk 7B', 'admin_notes' => 'Intermittent connectivity reported'],
             ['switchport_mode' => 'access', 'access_vlan' => 200, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => 'Server Room - NAS', 'admin_notes' => 'Backup NAS - do not disconnect'],
@@ -112,13 +105,11 @@ class TestSwitchSeeder extends Seeder
             ['switchport_mode' => 'access', 'access_vlan' => 400, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'CCTV - Car Park', 'admin_notes' => 'Replaced camera 2026-04-15'],
             ['switchport_mode' => 'access', 'access_vlan' => 300, 'speed' => '1000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => 'on', 'switch_description' => 'VoIP Phone - Ext 204'],
 
-            // Ports 43-46: More down/shutdown mix
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => null],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'down', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'DISABLED - Cable fault'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'Storage Room'],
             ['switchport_mode' => 'access', 'access_vlan' => 100, 'speed' => null, 'status' => 'down', 'admin_status' => 'down', 'duplex' => null, 'poe_status' => null, 'switch_description' => 'DISABLED - Reserved'],
 
-            // Ports 47-48: 10G SFP+ uplinks
             ['switchport_mode' => 'trunk', 'access_vlan' => null, 'speed' => '10000', 'status' => 'up', 'admin_status' => 'up', 'duplex' => 'full', 'poe_status' => null, 'switch_description' => '10G Uplink - Distribution'],
             ['switchport_mode' => 'trunk', 'access_vlan' => null, 'speed' => '10000', 'status' => 'down', 'admin_status' => 'up', 'duplex' => null, 'poe_status' => null, 'switch_description' => '10G Uplink - Spare'],
         ];

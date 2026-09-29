@@ -20,17 +20,6 @@ class CircuitBreaker
         $this->cooldown = (int) config('aperture.circuit_breaker.cooldown', 300);
     }
 
-    /**
-     * Record a communication failure for a switch.
-     *
-     * When the failure count reaches the configured threshold, fires
-     * SwitchUnreachable and marks the switch as circuit-broken.
-     *
-     * The circuit-open flag is stored with a cooldown TTL so the switch is
-     * automatically retried (half-open) by the next scheduled sync once the
-     * cooldown elapses. A failure at or beyond the threshold re-arms the
-     * cooldown, so a failed half-open trial re-opens the circuit.
-     */
     public function recordFailure(SwitchConfig $switch): void
     {
         $cacheKey = $this->cacheKey($switch);
@@ -47,43 +36,28 @@ class CircuitBreaker
         }
     }
 
-    /**
-     * Record a successful communication with a switch, resetting the failure counter.
-     */
     public function recordSuccess(SwitchConfig $switch): void
     {
         Cache::forget($this->cacheKey($switch));
         Cache::forget($this->openKey($switch));
     }
 
-    /**
-     * Check whether a switch is available (circuit is closed).
-     */
     public function isAvailable(SwitchConfig $switch): bool
     {
         return ! Cache::get($this->openKey($switch), false);
     }
 
-    /**
-     * Manually reset the circuit breaker for a switch, re-enabling communication.
-     */
     public function reset(SwitchConfig $switch): void
     {
         Cache::forget($this->cacheKey($switch));
         Cache::forget($this->openKey($switch));
     }
 
-    /**
-     * Build the cache key for failure count tracking.
-     */
     private function cacheKey(SwitchConfig $switch): string
     {
         return sprintf('circuit_breaker:failures:%d', $switch->id);
     }
 
-    /**
-     * Build the cache key for the circuit-open flag.
-     */
     private function openKey(SwitchConfig $switch): string
     {
         return sprintf('circuit_breaker:open:%d', $switch->id);

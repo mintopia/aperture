@@ -93,7 +93,6 @@ function submit() {
         </div>
 
         <form data-testid="switch-form" class="mt-6 space-y-8" @submit.prevent="submit">
-            <!-- Basic Info -->
             <div class="space-y-4">
                 <SectionHeader title="Basic Information" class="mb-1" />
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -154,7 +153,6 @@ function submit() {
                 </div>
             </div>
 
-            <!-- Connection -->
             <div class="space-y-4">
                 <SectionHeader title="Connection" class="mb-1" />
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -195,7 +193,6 @@ function submit() {
                 </div>
             </div>
 
-            <!-- Credentials -->
             <div v-if="showCredentials" class="space-y-4">
                 <SectionHeader title="Credentials" class="mb-1" />
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -309,7 +306,6 @@ function submit() {
                 </div>
             </div>
 
-            <!-- SNMP Community -->
             <div v-if="showCommunity" class="space-y-4">
                 <SectionHeader title="SNMP Settings" class="mb-1" />
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -325,7 +321,6 @@ function submit() {
                 </div>
             </div>
 
-            <!-- Actions -->
             <div class="flex flex-wrap items-center gap-3 pt-4">
                 <button
                     type="submit"

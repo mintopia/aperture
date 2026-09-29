@@ -15,8 +15,6 @@ import (
 	"time"
 )
 
-// --- Mocks ---
-
 type mockSession struct{}
 
 func (m *mockSession) Write(_ string) error        { return nil }
@@ -41,8 +39,6 @@ func testServer(apiKey string) *http.Server {
 	h := handler.New(p, connector, &mockExecutor{}, 10*time.Second, logger, []string{"commands", "polling"})
 	return New("localhost:0", apiKey, h, logger)
 }
-
-// --- Auth middleware tests ---
 
 func TestAuth_ValidToken(t *testing.T) {
 	srv := testServer("test-key")
@@ -106,12 +102,9 @@ func TestAuth_NoBearerPrefix(t *testing.T) {
 }
 
 func TestAuth_ConstantTimeComparison(t *testing.T) {
-	// Verifies that authentication uses constant-time comparison:
-	// a token differing by one byte must be rejected, and the exact key accepted.
 	apiKey := "correct-horse-battery-staple"
 	srv := testServer(apiKey)
 
-	// Exact match must be accepted.
 	req := httptest.NewRequest(http.MethodGet, "/status", nil)
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	w := httptest.NewRecorder()
@@ -120,8 +113,7 @@ func TestAuth_ConstantTimeComparison(t *testing.T) {
 		t.Errorf("constant-time: expected 200 for correct key, got %d", w.Code)
 	}
 
-	// Token with one byte different must be rejected.
-	badKey := "correct-horse-battery-Staple" // capital S differs at index 22
+	badKey := "correct-horse-battery-Staple"
 	req2 := httptest.NewRequest(http.MethodGet, "/status", nil)
 	req2.Header.Set("Authorization", "Bearer "+badKey)
 	w2 := httptest.NewRecorder()
@@ -130,7 +122,6 @@ func TestAuth_ConstantTimeComparison(t *testing.T) {
 		t.Errorf("constant-time: expected 401 for near-match key, got %d", w2.Code)
 	}
 
-	// Token longer than key by one byte must be rejected.
 	longKey := apiKey + "x"
 	req3 := httptest.NewRequest(http.MethodGet, "/status", nil)
 	req3.Header.Set("Authorization", "Bearer "+longKey)
@@ -141,13 +132,10 @@ func TestAuth_ConstantTimeComparison(t *testing.T) {
 	}
 }
 
-// --- Routing tests ---
-
 func TestRouting_Health_NoAuth(t *testing.T) {
 	srv := testServer("test-key")
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
-	// No Authorization header
 	w := httptest.NewRecorder()
 
 	srv.Handler.ServeHTTP(w, req)
@@ -201,7 +189,6 @@ func TestRouting_NotFound(t *testing.T) {
 func TestRouting_WrongMethod(t *testing.T) {
 	srv := testServer("test-key")
 
-	// GET to /execute should be 404 (only POST is registered)
 	req := httptest.NewRequest(http.MethodGet, "/execute", nil)
 	req.Header.Set("Authorization", "Bearer test-key")
 	w := httptest.NewRecorder()
@@ -226,7 +213,6 @@ func TestRouting_Status(t *testing.T) {
 		t.Errorf("expected 200, got %d", w.Code)
 	}
 
-	// Verify response shape
 	var body map[string]any
 	json.NewDecoder(w.Body).Decode(&body)
 	if _, ok := body["uptime_seconds"]; !ok {
@@ -236,8 +222,6 @@ func TestRouting_Status(t *testing.T) {
 		t.Error("expected 'connections' in response")
 	}
 }
-
-// --- Response format tests ---
 
 func TestResponseContentType(t *testing.T) {
 	srv := testServer("test-key")

@@ -42,7 +42,6 @@ class IntegrationConfigTest extends TestCase
 
         $this->assertEquals('my-secret-key', $config->value);
 
-        // Raw DB value should NOT contain the plain text
         $raw = DB::table('integration_configs')->where('id', $config->id)->value('value');
         $this->assertNotEquals('my-secret-key', $raw);
         $this->assertStringNotContainsString('my-secret-key', (string) $raw);
@@ -118,7 +117,6 @@ class IntegrationConfigTest extends TestCase
 
         $this->assertStringNotContainsString('super-secret', (string) $raw);
 
-        // But the accessor should decrypt it
         $this->assertEquals('super-secret', IntegrationConfig::getValue('opnsense', 'api_secret'));
     }
 

@@ -54,7 +54,6 @@ export function ipToBigInt(ip) {
     return trimmed.includes(':') ? ipv6ToBigInt(trimmed) : ipv4ToBigInt(trimmed);
 }
 
-// IPv4 is compared as ::ffff:a.b.c.d, matching the server-side address_sort key.
 export function compareIps(a, b) {
     const aNum = ipToBigInt(a);
     const bNum = ipToBigInt(b);

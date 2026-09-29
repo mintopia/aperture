@@ -12,13 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
-/**
- * Unit test verifying that LoginController no longer creates users on first login.
- *
- * The first-user bootstrap was removed in SEC-002 (setup wizard). This test
- * confirms that authenticate() throws a validation error when no matching user
- * exists, even when no users are in the database at all.
- */
 class LoginControllerNicknameTest extends TestCase
 {
     use LazilyRefreshDatabase;

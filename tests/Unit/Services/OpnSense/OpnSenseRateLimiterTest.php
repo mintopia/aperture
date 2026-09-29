@@ -43,8 +43,6 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->assertInstanceOf(RateLimitingInterface::class, $this->limiter);
     }
 
-    // --- limitIp tests ---
-
     public function test_limit_ip_adds_host_to_download_and_upload_rules_and_reconfigures(): void
     {
         $downloadRule = $this->makeRuleResponse();
@@ -178,8 +176,6 @@ class OpnSenseRateLimiterTest extends TestCase
 
         $this->limiter->limitIp('10.0.0.50');
     }
-
-    // --- unlimitIp tests ---
 
     public function test_unlimit_ip_removes_host_from_download_and_upload_rules_and_reconfigures(): void
     {
@@ -315,8 +311,6 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->limiter->unlimitIp('10.0.0.50');
     }
 
-    // --- updateShaperRule payload tests ---
-
     public function test_update_shaper_rule_sends_correct_payload_fields(): void
     {
         $rule = $this->makeRuleResponse([], '8080', '443');
@@ -344,13 +338,10 @@ class OpnSenseRateLimiterTest extends TestCase
                 return (object) ['status' => 'ok'];
             });
 
-        // Use reflection to test addHostToRule directly
         $reflection = new ReflectionClass($this->limiter);
         $method = $reflection->getMethod('addHostToRule');
         $method->invoke($this->limiter, 'down-uuid', '10.0.0.50', 'destination');
     }
-
-    // --- reconcile tests ---
 
     public function test_reconcile_adds_missing_rate_limited_ips(): void
     {
@@ -358,7 +349,6 @@ class OpnSenseRateLimiterTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.60', 'rate_limit_enabled' => true]);
         IpAddress::factory()->create(['address' => '10.0.0.70', 'rate_limit_enabled' => false]);
 
-        // fetchRateLimitedIps: get download rule (empty)
         $emptyRule = $this->makeRuleResponse();
 
         $this->client->expects($this->exactly(5))
@@ -509,7 +499,6 @@ class OpnSenseRateLimiterTest extends TestCase
 
     public function test_reconcile_correctly_categorises_large_ip_sets(): void
     {
-        // Create a mix of desired IPs: 50 that should be unchanged, 50 that should be added
         $unchangedIps = [];
         $addedIps = [];
         for ($i = 1; $i <= 50; $i++) {
@@ -524,7 +513,6 @@ class OpnSenseRateLimiterTest extends TestCase
             IpAddress::factory()->create(['address' => $ip, 'rate_limit_enabled' => true]);
         }
 
-        // Current IPs include the 50 unchanged + 30 that should be removed
         $removedIps = [];
         $currentIps = $unchangedIps;
         for ($i = 101; $i <= 130; $i++) {
@@ -567,8 +555,6 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->assertSame([], $result->errors);
     }
 
-    // --- IPv6 normalization at the OPNsense boundary ---
-
     public function test_limit_ip_sends_uppercase_ipv6_lowercased(): void
     {
         $downloadRule = $this->makeRuleResponse();
@@ -605,8 +591,6 @@ class OpnSenseRateLimiterTest extends TestCase
 
     public function test_limit_ip_does_not_duplicate_case_mismatched_ipv6(): void
     {
-        // The rule already contains the lowercase form; adding the uppercase
-        // form must not create a duplicate entry.
         $downloadRule = $this->makeRuleResponse(['2001:db8::1']);
         $uploadRule = $this->makeRuleResponse(['2001:db8::1']);
 
@@ -640,8 +624,6 @@ class OpnSenseRateLimiterTest extends TestCase
 
     public function test_limit_ip_ipv4_passes_through_and_existing_ipv6_hosts_are_normalized(): void
     {
-        // A stale uppercase IPv6 entry on the firewall must be rewritten
-        // lowercase, while the IPv4 being added passes through byte-identical.
         $downloadRule = $this->makeRuleResponse(['2001:DB8::1']);
         $uploadRule = $this->makeRuleResponse(['2001:DB8::1']);
 
@@ -743,7 +725,6 @@ class OpnSenseRateLimiterTest extends TestCase
     {
         IpAddress::factory()->create(['address' => '2001:db8::1', 'rate_limit_enabled' => true]);
 
-        // Firewall reports the rate-limited host in uppercase; DB stores lowercase.
         $ruleWithUppercaseIp = $this->makeRuleResponse(['2001:DB8::1']);
 
         $this->client->method('get')
@@ -759,8 +740,6 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->assertSame(['2001:db8::1'], $result->unchanged);
         $this->assertSame([], $result->errors);
     }
-
-    // --- filter helper tests ---
 
     #[AllowMockObjectsWithoutExpectations]
     public function test_filter_extracts_selected_keys(): void

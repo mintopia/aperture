@@ -36,9 +36,6 @@ class TestConnectionController extends Controller
         return $this->jsonResult($result);
     }
 
-    /**
-     * Write a TestConnectionResult to the connection test log.
-     */
     private function logResult(string $integration, TestConnectionResult $result): void
     {
         ConnectionTestLog::record(
@@ -53,9 +50,6 @@ class TestConnectionController extends Controller
         );
     }
 
-    /**
-     * Build the standard JSON response from a TestConnectionResult.
-     */
     private function jsonResult(TestConnectionResult $result): JsonResponse
     {
         $data = [

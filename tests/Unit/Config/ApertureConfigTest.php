@@ -13,8 +13,6 @@ class ApertureConfigTest extends TestCase
         $this->assertNull(config('aperture.cisco.hostname'));
     }
 
-    // Integration configs removed — now stored in IntegrationConfig DB model
-
     public function test_opnsense_config_removed(): void
     {
         $this->assertNull(config('aperture.opnsense'));

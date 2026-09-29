@@ -192,7 +192,6 @@ test.describe('Dashboard editor', () => {
     test('escape while dragging cancels and restores the original layout', async ({ page }) => {
         const [, , third] = Object.keys(original).sort((a, b) => Number(a) - Number(b));
 
-        // The escape handler lives on the grid, so it only fires when the grid already has focus.
         await page.locator(GRID).focus();
         await dragTo(page, third, 3, 1, { drop: false });
         await page.keyboard.press('Escape');

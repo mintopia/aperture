@@ -79,10 +79,8 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
 
         $keys = IntegrationConfig::encryptedKeys();
 
-        // Should include the config-derived key
         $this->assertContains('custom_secret', $keys);
 
-        // Should also include all hardcoded fallback keys
         foreach (IntegrationConfig::ENCRYPTED_KEYS as $fallbackKey) {
             $this->assertContains($fallbackKey, $keys, sprintf("Fallback key '%s' should be present", $fallbackKey));
         }
@@ -109,7 +107,6 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
 
         $keys = IntegrationConfig::encryptedKeys();
 
-        // 'password' should appear only once despite being in two integrations and the fallback
         $occurrences = array_count_values($keys);
         $this->assertSame(1, $occurrences['password']);
     }
@@ -118,7 +115,6 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
     {
         $keys = IntegrationConfig::encryptedKeys();
 
-        // Should be a sequential list (0-indexed) not an associative array
         $this->assertSame(array_values($keys), $keys);
     }
 
@@ -150,8 +146,6 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
 
         $keys = IntegrationConfig::encryptedKeys();
 
-        // None of the non-password types should be derived from config
-        // Only hardcoded fallbacks should be present
         $this->assertNotContains('endpoint', $keys);
         $this->assertNotContains('name', $keys);
         $this->assertNotContains('enabled', $keys);
@@ -170,7 +164,6 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
 
         $keys = IntegrationConfig::encryptedKeys();
 
-        // Should still return fallback keys without error
         $this->assertEqualsCanonicalizing(IntegrationConfig::ENCRYPTED_KEYS, $keys);
     }
 
@@ -193,7 +186,6 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
 
     public function test_encrypted_keys_covers_all_real_config_password_fields(): void
     {
-        // Use the real config to verify all password fields are covered
         /** @var array<string, array{fields?: array<string, array{type: string}>}> $integrations */
         $integrations = config('integrations', []);
 

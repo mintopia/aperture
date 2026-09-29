@@ -5,7 +5,6 @@ const props = defineProps({
     columns: {
         type: Array,
         required: true,
-        /* Array<{ key: string, label: string, class?: string, srOnly?: boolean, sortable?: boolean }> */
     },
     rows: { type: Array, required: true },
     clickable: { type: Boolean, default: false },

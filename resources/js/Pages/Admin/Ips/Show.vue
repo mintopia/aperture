@@ -15,7 +15,7 @@ defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     ip: { type: Object, default: () => ({}) },
-    port: { type: Object, default: () => ({}) }, // kept for metadata — passed from controller
+    port: { type: Object, default: () => ({}) },
     switchInfo: { type: Object, default: null },
     portBandwidth: { type: Object, default: null },
     portErrors: { type: Object, default: null },
@@ -165,7 +165,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div>
-        <!-- Header -->
         <div class="mb-2 flex items-start justify-between gap-6">
             <h1
                 data-testid="page-title"
@@ -204,7 +203,6 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- Confirm Modal -->
         <ConfirmModal
             :show="showAccessModal"
             :title="ip.internet_enabled ? 'Revoke Access?' : 'Grant Access?'"
@@ -224,7 +222,6 @@ onBeforeUnmount(() => {
             </p>
         </ConfirmModal>
 
-        <!-- Metadata Strip -->
         <MetadataStrip
             :items="[
                 { label: 'MAC Address', value: ip.current_mac?.mac_address || '\u2014', mono: true },
@@ -244,9 +241,7 @@ onBeforeUnmount(() => {
             ]"
         />
 
-        <!-- Two-column grid -->
         <div class="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <!-- Left: Users -->
             <div>
                 <SectionHeader title="Associated Users" />
                 <DataTable
@@ -267,7 +262,6 @@ onBeforeUnmount(() => {
                 </DataTable>
             </div>
 
-            <!-- Right: Internet + Port Metrics -->
             <div class="space-y-6">
                 <div>
                     <div class="flex items-center justify-between">
@@ -329,7 +323,6 @@ onBeforeUnmount(() => {
                     </p>
                 </div>
 
-                <!-- Port Bandwidth -->
                 <div v-if="switchInfo" data-testid="section-port-bandwidth">
                     <SectionHeader title="Port Bandwidth — Last 24h" />
                     <div class="mb-3 flex items-baseline gap-6">
@@ -373,7 +366,6 @@ onBeforeUnmount(() => {
                     />
                 </div>
 
-                <!-- Port Errors -->
                 <div v-if="switchInfo" data-testid="section-port-errors">
                     <SectionHeader title="Port Errors — Last 24h" />
                     <div v-if="metricsAvailable">
@@ -390,7 +382,6 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <!-- MAC Addresses -->
         <div class="mt-6" data-testid="ip-macs-section">
             <SectionHeader title="MAC Address History" />
             <DataTable
@@ -417,7 +408,6 @@ onBeforeUnmount(() => {
             </DataTable>
         </div>
 
-        <!-- DHCP Leases -->
         <div class="mt-6" data-testid="ip-dhcp-section">
             <SectionHeader title="DHCP Leases" />
             <DataTable :columns="dhcpColumns" :rows="dhcpLeases ?? []" empty-message="No DHCP leases">
@@ -438,7 +428,6 @@ onBeforeUnmount(() => {
             </DataTable>
         </div>
 
-        <!-- Audit Log -->
         <div class="mt-6" data-testid="ip-audit-section">
             <SectionHeader title="Audit Log" />
             <DataTable :columns="auditColumns" :rows="auditLogs ?? []" empty-message="No audit log entries">

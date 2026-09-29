@@ -59,9 +59,6 @@ class SettingsController extends Controller
     }
 
     /**
-     * Determine if an integration is enabled.
-     * Checks explicit enabled flag first, falls back to endpoint or switch_id presence.
-     *
      * @param  array<string, mixed>  $config
      */
     private function isIntegrationEnabled(array $config): bool

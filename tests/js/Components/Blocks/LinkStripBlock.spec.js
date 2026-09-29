@@ -46,7 +46,6 @@ describe('LinkStripBlock', () => {
         });
         expect(wrapper.find('[data-testid="block-link-strip"]').exists()).toBe(true);
         expect(wrapper.findAll('a').length).toBe(0);
-        // Should display some empty/placeholder message
         expect(wrapper.text()).toBeTruthy();
     });
 
@@ -123,7 +122,6 @@ describe('LinkStripBlock', () => {
                 },
             });
             const linkItems = wrapper.findAll('a');
-            // First link (not last) should have border-b, not border-r
             expect(linkItems[0].classes()).toContain('border-b');
             expect(linkItems[0].classes()).not.toContain('border-r');
         });
@@ -136,7 +134,6 @@ describe('LinkStripBlock', () => {
                 },
             });
             const linkItems = wrapper.findAll('a');
-            // First link (not last) should have border-r
             expect(linkItems[0].classes()).toContain('border-r');
             expect(linkItems[0].classes()).not.toContain('border-b');
         });

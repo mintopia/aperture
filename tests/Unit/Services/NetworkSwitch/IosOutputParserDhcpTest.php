@@ -88,9 +88,6 @@ class IosOutputParserDhcpTest extends TestCase
 
     public function test_parse_dhcp_binding_wrapped_record_followed_by_plain_record(): void
     {
-        // A wrapped RFC 4361 record immediately followed by an ordinary record:
-        // the continuation must attach to the first record only, and the second
-        // record must parse independently (guards the record-reset path).
         $output = implode("\r\n", [
             'Bindings from all pools not associated with VRF:',
             'IP address          Client-ID/              Lease expiration        Type       State      Interface',
@@ -191,16 +188,10 @@ class IosOutputParserDhcpTest extends TestCase
             'rfc4361 client-id with duid-llt' => ['ff11.98f7.4000.0100.0131.756f.acbc.2411.98f7.40', 'BC:24:11:98:F7:40'],
             // ff + IAID(11223344) + DUID-LL(0003 0001 aabbccddeeff) -> MAC AA:BB:CC:DD:EE:FF
             'rfc4361 client-id with duid-ll' => ['ff11.2233.4400.0300.01aa.bbcc.ddee.ff', 'AA:BB:CC:DD:EE:FF'],
-            // A genuine raw MAC that happens to start with ff must not be mistaken
-            // for an RFC 4361 client-ID; it falls through to the raw-MAC branch.
             'raw mac starting with ff' => ['ffaa.bbcc.ddee', 'FF:AA:BB:CC:DD:EE'],
-            // 0100.1122.3344.55 -> 00:11:22:33:44:55
             'hardware-type prefix' => ['0100.1122.3344.55', '00:11:22:33:44:55'],
-            // 0100.aabb.ccdd.ee -> strip 01 prefix -> 00:AA:BB:CC:DD:EE
             'hardware-type prefix, lowercase' => ['0100.aabb.ccdd.ee', '00:AA:BB:CC:DD:EE'],
-            // aabb.ccdd.eeff -> AA:BB:CC:DD:EE:FF
             'raw dotted mac' => ['aabb.ccdd.eeff', 'AA:BB:CC:DD:EE:FF'],
-            // 0011.2233.4455 -> 00:11:22:33:44:55
             'raw dotted mac, numeric' => ['0011.2233.4455', '00:11:22:33:44:55'],
             'unrecognized input' => ['not-a-mac-address', null],
             'empty string' => ['', null],
@@ -234,10 +225,6 @@ class IosOutputParserDhcpTest extends TestCase
     {
         $this->assertSame($expected, $this->parser->isErrorOutput($output));
     }
-
-    // -------------------------------------------------------------------------
-    // parseDhcpPoolStats
-    // -------------------------------------------------------------------------
 
     public function test_parse_dhcp_pool_stats_single_pool(): void
     {
@@ -309,10 +296,6 @@ class IosOutputParserDhcpTest extends TestCase
     {
         $this->assertSame($expected, $this->parser->parseDhcpPoolStats($output));
     }
-
-    // -------------------------------------------------------------------------
-    // parseDhcpPoolConfig
-    // -------------------------------------------------------------------------
 
     public function test_parse_dhcp_pool_config_with_range_and_single_exclusions(): void
     {
@@ -389,10 +372,6 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('192.168.1.1', $result['excluded'][0]['end']);
     }
 
-    // -------------------------------------------------------------------------
-    // computeEffectiveRanges
-    // -------------------------------------------------------------------------
-
     public function test_compute_effective_ranges_exclusions_at_start_and_end(): void
     {
         $config = [
@@ -465,13 +444,10 @@ class IosOutputParserDhcpTest extends TestCase
 
         $result = $this->parser->computeEffectiveRanges($config);
 
-        // Exclusion in the middle splits into two ranges; method returns the first (lowest) contiguous range
         $this->assertGreaterThanOrEqual(1, count($result));
-        // First range: 10.0.0.1 - 10.0.0.99
         $this->assertSame('10.0.0.1', $result[0]['range_from']);
         $this->assertSame('10.0.0.99', $result[0]['range_to']);
         $this->assertSame('99', $result[0]['total_addresses']);
-        // Second range: 10.0.0.150 - 10.0.0.254
         $this->assertSame('10.0.0.150', $result[1]['range_from']);
         $this->assertSame('10.0.0.254', $result[1]['range_to']);
         $this->assertSame('105', $result[1]['total_addresses']);
@@ -521,10 +497,6 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame('10.1.0.2', $result[1]['range_from']);
         $this->assertSame('10.1.127.254', $result[1]['range_to']);
     }
-
-    // -------------------------------------------------------------------------
-    // parseDhcpv6BindingTable
-    // -------------------------------------------------------------------------
 
     public function test_parse_dhcpv6_binding_table_with_duid_ll(): void
     {
@@ -676,10 +648,6 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame($expected, $this->parser->parseDhcpv6BindingTable($output));
     }
 
-    // -------------------------------------------------------------------------
-    // parseDhcpv6PoolStats
-    // -------------------------------------------------------------------------
-
     public function test_parse_dhcpv6_pool_stats_single_pool(): void
     {
         $output = implode("\n", [
@@ -735,10 +703,6 @@ class IosOutputParserDhcpTest extends TestCase
         $this->assertSame($expected, $this->parser->parseDhcpv6PoolStats($output));
     }
 
-    // -------------------------------------------------------------------------
-    // parseDhcpv6PoolConfig
-    // -------------------------------------------------------------------------
-
     public function test_parse_dhcpv6_pool_config_single_pool(): void
     {
         $output = implode("\n", [
@@ -789,10 +753,6 @@ class IosOutputParserDhcpTest extends TestCase
     {
         $this->assertSame($expected, $this->parser->parseDhcpv6PoolConfig($output));
     }
-
-    // -------------------------------------------------------------------------
-    // parseDhcpSnoopingTable
-    // -------------------------------------------------------------------------
 
     public function test_parse_dhcp_snooping_table_multiple_entries(): void
     {

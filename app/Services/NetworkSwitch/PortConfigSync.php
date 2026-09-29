@@ -20,13 +20,6 @@ use Throwable;
 final class PortConfigSync
 {
     /**
-     * Fetch all port running configs and interface outputs from the network adapter
-     * BEFORE opening any DB transaction, so SSH calls never hold a DB lock.
-     *
-     * Uses bulk commands when the adapter supports SupportsBulkOperations,
-     * reducing 96+ individual SSH commands to just 2 bulk commands for a
-     * 48-port switch.
-     *
      * @param  Collection<int, PortStatus>  $portStatuses
      * @return array<string, array{rawConfig: string|null, rawInterfaceOutput: string|null}>
      */
@@ -43,8 +36,6 @@ final class PortConfigSync
     }
 
     /**
-     * Persist pre-fetched port configs to the database (DB-only, no network I/O).
-     *
      * @param  array<string, array{rawConfig: string|null, rawInterfaceOutput: string|null}>  $portConfigData
      */
     public function sync(
@@ -56,7 +47,6 @@ final class PortConfigSync
             return;
         }
 
-        // Load all ports from DB keyed by port_name (eager-load config relationship).
         $switchPorts = SwitchPort::where('switch_config_id', $switchConfig->id)
             ->with('config')
             ->get()
@@ -130,8 +120,6 @@ final class PortConfigSync
     }
 
     /**
-     * Fetch all port configs in two bulk SSH commands.
-     *
      * @return array<string, array{rawConfig: string|null, rawInterfaceOutput: string|null}>
      */
     private function fetchBulkPortConfigs(
@@ -149,7 +137,6 @@ final class PortConfigSync
             'interface_outputs_fetched' => count($bulkInterfaceOutputs),
         ]);
 
-        // Collect all unique port names from both bulk responses.
         $portNames = array_keys($bulkConfigs + $bulkInterfaceOutputs);
 
         $result = [];
@@ -165,8 +152,6 @@ final class PortConfigSync
     }
 
     /**
-     * Fetch port configs individually (per-port SSH commands, legacy fallback).
-     *
      * @param  Collection<int, PortStatus>  $portStatuses
      * @return array<string, array{rawConfig: string|null, rawInterfaceOutput: string|null}>
      */
@@ -224,9 +209,6 @@ final class PortConfigSync
         return $result;
     }
 
-    /**
-     * Persist a port's config to the database (create/update as needed).
-     */
     private function persistPortConfig(
         SwitchPort $port,
         ?SwitchPortConfig $existingConfig,

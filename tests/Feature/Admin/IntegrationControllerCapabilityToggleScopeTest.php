@@ -33,11 +33,8 @@ class IntegrationControllerCapabilityToggleScopeTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        // Assign the same capability to two different integrations
-        // opnsense owns 'dhcp', and we manually insert another row for a hypothetical second provider
         CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
-        // Now request to deactivate 'dhcp' for opnsense specifically
         $response = $this->actingAs($admin)->putJson('/admin/settings/capabilities', [
             'capability' => 'dhcp',
             'integration' => 'opnsense',
@@ -46,7 +43,6 @@ class IntegrationControllerCapabilityToggleScopeTest extends TestCase
 
         $response->assertOk();
 
-        // The opnsense assignment should be gone
         $this->assertDatabaseMissing('capability_assignments', [
             'capability' => 'dhcp',
             'integration' => 'opnsense',
@@ -58,11 +54,8 @@ class IntegrationControllerCapabilityToggleScopeTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        // opnsense currently owns 'dhcp'
         CapabilityAssignment::assign(Capability::Dhcp, 'opnsense');
 
-        // pihole requests to deactivate 'dhcp' — it should be rejected because
-        // pihole does not support 'dhcp' (only 'dns-filtering' per config/integrations.php)
         $response = $this->actingAs($admin)->putJson('/admin/settings/capabilities', [
             'capability' => 'dhcp',
             'integration' => 'pihole',
@@ -71,7 +64,6 @@ class IntegrationControllerCapabilityToggleScopeTest extends TestCase
 
         $response->assertUnprocessable();
 
-        // opnsense's dhcp assignment must still exist — pihole cannot revoke it
         $this->assertDatabaseHas('capability_assignments', [
             'capability' => 'dhcp',
             'integration' => 'opnsense',

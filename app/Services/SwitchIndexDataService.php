@@ -14,8 +14,6 @@ class SwitchIndexDataService
     private const SORTABLE_COLUMNS = ['name', 'hostname', 'type', 'enabled'];
 
     /**
-     * Assemble all display data for the switch index page.
-     *
      * @return array{
      *     switches: Collection<int, mixed>,
      *     filters: object,

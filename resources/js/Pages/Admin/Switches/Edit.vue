@@ -124,7 +124,6 @@ function confirmDelete() {
             </h1>
         </div>
         <form data-testid="switch-form" class="mt-6 space-y-8" @submit.prevent="submit">
-            <!-- Basic Info -->
             <div class="space-y-4">
                 <h2
                     class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -190,7 +189,6 @@ function confirmDelete() {
                 </div>
             </div>
 
-            <!-- Connection -->
             <div class="space-y-4">
                 <h2
                     class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -236,7 +234,6 @@ function confirmDelete() {
                 </div>
             </div>
 
-            <!-- Credentials -->
             <div v-if="showCredentials" class="space-y-4">
                 <h2
                     class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -371,7 +368,6 @@ function confirmDelete() {
                 </div>
             </div>
 
-            <!-- SNMP Community -->
             <div v-if="showCommunity" class="space-y-4">
                 <h2
                     class="font-heading mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -392,7 +388,6 @@ function confirmDelete() {
                 </div>
             </div>
 
-            <!-- Actions -->
             <div class="flex flex-wrap items-center gap-3 pt-4">
                 <button
                     type="submit"

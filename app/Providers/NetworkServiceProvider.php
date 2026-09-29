@@ -21,9 +21,6 @@ use RuntimeException;
 
 class NetworkServiceProvider extends ServiceProvider
 {
-    /**
-     * Register network infrastructure bindings.
-     */
     public function register(): void
     {
         $this->app->singleton(function (Application $app): SshProxyClientInterface {

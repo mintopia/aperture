@@ -71,7 +71,6 @@ class LoginControllerTest extends TestCase
             'password' => 'secret123',
         ]);
 
-        // With no users, the middleware redirects to /setup, so login never fires
         $response->assertRedirect('/setup');
         $this->assertDatabaseMissing('users', [
             'email' => 'first-admin@test.com',
@@ -112,7 +111,6 @@ class LoginControllerTest extends TestCase
         ]);
         $user->roles()->attach($adminRole);
 
-        // Simulate a stored captive portal intended URL
         $response = $this->withSession(['url.intended' => '/'])->post('/login', [
             'email' => 'admin@test.com',
             'password' => 'secret123',
@@ -133,7 +131,6 @@ class LoginControllerTest extends TestCase
         ]);
         $user->roles()->attach($adminRole);
 
-        // Simulate a stored admin intended URL
         $response = $this->withSession(['url.intended' => route('admin.switches.index')])->post('/login', [
             'email' => 'admin@test.com',
             'password' => 'secret123',
@@ -236,7 +233,6 @@ class LoginControllerTest extends TestCase
             'email' => 'admin@test.com',
         ]);
 
-        // Make 3 failed attempts (under limit)
         for ($i = 0; $i < 3; $i++) {
             $this->post('/login', [
                 'email' => 'admin@test.com',

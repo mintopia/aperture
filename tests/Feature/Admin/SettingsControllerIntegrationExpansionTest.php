@@ -53,8 +53,6 @@ class SettingsControllerIntegrationExpansionTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        // Set an explicit enabled=1 flag in the integration config to hit line 77
-        // (bool) $config['enabled'] — the isset($config['enabled']) branch
         IntegrationConfig::setValue('prometheus', 'enabled', '1');
         IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
 
@@ -76,7 +74,6 @@ class SettingsControllerIntegrationExpansionTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        // Cisco has no endpoint config key; a configured switch_id should mark it enabled
         IntegrationConfig::setValue('cisco', 'switch_id', '1');
 
         $response = $this->actingAs($admin)->get('/admin/settings/integrations');
@@ -97,7 +94,6 @@ class SettingsControllerIntegrationExpansionTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        // Set explicit enabled=0 to cover (bool) $config['enabled'] returning false
         IntegrationConfig::setValue('prometheus', 'enabled', '0');
         IntegrationConfig::setValue('prometheus', 'endpoint', 'http://prometheus.local:9090');
 

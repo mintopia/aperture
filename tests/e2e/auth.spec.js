@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication', () => {
-    test.use({ storageState: { cookies: [], origins: [] } }); // override project storageState
+    test.use({ storageState: { cookies: [], origins: [] } });
 
     test('shows login form elements', async ({ page }) => {
         await page.goto('/login');

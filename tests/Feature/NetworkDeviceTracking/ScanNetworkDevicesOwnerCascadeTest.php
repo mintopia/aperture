@@ -19,12 +19,6 @@ use Mockery\MockInterface;
 use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
-/**
- * End-to-end regression for the production bug: an uppercase DHCPv6 lease for
- * an already-known (lowercase) IPv6 must not create a duplicate row, must link
- * the MAC, and must cascade the MAC's owner onto the IP via the real (unfaked)
- * IpMacLinked event and listener.
- */
 class ScanNetworkDevicesOwnerCascadeTest extends TestCase
 {
     use CreatesAdminUsers;
@@ -72,18 +66,15 @@ class ScanNetworkDevicesOwnerCascadeTest extends TestCase
 
         app()->call([new ScanNetworkDevices, 'handle']);
 
-        // Exactly one row for the address: no case-variant duplicate created
         $this->assertSame(1, IpAddress::count());
         $this->assertSame(1, IpAddress::where('address', self::LOWER)->count());
 
-        // The scan linked the lease MAC to the existing row
         $this->assertDatabaseHas('ip_address_mac_address', [
             'ip_address_id' => $ip->id,
             'mac_address_id' => $mac->id,
             'source' => 'dhcp',
         ]);
 
-        // The real IpMacLinked event fired and the listener cascaded ownership
         $this->assertTrue(
             UserIpAddress::where('user_id', $owner->id)->where('ip_address_id', $ip->id)->exists()
         );

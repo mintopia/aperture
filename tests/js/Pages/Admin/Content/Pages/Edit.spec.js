@@ -84,7 +84,6 @@ describe('Pages/Edit', () => {
         const slugInput = wrapper.find('[data-testid="input-slug"]');
         expect(slugInput.exists()).toBe(true);
         expect(slugInput.element.value).toBe('about-us');
-        // prefix addon should be present
         expect(wrapper.text()).toContain('/content/');
     });
 

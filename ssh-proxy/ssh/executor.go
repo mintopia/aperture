@@ -9,36 +9,29 @@ import (
 	"time"
 )
 
-// Command represents a single command to execute on the SSH session.
 type Command struct {
 	Command string `json:"command"`
 	If      string `json:"if,omitempty"`
 	Expect  string `json:"expect,omitempty"`
 }
 
-// CommandOutput holds the output of a single executed command.
 type CommandOutput struct {
 	Command string `json:"command"`
 	Output  string `json:"output"`
 }
 
-// CommandResult holds the complete result of executing a command sequence.
 type CommandResult struct {
 	Success bool            `json:"success"`
 	Output  []CommandOutput `json:"output"`
 	Error   string          `json:"error,omitempty"`
 }
 
-// Executor runs command sequences on SSH sessions, implementing the
-// if/expect logic required for Cisco IOS enable mode.
 type Executor struct {
 	ReadTimeout    time.Duration
 	CommandTimeout time.Duration
 	Logger         *slog.Logger
 }
 
-// Execute runs the given commands on the session, respecting if/expect directives.
-// It reads the initial prompt, then processes each command in order.
 func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 	output := make([]CommandOutput, 0, len(commands))
 
@@ -142,9 +135,6 @@ func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 	}
 }
 
-// readUntilExpect reads from the session in a loop until the last line
-// of accumulated output matches the expect pattern, or the command timeout
-// is exceeded.
 func (e *Executor) readUntilExpect(session Session, expect string, prompt *promptTracker) (string, error) {
 	var buffer strings.Builder
 	deadline := time.Now().Add(e.CommandTimeout)
@@ -158,7 +148,6 @@ func (e *Executor) readUntilExpect(session Session, expect string, prompt *promp
 			break
 		}
 
-		// Read in short bursts to check the pattern frequently.
 		readTimeout := 500 * time.Millisecond
 		if readTimeout > remaining {
 			readTimeout = remaining
@@ -196,8 +185,6 @@ const promptPlaceholder = "{prompt}"
 
 var promptLineRe = regexp.MustCompile(`^([^\s()#>]+)(?:\([^)]*\))?[>#]\s*$`)
 
-// promptTracker remembers the device hostname so prompt patterns can be
-// anchored to it instead of matching any line ending in # or >.
 type promptTracker struct {
 	hostname string
 }
@@ -216,8 +203,6 @@ func (p *promptTracker) expand(pattern string) string {
 	return strings.ReplaceAll(pattern, promptPlaceholder, host)
 }
 
-// getLastLine returns the last non-empty line from the output.
-// Matches PHP behaviour: trim → split by \n → filter empty → last element.
 func getLastLine(output string) string {
 	trimmed := strings.TrimSpace(output)
 	if trimmed == "" {
@@ -232,11 +217,6 @@ func getLastLine(output string) string {
 	return ""
 }
 
-// matchesCondition checks whether text matches the given condition.
-//   - If condition is surrounded by /, treat as regex: /pattern/
-//   - Otherwise, perform a substring match.
-//
-// Matches PHP behaviour: strlen > 2 && first == '/' && last == '/'.
 func matchesCondition(text, condition string) bool {
 	if len(condition) > 2 && condition[0] == '/' && condition[len(condition)-1] == '/' {
 		pattern := condition[1 : len(condition)-1]
@@ -253,7 +233,6 @@ func (e *Executor) logger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-// SanitizeForLog masks potential passwords in command strings.
 func SanitizeForLog(cmd string) string {
 	if len(cmd) < 50 &&
 		!strings.Contains(cmd, " ") &&
@@ -271,7 +250,6 @@ func SanitizeForLog(cmd string) string {
 	return cmd
 }
 
-// safeTail returns the last n characters of a string, for logging.
 func safeTail(s string, n int) string {
 	if len(s) <= n {
 		return s

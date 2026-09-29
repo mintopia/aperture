@@ -25,7 +25,6 @@ class CoverImageService
         $disk = Storage::disk('public');
         $disk->makeDirectory(self::BRANDING_DIR);
 
-        // Remove any existing cover image before storing a new one
         $this->deleteFile();
 
         $extension = $this->resolveExtension($file);

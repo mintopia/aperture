@@ -21,8 +21,6 @@ class Ipv6JwtService
     ) {}
 
     /**
-     * Verify an RS256 JWT via JWKS and extract the IPv6 address from the sub claim.
-     *
      * @throws InvalidArgumentException When sub is not a valid IPv6 address
      * @throws RuntimeException When JWKS fetch fails
      * @throws SignatureInvalidException When signature verification fails

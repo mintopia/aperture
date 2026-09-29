@@ -152,8 +152,6 @@ class OpnSenseClient
     }
 
     /**
-     * Fetch the OPNsense system uptime in seconds.
-     *
      * @throws BackendException
      */
     public function getUptime(): int

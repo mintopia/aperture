@@ -68,7 +68,6 @@ describe('Pages/Index', () => {
         expect(rows).toHaveLength(2);
         const firstRowCell = wrapper.find('[data-testid="page-row-about-us"]');
         expect(firstRowCell.exists()).toBe(true);
-        // The slug is rendered in a sibling <td> within the same <tr>
         const tableRow = firstRowCell.element.closest('tr');
         expect(tableRow.textContent).toContain('/content/about-us');
     });
@@ -116,7 +115,6 @@ describe('Pages/Index', () => {
 
     it('each row navigates to edit page via DataTable clickable row', () => {
         const wrapper = mountIndex();
-        // DataTable clickable rows use router.visit(); confirm row href prop resolves correctly
         const dataTable = wrapper.findComponent({ name: 'DataTable' });
         expect(dataTable.exists()).toBe(true);
         const rowHref = dataTable.props('rowHref');

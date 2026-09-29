@@ -69,14 +69,12 @@ describe('ThemeToggle', () => {
         const wrapper = mountComponent();
         const svgs = wrapper.findAll('svg');
         expect(svgs.length).toBeGreaterThan(0);
-        // Sun icon has a circle element
         expect(wrapper.find('circle').exists()).toBe(true);
     });
 
     it('shows moon icon in light mode', () => {
         mockMode.value = 'light';
         const wrapper = mountComponent();
-        // Moon icon uses a path, no circle
         expect(wrapper.find('circle').exists()).toBe(false);
         expect(wrapper.find('path').exists()).toBe(true);
     });

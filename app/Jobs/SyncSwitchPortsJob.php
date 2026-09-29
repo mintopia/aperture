@@ -70,7 +70,6 @@ class SyncSwitchPortsJob implements ShouldBeUnique, ShouldQueue
 
     public function failed(Throwable $exception): void
     {
-        // Only create a failure record if the service didn't already record one
         $hasRecentFailure = SwitchSyncRun::where('switch_config_id', $this->switchConfig->id)
             ->where('status', 'failed')
             ->where('finished_at', '>=', now()->subMinutes(5))

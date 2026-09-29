@@ -205,10 +205,6 @@ class CiscoSwitchAdapterTest extends TestCase
         $this->assertEquals(100, $result[0]->vlan);
     }
 
-    // -------------------------------------------------------------------------
-    // Port identifier validation — command injection prevention (#9)
-    // -------------------------------------------------------------------------
-
     /**
      * @return array<string, array{0: string}>
      */

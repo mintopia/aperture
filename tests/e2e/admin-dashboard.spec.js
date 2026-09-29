@@ -93,17 +93,14 @@ test.describe('Recent Activity widget', () => {
         await expect(widget).toBeVisible();
         await expect(widget.getByText('Recent Activity')).toBeVisible();
 
-        // recentEvents is an Inertia deferred prop — wait for at least one entry to resolve
         const firstEntry = widget.getByTestId('recent-activity-entry').first();
         await expect(firstEntry).toBeVisible();
 
-        // Each entry must carry a severity dot with a data-severity attribute
         const severityDot = widget.getByTestId('recent-activity-severity').first();
         await expect(severityDot).toBeVisible();
         const severity = await severityDot.getAttribute('data-severity');
         expect(['info', 'warning', 'critical']).toContain(severity);
 
-        // Each entry must carry a timestamp element
         await expect(widget.getByTestId('recent-activity-timestamp').first()).toBeVisible();
     });
 

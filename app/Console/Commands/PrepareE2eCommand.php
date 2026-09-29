@@ -130,8 +130,6 @@ class PrepareE2eCommand extends Command
             RateLimiter::clear('login-attempt:'.Str::lower($email).'|'.$ip);
         }
 
-        // Use create() directly to avoid the AuditLogRecorded broadcast which
-        // requires a running Pusher/Reverb connection (unavailable in E2E sandboxes).
         AuditLog::create([
             'action' => 'user.login',
             'subject_type' => $admin->getMorphClass(),

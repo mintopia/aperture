@@ -36,7 +36,6 @@ class ContentController extends Controller
     {
         $validated = $request->validated();
 
-        // Find first available grid position
         $position = $this->findFirstAvailablePosition();
         $validated['grid_col'] = $position['col'];
         $validated['grid_row'] = $position['row'];
@@ -67,7 +66,6 @@ class ContentController extends Controller
     {
         $validated = $request->validated();
 
-        // Validate spans don't exceed grid bounds
         foreach ($validated['blocks'] as $blockData) {
             if ($blockData['grid_col'] + $blockData['col_span'] - 1 > 3) {
                 return response()->json([
@@ -77,7 +75,6 @@ class ContentController extends Controller
             }
         }
 
-        // Validate no overlaps
         if ($this->hasOverlaps($validated['blocks'])) {
             return response()->json([
                 'message' => 'Blocks overlap.',
@@ -138,7 +135,6 @@ class ContentController extends Controller
             }
         }
 
-        // Scan row by row, col by col
         for ($row = 1; $row <= 100; $row++) {
             for ($col = 1; $col <= 3; $col++) {
                 if (! isset($occupied[sprintf('%d,%d', $col, $row)])) {

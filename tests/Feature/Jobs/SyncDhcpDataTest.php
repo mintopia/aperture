@@ -208,8 +208,6 @@ class SyncDhcpDataTest extends TestCase
                     prefix: '2a0f:85c1:d91:2100::/64',
                     gateway: null,
                     description: 'V6 LAN',
-                    // 2^64 — far beyond PHP_INT_MAX; must survive the round
-                    // trip into the string column without truncation.
                     totalAddresses: '18446744073709551616',
                     usedAddresses: 3,
                     utilisation: 0.0,
@@ -250,7 +248,6 @@ class SyncDhcpDataTest extends TestCase
     {
         $this->assignDhcpProvider('cisco');
 
-        // First sync with two leases
         $this->mockDhcpService(
             leases: [
                 new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-06-09 00:00:00'),
@@ -261,7 +258,6 @@ class SyncDhcpDataTest extends TestCase
         $this->dispatchSyncJob();
         $this->assertDatabaseCount('dhcp_leases', 2);
 
-        // Second sync with only one lease — stale one should be deleted
         $this->mockDhcpService(
             leases: [
                 new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-06-09 00:00:00'),
@@ -303,12 +299,10 @@ class SyncDhcpDataTest extends TestCase
             description: 'Secondary LAN',
         );
 
-        // First sync with two ranges
         $this->mockDhcpService(ranges: [$range1, $range2]);
         $this->dispatchSyncJob();
         $this->assertDatabaseCount('dhcp_range_records', 2);
 
-        // Second sync with only one range
         $this->mockDhcpService(ranges: [$range1]);
         $this->dispatchSyncJob();
 
@@ -363,7 +357,6 @@ class SyncDhcpDataTest extends TestCase
             'prefix' => '2A0F:85C1:D91:2000::/64',
         ]);
 
-        // Re-running the sync must be idempotent — no duplicate rows
         $this->mockDhcpService(ranges: $ranges);
         $this->dispatchSyncJob();
 
@@ -395,7 +388,6 @@ class SyncDhcpDataTest extends TestCase
     {
         $this->assignDhcpProvider('cisco');
 
-        // First sync with data
         $this->mockDhcpService(
             leases: [
                 new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-06-09 00:00:00'),
@@ -404,7 +396,6 @@ class SyncDhcpDataTest extends TestCase
         $this->dispatchSyncJob();
         $this->assertDatabaseCount('dhcp_leases', 1);
 
-        // Second sync with empty data — should NOT delete
         $this->mockDhcpService(leases: []);
         $this->dispatchSyncJob();
 
@@ -423,7 +414,6 @@ class SyncDhcpDataTest extends TestCase
     {
         $this->assignDhcpProvider('cisco');
 
-        // First sync with data
         $this->mockDhcpService(
             leases: [
                 new DhcpLeaseVO('10.0.0.1', 'AA:BB:CC:DD:EE:01', 'host1', '2026-06-09 00:00:00'),
@@ -432,13 +422,11 @@ class SyncDhcpDataTest extends TestCase
         $this->dispatchSyncJob();
         $this->assertDatabaseCount('dhcp_leases', 1);
 
-        // Run 3 empty syncs
         for ($i = 0; $i < 3; $i++) {
             $this->mockDhcpService(leases: []);
             $this->dispatchSyncJob();
         }
 
-        // After 3 consecutive empties, leases should be deleted
         $this->assertDatabaseCount('dhcp_leases', 0);
 
         $syncState = DhcpSyncState::where([
@@ -454,7 +442,6 @@ class SyncDhcpDataTest extends TestCase
     {
         $this->assignDhcpProvider('cisco');
 
-        // First sync with data
         $this->mockDhcpService(
             ranges: [
                 new DhcpRange(
@@ -472,13 +459,11 @@ class SyncDhcpDataTest extends TestCase
         $this->dispatchSyncJob();
         $this->assertDatabaseCount('dhcp_range_records', 1);
 
-        // Run 3 empty syncs
         for ($i = 0; $i < 3; $i++) {
             $this->mockDhcpService(ranges: []);
             $this->dispatchSyncJob();
         }
 
-        // After 3 consecutive empties, ranges should be deleted
         $this->assertDatabaseCount('dhcp_range_records', 0);
 
         $syncState = DhcpSyncState::where([
@@ -547,7 +532,6 @@ class SyncDhcpDataTest extends TestCase
 
         $this->assignDhcpProvider('cisco');
 
-        // First sync below threshold
         $this->mockDhcpService(
             poolStatus: new DhcpPoolStatus(total: 100, used: 50, available: 50, utilisation: 0.5),
         );
@@ -555,7 +539,6 @@ class SyncDhcpDataTest extends TestCase
 
         Event::assertNotDispatched(DhcpPoolThresholdReached::class);
 
-        // Second sync above threshold (crosses 0.8)
         $this->mockDhcpService(
             poolStatus: new DhcpPoolStatus(total: 100, used: 85, available: 15, utilisation: 0.85),
         );
@@ -572,16 +555,13 @@ class SyncDhcpDataTest extends TestCase
 
         $this->assignDhcpProvider('cisco');
 
-        // First sync already above threshold
         $this->mockDhcpService(
             poolStatus: new DhcpPoolStatus(total: 100, used: 90, available: 10, utilisation: 0.9),
         );
         $this->dispatchSyncJob();
 
-        // Reset event tracking
         Event::fake([DhcpPoolThresholdReached::class]);
 
-        // Second sync still above threshold (not a crossing)
         $this->mockDhcpService(
             poolStatus: new DhcpPoolStatus(total: 100, used: 95, available: 5, utilisation: 0.95),
         );

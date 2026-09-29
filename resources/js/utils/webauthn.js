@@ -1,16 +1,4 @@
 /**
- * WebAuthn base64/buffer conversion helpers and CSRF token utility.
- *
- * These functions are shared between Login.vue (passkey authentication)
- * and Account/Settings.vue (passkey registration/management).
- */
-
-/**
- * Decode a base64url-encoded string into an ArrayBuffer.
- *
- * Handles URL-safe alphabet (`-` → `+`, `_` → `/`) and adds any
- * padding (`=`) stripped during encoding so `atob()` can decode it.
- *
  * @param {string} base64url - Base64url-encoded string (RFC 4648 §5)
  * @returns {ArrayBuffer} Decoded binary data
  */
@@ -27,11 +15,6 @@ export function base64UrlToBuffer(base64url) {
 }
 
 /**
- * Encode an ArrayBuffer as a base64url string.
- *
- * Produces URL-safe output (`+` → `-`, `/` → `_`) with trailing
- * padding stripped, matching the format WebAuthn servers expect.
- *
  * @param {ArrayBuffer} buffer - Binary data to encode
  * @returns {string} Base64url-encoded string (no padding)
  */
@@ -45,8 +28,6 @@ export function bufferToBase64(buffer) {
 }
 
 /**
- * Read the CSRF token from the page's `<meta name="csrf-token">` tag.
- *
  * @returns {string} The token value, or an empty string when the tag is absent.
  */
 export function getCsrfToken() {

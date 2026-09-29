@@ -420,7 +420,6 @@ describe('GlobalSearch.vue', () => {
             const input = wrapper.get('[data-testid="global-search-input"]');
             const focusSpy = vi.spyOn(input.element, 'focus');
 
-            // Mock activeElement to be the input (only focusable element when no results)
             const activeElementDescriptor = Object.getOwnPropertyDescriptor(document, 'activeElement');
             Object.defineProperty(document, 'activeElement', {
                 get: () => input.element,

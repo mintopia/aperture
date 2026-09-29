@@ -80,7 +80,6 @@ class HomeControllerDhcpPoolsTest extends TestCase
                 ->where('dhcpPools.0.name', 'Main LAN')
                 ->where('dhcpPools.0.network', '10.0.0.0/24')
                 ->where('dhcpPools.0.used', 50)
-                // total is an exact decimal numeric string end-to-end
                 ->where('dhcpPools.0.total', '191')
                 ->where('dhcpPools.0.utilisation', 0.2618)
             )
@@ -106,7 +105,6 @@ class HomeControllerDhcpPoolsTest extends TestCase
             'range_from' => '',
             'range_to' => '',
             'gateway' => null,
-            // 2^64 — beyond PHP_INT_MAX; an (int) cast would corrupt it
             'total_addresses' => '18446744073709551616',
             'used_addresses' => '3',
             'utilisation' => null,
@@ -190,7 +188,6 @@ class HomeControllerDhcpPoolsTest extends TestCase
                 ->where('dhcpPools.0.name', 'Vlan200')
                 ->where('dhcpPools.0.network', '2001:db8::/64')
                 ->where('dhcpPools.0.used', 0)
-                // null totals are rendered as the string '0'
                 ->where('dhcpPools.0.total', '0')
                 // The controller falls back to float 0.0, but AssertableInertia
                 // re-encodes the page via json_encode() without

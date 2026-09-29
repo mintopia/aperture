@@ -76,7 +76,6 @@ describe('Breadcrumbs.vue', () => {
         const firstItem = wrapper.findAll('li')[0];
         const spans = firstItem.findAll('span');
 
-        // The first li should not contain a separator span with '/'
         const separators = spans.filter((s) => s.text() === '/');
         expect(separators).toHaveLength(0);
     });
@@ -100,7 +99,6 @@ describe('Breadcrumbs.vue', () => {
         const wrapper = mountBreadcrumbs([{ label: 'Admin', href: '/admin' }, { label: 'Users' }]);
         const nav = wrapper.get('nav');
 
-        // No card-like wrapper classes
         expect(nav.classes().join(' ')).not.toMatch(/border-l|card|shadow|rounded/);
     });
 

@@ -30,8 +30,6 @@ class IpAddressShowDataService
     ) {}
 
     /**
-     * Assemble all display data for the IP address show page.
-     *
      * @return array{
      *     ip: array<string, mixed>,
      *     port: PortDetail|null,
@@ -136,8 +134,6 @@ class IpAddressShowDataService
     }
 
     /**
-     * Sum rate values to approximate total bytes transferred.
-     *
      * @param  array<int, array{timestamp: float, value: float}>  $series
      */
     public function sumSeries(array $series): int

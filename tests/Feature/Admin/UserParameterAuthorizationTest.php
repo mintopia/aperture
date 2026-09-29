@@ -45,11 +45,10 @@ class UserParameterAuthorizationTest extends TestCase
             'value' => ['original' => 'value2'],
         ]);
 
-        // Try to update user2's parameter via user1's route
         $response = $this->actingAs($admin)->put(
             route('admin.users.parameters.update', [
                 'user' => $user1->id,
-                'parameter' => $user2Param->id,  // Different user's parameter!
+                'parameter' => $user2Param->id,
             ]),
             [
                 'key' => 'hacked-key',
@@ -57,10 +56,8 @@ class UserParameterAuthorizationTest extends TestCase
             ]
         );
 
-        // Should fail with 404 or 403 (Laravel scoped bindings return 404)
         $response->assertNotFound();
 
-        // Verify user2's parameter was NOT modified
         $user2Param->refresh();
         $this->assertSame('user2-key', $user2Param->key);
         $this->assertSame(['original' => 'value2'], $user2Param->value);
@@ -79,7 +76,6 @@ class UserParameterAuthorizationTest extends TestCase
             'value' => ['data' => 'sensitive'],
         ]);
 
-        // Try to delete user2's parameter via user1's route
         $response = $this->actingAs($admin)->delete(
             route('admin.users.parameters.destroy', [
                 'user' => $user1->id,
@@ -89,7 +85,6 @@ class UserParameterAuthorizationTest extends TestCase
 
         $response->assertNotFound();
 
-        // Verify parameter still exists
         $this->assertDatabaseHas('user_parameters', [
             'id' => $user2Param->id,
             'key' => 'secret',

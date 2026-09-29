@@ -168,18 +168,15 @@ class DashboardControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create(['nickname' => 'Player1', 'internet_enabled' => true]);
 
-        // Pre-create an IPv4 with a known address, and associate a MAC via pivot
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
         $ip = IpAddress::factory()->create([
             'address' => '10.0.0.1',
         ]);
         $ip->macAddresses()->attach($mac, ['source' => 'auth', 'last_seen_at' => now()]);
 
-        // Create an IPv6 address linked to the same MAC
         $ipv6 = IpAddress::factory()->create(['address' => 'fe80::1']);
         $ipv6->macAddresses()->attach($mac, ['source' => 'ndp', 'last_seen_at' => now()]);
 
-        // Create a user parameter
         UserParameter::factory()->create(['user_id' => $user->id, 'key' => 'seat', 'value' => 'A42']);
 
         $response = $this->actingAs($user)
@@ -346,7 +343,6 @@ class DashboardControllerTest extends TestCase
 
     public function test_dashboard_calls_firewall_enable_when_user_has_internet(): void
     {
-        // Pre-create IP so internet_enabled is already true in DB — simulates firewall losing state
         $ip = IpAddress::factory()->internetEnabled()->create(['address' => '127.0.0.1']);
         $user = User::factory()->create(['internet_enabled' => true]);
         $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);

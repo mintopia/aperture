@@ -43,8 +43,6 @@ class IntegrationConfig extends Model
     use HasFactory;
 
     /**
-     * Hardcoded fallback for sensitive field keys.
-     *
      * @deprecated Use {@see encryptedKeys()} instead, which derives keys from config/integrations.php.
      *
      * @var list<string>
@@ -52,10 +50,6 @@ class IntegrationConfig extends Model
     public const ENCRYPTED_KEYS = ['api_key', 'api_token', 'password', 'secret', 'key', 'client_secret'];
 
     /**
-     * Get all field keys that should be encrypted, derived from config/integrations.php.
-     * Any field with type 'password' is considered sensitive and will be encrypted.
-     * Falls back to ENCRYPTED_KEYS for keys not present in config.
-     *
      * @return list<string>
      */
     public static function encryptedKeys(): array

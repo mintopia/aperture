@@ -210,8 +210,6 @@ class CiscoDhcpService implements DhcpInterface
     }
 
     /**
-     * Count IPv4 bindings whose address falls within the given range (inclusive).
-     *
      * @param  array<int, array{ip: string, mac: string|null, expires: string}>  $bindings
      */
     private function countBindingsInRange(array $bindings, string $rangeFrom, string $rangeTo): int
@@ -231,13 +229,6 @@ class CiscoDhcpService implements DhcpInterface
     }
 
     /**
-     * Count IPv6 bindings whose address falls within the given prefix.
-     *
-     * Comparison uses inet_pton with byte/bit masking on the prefix length —
-     * not string matching — so compressed and expanded notations agree.
-     * Returns null when the prefix is missing or unparsable (usage unknown);
-     * a valid prefix with no matching bindings yields a known count of 0.
-     *
      * @param  array<int, array{ip: string, mac: string|null, expires: string}>  $bindings
      */
     private function countIpv6BindingsInPrefix(array $bindings, ?string $prefix): ?int
@@ -263,9 +254,6 @@ class CiscoDhcpService implements DhcpInterface
         ));
     }
 
-    /**
-     * Pack an IPv6 address into its 16-byte binary form, or null if invalid.
-     */
     private function packIpv6(string $address): ?string
     {
         if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
@@ -277,9 +265,6 @@ class CiscoDhcpService implements DhcpInterface
         return $packed !== false ? $packed : null;
     }
 
-    /**
-     * Compare two packed IPv6 addresses on the first $length bits.
-     */
     private function ipv6PrefixMatches(string $packed, string $network, int $length): bool
     {
         $fullBytes = intdiv($length, 8);
@@ -325,7 +310,6 @@ class CiscoDhcpService implements DhcpInterface
 
             $ipv4BindingOutput = $results['show ip dhcp binding'] ?? '';
 
-            // A missing or error result is a failed fetch, not an empty one.
             if (! array_key_exists('show ip dhcp binding', $results)
                 || $this->parser->isErrorOutput($ipv4BindingOutput)) {
                 Log::warning('CiscoDhcpService: IPv4 fetch failed — missing or error output from switch');
@@ -344,7 +328,6 @@ class CiscoDhcpService implements DhcpInterface
                 $ipv4Ok = true;
             }
 
-            // Parse IPv6 (failure here does not block IPv4)
             if ($this->ipv6Enabled) {
                 try {
                     $ipv6BindingOutput = $results['show ipv6 dhcp binding'] ?? '';

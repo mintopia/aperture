@@ -10,7 +10,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class BandwidthResource extends JsonResource
 {
-    /** Disable the 'data' wrapper so the response is flat JSON. */
     public static $wrap;
 
     /**

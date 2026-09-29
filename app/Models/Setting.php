@@ -15,8 +15,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * App\Models\Setting
- *
  * @property int $id
  * @property string $code
  * @property string $name
@@ -98,8 +96,6 @@ class Setting extends Model
     }
 
     /**
-     * Set the value of a setting by code, creating it if it does not exist.
-     *
      * @param  string  $code  The unique identifier for the setting.
      * @param  string  $name  The human-readable name; only used when creating a new setting
      *                        (ignored when updating an existing one).

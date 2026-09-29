@@ -12,14 +12,6 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
-/**
- * Unit tests for the AccountController null-user guards (PHPStan level-8 safety).
- *
- * These branches are unreachable in normal HTTP flow (auth middleware ensures a
- * user exists) but exist to satisfy PHPStan level 8 null-safety requirements.
- * We cover them by calling the controller methods directly with a request that
- * returns null for user().
- */
 class AccountControllerUnitTest extends TestCase
 {
     /**

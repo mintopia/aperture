@@ -46,8 +46,6 @@ const sortedRanges = computed(() => {
 });
 
 const totalUsed = computed(() => props.ranges.reduce((sum, r) => sum + (r.used ?? 0), 0));
-// Totals are exact decimal numeric strings that can exceed
-// Number.MAX_SAFE_INTEGER (e.g. 2^64 for an IPv6 /64), so sum with BigInt.
 const totalAddresses = computed(() => props.ranges.reduce((sum, r) => sum + BigInt(r.total ?? 0), 0n));
 const overallUtilisation = computed(() => {
     if (totalAddresses.value === 0n) return '—';

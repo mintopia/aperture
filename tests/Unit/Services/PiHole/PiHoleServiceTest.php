@@ -114,7 +114,6 @@ class PiHoleServiceTest extends TestCase
 
         $service->enableForIp('10.0.0.10');
 
-        // Only auth + GET, no PUT
         Http::assertSentCount(2);
     }
 
@@ -173,7 +172,6 @@ class PiHoleServiceTest extends TestCase
 
         $service->disableForIp('10.0.0.99');
 
-        // Only auth + GET, no PUT or POST
         Http::assertSentCount(2);
     }
 
@@ -190,9 +188,8 @@ class PiHoleServiceTest extends TestCase
         $service->disableForIp('10.0.0.10');
         $service->disableForIp('10.0.0.11');
 
-        // Auth called once (cached), then 2 GET requests = 3 total
         Http::assertSentCount(3);
-        $this->assertSame('POST', $this->history()[0]->method()); // auth
+        $this->assertSame('POST', $this->history()[0]->method());
         $this->assertSame('GET', $this->history()[1]->method());
         $this->assertSame('GET', $this->history()[2]->method());
     }
@@ -206,19 +203,16 @@ class PiHoleServiceTest extends TestCase
 
         $service = $this->createServiceWithMock([
             $this->authResponse(),
-            // fetchAllClients response — 10.0.0.1 exists but wrong groups
             Http::response([
                 'clients' => [
                     ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
                 ],
             ], 200),
-            // enableForIp('10.0.0.1') → findClient GET
             Http::response([
                 'clients' => [
                     ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
                 ],
             ], 200),
-            // enableForIp('10.0.0.1') → updateClientGroups PUT
             Http::response(['client' => ['id' => 1]], 200),
         ]);
 
@@ -240,20 +234,17 @@ class PiHoleServiceTest extends TestCase
 
         $service = $this->createServiceWithMock([
             $this->authResponse(),
-            // fetchAllClients response
             Http::response([
                 'clients' => [
                     ['id' => 1, 'client' => '10.0.0.1', 'groups' => [1], 'comment' => 'Managed by Aperture'],
                     ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => 'Managed by Aperture'],
                 ],
             ], 200),
-            // disableForIp('10.0.0.2') → findClient GET
             Http::response([
                 'clients' => [
                     ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => 'Managed by Aperture'],
                 ],
             ], 200),
-            // disableForIp('10.0.0.2') → deleteClient DELETE
             Http::response('', 204),
         ]);
 
@@ -278,15 +269,12 @@ class PiHoleServiceTest extends TestCase
 
         $service = $this->createServiceWithMock([
             $this->authResponse(),
-            // fetchAllClients response — 10.0.0.5 not present
             Http::response([
                 'clients' => [],
             ], 200),
-            // enableForIp('10.0.0.5') → findClient GET returns empty
             Http::response([
                 'clients' => [],
             ], 200),
-            // enableForIp('10.0.0.5') → createClient POST
             Http::response(['client' => ['id' => 10]], 201),
         ]);
 
@@ -315,7 +303,6 @@ class PiHoleServiceTest extends TestCase
 
         $service = $this->createServiceWithMock([
             $this->authResponse(),
-            // fetchAllClients response
             Http::response([
                 'clients' => [
                     ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
@@ -329,7 +316,6 @@ class PiHoleServiceTest extends TestCase
         $this->assertSame(['10.0.0.1'], $result->added);
         $this->assertSame([], $result->removed);
 
-        // Only auth + GET for fetchAllClients, no further API calls
         Http::assertSentCount(2);
     }
 
@@ -344,30 +330,24 @@ class PiHoleServiceTest extends TestCase
 
         $service = $this->createServiceWithMock([
             $this->authResponse(),
-            // fetchAllClients response
             Http::response([
                 'clients' => [
-                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => ''],      // needs fix (wrong groups)
-                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => ''],       // needs delete (disabled)
-                    ['id' => 3, 'client' => '10.0.0.3', 'groups' => [1], 'comment' => ''],       // unchanged (correct)
-                    // 10.0.0.4 not in PiHole — unchanged (correct, disabled)
+                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => ''],
+                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => ''],
+                    ['id' => 3, 'client' => '10.0.0.3', 'groups' => [1], 'comment' => ''],
                 ],
             ], 200),
-            // enableForIp('10.0.0.1') → findClient GET
             Http::response([
                 'clients' => [
                     ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => ''],
                 ],
             ], 200),
-            // enableForIp('10.0.0.1') → updateClientGroups PUT
             Http::response(['client' => ['id' => 1]], 200),
-            // disableForIp('10.0.0.2') → findClient GET
             Http::response([
                 'clients' => [
                     ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => ''],
                 ],
             ], 200),
-            // disableForIp('10.0.0.2') → deleteClient DELETE
             Http::response('', 204),
         ]);
 
@@ -388,22 +368,18 @@ class PiHoleServiceTest extends TestCase
 
         $service = $this->createServiceWithMock([
             $this->authResponse(),
-            // fetchAllClients response - empty
             Http::response([
                 'clients' => [],
             ], 200),
-            // enableForIp('10.0.0.1') → findClient GET returns empty
             Http::response([
                 'clients' => [],
             ], 200),
-            // enableForIp('10.0.0.1') → createClient POST
             Http::response(['client' => ['id' => 1]], 201),
         ]);
 
         $result = $service->reconcile();
 
         $this->assertInstanceOf(ReconcileResult::class, $result);
-        // 10.0.0.1 is enabled in DB but absent from PiHole — must be created
         $this->assertSame(['10.0.0.1'], $result->added);
         $this->assertSame([], $result->removed);
         $this->assertSame([], $result->unchanged);
@@ -419,17 +395,13 @@ class PiHoleServiceTest extends TestCase
 
         $service = $this->createServiceWithMock([
             $this->authResponse(),
-            // fetchAllClients — neither IP has a client
             Http::response([
                 'clients' => [],
             ], 200),
-            // enableForIp('10.0.0.1') → findClient GET — returns a server error
             Http::response(['error' => 'server error'], 500),
-            // enableForIp('10.0.0.2') → findClient GET — succeeds (empty)
             Http::response([
                 'clients' => [],
             ], 200),
-            // enableForIp('10.0.0.2') → createClient POST
             Http::response(['client' => ['id' => 2]], 201),
         ]);
 

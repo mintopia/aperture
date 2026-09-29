@@ -122,8 +122,6 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
     }
 
     /**
-     * Fetch IPs currently connected via the captive portal.
-     *
      * @return array<int, string>
      */
     protected function fetchConnectedIps(): array

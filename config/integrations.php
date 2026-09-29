@@ -17,7 +17,6 @@ return [
         'description' => 'Network firewall providing captive portal, rate limiting, and DHCP services.',
         'capabilities' => ['captive-portal', 'rate-limiting', 'dhcp'],
         'fields' => [
-            // Connection settings
             'endpoint' => [
                 'type' => 'url',
                 'label' => 'API Endpoint',
@@ -39,7 +38,6 @@ return [
                 'label' => 'Verify SSL',
                 'help' => 'Verify the SSL certificate when connecting.',
             ],
-            // Portal / zone settings
             'captive_portal_id' => [
                 'type' => 'select-remote',
                 'label' => 'Captive Portal Zone',
@@ -58,7 +56,6 @@ return [
                 'remote_label' => 'name',
                 'remote_value' => 'id',
             ],
-            // Rate limiting – dynamic dropdowns
             'ratelimit_up_uuid' => [
                 'type' => 'select-remote',
                 'label' => 'Upload Rate Limit Rule',
@@ -77,7 +74,6 @@ return [
                 'remote_label' => 'description',
                 'remote_value' => 'uuid',
             ],
-            // DHCP settings
             'dhcp_server' => [
                 'type' => 'select',
                 'label' => 'DHCP Server',

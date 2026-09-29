@@ -32,9 +32,6 @@ class SetupCommand extends Command
      */
     protected $description = 'Bootstrap Aperture with roles, first admin user, and optional Borealis OAuth settings';
 
-    /**
-     * Execute the console command.
-     */
     public function handle(): int
     {
         $adminRole = Role::query()->firstOrCreate(['code' => 'admin'], ['name' => 'Admin']);

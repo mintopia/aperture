@@ -117,11 +117,9 @@ describe('Admin Content Editor', () => {
 
         await handle.trigger('mousedown', { clientX: 100, clientY: 100, preventDefault: vi.fn() });
 
-        // Block should be semi-transparent during drag
         const block1 = wrapper.find('[data-testid="editor-block-1"]');
         expect(block1.attributes('style')).toContain('opacity: 0.3');
 
-        // Release
         document.dispatchEvent(new MouseEvent('mouseup'));
         await wrapper.vm.$nextTick();
 

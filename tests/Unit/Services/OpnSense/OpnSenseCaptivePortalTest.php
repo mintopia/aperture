@@ -131,7 +131,6 @@ class OpnSenseCaptivePortalTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.2', 'internet_enabled' => true]);
         IpAddress::factory()->create(['address' => '10.0.0.3', 'internet_enabled' => false]);
 
-        // fetchConnectedIps returns only 10.0.0.1
         $sessionList = (object) [
             0 => (object) ['ipAddress' => '10.0.0.1'],
         ];
@@ -141,7 +140,6 @@ class OpnSenseCaptivePortalTest extends TestCase
             ->with('/api/captiveportal/session/list', ['zoneid' => 1])
             ->willReturn($sessionList);
 
-        // addIp is called for 10.0.0.2 (the one not already connected)
         $this->client->expects($this->once())
             ->method('post')
             ->with(
@@ -164,13 +162,11 @@ class OpnSenseCaptivePortalTest extends TestCase
     {
         IpAddress::factory()->create(['address' => '10.0.0.1', 'internet_enabled' => true]);
 
-        // 10.0.0.1 and 10.0.0.99 are connected, but 10.0.0.99 is not desired
         $sessionList = (object) [
             0 => (object) ['sessionId' => 'sess-1', 'ipAddress' => '10.0.0.1'],
             1 => (object) ['sessionId' => 'sess-99', 'ipAddress' => '10.0.0.99'],
         ];
 
-        // GET is called twice: once by fetchConnectedIps in reconcile, once by removeIp
         $this->client->expects($this->exactly(2))
             ->method('get')
             ->with('/api/captiveportal/session/list', ['zoneid' => 1])
@@ -196,7 +192,6 @@ class OpnSenseCaptivePortalTest extends TestCase
     {
         IpAddress::factory()->create(['address' => '10.0.0.1', 'internet_enabled' => true]);
 
-        // No IPs currently connected
         $sessionList = (object) [];
 
         $this->client->expects($this->once())
@@ -204,7 +199,6 @@ class OpnSenseCaptivePortalTest extends TestCase
             ->with('/api/captiveportal/session/list', ['zoneid' => 1])
             ->willReturn($sessionList);
 
-        // No post calls should be made in dry run
         $this->client->expects($this->never())
             ->method('post');
 
@@ -242,7 +236,6 @@ class OpnSenseCaptivePortalTest extends TestCase
 
     public function test_reconcile_handles_empty_state(): void
     {
-        // No IPs in DB, no sessions connected
         $sessionList = (object) [];
 
         $this->client->expects($this->once())
@@ -262,7 +255,6 @@ class OpnSenseCaptivePortalTest extends TestCase
 
     public function test_reconcile_correctly_categorises_large_ip_sets(): void
     {
-        // Create a mix of desired IPs: 50 that should be unchanged, 50 that should be added
         $unchangedIps = [];
         $addedIps = [];
         for ($i = 1; $i <= 50; $i++) {
@@ -277,7 +269,6 @@ class OpnSenseCaptivePortalTest extends TestCase
             IpAddress::factory()->create(['address' => $ip, 'internet_enabled' => true]);
         }
 
-        // Current IPs include the 50 unchanged + 30 that should be removed
         $removedIps = [];
         $currentSessionIps = $unchangedIps;
         for ($i = 101; $i <= 130; $i++) {
@@ -319,7 +310,6 @@ class OpnSenseCaptivePortalTest extends TestCase
 
     public function test_fetch_connected_ips_deduplicates(): void
     {
-        // Two sessions with the same IP
         IpAddress::factory()->create(['address' => '10.0.0.99', 'internet_enabled' => true]);
 
         $sessionList = (object) [
@@ -340,8 +330,6 @@ class OpnSenseCaptivePortalTest extends TestCase
         $this->assertSame([], $result->removed);
         $this->assertSame(['10.0.0.99'], $result->unchanged);
     }
-
-    // --- IPv6 normalization at the OPNsense boundary ---
 
     public function test_add_ip_sends_uppercase_ipv6_lowercased(): void
     {
@@ -421,7 +409,6 @@ class OpnSenseCaptivePortalTest extends TestCase
     {
         IpAddress::factory()->create(['address' => '2001:db8::1', 'internet_enabled' => true]);
 
-        // Firewall reports the session IP in uppercase; DB stores lowercase.
         $sessionList = (object) [
             0 => (object) ['sessionId' => 'sess-1', 'ipAddress' => '2001:DB8::1'],
         ];

@@ -95,7 +95,6 @@ class SyncSwitchPortsJobTest extends TestCase
         try {
             $job->handle($service, $circuitBreaker);
         } catch (RuntimeException) {
-            // Expected
         }
 
         Event::assertNotDispatched(PortStateChanged::class);
@@ -150,7 +149,6 @@ class SyncSwitchPortsJobTest extends TestCase
         $job = new SyncSwitchPortsJob($switchConfig);
         $job->failed($exception);
 
-        // With no recent failure from the service, the job should create a failure record
         $this->assertDatabaseHas('switch_sync_runs', [
             'switch_config_id' => $switchConfig->id,
             'status' => 'failed',
@@ -166,7 +164,6 @@ class SyncSwitchPortsJobTest extends TestCase
     {
         $switchConfig = SwitchConfig::factory()->create();
 
-        // Simulate the service having already recorded a failure
         SwitchSyncRun::factory()->create([
             'switch_config_id' => $switchConfig->id,
             'status' => 'failed',
@@ -180,7 +177,6 @@ class SyncSwitchPortsJobTest extends TestCase
         $job = new SyncSwitchPortsJob($switchConfig);
         $job->failed($exception);
 
-        // Should NOT create a duplicate — only the one from the service should exist
         $this->assertSame(
             1,
             SwitchSyncRun::where('switch_config_id', $switchConfig->id)

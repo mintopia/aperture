@@ -181,7 +181,6 @@ class DetectBandwidthAnomaliesCommandTest extends TestCase
             ->andReturn($longTermResult);
         $this->app->instance(IpBandwidthInterface::class, $mock);
 
-        // Ratio is 4.0 but threshold is 5.0 so should not fire
         config(['aperture.bandwidth_anomaly.threshold' => 5.0]);
 
         $this->artisan('aperture:detect-bandwidth-anomalies')

@@ -62,7 +62,6 @@ describe('Pagination', () => {
             props: { paginator: makePaginator() },
             global: { stubs },
         });
-        // "Previous" has no url so it should be a span, not a Link
         const spans = wrapper.findAll('span');
         expect(spans.length).toBeGreaterThanOrEqual(1);
     });

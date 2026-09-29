@@ -163,7 +163,6 @@ class OpnSenseDhcpService implements DhcpInterface
         $rangeTo = isset($row[$this->rangeFieldMap['range_to']]) ? (string) $row[$this->rangeFieldMap['range_to']] : null;
         $prefix = isset($row[$this->rangeFieldMap['prefix']]) ? (string) $row[$this->rangeFieldMap['prefix']] : null;
 
-        // Handle Kea pools format: "START - END"
         if (isset($this->rangeFieldMap['pools']) && isset($row[$this->rangeFieldMap['pools']])) {
             $pools = (string) $row[$this->rangeFieldMap['pools']];
             if (preg_match('/^\s*([^\s-]+)\s*-\s*([^\s-]+)\s*$/', $pools, $matches)) {
@@ -172,7 +171,6 @@ class OpnSenseDhcpService implements DhcpInterface
             }
         }
 
-        // Calculate subnet from start_addr and subnet_mask (dnsmasq IPv4)
         if ($subnet === null && $rangeFrom !== null && isset($this->rangeFieldMap['subnet_mask']) && isset($row[$this->rangeFieldMap['subnet_mask']])) {
             $subnetMask = (string) $row[$this->rangeFieldMap['subnet_mask']];
             if ($subnetMask !== '') {
@@ -180,16 +178,13 @@ class OpnSenseDhcpService implements DhcpInterface
             }
         }
 
-        // Handle dnsmasq IPv6 prefix_len: construct prefix from start address and prefix length
         if ($prefix !== null && $rangeFrom !== null && str_contains($rangeFrom, ':')) {
-            // IPv6: construct prefix notation like "fd00::1/64" from start_addr and prefix_len
             $prefixLen = $prefix;
             if (is_numeric($prefixLen)) {
                 $prefix = $rangeFrom.'/'.$prefixLen;
             }
         }
 
-        // IPv6 prefixes are normalized to lowercase for consistent storage/display
         if ($prefix !== null) {
             $prefix = IpAddress::normalize($prefix);
         }

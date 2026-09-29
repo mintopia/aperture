@@ -118,8 +118,6 @@ class SwitchPortController extends Controller
     }
 
     /**
-     * Resolve connected devices using DB relationships.
-     *
      * @param  Collection<int, SwitchPortMac>  $macs
      * @return array<int, array{mac_address: string, vlan: int|null, last_seen_at: string|null, mac_id: int|null, resolved_ips: array<int, array{id: int|null, ip: string, hostname: string|null, user: array{id: int, nickname: string}|null}>}>
      */
@@ -170,9 +168,6 @@ class SwitchPortController extends Controller
     }
 
     /**
-     * Sum rate values to approximate total bytes transferred.
-     * Each data point represents rate in bits/sec, multiply by step interval then /8 for bytes.
-     *
      * @param  array<int, array{timestamp: float, value: float}>  $series
      */
     private function sumSeries(array $series): int
@@ -193,8 +188,6 @@ class SwitchPortController extends Controller
     }
 
     /**
-     * Sum all values in a time series.
-     *
      * @param  array<int, array{timestamp: float, value: float}>  $series
      */
     private function sumSeriesValues(array $series): int

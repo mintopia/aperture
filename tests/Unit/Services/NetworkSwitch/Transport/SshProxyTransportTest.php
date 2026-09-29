@@ -245,15 +245,12 @@ class SshProxyTransportTest extends TestCase
                 'admin',
                 'password',
                 Mockery::on(function (array $commands): bool {
-                    // en command must have 'if' to skip when already in enable mode
                     $this->assertSame('/^{prompt}>\s*$/', $commands[0]['if']);
                     $this->assertSame('/Password:/', $commands[0]['expect']);
 
-                    // password command must have 'if' to skip when en was skipped
                     $this->assertSame('/Password:/', $commands[1]['if']);
                     $this->assertSame('/^{prompt}(\([^)]*\))?#\s*$/', $commands[1]['expect']);
 
-                    // terminal length 0 must not have 'if' — always runs
                     $this->assertArrayNotHasKey('if', $commands[2]);
 
                     return true;
@@ -415,17 +412,14 @@ class SshProxyTransportTest extends TestCase
                 Mockery::on(function (array $commands): bool {
                     $privilegedPromptRegex = '/^{prompt}(\([^)]*\))?#\s*$/';
 
-                    // Once enable is requested, prompt expectations must require privileged mode (#).
                     $this->assertSame($privilegedPromptRegex, $commands[1]['expect']);
                     $this->assertSame($privilegedPromptRegex, $commands[2]['expect']);
                     $this->assertSame($privilegedPromptRegex, $commands[3]['expect']);
 
-                    // Optional trailing whitespace should be allowed.
                     $this->assertSame(1, preg_match($this->withHost($commands[1]['expect']), "switch# \n"));
                     $this->assertSame(1, preg_match($this->withHost($commands[2]['expect']), "switch#\t"));
                     $this->assertSame(1, preg_match($this->withHost($commands[3]['expect']), 'switch#   '));
 
-                    // Non-privileged prompt must not satisfy post-enable expectations.
                     $this->assertSame(0, preg_match($this->withHost($commands[1]['expect']), 'switch>'));
                     $this->assertSame(0, preg_match($this->withHost($commands[2]['expect']), 'switch>   '));
                     $this->assertSame(0, preg_match($this->withHost($commands[3]['expect']), "switch>\n"));
@@ -590,7 +584,6 @@ class SshProxyTransportTest extends TestCase
 
         $transport = new SshProxyTransport($proxyClient, $switchConfig);
 
-        // Should not throw — disconnect is intentionally a no-op for proxy transport
         $transport->disconnect();
 
         $this->assertTrue(true);
@@ -598,9 +591,6 @@ class SshProxyTransportTest extends TestCase
 
     public function test_execute_throws_when_output_key_missing_from_results(): void
     {
-        // This test covers the guard in execute() at line 27.
-        // We use a subclass that overrides executeMultiple() to return a result
-        // without the expected command key.
         $switchConfig = SwitchConfig::factory()->make();
         $proxyClient = Mockery::mock(SshProxyClientInterface::class);
 
@@ -608,7 +598,6 @@ class SshProxyTransportTest extends TestCase
         {
             public function executeMultiple(array $commands): array
             {
-                // Return empty array — missing the expected command key
                 return [];
             }
         };

@@ -17,14 +17,6 @@ use RuntimeException;
 
 class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperations, SupportsDhcpSnooping, SupportsInterfaceOutputCapture
 {
-    /**
-     * Regex matching valid Cisco IOS interface identifiers.
-     *
-     * Covers: GigabitEthernet, FastEthernet, TenGigabitEthernet,
-     * TwentyFiveGigE, FortyGigabitEthernet, HundredGigE,
-     * Port-channel, Vlan, Loopback, Tunnel, Mgmt, nve, Ethernet
-     * and their abbreviated forms (Gi, Fa, Te, Twe, Fo, Hu, Po, Vl, Lo, Tu, Eth).
-     */
     private const string PORT_ID_PATTERN = '/^[A-Za-z][A-Za-z0-9-]*\d+(\\/\d+){0,3}$/';
 
     /** @var array<string, string>|null */
@@ -39,8 +31,6 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperatio
     ) {}
 
     /**
-     * Validate a port identifier against the Cisco IOS interface naming pattern.
-     *
      * @throws InvalidPortIdentifierException
      */
     private function validatePortIdentifier(string $portId): void
@@ -106,11 +96,6 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperatio
     }
 
     /**
-     * Index an array of interface data by both full and abbreviated name forms.
-     *
-     * Ensures lookups work regardless of whether a full name (GigabitEthernet1/0/1)
-     * or abbreviated name (Gi1/0/1) is used as the key.
-     *
      * @param  array<string, string>  $data
      * @return array<string, string>
      */
@@ -191,7 +176,6 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperatio
         $output = $this->transport->execute('show ip dhcp snooping binding');
         $bindings = $this->parser->parseDhcpSnoopingTable($output);
 
-        // An empty result is only trusted when the switch printed a real table.
         if ($bindings === [] && ($this->parser->isErrorOutput($output) || ! str_contains($output, 'MacAddress'))) {
             throw new RuntimeException('Unexpected DHCP snooping binding output');
         }

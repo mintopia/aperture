@@ -88,7 +88,6 @@ class IpAddressActionServiceTest extends TestCase
         $ip->refresh();
         $this->assertNotNull($ip->currentMac());
 
-        // NormalizeMacAddress cast converts to uppercase colon-separated format
         $mac = MacAddress::where('mac_address', 'AA:BB:CC:DD:EE:FF')->first();
         $this->assertNotNull($mac);
     }
@@ -114,7 +113,6 @@ class IpAddressActionServiceTest extends TestCase
         $service->enableInternet($ip);
 
         $ip->refresh();
-        // internet_enabled should NOT be changed by the service — the observer handles it
         $this->assertFalse($ip->internet_enabled);
         $this->assertEquals($originalUpdatedAt, $ip->updated_at);
     }
@@ -150,7 +148,6 @@ class IpAddressActionServiceTest extends TestCase
         $service->disableInternet($ip);
 
         $ip->refresh();
-        // internet_enabled should NOT be changed by the service
         $this->assertTrue($ip->internet_enabled);
         $this->assertEquals($originalUpdatedAt, $ip->updated_at);
     }

@@ -118,8 +118,6 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
 
         $this->scan([new DhcpLeaseVO(self::UPPER, 'AA:BB:CC:DD:EE:01', 'host', '2026-06-11')]);
 
-        // Still exactly one pivot row, but the event must fire on refresh too so
-        // existing production links can heal user associations.
         $this->assertSame(1, $ip->macAddresses()->count());
 
         Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ip)

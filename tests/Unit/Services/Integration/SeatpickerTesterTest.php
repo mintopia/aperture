@@ -87,10 +87,6 @@ class SeatpickerTesterTest extends TestCase
         Http::assertSent(fn ($req): bool => str_contains($req->url(), 'my-control.example.com'));
     }
 
-    // -------------------------------------------------------
-    // Config assertions
-    // -------------------------------------------------------
-
     public function test_config_capability_is_seat_picker(): void
     {
         $capabilities = config('integrations.seatpicker.capabilities');
@@ -118,10 +114,6 @@ class SeatpickerTesterTest extends TestCase
         $this->assertSame('API key for authentication.', $fields['api_key']['help']);
     }
 
-    // -------------------------------------------------------
-    // Accept: application/json header
-    // -------------------------------------------------------
-
     public function test_sends_accept_json_header(): void
     {
         Http::fake(['*' => Http::response([], 200)]);
@@ -137,10 +129,6 @@ class SeatpickerTesterTest extends TestCase
             return ! empty($accept) && str_contains($accept[0], 'application/json');
         });
     }
-
-    // -------------------------------------------------------
-    // verify_ssl support
-    // -------------------------------------------------------
 
     public function test_connects_with_verify_ssl_enabled(): void
     {
@@ -180,10 +168,6 @@ class SeatpickerTesterTest extends TestCase
         $this->assertTrue($result->success);
     }
 
-    // -------------------------------------------------------
-    // Config assertions — verify_ssl field
-    // -------------------------------------------------------
-
     public function test_config_has_verify_ssl_field(): void
     {
         $fields = config('integrations.seatpicker.fields');
@@ -202,10 +186,6 @@ class SeatpickerTesterTest extends TestCase
         $this->assertArrayHasKey('verify_ssl', $validation);
         $this->assertSame('nullable|string|in:0,1', $validation['verify_ssl']);
     }
-
-    // -------------------------------------------------------
-    // Config assertions — event_code select-remote
-    // -------------------------------------------------------
 
     public function test_config_event_code_is_select_remote(): void
     {

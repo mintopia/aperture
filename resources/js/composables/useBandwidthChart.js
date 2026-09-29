@@ -2,8 +2,6 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { getJson } from '@/utils/http.js';
 
 /**
- * Composable that encapsulates bandwidth fetch/poll/range-selection/chart-series logic.
- *
  * @param {string} endpoint - The API endpoint URL (without query string)
  * @param {string} [defaultRange='24h'] - The initial time range selection
  * @param {number} [pollInterval=30000] - Polling interval in ms; pass 0 to disable internal polling
@@ -19,7 +17,6 @@ export function useBandwidthChart(endpoint, defaultRange = '24h', pollInterval =
         totalReceived: 0,
         totalSent: 0,
     });
-    // Start loading only when enabled (a fetch will happen); if disabled, nothing to load
     const bandwidthLoading = ref(enabled);
     const bandwidthError = ref(false);
 

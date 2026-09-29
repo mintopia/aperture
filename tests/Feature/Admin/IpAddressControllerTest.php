@@ -454,9 +454,6 @@ class IpAddressControllerTest extends TestCase
 
     public function test_admin_can_view_ip_show_with_fallback_switch_config_when_hostname_not_in_db(): void
     {
-        // Covers IpAddressController::resolveSwitchConfig() lines 196-205:
-        // when no SwitchConfig record matches the hostname, a new SwitchConfig is built
-        // from the aperture.cisco.* config values via SwitchConfig::defaultFallback().
         Queue::fake();
         $admin = $this->createAdminUser();
 
@@ -473,7 +470,7 @@ class IpAddressControllerTest extends TestCase
             ->andReturn(new ResolvedPort(ip: '10.0.0.99', mac: 'BB:CC:DD:EE:FF:00', port: '1', switch: ''));
         $inventory->shouldReceive('getPortDetail')
             ->andReturn(new PortDetail(
-                hostname: 'unknown-switch.local',  // No SwitchConfig for this hostname
+                hostname: 'unknown-switch.local',
                 interface: 'Gi0/1',
                 status: 'up',
                 adminStatus: 'up',
@@ -485,8 +482,6 @@ class IpAddressControllerTest extends TestCase
         $ip->address = '10.0.0.99';
         $ip->last_seen_at = Date::now();
         $ip->save();
-
-        // No SwitchConfig created for 'unknown-switch.local' — fallback will be used
 
         $response = $this->actingAs($admin)->get('/admin/ips/'.$ip->address);
 

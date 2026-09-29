@@ -8,9 +8,6 @@ use Illuminate\Support\Facades\Log;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $roles = [

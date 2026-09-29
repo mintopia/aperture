@@ -89,12 +89,9 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         $proxyCommands = [];
 
         $enablePassword = $this->switchConfig->enable_password ?? '';
-        // {prompt} is expanded by the proxy to the hostname learned at login.
         $defaultPromptExpectation = $enablePassword !== '' ? '/^{prompt}(\([^)]*\))?#\s*$/' : '/^{prompt}(\([^)]*\))?[>#]\s*$/';
 
         if ($enablePassword !== '') {
-            // Use "if" conditions so enable commands are skipped on pooled
-            // connections that are already in privileged-exec mode.
             $proxyCommands[] = ['command' => 'en', 'if' => '/^{prompt}>\s*$/', 'expect' => '/Password:/'];
             $proxyCommands[] = ['command' => $enablePassword, 'if' => '/Password:/', 'expect' => $defaultPromptExpectation];
         }
@@ -112,8 +109,6 @@ class SshProxyTransport implements SwitchCommandTransportInterface
     }
 
     /**
-     * Sanitize proxy commands for logging — masks passwords.
-     *
      * @param  array<int, array{command: string, expect?: string, if?: string}>  $commands
      * @return array<int, array{command: string, expect?: string, if?: string}>
      */
@@ -128,9 +123,6 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         ], $commands);
     }
 
-    /**
-     * Sanitize a single command for logging.
-     */
     protected function sanitizeCommandForLog(string $command): string
     {
         $enablePassword = $this->switchConfig->enable_password ?? '';

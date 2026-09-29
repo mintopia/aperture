@@ -62,7 +62,6 @@ class ThemeSettingsControllerTest extends TestCase
         $file = UploadedFile::fake()->image('logo.png', 128, 128);
         resolve(LogoService::class)->store($file);
 
-        // Need a fresh instance since ThemeService caches
         $themeService = new ThemeService(resolve(LogoService::class));
         $theme = $themeService->getTheme();
 

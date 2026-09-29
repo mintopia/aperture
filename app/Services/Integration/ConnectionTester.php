@@ -8,17 +8,10 @@ use App\Services\ValueObjects\TestConnectionResult;
 use Illuminate\Http\Client\Response;
 use Throwable;
 
-/**
- * Thin wrapper that executes a single HTTP call and maps the outcome to a
- * TestConnectionResult, eliminating the try/catch boilerplate duplicated
- * across every per-integration tester.
- */
 class ConnectionTester
 {
     /**
-     * Execute $httpCall and return a normalised TestConnectionResult.
-     *
-     * @param  callable(): Response  $httpCall  Closure that performs the HTTP request and returns an Illuminate Response.
+     * @param  callable(): Response  $httpCall
      */
     public static function test(
         string $method,

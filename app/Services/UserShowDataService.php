@@ -13,8 +13,6 @@ use Illuminate\Support\Collection;
 class UserShowDataService
 {
     /**
-     * Assemble all display data for the user show page.
-     *
      * @return array{
      *     user: User,
      *     roles: \Illuminate\Database\Eloquent\Collection<int, Role>,
@@ -78,10 +76,9 @@ class UserShowDataService
         $coveredIps = [];
 
         foreach ($macs as $mac) {
-            // Already eager-loaded — no extra queries
             $macIps = $mac->ipAddresses->sortByDesc(fn ($ip) => $ip->pivot->last_seen_at);
 
-            $switchPort = $mac->switchPorts->first(); // ordered by eager load
+            $switchPort = $mac->switchPorts->first();
 
             $switchInfo = $switchPort !== null ? [
                 'switch_name' => $switchPort->switchConfig->name ?? $switchPort->switchConfig->hostname,

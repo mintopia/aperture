@@ -11,7 +11,6 @@ class BroadcastServiceProviderTest extends TestCase
     {
         $provider = new BroadcastServiceProvider($this->app);
         $provider->boot();
-        // boot() registers broadcast routes and loads channels.php
         $this->assertTrue(true);
     }
 }

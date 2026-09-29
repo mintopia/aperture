@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Providers;
 
-use App\Models\SwitchConfig;
 use App\Providers\AppServiceProvider;
 use App\Providers\NetworkServiceProvider;
 use App\Services\Interfaces\AuthProviderInterface;
@@ -139,8 +138,6 @@ class AppServiceProviderTest extends TestCase
         $provider = collect($this->app->getProviders(NetworkServiceProvider::class))->first();
         $this->assertNotNull($provider, 'NetworkServiceProvider should be registered');
 
-        // Use DB::listen to intercept the SwitchConfig query and throw a RuntimeException,
-        // which will be caught by the catch(Throwable) block in getDefaultSwitchConfig().
         $thrown = false;
         DB::listen(function (QueryExecuted $event) use (&$thrown): void {
             if (str_contains($event->sql, 'switch_configs') && ! $thrown) {

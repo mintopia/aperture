@@ -132,7 +132,6 @@ class CoverImageServiceTest extends TestCase
     {
         Setting::set('dashboard.cover_image', 'Dashboard Cover Image', 123);
 
-        // Need a fresh service instance to avoid cache
         $service = new CoverImageService;
         $this->assertFalse($service->exists());
     }
@@ -141,7 +140,6 @@ class CoverImageServiceTest extends TestCase
     {
         Setting::set('dashboard.cover_image', 'Dashboard Cover Image', 'http://example.com/storage/branding/cover.gif');
 
-        // Need a fresh service instance to avoid cache
         $service = new CoverImageService;
         $this->assertFalse($service->exists());
     }

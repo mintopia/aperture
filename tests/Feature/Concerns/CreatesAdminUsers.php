@@ -8,11 +8,6 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
 
-/**
- * Shared setUp() + createAdminUser() boilerplate duplicated across many
- * Feature test classes that exercise admin-only routes. Not a test itself —
- * consuming classes must still `use LazilyRefreshDatabase, CreatesAdminUsers;`.
- */
 trait CreatesAdminUsers
 {
     protected function setUp(): void

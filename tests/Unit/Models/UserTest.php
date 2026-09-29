@@ -74,13 +74,11 @@ class UserTest extends TestCase
         $role->save();
         $user->roles()->attach($role);
 
-        // Fresh user to clear any loaded relations
         $user = User::findOrFail($user->id);
 
         DB::enableQueryLog();
         DB::flushQueryLog();
 
-        // Call hasRole multiple times
         $user->hasRole('admin');
         $user->hasRole('admin');
         $user->hasRole('nonexistent');
@@ -88,7 +86,6 @@ class UserTest extends TestCase
         $queries = DB::getQueryLog();
         DB::disableQueryLog();
 
-        // Should only query the database once (to load the roles relation)
         $roleQueries = array_filter($queries, function (array $query): bool {
             return str_contains($query['query'], 'roles') || str_contains($query['query'], 'role_user');
         });
@@ -105,7 +102,6 @@ class UserTest extends TestCase
         $role->save();
         $user->roles()->attach($role);
 
-        // Eager load roles before checking
         $user->load('roles');
 
         DB::enableQueryLog();
@@ -117,7 +113,6 @@ class UserTest extends TestCase
         $queries = DB::getQueryLog();
         DB::disableQueryLog();
 
-        // No additional queries should be made since roles were already loaded
         $roleQueries = array_filter($queries, function (array $query): bool {
             return str_contains($query['query'], 'roles') || str_contains($query['query'], 'role_user');
         });
@@ -172,9 +167,6 @@ class UserTest extends TestCase
 
     public function test_oauth_tokens_can_be_set_via_direct_assignment(): void
     {
-        // Since access_token and refresh_token are cast to 'encrypted', we use setRawAttributes
-        // to bypass encryption in unit tests (no APP_KEY needed) while still verifying
-        // that direct attribute assignment stores values in the model attributes.
         $user = new User;
         $user->setRawAttributes([
             'access_token' => 'raw-token-value',

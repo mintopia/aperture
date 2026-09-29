@@ -147,7 +147,6 @@ onBeforeUnmount(() => {
         </div>
 
         <div data-testid="editor-container" class="overflow-hidden rounded border border-[var(--color-border)]">
-            <!-- Toolbar (visual mode only) -->
             <div
                 v-if="mode === 'visual'"
                 data-testid="editor-toolbar"
@@ -329,7 +328,6 @@ onBeforeUnmount(() => {
                         Link
                     </button>
 
-                    <!-- Inline link popover -->
                     <div
                         v-if="showLinkPopover"
                         data-testid="link-popover"
@@ -391,7 +389,6 @@ onBeforeUnmount(() => {
                 </button>
             </div>
 
-            <!-- Editor content area -->
             <div
                 data-testid="editor-content-area"
                 class="bg-[var(--color-input-bg)] text-[var(--color-text)]"

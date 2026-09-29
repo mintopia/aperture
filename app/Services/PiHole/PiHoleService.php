@@ -131,13 +131,11 @@ class PiHoleService implements DnsFilteringInterface
         /** @var array<int, string> $errors */
         $errors = [];
 
-        // Build a map of PiHole clients by IP for fast lookup
         $clientMap = [];
         foreach ($allClients as $c) {
             $clientMap[$c['client']] = $c;
         }
 
-        // Check enabled IPs — should have filteredGroupId
         foreach ($desiredEnabled as $ip) {
             $existing = $clientMap[$ip] ?? null;
             if ($existing !== null && in_array($this->filteredGroupId, $existing['groups'], true)) {
@@ -156,7 +154,6 @@ class PiHoleService implements DnsFilteringInterface
             }
         }
 
-        // Check disabled IPs — should have no client in PiHole
         foreach ($desiredDisabled as $ip) {
             $existing = $clientMap[$ip] ?? null;
             if ($existing === null) {

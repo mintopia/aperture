@@ -28,8 +28,6 @@ class DhcpSnoopingResolver
     }
 
     /**
-     * Snooping is the lowest-precedence source: it only fills IPs the IP-MAC Table lacks.
-     *
      * @param  Collection<int, IpMacEntry>  $primary
      * @return Collection<int, IpMacEntry>
      */

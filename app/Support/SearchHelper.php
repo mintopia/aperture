@@ -17,13 +17,10 @@ class SearchHelper
     {
         $hasWildcard = str_contains($input, '*');
 
-        // Escape SQL wildcards in user input
         $escaped = str_replace(['%', '_'], ['\%', '\_'], $input);
 
-        // Replace user-friendly * with SQL %
         $escaped = str_replace('*', '%', $escaped);
 
-        // If no user wildcards, wrap in % for contains-style search
         if (! $hasWildcard) {
             $escaped = '%'.$escaped.'%';
         }

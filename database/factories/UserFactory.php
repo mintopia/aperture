@@ -11,8 +11,6 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class UserFactory extends Factory
 {
     /**
-     * Define the model's default state.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -32,9 +30,6 @@ class UserFactory extends Factory
         ];
     }
 
-    /**
-     * Indicate that the user is internet blocked.
-     */
     public function internetBlocked(): static
     {
         return $this->state(fn (array $attributes) => [

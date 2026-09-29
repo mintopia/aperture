@@ -16,7 +16,6 @@ class Ipv6PrefixTest extends TestCase
     public static function cidrProvider(): array
     {
         return [
-            // Exact BCMath totals for any prefix length — no /96 cap.
             'production /64 pool' => ['2a0f:85c1:d91:2100::/64', '18446744073709551616'],
             'uppercase /64 pool' => ['2A0F:85C1:D91:2100::/64', '18446744073709551616'],
             '/96 boundary' => ['2001:db8::/96', '4294967296'],
@@ -25,7 +24,6 @@ class Ipv6PrefixTest extends TestCase
             '/128 single address' => ['2001:db8::1/128', '1'],
             '/0 entire address space' => ['::/0', '340282366920938463463374607431768211456'],
 
-            // Malformed input → null.
             'no slash' => ['no-slash', null],
             'garbage' => ['garbage', null],
             'empty string' => ['', null],
@@ -35,7 +33,6 @@ class Ipv6PrefixTest extends TestCase
             'negative length' => ['2001:db8::/-1', null],
             'network is not an address' => ['nonsense/64', null],
 
-            // The helper is IPv6-specific: IPv4 networks are rejected.
             'ipv4 cidr' => ['10.0.0.0/24', null],
             'ipv4 network with v6-style length' => ['10.0.0.0/64', null],
         ];
@@ -52,8 +49,6 @@ class Ipv6PrefixTest extends TestCase
         $total = Ipv6Prefix::totalAddresses('2a0f:85c1:d91:2100::/64');
 
         $this->assertNotNull($total);
-        // The value must be an exact decimal numeric string (not scientific
-        // notation, not a float cast) so BCMath consumers can divide it.
         $this->assertMatchesRegularExpression('/^\d+$/', $total);
         $this->assertSame('0.000000', bcdiv('3', $total, 6));
     }

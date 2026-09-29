@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any authentication / authorization services.
-     */
     public function boot(): void
     {
         Gate::define('admin', function (User $user): bool {

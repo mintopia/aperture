@@ -58,9 +58,6 @@ class ConnectionTestLog extends Model
         ];
     }
 
-    /**
-     * Record a new connection test result.
-     */
     public static function record(
         string $integration,
         bool $success,
@@ -83,9 +80,6 @@ class ConnectionTestLog extends Model
         ]);
     }
 
-    /**
-     * Get the most recent test for an integration.
-     */
     public static function latestFor(string $integration): ?self
     {
         return static::where('integration', $integration)
@@ -94,8 +88,6 @@ class ConnectionTestLog extends Model
     }
 
     /**
-     * Get recent test logs for an integration.
-     *
      * @return Collection<int, self>
      */
     public static function recentFor(string $integration, int $limit = 20): Collection

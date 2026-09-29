@@ -13,8 +13,6 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class MacAddressFactory extends Factory
 {
     /**
-     * Define the model's default state.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -25,9 +23,6 @@ class MacAddressFactory extends Factory
         ];
     }
 
-    /**
-     * Indicate that the MAC address is from an Xbox console.
-     */
     public function xbox(): static
     {
         return $this->state(fn (array $attributes): array => [

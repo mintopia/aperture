@@ -19,7 +19,6 @@ const columns = [
 
 <template>
     <div data-testid="pages-index">
-        <!-- Page Header -->
         <header class="mb-6 flex items-start justify-between gap-6">
             <div>
                 <h1
@@ -41,7 +40,6 @@ const columns = [
             </div>
         </header>
 
-        <!-- Empty state -->
         <div
             v-if="pages.length === 0"
             data-testid="pages-empty"
@@ -61,7 +59,6 @@ const columns = [
             </div>
         </div>
 
-        <!-- Table -->
         <section v-else data-testid="pages-table">
             <DataTable
                 :columns="columns"

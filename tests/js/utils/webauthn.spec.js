@@ -1,22 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { base64UrlToBuffer, bufferToBase64, getCsrfToken } from '@/utils/webauthn';
 
-// ─── base64UrlToBuffer ──────────────────────────────────────────────────────
-
 describe('base64UrlToBuffer', () => {
     it('decodes a simple base64url string', () => {
-        // "Hello" in base64 is "SGVsbG8="
-        // In base64url (no padding) it's "SGVsbG8"
         const buffer = base64UrlToBuffer('SGVsbG8');
         const bytes = new Uint8Array(buffer);
         expect(String.fromCharCode(...bytes)).toBe('Hello');
     });
 
     it('handles URL-safe characters (- and _)', () => {
-        // Standard base64 with + and / characters
-        // bytes [0xFB, 0xEF, 0xBE] → base64 "++++++" contains + → base64url uses -
-        // Use a known test vector: 3 bytes [0x3E, 0x3F, 0xFF]
-        // base64: "Pj//", base64url: "Pj__"
         const buffer = base64UrlToBuffer('Pj__');
         const bytes = new Uint8Array(buffer);
         expect(bytes[0]).toBe(0x3e);
@@ -52,17 +44,14 @@ describe('base64UrlToBuffer', () => {
     });
 });
 
-// ─── bufferToBase64 ─────────────────────────────────────────────────────────
-
 describe('bufferToBase64', () => {
     it('encodes a simple buffer to base64url', () => {
-        const bytes = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
+        const bytes = new Uint8Array([72, 101, 108, 108, 111]);
         const result = bufferToBase64(bytes.buffer);
         expect(result).toBe('SGVsbG8');
     });
 
     it('replaces + with - in output', () => {
-        // Byte 0x3E → standard base64 has "+" → should become "-"
         const bytes = new Uint8Array([0x3e, 0x3f, 0xff]);
         const result = bufferToBase64(bytes.buffer);
         expect(result).not.toContain('+');
@@ -76,7 +65,6 @@ describe('bufferToBase64', () => {
     });
 
     it('strips trailing padding', () => {
-        // Single byte "A" → base64 "QQ==" → base64url "QQ"
         const bytes = new Uint8Array([65]);
         const result = bufferToBase64(bytes.buffer);
         expect(result).not.toContain('=');
@@ -103,13 +91,10 @@ describe('bufferToBase64', () => {
     });
 });
 
-// ─── getCsrfToken ───────────────────────────────────────────────────────────
-
 describe('getCsrfToken', () => {
     let metaTag;
 
     beforeEach(() => {
-        // Clean up any existing meta tag
         document.querySelector('meta[name="csrf-token"]')?.remove();
     });
 

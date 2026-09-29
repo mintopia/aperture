@@ -1,4 +1,3 @@
-// Package config loads SSH proxy configuration from environment variables.
 package config
 
 import (
@@ -9,7 +8,6 @@ import (
 	"time"
 )
 
-// Config holds all runtime configuration for the SSH proxy service.
 type Config struct {
 	APIKey            string
 	ListenAddr        string
@@ -23,8 +21,6 @@ type Config struct {
 	Channels          []string
 }
 
-// Load reads configuration from environment variables, applying defaults
-// for any values not set.
 func Load() Config {
 	return Config{
 		APIKey:            getAPIKeyEnv(),
@@ -40,8 +36,6 @@ func Load() Config {
 	}
 }
 
-// getChannelsEnv reads the allowed channel names from SSH_PROXY_CHANNELS.
-// Returns the default channels (commands, polling) if not set.
 func getChannelsEnv() []string {
 	val := os.Getenv("SSH_PROXY_CHANNELS")
 	if val == "" {
@@ -67,7 +61,6 @@ func getAPIKeyEnv() string {
 	return getEnv("APERTURE_SSH_PROXY_API_KEY", "")
 }
 
-// SlogLevel converts the string log level to a slog.Level.
 func (c Config) SlogLevel() slog.Level {
 	switch c.LogLevel {
 	case "debug":

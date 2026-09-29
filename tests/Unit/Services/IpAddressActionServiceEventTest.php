@@ -89,8 +89,6 @@ class IpAddressActionServiceEventTest extends TestCase
         $service = $this->createService(captivePortal: $captivePortal, macResolver: $macResolver);
         $service->enableInternet($ip);
 
-        // Refreshing an existing link must still dispatch, so production rows
-        // that were linked without a user association can heal.
         Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ip)
             && $event->mac->is($mac)
             && $event->source === 'auth'

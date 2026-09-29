@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-/**
- * Helpers for working with IPv6 CIDR prefixes.
- */
 final class Ipv6Prefix
 {
     /**

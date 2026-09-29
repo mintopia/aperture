@@ -84,7 +84,6 @@ class HandleInertiaRequestsMiddlewareTest extends TestCase
 
         $this->assertArrayHasKey('theme', $shared);
 
-        // theme is now a closure, resolve it
         $theme = $shared['theme'] instanceof Closure ? ($shared['theme'])() : $shared['theme'];
         $this->assertArrayHasKey('accent_hue', $theme);
         $this->assertArrayHasKey('mode', $theme);

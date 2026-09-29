@@ -13,8 +13,6 @@ use Throwable;
 class EnsureSetupComplete
 {
     /**
-     * Handle an incoming request.
-     *
      * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
@@ -46,7 +44,6 @@ class EnsureSetupComplete
         try {
             return User::query()->doesntExist();
         } catch (Throwable) {
-            // If the database isn't available (e.g. no migrations run), skip the check
             return false;
         }
     }

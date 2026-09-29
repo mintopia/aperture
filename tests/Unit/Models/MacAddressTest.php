@@ -23,7 +23,7 @@ class MacAddressTest extends TestCase
 
         $this->assertDatabaseHas('mac_addresses', [
             'id' => $mac->id,
-            'mac_address' => 'AA:BB:CC:DD:EE:FF', // normalized
+            'mac_address' => 'AA:BB:CC:DD:EE:FF',
         ]);
     }
 

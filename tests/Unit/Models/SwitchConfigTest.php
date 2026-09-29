@@ -161,7 +161,6 @@ class SwitchConfigTest extends TestCase
 
     public function test_default_fallback_timeout_defaults_to_5_when_not_configured(): void
     {
-        // Ensure the key is truly absent so the default of 5 is used
         $config = config()->all();
         if (isset($config['aperture']['cisco'])) {
             unset($config['aperture']['cisco']['timeout']);

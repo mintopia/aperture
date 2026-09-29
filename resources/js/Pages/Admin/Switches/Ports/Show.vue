@@ -261,7 +261,6 @@ function confirmToggle() {
 
 <template>
     <div class="space-y-6">
-        <!-- Header -->
         <div class="mb-2 flex items-start justify-between gap-6">
             <h1
                 data-testid="page-title"
@@ -305,7 +304,6 @@ function confirmToggle() {
             <ConnectedDevicesSummary :macs="macs" />
         </ConfirmModal>
 
-        <!-- Port Navigation -->
         <div v-if="prevPort || nextPort" data-testid="port-nav" class="flex items-center gap-3">
             <Link
                 v-if="prevPort"
@@ -341,7 +339,6 @@ function confirmToggle() {
         </div>
         <span v-else data-testid="last-updated" class="text-xs text-[var(--color-text-muted)]">{{ displayTime }}</span>
 
-        <!-- Status Strip -->
         <MetadataStrip :items="metadataItems">
             <template #Status>
                 <span class="inline-flex items-center gap-1.5 font-semibold">
@@ -353,7 +350,6 @@ function confirmToggle() {
 
         <div data-testid="layout-columns" class="grid grid-cols-1 gap-10 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div data-testid="layout-column-left" class="space-y-8">
-                <!-- Connected Devices -->
                 <div data-testid="section-connected-devices">
                     <div data-testid="connected-devices-section">
                         <SectionHeader :title="`Connected Devices (${visibleMacs.length})`" />
@@ -452,7 +448,6 @@ function confirmToggle() {
                     </div>
                 </div>
 
-                <!-- Interface Output -->
                 <div data-testid="section-interface-output">
                     <SectionHeader title="Interface Output" />
                     <div data-testid="interface-output-section">
@@ -463,7 +458,6 @@ function confirmToggle() {
             </div>
 
             <div data-testid="layout-column-right" class="space-y-8">
-                <!-- Bandwidth -->
                 <div data-testid="section-bandwidth">
                     <SectionHeader title="Bandwidth — Last 24h" />
                     <div data-testid="bandwidth-section">
@@ -509,7 +503,6 @@ function confirmToggle() {
                     </div>
                 </div>
 
-                <!-- Interface Errors -->
                 <div data-testid="section-errors">
                     <SectionHeader title="Interface Errors — Last 24h" />
                     <div>
@@ -528,7 +521,6 @@ function confirmToggle() {
                     </div>
                 </div>
 
-                <!-- Interface Config -->
                 <div data-testid="section-interface-config">
                     <SectionHeader title="Running Config" />
                     <div data-testid="running-config-section">

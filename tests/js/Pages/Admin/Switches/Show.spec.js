@@ -306,9 +306,6 @@ describe('Show.vue - broken template references', () => {
     });
 });
 
-// useAdminChannel's own subscribe/listen/leave behavior is covered generically by
-// tests/js/composables/useAdminChannel.spec.js; these cover Show's own handler logic:
-// the unconditional refresh on PortStateChanged.
 describe('Show Echo integration', () => {
     let originalEcho;
 

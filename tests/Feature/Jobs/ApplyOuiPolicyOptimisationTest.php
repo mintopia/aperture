@@ -75,7 +75,6 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         app()->call([new ScanNetworkDevices, 'handle']);
 
-        // Verify we never load ALL mac_addresses without a WHERE filter
         $unfilteredSelects = $queries->filter(function (string $sql): bool {
             return str_contains($sql, 'mac_addresses')
                 && str_contains($sql, 'select')
@@ -86,12 +85,10 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $this->assertCount(0, $unfilteredSelects, 'applyOuiPolicy should not load all MAC addresses without filtering');
 
-        // Verify the matching MAC's IP was enabled
         $ip1 = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip1);
         $this->assertTrue($ip1->internet_enabled);
 
-        // Verify the non-matching MAC's IP was NOT auto-allowed (no explicit decision)
         $ip2 = IpAddress::where('address', '127.0.0.2')->first();
         $this->assertNotNull($ip2);
         $this->assertNull($ip2->internet_enabled);
@@ -147,7 +144,6 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
     {
         Setting::set('network.oui_auto_allow', 'OUI Auto-Allow Prefixes', json_encode(['AA:BB:CC']));
 
-        // Pre-create a MAC and IP that's already enabled
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:01']);
         $ip = IpAddress::factory()->create(['address' => '127.0.0.1', 'internet_enabled' => true]);
         $ip->macAddresses()->attach($mac, ['source' => 'dhcp', 'last_seen_at' => now()]);
@@ -157,7 +153,6 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         app()->call([new ScanNetworkDevices, 'handle']);
 
-        // Should NOT create an audit log since IP was already enabled
         $this->assertDatabaseMissing('audit_logs', [
             'action' => 'oui.auto_allowed',
         ]);
@@ -179,7 +174,6 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
     public function test_oui_policy_returns_early_when_setting_is_null(): void
     {
-        // Don't set the oui_auto_allow setting at all
         $this->mockDhcp([new DhcpLeaseVO('127.0.0.1', 'AA:BB:CC:DD:EE:01', 'device', '2026-05-01')]);
         $this->mockInventory();
 
@@ -231,7 +225,6 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
     {
         Setting::set('network.oui_auto_allow', 'OUI Auto-Allow Prefixes', json_encode(['AA:BB:CC']));
 
-        // Create enough MACs to require chunking (more than typical chunk size)
         $macs = [];
         $ips = [];
         for ($i = 0; $i < 5; $i++) {
@@ -252,7 +245,6 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         app()->call([new ScanNetworkDevices, 'handle']);
 
-        // Verify all matching IPs were enabled
         foreach ($ips as $ip) {
             $ip->refresh();
             $this->assertTrue($ip->internet_enabled, sprintf('IP %s should be internet_enabled', $ip->address));

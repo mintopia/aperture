@@ -36,7 +36,6 @@ class DhcpPoolThresholdReachedTest extends TestCase
 
     public function test_does_not_use_serializes_models_trait(): void
     {
-        // DhcpPoolThresholdReached uses only scalar values, no models to serialize
         $traits = class_uses_recursive(DhcpPoolThresholdReached::class);
         $this->assertNotContains(SerializesModels::class, $traits);
     }

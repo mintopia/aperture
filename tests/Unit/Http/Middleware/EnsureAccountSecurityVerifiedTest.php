@@ -55,7 +55,7 @@ class EnsureAccountSecurityVerifiedTest extends TestCase
 
         $middleware = new EnsureAccountSecurityVerified;
 
-        $user = User::factory()->create(); // no password, no passkeys
+        $user = User::factory()->create();
 
         $request = Request::create('/passkeys/register/options', 'POST');
         $request->setUserResolver(fn () => $user);
@@ -74,7 +74,7 @@ class EnsureAccountSecurityVerifiedTest extends TestCase
 
         $middleware = new EnsureAccountSecurityVerified;
 
-        $user = User::factory()->create(); // no password, no passkeys
+        $user = User::factory()->create();
 
         $request = Request::create('/passkeys/register/options', 'POST');
         $request->setUserResolver(fn () => $user);

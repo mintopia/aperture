@@ -13,7 +13,6 @@ test.describe('Admin IP Index (extended)', () => {
 
     test('filter bar contains search input', async ({ page }) => {
         await page.goto('/admin/ips');
-        // The FilterBar component renders data-testid="filter-search-input"
         await expect(page.getByTestId('filter-search-input')).toBeVisible();
     });
 
@@ -31,7 +30,6 @@ test.describe('Admin IP Show Page', () => {
         const hasRows = await firstRow.isVisible().catch(() => false);
 
         if (!hasRows) {
-            // No IPs seeded — skip show page tests gracefully
             test.skip();
             return;
         }

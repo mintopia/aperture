@@ -8,12 +8,7 @@ export function startHttpStub(handler) {
             let raw = '';
             req.on('data', (chunk) => (raw += chunk));
             req.on('end', () => {
-                let body = raw;
-                try {
-                    body = JSON.parse(raw);
-                } catch {
-                    // form-encoded or empty bodies stay raw
-                }
+                const body = req.headers['content-type']?.includes('json') ? JSON.parse(raw) : raw;
                 const recorded = { method: req.method, path: req.url, headers: req.headers, body, raw };
                 requests.push(recorded);
 

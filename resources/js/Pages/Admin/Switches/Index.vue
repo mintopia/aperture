@@ -112,7 +112,6 @@ function syncStatusLabel(status) {
 
 <template>
     <div data-testid="switches-index-layout">
-        <!-- Page Header -->
         <header data-testid="switches-index-header" class="mb-2 flex items-start justify-between gap-6">
             <div>
                 <h1
@@ -135,7 +134,6 @@ function syncStatusLabel(status) {
             </div>
         </header>
 
-        <!-- Summary strip -->
         <div
             v-if="switches.length > 0"
             data-testid="switches-summary"
@@ -204,7 +202,6 @@ function syncStatusLabel(status) {
             </div>
         </div>
 
-        <!-- Empty state -->
         <EmptyState
             v-if="switches.length === 0"
             title="No switches configured"
@@ -219,7 +216,6 @@ function syncStatusLabel(status) {
             </Link>
         </EmptyState>
 
-        <!-- Table section -->
         <section v-else data-testid="switches-table-card" class="mb-8">
             <SectionHeader title="Configured Switches" />
 
@@ -256,21 +252,18 @@ function syncStatusLabel(status) {
                 @update:sort-direction="onSortDirectionUpdate"
             >
                 <template #row="{ row }">
-                    <!-- Name -->
                     <td
                         :data-testid="'switch-name-' + row.id"
                         class="text-[13px] font-semibold text-[var(--color-text)]"
                     >
                         {{ row.name }}
                     </td>
-                    <!-- Hostname -->
                     <td
                         :data-testid="'switch-hostname-' + row.id"
                         class="font-mono text-[13px] text-[var(--color-text)]"
                     >
                         {{ row.hostname }}
                     </td>
-                    <!-- Type -->
                     <td :data-testid="'switch-type-' + row.id">
                         <span
                             class="inline-flex rounded bg-[var(--color-primary)]/[0.14] px-2 py-[2px] text-xs font-semibold text-[var(--color-primary)]"
@@ -278,7 +271,6 @@ function syncStatusLabel(status) {
                             {{ typeLabel(row.type) }}
                         </span>
                     </td>
-                    <!-- Status -->
                     <td :data-testid="'switch-status-' + row.id">
                         <span class="inline-flex items-center gap-1.5">
                             <span
@@ -299,7 +291,6 @@ function syncStatusLabel(status) {
                             </span>
                         </span>
                     </td>
-                    <!-- Ports -->
                     <td :data-testid="'port-breakdown-' + row.id">
                         <template v-if="row.port_count > 0">
                             <span class="inline-flex items-center gap-2 text-[13px]">
@@ -316,7 +307,6 @@ function syncStatusLabel(status) {
                             <span class="text-[var(--color-text-muted)]">—</span>
                         </template>
                     </td>
-                    <!-- Sync -->
                     <td :data-testid="'sync-status-' + row.id">
                         <template v-if="row.latest_sync_status">
                             <div class="flex flex-col gap-px">

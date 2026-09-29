@@ -166,8 +166,6 @@ class IntegrationControllerTest extends TestCase
         Queue::fake();
         $admin = $this->createAdminUser();
 
-        // Send a config key ('unknown_key') that does not exist in the opnsense
-        // validationRules, triggering the `continue` branch on line 136.
         $response = $this->actingAs($admin)->put('/admin/settings/integrations/opnsense', [
             'config' => [
                 'endpoint' => 'https://opnsense.example.com',
@@ -178,7 +176,6 @@ class IntegrationControllerTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        // The valid key was stored, the unknown key was not
         $this->assertEquals('https://opnsense.example.com', IntegrationConfig::getValue('opnsense', 'endpoint'));
         $this->assertNull(IntegrationConfig::getValue('opnsense', 'unknown_key'));
     }
@@ -462,10 +459,6 @@ class IntegrationControllerTest extends TestCase
         $this->assertEquals('id', $filteredGroupField['remote_value']);
     }
 
-    // -------------------------------------------------------------------------
-    // Encrypted config fields (merged from IntegrationControllerEncryptionTest)
-    // -------------------------------------------------------------------------
-
     #[DataProvider('encryptedConfigFieldsProvider')]
     public function test_encrypted_config_fields_are_stored_encrypted(string $integration, array $config, string $field, string $expectedValue): void
     {
@@ -496,14 +489,12 @@ class IntegrationControllerTest extends TestCase
     public static function encryptedConfigFieldsProvider(): array
     {
         return [
-            // Borealis has client_secret with type 'password' in config/integrations.php.
             'borealis client_secret' => [
                 'borealis',
                 ['endpoint' => 'https://auth.example.com', 'client_id' => 'my-client-id', 'client_secret' => 'super-secret-value', 'scope' => 'discord'],
                 'client_secret',
                 'super-secret-value',
             ],
-            // OPNsense has 'key' and 'secret' fields with type 'password'.
             'opnsense key' => [
                 'opnsense',
                 ['endpoint' => 'https://opnsense.local/api', 'key' => 'my-api-key', 'secret' => 'my-api-secret'],
@@ -516,8 +507,6 @@ class IntegrationControllerTest extends TestCase
                 'secret',
                 'my-api-secret',
             ],
-            // Prometheus has bearer_token with type 'password' but it's NOT in the ENCRYPTED_KEYS
-            // constant — this proves encryption is derived from config/integrations.php, not the constant.
             'prometheus bearer_token' => [
                 'prometheus',
                 ['endpoint' => 'https://prometheus.local', 'bearer_token' => 'my-bearer-token-secret'],

@@ -522,7 +522,6 @@ class IntegrationControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonCount(2, 'zones');
-        // Sorted by zone ID: 3 before 5
         $response->assertJsonPath('zones.0.id', '3');
         $response->assertJsonPath('zones.0.name', 'Has Description (ID: 3)');
         $response->assertJsonPath('zones.1.id', '5');

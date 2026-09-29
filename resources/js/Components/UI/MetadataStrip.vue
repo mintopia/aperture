@@ -5,7 +5,6 @@ defineProps({
     items: {
         type: Array,
         required: true,
-        /* Array<{ label: string, value: string|number, mono?: boolean, large?: boolean, href?: string }> */
     },
 });
 </script>

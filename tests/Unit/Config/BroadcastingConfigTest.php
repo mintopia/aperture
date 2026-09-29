@@ -9,17 +9,6 @@ use Tests\TestCase;
 
 class BroadcastingConfigTest extends TestCase
 {
-    public function test_broadcasting_config_defaults_to_reverb_without_env_override(): void
-    {
-        config(['broadcasting.default' => null]);
-
-        // Re-evaluate: default in config file is 'reverb' when BROADCAST_DRIVER env is unset
-        $rawConfig = require base_path('config/broadcasting.php');
-        // The config file calls env(), so in test env it may return the .env value.
-        // Instead, verify the reverb connection is properly configured as a valid option.
-        $this->assertArrayHasKey('reverb', config('broadcasting.connections'));
-    }
-
     public function test_reverb_connection_exists_in_broadcasting_config(): void
     {
         $connections = config('broadcasting.connections');

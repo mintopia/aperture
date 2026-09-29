@@ -8,7 +8,6 @@ import (
 )
 
 func TestLoad_Defaults(t *testing.T) {
-	// Clear any env vars that might interfere
 	envVars := []string{
 		"SSH_PROXY_API_KEY",
 		"APERTURE_SSH_PROXY_API_KEY",
@@ -107,7 +106,6 @@ func TestLoad_InvalidDuration(t *testing.T) {
 
 	cfg := Load()
 
-	// Should fall back to default
 	if cfg.IdleTimeout != 600*time.Second {
 		t.Errorf("expected default idle timeout 600s on invalid input, got %v", cfg.IdleTimeout)
 	}
@@ -194,7 +192,6 @@ func TestLoad_ChannelsEnvEmpty(t *testing.T) {
 
 	cfg := Load()
 
-	// Should fall back to defaults
 	if len(cfg.Channels) != 2 || cfg.Channels[0] != "commands" || cfg.Channels[1] != "polling" {
 		t.Errorf("expected default channels on empty env, got %v", cfg.Channels)
 	}
@@ -205,7 +202,6 @@ func TestLoad_ChannelsEnvOnlyCommas(t *testing.T) {
 
 	cfg := Load()
 
-	// Should fall back to defaults since no valid channel names
 	if len(cfg.Channels) != 2 || cfg.Channels[0] != "commands" || cfg.Channels[1] != "polling" {
 		t.Errorf("expected default channels on commas-only env, got %v", cfg.Channels)
 	}

@@ -82,10 +82,8 @@ const totalFilteredCount = computed(() => {
 });
 
 const filteredLeases = computed(() => {
-    // Filter by range
     let filtered = applyRangeFilter(props.leases);
 
-    // Filter by search
     const term = search.value.toLowerCase().trim();
     if (term) {
         filtered = filtered.filter((lease) => {
@@ -96,7 +94,6 @@ const filteredLeases = computed(() => {
         });
     }
 
-    // Sort
     filtered = [...filtered].sort((a, b) => {
         const aVal = a[sortColumn.value] || '';
         const bVal = b[sortColumn.value] || '';
@@ -110,7 +107,6 @@ const filteredLeases = computed(() => {
         return sortDirection.value === 'asc' ? comparison : -comparison;
     });
 
-    // Limit display
     return filtered.slice(0, displayLimit.value);
 });
 

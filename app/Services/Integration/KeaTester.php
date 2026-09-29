@@ -14,15 +14,11 @@ use Throwable;
 class KeaTester implements TestableIntegration
 {
     /**
-     * Commands the `lease_cmds` hook must expose for Aperture to work with Kea's IPv4 Endpoint.
-     *
      * @var list<string>
      */
     private const REQUIRED_COMMANDS_V4 = ['lease4-get-page', 'config-get'];
 
     /**
-     * Commands the `lease_cmds` hook must expose for Aperture to work with Kea's IPv6 Endpoint.
-     *
      * @var list<string>
      */
     private const REQUIRED_COMMANDS_V6 = ['lease6-get-page', 'config-get'];

@@ -40,9 +40,6 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         $this->app->bind(
@@ -53,13 +50,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(NetworkRangeService::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         if ($this->app->environment('playwright')) {
-            // php -S handles each request in a fresh process, so the device flow needs a shared cache.
             config(['cache.default' => 'file', 'cache.stores.file.path' => storage_path('framework/cache/playwright')]);
             Route::middleware('api')->post('/api/e2e/device/approve', DeviceApprovalController::class);
         }

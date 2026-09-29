@@ -200,11 +200,9 @@ describe('Show — Port Search & Filter', () => {
         await input.setValue('Server Room');
         await input.trigger('input');
 
-        // Before debounce fires, all ports should still be visible
         await wrapper.vm.$nextTick();
         expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(4);
 
-        // After debounce fires
         vi.advanceTimersByTime(300);
         await wrapper.vm.$nextTick();
         expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(1);
@@ -247,12 +245,10 @@ describe('Show — Port Search & Filter', () => {
         const wrapper = mountShow();
         const select = wrapper.find('[data-testid="port-filter-status"]');
 
-        // First apply a filter
         await select.setValue('up');
         await wrapper.vm.$nextTick();
         expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(2);
 
-        // Reset with "all"
         await select.setValue('all');
         await wrapper.vm.$nextTick();
         expect(wrapper.findAll('[data-testid="data-table-row"]')).toHaveLength(4);
@@ -261,11 +257,9 @@ describe('Show — Port Search & Filter', () => {
     it('combined search + filter works', async () => {
         const wrapper = mountShow();
 
-        // Apply "up" filter first (2 connected ports: Gi1/0/1 and Gi1/0/2)
         await wrapper.find('[data-testid="port-filter-status"]').setValue('up');
         await wrapper.vm.$nextTick();
 
-        // Then search for "AP-Lobby" (only Gi1/0/2)
         const input = wrapper.find('[data-testid="port-search"]');
         await input.setValue('AP-Lobby');
         await input.trigger('input');

@@ -76,7 +76,6 @@ class UserLoginCascadeTest extends TestCase
         $ipv4->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
         $ipv6->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
 
-        // Other user already owns the IPv6
         $otherUserIp = new UserIpAddress;
         $otherUserIp->user()->associate($otherUser);
         $otherUserIp->ip()->associate($ipv6);
@@ -85,7 +84,6 @@ class UserLoginCascadeTest extends TestCase
 
         resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
-        // IPv6 should NOT be associated with this user
         $this->assertFalse(
             UserIpAddress::where('user_id', $user->id)
                 ->where('ip_address_id', $ipv6->id)
@@ -102,7 +100,6 @@ class UserLoginCascadeTest extends TestCase
         $ip2 = IpAddress::factory()->create(['address' => '127.0.0.2']);
         $ip3 = IpAddress::factory()->create(['address' => '127.0.0.3']);
 
-        // ip1 -> mac1 -> ip2 -> mac2 -> ip3 (two hops)
         $ip1->macAddresses()->attach($mac1, ['source' => 'arp', 'last_seen_at' => now()]);
         $ip2->macAddresses()->attach($mac1, ['source' => 'arp', 'last_seen_at' => now()]);
         $ip2->macAddresses()->attach($mac2, ['source' => 'arp', 'last_seen_at' => now()]);
@@ -110,11 +107,9 @@ class UserLoginCascadeTest extends TestCase
 
         resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
-        // ip2 should be cascaded (one hop)
         $this->assertTrue(
             UserIpAddress::where('user_id', $user->id)->where('ip_address_id', $ip2->id)->exists()
         );
-        // ip3 should NOT be cascaded (two hops)
         $this->assertFalse(
             UserIpAddress::where('user_id', $user->id)->where('ip_address_id', $ip3->id)->exists()
         );
@@ -148,7 +143,6 @@ class UserLoginCascadeTest extends TestCase
 
     public function test_login_cascade_respects_managed_ranges(): void
     {
-        // Set managed range to 127.0.0.0/8 only
         Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode(['127.0.0.0/8']));
 
         $user = User::factory()->create(['internet_blocked' => false]);
@@ -161,7 +155,6 @@ class UserLoginCascadeTest extends TestCase
 
         resolve(UserNetworkAssociationService::class)->addIp($user, '127.0.0.1');
 
-        // The unmanaged IP should not be cascaded because addIp checks managed ranges
         $this->assertFalse(
             UserIpAddress::where('user_id', $user->id)->where('ip_address_id', $ipUnmanaged->id)->exists()
         );

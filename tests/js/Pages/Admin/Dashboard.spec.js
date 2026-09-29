@@ -302,7 +302,6 @@ describe('Dashboard', () => {
 
         const recentUsersSection = wrapper.find('[data-testid="recent-users-section"]');
 
-        // Status uses inline dots with text labels
         const statusDots = recentUsersSection.findAll('.rounded-full');
         expect(statusDots.length).toBeGreaterThan(0);
         expect(wrapper.text()).toContain('Allowed');
@@ -446,9 +445,6 @@ describe('Dashboard', () => {
         });
     });
 
-    // useAdminChannel's own subscribe/register-listener/leave-on-unmount/polling-fallback
-    // behavior is covered generically by tests/js/composables/useAdminChannel.spec.js; these
-    // only cover Dashboard's own AuditLogRecorded handler and its fetchBandwidth poll wiring.
     describe('Echo integration', () => {
         let originalEcho;
 

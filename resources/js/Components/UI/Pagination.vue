@@ -5,7 +5,6 @@ defineProps({
     paginator: {
         type: Object,
         required: true,
-        /* Laravel paginator JSON: { current_page, last_page, from, to, total, links[] } */
     },
 });
 </script>

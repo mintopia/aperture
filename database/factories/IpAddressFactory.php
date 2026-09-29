@@ -13,8 +13,6 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class IpAddressFactory extends Factory
 {
     /**
-     * Define the model's default state.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -28,9 +26,6 @@ class IpAddressFactory extends Factory
         ];
     }
 
-    /**
-     * Indicate that the IP is internet enabled.
-     */
     public function internetEnabled(): static
     {
         return $this->state(fn (array $attributes): array => [
@@ -38,9 +33,6 @@ class IpAddressFactory extends Factory
         ]);
     }
 
-    /**
-     * Indicate that the IP session has expired.
-     */
     public function expired(): static
     {
         return $this->state(fn (array $attributes): array => [

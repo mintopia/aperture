@@ -26,7 +26,6 @@ async function loginWithPasskey() {
     passkeyLoading.value = true;
 
     try {
-        // Step 1: Get assertion options from server
         const optionsResponse = await fetch('/passkeys/login/options', {
             method: 'POST',
             headers: {
@@ -44,7 +43,6 @@ async function loginWithPasskey() {
 
         const options = await optionsResponse.json();
 
-        // Step 2: Transform server options for WebAuthn API
         options.challenge = base64UrlToBuffer(options.challenge);
 
         if (options.allowCredentials) {
@@ -54,10 +52,8 @@ async function loginWithPasskey() {
             }));
         }
 
-        // Step 3: Call WebAuthn browser API
         const credential = await navigator.credentials.get({ publicKey: options });
 
-        // Step 4: Encode credential response for server
         const credentialData = {
             id: credential.id,
             rawId: bufferToBase64(credential.rawId),
@@ -74,7 +70,6 @@ async function loginWithPasskey() {
             credentialData.response.userHandle = bufferToBase64(credential.response.userHandle);
         }
 
-        // Step 5: Send credential to server for verification
         const loginResponse = await fetch('/passkeys/login', {
             method: 'POST',
             headers: {

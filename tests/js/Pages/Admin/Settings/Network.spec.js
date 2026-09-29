@@ -61,7 +61,6 @@ function mountPage(settings = {}) {
     });
 }
 
-// The second useForm() call in Network.vue creates the clear-mappings form.
 const clearForm = () => forms[1];
 
 describe('Network settings page', () => {

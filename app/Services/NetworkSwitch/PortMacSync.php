@@ -15,8 +15,6 @@ use Illuminate\Support\Collection;
 class PortMacSync
 {
     /**
-     * Upsert pre-fetched MAC address forwarding table entries into the database.
-     *
      * @param  Collection<int, ForwardingEntry>  $macEntries
      * @return array{created: int, updated: int, syncedMacIds: list<int>}
      */
@@ -83,9 +81,7 @@ class PortMacSync
     }
 
     /**
-     * Remove MAC address entries for this switch that were not seen in the current sync run.
-     *
-     * @param  list<int>  $syncedMacIds  IDs of SwitchPortMac records synced in this run.
+     * @param  list<int>  $syncedMacIds
      */
     public function cleanStaleMacs(SwitchConfig $switchConfig, array $syncedMacIds): void
     {

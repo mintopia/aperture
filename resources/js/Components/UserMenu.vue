@@ -145,7 +145,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                 class="absolute top-full right-0 z-50 mt-2 w-52 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
                 @keydown="handleMenuKeydown"
             >
-                <!-- Dashboard -->
                 <a
                     :href="route('portal.dashboard')"
                     data-testid="user-menu-dashboard"
@@ -171,7 +170,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                     <span>Dashboard</span>
                 </a>
 
-                <!-- Admin (admin only) -->
                 <Link
                     v-if="user.is_admin"
                     :href="route('admin.home')"
@@ -199,7 +197,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                     <span>Admin</span>
                 </Link>
 
-                <!-- Settings (admin only) -->
                 <a
                     v-if="user.is_admin"
                     :href="route('account.settings')"
@@ -228,7 +225,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 
                 <div class="my-1 border-t border-[var(--color-border)]" />
 
-                <!-- Logout -->
                 <Link
                     :href="route('logout')"
                     method="post"

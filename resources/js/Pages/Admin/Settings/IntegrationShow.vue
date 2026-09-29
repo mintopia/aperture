@@ -88,9 +88,8 @@ async function toggleCapability(capability, currentActive) {
             integration: props.service.id,
             active: !currentActive,
         });
+    } finally {
         router.reload({ only: ['service'] });
-    } catch {
-        // Silently fail — reload will show current state
     }
 }
 
@@ -141,7 +140,6 @@ function formatTestOutput(output) {
 
 <template>
     <div class="space-y-6">
-        <!-- Page Header with actions -->
         <div>
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -186,7 +184,6 @@ function formatTestOutput(output) {
             </p>
         </div>
 
-        <!-- Configuration Form -->
         <div>
             <h2
                 class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -205,7 +202,6 @@ function formatTestOutput(output) {
                         :required="field.required"
                         :error="form.errors[`config.${field.key}`]"
                     >
-                        <!-- Toggle field -->
                         <template v-if="field.type === 'toggle'">
                             <button
                                 :id="field.key"
@@ -229,7 +225,6 @@ function formatTestOutput(output) {
                             </button>
                         </template>
 
-                        <!-- Remote select field -->
                         <template v-else-if="field.type === 'select-remote'">
                             <div class="flex gap-2">
                                 <select
@@ -265,7 +260,6 @@ function formatTestOutput(output) {
                             </p>
                         </template>
 
-                        <!-- Static select field -->
                         <template v-else-if="field.type === 'select'">
                             <select
                                 :id="field.key"
@@ -280,7 +274,6 @@ function formatTestOutput(output) {
                             </select>
                         </template>
 
-                        <!-- Text / URL / Password / Number field -->
                         <template v-else>
                             <input
                                 :id="field.key"
@@ -317,7 +310,6 @@ function formatTestOutput(output) {
             </form>
         </div>
 
-        <!-- Test Connection Result -->
         <div
             v-if="testResult"
             data-testid="test-result-panel"
@@ -373,7 +365,6 @@ function formatTestOutput(output) {
             </details>
         </div>
 
-        <!-- Capabilities -->
         <div class="space-y-3">
             <div>
                 <h2
@@ -418,7 +409,6 @@ function formatTestOutput(output) {
             </div>
         </div>
 
-        <!-- Connection Health Log -->
         <div class="space-y-3">
             <div>
                 <h2

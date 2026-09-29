@@ -61,7 +61,6 @@ function formatMetadata(metadata) {
 
 <template>
     <div data-testid="mac-show-layout">
-        <!-- Page Header -->
         <header data-testid="mac-show-header" class="mb-2">
             <h1
                 data-testid="page-title"
@@ -75,7 +74,6 @@ function formatMetadata(metadata) {
             </p>
         </header>
 
-        <!-- Metadata Strip -->
         <MetadataStrip
             :items="[
                 {
@@ -89,7 +87,6 @@ function formatMetadata(metadata) {
             ]"
         />
 
-        <!-- Associated IPs -->
         <section data-testid="mac-ips-section" class="mb-8">
             <SectionHeader title="Associated IPs" />
             <DataTable
@@ -129,7 +126,6 @@ function formatMetadata(metadata) {
             </DataTable>
         </section>
 
-        <!-- DHCP Leases -->
         <section data-testid="mac-dhcp-section" class="mb-8">
             <SectionHeader title="DHCP Leases" />
             <DataTable :columns="dhcpColumns" :rows="dhcpLeases" empty-message="No DHCP leases found.">
@@ -157,7 +153,6 @@ function formatMetadata(metadata) {
             </DataTable>
         </section>
 
-        <!-- Switch Ports -->
         <section data-testid="mac-switch-ports-section" class="mb-8">
             <SectionHeader title="Switch Ports" />
             <DataTable
@@ -196,7 +191,6 @@ function formatMetadata(metadata) {
             </DataTable>
         </section>
 
-        <!-- Audit Log -->
         <section data-testid="mac-audit-section" class="mb-8">
             <SectionHeader title="Audit Log" />
             <DataTable :columns="auditColumns" :rows="auditLogs" empty-message="No audit log entries.">

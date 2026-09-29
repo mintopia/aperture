@@ -16,23 +16,11 @@ use App\Services\UserNetworkAssociationService;
 
 class CascadeMacOwnershipOnLink
 {
-    /**
-     * The association service is constructor-injected; the listener itself is
-     * container-resolved per event, so this does not create a circular
-     * dependency with IpAddressActionService (which dispatches IpMacLinked).
-     */
     public function __construct(
         private readonly UserNetworkAssociationService $associationService,
         private readonly IpPolicyService $policyService,
     ) {}
 
-    /**
-     * Cascade the MAC's owner onto a newly linked (or refreshed) IP address.
-     *
-     * See ADR-011: DUID-derived MACs never drive ownership, and a DHCP lease
-     * held by a different owner (or an unowned MAC) takes the IP over once the
-     * previous owner's MACs no longer hold a lease on it.
-     */
     public function handle(IpMacLinked $event): void
     {
         if ($event->source === MacAddress::SOURCE_DHCP_DUID) {

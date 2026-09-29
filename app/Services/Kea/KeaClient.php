@@ -11,10 +11,6 @@ class KeaClient
 {
     private const RESULT_SUCCESS = 0;
 
-    /**
-     * Kea result code meaning the command succeeded but returned nothing —
-     * treated as a non-error, empty result.
-     */
     private const RESULT_EMPTY = 3;
 
     public function __construct(
@@ -28,8 +24,6 @@ class KeaClient
     }
 
     /**
-     * Send a command to this client's service and return Kea's response entry.
-     *
      * @param  array<string, mixed>  $arguments
      * @return array<string, mixed>
      */

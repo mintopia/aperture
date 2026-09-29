@@ -46,8 +46,6 @@ class NetworkRangeService
     }
 
     /**
-     * Validate whether a string is valid CIDR notation for the given address family.
-     *
      * @param  4|6  $family
      */
     public static function isValidCidr(string $cidr, int $family): bool

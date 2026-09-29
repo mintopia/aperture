@@ -50,7 +50,7 @@ class IpAddressDirectTest extends TestCase
 
         $this->service->enableRateLimit($ip);
 
-        $this->assertTrue(true); // Firewall mock verifies the call
+        $this->assertTrue(true);
     }
 
     public function test_disable_rate_limit_updates_firewall(): void
@@ -63,7 +63,7 @@ class IpAddressDirectTest extends TestCase
 
         $this->service->disableRateLimit($ip);
 
-        $this->assertTrue(true); // Firewall mock verifies the call
+        $this->assertTrue(true);
     }
 
     public function test_enable_internet_updates_firewall(): void
@@ -76,7 +76,7 @@ class IpAddressDirectTest extends TestCase
 
         $this->service->enableInternet($ip);
 
-        $this->assertTrue(true); // Firewall mock verifies the call
+        $this->assertTrue(true);
     }
 
     public function test_enable_internet_uses_user_nickname_as_description(): void
@@ -121,6 +121,6 @@ class IpAddressDirectTest extends TestCase
 
         $this->service->disableInternet($ip);
 
-        $this->assertTrue(true); // Firewall mock verifies the call
+        $this->assertTrue(true);
     }
 }

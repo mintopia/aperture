@@ -31,7 +31,6 @@ function toggleDrawer() {
         <Sidebar ref="sidebarRef" />
 
         <div class="flex min-w-0 flex-1 flex-col">
-            <!-- Topbar: breadcrumbs left, controls right -->
             <header
                 data-testid="admin-header"
                 class="sticky top-0 z-50 flex h-12 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-6"

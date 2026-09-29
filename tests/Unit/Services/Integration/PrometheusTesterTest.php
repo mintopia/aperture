@@ -20,10 +20,6 @@ class PrometheusTesterTest extends TestCase
     }
 
     /**
-     * Fake the buildinfo and instant-query endpoints independently.
-     *
-     * Accepts loosely-typed entries so tests can exercise malformed series.
-     *
      * @param  list<mixed>|null  $queryResult
      */
     private function fakePrometheus(
@@ -50,8 +46,6 @@ class PrometheusTesterTest extends TestCase
     }
 
     /**
-     * A single vector series whose newest sample has the given unix timestamp.
-     *
      * @return list<array{metric: array<string, string>, value: array{0: int, 1: string}}>
      */
     private function seriesAt(int $timestamp): array
@@ -183,7 +177,6 @@ class PrometheusTesterTest extends TestCase
 
     public function test_fails_when_newest_sample_is_older_than_fifteen_minutes(): void
     {
-        // Newest sample is an hour old — well past the 15-minute staleness threshold.
         $this->fakePrometheus(queryResult: $this->seriesAt(time() - 3600));
 
         $result = $this->tester->connect(['endpoint' => 'https://prometheus.local:9090']);
@@ -194,7 +187,6 @@ class PrometheusTesterTest extends TestCase
 
     public function test_uses_newest_sample_across_series_for_staleness(): void
     {
-        // One dead series and one fresh series: freshest sample wins.
         $this->fakePrometheus(queryResult: [
             [
                 'metric' => ['host' => '10.0.0.1'],
@@ -213,7 +205,6 @@ class PrometheusTesterTest extends TestCase
 
     public function test_skips_malformed_series_entries_when_a_valid_fresh_sample_exists(): void
     {
-        // Malformed entries are skipped, not fatal: the valid fresh sample wins.
         $this->fakePrometheus(queryResult: [
             'not-an-array-sample',
             [
@@ -240,7 +231,6 @@ class PrometheusTesterTest extends TestCase
 
     public function test_fails_when_all_series_entries_are_malformed(): void
     {
-        // Entries missing a usable value/timestamp yield no samples at all.
         $this->fakePrometheus(queryResult: [
             'not-an-array-sample',
             [

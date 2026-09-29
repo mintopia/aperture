@@ -60,7 +60,6 @@ function onFilterUpdate(values) {
 
 <template>
     <div data-testid="macs-index-layout">
-        <!-- Page Header -->
         <header data-testid="macs-index-header" class="mb-2 flex items-start justify-between gap-6">
             <div>
                 <h1

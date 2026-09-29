@@ -100,8 +100,6 @@ class PrometheusService
     }
 
     /**
-     * Execute a range query and extract time series data points.
-     *
      * @return array<int, array{timestamp: float, value: float}>
      */
     protected function fetchTimeSeries(string $promql, float $start, float $end, ?int $step = null): array

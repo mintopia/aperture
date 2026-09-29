@@ -11,7 +11,6 @@ use App\Services\Interfaces\AuthProviderInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
-/** Stand-in for Borealis, bound only when APP_ENV=playwright. */
 class FakeDeviceFlowService implements AuthProviderInterface
 {
     public const APPROVED_KEY = 'e2e_device_approved:';

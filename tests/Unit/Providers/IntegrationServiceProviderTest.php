@@ -62,10 +62,6 @@ class IntegrationServiceProviderTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    // -------------------------------------------------------
-    // Shared singletons
-    // -------------------------------------------------------
-
     public static function singletonBindingProvider(): array
     {
         return [
@@ -118,10 +114,6 @@ class IntegrationServiceProviderTest extends TestCase
         $this->assertNotSame($instance1, $this->app->make($class));
     }
 
-    // -------------------------------------------------------
-    // Capability -> interface bindings: falls back to Null* when unassigned
-    // -------------------------------------------------------
-
     public static function nullFallbackProvider(): array
     {
         $noSetup = function (): void {};
@@ -160,10 +152,6 @@ class IntegrationServiceProviderTest extends TestCase
 
         $this->assertInstanceOf($expectedNullClass, $service);
     }
-
-    // -------------------------------------------------------
-    // Capability -> interface bindings: resolves the assigned integration
-    // -------------------------------------------------------
 
     public static function capabilityAssignedProvider(): array
     {
@@ -277,13 +265,8 @@ class IntegrationServiceProviderTest extends TestCase
         $this->assertInstanceOf($expectedClass, $service);
     }
 
-    // -------------------------------------------------------
-    // Edge cases: capability gate with DB errors
-    // -------------------------------------------------------
-
     public function test_captive_portal_returns_null_when_different_integration_assigned(): void
     {
-        // Assign a different integration for captive-portal
         CapabilityAssignment::assign(Capability::CaptivePortal, 'some-other');
 
         $service = $this->app->make(CaptivePortalInterface::class);
@@ -293,7 +276,6 @@ class IntegrationServiceProviderTest extends TestCase
 
     public function test_capability_bindings_return_new_instance_on_each_resolve(): void
     {
-        // Capability bindings use bind() not singleton(), so each resolution is fresh
         $service1 = $this->app->make(CaptivePortalInterface::class);
         $service2 = $this->app->make(CaptivePortalInterface::class);
 

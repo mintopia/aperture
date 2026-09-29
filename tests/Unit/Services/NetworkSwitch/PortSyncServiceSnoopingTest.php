@@ -47,12 +47,10 @@ class PortSyncServiceSnoopingTest extends TestCase
 
         $this->factory = Mockery::mock(SwitchServiceFactory::class);
 
-        // Default: snooping adapter for all make() calls
         $this->factory->shouldReceive('make')
             ->andReturn($this->snoopingAdapter)
             ->byDefault();
 
-        // Stub the network calls needed by the base sync flow
         foreach ([$this->snoopingAdapter, $this->plainAdapter] as $adapter) {
             $adapter->shouldReceive('getAllPorts')->andReturn(collect())->byDefault();
             $adapter->shouldReceive('getForwardingDatabase')->andReturn(collect())->byDefault();
@@ -109,7 +107,6 @@ class PortSyncServiceSnoopingTest extends TestCase
 
     public function test_deletes_stale_snooping_observations(): void
     {
-        // Pre-existing observations for this switch
         $stale1 = DhcpSnoopingObservation::factory()->create([
             'switch_config_id' => $this->switchConfig->id,
             'ip' => '10.0.0.99',
@@ -123,7 +120,6 @@ class PortSyncServiceSnoopingTest extends TestCase
             'vlan' => 100,
         ]);
 
-        // Only one binding returned this sync cycle
         $bindings = collect([
             ['ip' => '10.0.0.50', 'mac' => '00:11:22:33:44:55', 'vlan' => 100, 'interface' => 'GigabitEthernet1/0/1', 'lease_seconds' => 86400],
         ]);
@@ -134,11 +130,9 @@ class PortSyncServiceSnoopingTest extends TestCase
 
         $this->service->syncSwitch($this->switchConfig);
 
-        // Stale observations must be gone
         $this->assertDatabaseMissing('dhcp_snooping_observations', ['id' => $stale1->id]);
         $this->assertDatabaseMissing('dhcp_snooping_observations', ['id' => $stale2->id]);
 
-        // Current binding should still exist
         $this->assertDatabaseHas('dhcp_snooping_observations', [
             'switch_config_id' => $this->switchConfig->id,
             'ip' => '10.0.0.50',
@@ -189,7 +183,6 @@ class PortSyncServiceSnoopingTest extends TestCase
 
         $this->assertSame('completed', $result->syncRun->status);
 
-        // Stale-delete must NOT run when the fetch fails
         $this->assertDatabaseHas('dhcp_snooping_observations', ['id' => $existing1->id]);
         $this->assertDatabaseHas('dhcp_snooping_observations', ['id' => $existing2->id]);
         $this->assertSame(2, DhcpSnoopingObservation::where('switch_config_id', $this->switchConfig->id)->count());
@@ -215,7 +208,6 @@ class PortSyncServiceSnoopingTest extends TestCase
 
     public function test_normalizes_mac_addresses(): void
     {
-        // Raw/non-normalized MAC formats
         $bindings = collect([
             ['ip' => '10.0.0.10', 'mac' => '0011.2233.4455', 'vlan' => 10, 'interface' => 'Gi1/0/1', 'lease_seconds' => 3600],
         ]);

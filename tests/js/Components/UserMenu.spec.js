@@ -128,7 +128,6 @@ describe('UserMenu', () => {
         await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
         expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(true);
 
-        // Simulate click outside
         document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         await wrapper.vm.$nextTick();
 
@@ -147,7 +146,6 @@ describe('UserMenu', () => {
         expect(initialsDiv.text()).toBe('Z');
     });
 
-    // ARIA accessibility tests
     it('trigger has aria-haspopup="menu"', () => {
         const wrapper = mountComponent();
         const trigger = wrapper.find('[data-testid="user-menu-trigger"]');
@@ -185,7 +183,6 @@ describe('UserMenu', () => {
         expect(wrapper.find(`[data-testid="${testid}"]`).attributes('role')).toBe('menuitem');
     });
 
-    // Keyboard navigation tests
     it('closes on Escape key', async () => {
         const wrapper = mountComponent();
         await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');

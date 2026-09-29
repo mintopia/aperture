@@ -151,7 +151,6 @@ describe('Index — DataTable', () => {
         const wrapper = mountIndex();
         const headers = wrapper.findAll('th');
         const headerTexts = headers.map((h) => h.text().trim());
-        // Name is default sort column so its header includes the sort indicator
         expect(headerTexts.some((t) => t.includes('Name'))).toBe(true);
         expect(headerTexts.some((t) => t.includes('Hostname'))).toBe(true);
         expect(headerTexts.some((t) => t.includes('Type'))).toBe(true);
@@ -372,10 +371,8 @@ describe('Index — Sorting', () => {
     it('toggles sort direction on second click', async () => {
         const wrapper = mountIndex();
         const btn = wrapper.find('[data-testid="sort-name"]');
-        // First click: already sorted by name asc, so direction flips to desc
         await btn.trigger('click');
         await wrapper.vm.$nextTick();
-        // Second click: direction flips back to asc
         await btn.trigger('click');
         await wrapper.vm.$nextTick();
 
@@ -400,7 +397,6 @@ describe('Index — Sorting', () => {
 
     it('sets aria-sort="descending" after clicking active column twice', async () => {
         const wrapper = mountIndex();
-        // name is the default sort column; click once to flip to desc
         await wrapper.find('[data-testid="sort-name"]').trigger('click');
         await wrapper.vm.$nextTick();
 

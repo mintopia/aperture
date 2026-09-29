@@ -284,8 +284,6 @@ class UserShowDataServiceTest extends TestCase
         $queryCount = count(DB::getQueryLog());
         DB::disableQueryLog();
 
-        // ≤4 queries: macs, switchPorts eager load, ipAddresses eager load, dhcpLeases eager load
-        // (not N queries per MAC — original code issued 11 queries for 3 MACs)
         $this->assertLessThanOrEqual(4, $queryCount,
             sprintf('Expected ≤4 queries, got %d. N+1 detected.', $queryCount));
     }

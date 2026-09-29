@@ -30,7 +30,6 @@ const privacyUrl = computed(() => {
             Skip to content
         </a>
 
-        <!-- Header -->
         <header
             data-testid="portal-header"
             class="sticky top-0 z-50 flex h-[52px] items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]/85 px-6 backdrop-blur-xl"
@@ -48,12 +47,10 @@ const privacyUrl = computed(() => {
             </div>
         </header>
 
-        <!-- Main Content -->
         <main id="main-content" class="mx-auto max-w-[1100px] px-6 pt-8 pb-16">
             <slot />
         </main>
 
-        <!-- Footer -->
         <footer data-testid="portal-footer" class="border-t border-[var(--color-border)] px-6 py-6">
             <div
                 class="mx-auto flex max-w-[1100px] flex-col items-center gap-3 text-[12px] text-[var(--color-text-muted)]"

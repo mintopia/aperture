@@ -157,7 +157,6 @@ describe('useAdminChannel', () => {
 
             expect(wrapper.vm.connected).toBe(false);
 
-            // Simulate pusher connecting
             pusher._bindings['connected']();
             await nextTick();
 
@@ -177,7 +176,6 @@ describe('useAdminChannel', () => {
 
             expect(wrapper.vm.connected).toBe(true);
 
-            // Simulate disconnection
             pusher._bindings['disconnected']();
             await nextTick();
 
@@ -278,16 +276,13 @@ describe('useAdminChannel', () => {
                 }),
             );
 
-            // Initially connected - no polling
             vi.advanceTimersByTime(9999);
             expect(poll).not.toHaveBeenCalled();
 
-            // Simulate disconnection (also update mock state for health checks)
             pusher.connection.state = 'disconnected';
             pusher._bindings['disconnected']();
             await nextTick();
 
-            // Now polling should start
             vi.advanceTimersByTime(10000);
             expect(poll).toHaveBeenCalledTimes(1);
         });
@@ -306,16 +301,13 @@ describe('useAdminChannel', () => {
                 }),
             );
 
-            // Polling active while disconnected
             vi.advanceTimersByTime(10000);
             expect(poll).toHaveBeenCalledTimes(1);
 
-            // Simulate connection (also update mock state for health checks)
             pusher.connection.state = 'connected';
             pusher._bindings['connected']();
             await nextTick();
 
-            // Polling should have stopped
             poll.mockClear();
             vi.advanceTimersByTime(30000);
             expect(poll).not.toHaveBeenCalled();
@@ -365,7 +357,6 @@ describe('useAdminChannel', () => {
         it('does not start polling if no poll function provided', () => {
             window.Echo = undefined;
 
-            // Should not throw even without poll function
             const wrapper = mount(
                 createTestComponent({
                     events: {},
@@ -528,16 +519,13 @@ describe('useAdminChannel', () => {
 
             expect(wrapper.vm.connected).toBe(true);
 
-            // Simulate state change without event
             pusher.connection.state = 'disconnected';
 
-            // Trigger health check (every 10s)
             vi.advanceTimersByTime(10000);
             await nextTick();
 
             expect(wrapper.vm.connected).toBe(false);
 
-            // Fallback polling should now be active
             vi.advanceTimersByTime(5000);
             expect(poll).toHaveBeenCalledTimes(1);
         });

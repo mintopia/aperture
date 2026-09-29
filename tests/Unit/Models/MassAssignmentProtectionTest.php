@@ -15,8 +15,6 @@ class MassAssignmentProtectionTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    // ── User ────────────────────────────────────────────────────────
-
     public function test_user_allows_mass_assignment_of_fillable_fields(): void
     {
         $user = User::factory()->create([
@@ -63,8 +61,6 @@ class MassAssignmentProtectionTest extends TestCase
         $this->assertSame('Test', $user->nickname);
     }
 
-    // ── IpAddress ──────────────────────────────────────────────────
-
     public function test_ip_address_allows_mass_assignment_of_fillable_fields(): void
     {
         $ip = new IpAddress;
@@ -103,8 +99,6 @@ class MassAssignmentProtectionTest extends TestCase
         $this->assertDatabaseHas('ip_addresses', ['id' => $ip->id]);
     }
 
-    // ── UserIpAddress ──────────────────────────────────────────────
-
     public function test_user_ip_address_allows_mass_assignment_of_fillable_fields(): void
     {
         $user = User::factory()->create();
@@ -130,8 +124,6 @@ class MassAssignmentProtectionTest extends TestCase
         $this->assertNull($userIp->id);
         $this->assertNotNull($userIp->last_seen_at);
     }
-
-    // ── Role ───────────────────────────────────────────────────────
 
     public function test_role_allows_mass_assignment_of_fillable_fields(): void
     {

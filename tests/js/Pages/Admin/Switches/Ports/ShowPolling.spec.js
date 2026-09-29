@@ -201,18 +201,15 @@ describe('Show — Polling & Last Updated', () => {
         });
         const wrapper = mountShow();
 
-        // Advance time so display shows something other than "just now"
         vi.advanceTimersByTime(20000);
         await flushPromises();
         await wrapper.vm.$nextTick();
         expect(wrapper.find('[data-testid="last-updated"]').text()).toContain('20s ago');
 
-        // Trigger polling — resets lastUpdated via onSuccess
         vi.advanceTimersByTime(10000);
         await flushPromises();
         await wrapper.vm.$nextTick();
 
-        // After polling success, lastUpdated resets — advance 2s for display timer
         vi.advanceTimersByTime(2000);
         await flushPromises();
         await wrapper.vm.$nextTick();

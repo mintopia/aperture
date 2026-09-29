@@ -64,7 +64,6 @@ const mountPage = (overrides = {}) =>
                 ConfigBlock: { template: '<div data-testid="config-block" />' },
                 TimeSeriesChart: { template: '<div data-testid="time-series-chart" />' },
                 ConnectedDevicesSummary: { template: '<div data-testid="connected-devices-summary" />' },
-                // Don't stub ConfirmModal - let it render for real
                 teleport: true,
             },
         },

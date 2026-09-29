@@ -13,8 +13,6 @@ class PasskeyAuthenticationTest extends TestCase
     use CreatesAdminUsers;
     use LazilyRefreshDatabase;
 
-    // Overrides CreatesAdminUsers::createAdminUser() — passkey flows require a
-    // pre-existing password so the "change password" fallback path is exercised.
     protected function createAdminUser(): User
     {
         $user = User::factory()->withPassword()->create();
@@ -68,11 +66,8 @@ class PasskeyAuthenticationTest extends TestCase
 
     public function test_passkey_destroy_returns_403_when_unauthenticated(): void
     {
-        // Covers PasskeyController line 53: the null-user guard in destroy()
         $response = $this->deleteJson('/passkeys/some-credential-id');
 
-        // Unauthenticated requests get a 401 from the auth middleware,
-        // or the null-user guard returns 403 — either way it's not a success
         $this->assertContains($response->getStatusCode(), [401, 403]);
     }
 

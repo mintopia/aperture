@@ -99,8 +99,6 @@ describe('Error Page', () => {
         it('uses Inertia Head component to set the page title', () => {
             const wrapper = mountError({ status: 404 });
 
-            // The Head component is mocked as a div; verify it is rendered
-            // and the component sets a title (the Head mock renders as <div />)
             expect(wrapper.find('div').exists()).toBe(true);
         });
     });
@@ -109,7 +107,6 @@ describe('Error Page', () => {
         it('does not use AdminLayout or PortalLayout', () => {
             const wrapper = mountError({ status: 404 });
 
-            // The error page is standalone -- no layout wrapper components
             expect(wrapper.html()).not.toContain('AdminLayout');
             expect(wrapper.html()).not.toContain('PortalLayout');
         });

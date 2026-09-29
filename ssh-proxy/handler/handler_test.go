@@ -15,10 +15,7 @@ import (
 	"time"
 )
 
-// Default test channels used across all handler tests.
 var defaultTestChannels = []string{"commands", "polling"}
-
-// --- Mocks ---
 
 type mockSession struct {
 	chunks  []string
@@ -70,7 +67,6 @@ func mockConnectorFailure(errMsg string) Connector {
 	}
 }
 
-// testLoggerWithBuffer creates a logger that writes JSON to the given buffer.
 func testLoggerWithBuffer(buf *bytes.Buffer) *slog.Logger {
 	return slog.New(slog.NewJSONHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
@@ -90,8 +86,6 @@ func testHandlerWithLogger(p *pool.Pool, connector Connector, executor CommandEx
 func testHandlerWithChannels(p *pool.Pool, connector Connector, executor CommandExecutor, channels []string) *Handler {
 	return New(p, connector, executor, 10*time.Second, testLogger(), channels)
 }
-
-// --- Health tests ---
 
 func TestHealth(t *testing.T) {
 	h := testHandler(pool.New(10*time.Minute, 0), nil, nil)
@@ -117,8 +111,6 @@ func TestHealth(t *testing.T) {
 		t.Errorf("expected non-negative uptime, got %d", body.UptimeSeconds)
 	}
 }
-
-// --- Status tests ---
 
 func TestStatus_Empty(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
@@ -168,8 +160,6 @@ func TestStatus_WithConnections(t *testing.T) {
 		t.Errorf("expected channel %q, got %q", pool.DefaultChannel, body.Connections[0].Channel)
 	}
 }
-
-// --- Execute tests ---
 
 func TestExecute_Success(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
@@ -259,9 +249,7 @@ func TestExecute_MissingFields(t *testing.T) {
 
 func TestExecute_HostLocked(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
-	// Lock the host on the default channel
 	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
-	// Don't release — it stays locked
 
 	h := testHandler(p, nil, nil)
 
@@ -311,7 +299,6 @@ func TestExecute_ReusesPooledConnection(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 
-	// Pre-populate the pool with default channel
 	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
 	p.SetConnection(testKey("switch1", pool.DefaultChannel), session)
 	p.Release(testKey("switch1", pool.DefaultChannel))
@@ -399,8 +386,6 @@ func TestExecute_CustomPort(t *testing.T) {
 	}
 }
 
-// --- NotFound tests ---
-
 func TestNotFound(t *testing.T) {
 	h := testHandler(pool.New(10*time.Minute, 0), nil, nil)
 
@@ -470,7 +455,6 @@ func TestExecute_ReleasesLockOnSuccess(t *testing.T) {
 
 	h.Execute(w, req)
 
-	// Try to acquire again — should succeed (lock was released)
 	_, _, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
 	if err != nil {
 		t.Errorf("expected lock to be released, got error: %v", err)
@@ -478,15 +462,12 @@ func TestExecute_ReleasesLockOnSuccess(t *testing.T) {
 	p.Release(testKey("switch1", pool.DefaultChannel))
 }
 
-// --- Request ID tests ---
-
 func TestGenerateRequestID(t *testing.T) {
 	id := GenerateRequestID()
 	if len(id) != 8 {
 		t.Errorf("expected 8 char request ID, got %d chars: %q", len(id), id)
 	}
 
-	// Verify uniqueness (probabilistic, but collision on 4 random bytes is extremely unlikely).
 	id2 := GenerateRequestID()
 	if id == id2 {
 		t.Errorf("expected unique request IDs, got two identical: %q", id)
@@ -496,12 +477,10 @@ func TestGenerateRequestID(t *testing.T) {
 func TestRequestIDContextRoundTrip(t *testing.T) {
 	ctx := context.Background()
 
-	// No ID set — should return empty string.
 	if got := RequestIDFromContext(ctx); got != "" {
 		t.Errorf("expected empty string from fresh context, got %q", got)
 	}
 
-	// Set and retrieve.
 	ctx = ContextWithRequestID(ctx, "abcd1234")
 	if got := RequestIDFromContext(ctx); got != "abcd1234" {
 		t.Errorf("expected 'abcd1234', got %q", got)
@@ -532,7 +511,6 @@ func TestExecute_LogsRequestID(t *testing.T) {
 
 	logs := logBuf.String()
 
-	// Every INFO/DEBUG log line from the execute handler should contain request_id.
 	for _, line := range strings.Split(strings.TrimSpace(logs), "\n") {
 		if line == "" {
 			continue
@@ -544,7 +522,6 @@ func TestExecute_LogsRequestID(t *testing.T) {
 		if _, ok := entry["request_id"]; !ok {
 			t.Errorf("log line missing request_id: %s", line)
 		}
-		// Verify request_id is an 8-char hex string.
 		rid, _ := entry["request_id"].(string)
 		if len(rid) != 8 {
 			t.Errorf("expected 8-char request_id, got %q in line: %s", rid, line)
@@ -575,7 +552,6 @@ func TestExecute_LogsErrorOnFailure(t *testing.T) {
 
 	h.Execute(w, req)
 
-	// Find the "commands executed" log line and verify it contains the error.
 	logs := logBuf.String()
 	found := false
 	for _, line := range strings.Split(strings.TrimSpace(logs), "\n") {
@@ -624,7 +600,6 @@ func TestExecute_LogsNoErrorOnSuccess(t *testing.T) {
 
 	h.Execute(w, req)
 
-	// Find the "commands executed" log line and verify it does NOT contain error.
 	logs := logBuf.String()
 	for _, line := range strings.Split(strings.TrimSpace(logs), "\n") {
 		var entry map[string]any
@@ -661,7 +636,6 @@ func TestExecute_LogsDurationMs(t *testing.T) {
 
 	h.Execute(w, req)
 
-	// Find the "commands executed" log line and verify it contains duration_ms.
 	logs := logBuf.String()
 	found := false
 	for _, line := range strings.Split(strings.TrimSpace(logs), "\n") {
@@ -674,7 +648,6 @@ func TestExecute_LogsDurationMs(t *testing.T) {
 			if _, ok := entry["duration_ms"]; !ok {
 				t.Error("expected 'duration_ms' field in 'commands executed' log")
 			}
-			// duration_ms should be a number >= 0.
 			dur, ok := entry["duration_ms"].(float64)
 			if !ok {
 				t.Error("expected 'duration_ms' to be a number")
@@ -707,14 +680,12 @@ func TestExecute_UsesContextRequestID(t *testing.T) {
 
 	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
-	// Inject a known request ID via context.
 	ctx := ContextWithRequestID(req.Context(), "deadbeef")
 	req = req.WithContext(ctx)
 	w := httptest.NewRecorder()
 
 	h.Execute(w, req)
 
-	// All log lines should use the injected request ID.
 	logs := logBuf.String()
 	for _, line := range strings.Split(strings.TrimSpace(logs), "\n") {
 		if line == "" {
@@ -731,8 +702,6 @@ func TestExecute_UsesContextRequestID(t *testing.T) {
 	}
 }
 
-// --- Channel tests ---
-
 func TestExecute_DefaultChannel(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
@@ -743,7 +712,6 @@ func TestExecute_DefaultChannel(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	// No channel in request — should default to "commands"
 	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
@@ -754,7 +722,6 @@ func TestExecute_DefaultChannel(t *testing.T) {
 		t.Errorf("expected 200, got %d", w.Code)
 	}
 
-	// Verify pool entry was created with default channel
 	_, infos := p.Status()
 	if len(infos) != 1 {
 		t.Fatalf("expected 1 pool entry, got %d", len(infos))
@@ -784,7 +751,6 @@ func TestExecute_ExplicitChannel(t *testing.T) {
 		t.Errorf("expected 200, got %d", w.Code)
 	}
 
-	// Verify pool entry was created with specified channel
 	_, infos := p.Status()
 	if len(infos) != 1 {
 		t.Fatalf("expected 1 pool entry, got %d", len(infos))
@@ -817,7 +783,6 @@ func TestExecute_InvalidChannel(t *testing.T) {
 func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
-	// Create two separate sessions for the two channels
 	session1 := newMockSession("Switch#")
 	session2 := newMockSession("Switch#")
 
@@ -836,7 +801,6 @@ func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	// Execute on "commands" channel
 	body1 := `{"hostname":"switch1","username":"admin","password":"pass","channel":"commands","commands":[]}`
 	req1 := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body1))
 	w1 := httptest.NewRecorder()
@@ -846,7 +810,6 @@ func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
 		t.Errorf("commands channel: expected 200, got %d", w1.Code)
 	}
 
-	// Execute on "polling" channel — should NOT be blocked
 	body2 := `{"hostname":"switch1","username":"admin","password":"pass","channel":"polling","commands":[]}`
 	req2 := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body2))
 	w2 := httptest.NewRecorder()
@@ -856,13 +819,11 @@ func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
 		t.Errorf("polling channel: expected 200, got %d", w2.Code)
 	}
 
-	// Should have 2 pool entries (one per channel)
 	_, infos := p.Status()
 	if len(infos) != 2 {
 		t.Fatalf("expected 2 pool entries, got %d", len(infos))
 	}
 
-	// Connector should have been called twice (once per channel)
 	if connectorCallCount != 2 {
 		t.Errorf("expected connector to be called 2 times, got %d", connectorCallCount)
 	}
@@ -872,7 +833,6 @@ func TestExecute_ChannelReusesPooledConnection(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 
-	// Pre-populate the pool with the polling channel
 	_, _, _ = p.Acquire(testKey("switch1", "polling"))
 	p.SetConnection(testKey("switch1", "polling"), session)
 	p.Release(testKey("switch1", "polling"))
@@ -928,7 +888,6 @@ func TestExecute_ChannelLogsIncludeChannel(t *testing.T) {
 
 	h.Execute(w, req)
 
-	// Every log line should include the channel field.
 	logs := logBuf.String()
 	for _, line := range strings.Split(strings.TrimSpace(logs), "\n") {
 		if line == "" {
@@ -965,9 +924,6 @@ func TestIsValidChannel(t *testing.T) {
 	}
 }
 
-// --- Stale connection recovery tests ---
-
-// failOnceExecutor returns a connection error on the first call, then succeeds.
 type failOnceExecutor struct {
 	callCount     int
 	failResult    *ssh.CommandResult
@@ -985,13 +941,11 @@ func (e *failOnceExecutor) Execute(_ ssh.Session, _ []ssh.Command) *ssh.CommandR
 func TestExecute_RetryOnStaleConnection(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
-	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
 	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
 	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
 	p.Release(testKey("switch1", pool.DefaultChannel))
 
-	// Fresh session for the retry.
 	freshSession := newMockSession("Switch#", "output\nSwitch#")
 
 	connectorCallCount := 0
@@ -1030,12 +984,10 @@ func TestExecute_RetryOnStaleConnection(t *testing.T) {
 		t.Errorf("expected success after retry, got error: %s", resp.Error)
 	}
 
-	// Connector should have been called once (for the retry reconnection).
 	if connectorCallCount != 1 {
 		t.Errorf("expected connector called 1 time (retry), got %d", connectorCallCount)
 	}
 
-	// Executor should have been called twice (original + retry).
 	if executor.callCount != 2 {
 		t.Errorf("expected executor called 2 times, got %d", executor.callCount)
 	}
@@ -1044,11 +996,9 @@ func TestExecute_RetryOnStaleConnection(t *testing.T) {
 func TestExecute_RetryNotTriggeredOnNewConnection(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
-	// No pre-populated connection — this will be a new connection.
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
 
-	// Executor fails with a connection error.
 	executor := &mockExecutor{
 		result: &ssh.CommandResult{
 			Success: false,
@@ -1082,13 +1032,11 @@ func TestExecute_RetryNotTriggeredOnNewConnection(t *testing.T) {
 func TestExecute_RetryReconnectFailure(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
-	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
 	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
 	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
 	p.Release(testKey("switch1", pool.DefaultChannel))
 
-	// Connector fails on retry reconnect.
 	connector := mockConnectorFailure("connection refused")
 
 	executor := &mockExecutor{
@@ -1124,7 +1072,6 @@ func TestExecute_RetryReconnectFailure(t *testing.T) {
 func TestExecute_RetryNotTriggeredOnNonConnectionError(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
-	// Pre-populate pool with an existing connection.
 	session := newMockSession("Switch#")
 	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
 	p.SetConnection(testKey("switch1", pool.DefaultChannel), session)
@@ -1136,7 +1083,6 @@ func TestExecute_RetryNotTriggeredOnNonConnectionError(t *testing.T) {
 		return nil, fmt.Errorf("should not be called")
 	}
 
-	// A command timeout is not a connection error — should not trigger retry.
 	executor := &mockExecutor{
 		result: &ssh.CommandResult{
 			Success: false,
@@ -1174,7 +1120,6 @@ func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
 
 	p := pool.New(10*time.Minute, 0)
 
-	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
 	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
 	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
@@ -1205,7 +1150,6 @@ func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
 
 	h.Execute(w, req)
 
-	// Find the stale connection recovery log line.
 	logs := logBuf.String()
 	foundStaleWarning := false
 	foundRetrySuccess := false
@@ -1258,7 +1202,6 @@ func TestIsConnectionError(t *testing.T) {
 func TestExecute_RetryReleasesLock(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
-	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
 	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
 	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
@@ -1289,7 +1232,6 @@ func TestExecute_RetryReleasesLock(t *testing.T) {
 
 	h.Execute(w, req)
 
-	// After the execute (including retry), the lock should be released.
 	_, _, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
 	if err != nil {
 		t.Errorf("expected lock to be released after retry, got error: %v", err)
@@ -1299,7 +1241,6 @@ func TestExecute_RetryReleasesLock(t *testing.T) {
 
 func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
-	// Lock the host on the commands channel
 	_, _, _ = p.Acquire(testKey("switch1", "commands"))
 
 	session := newMockSession("Switch#")
@@ -1310,7 +1251,6 @@ func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	// Request on commands channel — should be locked
 	body1 := `{"hostname":"switch1","username":"admin","password":"pass","channel":"commands","commands":[]}`
 	req1 := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body1))
 	w1 := httptest.NewRecorder()
@@ -1320,7 +1260,6 @@ func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 		t.Errorf("commands channel: expected 409 (locked), got %d", w1.Code)
 	}
 
-	// Request on polling channel — should succeed
 	body2 := `{"hostname":"switch1","username":"admin","password":"pass","channel":"polling","commands":[]}`
 	req2 := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body2))
 	w2 := httptest.NewRecorder()

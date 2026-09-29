@@ -456,12 +456,10 @@ class PortSyncServiceTest extends TestCase
                 'Port      Name               Status       Vlan       Duplex  Speed Type',
                 sprintf('Gi1/0/7   %s  connected    100        a-full  a-1000 10/100/1000BaseTX', $statusDescription),
             ]));
-        // Bulk running-config returns the config under the full interface name
         $transport->shouldReceive('execute')
             ->with('show running-config | section ^interface')
             ->once()
             ->andReturn($runningConfig."\n!");
-        // Bulk show interface returns the raw output under the full interface name
         $transport->shouldReceive('execute')
             ->with('show interface')
             ->once()
@@ -824,14 +822,12 @@ class PortSyncServiceTest extends TestCase
 
     public function test_sync_tracks_created_and_updated_counts(): void
     {
-        // Pre-create one port so it will be updated
         SwitchPort::factory()->create([
             'switch_config_id' => $this->switchConfig->id,
             'port_name' => 'Gi1/0/1',
             'status' => 'notconnect',
         ]);
 
-        // Pre-create one MAC so it will be updated
         $existingPort = SwitchPort::where('port_name', 'Gi1/0/1')
             ->where('switch_config_id', $this->switchConfig->id)
             ->first();
@@ -947,7 +943,6 @@ class PortSyncServiceTest extends TestCase
 
     public function test_sync_wraps_in_transaction(): void
     {
-        // Pre-create a port to ensure it exists before sync
         SwitchPort::factory()->create([
             'switch_config_id' => $this->switchConfig->id,
             'port_name' => 'Gi1/0/1',
@@ -959,7 +954,6 @@ class PortSyncServiceTest extends TestCase
             new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
         ]));
 
-        // Simulate getForwardingDatabase throwing an exception after ports are processed
         $this->switchAdapter->shouldReceive('getForwardingDatabase')
             ->andThrow(new RuntimeException('MAC table fetch failed'));
 
@@ -974,7 +968,6 @@ class PortSyncServiceTest extends TestCase
 
         $this->assertSame('failed', $syncRun->status);
 
-        // Port should NOT have been updated because transaction was rolled back
         $port = SwitchPort::where('port_name', 'Gi1/0/1')
             ->where('switch_config_id', $this->switchConfig->id)
             ->first();
@@ -1000,7 +993,6 @@ class PortSyncServiceTest extends TestCase
     public function test_sync_skips_mac_cleanup_and_warns_on_empty_mac_table(): void
     {
         Log::spy();
-        // Pre-create a port with an existing MAC
         $port = SwitchPort::factory()->create([
             'switch_config_id' => $this->switchConfig->id,
             'port_name' => 'Gi1/0/1',
@@ -1027,7 +1019,6 @@ class PortSyncServiceTest extends TestCase
 
     public function test_sync_cleans_up_stale_running_runs(): void
     {
-        // Create a stale run that has been "running" for 10 minutes
         $staleRun = SwitchSyncRun::factory()->create([
             'switch_config_id' => $this->switchConfig->id,
             'status' => 'running',
@@ -1048,7 +1039,6 @@ class PortSyncServiceTest extends TestCase
 
     public function test_sync_does_not_clean_up_recent_running_runs(): void
     {
-        // Create a recent run that has been "running" for only 2 minutes
         $recentRun = SwitchSyncRun::factory()->create([
             'switch_config_id' => $this->switchConfig->id,
             'status' => 'running',
@@ -1062,7 +1052,6 @@ class PortSyncServiceTest extends TestCase
 
         $recentRun->refresh();
 
-        // Should still be running — not cleaned up because it's less than 5 minutes old
         $this->assertSame('running', $recentRun->status);
         $this->assertNull($recentRun->finished_at);
     }
@@ -1071,7 +1060,6 @@ class PortSyncServiceTest extends TestCase
     {
         $otherSwitch = SwitchConfig::factory()->create();
 
-        // Create a stale run on a different switch
         $otherStaleRun = SwitchSyncRun::factory()->create([
             'switch_config_id' => $otherSwitch->id,
             'status' => 'running',
@@ -1085,20 +1073,18 @@ class PortSyncServiceTest extends TestCase
 
         $otherStaleRun->refresh();
 
-        // The other switch's stale run should NOT be affected
         $this->assertSame('running', $otherStaleRun->status);
     }
 
     public function test_sync_skips_forwarding_entry_when_port_not_in_switch_ports(): void
     {
-        // Only Gi1/0/1 exists as a port; forwarding entry references Gi1/0/99 which doesn't exist
         $ports = collect([
             new PortStatus(interface: 'Gi1/0/1', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '100'),
         ]);
 
         $macs = collect([
             new ForwardingEntry(mac: 'aabb.ccdd.ee01', port: 'Gi1/0/1', vlan: 100),
-            new ForwardingEntry(mac: 'aabb.ccdd.ee02', port: 'Gi1/0/99', vlan: 200), // port not in switch
+            new ForwardingEntry(mac: 'aabb.ccdd.ee02', port: 'Gi1/0/99', vlan: 200),
         ]);
 
         $this->switchAdapter->shouldReceive('getAllPorts')->once()->andReturn($ports);
@@ -1106,16 +1092,11 @@ class PortSyncServiceTest extends TestCase
 
         $syncRun = $this->service->syncSwitch($this->switchConfig)->syncRun;
 
-        // Only the valid MAC should be stored
         $this->assertDatabaseCount('switch_port_macs', 1);
         $this->assertDatabaseHas('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
         $this->assertDatabaseMissing('switch_port_macs', ['mac_address' => 'AA:BB:CC:DD:EE:02']);
         $this->assertSame('completed', $syncRun->status);
     }
-
-    // -------------------------------------------------------------------------
-    // Bulk operations: PortSyncService uses SupportsBulkOperations when available
-    // -------------------------------------------------------------------------
 
     public function test_sync_uses_bulk_operations_for_config_sync_when_adapter_supports_it(): void
     {
@@ -1141,7 +1122,6 @@ class PortSyncServiceTest extends TestCase
             'Gi1/0/2' => "GigabitEthernet1/0/2 is down, line protocol is down (notconnect)\n  Hardware is Gigabit Ethernet",
         ]);
 
-        // Per-port methods should NOT be called when bulk is available
         $bulkAdapter->shouldNotReceive('getPortRunningConfig');
         $bulkAdapter->shouldNotReceive('getPortInterfaceOutput');
         $bulkAdapter->shouldNotReceive('getPortStatus');
@@ -1187,7 +1167,6 @@ class PortSyncServiceTest extends TestCase
             new PortStatus(interface: 'Gi1/0/2', status: 'connected', speed: 'a-1000', duplex: 'a-full', vlan: '200'),
         ]));
 
-        // Only Gi1/0/1 in bulk configs; Gi1/0/2 is missing
         $bulkAdapter->shouldReceive('getAllPortRunningConfigs')->once()->andReturn([
             'Gi1/0/1' => "interface Gi1/0/1\n switchport access vlan 100",
         ]);
@@ -1215,7 +1194,6 @@ class PortSyncServiceTest extends TestCase
             'config_text' => "interface Gi1/0/1\n switchport access vlan 100",
         ]);
 
-        // Port missing from bulk config should not have a config entry
         $port2 = SwitchPort::where('switch_config_id', $this->switchConfig->id)
             ->where('port_name', 'Gi1/0/2')
             ->firstOrFail();
@@ -1285,7 +1263,6 @@ class PortSyncServiceTest extends TestCase
             ->where('port_name', 'Gi1/0/1')
             ->firstOrFail();
 
-        // Error output should not be persisted as config
         $this->assertDatabaseMissing('switch_port_configs', [
             'switch_port_id' => $port->id,
         ]);
@@ -1379,7 +1356,6 @@ class PortSyncServiceTest extends TestCase
     {
         $transport = Mockery::mock(SwitchCommandTransportInterface::class);
 
-        // These are the only bulk commands that should be executed for the entire sync
         $transport->shouldReceive('execute')
             ->with('show interface status')
             ->once()
@@ -1423,7 +1399,6 @@ class PortSyncServiceTest extends TestCase
             ->once()
             ->andReturn('');
 
-        // NO per-port commands should be issued
         $transport->shouldNotReceive('execute')
             ->with(Mockery::pattern('/^show (interface|run interface) Gi/'));
 
@@ -1439,10 +1414,6 @@ class PortSyncServiceTest extends TestCase
         $this->assertSame(2, $syncRun->ports_created);
         $this->assertDatabaseCount('switch_port_configs', 2);
     }
-
-    // -------------------------------------------------------------------------
-    // SyncResult DTO: syncSwitch returns SyncResult with port state changes
-    // -------------------------------------------------------------------------
 
     public function test_sync_returns_sync_result_dto(): void
     {

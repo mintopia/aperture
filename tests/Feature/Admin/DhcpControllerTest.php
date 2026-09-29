@@ -65,7 +65,6 @@ class DhcpControllerTest extends TestCase
             ->where('ranges.0.start', '192.168.1.100')
             ->where('ranges.0.end', '192.168.1.200')
             ->where('ranges.0.used', 30)
-            // total is an exact decimal numeric string end-to-end
             ->where('ranges.0.total', '101')
         );
     }
@@ -81,7 +80,6 @@ class DhcpControllerTest extends TestCase
             'integration' => 'cisco',
             'interface' => 'VLAN400_DHCPV6',
             'used_addresses' => '3',
-            // 2^64 — beyond PHP_INT_MAX; an (int) cast would corrupt it
             'total_addresses' => '18446744073709551616',
             'utilisation' => '0',
         ]);
@@ -106,7 +104,6 @@ class DhcpControllerTest extends TestCase
             'integration' => 'cisco',
         ]);
 
-        // IPv6 pool with a known used count but uncountable total (/64)
         DhcpRangeRecord::factory()->ipv6()->create([
             'integration' => 'cisco',
             'interface' => 'VLAN400_DHCPV6',
@@ -115,7 +112,6 @@ class DhcpControllerTest extends TestCase
             'utilisation' => null,
         ]);
 
-        // IPv6 pool where usage is entirely unknown
         DhcpRangeRecord::factory()->ipv6()->create([
             'integration' => 'cisco',
             'interface' => 'VLAN440_DHCPV6',
@@ -307,7 +303,6 @@ class DhcpControllerTest extends TestCase
     {
         $admin = $this->createAdminUser();
 
-        // Simulate a failing capability lookup (e.g. migration not yet run)
         Schema::drop('capability_assignments');
 
         $response = $this->actingAs($admin)->get('/admin/dhcp');

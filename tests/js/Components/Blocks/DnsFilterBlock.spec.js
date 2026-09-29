@@ -14,7 +14,6 @@ describe('DnsFilterBlock', () => {
             vi.fn(() => '/mock/dns-filter/toggle'),
         );
 
-        // Only intercept the CSRF meta tag query, pass through everything else
         originalQuerySelector = document.querySelector.bind(document);
         vi.spyOn(document, 'querySelector').mockImplementation((selector) => {
             if (selector === 'meta[name="csrf-token"]') {
@@ -105,14 +104,11 @@ describe('DnsFilterBlock', () => {
         const wrapper = mount(DnsFilterBlock, { props: {} });
         const button = wrapper.find('[data-testid="dns-filter-toggle"]');
 
-        // Initially off
         expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
 
-        // Trigger click without awaiting — observe optimistic flip
         button.trigger('click');
         await wrapper.vm.$nextTick();
 
-        // Should flip to enabled immediately, before the request resolves
         expect(button.classes()).toContain('bg-[var(--color-accent)]');
 
         resolvePromise({ ok: true });
@@ -142,21 +138,18 @@ describe('DnsFilterBlock', () => {
         const wrapper = mount(DnsFilterBlock, { props: {} });
         const button = wrapper.find('[data-testid="dns-filter-toggle"]');
 
-        // Initially off
         expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
 
         button.trigger('click');
         await new Promise((r) => setTimeout(r, 0));
         await wrapper.vm.$nextTick();
 
-        // Optimistic: should be on now
         expect(button.classes()).toContain('bg-[var(--color-accent)]');
 
         resolvePromise({ ok: false });
         await flushPromises();
         await wrapper.vm.$nextTick();
 
-        // Reverted after failure
         expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
     });
 
@@ -171,21 +164,18 @@ describe('DnsFilterBlock', () => {
         const wrapper = mount(DnsFilterBlock, { props: {} });
         const button = wrapper.find('[data-testid="dns-filter-toggle"]');
 
-        // Initially off
         expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
 
         button.trigger('click');
         await new Promise((r) => setTimeout(r, 0));
         await wrapper.vm.$nextTick();
 
-        // Optimistic: should be on
         expect(button.classes()).toContain('bg-[var(--color-accent)]');
 
         rejectPromise(new Error('Network error'));
         await flushPromises();
         await wrapper.vm.$nextTick();
 
-        // Reverted after error
         expect(button.classes()).toContain('bg-[var(--color-surface-alt)]');
     });
 
@@ -227,7 +217,6 @@ describe('DnsFilterBlock', () => {
         await new Promise((r) => setTimeout(r, 0));
         await wrapper.vm.$nextTick();
 
-        // Second click while loading — should be ignored
         await wrapper.find('[data-testid="dns-filter-toggle"]').trigger('click');
         await wrapper.vm.$nextTick();
 

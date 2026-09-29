@@ -203,7 +203,6 @@ useAdminChannel({
 
 <template>
     <div data-testid="switch-show-layout">
-        <!-- Header: title left, actions right -->
         <section data-testid="switch-show-header-card">
             <div class="mb-2 flex items-start justify-between gap-6">
                 <h1
@@ -242,7 +241,6 @@ useAdminChannel({
                 </div>
             </div>
 
-            <!-- Test Connection Result -->
             <div
                 v-if="testResult"
                 data-testid="test-result"
@@ -262,7 +260,6 @@ useAdminChannel({
             </div>
         </section>
 
-        <!-- Metadata Strip: switch details -->
         <section data-testid="switch-details-card">
             <MetadataStrip
                 :items="[
@@ -283,7 +280,6 @@ useAdminChannel({
             />
         </section>
 
-        <!-- Sync Status: inline dot, not StatusPill -->
         <section v-if="latestSync" data-testid="sync-status" class="mb-8">
             <div class="flex flex-wrap items-center gap-3">
                 <span class="text-[11px] font-semibold tracking-[0.06em] text-[var(--color-text-muted)] uppercase"
@@ -322,7 +318,6 @@ useAdminChannel({
             </p>
         </section>
 
-        <!-- Running Config -->
         <section v-if="canDownloadConfig" data-testid="running-config-card" class="mb-8">
             <div class="flex items-center gap-2">
                 <button
@@ -346,7 +341,6 @@ useAdminChannel({
             </div>
         </section>
 
-        <!-- Port Grid Overview -->
         <section v-if="ports.length > 0" data-testid="switch-port-grid-section" class="mb-8">
             <h2
                 class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -358,7 +352,6 @@ useAdminChannel({
         </section>
 
         <section data-testid="switch-ports-card">
-            <!-- Ports Section Title -->
             <h2
                 class="font-heading mb-3 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
                 :style="{ fontVariationSettings: '\'opsz\' 16' }"
@@ -366,7 +359,6 @@ useAdminChannel({
                 Ports ({{ ports.length }})
             </h2>
 
-            <!-- Inline search + filter dropdown -->
             <div class="mb-3 flex flex-wrap items-center gap-2.5">
                 <div class="relative max-w-[320px] min-w-[200px] flex-1">
                     <label for="port-search" class="sr-only">Search ports</label>
@@ -414,7 +406,6 @@ useAdminChannel({
                 </span>
             </div>
 
-            <!-- No Results -->
             <div
                 v-if="filteredPorts.length === 0 && ports.length > 0"
                 data-testid="port-no-results"

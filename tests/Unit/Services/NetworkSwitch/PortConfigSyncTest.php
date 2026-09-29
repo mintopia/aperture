@@ -245,7 +245,6 @@ class PortConfigSyncTest extends TestCase
 
         $sync = new PortConfigSync;
 
-        // Should not throw and should not create any config records
         $sync->sync($switchConfig, [], Date::now());
 
         $this->assertDatabaseCount('switch_port_configs', 0);

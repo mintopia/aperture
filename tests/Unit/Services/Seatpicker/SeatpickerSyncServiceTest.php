@@ -25,8 +25,6 @@ class SeatpickerSyncServiceTest extends TestCase
     }
 
     /**
-     * Build a fake API response matching the real Control API format.
-     *
      * @param  list<array{email: string, seat_label: string}>  $tickets
      */
     private function fakeTicketsResponse(array $tickets = [], int $totalPages = 1, int $currentPage = 1): array
@@ -78,10 +76,6 @@ class SeatpickerSyncServiceTest extends TestCase
         IntegrationConfig::setValue('seatpicker', 'event_code', 'test-event');
     }
 
-    // -------------------------------------------------------
-    // Config & auth
-    // -------------------------------------------------------
-
     public function test_reads_api_key_from_integration_config(): void
     {
         $this->configureIntegration();
@@ -119,10 +113,6 @@ class SeatpickerSyncServiceTest extends TestCase
         $this->assertArrayHasKey('api_key', $validation);
         $this->assertArrayNotHasKey('api_token', $validation);
     }
-
-    // -------------------------------------------------------
-    // Ticket sync
-    // -------------------------------------------------------
 
     public function test_syncs_seat_assignment_to_user_parameter(): void
     {
@@ -174,10 +164,6 @@ class SeatpickerSyncServiceTest extends TestCase
         $this->assertStringContainsString('Synced 0 seat', $result->message);
     }
 
-    // -------------------------------------------------------
-    // Pagination
-    // -------------------------------------------------------
-
     public function test_paginates_through_multiple_pages(): void
     {
         $this->configureIntegration();
@@ -204,10 +190,6 @@ class SeatpickerSyncServiceTest extends TestCase
         $this->assertSame('B1', UserParameter::where('user_id', $user2->id)->where('key', 'seat')->first()?->value);
     }
 
-    // -------------------------------------------------------
-    // verify_ssl support
-    // -------------------------------------------------------
-
     public function test_syncs_with_verify_ssl_disabled(): void
     {
         $this->configureIntegration();
@@ -230,10 +212,6 @@ class SeatpickerSyncServiceTest extends TestCase
 
         $this->assertTrue($result->success);
     }
-
-    // -------------------------------------------------------
-    // Error message detail
-    // -------------------------------------------------------
 
     public function test_error_message_includes_url_and_response_body(): void
     {
@@ -262,10 +240,6 @@ class SeatpickerSyncServiceTest extends TestCase
         $this->assertStringContainsString('500', $result->message);
         $this->assertStringContainsString('/api/v1/tickets', $result->message);
     }
-
-    // -------------------------------------------------------
-    // Query parameter
-    // -------------------------------------------------------
 
     public function test_sends_event_code_as_query_parameter(): void
     {

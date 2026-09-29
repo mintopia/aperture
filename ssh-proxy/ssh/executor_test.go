@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-// mockSession is a test double for ssh.Session that replays predefined output
-// chunks in sequence. Each Read call returns the next chunk from the list.
 type mockSession struct {
 	chunks   []string
 	chunkIdx int
@@ -38,8 +36,6 @@ func (m *mockSession) Close() error {
 	return nil
 }
 
-// --- getLastLine tests ---
-
 func TestGetLastLine(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -65,8 +61,6 @@ func TestGetLastLine(t *testing.T) {
 	}
 }
 
-// --- matchesCondition tests ---
-
 func TestMatchesCondition(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -83,10 +77,10 @@ func TestMatchesCondition(t *testing.T) {
 		{"regex password prompt", "Password:", `/Password:/`, true},
 		{"regex config mode", "Switch(config)#", `/\(config\)#$/`, true},
 		{"regex config-if mode", "Switch(config-if)#", `/\(config-if\)#$/`, true},
-		{"short regex treated as substring", "/", "/", true}, // len("/") <= 2, so substring: "/" contains "/"
+		{"short regex treated as substring", "/", "/", true},
 		{"two char regex treated as substring", "//", "//", true},
 		{"invalid regex returns false", "test", `/[invalid/`, false},
-		{"empty condition", "anything", "", true}, // strings.Contains(x, "") == true
+		{"empty condition", "anything", "", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -98,13 +92,10 @@ func TestMatchesCondition(t *testing.T) {
 	}
 }
 
-// --- Executor.Execute tests ---
-
 func TestExecutor_SimpleCommands(t *testing.T) {
-	// Simulates: connect → initial prompt → send command → read output
 	session := newMockSession(
-		"Switch>",                // initial prompt read
-		"show version\nCisco...", // output after "show version"
+		"Switch>",
+		"show version\nCisco...",
 	)
 
 	exec := &Executor{
@@ -128,19 +119,16 @@ func TestExecutor_SimpleCommands(t *testing.T) {
 	if result.Output[0].Output != "show version\nCisco..." {
 		t.Errorf("unexpected output: %q", result.Output[0].Output)
 	}
-	// Verify the command was written with newline
 	if len(session.written) != 1 || session.written[0] != "show version\n" {
 		t.Errorf("expected write 'show version\\n', got %v", session.written)
 	}
 }
 
 func TestExecutor_IfConditionSkip(t *testing.T) {
-	// Initial prompt is "Switch#" (already in enable mode)
-	// The "en" command has if: "/>\s*$/" which should NOT match "#"
 	session := newMockSession(
-		"Switch#",                              // initial prompt
-		"terminal length 0\nSwitch#",           // "terminal length 0" output
-		"show interfaces\nGi1/0/1...\nSwitch#", // "show interfaces" output
+		"Switch#",
+		"terminal length 0\nSwitch#",
+		"show interfaces\nGi1/0/1...\nSwitch#",
 	)
 
 	exec := &Executor{
@@ -157,7 +145,6 @@ func TestExecutor_IfConditionSkip(t *testing.T) {
 	if !result.Success {
 		t.Fatalf("expected success, got error: %s", result.Error)
 	}
-	// "en" should be skipped, so only 2 outputs
 	if len(result.Output) != 2 {
 		t.Fatalf("expected 2 outputs (en skipped), got %d", len(result.Output))
 	}
@@ -167,13 +154,11 @@ func TestExecutor_IfConditionSkip(t *testing.T) {
 }
 
 func TestExecutor_IfConditionMatch(t *testing.T) {
-	// Initial prompt is "Switch>" (user exec mode)
-	// The "en" command has if: "/>\s*$/" which SHOULD match ">"
 	session := newMockSession(
-		"Switch>",   // initial prompt
-		"Password:", // output after "en" (with expect)
-		"Switch#",   // output after password (with expect)
-		"Switch#",   // output after "terminal length 0" (with expect)
+		"Switch>",
+		"Password:",
+		"Switch#",
+		"Switch#",
 	)
 
 	exec := &Executor{
@@ -196,11 +181,10 @@ func TestExecutor_IfConditionMatch(t *testing.T) {
 }
 
 func TestExecutor_ExpectTimeout(t *testing.T) {
-	// Session returns data that never matches the expect pattern
 	session := newMockSession(
-		"Switch>",         // initial prompt
-		"unexpected data", // doesn't match "#"
-		"",                // no more data - timeout
+		"Switch>",
+		"unexpected data",
+		"",
 	)
 
 	exec := &Executor{
@@ -222,8 +206,8 @@ func TestExecutor_ExpectTimeout(t *testing.T) {
 
 func TestExecutor_EmptyOutput(t *testing.T) {
 	session := newMockSession(
-		"Switch#", // initial prompt
-		"",        // no output for command
+		"Switch#",
+		"",
 	)
 
 	exec := &Executor{
@@ -247,7 +231,6 @@ func TestExecutor_EmptyOutput(t *testing.T) {
 }
 
 func TestExecutor_OutputSliceNeverNil(t *testing.T) {
-	// Even with no commands, output should be an empty slice (not nil).
 	session := newMockSession("Switch#")
 
 	exec := &Executor{
@@ -270,8 +253,8 @@ func TestExecutor_OutputSliceNeverNil(t *testing.T) {
 
 func TestExecutor_IfSubstringMatch(t *testing.T) {
 	session := newMockSession(
-		"Enter Password:", // initial prompt
-		"Switch#",         // after sending password
+		"Enter Password:",
+		"Switch#",
 	)
 
 	exec := &Executor{
@@ -293,7 +276,7 @@ func TestExecutor_IfSubstringMatch(t *testing.T) {
 
 func TestExecutor_IfSubstringNoMatch(t *testing.T) {
 	session := newMockSession(
-		"Switch#", // initial prompt — doesn't contain "Password:"
+		"Switch#",
 	)
 
 	exec := &Executor{
@@ -308,20 +291,18 @@ func TestExecutor_IfSubstringNoMatch(t *testing.T) {
 	if !result.Success {
 		t.Fatalf("expected success")
 	}
-	// Command skipped, no output
 	if len(result.Output) != 0 {
 		t.Fatalf("expected 0 outputs (skipped), got %d", len(result.Output))
 	}
 }
 
 func TestExecutor_CiscoEnableFlow(t *testing.T) {
-	// Full Cisco enable flow: en → password → terminal length 0 → show cmd
 	session := newMockSession(
-		"Switch>",                    // initial prompt
-		"Password:",                  // after "en" (expect matches)
-		"Switch#",                    // after password (expect matches)
-		"terminal length 0\nSwitch#", // after "terminal length 0"
-		"show interface status\nGi1/0/1 connected\nSwitch#", // show command
+		"Switch>",
+		"Password:",
+		"Switch#",
+		"terminal length 0\nSwitch#",
+		"show interface status\nGi1/0/1 connected\nSwitch#",
 	)
 
 	exec := &Executor{
@@ -345,7 +326,6 @@ func TestExecutor_CiscoEnableFlow(t *testing.T) {
 		t.Fatalf("expected 4 outputs, got %d", len(result.Output))
 	}
 
-	// Verify commands were written in order
 	expectedWrites := []string{"en\n", "enable-pass\n", "terminal length 0\n", "show interface status\n"}
 	if len(session.written) != len(expectedWrites) {
 		t.Fatalf("expected %d writes, got %d", len(expectedWrites), len(session.written))
@@ -358,12 +338,10 @@ func TestExecutor_CiscoEnableFlow(t *testing.T) {
 }
 
 func TestExecutor_AlreadyInEnableMode(t *testing.T) {
-	// Connection is already in enable mode (pooled connection reuse).
-	// The "en" and password commands should be skipped.
 	session := newMockSession(
-		"Switch#",                           // initial prompt (already in enable)
-		"terminal length 0\nSwitch#",        // "terminal length 0" output
-		"show vlan brief\nVLAN...\nSwitch#", // show command
+		"Switch#",
+		"terminal length 0\nSwitch#",
+		"show vlan brief\nVLAN...\nSwitch#",
 	)
 
 	exec := &Executor{
@@ -383,7 +361,6 @@ func TestExecutor_AlreadyInEnableMode(t *testing.T) {
 	if !result.Success {
 		t.Fatalf("expected success, got error: %s", result.Error)
 	}
-	// Only terminal length 0 and show vlan brief should execute
 	if len(result.Output) != 2 {
 		t.Fatalf("expected 2 outputs (en + password skipped), got %d", len(result.Output))
 	}

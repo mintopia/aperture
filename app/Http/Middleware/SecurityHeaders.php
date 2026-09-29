@@ -16,8 +16,6 @@ use Throwable;
 class SecurityHeaders
 {
     /**
-     * Handle an incoming request.
-     *
      * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
@@ -78,7 +76,6 @@ class SecurityHeaders
         return implode('; ', [
             "default-src 'self'",
             'script-src '.implode(' ', $script),
-            // Admin custom CSS, Vue :style bindings and captive-portal theme blocks are inline.
             'style-src '.implode(' ', $style),
             'img-src '.implode(' ', $img),
             'font-src '.implode(' ', $font),
@@ -91,8 +88,6 @@ class SecurityHeaders
     }
 
     /**
-     * Portal scripts fetch the operator-configured DNS and IPv6 detection URLs directly from the browser.
-     *
      * @return list<string>
      */
     private function detectionOrigins(): array

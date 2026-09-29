@@ -185,8 +185,6 @@ class OpnSenseRateLimiter implements RateLimitingInterface
     }
 
     /**
-     * Fetch IPs currently rate-limited via the traffic shaper download rule.
-     *
      * @return array<int, string>
      */
     protected function fetchRateLimitedIps(): array

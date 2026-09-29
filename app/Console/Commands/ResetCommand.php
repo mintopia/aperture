@@ -12,22 +12,15 @@ use function Laravel\Prompts\confirm;
 class ResetCommand extends Command
 {
     /**
-     * The name and signature of the console command.
-     *
      * @var string
      */
     protected $signature = 'aperture:reset';
 
     /**
-     * The console command description.
-     *
      * @var string
      */
     protected $description = 'Reset the firewall access and users';
 
-    /**
-     * Execute the console command.
-     */
     public function handle(): int
     {
         $confirmed = confirm('Are you sure you want to reset Aperture?');

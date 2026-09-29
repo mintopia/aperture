@@ -41,8 +41,6 @@ async function parseJsonResponse(response) {
     }
 }
 
-// ─── Password management ─────────────────────────────────────────────────────
-
 function verify() {
     verifyForm.post(route('account.verify'), { preserveScroll: true });
 }
@@ -70,14 +68,11 @@ function doClearPassword() {
     router.delete(route('account.password.clear'));
 }
 
-// ─── Passkey management ──────────────────────────────────────────────────────
-
 async function registerPasskey() {
     passkeyError.value = '';
     passkeyLoading.value = true;
 
     try {
-        // Step 1: Get creation options from server
         const optionsResponse = await fetch('/passkeys/register/options', {
             method: 'POST',
             headers: {
@@ -97,7 +92,6 @@ async function registerPasskey() {
             throw new Error('Unexpected response from server. Please try again.');
         }
 
-        // Step 2: Convert base64 fields to ArrayBuffers
         options.challenge = base64UrlToBuffer(options.challenge);
         options.user.id = base64UrlToBuffer(options.user.id);
         if (options.excludeCredentials) {
@@ -107,10 +101,8 @@ async function registerPasskey() {
             }));
         }
 
-        // Step 3: Call WebAuthn browser API
         const credential = await navigator.credentials.create({ publicKey: options });
 
-        // Step 4: Send credential to server
         const registerResponse = await fetch('/passkeys/register', {
             method: 'POST',
             headers: {
@@ -201,7 +193,6 @@ async function doDeletePasskey() {
                 <p class="mt-1 text-[13px] text-[var(--color-text-secondary)]">Manage your password and passkeys.</p>
             </div>
 
-            <!-- ── Create password gate (OAuth users with no security method) ──── -->
             <section
                 v-if="needsPasswordCreation"
                 data-testid="create-password-section"
@@ -262,7 +253,6 @@ async function doDeletePasskey() {
                 </form>
             </section>
 
-            <!-- ── Re-verification gate (password section only) ─────────────────── -->
             <div
                 v-else-if="needsVerification"
                 data-testid="verify-form"
@@ -307,7 +297,6 @@ async function doDeletePasskey() {
                 </form>
             </div>
 
-            <!-- ── Password section (shown once verified) ──────────────────────── -->
             <section
                 v-else
                 data-testid="password-section"
@@ -390,7 +379,6 @@ async function doDeletePasskey() {
                 </form>
             </section>
 
-            <!-- ── Passkey section ──────────────────────────────────────────────── -->
             <section
                 v-if="!needsVerification && !needsPasswordCreation"
                 data-testid="passkey-section"

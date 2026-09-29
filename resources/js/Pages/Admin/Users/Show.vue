@@ -188,7 +188,6 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
 
 <template>
     <div data-testid="user-show-layout" class="space-y-6">
-        <!-- Header -->
         <header class="mb-2 flex items-start justify-between gap-6">
             <div>
                 <h1
@@ -244,7 +243,6 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
             </div>
         </header>
 
-        <!-- Block Confirm -->
         <ConfirmModal
             :show="showBlockModal"
             :title="user.internet_blocked ? 'Unblock User?' : 'Block User?'"
@@ -264,7 +262,6 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
             </p>
         </ConfirmModal>
 
-        <!-- Internet Confirm -->
         <ConfirmModal
             :show="showInternetModal"
             :title="allInternetEnabled ? 'Disable Internet?' : 'Enable Internet?'"
@@ -280,7 +277,6 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
             @cancel="showInternetModal = false"
         />
 
-        <!-- Rate Limit Confirm -->
         <ConfirmModal
             :show="showRateLimitModal"
             :title="allRateLimited ? 'Remove Rate Limit?' : 'Apply Rate Limit?'"
@@ -303,7 +299,6 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
             ]"
         />
 
-        <!-- Bandwidth Chart -->
         <section data-testid="user-bandwidth-section">
             <div class="flex items-baseline justify-between">
                 <SectionHeader title="Bandwidth" class="mt-5" />
@@ -367,7 +362,6 @@ const { selectedRange, bandwidthData, bandwidthLoading, bandwidthError, chartSer
             </p>
         </section>
 
-        <!-- Converged Network Devices Table -->
         <section data-testid="user-devices-section">
             <SectionHeader title="Network Devices" class="mt-5" />
 

@@ -90,7 +90,6 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
         $ip = IpAddress::factory()->create(['address' => '192.0.2.50']);
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:07', 'user_id' => $owner->id]);
 
-        // addIp returns null for unmanaged addresses: no association, no audit.
         $rangeService = Mockery::mock(NetworkRangeService::class);
         $rangeService->allows(['isManaged' => false]);
 
@@ -146,9 +145,6 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
 
     public function test_enable_internet_heals_missing_owner_association_end_to_end(): void
     {
-        // Production scenario: pivot was created via an admin internet toggle
-        // (source 'auth') but the MAC owner never got associated with the IP.
-        // The event is NOT faked: dispatch -> listener -> association.
         $owner = User::factory()->create(['internet_blocked' => false, 'internet_enabled' => false]);
         $ip = IpAddress::factory()->create(['address' => '2a0f:85c1:d91:2100::15', 'internet_enabled' => false]);
         MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:06', 'user_id' => $owner->id]);

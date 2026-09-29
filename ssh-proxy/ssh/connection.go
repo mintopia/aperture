@@ -12,8 +12,6 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
-// Connection wraps an SSH client with a PTY session for interactive use.
-// It satisfies the Session interface.
 type Connection struct {
 	client  *gossh.Client
 	session *gossh.Session
@@ -24,7 +22,6 @@ type Connection struct {
 	hostKey string
 }
 
-// Verify Connection implements Session at compile time.
 var _ Session = (*Connection)(nil)
 
 type ConnectParams struct {
@@ -32,7 +29,7 @@ type ConnectParams struct {
 	Port       int
 	Username   string
 	Password   string
-	PrivateKey string // PEM; takes precedence over Password
+	PrivateKey string
 	Passphrase string
 	HostKey    string
 }
@@ -80,8 +77,6 @@ func authMethod(p ConnectParams) (gossh.AuthMethod, error) {
 	return gossh.PublicKeys(signer), nil
 }
 
-// Connect establishes an SSH connection with PTY to the given host.
-// The provided context controls the overall connect+handshake+auth timeout.
 func Connect(ctx context.Context, p ConnectParams) (*Connection, error) {
 	auth, err := authMethod(p)
 	if err != nil {
@@ -140,14 +135,12 @@ func Connect(ctx context.Context, p ConnectParams) (*Connection, error) {
 
 	addr := fmt.Sprintf("%s:%d", p.Hostname, p.Port)
 
-	// Dial TCP with context for timeout/cancellation.
 	var d net.Dialer
 	netConn, err := d.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("TCP connection failed: %w", err)
 	}
 
-	// Set deadline from context for the SSH handshake + auth phase.
 	if deadline, ok := ctx.Deadline(); ok {
 		if err := netConn.SetDeadline(deadline); err != nil {
 			netConn.Close()
@@ -164,7 +157,6 @@ func Connect(ctx context.Context, p ConnectParams) (*Connection, error) {
 		return nil, fmt.Errorf("SSH handshake failed: %w", err)
 	}
 
-	// Clear deadline after successful handshake.
 	_ = netConn.SetDeadline(time.Time{})
 
 	client := gossh.NewClient(sshConn, chans, reqs)
@@ -223,7 +215,6 @@ func Connect(ctx context.Context, p ConnectParams) (*Connection, error) {
 
 func (c *Connection) HostKey() string { return c.hostKey }
 
-// readLoop continuously reads from stdout and pushes chunks to dataCh.
 func (c *Connection) readLoop(r io.Reader) {
 	defer close(c.dataCh)
 	buf := make([]byte, 4096)
@@ -244,7 +235,6 @@ func (c *Connection) readLoop(r io.Reader) {
 	}
 }
 
-// Write sends data to the SSH session's stdin.
 func (c *Connection) Write(data string) error {
 	if c.closed {
 		return fmt.Errorf("connection closed")
@@ -253,14 +243,11 @@ func (c *Connection) Write(data string) error {
 	return err
 }
 
-// Read waits up to timeout for the first chunk of data, then drains
-// any immediately buffered data and returns the accumulated result.
 func (c *Connection) Read(timeout time.Duration) string {
 	var buf bytes.Buffer
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
-	// Wait for first chunk or timeout.
 	select {
 	case data, ok := <-c.dataCh:
 		if !ok {
@@ -271,7 +258,6 @@ func (c *Connection) Read(timeout time.Duration) string {
 		return ""
 	}
 
-	// Drain any immediately available buffered data.
 	for {
 		select {
 		case data, ok := <-c.dataCh:
@@ -285,9 +271,7 @@ func (c *Connection) Read(timeout time.Duration) string {
 	}
 }
 
-// SendKeepalive sends an SSH keepalive request to verify the connection is alive.
 // This uses the "keepalive@openssh.com" global request which is widely supported.
-// Returns nil if the remote end responds, or an error if the connection is dead.
 func (c *Connection) SendKeepalive() error {
 	if c.closed {
 		return fmt.Errorf("connection closed")
@@ -296,7 +280,6 @@ func (c *Connection) SendKeepalive() error {
 	return err
 }
 
-// Close terminates the SSH session and underlying TCP connection.
 func (c *Connection) Close() error {
 	if c.closed {
 		return nil

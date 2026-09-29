@@ -203,7 +203,6 @@ describe('Index — Sorting', () => {
 
     it('adds accessible labels to interactive switch rows', () => {
         const wrapper = mountIndex();
-        // DataTable renders rows with data-testid="data-table-row" and passes role/aria-label from rowAriaLabel prop
         const row = wrapper.find('[data-testid="data-table-row"]');
         expect(row.attributes('role')).toBe('row');
         expect(row.attributes('aria-label')).toBe('Open switch Core Switch');

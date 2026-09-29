@@ -97,12 +97,10 @@ describe('Show — refreshData onSuccess callback', () => {
 
         const wrapper = mountPage();
 
-        // Trigger polling to call refreshData
         vi.advanceTimersByTime(30000);
         await wrapper.vm.$nextTick();
 
         expect(router.reload).toHaveBeenCalled();
-        // The el exists and displayTime was reset to 'just now'
         expect(wrapper.find('[data-testid="last-updated"]').text()).toContain('just now');
     });
 });
@@ -133,7 +131,6 @@ describe('Show — duplicate MAC deduplication', () => {
             ],
         });
 
-        // Should deduplicate to one row
         const rows = wrapper.findAll('[data-testid^="connected-device-row-"]');
         expect(rows).toHaveLength(1);
     });
@@ -219,7 +216,6 @@ describe('Show — bandwidth series with outbound data', () => {
             },
         });
 
-        // TimeSeriesChart is stubbed but the computed prop runs — no throw means coverage
         expect(wrapper.find('[data-testid="bandwidth-chart"]').exists()).toBe(true);
     });
 
@@ -291,16 +287,12 @@ describe('Show — confirmToggle onFinish callback', () => {
 
         const wrapper = mountPage();
 
-        // Open modal
         await wrapper.find('[data-testid="action-toggle"]').trigger('click');
         expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(true);
 
-        // Confirm
         await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
 
-        // After onFinish fires, toggling should be false and modal should close
         expect(router.post).toHaveBeenCalled();
-        // The modal should be closed (showToggleModal = false)
         expect(wrapper.find('[data-testid="confirm-modal"]').exists()).toBe(false);
     });
 
@@ -331,7 +323,6 @@ describe('Show — MetadataStrip Status slot', () => {
     });
 
     it('renders MetadataStrip with status slot when MetadataStrip is not stubbed', () => {
-        // Mount without stubbing MetadataStrip so the slot renders
         const wrapper = mount(Show, {
             props: {
                 ...defaultProps,
@@ -360,10 +351,8 @@ describe('Show — MetadataStrip Status slot', () => {
             },
         });
 
-        // The slot renders the status dot and color class spans
         const metadataStrip = wrapper.find('[data-testid="metadata-strip"]');
         expect(metadataStrip.exists()).toBe(true);
-        // The slot content should be rendered
         expect(metadataStrip.find('span').exists()).toBe(true);
     });
 
@@ -500,15 +489,10 @@ describe('Show — MetadataStrip Status slot', () => {
 
         const metadataStrip = wrapper.find('[data-testid="metadata-strip"]');
         const statusSpan = metadataStrip.find('span span:last-child');
-        // 'unknown-state' returns 'warning' type, which falls through to muted color
         expect(statusSpan.classes()).toContain('text-[var(--color-text-muted)]');
     });
 });
 
-// useAdminChannel's own subscribe/listen/leave/poll-wiring behavior is covered
-// generically by tests/js/composables/useAdminChannel.spec.js (and the poll callback
-// itself, refreshData, by ShowPolling.spec.js). These cover Show's own event-matching
-// guards for PortStateChanged.
 describe('Show — Echo event handler guards', () => {
     let originalEcho;
 

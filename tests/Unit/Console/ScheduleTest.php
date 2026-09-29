@@ -34,7 +34,6 @@ class ScheduleTest extends TestCase
 
     public function test_commands_are_registered(): void
     {
-        // Verify artisan commands from Commands directory are registered
         $this->assertTrue(Artisan::all() !== []);
     }
 

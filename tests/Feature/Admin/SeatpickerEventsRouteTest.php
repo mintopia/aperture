@@ -55,7 +55,6 @@ class SeatpickerEventsRouteTest extends TestCase
             'api_key' => 'test-key',
         ]);
 
-        // Unauthenticated users should be redirected or get 401
         $this->assertTrue(
             in_array($response->getStatusCode(), [302, 401, 403]),
             'Expected redirect or auth error for unauthenticated request, got '.$response->getStatusCode(),

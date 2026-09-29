@@ -69,8 +69,6 @@ class DetectBandwidthAnomaliesCommand extends Command
     }
 
     /**
-     * Resolve the user associated with an IP address.
-     *
      * @return array{name: ?string, id: ?int}
      */
     private function resolveUser(string $ip): array

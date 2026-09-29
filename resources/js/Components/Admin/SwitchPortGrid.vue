@@ -80,7 +80,6 @@ const legendItems = computed(() => [
 
 <template>
     <div data-testid="switch-port-grid">
-        <!-- Dual-row layout: odd ports top, even ports bottom -->
         <template v-if="useDualRow">
             <div class="mb-1" :style="{ width: oddPorts.length * 28 - 4 + 'px' }">
                 <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ firstLabel }}</span>
@@ -114,7 +113,6 @@ const legendItems = computed(() => [
             </div>
         </template>
 
-        <!-- Single-row layout: all ports horizontal -->
         <template v-else>
             <div v-if="ports.length > 1" class="mb-1" :style="{ width: ports.length * 30 - 6 + 'px' }">
                 <span class="font-mono text-[10px] text-[var(--color-text-muted)]">{{ firstLabel }}</span>
@@ -135,7 +133,6 @@ const legendItems = computed(() => [
             </div>
         </template>
 
-        <!-- Legend -->
         <div data-testid="port-grid-legend" class="mt-4 flex flex-wrap items-center gap-3">
             <div v-for="item in legendItems" :key="item.label" class="inline-flex items-center gap-1.5">
                 <span class="inline-block h-3 w-3 rounded-sm" :style="{ backgroundColor: item.color }" />

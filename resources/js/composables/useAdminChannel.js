@@ -1,10 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 
 /**
- * Composable for subscribing to the admin.events private channel via Laravel Echo.
- * Listens for broadcast events and invokes registered callbacks.
- * Falls back to polling when WebSocket is disconnected.
- *
  * @param {Object} options
  * @param {Object.<string, Function>} options.events - Map of event class names to handler callbacks
  * @param {Function|null} options.poll - Optional polling function to call as fallback
@@ -88,7 +84,6 @@ export function useAdminChannel({ events = {}, poll = null, pollInterval = 30000
                     startFallbackPolling();
                 });
 
-                // Check initial state
                 if (pusher.connection?.state === 'connected') {
                     connected.value = true;
                 } else {
@@ -96,11 +91,9 @@ export function useAdminChannel({ events = {}, poll = null, pollInterval = 30000
                     startFallbackPolling();
                 }
             } else {
-                // No pusher available, assume connected (for test environments)
                 connected.value = true;
             }
 
-            // Periodic connection health check
             connectionCheckTimer = setInterval(checkConnection, 10000);
         } catch {
             connected.value = false;

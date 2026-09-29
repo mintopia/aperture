@@ -40,10 +40,6 @@ class SwitchManagementControllerTest extends TestCase
         return $user;
     }
 
-    // -------------------------------------------------------------------------
-    // Authentication & Authorization
-    // -------------------------------------------------------------------------
-
     #[DataProvider('switchRoutesProvider')]
     public function test_unauthenticated_user_is_redirected_from_switches_route(string $method, string $pathTemplate): void
     {
@@ -108,10 +104,6 @@ class SwitchManagementControllerTest extends TestCase
             'config' => ['get', '/admin/switches/99999/config'],
         ];
     }
-
-    // -------------------------------------------------------------------------
-    // Index — data-testid: switches-index-page
-    // -------------------------------------------------------------------------
 
     public function test_admin_can_view_switches_index_with_no_switches(): void
     {
@@ -238,10 +230,6 @@ class SwitchManagementControllerTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Create — data-testid: switches-create-page
-    // -------------------------------------------------------------------------
-
     public function test_admin_can_view_switch_create_form(): void
     {
         $admin = $this->createAdminUser();
@@ -253,10 +241,6 @@ class SwitchManagementControllerTest extends TestCase
             ->component('Admin/Switches/Create')
         );
     }
-
-    // -------------------------------------------------------------------------
-    // Store — data-testid: switches-store-action
-    // -------------------------------------------------------------------------
 
     public function test_admin_can_store_switch_with_valid_data(): void
     {
@@ -424,10 +408,6 @@ class SwitchManagementControllerTest extends TestCase
         ]);
     }
 
-    // -------------------------------------------------------------------------
-    // Show — data-testid: switches-show-page
-    // -------------------------------------------------------------------------
-
     public function test_admin_can_view_switch_show_page(): void
     {
         $admin = $this->createAdminUser();
@@ -520,10 +500,6 @@ class SwitchManagementControllerTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Edit — data-testid: switches-edit-page
-    // -------------------------------------------------------------------------
-
     public function test_admin_can_view_switch_edit_page(): void
     {
         $admin = $this->createAdminUser();
@@ -542,10 +518,6 @@ class SwitchManagementControllerTest extends TestCase
             ->where('switchConfig.hostname', 'core-sw.local')
         );
     }
-
-    // -------------------------------------------------------------------------
-    // Update — data-testid: switches-update-action
-    // -------------------------------------------------------------------------
 
     public function test_admin_can_update_switch(): void
     {
@@ -709,10 +681,6 @@ class SwitchManagementControllerTest extends TestCase
         ]);
     }
 
-    // -------------------------------------------------------------------------
-    // Destroy — data-testid: switch-delete
-    // -------------------------------------------------------------------------
-
     public function test_admin_can_delete_switch(): void
     {
         $admin = $this->createAdminUser();
@@ -730,10 +698,6 @@ class SwitchManagementControllerTest extends TestCase
             'process' => 'admin',
         ]);
     }
-
-    // -------------------------------------------------------------------------
-    // Sync — data-testid: switches-sync-action
-    // -------------------------------------------------------------------------
 
     public function test_admin_can_trigger_switch_sync(): void
     {
@@ -769,10 +733,6 @@ class SwitchManagementControllerTest extends TestCase
 
         $this->assertTrue($circuitBreaker->isAvailable($switch));
     }
-
-    // -------------------------------------------------------------------------
-    // Test Connection — data-testid: switches-test-connection-action
-    // -------------------------------------------------------------------------
 
     #[DataProvider('switchConnectionTestProvider')]
     public function test_admin_can_test_switch_connection(Closure $mockSetup, bool $expectedSuccess): void
@@ -821,10 +781,6 @@ class SwitchManagementControllerTest extends TestCase
         ];
     }
 
-    // -------------------------------------------------------------------------
-    // Config — data-testid: switches-config-page
-    // -------------------------------------------------------------------------
-
     public function test_admin_can_view_switch_running_config(): void
     {
         $admin = $this->createAdminUser();
@@ -834,10 +790,6 @@ class SwitchManagementControllerTest extends TestCase
 
         $response->assertOk();
     }
-
-    // -------------------------------------------------------------------------
-    // Route names — ensure proper naming conventions
-    // -------------------------------------------------------------------------
 
     public function test_route_names_for_switch_management(): void
     {

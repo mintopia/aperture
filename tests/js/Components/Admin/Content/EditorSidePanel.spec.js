@@ -95,9 +95,6 @@ describe('EditorSidePanel', () => {
                 },
             },
         });
-        // When settings.fields is undefined/empty, the EditorSidePanel should seed
-        // the fields ref with the DEFAULT_FIELDS from ConnectionStripBlock so that
-        // adding a new field doesn't wipe the defaults
         const fieldLabels = wrapper.findAll('[data-testid^="panel-field-label-"]');
         expect(fieldLabels.length).toBe(4);
         expect(fieldLabels[0].element.value).toBe('IPv4');
@@ -235,10 +232,8 @@ describe('EditorSidePanel', () => {
         const handle = wrapper.find('[data-testid="panel-resize-handle"]');
         const panel = wrapper.find('[data-testid="editor-side-panel"]');
 
-        // Start drag at x=window.innerWidth - 320 (default width boundary)
         await handle.trigger('mousedown', { clientX: window.innerWidth - 320 });
 
-        // Drag left to widen the panel to 500px
         window.dispatchEvent(new MouseEvent('mousemove', { clientX: window.innerWidth - 500 }));
         await wrapper.vm.$nextTick();
 
@@ -261,7 +256,6 @@ describe('EditorSidePanel', () => {
 
         await handle.trigger('mousedown', { clientX: window.innerWidth - 320 });
 
-        // Try to shrink below 280px
         window.dispatchEvent(new MouseEvent('mousemove', { clientX: window.innerWidth - 100 }));
         await wrapper.vm.$nextTick();
 
@@ -282,7 +276,6 @@ describe('EditorSidePanel', () => {
 
         await handle.trigger('mousedown', { clientX: window.innerWidth - 320 });
 
-        // Try to widen beyond 50% of viewport
         window.dispatchEvent(new MouseEvent('mousemove', { clientX: 0 }));
         await wrapper.vm.$nextTick();
 
@@ -426,9 +419,7 @@ describe('EditorSidePanel', () => {
         it('removes a link when remove button is clicked', async () => {
             const wrapper = mountPanel({ props: { block: linkStripBlock } });
             await wrapper.find('[data-testid="panel-link-remove-0"]').trigger('click');
-            // After removing index 0, the old index 1 ("Docs") becomes index 0
             expect(wrapper.find('[data-testid="panel-link-label-0"]').element.value).toBe('Docs');
-            // There should no longer be a second link
             expect(wrapper.find('[data-testid="panel-link-label-1"]').exists()).toBe(false);
         });
 
@@ -502,19 +493,15 @@ describe('EditorSidePanel', () => {
                 attachTo: document.body,
             });
 
-            // Expand the variables section
             await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
 
-            // Focus the field value input and set cursor at end
             const fieldInput = wrapper.find('[data-testid="panel-field-value-0"]');
             await fieldInput.trigger('focus');
             fieldInput.element.setSelectionRange(4, 4);
 
-            // Click a variable chip
             const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
             await chip.trigger('click');
 
-            // Value should have the variable key inserted at position 4
             expect(fieldInput.element.value).toBe('IP: {ipv4}');
 
             wrapper.unmount();
@@ -526,10 +513,8 @@ describe('EditorSidePanel', () => {
                 attachTo: document.body,
             });
 
-            // Expand the variables section
             await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
 
-            // Click a variable chip without focusing any input first
             const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
             await chip.trigger('click');
 
@@ -545,18 +530,14 @@ describe('EditorSidePanel', () => {
                 attachTo: document.body,
             });
 
-            // Expand the variables section
             await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
 
-            // Click a variable chip without focusing any input
             const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
             await chip.trigger('click');
             await wrapper.vm.$nextTick();
 
-            // Tooltip should be visible
             expect(wrapper.find('[data-testid="panel-variable-copied-{ipv4}"]').exists()).toBe(true);
 
-            // Advance timer to clear the tooltip
             vi.advanceTimersByTime(1500);
             await wrapper.vm.$nextTick();
 
@@ -577,19 +558,15 @@ describe('EditorSidePanel', () => {
                 attachTo: document.body,
             });
 
-            // Expand the variables section
             await wrapper.find('[data-testid="panel-variables-toggle"]').trigger('click');
 
-            // Focus the field value input and select "world"
             const fieldInput = wrapper.find('[data-testid="panel-field-value-0"]');
             await fieldInput.trigger('focus');
             fieldInput.element.setSelectionRange(6, 11);
 
-            // Click a variable chip
             const chip = wrapper.find('[data-testid="panel-variable-{ipv4}"]');
             await chip.trigger('click');
 
-            // "world" should be replaced with the variable key
             expect(fieldInput.element.value).toBe('Hello {ipv4}');
 
             wrapper.unmount();

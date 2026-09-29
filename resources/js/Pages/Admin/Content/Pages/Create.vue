@@ -46,7 +46,6 @@ function submit() {
 
 <template>
     <div data-testid="page-create">
-        <!-- Page Header -->
         <header class="mb-6 flex items-start justify-between gap-6">
             <div>
                 <h1
@@ -60,7 +59,6 @@ function submit() {
         </header>
 
         <form class="space-y-6" @submit.prevent="submit">
-            <!-- Title + Slug (side by side) -->
             <div class="grid gap-4 md:grid-cols-2">
                 <FormField label="Title" name="title" :required="true" :error="form.errors.title">
                     <input
@@ -94,7 +92,6 @@ function submit() {
                 </FormField>
             </div>
 
-            <!-- Content -->
             <div>
                 <MarkdownEditor v-model="form.content" placeholder="Write your page content here...">
                     <template #label>
@@ -110,7 +107,6 @@ function submit() {
                 </p>
             </div>
 
-            <!-- Actions -->
             <div class="flex items-center gap-3 pt-1">
                 <button
                     type="submit"

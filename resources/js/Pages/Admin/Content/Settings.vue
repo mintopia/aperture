@@ -150,7 +150,6 @@ onBeforeUnmount(() => {
         </h1>
 
         <form class="space-y-4" @submit.prevent="submit">
-            <!-- Branding -->
             <h2
                 data-testid="section-heading-branding"
                 class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -393,7 +392,6 @@ onBeforeUnmount(() => {
                 />
             </FormField>
 
-            <!-- Legal -->
             <h2
                 data-testid="section-heading-legal"
                 class="font-heading mt-8 mb-4 text-[14px] font-bold tracking-[0.04em] text-[var(--color-text-secondary)] uppercase"
@@ -401,7 +399,6 @@ onBeforeUnmount(() => {
                 Legal
             </h2>
 
-            <!-- Terms and Conditions -->
             <FormField label="Terms and Conditions" name="terms_type" :error="form.errors.terms_type">
                 <div class="space-y-2">
                     <select
@@ -442,7 +439,6 @@ onBeforeUnmount(() => {
                 </p>
             </FormField>
 
-            <!-- Privacy Policy -->
             <FormField label="Privacy Policy" name="privacy_type" :error="form.errors.privacy_type">
                 <div class="space-y-2">
                     <select

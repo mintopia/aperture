@@ -334,7 +334,6 @@ class PortalControllerTest extends TestCase
 
     public function test_ipv6_calls_firewall_enable_when_user_has_internet(): void
     {
-        // Pre-create IPv6 so internet_enabled is already true in DB — simulates firewall losing state
         $ip = IpAddress::factory()->internetEnabled()->create(['address' => '2001:db8::1']);
         $user = User::factory()->create(['internet_enabled' => true]);
         $user->ips()->create(['ip_address_id' => $ip->id, 'last_seen_at' => now()]);
@@ -380,7 +379,6 @@ class PortalControllerTest extends TestCase
         Queue::fake();
         $user = User::factory()->create(['internet_blocked' => false]);
 
-        // Set up client IPv4 with a known MAC
         $clientIp = IpAddress::factory()->create(['address' => '127.0.0.1']);
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:FF']);
         $clientIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
@@ -555,8 +553,6 @@ class PortalControllerTest extends TestCase
 
         $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
 
-        // The update-existing-pivot branch must also dispatch, so existing
-        // production links can heal user associations.
         Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ipv6Record)
             && $event->mac->is($mac)
             && $event->source === 'ipv6_detection'

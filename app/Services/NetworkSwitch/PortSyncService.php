@@ -39,13 +39,10 @@ class PortSyncService
         try {
             $adapter = $this->factory->make($switchConfig);
 
-            // ── Fetch all network data BEFORE opening a DB transaction ──────
-            // This prevents long-held DB locks during slow SSH operations.
             $portStatuses = $adapter->getAllPorts();
             $portConfigData = $this->portConfigSync->fetchFromNetwork($adapter, $switchConfig, $portStatuses);
             $macEntries = $adapter->getForwardingDatabase();
             $snoopingBindings = $this->fetchSnoopingBindings($adapter, $switchConfig);
-            // ────────────────────────────────────────────────────────────────
 
             $portsCreated = 0;
             $portsUpdated = 0;
@@ -98,14 +95,6 @@ class PortSyncService
     }
 
     /**
-     * Fetch DHCP snooping bindings over SSH before the DB transaction opens.
-     *
-     * Returns null when the adapter does not support snooping or the fetch
-     * fails. A failed fetch must not abort the wider port sync and must not
-     * trigger the stale-observation delete, so the caller skips persistence
-     * entirely when null is returned. DB write errors during persistence are
-     * deliberately NOT caught here — they must roll back the transaction.
-     *
      * @return Collection<int, array{ip: string, mac: string, vlan: int, interface: string, lease_seconds: int}>|null
      */
     private function fetchSnoopingBindings(NetworkSwitchInterface $adapter, SwitchConfig $switchConfig): ?Collection
@@ -128,9 +117,6 @@ class PortSyncService
     }
 
     /**
-     * Persist pre-fetched snooping bindings and remove stale observations.
-     * Must run inside the sync DB transaction.
-     *
      * @param  Collection<int, array{ip: string, mac: string, vlan: int, interface: string, lease_seconds: int}>  $bindings
      */
     private function persistSnoopingBindings(Collection $bindings, SwitchConfig $switchConfig): void
@@ -162,7 +148,6 @@ class PortSyncService
             $upsertedIds[] = $observation->id;
         }
 
-        // Delete stale observations for this switch
         DhcpSnoopingObservation::where('switch_config_id', $switchConfig->id)
             ->whereNotIn('id', $upsertedIds)
             ->delete();

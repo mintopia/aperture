@@ -143,7 +143,6 @@ function confirmReset() {
             </button>
         </div>
 
-        <!-- Stat Strip -->
         <div
             data-testid="dashboard-stats"
             class="mt-6 mb-7 flex flex-wrap gap-y-4 border-b border-[var(--color-border)] pb-5"
@@ -176,7 +175,6 @@ function confirmReset() {
             </div>
         </div>
 
-        <!-- Two Column: DHCP Pools + Total Bandwidth Chart -->
         <div class="mb-10 grid grid-cols-1 gap-6 md:grid-cols-[2fr_3fr]">
             <Deferred data="dhcpPools">
                 <template #fallback>
@@ -259,7 +257,6 @@ function confirmReset() {
             </div>
         </div>
 
-        <!-- Recent Users Table -->
         <Deferred data="recentUsers">
             <template #fallback>
                 <div data-testid="recent-users-loading">
@@ -351,12 +348,10 @@ function confirmReset() {
             </section>
         </Deferred>
 
-        <!-- Recent Activity -->
         <div class="mt-10">
             <RecentActivity :events="eventFeedItems" data-testid="recent-activity" />
         </div>
 
-        <!-- Reset Portal Confirmation Modal -->
         <ConfirmModal
             :show="showResetModal"
             title="Reset Portal"

@@ -12,9 +12,6 @@ use Throwable;
 
 class PrometheusTester implements TestableIntegration
 {
-    /**
-     * Maximum age of the newest sample before the metric feed is considered stale.
-     */
     private const STALENESS_THRESHOLD_SECONDS = 900;
 
     private const DEFAULT_BANDWIDTH_METRIC = 'ntopng_host_bytes_rcvd';
@@ -41,9 +38,6 @@ class PrometheusTester implements TestableIntegration
     }
 
     /**
-     * Verify the bandwidth metric is actually receiving recent samples, so a
-     * reachable Prometheus with a dead ntopng feed is reported as unhealthy.
-     *
      * @param  array<string, mixed>  $config
      */
     private function checkMetricFreshness(array $config, string $endpoint, TestConnectionResult $buildinfoResult): TestConnectionResult
@@ -98,9 +92,6 @@ class PrometheusTester implements TestableIntegration
         return $buildinfoResult;
     }
 
-    /**
-     * Find the newest sample timestamp across all returned vector series.
-     */
     private function newestSampleTimestamp(mixed $series): ?float
     {
         if (! is_array($series)) {

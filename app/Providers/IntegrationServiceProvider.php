@@ -36,9 +36,6 @@ class IntegrationServiceProvider extends ServiceProvider
         BorealisService::class,
     ];
 
-    /**
-     * Register external service bindings.
-     */
     public function register(): void
     {
         $this->registerSharedClients();
@@ -46,9 +43,6 @@ class IntegrationServiceProvider extends ServiceProvider
         $this->registerNonCapabilityBindings();
     }
 
-    /**
-     * Register shared clients used by multiple capability bindings.
-     */
     protected function registerSharedClients(): void
     {
         $this->app->scoped(function (): OpnSenseClient {
@@ -129,9 +123,6 @@ class IntegrationServiceProvider extends ServiceProvider
         IntegrationConfig::deleted($forgetClients);
     }
 
-    /**
-     * Register non-capability bindings (BorealisService, etc.).
-     */
     protected function registerNonCapabilityBindings(): void
     {
         $this->app->scoped(function (): BorealisService {

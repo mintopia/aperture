@@ -127,7 +127,6 @@ class SearchControllerTest extends TestCase
         $admin = $this->createAdminUser();
         User::factory()->create(['nickname' => 'normal_user']);
 
-        // A query of '%' would match everything without escaping; with escaping it matches nothing
         $response = $this->actingAs($admin)->getJson('/admin/search?q=%_');
 
         $response->assertOk();
@@ -138,11 +137,8 @@ class SearchControllerTest extends TestCase
     {
         Queue::fake();
         $admin = $this->createAdminUser();
-        // Create a user whose nickname does NOT contain a literal underscore
         User::factory()->create(['nickname' => 'abcde']);
 
-        // '_' without escaping would act as a wildcard and match 'abcde'
-        // With escaping it only matches a literal '_', so zero results expected
         $response = $this->actingAs($admin)->getJson('/admin/search?q=___');
 
         $response->assertOk();
@@ -394,7 +390,6 @@ class SearchControllerTest extends TestCase
         $response = $this->actingAs($admin)->getJson('/admin/search?q=duphost');
 
         $response->assertOk();
-        // Grouped by hostname+mac_address_id, so duplicates are collapsed
         $response->assertJsonCount(1, 'dhcp_hostnames');
     }
 }

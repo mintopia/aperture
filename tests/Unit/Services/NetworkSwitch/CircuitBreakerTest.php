@@ -219,7 +219,6 @@ class CircuitBreakerTest extends TestCase
 
         $this->assertTrue($circuitBreaker->isAvailable($switch));
 
-        // Half-open trial fails: the circuit must re-open for another cooldown.
         $circuitBreaker->recordFailure($switch);
 
         $this->assertFalse($circuitBreaker->isAvailable($switch));

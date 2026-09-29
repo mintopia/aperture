@@ -145,7 +145,6 @@ class GeneralSettingsControllerLogoTest extends TestCase
         Storage::fake('public');
         $admin = $this->createAdminUser();
 
-        // Upload first
         $file = UploadedFile::fake()->image('logo.png', 256, 256);
         $this->actingAs($admin)->post('/admin/content/settings/logo', [
             'logo' => $file,
@@ -153,7 +152,6 @@ class GeneralSettingsControllerLogoTest extends TestCase
 
         Storage::disk('public')->assertExists('branding/logo.png');
 
-        // Now delete
         $response = $this->actingAs($admin)->delete('/admin/content/settings/logo');
 
         $response->assertRedirect();
@@ -194,7 +192,6 @@ class GeneralSettingsControllerLogoTest extends TestCase
         Storage::fake('public');
         $admin = $this->createAdminUser();
 
-        // Upload a logo first
         $file = UploadedFile::fake()->image('logo.png', 256, 256);
         $this->actingAs($admin)->post('/admin/content/settings/logo', [
             'logo' => $file,

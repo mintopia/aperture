@@ -110,7 +110,6 @@ function formatTimestamp(iso) {
 
 <template>
     <div data-testid="audit-log-index-layout">
-        <!-- Page Header -->
         <header class="mb-2 flex items-start justify-between gap-6">
             <div>
                 <h1

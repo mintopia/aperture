@@ -1,13 +1,4 @@
 /**
- * Replace template placeholders in content with values from block context.
- *
- * Supported placeholders:
- *   {user.params.<key>} - User parameter value
- *   {user.<key>}        - User property
- *   {ipv4}              - Client IPv4 address
- *   {ipv6}              - Client IPv6 address
- *   {mac}               - MAC address
- *
  * @param {string|null} content - Template string with placeholders
  * @param {Object} context - Block context with currentIpv4, currentIpv6, macAddress, user
  * @returns {string} Rendered content

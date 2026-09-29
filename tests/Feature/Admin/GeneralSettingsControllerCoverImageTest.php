@@ -130,7 +130,6 @@ class GeneralSettingsControllerCoverImageTest extends TestCase
         Storage::fake('public');
         $admin = $this->createAdminUser();
 
-        // Upload first
         $file = UploadedFile::fake()->image('cover.png', 1200, 400);
         $this->actingAs($admin)->post('/admin/content/settings/cover-image', [
             'cover_image' => $file,
@@ -138,7 +137,6 @@ class GeneralSettingsControllerCoverImageTest extends TestCase
 
         Storage::disk('public')->assertExists('branding/cover.png');
 
-        // Now delete
         $response = $this->actingAs($admin)->delete('/admin/content/settings/cover-image');
 
         $response->assertRedirect();
@@ -179,7 +177,6 @@ class GeneralSettingsControllerCoverImageTest extends TestCase
         Storage::fake('public');
         $admin = $this->createAdminUser();
 
-        // Upload a cover image first
         $file = UploadedFile::fake()->image('cover.png', 1200, 400);
         $this->actingAs($admin)->post('/admin/content/settings/cover-image', [
             'cover_image' => $file,

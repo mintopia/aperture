@@ -38,9 +38,7 @@ describe('ImageBlock', () => {
             props: { settings: {} },
         });
         const img = wrapper.find('[data-testid="image-element"]');
-        // No image should be rendered, or a placeholder should be shown
         expect(img.exists()).toBe(false);
-        // Should show some placeholder content
         expect(wrapper.find('[data-testid="block-image"]').exists()).toBe(true);
         expect(wrapper.text()).toBeTruthy();
     });
@@ -63,7 +61,6 @@ describe('ImageBlock', () => {
         });
         const block = wrapper.find('[data-testid="block-image"]');
         const style = block.attributes('class') || '';
-        // The block should use negative margin to cancel parent p-5 padding
         expect(style).toMatch(/-m-5|margin:\s*-/);
     });
 });

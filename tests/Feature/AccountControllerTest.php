@@ -90,7 +90,6 @@ class AccountControllerTest extends TestCase
     {
         $user = User::factory()->withPassword('oldpassword123')->create();
 
-        // Set account_verified in session first
         $this->actingAs($user);
         session()->put('account_verified', true);
 
@@ -109,7 +108,6 @@ class AccountControllerTest extends TestCase
     {
         $user = User::factory()->withPassword('oldpass123')->create();
 
-        // Set account_verified in session first
         $this->actingAs($user);
         session()->put('account_verified', true);
 
@@ -198,7 +196,6 @@ class AccountControllerTest extends TestCase
 
         $response = $this->actingAs($user)->deleteJson('/passkeys/nonexistent-credential-id');
 
-        // Credential doesn't exist, so deleted = 0, but endpoint should still respond
         $response->assertOk();
         $response->assertJson(['success' => false]);
     }
@@ -231,7 +228,6 @@ class AccountControllerTest extends TestCase
         $this->actingAs($user);
         session()->put('account_verified', true);
 
-        // Even if we had a real credential ID from otherUser, user cannot delete it
         $response = $this->actingAs($user)->deleteJson('/passkeys/credential-belonging-to-other');
 
         $response->assertOk();
@@ -295,13 +291,11 @@ class AccountControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // Create password via the new route (not behind EnsureAccountSecurityVerified)
         $this->actingAs($user)->post('/account/password/create', [
             'password' => 'newpassword123',
             'password_confirmation' => 'newpassword123',
         ]);
 
-        // Session should already be verified after createPassword
         $this->assertTrue(session()->get('account_verified'));
     }
 
@@ -326,11 +320,9 @@ class AccountControllerTest extends TestCase
         $response->assertSessionHasNoErrors();
     }
 
-    // ── createPassword tests ────────────────────────────────────────────────────
-
     public function test_create_password_sets_password_for_passwordless_user(): void
     {
-        $user = User::factory()->create(); // no password
+        $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/account/password/create', [
             'password' => 'newpassword123',
@@ -357,7 +349,7 @@ class AccountControllerTest extends TestCase
 
     public function test_create_password_validates_minimum_length(): void
     {
-        $user = User::factory()->create(); // no password
+        $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/account/password/create', [
             'password' => 'short',
@@ -369,7 +361,7 @@ class AccountControllerTest extends TestCase
 
     public function test_create_password_validates_confirmation(): void
     {
-        $user = User::factory()->create(); // no password
+        $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/account/password/create', [
             'password' => 'newpassword123',
@@ -381,7 +373,7 @@ class AccountControllerTest extends TestCase
 
     public function test_create_password_marks_session_as_verified(): void
     {
-        $user = User::factory()->create(); // no password
+        $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/account/password/create', [
             'password' => 'newpassword123',
@@ -394,15 +386,13 @@ class AccountControllerTest extends TestCase
 
     public function test_user_can_update_password_after_creating_initial_password(): void
     {
-        $user = User::factory()->create(); // no password
+        $user = User::factory()->create();
 
-        // Create initial password
         $this->actingAs($user)->post('/account/password/create', [
             'password' => 'initialpass123',
             'password_confirmation' => 'initialpass123',
         ]);
 
-        // Now the session is verified, update password via normal route
         $response = $this->actingAs($user->fresh())->put('/account/settings/password', [
             'password' => 'updatedpass123',
             'password_confirmation' => 'updatedpass123',
@@ -413,8 +403,6 @@ class AccountControllerTest extends TestCase
         $user->refresh();
         $this->assertTrue(Hash::check('updatedpass123', $user->password));
     }
-
-    // ── Audit log tests ────────────────────────────────────────────────────────
 
     public function test_update_password_creates_audit_log(): void
     {
@@ -439,7 +427,7 @@ class AccountControllerTest extends TestCase
 
     public function test_create_password_creates_audit_log(): void
     {
-        $user = User::factory()->create(); // no password
+        $user = User::factory()->create();
 
         $this->actingAs($user)->post('/account/password/create', [
             'password' => 'newpassword123',

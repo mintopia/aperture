@@ -73,7 +73,6 @@ const userSummary = computed(() => ({
 
 <template>
     <div data-testid="users-index-layout">
-        <!-- Page Header -->
         <header data-testid="users-index-header" class="mb-2 flex items-start justify-between gap-6">
             <div>
                 <h1
@@ -87,7 +86,6 @@ const userSummary = computed(() => ({
             </div>
         </header>
 
-        <!-- Summary strip -->
         <div
             v-if="userSummary.total > 0"
             data-testid="users-summary"
@@ -141,7 +139,6 @@ const userSummary = computed(() => ({
             </div>
         </div>
 
-        <!-- Table section -->
         <section v-if="allUsers.length > 0 || hasActiveFilter" data-testid="users-table-section" class="mb-8">
             <FilterBar
                 :search="searchQuery"

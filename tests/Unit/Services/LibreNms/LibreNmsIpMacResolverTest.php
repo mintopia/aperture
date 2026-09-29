@@ -63,7 +63,6 @@ class LibreNmsIpMacResolverTest extends TestCase
             new IpMacEntry(ip: '192.168.1.2', mac: 'aa:bb:cc:dd:ee:02'),
         ]);
 
-        // Same entry appears in both arp and ipv6 neighbors (duplicate)
         $ipv6Entries = collect([
             new IpMacEntry(ip: '192.168.1.1', mac: 'aa:bb:cc:dd:ee:01'),
             new IpMacEntry(ip: 'fe80::1', mac: 'aa:bb:cc:dd:ee:03'),
@@ -110,7 +109,6 @@ class LibreNmsIpMacResolverTest extends TestCase
             new IpMacEntry(ip: '2001:db8::abcd', mac: 'aa:bb:cc:dd:ee:01'),
         ]);
 
-        // Same neighbor reported again with uppercase hex digits
         $ipv6Entries = collect([
             new IpMacEntry(ip: '2001:DB8::ABCD', mac: 'aa:bb:cc:dd:ee:01'),
         ]);
@@ -155,7 +153,6 @@ class LibreNmsIpMacResolverTest extends TestCase
             ->once()
             ->andReturn(collect());
 
-        // Same IPv6 address (differing in case) with different MACs must NOT dedupe
         $this->libreNms->shouldReceive('getIpv6Neighbors')
             ->once()
             ->andReturn(collect([

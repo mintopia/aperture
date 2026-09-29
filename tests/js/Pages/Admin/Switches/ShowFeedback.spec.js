@@ -217,12 +217,10 @@ describe('Show — Test Connection Feedback', () => {
 
         const wrapper = mountShow();
 
-        // First test
         await wrapper.find('[data-testid="action-test"]').trigger('click');
         await flushPromises();
         expect(wrapper.find('[data-testid="test-result"]').exists()).toBe(true);
 
-        // Second test — set up a pending promise
         let resolveSecond;
         fetchMock.mockReturnValueOnce(
             new Promise((resolve) => {
@@ -233,7 +231,6 @@ describe('Show — Test Connection Feedback', () => {
         await wrapper.find('[data-testid="action-test"]').trigger('click');
         await flushPromises();
         await wrapper.vm.$nextTick();
-        // During loading, previous result should be cleared
         expect(wrapper.find('[data-testid="test-result"]').exists()).toBe(false);
 
         resolveSecond({

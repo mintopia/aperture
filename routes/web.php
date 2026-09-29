@@ -42,14 +42,12 @@ Route::post('/setup', [SetupController::class, 'store']);
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Captive portal / login
 Route::middleware(['throttle:captive-portal'])->group(function () {
     Route::get('/captive', [CaptivePortalController::class, 'index'])->name('captive.index');
     Route::get('/captive/poll/{deviceCode}', [CaptivePortalController::class, 'poll'])->name('captive.poll');
     Route::get('/captive/interstitial', [CaptivePortalController::class, 'interstitial'])->name('captive.interstitial');
 });
 
-// Public content pages
 Route::get('/content/{slug}', [PageViewController::class, 'show'])->name('content.show');
 
 Route::middleware(['guest'])->group(function () {
@@ -57,14 +55,12 @@ Route::middleware(['guest'])->group(function () {
     Route::post('/login', [LoginController::class, 'authenticate'])->middleware('throttle:login');
 });
 
-// Passkey registration (requires auth)
 Route::middleware(['auth', EnsureAccountSecurityVerified::class, 'throttle:10,1'])->prefix('passkeys')->group(function () {
     Route::post('/register/options', [PasskeyController::class, 'registerOptions'])->name('passkeys.register.options');
     Route::post('/register', [PasskeyController::class, 'register'])->name('passkeys.register');
     Route::delete('/{credentialId}', [PasskeyController::class, 'destroy'])->name('passkeys.destroy');
 });
 
-// Passkey authentication (guest)
 Route::middleware(['guest', 'throttle:login'])->prefix('passkeys')->group(function () {
     Route::post('/login/options', [PasskeyController::class, 'loginOptions'])->name('passkeys.login.options');
     Route::post('/login', [PasskeyController::class, 'login'])->name('passkeys.login');
@@ -75,7 +71,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/status', [PortalController::class, 'status'])->name('status');
     Route::post('/ipv6', [PortalController::class, 'ipv6'])->name('ipv6')->withoutMiddleware(VerifyCsrfToken::class);
 
-    // Account settings
     Route::prefix('account')->group(function () {
         Route::get('/settings', [AccountController::class, 'show'])->name('account.settings');
         Route::post('/settings/verify', [AccountController::class, 'verify'])->name('account.verify');
@@ -86,7 +81,6 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    // New portal routes
     Route::prefix('portal')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('portal.dashboard');
         Route::post('/dns-filter/toggle', [DnsFilterController::class, 'toggle'])->name('portal.dns-filter.toggle');
@@ -98,10 +92,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/bandwidth', [HomeController::class, 'bandwidth'])->name('dashboard.bandwidth');
         Route::post('/reset', [HomeController::class, 'reset'])->name('reset');
 
-        // Search
         Route::get('/search', [SearchController::class, 'search'])->name('search')->middleware('throttle:60,1');
 
-        // Users
         Route::resource('users', UserController::class)->only(['index', 'show', 'edit', 'update']);
         Route::post('users/{user}/block', [UserController::class, 'block'])->name('users.block');
         Route::post('users/{user}/internet', [UserController::class, 'internet'])->name('users.internet');
@@ -111,28 +103,22 @@ Route::middleware(['auth'])->group(function () {
         Route::put('users/{user}/parameters/{parameter}', [UserController::class, 'updateParameter'])->name('users.parameters.update')->scopeBindings();
         Route::delete('users/{user}/parameters/{parameter}', [UserController::class, 'destroyParameter'])->name('users.parameters.destroy')->scopeBindings();
 
-        // IP Addresses
         Route::resource('ips', IpAddressController::class)->only('index', 'show', 'store', 'create');
         Route::post('ips/{ip}/internet', [IpAddressController::class, 'internet'])->name('ips.internet');
         Route::post('ips/{ip}/limit', [IpAddressController::class, 'limit'])->name('ips.limit');
         Route::post('ips/{ip}/dns-filter', [IpAddressController::class, 'dnsFilter'])->name('ips.dns-filter');
         Route::get('ips/{ip}/bandwidth', [IpAddressController::class, 'bandwidth'])->name('ips.bandwidth');
 
-        // DHCP
         Route::get('/dhcp', [DhcpController::class, 'index'])->name('dhcp.index');
         Route::get('/dhcp/leases', [DhcpController::class, 'leases'])->name('dhcp.leases');
 
-        // MAC Addresses
         Route::get('/macs', [MacAddressController::class, 'index'])->name('macs.index');
         Route::get('/macs/{mac}', [MacAddressController::class, 'show'])->name('macs.show');
 
-        // Audit Log
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
 
-        // Content blocks
         Route::put('/content/layout', [ContentController::class, 'updateLayout'])->name('content.layout.update');
 
-        // Content settings (must be before content resource to avoid {content} wildcard conflict)
         Route::get('/content/settings', [GeneralSettingsController::class, 'show'])->name('content.settings');
         Route::put('/content/settings', [GeneralSettingsController::class, 'update'])->name('content.settings.update');
         Route::post('/content/settings/logo', [GeneralSettingsController::class, 'updateLogo'])->name('content.settings.logo.update');
@@ -142,12 +128,10 @@ Route::middleware(['auth'])->group(function () {
 
         Route::resource('content', ContentController::class)->except(['create', 'edit', 'show']);
 
-        // Content pages
         Route::resource('content/pages', PageController::class)
             ->except(['show'])
             ->names('content.pages');
 
-        // Switch Management (new top-level section)
         Route::get('/switches', [SwitchManagementController::class, 'index'])->name('switches.index');
         Route::get('/switches/create', [SwitchManagementController::class, 'create'])->name('switches.create');
         Route::post('/switches', [SwitchManagementController::class, 'store'])->name('switches.store');
@@ -160,13 +144,10 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/switches/{switchConfig}/host-key', [SwitchManagementController::class, 'resetHostKey'])->name('switches.host-key.reset');
         Route::get('/switches/{switchConfig}/config', [SwitchManagementController::class, 'config'])->name('switches.config');
 
-        // Switch Port Management
-        // Port ID regex: alphanumeric interface names with slashes and hyphens (e.g. Gi1/0/1, Port-channel1)
         Route::get('/switches/{switchConfig}/ports/{portId}', [SwitchPortController::class, 'show'])->name('switches.ports.show')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
         Route::post('/switches/{switchConfig}/ports/{portId}/refresh', [SwitchPortController::class, 'refresh'])->name('switches.ports.refresh')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
         Route::post('/switches/{switchConfig}/ports/{portId}/shutdown', [SwitchPortController::class, 'shutdown'])->name('switches.ports.shutdown')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
         Route::post('/switches/{switchConfig}/ports/{portId}/enable', [SwitchPortController::class, 'enable'])->name('switches.ports.enable')->where('portId', '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}');
-        // Settings
         Route::get('/settings/integrations', [SettingsController::class, 'integrations'])->name('settings.integrations');
         Route::get('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'show'])->name('settings.ipv6-detection');
         Route::put('/settings/ipv6-detection', [Ipv6DetectionSettingsController::class, 'update'])->name('settings.ipv6-detection.update');
@@ -180,7 +161,6 @@ Route::middleware(['auth'])->group(function () {
 
         Route::post('/settings/test/{service}', [TestConnectionController::class, 'test'])->name('settings.test');
 
-        // Per-service integration routes
         Route::post('/settings/integrations/pihole/groups', [IntegrationController::class, 'piholeGroups'])->name('settings.integrations.pihole.groups');
         Route::post('/settings/integrations/opnsense/shaper-rules', [IntegrationController::class, 'opnsenseShaperRules'])->name('settings.integrations.opnsense.shaper-rules');
         Route::post('/settings/integrations/opnsense/zones', [IntegrationController::class, 'opnsenseZones'])->name('settings.integrations.opnsense.zones');

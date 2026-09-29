@@ -151,7 +151,7 @@ class PrometheusIpBandwidth implements IpBandwidthInterface
     protected function rangeToSeconds(string $range): int
     {
         if (preg_match('/^(\d+)([hmd])$/', $range, $matches) !== 1) {
-            return 86400; // default 24h
+            return 86400;
         }
 
         $value = (int) $matches[1];
@@ -180,9 +180,6 @@ class PrometheusIpBandwidth implements IpBandwidthInterface
     }
 
     /**
-     * Extract data points from a Prometheus range query result,
-     * merging multiple series by summing values at each timestamp.
-     *
      * @param  array<string, mixed>  $data
      * @return array<int, array{0: float, 1: string}>
      */

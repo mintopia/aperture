@@ -22,7 +22,6 @@ class MacTrackingIntegrationTest extends TestCase
     {
         parent::setUp();
 
-        // Mock captive portal to prevent real HTTP calls
         $captivePortal = Mockery::mock(CaptivePortalInterface::class);
         $captivePortal->shouldReceive('addIp')->andReturnNull();
         $this->app->instance(CaptivePortalInterface::class, $captivePortal);

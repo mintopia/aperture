@@ -205,7 +205,6 @@ class IpAddressShowDataServiceTest extends TestCase
 
         $total = $this->service->sumSeries($series);
 
-        // avgRate = (100 + 200) / 2 = 150, dt = 10, total = 150 * 10 / 8 = 187
         $this->assertSame(187, $total);
     }
 

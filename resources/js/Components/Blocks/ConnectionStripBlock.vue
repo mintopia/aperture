@@ -39,10 +39,6 @@ function resolveValue(template) {
     return result || '\u2014';
 }
 
-/**
- * Update internet status from an Echo event.
- * Called by the parent Dashboard via template ref.
- */
 function updateInternetStatus(enabled) {
     internetOverride.value = enabled;
 }

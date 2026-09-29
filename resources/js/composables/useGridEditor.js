@@ -89,7 +89,6 @@ export function useGridEditor(blocks) {
     function computeDisplacement(draggedId, targetCol, targetRow, colSpan, rowSpan) {
         const displacement = {};
 
-        // Build a working copy of positions
         const positions = {};
         for (const block of blocks.value) {
             if (block.id === draggedId) {
@@ -104,7 +103,6 @@ export function useGridEditor(blocks) {
             }
         }
 
-        // Iteratively resolve overlaps
         let changed = true;
         while (changed) {
             changed = false;
@@ -113,7 +111,6 @@ export function useGridEditor(blocks) {
                     continue;
                 }
                 const pos = positions[block.id];
-                // Check if this block overlaps with any other block
                 for (const otherId of Object.keys(positions).map(Number)) {
                     if (otherId === block.id) {
                         continue;
@@ -125,7 +122,6 @@ export function useGridEditor(blocks) {
                         pos.row < other.row + other.rowSpan &&
                         pos.row + pos.rowSpan > other.row
                     ) {
-                        // Push this block below the overlapping block
                         const newRow = other.row + other.rowSpan;
                         if (newRow > pos.row) {
                             positions[block.id] = { ...pos, row: newRow };

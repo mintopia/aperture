@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import BlockGrid from '@/Components/BlockGrid.vue';
 
-// Mock route function globally
 vi.stubGlobal(
     'route',
     vi.fn(() => '/mock-route'),
@@ -163,7 +162,6 @@ describe('BlockGrid', () => {
             props: { blocks, blockContext: defaultContext },
         });
         const grid = wrapper.find('[data-testid="block-grid"]');
-        // max row = 2 + 5 - 1 = 6
         expect(grid.attributes('style')).toContain('grid-template-rows: repeat(6, minmax(80px, auto))');
     });
 
@@ -216,8 +214,6 @@ describe('BlockGrid', () => {
             props: { blocks, blockContext: defaultContext },
         });
         const grid = wrapper.find('[data-testid="block-grid"]');
-        // The portal grid should use minmax(80px, auto) to match the editor
-        // so that blocks spanning multiple rows get proportionally taller
         expect(grid.attributes('style')).toContain('grid-template-rows: repeat(3, minmax(80px, auto))');
     });
 

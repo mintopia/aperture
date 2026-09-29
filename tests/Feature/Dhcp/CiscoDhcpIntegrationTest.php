@@ -43,10 +43,6 @@ class CiscoDhcpIntegrationTest extends TestCase
         $this->transport = Mockery::mock(SwitchCommandTransportInterface::class);
     }
 
-    // -------------------------------------------------------------------------
-    // Fixture helpers
-    // -------------------------------------------------------------------------
-
     private function ipv4BindingOutput(): string
     {
         return implode("\r\n", [
@@ -232,24 +228,16 @@ class CiscoDhcpIntegrationTest extends TestCase
         return $user;
     }
 
-    // -------------------------------------------------------------------------
-    // Test 1: Full end-to-end Cisco DHCP sync flow
-    // -------------------------------------------------------------------------
-
     public function test_full_cisco_dhcp_sync_flow(): void
     {
-        // 1. Set up: SwitchConfig, IntegrationConfig, CapabilityAssignment
         $this->configureCiscoIntegration(ipv6Enabled: true);
         $this->mockTransportInContainer();
         $this->expectTransportCall();
 
-        // 2. Run SyncDhcpData job
         $this->dispatchSyncJob();
 
-        // 3. Verify DB state: DhcpLease records created
-        $this->assertDatabaseCount('dhcp_leases', 3); // 2 IPv4 + 1 IPv6
+        $this->assertDatabaseCount('dhcp_leases', 3);
 
-        // Verify IPv4 lease details
         $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.50']);
         $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.51']);
         $this->assertDatabaseHas('mac_addresses', ['mac_address' => '00:11:22:33:44:55']);
@@ -263,12 +251,9 @@ class CiscoDhcpIntegrationTest extends TestCase
             'mac_address_id' => $mac1->id,
         ]);
 
-        // Verify IPv6 lease: switch reports '2001:DB8::100' (uppercase) but the
-        // IpAddress::address mutator normalises IPv6 to lowercase on storage.
         $this->assertDatabaseHas('ip_addresses', ['address' => '2001:db8::100']);
         $this->assertDatabaseMissing('ip_addresses', ['address' => '2001:DB8::100']);
 
-        // Verify DhcpRangeRecord records created (IPv4 + IPv6 ranges)
         $ipv4Ranges = DhcpRangeRecord::where('integration', 'cisco')->where('type', 'ipv4')->get();
         $this->assertGreaterThanOrEqual(1, $ipv4Ranges->count());
         $this->assertDatabaseHas('dhcp_range_records', [
@@ -285,7 +270,6 @@ class CiscoDhcpIntegrationTest extends TestCase
             'interface' => 'LAN6',
         ]);
 
-        // Verify DhcpPoolStatusRecord created
         $this->assertDatabaseCount('dhcp_pool_statuses', 2);
         $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->where('address_family', 'ipv4')->firstOrFail();
         $this->assertEquals('254', $poolStatus->total);
@@ -293,9 +277,8 @@ class CiscoDhcpIntegrationTest extends TestCase
         $this->assertEquals('252', $poolStatus->available);
         $this->assertSame(AddressFamily::IPv4, $poolStatus->address_family);
 
-        // Verify DhcpSyncState updated
         $syncStates = DhcpSyncState::where('integration', 'cisco')->get();
-        $this->assertGreaterThanOrEqual(2, $syncStates->count()); // leases, ranges, pool_status
+        $this->assertGreaterThanOrEqual(2, $syncStates->count());
 
         foreach ($syncStates as $state) {
             $this->assertNotNull($state->last_attempt_at);
@@ -303,7 +286,6 @@ class CiscoDhcpIntegrationTest extends TestCase
             $this->assertSame(0, $state->empty_count);
         }
 
-        // 4. Verify controller: Hit DHCP index endpoint
         $admin = $this->createAdminUser();
         $indexResponse = $this->actingAs($admin)->get('/admin/dhcp');
         $indexResponse->assertOk();
@@ -315,7 +297,6 @@ class CiscoDhcpIntegrationTest extends TestCase
             ->where('ranges.0.network', '10.0.0.0/24')
         );
 
-        // 5. Verify controller: Hit leases endpoint
         $leasesResponse = $this->actingAs($admin)->get('/admin/dhcp/leases');
         $leasesResponse->assertOk();
         $leasesResponse->assertInertia(fn ($page) => $page
@@ -324,16 +305,11 @@ class CiscoDhcpIntegrationTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Test 2: Sync twice with different data — verify records updated
-    // -------------------------------------------------------------------------
-
     public function test_sync_then_sync_again_updates_data(): void
     {
         $this->configureCiscoIntegration(ipv6Enabled: true);
         $this->mockTransportInContainer();
 
-        // First sync
         $this->transport
             ->shouldReceive('executeMultiple')
             ->once()
@@ -344,14 +320,12 @@ class CiscoDhcpIntegrationTest extends TestCase
 
         $this->dispatchSyncJob();
 
-        // Verify first sync results
-        $this->assertDatabaseCount('dhcp_leases', 3); // 2 IPv4 + 1 IPv6
+        $this->assertDatabaseCount('dhcp_leases', 3);
         $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.50']);
         $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.51']);
         $this->assertEquals('254', DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail()->total);
         $this->assertEquals('2', DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail()->used);
 
-        // Second sync with different data (different lease, updated pool stats)
         $this->transport
             ->shouldReceive('executeMultiple')
             ->once()
@@ -362,7 +336,6 @@ class CiscoDhcpIntegrationTest extends TestCase
 
         $this->dispatchSyncJob();
 
-        // Old IPv4 leases should be gone, new one present
         $this->assertDatabaseMissing('dhcp_leases', [
             'integration' => 'cisco',
             'ip_address_id' => IpAddress::where('address', '10.0.0.50')->first()?->id,
@@ -372,7 +345,6 @@ class CiscoDhcpIntegrationTest extends TestCase
             'ip_address_id' => IpAddress::where('address', '10.0.0.51')->first()?->id,
         ]);
 
-        // New lease is present
         $this->assertDatabaseHas('ip_addresses', ['address' => '10.0.0.52']);
         $newIp = IpAddress::where('address', '10.0.0.52')->firstOrFail();
         $this->assertDatabaseHas('dhcp_leases', [
@@ -380,10 +352,6 @@ class CiscoDhcpIntegrationTest extends TestCase
             'ip_address_id' => $newIp->id,
         ]);
 
-        // IPv6 lease still present (unchanged in updated fixtures); stored
-        // lowercase by the IpAddress::address mutator despite uppercase input.
-        // SyncDhcpData normalises the address before the lookup, so re-syncing
-        // the same uppercase switch output must not create a duplicate row.
         $ipv6IpIds = IpAddress::where('address', '2001:db8::100')->pluck('id');
         $this->assertSame(1, $ipv6IpIds->count());
         $this->assertTrue(
@@ -392,32 +360,24 @@ class CiscoDhcpIntegrationTest extends TestCase
                 ->exists()
         );
 
-        // Total leases: 1 IPv4 + 1 IPv6 = 2
         $this->assertSame(2, DhcpLease::where('integration', 'cisco')->count());
 
-        // Pool status updated
         $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail();
         $this->assertEquals('254', $poolStatus->total);
         $this->assertEquals('1', $poolStatus->used);
         $this->assertEquals('253', $poolStatus->available);
 
-        // Sync state shows no empty counts
         $syncStates = DhcpSyncState::where('integration', 'cisco')->get();
         foreach ($syncStates as $state) {
             $this->assertSame(0, $state->empty_count);
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Test 3: Sync with IPv6 disabled — only IPv4 data synced
-    // -------------------------------------------------------------------------
-
     public function test_sync_with_ipv6_disabled(): void
     {
         $this->configureCiscoIntegration(ipv6Enabled: false);
         $this->mockTransportInContainer();
 
-        // With IPv6 disabled, only 3 commands are sent (no ipv6 commands)
         $this->transport
             ->shouldReceive('executeMultiple')
             ->once()
@@ -428,25 +388,20 @@ class CiscoDhcpIntegrationTest extends TestCase
 
         $this->dispatchSyncJob();
 
-        // Only IPv4 leases synced (2)
         $this->assertDatabaseCount('dhcp_leases', 2);
 
-        // Only IPv4 ranges synced
         $ipv4Ranges = DhcpRangeRecord::where('integration', 'cisco')->where('type', 'ipv4')->count();
         $ipv6Ranges = DhcpRangeRecord::where('integration', 'cisco')->where('type', 'ipv6')->count();
         $this->assertGreaterThanOrEqual(1, $ipv4Ranges);
         $this->assertSame(0, $ipv6Ranges);
 
-        // No IPv6 IPs in DB (stored form would be lowercase via the mutator)
         $this->assertDatabaseMissing('ip_addresses', ['address' => '2001:db8::100']);
 
-        // Pool status still created (IPv4 only)
         $this->assertDatabaseCount('dhcp_pool_statuses', 1);
         $poolStatus = DhcpPoolStatusRecord::where('integration', 'cisco')->firstOrFail();
         $this->assertSame(AddressFamily::IPv4, $poolStatus->address_family);
         $this->assertEquals('254', $poolStatus->total);
 
-        // Verify controller works with IPv4-only data
         $admin = $this->createAdminUser();
         $response = $this->actingAs($admin)->get('/admin/dhcp');
         $response->assertOk();

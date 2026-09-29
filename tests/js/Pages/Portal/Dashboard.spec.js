@@ -185,7 +185,6 @@ describe('Portal Dashboard', () => {
 
         const cover = wrapper.find('[data-testid="dashboard-cover"]');
         expect(cover.exists()).toBe(true);
-        // The URL should appear in the element's style (as background-image) or as an img src
         const html = cover.html();
         expect(html).toContain('https://example.com/event-banner.jpg');
     });

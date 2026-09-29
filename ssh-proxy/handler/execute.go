@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-// executeRequest matches the PHP client's POST /execute JSON body.
 type executeRequest struct {
 	Hostname   string        `json:"hostname"`
 	Username   string        `json:"username"`
@@ -60,7 +59,6 @@ func writeConnectFailure(w http.ResponseWriter, err error) {
 	})
 }
 
-// executeResponse matches the PHP API's success response shape.
 type executeResponse struct {
 	Success   bool                `json:"success"`
 	Output    []ssh.CommandOutput `json:"output"`
@@ -69,7 +67,6 @@ type executeResponse struct {
 	ErrorCode string              `json:"error_code,omitempty"`
 }
 
-// Execute handles POST /execute — runs commands on a network switch via SSH.
 func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 	requestID := RequestIDFromContext(r.Context())
 	if requestID == "" {
@@ -82,7 +79,6 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields (matches PHP: hostname, username, commands required).
 	if req.Hostname == "" || req.Username == "" || req.Commands == nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{
 			"error": "Missing required fields: hostname, username, commands",
@@ -90,17 +86,14 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Default port to 22.
 	if req.Port == 0 {
 		req.Port = 22
 	}
 
-	// Default channel to "commands".
 	if req.Channel == "" {
 		req.Channel = pool.DefaultChannel
 	}
 
-	// Validate channel name against configured channels.
 	if !h.IsValidChannel(req.Channel) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{
 			"error": fmt.Sprintf("Invalid channel: %s", req.Channel),
@@ -145,13 +138,11 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If the connection is new, establish the SSH session.
 	var session ssh.Session
 	var observedKey string
 	if isNew {
 		conn, connErr := h.connect(r.Context(), log, params, "SSH connection failed")
 		if connErr != nil {
-			// Clean up the placeholder entry.
 			h.pool.Remove(key)
 			writeConnectFailure(w, connErr)
 			return
@@ -161,8 +152,6 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		h.pool.SetHostKey(key, observedKey)
 		session = conn
 	} else {
-		// Reuse existing connection — the entry.Conn is an io.Closer,
-		// but we know it's also an ssh.Session.
 		var ok bool
 		session, ok = entry.Conn.(ssh.Session)
 		if !ok || session == nil {
@@ -182,7 +171,6 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 		log.Debug("reusing pooled connection")
 	}
 
-	// Execute commands — always release the lock afterwards.
 	defer h.pool.Release(key)
 
 	log.Info("executing commands",
@@ -194,8 +182,6 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 	result := h.executor.Execute(session, req.Commands)
 	execDuration := time.Since(execStart)
 
-	// If the command failed with a connection error on a reused (pooled)
-	// connection, attempt stale recovery: evict, reconnect, retry once.
 	if !result.Success && !isNew && isConnectionError(result.Error) {
 		log.Warn("stale connection detected, retrying with new connection",
 			"original_error", result.Error,
@@ -209,7 +195,6 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Re-acquire a pool slot, store the new connection, and retry.
 		if _, _, acquireErr := h.pool.Acquire(key); acquireErr != nil {
 			retryConn.Close()
 			log.Error("retry pool acquire failed", "error", acquireErr)
@@ -267,8 +252,6 @@ func (h *Handler) Execute(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// connect dials the switch within the connect timeout, logging the attempt
-// and, on failure, the error under failMsg.
 func (h *Handler) connect(ctx context.Context, log *slog.Logger, params ssh.ConnectParams, failMsg string) (ssh.Session, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.connectTimeout)
 	defer cancel()
@@ -283,14 +266,10 @@ func (h *Handler) connect(ctx context.Context, log *slog.Logger, params ssh.Conn
 	return conn, nil
 }
 
-// NotFound handles unmatched routes.
 func (h *Handler) NotFound(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusNotFound, map[string]string{"error": "Not found"})
 }
 
-// isConnectionError returns true if the error string indicates a broken
-// or stale SSH connection (as opposed to a command timeout or expect
-// pattern mismatch). These errors warrant a retry with a fresh connection.
 func isConnectionError(errMsg string) bool {
 	connectionPatterns := []string{
 		"connection closed",

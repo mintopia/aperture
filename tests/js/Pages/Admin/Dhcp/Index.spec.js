@@ -200,7 +200,6 @@ describe('Dhcp/Index', () => {
         expect(items).toEqual([
             { label: 'Ranges', value: 2 },
             { label: 'Used', value: 45, mono: true },
-            // Totals go through the shared pool-total formatter
             { label: 'Total', value: '101', mono: true },
             { label: 'Utilisation', value: '41.6%' },
         ]);

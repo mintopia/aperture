@@ -51,7 +51,6 @@ class UserPasswordTest extends TestCase
         $user->save();
         $user->refresh();
 
-        // The 'hashed' cast should auto-hash the password
         $this->assertTrue(Hash::check('plaintext_password', $user->password));
         $this->assertNotEquals('plaintext_password', $user->password);
     }

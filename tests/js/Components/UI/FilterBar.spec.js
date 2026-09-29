@@ -203,7 +203,6 @@ describe('FilterBar', () => {
         expect(wrapper.find('[data-testid="filter-pill-status"]').text()).toContain('Status: Enabled');
     });
 
-    // --- Accessibility: aria-label on remove buttons (WCAG 4.1.2) ---
     it('filter pill remove button has aria-label matching "Remove {label} filter"', () => {
         const wrapper = mountFilterBar({
             filterValues: { type: 'cisco' },

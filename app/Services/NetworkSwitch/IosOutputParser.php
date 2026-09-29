@@ -718,10 +718,6 @@ class IosOutputParser
     }
 
     /**
-     * Compute effective DHCP ranges by subtracting excluded addresses from each pool's usable range.
-     *
-     * Takes the output of parseDhcpPoolConfig() and returns the resulting address ranges per pool.
-     *
      * @param  array{pools: array<int, array{name: string, network: string, mask: string, gateway: string}>, excluded: array<int, array{start: string, end: string}>}  $poolConfig
      * @return array<int, array{name: string, subnet: string, range_from: string, range_to: string, total_addresses: string, gateway: string}>
      */

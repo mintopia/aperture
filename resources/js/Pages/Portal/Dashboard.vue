@@ -43,7 +43,6 @@ useIpv6Detection(props.ipv6Detection?.endpoint, {
 
 <template>
     <div>
-        <!-- Cover image -->
         <div
             v-if="coverImage"
             data-testid="dashboard-cover"
@@ -51,7 +50,6 @@ useIpv6Detection(props.ipv6Detection?.endpoint, {
             :style="coverStyle"
         />
 
-        <!-- Welcome heading -->
         <div class="mb-3">
             <h1
                 data-testid="page-title"
@@ -61,12 +59,10 @@ useIpv6Detection(props.ipv6Detection?.endpoint, {
             </h1>
         </div>
 
-        <!-- DNS Warning (top of page, outside grid) -->
         <div v-if="dnsDetection" class="mb-4">
             <DnsWarningBlock :check-url="dnsDetection.checkUrl" :warning-message="dnsDetection.warningMessage" />
         </div>
 
-        <!-- Block grid -->
         <BlockGrid :blocks="blocks" :block-context="liveContext" />
     </div>
 </template>

@@ -88,7 +88,6 @@ describe('Ips/Index', () => {
 
     it('renders FilterBar component', () => {
         const wrapper = mountComponent();
-        // Index.vue passes data-testid="ip-filter-bar" which overrides FilterBar's internal root testid
         expect(wrapper.find('[data-testid="ip-filter-bar"]').exists()).toBe(true);
     });
 

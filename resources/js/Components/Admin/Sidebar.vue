@@ -130,7 +130,6 @@ defineExpose({ drawerOpen });
 </script>
 
 <template>
-    <!-- Desktop: 220px vertical sidebar -->
     <aside
         v-if="isDesktop"
         data-testid="admin-sidebar"
@@ -194,7 +193,6 @@ defineExpose({ drawerOpen });
         </nav>
     </aside>
 
-    <!-- Mobile/tablet: slide-out drawer -->
     <template v-else>
         <Teleport to="body">
             <Transition name="drawer">

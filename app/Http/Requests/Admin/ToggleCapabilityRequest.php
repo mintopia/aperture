@@ -11,17 +11,12 @@ use Illuminate\Validation\Rule;
 
 class ToggleCapabilityRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorised to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, ValidationRule|array<int, mixed>|string>
      */
     public function rules(): array

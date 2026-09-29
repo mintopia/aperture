@@ -24,8 +24,6 @@ use Laragear\WebAuthn\WebAuthnAuthentication;
 use Laragear\WebAuthn\WebAuthnData;
 
 /**
- * App\Models\User
- *
  * @property int $id
  * @property string $nickname
  * @property string $email
@@ -125,9 +123,6 @@ class User extends Authenticatable implements WebAuthnAuthenticatableContract
         ];
     }
 
-    /**
-     * Returns displayable data to be used to create WebAuthn Credentials.
-     */
     public function webAuthnData(): WebAuthnData
     {
         return WebAuthnData::make($this->email, $this->nickname);

@@ -49,9 +49,6 @@ class ContentControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->get('/admin/content/editor');
 
-        // The dedicated /content/editor GET route has been removed.
-        // The URI now resolves to the resource {content} pattern with 'show' excluded,
-        // so Laravel returns 405 Method Not Allowed rather than 404.
         $this->assertContains($response->getStatusCode(), [404, 405]);
     }
 

@@ -18,8 +18,6 @@ class VyOsClient
     }
 
     /**
-     * Retrieve configuration data from VyOS.
-     *
      * @param  list<string>  $path
      * @return array<string, mixed>
      */
@@ -29,8 +27,6 @@ class VyOsClient
     }
 
     /**
-     * Run an operational show command expecting structured JSON data.
-     *
      * @param  list<string>  $path
      * @return array<string, mixed>
      */
@@ -40,8 +36,6 @@ class VyOsClient
     }
 
     /**
-     * Run an operational show command expecting text output.
-     *
      * @param  list<string>  $path
      */
     public function showText(array $path): string

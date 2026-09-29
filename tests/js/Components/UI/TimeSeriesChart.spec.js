@@ -366,8 +366,6 @@ describe('TimeSeriesChart', () => {
         await nextTick();
         await nextTick();
 
-        // With empty getPropertyValue, fallback color is used as-is (not rgba)
-        // The important thing is it doesn't throw
         expect(lastChartGridX).toBeDefined();
     });
 
@@ -629,7 +627,6 @@ describe('TimeSeriesChart', () => {
             expect(Chart).toHaveBeenCalled();
             const [, config] = Chart.mock.calls[Chart.mock.calls.length - 1];
             const dataset = config.data.datasets[0];
-            // borderColor should be the resolved hex, not the raw var() string
             expect(dataset.borderColor).toBe('#22c55e');
             expect(dataset.backgroundColor).toBe('oklch(from #22c55e l c h / 0.12)');
             expect(dataset.backgroundColor).not.toContain('var(');

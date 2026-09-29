@@ -86,8 +86,6 @@ class NetworkRangeServiceTest extends TestCase
     #[Test]
     public function it_defaults_to_allow_all_when_no_settings_exist(): void
     {
-        // No Setting::set calls — settings don't exist in DB
-
         $this->assertTrue($this->service->isManaged('10.0.0.1'));
         $this->assertTrue($this->service->isManaged('192.168.1.1'));
         $this->assertTrue($this->service->isManaged('8.8.8.8'));
@@ -127,7 +125,6 @@ class NetworkRangeServiceTest extends TestCase
 
         $this->assertTrue($this->service->isManaged('10.0.0.1'));
 
-        // Change setting — same instance should use cached value
         Setting::set('network.managed_ranges_v4', 'Managed IPv4 Ranges', json_encode([]));
 
         $this->assertTrue($this->service->isManaged('10.0.0.2'));

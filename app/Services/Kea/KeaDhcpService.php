@@ -25,15 +25,8 @@ class KeaDhcpService implements DhcpInterface
 
     private const LEASE_STATE_DECLINED = 1;
 
-    /**
-     * Kea's documented keyword for the first `lease{4,6}-get-page` request.
-     */
     private const FIRST_PAGE_CURSOR = 'start';
 
-    /**
-     * Safety cap on pages fetched per sync, in case Kea's `from` cursor
-     * never advances (misbehaving API) — prevents an infinite loop.
-     */
     private const MAX_PAGES = 10_000;
 
     public function __construct(

@@ -13,7 +13,6 @@ class ThemeServiceTest extends TestCase
 
     public function test_returns_default_theme_values(): void
     {
-        // Remove migration-seeded settings to test defaults
         Setting::whereIn('code', ['theme.name', 'theme.mode'])->delete();
 
         $service = resolve(ThemeService::class);
@@ -67,7 +66,6 @@ class ThemeServiceTest extends TestCase
 
     public function test_falls_back_to_config_when_no_db_settings(): void
     {
-        // Remove migration-seeded settings
         Setting::whereIn('code', ['theme.name', 'theme.mode'])->delete();
 
         config(['aperture.theme.mode' => 'light']);

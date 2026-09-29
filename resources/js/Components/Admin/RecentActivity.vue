@@ -7,10 +7,6 @@ defineProps({
     events: { type: Array, default: () => [] },
 });
 
-// Severity dot colors — must achieve 3:1 non-text contrast (WCAG 1.4.11) against
-// both dark bg (oklch 13%) and light bg (oklch 97%).
-// --color-danger dark (L=65%) only reaches 2.40:1 on dark bg; boosted to L=72%.
-// --color-text-muted (L=55%) is used for info and achieves >4:1 in both themes.
 const SEVERITY_COLOR = {
     info: 'var(--color-text-muted)',
     warning: 'var(--color-warning)',
@@ -35,7 +31,6 @@ function severityColor(severity) {
             </Link>
         </div>
 
-        <!-- tabindex="0" makes the clipped scroll region reachable by keyboard (WCAG 2.1.1) -->
         <div
             data-testid="recent-activity-scroll"
             class="max-h-[400px] overflow-y-auto"

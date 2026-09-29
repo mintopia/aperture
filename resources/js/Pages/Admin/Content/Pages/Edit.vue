@@ -38,7 +38,6 @@ function confirmDelete() {
 
 <template>
     <div data-testid="page-edit">
-        <!-- Page Header -->
         <header class="mb-6 flex items-start justify-between gap-6">
             <div>
                 <h1
@@ -52,7 +51,6 @@ function confirmDelete() {
         </header>
 
         <form class="space-y-6" @submit.prevent="submit">
-            <!-- Title + Slug (side by side) -->
             <div class="grid gap-4 md:grid-cols-2">
                 <FormField label="Title" name="title" :required="true" :error="form.errors.title">
                     <input
@@ -85,7 +83,6 @@ function confirmDelete() {
                 </FormField>
             </div>
 
-            <!-- Content -->
             <div>
                 <MarkdownEditor v-model="form.content" placeholder="Write your page content here...">
                     <template #label>
@@ -101,7 +98,6 @@ function confirmDelete() {
                 </p>
             </div>
 
-            <!-- Actions -->
             <div class="flex items-center gap-3 pt-1">
                 <button
                     type="submit"
@@ -131,7 +127,6 @@ function confirmDelete() {
             </div>
         </form>
 
-        <!-- Delete confirmation modal -->
         <ConfirmModal
             :show="showDeleteModal"
             title="Delete Page"

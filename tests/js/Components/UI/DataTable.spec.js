@@ -428,7 +428,6 @@ describe('DataTable', () => {
             expect.soft(sortButton.find('span').classes()).toContain('ml-0.5');
         });
 
-        // --- Accessibility: focus indicator (WCAG 2.4.7) ---
         it('sort button has a focus-visible ring, not a bare outline-none', () => {
             const wrapper = mount(DataTable, {
                 props: { columns: sortableColumns, rows },

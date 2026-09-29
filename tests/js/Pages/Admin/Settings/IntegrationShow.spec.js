@@ -253,7 +253,6 @@ describe('IntegrationShow.vue', () => {
         const saveButton = wrapper.find('[data-testid="action-save"]');
 
         expect(saveButton.exists()).toBe(true);
-        // The save button should not be a descendant of the form
         expect(form.find('[data-testid="action-save"]').exists()).toBe(false);
     });
 
@@ -302,22 +301,17 @@ describe('IntegrationShow.vue', () => {
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
 
-            // details element exists
             const details = wrapper.find('[data-testid="test-output-details"]');
             expect(details.exists()).toBe(true);
 
-            // Content is always in DOM when output is present
             expect(wrapper.find('[data-testid="test-output-content"]').exists()).toBe(true);
 
-            // Initially closed (no open attribute)
             expect(details.attributes('open')).toBeUndefined();
 
-            // Manually toggle open (native details behaviour)
             await details.element.setAttribute('open', '');
             await wrapper.vm.$nextTick();
             expect(details.attributes('open')).toBe('');
 
-            // Manually toggle closed
             await details.element.removeAttribute('open');
             await wrapper.vm.$nextTick();
             expect(details.attributes('open')).toBeUndefined();
@@ -377,12 +371,10 @@ describe('IntegrationShow.vue', () => {
 
             const wrapper = mountPage();
 
-            // First test
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
             expect(wrapper.find('[data-testid="test-output-details"]').exists()).toBe(true);
 
-            // Second test — details element re-rendered for new result
             await wrapper.find('[data-testid="action-test-connection"]').trigger('click');
             await flushPromises();
             expect(wrapper.find('[data-testid="test-output-details"]').exists()).toBe(true);
@@ -404,7 +396,6 @@ describe('IntegrationShow.vue', () => {
 
             const panel = wrapper.find('[data-testid="test-result-panel"]');
             expect(panel.exists()).toBe(true);
-            // Panel should carry a success-related class (bg or border)
             const classes = panel.classes().join(' ');
             expect(classes).toMatch(/success/);
         });
@@ -519,15 +510,12 @@ describe('IntegrationShow.vue', () => {
         it('toggles log output visibility when clicking Show/Hide Output', async () => {
             const wrapper = mountPage();
 
-            // Initially hidden
             expect(wrapper.find('[data-testid="log-output-content-0"]').exists()).toBe(false);
 
-            // Click to show
             await wrapper.find('[data-testid="log-output-toggle-0"]').trigger('click');
             expect(wrapper.find('[data-testid="log-output-content-0"]').exists()).toBe(true);
             expect(wrapper.find('[data-testid="log-output-toggle-0"]').text()).toBe('Hide Output');
 
-            // Click to hide
             await wrapper.find('[data-testid="log-output-toggle-0"]').trigger('click');
             expect(wrapper.find('[data-testid="log-output-content-0"]').exists()).toBe(false);
             expect(wrapper.find('[data-testid="log-output-toggle-0"]').text()).toBe('Show Output');
@@ -662,7 +650,6 @@ describe('IntegrationShow.vue', () => {
 
             const wrapper = mountPage({ service: remoteService });
 
-            // Wait for onMounted fetch to complete
             await vi.waitFor(() => {
                 expect(wrapper.find('[data-testid="field-select-noblock_group_id"]').exists()).toBe(true);
             });
@@ -688,7 +675,6 @@ describe('IntegrationShow.vue', () => {
 
             mountPage({ service: remoteService });
 
-            // Should have been called for the remote select field
             await vi.waitFor(() => {
                 const remoteCalls = fetch.mock.calls.filter(
                     ([url]) => url === '/admin/settings/integrations/pihole/groups',
@@ -711,7 +697,6 @@ describe('IntegrationShow.vue', () => {
 
             await vi.waitFor(() => {
                 const options = wrapper.findAll('[data-testid="field-select-noblock_group_id"] option');
-                // 1 placeholder + 2 group options
                 expect(options.length).toBe(3);
             });
         });
@@ -748,7 +733,6 @@ describe('IntegrationShow.vue', () => {
 
             const wrapper = mountPage({ service: remoteService });
 
-            // Wait for initial fetch to complete and DOM to update
             await flushPromises();
             await wrapper.vm.$nextTick();
 
@@ -757,7 +741,6 @@ describe('IntegrationShow.vue', () => {
             );
             expect(remoteCalls1.length).toBe(1);
 
-            // Click refresh button
             await wrapper.find('[data-testid="field-refresh-noblock_group_id"]').trigger('click');
             await flushPromises();
             await wrapper.vm.$nextTick();

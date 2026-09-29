@@ -15,7 +15,6 @@ const { mode, toggleMode } = useTheme();
         class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
         @click="toggleMode"
     >
-        <!-- Sun icon (shown in dark mode) -->
         <svg
             v-if="mode === 'dark'"
             xmlns="http://www.w3.org/2000/svg"
@@ -37,7 +36,6 @@ const { mode, toggleMode } = useTheme();
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
         </svg>
-        <!-- Moon icon (shown in light mode) -->
         <svg
             v-else
             xmlns="http://www.w3.org/2000/svg"

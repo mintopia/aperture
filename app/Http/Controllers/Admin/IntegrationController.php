@@ -47,8 +47,6 @@ class IntegrationController extends Controller
     }
 
     /**
-     * Resolve a known integration by service slug, or throw a 404.
-     *
      * @return array{name: string, description?: string, capabilities: list<string>, fields?: array<string, mixed>, validation?: array<string, string>}
      */
     private function resolveIntegration(string $service): array
@@ -63,8 +61,6 @@ class IntegrationController extends Controller
     }
 
     /**
-     * Serialize a collection of ConnectionTestLog models to an array for API/Inertia responses.
-     *
      * @param  Collection<int, ConnectionTestLog>  $logs
      * @return list<array{id: int, success: bool, message: ?string, request_method: ?string, request_url: ?string, response_status: ?int, response_data: ?string, tested_at: ?string}>
      */
@@ -165,12 +161,6 @@ class IntegrationController extends Controller
         return back()->with('success', 'Integration settings updated.');
     }
 
-    /**
-     * Cast a config value to the appropriate PHP type based on its validation rule.
-     *
-     * HTML form inputs always submit strings; this ensures values like "integer"
-     * fields are stored with their correct PHP type.
-     */
     private function castConfigValue(mixed $value, string $rule): mixed
     {
         if ($value === null || $value === '') {

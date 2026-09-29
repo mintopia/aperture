@@ -60,10 +60,8 @@ describe('BandwidthBlock', () => {
             global: globalConfig,
         });
 
-        // Initial fetch
         expect(global.fetch).toHaveBeenCalledTimes(1);
 
-        // Advance 30 seconds
         vi.advanceTimersByTime(30000);
         expect(global.fetch).toHaveBeenCalledTimes(2);
     });

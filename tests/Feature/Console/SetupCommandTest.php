@@ -51,7 +51,6 @@ class SetupCommandTest extends TestCase
 
     public function test_setup_uses_admin_as_nickname_when_email_has_no_local_part(): void
     {
-        // Simulate an edge case where Str::before returns empty string for '@...' format
         $this->artisan('aperture:setup', [
             '--admin-email' => '@example.com',
             '--admin-password' => 'secret123',
@@ -89,7 +88,6 @@ class SetupCommandTest extends TestCase
         $this->assertInstanceOf(PendingCommand::class, $result);
         $result->assertSuccessful();
 
-        // Should not output "Granted admin role" since user is already admin
         $this->assertTrue($user->hasRole('admin'));
     }
 
@@ -105,7 +103,6 @@ class SetupCommandTest extends TestCase
         $result = $this->artisan('aperture:setup', [
             '--borealis-endpoint' => 'https://auth.example.com',
             '--borealis-client-id' => 'client-id',
-            // missing --borealis-client-secret
         ]);
         $this->assertInstanceOf(PendingCommand::class, $result);
         $result->expectsOutputToContain('Provide --borealis-endpoint, --borealis-client-id, and --borealis-client-secret together.');

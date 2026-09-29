@@ -46,10 +46,6 @@ class CapabilityAssignment extends Model
         return ['capability' => Capability::class];
     }
 
-    /**
-     * Assign an integration as the active provider for a capability.
-     * If another integration was assigned, it is replaced.
-     */
     public static function assign(Capability $capability, string $integration): self
     {
         return static::updateOrCreate(
@@ -58,25 +54,16 @@ class CapabilityAssignment extends Model
         );
     }
 
-    /**
-     * Remove the active provider for a capability.
-     */
     public static function unassign(Capability $capability): void
     {
         static::where('capability', $capability)->delete();
     }
 
-    /**
-     * Get the integration currently assigned as the active provider for a capability.
-     */
     public static function activeIntegration(Capability $capability): ?string
     {
         return static::where('capability', $capability)->first()?->integration;
     }
 
-    /**
-     * Check if a given integration is the active provider for a capability.
-     */
     public static function isActiveProvider(string $integration, Capability $capability): bool
     {
         return static::where('capability', $capability)
@@ -85,8 +72,6 @@ class CapabilityAssignment extends Model
     }
 
     /**
-     * Get all capabilities assigned to an integration.
-     *
      * @return Collection<int, Capability>
      */
     public static function getForIntegration(string $integration): Collection

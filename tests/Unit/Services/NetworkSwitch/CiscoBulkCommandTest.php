@@ -16,10 +16,6 @@ class CiscoBulkCommandTest extends TestCase
 {
     use CreatesIosOutputParser;
 
-    // -------------------------------------------------------------------------
-    // IosOutputParser: splitBulkShowInterface
-    // -------------------------------------------------------------------------
-
     public function test_split_bulk_show_interface_separates_by_interface(): void
     {
         $output = <<<'OUTPUT'
@@ -75,10 +71,6 @@ OUTPUT;
         $this->assertStringContainsString('12345 packets input', $result['GigabitEthernet0/1']);
         $this->assertStringContainsString('67890 packets output', $result['GigabitEthernet0/1']);
     }
-
-    // -------------------------------------------------------------------------
-    // IosOutputParser: splitBulkRunningConfig
-    // -------------------------------------------------------------------------
 
     public function test_split_bulk_running_config_separates_by_interface(): void
     {
@@ -153,14 +145,6 @@ OUTPUT;
         $this->assertArrayHasKey('GigabitEthernet1/0/48', $result);
     }
 
-    // -------------------------------------------------------------------------
-    // CiscoSwitchAdapter: SupportsBulkOperations interface
-    // -------------------------------------------------------------------------
-
-    // -------------------------------------------------------------------------
-    // IosOutputParser: abbreviateInterfaceName
-    // -------------------------------------------------------------------------
-
     public function test_abbreviate_interface_name_converts_full_names_to_short(): void
     {
         $this->assertSame('Gi1/0/1', $this->parser->abbreviateInterfaceName('GigabitEthernet1/0/1'));
@@ -184,10 +168,6 @@ OUTPUT;
         $this->assertSame('Mgmt0', $this->parser->abbreviateInterfaceName('Mgmt0'));
         $this->assertSame('nve1', $this->parser->abbreviateInterfaceName('nve1'));
     }
-
-    // -------------------------------------------------------------------------
-    // CiscoSwitchAdapter: SupportsBulkOperations interface
-    // -------------------------------------------------------------------------
 
     public function test_cisco_switch_adapter_implements_supports_bulk_operations(): void
     {
@@ -219,14 +199,12 @@ OUTPUT;
         $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
         $result = $adapter->getAllPortRunningConfigs();
 
-        // Full names and abbreviated names are both indexed
         $this->assertArrayHasKey('GigabitEthernet0/1', $result);
         $this->assertArrayHasKey('GigabitEthernet0/2', $result);
         $this->assertArrayHasKey('Gi0/1', $result);
         $this->assertArrayHasKey('Gi0/2', $result);
         $this->assertStringContainsString('switchport access vlan 100', $result['GigabitEthernet0/1']);
         $this->assertStringContainsString('switchport mode trunk', $result['GigabitEthernet0/2']);
-        // Abbreviated keys contain the same data
         $this->assertSame($result['GigabitEthernet0/1'], $result['Gi0/1']);
         $this->assertSame($result['GigabitEthernet0/2'], $result['Gi0/2']);
     }
@@ -250,7 +228,6 @@ OUTPUT;
         $adapter = new CiscoSwitchAdapter($transport, new IosOutputParser);
         $result = $adapter->getAllPortInterfaceOutputs();
 
-        // Full names and abbreviated names are both indexed
         $this->assertArrayHasKey('GigabitEthernet0/1', $result);
         $this->assertArrayHasKey('GigabitEthernet0/2', $result);
         $this->assertArrayHasKey('Gi0/1', $result);

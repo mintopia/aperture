@@ -30,14 +30,12 @@ class DeviceFlowUserServiceLinkEmailsTest extends TestCase
     {
         Config::set('auth.linkemails', false);
 
-        // Create existing user with email but no external_id
         $existing = User::factory()->create([
             'email' => 'shared@example.com',
             'external_id' => null,
             'nickname' => 'OldUser',
         ]);
 
-        // New user info with different external_id but same email
         $userInfo = new UserInfo(
             id: 'ext-new-123',
             nickname: 'NewUser',
@@ -51,7 +49,6 @@ class DeviceFlowUserServiceLinkEmailsTest extends TestCase
 
         $user = $this->service->findOrCreateFromDeviceFlow($userInfo, $authResult);
 
-        // Should create a NEW user, not link to existing one
         $this->assertNotEquals($existing->id, $user->id, 'Should create new user when linkemails=false');
         $this->assertSame('ext-new-123', $user->external_id);
         $this->assertSame('NewUser', $user->nickname);
@@ -81,7 +78,6 @@ class DeviceFlowUserServiceLinkEmailsTest extends TestCase
 
         $user = $this->service->findOrCreateFromDeviceFlow($userInfo, $authResult);
 
-        // Should link to existing user
         $this->assertSame($existing->id, $user->id, 'Should link to existing user when linkemails=true');
         $this->assertSame('ext-new-456', $user->external_id);
         $this->assertSame(1, User::count(), 'Should still have 1 user');
@@ -89,8 +85,6 @@ class DeviceFlowUserServiceLinkEmailsTest extends TestCase
 
     public function test_links_by_email_when_linkemails_is_not_set_default_true(): void
     {
-        // Default behavior when config is not set should be true (backward compatible)
-        // Don't set config at all - let it use default from config/auth.php
 
         $existing = User::factory()->create([
             'email' => 'shared@example.com',
@@ -136,7 +130,6 @@ class DeviceFlowUserServiceLinkEmailsTest extends TestCase
 
         $user = $this->service->findOrCreateFromDeviceFlow($userInfo, $authResult);
 
-        // Should always link by external_id (takes precedence)
         $this->assertSame($existing->id, $user->id);
         $this->assertSame('NewNick', $user->nickname);
         $this->assertSame('same@example.com', $user->email);

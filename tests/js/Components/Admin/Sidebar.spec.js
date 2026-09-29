@@ -203,7 +203,6 @@ describe('Sidebar.vue', () => {
 
     it('applies secondary text color to non-active items', async () => {
         const wrapper = await mountSidebar();
-        // Find the first Dashboard link (nav-dashboard in MANAGEMENT group)
         const inactiveItem = wrapper.findAll('[data-testid="nav-dashboard"]')[0];
 
         expect(inactiveItem.classes()).toContain('text-[var(--color-text-secondary)]');

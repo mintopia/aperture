@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// mockCloser tracks whether Close was called.
 type mockCloser struct {
 	closed bool
 }
@@ -20,12 +19,11 @@ func (m *mockCloser) Close() error {
 	return nil
 }
 
-// mockKeepaliveConn implements both io.Closer and KeepaliveChecker for testing.
 type mockKeepaliveConn struct {
 	closed         bool
 	keepaliveCount atomic.Int32
-	failAfter      int32 // if > 0, fail after this many keepalives
-	shouldFail     bool  // if true, always fail
+	failAfter      int32
+	shouldFail     bool
 }
 
 func (m *mockKeepaliveConn) Close() error {
@@ -71,13 +69,11 @@ func TestPool_AcquireNew(t *testing.T) {
 func TestPool_AcquireExisting(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	// First acquire — creates entry
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 	conn := &mockCloser{}
 	p.SetConnection(testKey("switch1.local", DefaultChannel), conn)
 	p.Release(testKey("switch1.local", DefaultChannel))
 
-	// Second acquire — reuses entry
 	entry, isNew, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -96,10 +92,8 @@ func TestPool_AcquireExisting(t *testing.T) {
 func TestPool_AcquireLocked(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	// First acquire — locks the entry
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 
-	// Second acquire — should fail with ErrHostLocked
 	_, _, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != ErrHostLocked {
 		t.Fatalf("expected ErrHostLocked, got %v", err)
@@ -112,7 +106,6 @@ func TestPool_Release(t *testing.T) {
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 	p.Release(testKey("switch1.local", DefaultChannel))
 
-	// Should be able to acquire again
 	_, _, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error after release: %v", err)
@@ -121,7 +114,6 @@ func TestPool_Release(t *testing.T) {
 
 func TestPool_ReleaseNonExistent(t *testing.T) {
 	p := New(10*time.Minute, 0)
-	// Should not panic
 	p.Release(testKey("nonexistent", DefaultChannel))
 }
 
@@ -139,7 +131,6 @@ func TestPool_Remove(t *testing.T) {
 		t.Error("expected connection to be closed on remove")
 	}
 
-	// Should create a new entry now
 	_, isNew, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -151,12 +142,10 @@ func TestPool_Remove(t *testing.T) {
 
 func TestPool_RemoveNonExistent(t *testing.T) {
 	p := New(10*time.Minute, 0)
-	// Should not panic
 	p.Remove(testKey("nonexistent", DefaultChannel))
 }
 
 func TestPool_SweepIdle(t *testing.T) {
-	// Use a very short idle timeout for testing.
 	p := New(50*time.Millisecond, 0)
 
 	_, _, _ = p.Acquire(testKey("idle-switch", DefaultChannel))
@@ -169,10 +158,8 @@ func TestPool_SweepIdle(t *testing.T) {
 	p.SetConnection(testKey("active-switch", DefaultChannel), activeConn)
 	p.Release(testKey("active-switch", DefaultChannel))
 
-	// Wait for idle timeout to expire
 	time.Sleep(100 * time.Millisecond)
 
-	// Touch the active switch to keep it alive
 	p.mu.Lock()
 	key := testKey("active-switch", DefaultChannel)
 	if entry, ok := p.entries[key]; ok {
@@ -198,7 +185,6 @@ func TestPool_SweepSkipsLocked(t *testing.T) {
 	_, _, _ = p.Acquire(testKey("locked-switch", DefaultChannel))
 	conn := &mockCloser{}
 	p.SetConnection(testKey("locked-switch", DefaultChannel), conn)
-	// Don't release — entry stays locked
 
 	time.Sleep(10 * time.Millisecond)
 
@@ -292,7 +278,6 @@ func TestPool_ConcurrentAccess(t *testing.T) {
 				return
 			}
 
-			// Simulate work
 			time.Sleep(1 * time.Millisecond)
 			p.Release(testKey("shared-switch", DefaultChannel))
 		}()
@@ -300,7 +285,6 @@ func TestPool_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	// At least some goroutines should have been locked out
 	if lockedCount == 0 {
 		t.Log("Note: no lock contention detected (may be OK with fast execution)")
 	}
@@ -309,7 +293,6 @@ func TestPool_ConcurrentAccess(t *testing.T) {
 func TestPool_MultipleHostnames(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
-	// Acquire different hostnames concurrently — should not interfere
 	hosts := []string{"switch1", "switch2", "switch3", "switch4", "switch5"}
 	var wg sync.WaitGroup
 	wg.Add(len(hosts))
@@ -340,8 +323,6 @@ func TestPool_MultipleHostnames(t *testing.T) {
 		t.Errorf("expected %d connections, got %d", len(hosts), len(infos))
 	}
 }
-
-// --- Keepalive tests ---
 
 func TestPool_KeepaliveStartsOnSetConnection(t *testing.T) {
 	p := New(10*time.Minute, 50*time.Millisecond)
@@ -510,8 +491,6 @@ func TestPool_KeepaliveDoesNotRunOnNonKeepaliveConn(t *testing.T) {
 
 	p.Remove(testKey("switch1.local", DefaultChannel))
 }
-
-// --- Channel-specific tests ---
 
 func TestNewKey_DiffersByEveryField(t *testing.T) {
 	base := NewKey("sw", 22, "admin", "commands", "pw", "", "")
@@ -768,24 +747,19 @@ func TestPool_EntryHasChannel(t *testing.T) {
 	}
 }
 
-// --- Remove while locked ---
-
 func TestPool_RemoveWhileLocked(t *testing.T) {
 	p := New(10*time.Minute, 0)
 
 	conn := &mockCloser{}
 	_, _, _ = p.Acquire(testKey("switch1", DefaultChannel))
 	p.SetConnection(testKey("switch1", DefaultChannel), conn)
-	// Entry is still locked (not released).
 
-	// Evict should close and remove the entry even while locked.
 	p.Remove(testKey("switch1", DefaultChannel))
 
 	if !conn.closed {
 		t.Error("expected connection to be closed on evict")
 	}
 
-	// Should create a new entry now.
 	entry, isNew, err := p.Acquire(testKey("switch1", DefaultChannel))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

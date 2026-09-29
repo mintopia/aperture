@@ -15,7 +15,6 @@ class IpAddressObserver implements ShouldHandleEventsAfterCommit
     public function updated(IpAddress $ip): void
     {
         if ($ip->wasChanged('internet_enabled')) {
-            // null (no explicit decision) is enforced as blocked — deny-by-default.
             dispatch(new SyncFirewallJob($ip, FirewallAction::Internet));
         }
 

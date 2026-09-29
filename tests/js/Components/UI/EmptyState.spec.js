@@ -29,7 +29,7 @@ describe('EmptyState', () => {
             props: { title: 'No items' },
         });
         const paragraphs = wrapper.findAll('p');
-        expect(paragraphs).toHaveLength(1); // only the title
+        expect(paragraphs).toHaveLength(1);
     });
 
     it('renders icon slot content', () => {

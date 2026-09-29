@@ -139,9 +139,7 @@ describe('Switches/Edit', () => {
         });
 
         it('shows loading state during delete', async () => {
-            vi.mocked(router.delete).mockImplementation(() => {
-                // Don't call onFinish - simulating an in-progress request
-            });
+            vi.mocked(router.delete).mockImplementation(() => {});
 
             const wrapper = mountEdit();
 

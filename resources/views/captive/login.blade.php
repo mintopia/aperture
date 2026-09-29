@@ -22,7 +22,6 @@
                 </button>
             </div>
         @else
-            {{-- Logo mark --}}
             <div class="captive-reveal">
             @if($hasSiteLogo ?? false)
                 <img src="{{ $siteLogoUrl }}" alt="{{ $siteTitle }}" class="mx-auto mb-5 h-24 w-24 rounded-xl" data-testid="captive-logo-image">
@@ -38,7 +37,6 @@
                 <p class="mt-1.5 text-sm text-[var(--color-text-secondary)]">Scan the QR code or enter the code below</p>
             </div>
 
-            {{-- QR Code with accent border and glow --}}
             <div
                 class="captive-reveal qr-glow mx-auto my-7 h-[168px] w-[168px] rounded-[14px] border-2 border-[var(--color-primary)] p-1.5"
                 data-testid="captive-qr"
@@ -49,12 +47,10 @@
                 </div>
             </div>
 
-            {{-- Verification URL --}}
             <p class="captive-reveal text-xs text-[var(--color-text-muted)]">
                 Visit <a href="{{ $verificationUri }}" target="_blank" class="text-[var(--color-primary)] underline decoration-[var(--color-primary)]/30 underline-offset-2 hover:decoration-[var(--color-primary)]">{{ $verificationUri }}</a>
             </p>
 
-            {{-- User code --}}
             <div class="captive-reveal my-5">
                 <p class="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-muted)]">Enter this code</p>
                 <div
@@ -67,7 +63,6 @@
                 </div>
             </div>
 
-            {{-- Instructions --}}
             <div class="captive-reveal mt-7 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] p-4 px-5 text-left" data-testid="captive-instructions">
                 <p class="mb-2.5 text-[11px] font-bold uppercase tracking-[0.04em] text-[var(--color-text-muted)]">How to connect</p>
                 <ol class="dispatch-steps flex flex-col gap-2 text-[13px] text-[var(--color-text-secondary)]">
@@ -86,7 +81,6 @@
                 </ol>
             </div>
 
-            {{-- Status indicators --}}
             <div id="status" class="captive-reveal mt-6">
                 <div id="status-pending" data-testid="captive-status-pending" class="flex items-center justify-center gap-2 text-[13px] text-[var(--color-text-secondary)]">
                     <span class="inline-block h-4 w-4 rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin"></span>
@@ -132,7 +126,6 @@
             var expiresAt = Date.now() + (expiresIn * 1000);
             var polling = true;
 
-            // Typewriter reveal for device code
             var codeEl = document.getElementById('user-code');
             if (codeEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 var codeText = codeEl.textContent.trim();

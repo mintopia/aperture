@@ -64,8 +64,6 @@ async function fetchBandwidth() {
         if (response.ok) {
             bandwidthData.value = await response.json();
         }
-    } catch (_e) {
-        // Silently fail — data will refresh next interval
     } finally {
         loading.value = false;
     }

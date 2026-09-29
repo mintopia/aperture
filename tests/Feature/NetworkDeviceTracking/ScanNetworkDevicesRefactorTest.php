@@ -101,7 +101,6 @@ class ScanNetworkDevicesRefactorTest extends TestCase
         app()->call([new ScanNetworkDevices, 'handle']);
 
         $this->assertDatabaseMissing('ip_addresses', ['address' => '192.168.1.1']);
-        // MAC should still be stored regardless
         $this->assertDatabaseHas('mac_addresses', ['mac_address' => 'AA:BB:CC:DD:EE:01']);
     }
 

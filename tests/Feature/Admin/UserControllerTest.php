@@ -185,7 +185,6 @@ class UserControllerTest extends TestCase
             ->where('filters.status', 'blocked')
         );
 
-        // Active returns exactly the non-blocked users (which excludes the blocked one).
         $expectedActive = User::query()->where('internet_blocked', false)->count();
         $activeResponse = $this->actingAs($admin)->get('/admin/users?status=active');
         $activeResponse->assertOk();

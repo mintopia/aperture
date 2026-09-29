@@ -76,26 +76,22 @@ class PrepareE2eCommandTest extends TestCase
     {
         $email = 'e2e-rate@test.local';
 
-        // Simulate a locked out state first
         RateLimiter::hit('login-attempt:'.strtolower($email).'|127.0.0.1', 300);
         $this->assertGreaterThan(0, RateLimiter::attempts('login-attempt:'.strtolower($email).'|127.0.0.1'));
 
         $this->artisan('aperture:e2e:prepare', ['--email' => $email])
             ->assertSuccessful();
 
-        // Rate limiter should have been cleared
         $this->assertEquals(0, RateLimiter::attempts('login-attempt:'.strtolower($email).'|127.0.0.1'));
     }
 
     public function test_prepare_e2e_is_idempotent_for_existing_user(): void
     {
-        // Create the user first
         $this->artisan('aperture:e2e:prepare', [
             '--email' => 'e2e@test.local',
             '--nickname' => 'original-nick',
         ])->assertSuccessful();
 
-        // Run again — should update without error and only one user exists
         $this->artisan('aperture:e2e:prepare', [
             '--email' => 'e2e@test.local',
             '--nickname' => 'updated-nick',
@@ -107,8 +103,6 @@ class PrepareE2eCommandTest extends TestCase
 
     public function test_prepare_e2e_skips_redis_verification_when_not_using_redis(): void
     {
-        // The test environment uses 'array' for cache/session, not redis.
-        // So --verify-redis should warn but still return SUCCESS.
         config(['session.driver' => 'array', 'cache.default' => 'array']);
 
         $this->artisan('aperture:e2e:prepare', ['--verify-redis' => true])
@@ -118,12 +112,9 @@ class PrepareE2eCommandTest extends TestCase
 
     public function test_prepare_e2e_returns_failure_when_redis_connection_fails(): void
     {
-        // Covers PrepareE2eCommand line 31: return self::FAILURE when verifyRedisConnections() returns false
-        // Covers lines 139-154: Redis::connection() throws, error is logged, false is returned
 
         config(['session.driver' => 'redis', 'cache.default' => 'array']);
 
-        // Mock Redis to throw on connection attempt
         Redis::shouldReceive('connection')
             ->with('default')
             ->andThrow(new RuntimeException('Redis connection refused'));
@@ -135,8 +126,6 @@ class PrepareE2eCommandTest extends TestCase
 
     public function test_prepare_e2e_adds_cache_connection_when_cache_is_redis(): void
     {
-        // Covers line 140-142: when cache.default === 'redis', 'cache' connection is added to the list
-        // And then lines 158-160: when all succeed, returns SUCCESS
 
         config(['session.driver' => 'redis', 'cache.default' => 'redis']);
 

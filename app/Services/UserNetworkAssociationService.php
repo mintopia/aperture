@@ -65,16 +65,11 @@ class UserNetworkAssociationService
         return $ip;
     }
 
-    /**
-     * Assign MAC ownership and cascade IP associations via shared MACs.
-     * Depth-limited to one hop (IP -> MAC -> sibling IPs).
-     */
     private function cascadeMacOwnership(User $user, IpAddress $ip): void
     {
         $macs = $ip->macAddresses()->where('mac_addresses.source', '!=', MacAddress::SOURCE_DHCP_DUID)->get();
 
         foreach ($macs as $mac) {
-            // Assign MAC ownership if unowned
             if ($mac->user_id === null) {
                 $mac->user_id = $user->id;
                 $mac->save();
@@ -89,22 +84,18 @@ class UserNetworkAssociationService
                 );
             }
 
-            // Only cascade sibling IPs for MACs we own
             if ((int) $mac->user_id !== (int) $user->id) {
                 continue;
             }
 
-            // Find sibling IPs on this MAC (one hop)
             $siblingIps = $mac->ipAddresses()->where('ip_addresses.id', '!=', $ip->id)->get();
 
             foreach ($siblingIps as $siblingIp) {
-                // Skip if another user already owns this IP
                 $existingOwner = UserIpAddress::where('ip_address_id', $siblingIp->id)->first();
                 if ($existingOwner !== null && (int) $existingOwner->user_id !== (int) $user->id) {
                     continue;
                 }
 
-                // Use addIp with cascade=false to prevent recursion
                 $cascaded = $this->addIp($user, $siblingIp->address, cascade: false);
 
                 if ($cascaded instanceof IpAddress) {

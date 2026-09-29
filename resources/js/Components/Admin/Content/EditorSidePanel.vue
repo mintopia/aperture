@@ -17,21 +17,17 @@ const title = ref(props.block.title);
 const content = ref(props.block.content ?? '');
 const isActive = ref(props.block.is_active);
 
-// Connection strip fields
 const storedFields = props.block.settings?.fields?.length ? props.block.settings.fields : DEFAULT_FIELDS;
 const initialFields = props.block.type === 'connection_strip' ? JSON.parse(JSON.stringify(storedFields)) : [];
 const fields = ref(initialFields);
 
-// DNS filter settings
 const settingsLabel = ref(props.block.settings?.label ?? '');
 
-// Map settings
 const mapLat = ref(props.block.type === 'map' ? (props.block.settings?.lat ?? 51.5074) : 51.5074);
 const mapLng = ref(props.block.type === 'map' ? (props.block.settings?.lng ?? -0.1278) : -0.1278);
 const mapZoom = ref(props.block.type === 'map' ? (props.block.settings?.zoom ?? 13) : 13);
 const mapShowTitle = ref(props.block.type === 'map' ? (props.block.settings?.showTitle ?? true) : true);
 
-// Link strip settings
 const links = ref(
     props.block.type === 'link_strip' ? JSON.parse(JSON.stringify(props.block.settings?.links ?? [])) : [],
 );
@@ -39,7 +35,6 @@ const linkStripLayout = ref(
     props.block.type === 'link_strip' ? (props.block.settings?.layout ?? 'horizontal') : 'horizontal',
 );
 
-// Template variables
 const variablesExpanded = ref(false);
 const lastFocusedInput = ref(null);
 const copiedKey = ref(null);
@@ -73,7 +68,6 @@ function insertVariable(key) {
 
 const showTemplateVariables = computed(() => templateSupportedTypes.includes(props.block.type));
 
-// Resize logic
 const MIN_WIDTH = 280;
 const panelWidth = ref(320);
 const isResizing = ref(false);
