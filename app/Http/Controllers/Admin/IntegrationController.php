@@ -13,7 +13,7 @@ use App\Models\CapabilityAssignment;
 use App\Models\ConnectionTestLog;
 use App\Models\IntegrationConfig;
 use App\Models\SwitchConfig;
-use App\Services\Integration\IntegrationConfigMerger;
+use App\Services\Integration\DeclaredFieldConfigMerger;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\PiHole\PiHoleService;
 use App\Services\Seatpicker\SeatpickerApiService;
@@ -27,7 +27,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class IntegrationController extends Controller
 {
-    public function __construct(private IntegrationConfigMerger $configMerger) {}
+    public function __construct(private DeclaredFieldConfigMerger $configMerger) {}
 
     /**
      * @return array<string, array{

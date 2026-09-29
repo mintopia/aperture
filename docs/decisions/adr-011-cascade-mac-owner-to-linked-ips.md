@@ -16,7 +16,7 @@ IPv6 linked to an owned MAC with "No associated users".
 
 ## Decision
 
-Whenever an IP↔MAC link is created or refreshed (`IpMacLinked` event,
+Whenever an IP↔MAC link is created or refreshed (`IpMacObserved` event — named for observation, not creation, because it deliberately also fires on refresh;
 dispatched from `LinkIpMacStep`, `IpAddressActionService::enableInternet`, and
 `PortalController::ipv6`), a listener cascades the MAC's owner onto the IP:
 it creates the user↔IP association and applies the owner's policy via
@@ -46,7 +46,7 @@ The original rule ("an IP is never silently re-assigned") assumed addresses are
 not reused during an event. They are: when user A leaves and A's IP is re-leased
 to user B's MAC, B's traffic inherited A's internet access and policy.
 
-- When a DHCP-sourced `IpMacLinked` shows the IP held by a MAC owned by a
+- When a DHCP-sourced `IpMacObserved` shows the IP held by a MAC owned by a
   different user (or by no user), and none of the previous owner's MACs still
   has a lease on that IP, the IP's associations are removed. The new holder's
   owner is then associated and their policy and firewall state applied; if the

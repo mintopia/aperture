@@ -75,7 +75,7 @@ class MassAssignmentProtectionTest extends TestCase
         ]);
 
         $this->assertSame('192.168.1.100', $ip->address);
-        $this->assertTrue($ip->internet_enabled);
+        $this->assertTrue($ip->isInternetAllowed());
         $this->assertTrue($ip->rate_limit_enabled);
         $this->assertTrue($ip->dns_filtering_enabled);
         $this->assertSame('Test comment', $ip->comment);

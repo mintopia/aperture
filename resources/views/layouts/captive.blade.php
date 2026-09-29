@@ -19,7 +19,7 @@
         $p = $presets[$hue] ?? [72, 0.19];
         $l = $p[0]; $c = $p[1];
     @endphp
-    <style>
+    <style nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
         :root {
             --color-primary: oklch({{ $l }}% {{ $c }} {{ $hue }});
             --color-primary-hover: oklch({{ $l - 7 }}% {{ $c + 0.03 }} {{ $hue }});

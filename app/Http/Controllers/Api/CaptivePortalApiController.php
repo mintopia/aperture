@@ -17,7 +17,7 @@ class CaptivePortalApiController extends Controller
         $clientIp = IpAddress::normalize((string) $request->getClientIp());
         $ip = IpAddress::where('address', $clientIp)->first();
 
-        $captive = $ip === null || ! $ip->internet_enabled;
+        $captive = $ip === null || ! $ip->isInternetAllowed();
 
         $payload = [
             'captive' => $captive,

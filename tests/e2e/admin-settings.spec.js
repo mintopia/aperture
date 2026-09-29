@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 
 test.describe('Integration Settings', () => {
     test('integrations page lists services and the capabilities reference', async ({ page }) => {

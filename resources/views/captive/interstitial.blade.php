@@ -10,7 +10,7 @@
         ></div>
 
         <div class="captive-reveal">
-            <h1 class="font-heading text-2xl font-bold tracking-tight" style="font-variation-settings: 'opsz' 32;">Granting Network Access</h1>
+            <h1 class="font-heading text-2xl font-bold tracking-tight [font-variation-settings:'opsz'_32]">Granting Network Access</h1>
             <p class="mt-1.5 text-sm text-[var(--color-text-secondary)]" id="status-message">Please wait while we configure your connection&hellip;</p>
         </div>
 

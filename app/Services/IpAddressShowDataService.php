@@ -16,6 +16,7 @@ use App\Services\Interfaces\PortErrorsInterface;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
+use App\Support\BandwidthUnits;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
@@ -32,7 +33,6 @@ class IpAddressShowDataService
     /**
      * @return array{
      *     ip: array<string, mixed>,
-     *     port: PortDetail|null,
      *     switchInfo: array{switchId: int, switchName: string, portId: string}|null,
      *     portBandwidth: array{in: array<int, array{timestamp: float, value: float}>, out: array<int, array{timestamp: float, value: float}>, in_bytes: int, out_bytes: int}|null,
      *     portErrors: array{in_series: array<int, array{timestamp: float, value: float}>, out_series: array<int, array{timestamp: float, value: float}>}|null,
@@ -142,7 +142,7 @@ class IpAddressShowDataService
         for ($i = 1; $i < $counter; $i++) {
             $dt = $series[$i]['timestamp'] - $series[$i - 1]['timestamp'];
             $avgRate = ($series[$i]['value'] + $series[$i - 1]['value']) / 2;
-            $total += $avgRate * $dt / 8;
+            $total += BandwidthUnits::bitsToBytes($avgRate * $dt);
         }
 
         return (int) $total;

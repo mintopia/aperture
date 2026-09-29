@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\NetworkDeviceTracking;
 
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Listeners\CascadeMacOwnershipOnLink;
 use App\Models\AuditLog;
 use App\Models\DhcpLease;
@@ -30,7 +30,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
     {
         /** @var CascadeMacOwnershipOnLink $listener */
         $listener = resolve(CascadeMacOwnershipOnLink::class);
-        $listener->handle(new IpMacLinked($ip, $mac, $source, $process));
+        $listener->handle(new IpMacObserved($ip, $mac, $source, $process));
     }
 
     public function test_cascades_mac_owner_onto_unassociated_ip(): void
@@ -197,7 +197,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
 
         $this->assertFalse(UserIpAddress::where('user_id', $previous->id)->where('ip_address_id', $ip->id)->exists());
         $this->assertTrue(UserIpAddress::where('user_id', $newOwner->id)->where('ip_address_id', $ip->id)->exists());
-        $this->assertTrue((bool) $ip->fresh()->internet_enabled);
+        $this->assertTrue($ip->fresh()->isInternetAllowed());
 
         $log = AuditLog::where('action', 'ip.user_reassigned')->firstOrFail();
         $this->assertSame([$previous->id], $log->metadata['previous_user_ids']);
@@ -215,7 +215,7 @@ class CascadeMacOwnershipOnLinkTest extends TestCase
         $this->handleEvent($ip, $newMac);
 
         $this->assertSame(0, UserIpAddress::where('ip_address_id', $ip->id)->count());
-        $this->assertFalse((bool) $ip->fresh()->internet_enabled);
+        $this->assertFalse($ip->fresh()->isInternetAllowed());
         $log = AuditLog::where('action', 'ip.user_reassigned')->firstOrFail();
         $this->assertNull($log->metadata['new_user_id']);
     }

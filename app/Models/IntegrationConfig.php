@@ -43,13 +43,6 @@ class IntegrationConfig extends Model
     use HasFactory;
 
     /**
-     * @deprecated Use {@see encryptedKeys()} instead, which derives keys from config/integrations.php.
-     *
-     * @var list<string>
-     */
-    public const ENCRYPTED_KEYS = ['api_key', 'api_token', 'password', 'secret', 'key', 'client_secret'];
-
-    /**
      * @return list<string>
      */
     public static function encryptedKeys(): array
@@ -58,15 +51,12 @@ class IntegrationConfig extends Model
             /** @var array<string, array{fields?: array<string, array{type?: string}>}> $integrations */
             $integrations = config('integrations', []);
 
-            $fromConfig = collect($integrations)
+            return array_values(array_map('strval', collect($integrations)
                 ->flatMap(fn (array $integration): array => $integration['fields'] ?? [])
                 ->filter(fn (array $field): bool => ($field['type'] ?? '') === 'password')
                 ->keys()
                 ->unique()
-                ->values()
-                ->all();
-
-            return array_values(array_unique(array_merge($fromConfig, self::ENCRYPTED_KEYS)));
+                ->all()));
         });
     }
 

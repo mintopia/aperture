@@ -7,11 +7,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LoginRequest;
 use App\Models\AuditLog;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class LoginController extends Controller
 {
@@ -20,7 +20,7 @@ class LoginController extends Controller
         return Inertia::render('Auth/Login');
     }
 
-    public function authenticate(LoginRequest $request): RedirectResponse
+    public function authenticate(LoginRequest $request): SymfonyResponse
     {
         $credentials = $request->validated();
 
@@ -48,7 +48,7 @@ class LoginController extends Controller
                 return to_route('admin.home');
             }
 
-            return redirect()->intended('/');
+            return Inertia::location(redirect()->intended('/')->getTargetUrl());
         }
 
         AuditLog::record(

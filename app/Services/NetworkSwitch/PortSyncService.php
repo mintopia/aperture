@@ -12,6 +12,7 @@ use App\Models\SwitchPort;
 use App\Models\SwitchSyncRun;
 use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SupportsDhcpSnooping;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -37,48 +38,27 @@ class PortSyncService
         $portStateChanges = [];
 
         try {
-            $adapter = $this->factory->make($switchConfig);
-
-            $portStatuses = $adapter->getAllPorts();
-            $portConfigData = $this->portConfigSync->fetchFromNetwork($adapter, $switchConfig, $portStatuses);
-            $macEntries = $adapter->getForwardingDatabase();
-            $snoopingBindings = $this->fetchSnoopingBindings($adapter, $switchConfig);
+            $snapshot = $this->fetchSnapshot($switchConfig);
 
             $portsCreated = 0;
             $portsUpdated = 0;
             $macsCreated = 0;
             $macsUpdated = 0;
 
-            DB::transaction(function () use ($portStatuses, $portConfigData, $macEntries, $snoopingBindings, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
-                $statusResult = $this->portStatusSync->sync($portStatuses, $switchConfig, $syncStartedAt);
-                $portsCreated = $statusResult['created'];
-                $portsUpdated = $statusResult['updated'];
-                $portStateChanges = $statusResult['stateChanges'];
-
-                $this->portConfigSync->sync($switchConfig, $portConfigData, $syncStartedAt);
-
-                $macResult = $this->portMacSync->sync($macEntries, $switchConfig, $syncStartedAt);
-                $macsCreated = $macResult['created'];
-                $macsUpdated = $macResult['updated'];
-
-                if ($macEntries->isEmpty()) {
-                    Log::warning('Empty or unparseable MAC address table, skipping stale MAC cleanup', [
-                        'switch' => $switchConfig->hostname,
-                    ]);
-                } else {
-                    $this->portMacSync->cleanStaleMacs($switchConfig, $macResult['syncedMacIds']);
-                }
-
-                if ($snoopingBindings instanceof Collection) {
-                    $this->persistSnoopingBindings($snoopingBindings, $switchConfig);
-                }
+            DB::transaction(function () use ($snapshot, $switchConfig, $syncStartedAt, &$portsCreated, &$portsUpdated, &$macsCreated, &$macsUpdated, &$portStateChanges): void {
+                $applied = $this->applySnapshot($snapshot, $switchConfig, $syncStartedAt);
+                $portsCreated = $applied['portsCreated'];
+                $portsUpdated = $applied['portsUpdated'];
+                $macsCreated = $applied['macsCreated'];
+                $macsUpdated = $applied['macsUpdated'];
+                $portStateChanges = $applied['portStateChanges'];
             });
 
             $syncRun->complete($portsCreated, $portsUpdated, $macsCreated, $macsUpdated);
         } catch (Throwable $throwable) {
             $syncRun->fail($throwable->getMessage());
 
-            throw $throwable;
+            throw SwitchSyncFailedException::recorded($throwable);
         } finally {
             $syncRun->refresh();
 
@@ -94,17 +74,62 @@ class PortSyncService
         return new SyncResult(syncRun: $syncRun, portStateChanges: $portStateChanges);
     }
 
+    public function fetchSnapshot(SwitchConfig $switchConfig): SwitchSnapshot
+    {
+        $adapter = $this->factory->make($switchConfig);
+
+        $portStatuses = $adapter->getAllPorts();
+        $portConfigData = $this->portConfigSync->fetchFromNetwork($adapter, $switchConfig, $portStatuses);
+        $macEntries = $adapter->getForwardingDatabase();
+
+        return new SwitchSnapshot(
+            $portStatuses,
+            $portConfigData,
+            $macEntries,
+            $this->fetchSnoopingBindings($adapter, $switchConfig),
+        );
+    }
+
     /**
-     * @return Collection<int, array{ip: string, mac: string, vlan: int, interface: string, lease_seconds: int}>|null
+     * @return array{portsCreated: int, portsUpdated: int, macsCreated: int, macsUpdated: int, portStateChanges: array<int, array{switchPort: SwitchPort, oldStatus: ?string, newStatus: string}>}
      */
-    private function fetchSnoopingBindings(NetworkSwitchInterface $adapter, SwitchConfig $switchConfig): ?Collection
+    public function applySnapshot(SwitchSnapshot $snapshot, SwitchConfig $switchConfig, Carbon $syncStartedAt): array
+    {
+        $statusResult = $this->portStatusSync->sync($snapshot->portStatuses, $switchConfig, $syncStartedAt);
+
+        $this->portConfigSync->sync($switchConfig, $snapshot->portConfigData, $syncStartedAt);
+
+        $macResult = $this->portMacSync->sync($snapshot->macEntries, $switchConfig, $syncStartedAt);
+
+        if ($snapshot->macEntries->isEmpty()) {
+            Log::warning('Empty or unparseable MAC address table, skipping stale MAC cleanup', [
+                'switch' => $switchConfig->hostname,
+            ]);
+        } else {
+            $this->portMacSync->cleanStaleMacs($switchConfig, $macResult['syncedMacIds']);
+        }
+
+        if ($snapshot->snooping->wasFetched()) {
+            $this->persistSnoopingBindings($snapshot->snooping->bindings, $switchConfig);
+        }
+
+        return [
+            'portsCreated' => $statusResult['created'],
+            'portsUpdated' => $statusResult['updated'],
+            'macsCreated' => $macResult['created'],
+            'macsUpdated' => $macResult['updated'],
+            'portStateChanges' => $statusResult['stateChanges'],
+        ];
+    }
+
+    private function fetchSnoopingBindings(NetworkSwitchInterface $adapter, SwitchConfig $switchConfig): SnoopingFetchResult
     {
         if (! $adapter instanceof SupportsDhcpSnooping) {
-            return null;
+            return SnoopingFetchResult::unsupported();
         }
 
         try {
-            return $adapter->getDhcpSnoopingBindings();
+            return SnoopingFetchResult::fetched($adapter->getDhcpSnoopingBindings());
         } catch (Throwable $throwable) {
             Log::warning('DHCP snooping sync failed, continuing with port sync', [
                 'switch' => $switchConfig->hostname,
@@ -112,7 +137,7 @@ class PortSyncService
                 'exception' => $throwable,
             ]);
 
-            return null;
+            return SnoopingFetchResult::failed();
         }
     }
 

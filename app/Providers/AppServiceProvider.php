@@ -6,7 +6,7 @@ namespace App\Providers;
 
 use App\Events\BandwidthAnomalyDetected;
 use App\Events\DhcpPoolThresholdReached;
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Events\SwitchUnreachable;
 use App\Http\Controllers\E2e\DeviceApprovalController;
 use App\Integration\InstallGuard;
@@ -53,7 +53,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->environment('playwright')) {
-            config(['cache.default' => 'file', 'cache.stores.file.path' => storage_path('framework/cache/playwright')]);
             Route::middleware('api')->post('/api/e2e/device/approve', DeviceApprovalController::class);
         }
 
@@ -86,7 +85,7 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerEventListeners(): void
     {
-        Event::listen(IpMacLinked::class, CascadeMacOwnershipOnLink::class);
+        Event::listen(IpMacObserved::class, CascadeMacOwnershipOnLink::class);
         Event::listen(SwitchUnreachable::class, RecordSwitchUnreachable::class);
         Event::listen(BandwidthAnomalyDetected::class, RecordBandwidthAnomaly::class);
         Event::listen(DhcpPoolThresholdReached::class, RecordDhcpPoolThreshold::class);
@@ -99,12 +98,20 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
+            if ($this->app->environment('playwright')) {
+                return Limit::none();
+            }
+
             $email = (string) $request->input('email', '');
 
             return Limit::perMinute(5)->by(mb_strtolower($email).'|'.$request->ip());
         });
 
         RateLimiter::for('captive-portal', function (Request $request) {
+            if ($this->app->environment('playwright')) {
+                return Limit::none();
+            }
+
             return Limit::perMinute(30)->by($request->ip());
         });
     }

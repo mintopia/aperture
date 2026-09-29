@@ -1,6 +1,10 @@
 package ssh
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -61,34 +65,123 @@ func TestGetLastLine(t *testing.T) {
 	}
 }
 
-func TestMatchesCondition(t *testing.T) {
+func re(v string) *Matcher  { return &Matcher{Type: MatchRegex, Value: v} }
+func lit(v string) *Matcher { return &Matcher{Type: MatchLiteral, Value: v} }
+
+func TestMatcher(t *testing.T) {
 	tests := []struct {
-		name      string
-		text      string
-		condition string
-		expect    bool
+		name string
+		m    *Matcher
+		text string
+		want bool
 	}{
-		{"substring match", "Password:", "Password:", true},
-		{"substring partial", "Enter Password: now", "Password:", true},
-		{"substring no match", "Username:", "Password:", false},
-		{"regex match", "Switch>", `/>\s*$/`, true},
-		{"regex match with trailing space", "Switch>  ", `/>\s*$/`, true},
-		{"regex no match", "Switch#", `/>\s*$/`, false},
-		{"regex password prompt", "Password:", `/Password:/`, true},
-		{"regex config mode", "Switch(config)#", `/\(config\)#$/`, true},
-		{"regex config-if mode", "Switch(config-if)#", `/\(config-if\)#$/`, true},
-		{"short regex treated as substring", "/", "/", true},
-		{"two char regex treated as substring", "//", "//", true},
-		{"invalid regex returns false", "test", `/[invalid/`, false},
-		{"empty condition", "anything", "", true},
+		{"literal substring", lit("Password:"), "Enter Password: now", true},
+		{"literal no match", lit("Password:"), "Username:", false},
+		{"literal is not regex", lit(`>\s*$`), "Switch>", false},
+		{"literal slash-wrapped is literal", lit("/foo/"), "a /foo/ b", true},
+		{"literal slash-wrapped does not act as regex", lit("/foo/"), "foo", false},
+		{"regex match", re(`>\s*$`), "Switch>  ", true},
+		{"regex no match", re(`>\s*$`), "Switch#", false},
+		{"regex slash-wrapped is not stripped", re("/foo/"), "foo", false},
+		{"regex config mode", re(`\(config\)#$`), "Switch(config)#", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := matchesCondition(tt.text, tt.condition)
-			if got != tt.expect {
-				t.Errorf("matchesCondition(%q, %q) = %v, want %v", tt.text, tt.condition, got, tt.expect)
+			match, err := tt.m.compile(&promptTracker{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := match(tt.text); got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestMatcher_Validate(t *testing.T) {
+	bad := []*Matcher{
+		{Type: "glob", Value: "x"},
+		{Type: "", Value: "x"},
+		{Type: MatchLiteral, Value: ""},
+		{Type: MatchRegex, Value: ""},
+		{Type: MatchRegex, Value: "[invalid"},
+	}
+	for _, m := range bad {
+		if err := m.Validate(); err == nil {
+			t.Errorf("expected error for %+v", m)
+		}
+	}
+	for _, m := range []*Matcher{lit("x"), re(`^{prompt}#$`)} {
+		if err := m.Validate(); err != nil {
+			t.Errorf("unexpected error for %+v: %v", m, err)
+		}
+	}
+}
+
+type failingWriteSession struct {
+	*mockSession
+	err error
+}
+
+func (f *failingWriteSession) Write(string) error { return f.err }
+
+func TestExecutor_WriteFailureCarriesTypedError(t *testing.T) {
+	exec := &Executor{ReadTimeout: time.Second, CommandTimeout: time.Second}
+	lost := &failingWriteSession{newMockSession("Switch#"), fmt.Errorf("%w: broken pipe", ErrConnectionLost)}
+	result := exec.Execute(lost, []Command{{Command: "show ver"}})
+	if result.Success || !errors.Is(result.Err, ErrConnectionLost) {
+		t.Fatalf("expected ErrConnectionLost, got success=%v err=%v", result.Success, result.Err)
+	}
+}
+
+func TestExecutor_ExpectTimeoutIsNotConnectionLost(t *testing.T) {
+	exec := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: 50 * time.Millisecond}
+	result := exec.Execute(newMockSession("Switch#"), []Command{{Command: "x", Expect: lit("never")}})
+	if result.Success || !errors.Is(result.Err, ErrExpectTimeout) || errors.Is(result.Err, ErrConnectionLost) {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+	if !strings.HasPrefix(result.Error, "Timeout waiting for expected pattern") {
+		t.Errorf("error message changed: %q", result.Error)
+	}
+}
+
+func TestExecutor_SlashWrappedCommandIfIsLiteral(t *testing.T) {
+	exec := &Executor{ReadTimeout: time.Second, CommandTimeout: time.Second}
+	session := newMockSession("Switch#")
+	result := exec.Execute(session, []Command{{Command: "x", If: lit("/#/")}})
+	if !result.Success || len(result.Output) != 0 {
+		t.Fatalf("literal '/#/' must not match 'Switch#': %+v", result)
+	}
+}
+
+func TestCommand_LogString(t *testing.T) {
+	if got := (Command{Command: "enable secret hunter2", Sensitive: true}).LogString(); got != "****" {
+		t.Errorf("sensitive command not redacted: %q", got)
+	}
+	if got := (Command{Command: "show version"}).LogString(); got != "show version" {
+		t.Errorf("non-sensitive command altered: %q", got)
+	}
+	if got := (Command{Command: "hunter2"}).LogString(); got != "hunter2" {
+		t.Errorf("short single-word non-sensitive command must log verbatim: %q", got)
+	}
+}
+
+func TestExecutor_SensitiveCommandNeverLogged(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	exec := &Executor{ReadTimeout: time.Second, CommandTimeout: time.Second, Logger: logger}
+	session := newMockSession("Password:", "hunter2\nSwitch#")
+	result := exec.Execute(session, []Command{
+		{Command: "hunter2", Sensitive: true, If: lit("Password:"), Expect: re(`#\s*$`)},
+	})
+	if !result.Success {
+		t.Fatalf("unexpected failure: %s", result.Error)
+	}
+	if strings.Contains(buf.String(), "hunter2") {
+		t.Errorf("secret leaked into logs:\n%s", buf.String())
+	}
+	if result.Output[0].Command != "hunter2" {
+		t.Errorf("response output must keep the real command, got %q", result.Output[0].Command)
 	}
 }
 
@@ -137,7 +230,7 @@ func TestExecutor_IfConditionSkip(t *testing.T) {
 	}
 
 	result := exec.Execute(session, []Command{
-		{Command: "en", If: `/>\s*$/`},
+		{Command: "en", If: re(`>\s*$`)},
 		{Command: "terminal length 0"},
 		{Command: "show interfaces"},
 	})
@@ -167,9 +260,9 @@ func TestExecutor_IfConditionMatch(t *testing.T) {
 	}
 
 	result := exec.Execute(session, []Command{
-		{Command: "en", If: `/>\s*$/`, Expect: `/Password:/`},
-		{Command: "secret", If: `/Password:/`, Expect: `/#\s*$/`},
-		{Command: "terminal length 0", Expect: `/#\s*$/`},
+		{Command: "en", If: re(`>\s*$`), Expect: re(`Password:`)},
+		{Command: "secret", If: re(`Password:`), Expect: re(`#\s*$`)},
+		{Command: "terminal length 0", Expect: re(`#\s*$`)},
 	})
 
 	if !result.Success {
@@ -193,7 +286,7 @@ func TestExecutor_ExpectTimeout(t *testing.T) {
 	}
 
 	result := exec.Execute(session, []Command{
-		{Command: "show ver", Expect: "#"},
+		{Command: "show ver", Expect: lit("#")},
 	})
 
 	if result.Success {
@@ -263,7 +356,7 @@ func TestExecutor_IfSubstringMatch(t *testing.T) {
 	}
 
 	result := exec.Execute(session, []Command{
-		{Command: "mypassword", If: "Password:"},
+		{Command: "mypassword", If: lit("Password:")},
 	})
 
 	if !result.Success {
@@ -285,7 +378,7 @@ func TestExecutor_IfSubstringNoMatch(t *testing.T) {
 	}
 
 	result := exec.Execute(session, []Command{
-		{Command: "mypassword", If: "Password:"},
+		{Command: "mypassword", If: lit("Password:")},
 	})
 
 	if !result.Success {
@@ -311,10 +404,10 @@ func TestExecutor_CiscoEnableFlow(t *testing.T) {
 	}
 
 	commands := []Command{
-		{Command: "en", If: `/>\s*$/`, Expect: `/Password:/`},
-		{Command: "enable-pass", If: `/Password:/`, Expect: `/#\s*$/`},
-		{Command: "terminal length 0", Expect: `/#\s*$/`},
-		{Command: "show interface status", Expect: `/#\s*$/`},
+		{Command: "en", If: re(`>\s*$`), Expect: re(`Password:`)},
+		{Command: "enable-pass", If: re(`Password:`), Expect: re(`#\s*$`)},
+		{Command: "terminal length 0", Expect: re(`#\s*$`)},
+		{Command: "show interface status", Expect: re(`#\s*$`)},
 	}
 
 	result := exec.Execute(session, commands)
@@ -350,10 +443,10 @@ func TestExecutor_AlreadyInEnableMode(t *testing.T) {
 	}
 
 	commands := []Command{
-		{Command: "en", If: `/>\s*$/`, Expect: `/Password:/`},
-		{Command: "enable-pass", If: `/Password:/`, Expect: `/#\s*$/`},
-		{Command: "terminal length 0", Expect: `/#\s*$/`},
-		{Command: "show vlan brief", Expect: `/#\s*$/`},
+		{Command: "en", If: re(`>\s*$`), Expect: re(`Password:`)},
+		{Command: "enable-pass", If: re(`Password:`), Expect: re(`#\s*$`)},
+		{Command: "terminal length 0", Expect: re(`#\s*$`)},
+		{Command: "show vlan brief", Expect: re(`#\s*$`)},
 	}
 
 	result := exec.Execute(session, commands)
@@ -376,7 +469,7 @@ func TestExecutor_PromptPlaceholderIgnoresNonPromptLinesEndingInHash(t *testing.
 	session := newMockSession("sw1>", "config line\r\nbanner text #", "\r\nend\r\nsw1>")
 	e := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: time.Second}
 
-	result := e.Execute(session, []Command{{Command: "show run", Expect: `/^{prompt}(\([^)]*\))?[>#]\s*$/`}})
+	result := e.Execute(session, []Command{{Command: "show run", Expect: re(`^{prompt}(\([^)]*\))?[>#]\s*$`)}})
 
 	if !result.Success {
 		t.Fatalf("expected success, got %q", result.Error)
@@ -390,7 +483,7 @@ func TestExecutor_PromptPlaceholderRejectsOtherHostnames(t *testing.T) {
 	session := newMockSession("sw1>", "sw2#\r\n", "sw1#")
 	e := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: time.Second}
 
-	result := e.Execute(session, []Command{{Command: "x", Expect: `/^{prompt}#\s*$/`}})
+	result := e.Execute(session, []Command{{Command: "x", Expect: re(`^{prompt}#\s*$`)}})
 
 	if !result.Success || !strings.HasSuffix(result.Output[0].Output, "sw1#") {
 		t.Fatalf("unexpected result: %+v", result)
@@ -401,7 +494,7 @@ func TestExecutor_PromptPlaceholderMatchesConfigModePrompt(t *testing.T) {
 	session := newMockSession("sw1#", "conf t\r\nsw1(config)#")
 	e := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: time.Second}
 
-	result := e.Execute(session, []Command{{Command: "conf t", Expect: `/^{prompt}\(config\)#\s*$/`}})
+	result := e.Execute(session, []Command{{Command: "conf t", Expect: re(`^{prompt}\(config\)#\s*$`)}})
 
 	if !result.Success {
 		t.Fatalf("expected success, got %q", result.Error)
@@ -413,8 +506,8 @@ func TestExecutor_PromptPlaceholderLearnsPromptFromFirstOutputWhenInitialReadEmp
 	e := &Executor{ReadTimeout: 10 * time.Millisecond, CommandTimeout: time.Second}
 
 	result := e.Execute(session, []Command{
-		{Command: "a", Expect: `/^{prompt}#\s*$/`},
-		{Command: "b", Expect: `/^{prompt}#\s*$/`},
+		{Command: "a", Expect: re(`^{prompt}#\s*$`)},
+		{Command: "b", Expect: re(`^{prompt}#\s*$`)},
 	})
 
 	if !result.Success || !strings.HasSuffix(result.Output[1].Output, "sw9#") {

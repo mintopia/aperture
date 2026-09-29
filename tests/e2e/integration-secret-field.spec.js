@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 
 test.describe('Integration write-only secret field', () => {
     test.describe.configure({ mode: 'serial' });

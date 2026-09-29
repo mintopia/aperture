@@ -33,7 +33,7 @@ class UserShowDataService
 
         $networkDevices = $this->buildNetworkDevices($user, $ipModels);
 
-        $allInternetEnabled = $ipModels->isNotEmpty() && $ipModels->every(fn (IpAddress $ip): bool => (bool) $ip->internet_enabled);
+        $allInternetEnabled = $ipModels->isNotEmpty() && $ipModels->every(fn (IpAddress $ip): bool => $ip->isInternetAllowed());
         $allRateLimited = $ipModels->isNotEmpty() && $ipModels->every(fn (IpAddress $ip): bool => $ip->rate_limit_enabled);
 
         $auditLogs = $this->getAuditLogs($user);
@@ -110,7 +110,7 @@ class UserShowDataService
                         'ip_address' => $ip->address,
                         'ip_id' => $ip->id,
                         'hostname' => $hostname,
-                        'internet_enabled' => $ip->internet_enabled,
+                        'internet_enabled' => $ip->internet_enabled->toColumn(),
                         'rate_limit_enabled' => $ip->rate_limit_enabled,
                         'last_seen_at' => $ip->pivot->last_seen_at->toIso8601String(),
                     ], $switchInfo);
@@ -129,7 +129,7 @@ class UserShowDataService
                     'switch_name' => null,
                     'switch_id' => null,
                     'port_name' => null,
-                    'internet_enabled' => $ip->internet_enabled,
+                    'internet_enabled' => $ip->internet_enabled->toColumn(),
                     'rate_limit_enabled' => $ip->rate_limit_enabled,
                     'last_seen_at' => null,
                 ];

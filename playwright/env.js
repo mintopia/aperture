@@ -89,16 +89,17 @@ export function buildPlaywrightEnv(baseURL = resolveBaseUrl()) {
     // between the setup artisan process and the long-lived web server process.
     const playwrightSqliteDatabase = process.env.PLAYWRIGHT_DB_DATABASE || path.resolve(process.cwd(), 'database', 'playwright.sqlite');
     const playwrightSessionDriver = process.env.PLAYWRIGHT_SESSION_DRIVER || 'file';
-    const playwrightCacheDriver = process.env.PLAYWRIGHT_CACHE_DRIVER || 'array';
+    const playwrightCacheDriver = process.env.PLAYWRIGHT_CACHE_DRIVER || 'file';
     const playwrightQueueConnection = process.env.PLAYWRIGHT_QUEUE_CONNECTION || 'sync';
 
     return {
-        APP_ENV: process.env.APP_ENV || readDotEnvValue('APP_ENV') || 'playwright',
+        APP_ENV: 'playwright',
         APP_URL: baseURL,
         DB_CONNECTION: playwrightDbConnection,
         DB_DATABASE: playwrightDbConnection === 'sqlite' ? playwrightSqliteDatabase : process.env.PLAYWRIGHT_DB_DATABASE || process.env.DB_DATABASE || readDotEnvValue('DB_DATABASE'),
         SESSION_DRIVER: playwrightSessionDriver,
         CACHE_DRIVER: playwrightCacheDriver,
+        CACHE_FILE_PATH: path.resolve(process.cwd(), 'storage', 'framework', 'cache', 'playwright'),
         CACHE_STORE: process.env.PLAYWRIGHT_CACHE_STORE || playwrightCacheDriver,
         QUEUE_CONNECTION: playwrightQueueConnection,
         REDIS_HOST: process.env.REDIS_HOST || readDotEnvValue('REDIS_HOST') || '127.0.0.1',

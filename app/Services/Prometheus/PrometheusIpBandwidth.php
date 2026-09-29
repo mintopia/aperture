@@ -7,6 +7,7 @@ namespace App\Services\Prometheus;
 use App\Services\Interfaces\IpBandwidthInterface;
 use App\Services\ValueObjects\IpBandwidthResult;
 use App\Services\ValueObjects\TopTalker;
+use App\Support\BandwidthUnits;
 use Illuminate\Support\Collection;
 
 class PrometheusIpBandwidth implements IpBandwidthInterface
@@ -53,7 +54,7 @@ class PrometheusIpBandwidth implements IpBandwidthInterface
 
         return collect($results)->map(function (array $item) use ($ipLabel): TopTalker {
             $ip = $item['metric'][$ipLabel] ?? 'unknown';
-            $totalRate = (int) round((float) $item['value'][1] * 8);
+            $totalRate = (int) round((float) $item['value'][1] * BandwidthUnits::BITS_PER_BYTE);
 
             return new TopTalker(
                 ip: $ip,
@@ -98,12 +99,12 @@ class PrometheusIpBandwidth implements IpBandwidthInterface
         );
 
         $downloadValues = array_map(
-            fn (array $point): float => (float) $point[1] * 8,
+            fn (array $point): float => (float) $point[1] * BandwidthUnits::BITS_PER_BYTE,
             $inPoints,
         );
 
         $uploadValues = array_map(
-            fn (array $point): float => (float) $point[1] * 8,
+            fn (array $point): float => (float) $point[1] * BandwidthUnits::BITS_PER_BYTE,
             $outPoints,
         );
 
@@ -151,23 +152,23 @@ class PrometheusIpBandwidth implements IpBandwidthInterface
     protected function rangeToSeconds(string $range): int
     {
         if (preg_match('/^(\d+)([hmd])$/', $range, $matches) !== 1) {
-            return 86400;
+            return BandwidthUnits::DEFAULT_RANGE_SECONDS;
         }
 
         $value = (int) $matches[1];
 
         return match ($matches[2]) {
-            'h' => $value * 3600,
-            'd' => $value * 86400,
-            default => $value * 60,
+            'h' => $value * BandwidthUnits::SECONDS_PER_HOUR,
+            'd' => $value * BandwidthUnits::SECONDS_PER_DAY,
+            default => $value * BandwidthUnits::SECONDS_PER_MINUTE,
         };
     }
 
     protected function resolveStep(int $seconds): int
     {
         return match (true) {
-            $seconds <= 3600 => 60,
-            $seconds <= 86400 => 300,
+            $seconds <= BandwidthUnits::SECONDS_PER_HOUR => 60,
+            $seconds <= BandwidthUnits::SECONDS_PER_DAY => 300,
             default => 900,
         };
     }
@@ -176,7 +177,7 @@ class PrometheusIpBandwidth implements IpBandwidthInterface
     {
         $window = max($step, 120);
 
-        return (int) ($window / 60).'m';
+        return (int) ($window / BandwidthUnits::SECONDS_PER_MINUTE).'m';
     }
 
     /**

@@ -46,7 +46,7 @@ class DashboardController extends Controller
             'blockContext' => [
                 'currentIpv4' => $clientIp,
                 'currentIpv6' => $ipv6,
-                'internetEnabled' => $ip instanceof IpAddress && (bool) $ip->internet_enabled,
+                'internetEnabled' => $ip instanceof IpAddress && $ip->isInternetAllowed(),
                 'internetBlocked' => (bool) $user->internet_blocked,
                 'blockedMessage' => Setting::get('portal.blocked_message', ''),
                 'macAddress' => $macString,

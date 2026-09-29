@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
@@ -232,7 +232,7 @@ class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
                 );
             }
 
-            event(new IpMacLinked($ip, $mac, $pair['source'], 'scan_network'));
+            event(new IpMacObserved($ip, $mac, $pair['source'], 'scan_network'));
         }
     }
 
@@ -294,7 +294,7 @@ class ScanNetworkDevices implements ShouldBeUnique, ShouldQueue
                 /** @var Collection<int, MacAddress> $macs */
                 foreach ($macs as $mac) {
                     foreach ($mac->ipAddresses as $ip) {
-                        if (! $ip->internet_enabled) {
+                        if (! $ip->isInternetAllowed()) {
                             $ip->internet_enabled = true;
                             $ip->save();
 

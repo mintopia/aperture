@@ -137,9 +137,7 @@ func TestStatus_Empty(t *testing.T) {
 
 func TestStatus_WithConnections(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
-	_, _, _ = p.Acquire(testKey("switch1.local", pool.DefaultChannel))
-	p.SetConnection(testKey("switch1.local", pool.DefaultChannel), newMockSession())
-	p.Release(testKey("switch1.local", pool.DefaultChannel))
+	seedPool(t, p, testKey("switch1.local", pool.DefaultChannel), newMockSession(), "")
 
 	h := testHandler(p, nil, nil)
 
@@ -176,7 +174,7 @@ func TestExecute_Success(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"secret","commands":[{"command":"show version","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"secret","commands":[{"command":"show version","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -249,11 +247,12 @@ func TestExecute_MissingFields(t *testing.T) {
 
 func TestExecute_HostLocked(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
-	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
+	heldLease, _ := p.Acquire(testKey("switch1", pool.DefaultChannel))
+	defer heldLease.Release()
 
 	h := testHandler(p, nil, nil)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -275,7 +274,7 @@ func TestExecute_ConnectionFailure(t *testing.T) {
 	connector := mockConnectorFailure("connection refused")
 	h := testHandler(p, connector, nil)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -299,9 +298,7 @@ func TestExecute_ReusesPooledConnection(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 
-	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
-	p.SetConnection(testKey("switch1", pool.DefaultChannel), session)
-	p.Release(testKey("switch1", pool.DefaultChannel))
+	seedPool(t, p, testKey("switch1", pool.DefaultChannel), session, "")
 
 	connectorCalled := false
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
@@ -318,7 +315,7 @@ func TestExecute_ReusesPooledConnection(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -348,7 +345,7 @@ func TestExecute_DefaultPort(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -375,7 +372,7 @@ func TestExecute_CustomPort(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","port":2222,"commands":[]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","port":2222,"commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -414,12 +411,13 @@ func TestExecute_CommandFailure(t *testing.T) {
 			Success: false,
 			Output:  []ssh.CommandOutput{{Command: "show ver", Output: "partial"}},
 			Error:   "Timeout waiting for expected pattern: #",
+			Err:     fmt.Errorf("%w: #", ssh.ErrExpectTimeout),
 		},
 	}
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -449,17 +447,17 @@ func TestExecute_ReleasesLockOnSuccess(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
 	h.Execute(w, req)
 
-	_, _, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
+	lease, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
 	if err != nil {
-		t.Errorf("expected lock to be released, got error: %v", err)
+		t.Fatalf("expected lock to be released, got error: %v", err)
 	}
-	p.Release(testKey("switch1", pool.DefaultChannel))
+	lease.Release()
 }
 
 func TestGenerateRequestID(t *testing.T) {
@@ -503,7 +501,7 @@ func TestExecute_LogsRequestID(t *testing.T) {
 
 	h := testHandlerWithLogger(p, connector, executor, logger)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -541,12 +539,13 @@ func TestExecute_LogsErrorOnFailure(t *testing.T) {
 			Success: false,
 			Output:  []ssh.CommandOutput{{Command: "show ver", Output: "partial"}},
 			Error:   "Timeout waiting for expected pattern: #",
+			Err:     fmt.Errorf("%w: #", ssh.ErrExpectTimeout),
 		},
 	}
 
 	h := testHandlerWithLogger(p, connector, executor, logger)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -594,7 +593,7 @@ func TestExecute_LogsNoErrorOnSuccess(t *testing.T) {
 
 	h := testHandlerWithLogger(p, connector, executor, logger)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -630,7 +629,7 @@ func TestExecute_LogsDurationMs(t *testing.T) {
 
 	h := testHandlerWithLogger(p, connector, executor, logger)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -678,7 +677,7 @@ func TestExecute_UsesContextRequestID(t *testing.T) {
 
 	h := testHandlerWithLogger(p, connector, executor, logger)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	ctx := ContextWithRequestID(req.Context(), "deadbeef")
 	req = req.WithContext(ctx)
@@ -712,7 +711,7 @@ func TestExecute_DefaultChannel(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -741,7 +740,7 @@ func TestExecute_ExplicitChannel(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","channel":"polling","commands":[]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","channel":"polling","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -763,7 +762,7 @@ func TestExecute_ExplicitChannel(t *testing.T) {
 func TestExecute_InvalidChannel(t *testing.T) {
 	h := testHandler(pool.New(10*time.Minute, 0), nil, nil)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","channel":"invalid-channel","commands":[]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","channel":"invalid-channel","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -801,7 +800,7 @@ func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body1 := `{"hostname":"switch1","username":"admin","password":"pass","channel":"commands","commands":[]}`
+	body1 := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","channel":"commands","commands":[]}`
 	req1 := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body1))
 	w1 := httptest.NewRecorder()
 	h.Execute(w1, req1)
@@ -810,7 +809,7 @@ func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
 		t.Errorf("commands channel: expected 200, got %d", w1.Code)
 	}
 
-	body2 := `{"hostname":"switch1","username":"admin","password":"pass","channel":"polling","commands":[]}`
+	body2 := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","channel":"polling","commands":[]}`
 	req2 := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body2))
 	w2 := httptest.NewRecorder()
 	h.Execute(w2, req2)
@@ -833,9 +832,7 @@ func TestExecute_ChannelReusesPooledConnection(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 
-	_, _, _ = p.Acquire(testKey("switch1", "polling"))
-	p.SetConnection(testKey("switch1", "polling"), session)
-	p.Release(testKey("switch1", "polling"))
+	seedPool(t, p, testKey("switch1", "polling"), session, "")
 
 	connectorCalled := false
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
@@ -852,7 +849,7 @@ func TestExecute_ChannelReusesPooledConnection(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","channel":"polling","commands":[{"command":"show ver"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","channel":"polling","commands":[{"command":"show ver"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -882,7 +879,7 @@ func TestExecute_ChannelLogsIncludeChannel(t *testing.T) {
 
 	h := testHandlerWithLogger(p, connector, executor, logger)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","channel":"polling","commands":[]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","channel":"polling","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -942,9 +939,7 @@ func TestExecute_RetryOnStaleConnection(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
 	staleSession := newMockSession("Switch#")
-	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
-	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
-	p.Release(testKey("switch1", pool.DefaultChannel))
+	seedPool(t, p, testKey("switch1", pool.DefaultChannel), staleSession, "")
 
 	freshSession := newMockSession("Switch#", "output\nSwitch#")
 
@@ -958,7 +953,8 @@ func TestExecute_RetryOnStaleConnection(t *testing.T) {
 		failResult: &ssh.CommandResult{
 			Success: false,
 			Output:  make([]ssh.CommandOutput, 0),
-			Error:   "Failed to send command: connection closed",
+			Error:   "Failed to send command: connection lost: connection closed",
+			Err:     fmt.Errorf("%w: connection closed", ssh.ErrConnectionLost),
 		},
 		successResult: &ssh.CommandResult{
 			Success: true,
@@ -968,7 +964,7 @@ func TestExecute_RetryOnStaleConnection(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -1003,13 +999,14 @@ func TestExecute_RetryNotTriggeredOnNewConnection(t *testing.T) {
 		result: &ssh.CommandResult{
 			Success: false,
 			Output:  make([]ssh.CommandOutput, 0),
-			Error:   "Failed to send command: connection closed",
+			Error:   "Failed to send command: connection lost: connection closed",
+			Err:     fmt.Errorf("%w: connection closed", ssh.ErrConnectionLost),
 		},
 	}
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -1024,7 +1021,7 @@ func TestExecute_RetryNotTriggeredOnNewConnection(t *testing.T) {
 	if resp.Success {
 		t.Error("expected failure — retry should NOT happen on new connections")
 	}
-	if resp.Error != "Failed to send command: connection closed" {
+	if resp.Error != "Failed to send command: connection lost: connection closed" {
 		t.Errorf("unexpected error: %q", resp.Error)
 	}
 }
@@ -1033,9 +1030,7 @@ func TestExecute_RetryReconnectFailure(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
 	staleSession := newMockSession("Switch#")
-	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
-	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
-	p.Release(testKey("switch1", pool.DefaultChannel))
+	seedPool(t, p, testKey("switch1", pool.DefaultChannel), staleSession, "")
 
 	connector := mockConnectorFailure("connection refused")
 
@@ -1043,13 +1038,14 @@ func TestExecute_RetryReconnectFailure(t *testing.T) {
 		result: &ssh.CommandResult{
 			Success: false,
 			Output:  make([]ssh.CommandOutput, 0),
-			Error:   "Failed to send command: connection closed",
+			Error:   "Failed to send command: connection lost: connection closed",
+			Err:     fmt.Errorf("%w: connection closed", ssh.ErrConnectionLost),
 		},
 	}
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -1073,9 +1069,7 @@ func TestExecute_RetryNotTriggeredOnNonConnectionError(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
 	session := newMockSession("Switch#")
-	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
-	p.SetConnection(testKey("switch1", pool.DefaultChannel), session)
-	p.Release(testKey("switch1", pool.DefaultChannel))
+	seedPool(t, p, testKey("switch1", pool.DefaultChannel), session, "")
 
 	connectorCalled := false
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
@@ -1088,12 +1082,13 @@ func TestExecute_RetryNotTriggeredOnNonConnectionError(t *testing.T) {
 			Success: false,
 			Output:  []ssh.CommandOutput{{Command: "show ver", Output: "partial"}},
 			Error:   "Timeout waiting for expected pattern: #",
+			Err:     fmt.Errorf("%w: #", ssh.ErrExpectTimeout),
 		},
 	}
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -1121,9 +1116,7 @@ func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
 	staleSession := newMockSession("Switch#")
-	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
-	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
-	p.Release(testKey("switch1", pool.DefaultChannel))
+	seedPool(t, p, testKey("switch1", pool.DefaultChannel), staleSession, "")
 
 	freshSession := newMockSession("Switch#", "output\nSwitch#")
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
@@ -1134,7 +1127,8 @@ func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
 		failResult: &ssh.CommandResult{
 			Success: false,
 			Output:  make([]ssh.CommandOutput, 0),
-			Error:   "Failed to send command: connection closed",
+			Error:   "Failed to send command: connection lost: connection closed",
+			Err:     fmt.Errorf("%w: connection closed", ssh.ErrConnectionLost),
 		},
 		successResult: &ssh.CommandResult{
 			Success: true,
@@ -1144,7 +1138,7 @@ func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
 
 	h := testHandlerWithLogger(p, connector, executor, logger)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver","expect":"#"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver","expect":{"type":"literal","value":"#"}}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
@@ -1173,39 +1167,11 @@ func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
 	}
 }
 
-func TestIsConnectionError(t *testing.T) {
-	tests := []struct {
-		errMsg   string
-		expected bool
-	}{
-		{"Failed to send command: connection closed", true},
-		{"connection reset by peer", true},
-		{"write: broken pipe", true},
-		{"read: EOF", true},
-		{"use of closed network connection", true},
-		{"i/o timeout", true},
-		{"Timeout waiting for expected pattern: #", false},
-		{"some other error", false},
-		{"", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.errMsg, func(t *testing.T) {
-			result := isConnectionError(tt.errMsg)
-			if result != tt.expected {
-				t.Errorf("isConnectionError(%q) = %v, want %v", tt.errMsg, result, tt.expected)
-			}
-		})
-	}
-}
-
 func TestExecute_RetryReleasesLock(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
 
 	staleSession := newMockSession("Switch#")
-	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
-	p.SetConnection(testKey("switch1", pool.DefaultChannel), staleSession)
-	p.Release(testKey("switch1", pool.DefaultChannel))
+	seedPool(t, p, testKey("switch1", pool.DefaultChannel), staleSession, "")
 
 	freshSession := newMockSession("Switch#", "output\nSwitch#")
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
@@ -1216,7 +1182,8 @@ func TestExecute_RetryReleasesLock(t *testing.T) {
 		failResult: &ssh.CommandResult{
 			Success: false,
 			Output:  make([]ssh.CommandOutput, 0),
-			Error:   "Failed to send command: connection closed",
+			Error:   "Failed to send command: connection lost: connection closed",
+			Err:     fmt.Errorf("%w: connection closed", ssh.ErrConnectionLost),
 		},
 		successResult: &ssh.CommandResult{
 			Success: true,
@@ -1226,22 +1193,23 @@ func TestExecute_RetryReleasesLock(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body := `{"hostname":"switch1","username":"admin","password":"pass","commands":[{"command":"show ver"}]}`
+	body := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"show ver"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
 	h.Execute(w, req)
 
-	_, _, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
+	lease, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
 	if err != nil {
-		t.Errorf("expected lock to be released after retry, got error: %v", err)
+		t.Fatalf("expected lock to be released after retry, got error: %v", err)
 	}
-	p.Release(testKey("switch1", pool.DefaultChannel))
+	lease.Release()
 }
 
 func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 	p := pool.New(10*time.Minute, 0)
-	_, _, _ = p.Acquire(testKey("switch1", "commands"))
+	heldLease, _ := p.Acquire(testKey("switch1", "commands"))
+	defer heldLease.Release()
 
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
@@ -1251,7 +1219,7 @@ func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 
 	h := testHandler(p, connector, executor)
 
-	body1 := `{"hostname":"switch1","username":"admin","password":"pass","channel":"commands","commands":[]}`
+	body1 := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","channel":"commands","commands":[]}`
 	req1 := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body1))
 	w1 := httptest.NewRecorder()
 	h.Execute(w1, req1)
@@ -1260,7 +1228,7 @@ func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 		t.Errorf("commands channel: expected 409 (locked), got %d", w1.Code)
 	}
 
-	body2 := `{"hostname":"switch1","username":"admin","password":"pass","channel":"polling","commands":[]}`
+	body2 := `{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","channel":"polling","commands":[]}`
 	req2 := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body2))
 	w2 := httptest.NewRecorder()
 	h.Execute(w2, req2)
@@ -1271,5 +1239,199 @@ func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
 }
 
 func testKey(hostname, channel string) pool.Key {
-	return pool.NewKey(hostname, 22, "admin", channel, "pass", "", "")
+	return pool.NewKey(hostname, 22, "admin", channel, "password", "pass", "", "")
+}
+
+func seedPool(t *testing.T, p *pool.Pool, key pool.Key, conn ssh.Session, hostKey string) {
+	t.Helper()
+	l, err := p.Acquire(key)
+	if err != nil {
+		t.Fatalf("seed acquire: %v", err)
+	}
+	l.SetConnection(conn)
+	if hostKey != "" {
+		l.SetHostKey(hostKey)
+	}
+	l.Release()
+}
+
+func TestExecute_RetryDecisionIgnoresErrorText(t *testing.T) {
+	p := pool.New(10*time.Minute, 0)
+	seedPool(t, p, testKey("switch1", pool.DefaultChannel), newMockSession("Switch#"), "")
+	connectorCalled := false
+	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
+		connectorCalled = true
+		return newMockSession(), nil
+	}
+	executor := &mockExecutor{result: &ssh.CommandResult{
+		Success: false,
+		Error:   "device said: connection closed, EOF, broken pipe",
+	}}
+	h := testHandler(p, connector, executor)
+
+	w := httptest.NewRecorder()
+	h.Execute(w, httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(
+		`{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"x"}]}`)))
+
+	if connectorCalled {
+		t.Error("error text alone must not trigger a reconnect")
+	}
+}
+
+func TestExecute_RetryReplacesStaleConnectionInPool(t *testing.T) {
+	p := pool.New(10*time.Minute, 0)
+	stale := newMockSession("Switch#")
+	seedPool(t, p, testKey("switch1", pool.DefaultChannel), stale, "")
+	fresh := newMockSession("Switch#")
+	executor := &failOnceExecutor{
+		failResult:    &ssh.CommandResult{Error: "lost", Err: ssh.ErrConnectionLost},
+		successResult: &ssh.CommandResult{Success: true, Output: []ssh.CommandOutput{}},
+	}
+	h := testHandler(p, mockConnectorSuccess(fresh), executor)
+
+	w := httptest.NewRecorder()
+	h.Execute(w, httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(
+		`{"hostname":"switch1","username":"admin","auth_method":"password","password":"pass","commands":[{"command":"x"}]}`)))
+
+	if !stale.closed {
+		t.Error("stale connection should be closed on reconnect")
+	}
+	lease, err := p.Acquire(testKey("switch1", pool.DefaultChannel))
+	if err != nil {
+		t.Fatalf("lease not released after retry: %v", err)
+	}
+	if lease.IsNew() || lease.Conn() != ssh.Session(fresh) {
+		t.Error("pool should hold the fresh connection")
+	}
+	lease.Release()
+}
+
+func TestExecute_RejectsBadAuthMethod(t *testing.T) {
+	for _, am := range []string{``, `"auth_method":"",`, `"auth_method":"kerberos",`, `"auth_method":"PASSWORD",`} {
+		called := false
+		connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
+			called = true
+			return newMockSession(), nil
+		}
+		h := testHandler(pool.New(time.Minute, 0), connector, okExecutor())
+		w := httptest.NewRecorder()
+		h.Execute(w, httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(
+			`{"hostname":"sw","username":"u",`+am+`"password":"p","private_key":"k","commands":[]}`)))
+		if w.Code != http.StatusBadRequest || called {
+			t.Errorf("auth_method %q: status=%d connectorCalled=%v", am, w.Code, called)
+		}
+		var resp map[string]string
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil || !strings.Contains(resp["error"], "auth_method") {
+			t.Errorf("auth_method %q: unexpected body %v (%v)", am, resp, err)
+		}
+	}
+}
+
+func TestExecute_PasswordAuthIsExplicitEvenWithKeyPresent(t *testing.T) {
+	var got ssh.ConnectParams
+	connector := func(_ context.Context, cp ssh.ConnectParams) (ssh.Session, error) {
+		got = cp
+		return newMockSession(), nil
+	}
+	h := testHandler(pool.New(time.Minute, 0), connector, okExecutor())
+	w := httptest.NewRecorder()
+	h.Execute(w, httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(
+		`{"hostname":"sw","username":"u","auth_method":"password","password":"p","private_key":"k","commands":[]}`)))
+	if got.Auth != ssh.AuthPassword || got.Password != "p" {
+		t.Errorf("unexpected params: %+v", got)
+	}
+}
+
+func TestExecute_RejectsInvalidMatchers(t *testing.T) {
+	cases := map[string]string{
+		"unknown type":  `{"command":"x","if":{"type":"glob","value":"a"}}`,
+		"missing type":  `{"command":"x","expect":{"value":"a"}}`,
+		"empty value":   `{"command":"x","expect":{"type":"literal","value":""}}`,
+		"bad regex":     `{"command":"x","if":{"type":"regex","value":"[oops"}}`,
+		"legacy string": `{"command":"x","expect":"/foo/"}`,
+	}
+	for name, cmd := range cases {
+		t.Run(name, func(t *testing.T) {
+			called := false
+			connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
+				called = true
+				return newMockSession(), nil
+			}
+			h := testHandler(pool.New(time.Minute, 0), connector, okExecutor())
+			w := httptest.NewRecorder()
+			h.Execute(w, httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(
+				`{"hostname":"sw","username":"u","auth_method":"password","password":"p","commands":[`+cmd+`]}`)))
+			if w.Code != http.StatusBadRequest || called {
+				t.Errorf("status=%d connectorCalled=%v body=%s", w.Code, called, w.Body)
+			}
+		})
+	}
+}
+
+func TestExecute_ValidMatchersAccepted(t *testing.T) {
+	session := newMockSession("Switch#", "show ver\nfoo\nSwitch#")
+	exec := &ssh.Executor{ReadTimeout: time.Second, CommandTimeout: time.Second}
+	h := testHandler(pool.New(time.Minute, 0), mockConnectorSuccess(session), exec)
+	w := httptest.NewRecorder()
+	h.Execute(w, httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(
+		`{"hostname":"sw","username":"u","auth_method":"password","password":"p","commands":[
+		{"command":"show ver","if":{"type":"literal","value":"#"},"expect":{"type":"regex","value":"^{prompt}#$"}},
+		{"command":"skipped","if":{"type":"literal","value":"/#/"}}]}`)))
+	var resp executeResponse
+	json.NewDecoder(w.Body).Decode(&resp)
+	if w.Code != http.StatusOK || !resp.Success || len(resp.Output) != 1 {
+		t.Fatalf("status=%d resp=%+v", w.Code, resp)
+	}
+}
+
+func TestExecute_SensitiveCommandsRedactedInLogs(t *testing.T) {
+	var buf bytes.Buffer
+	session := newMockSession("Switch>", "Password:", "Switch#", "Switch#")
+	exec := &ssh.Executor{ReadTimeout: time.Second, CommandTimeout: time.Second, Logger: testLoggerWithBuffer(&buf)}
+	h := testHandlerWithLogger(pool.New(time.Minute, 0), mockConnectorSuccess(session), exec, testLoggerWithBuffer(&buf))
+
+	w := httptest.NewRecorder()
+	h.Execute(w, httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(
+		`{"hostname":"sw","username":"u","auth_method":"password","password":"p","commands":[
+		{"command":"enable"},
+		{"command":"hunter2","sensitive":true,"if":{"type":"literal","value":"Password:"}},
+		{"command":"show clock"}]}`)))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", w.Code, w.Body)
+	}
+	logs := buf.String()
+	if strings.Contains(logs, "hunter2") {
+		t.Errorf("sensitive command leaked into logs:\n%s", logs)
+	}
+	if !strings.Contains(logs, "****") {
+		t.Error("expected redaction marker in logs")
+	}
+	for _, want := range []string{"enable", "show clock"} {
+		if !strings.Contains(logs, want) {
+			t.Errorf("non-sensitive command %q should be logged verbatim", want)
+		}
+	}
+	if !strings.Contains(w.Body.String(), "hunter2") {
+		t.Error("response output must still carry the real command")
+	}
+}
+
+type unmarshalableValue struct{}
+
+func (unmarshalableValue) MarshalJSON() ([]byte, error) { return nil, fmt.Errorf("nope") }
+
+func TestWriteJSON_MarshalFailureYields500(t *testing.T) {
+	var buf bytes.Buffer
+	w := httptest.NewRecorder()
+	WriteJSON(testLoggerWithBuffer(&buf), w, http.StatusOK, map[string]any{"a": unmarshalableValue{}})
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", w.Code)
+	}
+	if strings.Contains(w.Body.String(), `"a"`) {
+		t.Errorf("partial body written: %s", w.Body)
+	}
+	if !strings.Contains(buf.String(), "failed to encode") {
+		t.Error("marshal failure should be logged")
+	}
 }

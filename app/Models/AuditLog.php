@@ -76,7 +76,7 @@ class AuditLog extends Model
     /**
      * @param  array<string, mixed>|null  $metadata
      */
-    public static function record(
+    public static function write(
         string $action,
         ?Model $subject = null,
         ?Model $related = null,
@@ -85,7 +85,7 @@ class AuditLog extends Model
         ?array $metadata = null,
         string $severity = 'info',
     ): self {
-        $log = self::create([
+        return self::create([
             'action' => $action,
             'subject_type' => $subject?->getMorphClass(),
             'subject_id' => $subject?->getKey(),
@@ -97,6 +97,21 @@ class AuditLog extends Model
             'metadata' => $metadata,
             'severity' => $severity,
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $metadata
+     */
+    public static function record(
+        string $action,
+        ?Model $subject = null,
+        ?Model $related = null,
+        ?Model $actor = null,
+        string $process = 'system',
+        ?array $metadata = null,
+        string $severity = 'info',
+    ): self {
+        $log = self::write($action, $subject, $related, $actor, $process, $metadata, $severity);
 
         event(new AuditLogRecorded($log));
 

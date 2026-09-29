@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 import { prepareFixtures } from './support/fixtures.js';
 
 test.describe('Public content pages', () => {

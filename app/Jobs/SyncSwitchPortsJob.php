@@ -9,6 +9,7 @@ use App\Models\SwitchConfig;
 use App\Models\SwitchSyncRun;
 use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\PortSyncService;
+use App\Services\NetworkSwitch\SwitchSyncFailedException;
 use App\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -70,19 +71,16 @@ class SyncSwitchPortsJob implements ShouldBeUnique, ShouldQueue
 
     public function failed(Throwable $exception): void
     {
-        $hasRecentFailure = SwitchSyncRun::where('switch_config_id', $this->switchConfig->id)
-            ->where('status', 'failed')
-            ->where('finished_at', '>=', now()->subMinutes(5))
-            ->exists();
-
-        if (! $hasRecentFailure) {
-            SwitchSyncRun::create([
-                'switch_config_id' => $this->switchConfig->id,
-                'status' => 'failed',
-                'started_at' => now(),
-                'finished_at' => now(),
-                'error' => $exception->getMessage(),
-            ]);
+        if ($exception instanceof SwitchSyncFailedException) {
+            return;
         }
+
+        SwitchSyncRun::create([
+            'switch_config_id' => $this->switchConfig->id,
+            'status' => 'failed',
+            'started_at' => now(),
+            'finished_at' => now(),
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

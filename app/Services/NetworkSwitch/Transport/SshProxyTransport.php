@@ -10,12 +10,23 @@ use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
+use App\Services\SshProxy\Matcher;
 use App\Services\SshProxy\SwitchProxyExecutor;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class SshProxyTransport implements SwitchCommandTransportInterface
 {
+    private const string USER_PROMPT = '^{prompt}>\s*$';
+
+    private const string PRIVILEGED_PROMPT = '^{prompt}(\([^)]*\))?#\s*$';
+
+    private const string ANY_PROMPT = '^{prompt}(\([^)]*\))?[>#]\s*$';
+
+    private const string CONFIG_PROMPT = '^{prompt}\(config\)#\s*$';
+
+    private const string CONFIG_IF_PROMPT = '^{prompt}\(config-if\)#\s*$';
+
     public function __construct(
         protected SshProxyClientInterface $proxyClient,
         protected SwitchConfig $switchConfig,
@@ -36,7 +47,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
             'command_count' => count($commands),
             'proxy_command_count' => count($proxyCommands),
             'commands' => $commands,
-            'proxy_commands' => $this->sanitizeCommandsForLog($proxyCommands),
+            'proxy_commands' => $this->redactCommandsForLog($proxyCommands),
         ]);
 
         $result = (new SwitchProxyExecutor($this->proxyClient))->execute($this->switchConfig, $proxyCommands, $this->channel);
@@ -48,7 +59,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
                 'commands' => $commands,
                 'output_count' => count($result->output),
                 'outputs' => array_map(fn (CommandOutput $o): array => [
-                    'command' => $this->sanitizeCommandForLog($o->command),
+                    'command' => $this->redactOutputCommandForLog($o->command),
                     'output_length' => strlen($o->output),
                     'output_tail' => substr($o->output, -200),
                 ], $result->output),
@@ -64,7 +75,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
             'hostname' => $this->switchConfig->hostname,
             'output_count' => count($result->output),
             'outputs' => array_map(fn (CommandOutput $o): array => [
-                'command' => $this->sanitizeCommandForLog($o->command),
+                'command' => $this->redactOutputCommandForLog($o->command),
                 'output_length' => strlen($o->output),
             ], $result->output),
         ]);
@@ -76,26 +87,20 @@ class SshProxyTransport implements SwitchCommandTransportInterface
 
     /**
      * @param  array<int, string>  $commands
-     * @return array<int, array{command: string, expect?: string, if?: string}>
+     * @return array<int, array{command: string, sensitive?: true, if?: array{type: 'literal'|'regex', value: string}, expect: array{type: 'literal'|'regex', value: string}}>
      */
     protected function buildCommands(array $commands): array
     {
-        $proxyCommands = [];
-
         $enablePassword = $this->switchConfig->enable_password ?? '';
-        $defaultPromptExpectation = $enablePassword !== '' ? '/^{prompt}(\([^)]*\))?#\s*$/' : '/^{prompt}(\([^)]*\))?[>#]\s*$/';
+        $promptExpectation = Matcher::regex($enablePassword !== '' ? self::PRIVILEGED_PROMPT : self::ANY_PROMPT);
 
-        if ($enablePassword !== '') {
-            $proxyCommands[] = ['command' => 'en', 'if' => '/^{prompt}>\s*$/', 'expect' => '/Password:/'];
-            $proxyCommands[] = ['command' => $enablePassword, 'if' => '/Password:/', 'expect' => $defaultPromptExpectation];
-        }
-
-        $proxyCommands[] = ['command' => 'terminal length 0', 'expect' => $defaultPromptExpectation];
+        $proxyCommands = $enablePassword !== '' ? $this->enableStepsSkippedOnPooledConnections($enablePassword, $promptExpectation) : [];
+        $proxyCommands[] = ['command' => 'terminal length 0', 'expect' => $promptExpectation];
 
         foreach ($commands as $command) {
             $proxyCommands[] = [
                 'command' => $command,
-                'expect' => $this->expectedPromptFor($command, $defaultPromptExpectation),
+                'expect' => $this->expectedPromptFor($command, $promptExpectation),
             ];
         }
 
@@ -103,36 +108,46 @@ class SshProxyTransport implements SwitchCommandTransportInterface
     }
 
     /**
-     * @param  array<int, array{command: string, expect?: string, if?: string}>  $commands
-     * @return array<int, array{command: string, expect?: string, if?: string}>
+     * @param  array{type: 'literal'|'regex', value: string}  $promptExpectation
+     * @return array<int, array{command: string, sensitive?: true, if: array{type: 'literal'|'regex', value: string}, expect: array{type: 'literal'|'regex', value: string}}>
      */
-    protected function sanitizeCommandsForLog(array $commands): array
+    protected function enableStepsSkippedOnPooledConnections(string $enablePassword, array $promptExpectation): array
+    {
+        return [
+            ['command' => 'en', 'if' => Matcher::regex(self::USER_PROMPT), 'expect' => Matcher::literal('Password:')],
+            ['command' => $enablePassword, 'sensitive' => true, 'if' => Matcher::literal('Password:'), 'expect' => $promptExpectation],
+        ];
+    }
+
+    /**
+     * @param  array<int, array{command: string, sensitive?: true, if?: array{type: 'literal'|'regex', value: string}, expect: array{type: 'literal'|'regex', value: string}}>  $commands
+     * @return array<int, array<string, mixed>>
+     */
+    protected function redactCommandsForLog(array $commands): array
     {
         return array_map(fn (array $cmd): array => [
-            'command' => $this->sanitizeCommandForLog($cmd['command']),
-            ...array_filter([
-                'expect' => $cmd['expect'] ?? null,
-                'if' => $cmd['if'] ?? null,
-            ]),
+            ...$cmd,
+            'command' => ($cmd['sensitive'] ?? false) ? '****' : $cmd['command'],
         ], $commands);
     }
 
-    protected function sanitizeCommandForLog(string $command): string
+    protected function redactOutputCommandForLog(string $command): string
     {
         $enablePassword = $this->switchConfig->enable_password ?? '';
-        if ($enablePassword !== '' && $command === $enablePassword) {
-            return '****';
-        }
 
-        return $command;
+        return $enablePassword !== '' && $command === $enablePassword ? '****' : $command;
     }
 
-    protected function expectedPromptFor(string $command, string $defaultPromptExpectation): string
+    /**
+     * @param  array{type: 'literal'|'regex', value: string}  $defaultPromptExpectation
+     * @return array{type: 'literal'|'regex', value: string}
+     */
+    protected function expectedPromptFor(string $command, array $defaultPromptExpectation): array
     {
         return match (true) {
-            in_array($command, ['configure terminal', 'conf t'], true) => '/^{prompt}\\(config\\)#\s*$/',
-            str_starts_with($command, 'interface ') || str_starts_with($command, 'int ') => '/^{prompt}\\(config-if\\)#\s*$/',
-            in_array($command, ['shutdown', 'no shutdown', 'shut', 'no shut'], true) => '/^{prompt}\\(config-if\\)#\s*$/',
+            in_array($command, ['configure terminal', 'conf t'], true) => Matcher::regex(self::CONFIG_PROMPT),
+            str_starts_with($command, 'interface ') || str_starts_with($command, 'int ') => Matcher::regex(self::CONFIG_IF_PROMPT),
+            in_array($command, ['shutdown', 'no shutdown', 'shut', 'no shut'], true) => Matcher::regex(self::CONFIG_IF_PROMPT),
             default => $defaultPromptExpectation,
         };
     }
@@ -159,7 +174,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
                     'hostname' => $this->switchConfig->hostname,
                     'command' => $command,
                     'available_commands' => array_map(
-                        fn (CommandOutput $o): string => $this->sanitizeCommandForLog($o->command),
+                        fn (CommandOutput $o): string => $this->redactOutputCommandForLog($o->command),
                         $result->output
                     ),
                 ]);

@@ -67,7 +67,7 @@ func (h *Handler) IsValidChannel(channel string) bool {
 func GenerateRequestID() string {
 	b := make([]byte, 4)
 	if _, err := rand.Read(b); err != nil {
-		return "00000000"
+		panic(err)
 	}
 	return hex.EncodeToString(b)
 }
@@ -83,8 +83,20 @@ func ContextWithRequestID(ctx context.Context, id string) context.Context {
 	return context.WithValue(ctx, requestIDKey, id)
 }
 
-func writeJSON(w http.ResponseWriter, status int, data any) {
+func WriteJSON(logger *slog.Logger, w http.ResponseWriter, status int, data any) {
+	body, err := json.Marshal(data)
+	if err != nil {
+		logger.Error("failed to encode JSON response", "error", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		if _, werr := w.Write([]byte(`{"error":"Internal server error"}` + "\n")); werr != nil {
+			logger.Error("failed to write JSON response", "error", werr)
+		}
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	if _, err := w.Write(append(body, '\n')); err != nil {
+		logger.Error("failed to write JSON response", "error", err)
+	}
 }

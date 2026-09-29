@@ -43,7 +43,7 @@ class SecurityHeaders
     {
         $script = ["'self'", sprintf("'nonce-%s'", $nonce)];
         $connect = ["'self'"];
-        $style = ["'self'", "'unsafe-inline'"];
+        $style = ["'self'", sprintf("'nonce-%s'", $nonce)];
         $font = ["'self'", 'data:'];
         $img = ["'self'", 'data:', 'blob:'];
 

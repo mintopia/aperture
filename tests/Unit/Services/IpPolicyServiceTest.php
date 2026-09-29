@@ -30,7 +30,7 @@ class IpPolicyServiceTest extends TestCase
         $service->applyUserPolicy($user, $ip);
 
         $ip->refresh();
-        $this->assertTrue($ip->internet_enabled);
+        $this->assertTrue($ip->isInternetAllowed());
         $this->assertFalse($ip->rate_limit_enabled);
         $this->assertTrue($ip->dns_filtering_enabled);
     }
@@ -50,7 +50,7 @@ class IpPolicyServiceTest extends TestCase
         $service->applyUserPolicy($user, $ip);
 
         $ip->refresh();
-        $this->assertFalse($ip->internet_enabled);
+        $this->assertFalse($ip->isInternetAllowed());
         $this->assertFalse($ip->rate_limit_enabled);
         $this->assertTrue($ip->dns_filtering_enabled);
     }
@@ -92,7 +92,7 @@ class IpPolicyServiceTest extends TestCase
         $service->applyDefaults($ip);
 
         $ip->refresh();
-        $this->assertFalse($ip->internet_enabled);
+        $this->assertFalse($ip->isInternetAllowed());
         $this->assertFalse($ip->rate_limit_enabled);
         $this->assertFalse($ip->dns_filtering_enabled);
     }

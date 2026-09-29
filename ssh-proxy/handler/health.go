@@ -12,7 +12,7 @@ type healthResponse struct {
 }
 
 func (h *Handler) Health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, healthResponse{
+	WriteJSON(h.logger, w, http.StatusOK, healthResponse{
 		Status:        "ok",
 		Version:       Version,
 		UptimeSeconds: int(time.Since(h.startTime).Seconds()),

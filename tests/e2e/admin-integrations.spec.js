@@ -1,8 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 import { startHttpStub } from './support/http-stub.js';
 import { createSwitch, uniqueSwitch } from './support/switches.js';
-
-test.describe.configure({ mode: 'default' });
 
 async function openIntegration(page, service) {
     await page.goto('/admin/settings/integrations');

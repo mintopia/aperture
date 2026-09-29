@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/test.js';
 import { artisan } from './support/fixtures.js';
 
 async function openUserEdit(page, nickname) {
@@ -168,8 +168,8 @@ test.describe('User parameters', () => {
     test.describe.configure({ mode: 'serial' });
 
     test('adds, edits and deletes a parameter', async ({ page }) => {
-        await page.goto('/admin/users?search=pw-edit-user');
-        await page.getByTestId('data-table-row').filter({ hasText: 'pw-edit-user' }).click();
+        await page.goto('/admin/users?search=pw-param-user');
+        await page.getByTestId('data-table-row').filter({ hasText: 'pw-param-user' }).click();
         const section = page.getByTestId('user-data-section');
 
         await page.getByTestId('parameter-add-btn').click();
@@ -195,8 +195,8 @@ test.describe('User parameters', () => {
     });
 
     test('rejects a parameter with an empty key', async ({ page }) => {
-        await page.goto('/admin/users?search=pw-edit-user');
-        await page.getByTestId('data-table-row').filter({ hasText: 'pw-edit-user' }).click();
+        await page.goto('/admin/users?search=pw-param-user');
+        await page.getByTestId('data-table-row').filter({ hasText: 'pw-param-user' }).click();
 
         await page.getByTestId('parameter-add-btn').click();
         await page.getByTestId('parameter-value-input').fill('orphan');

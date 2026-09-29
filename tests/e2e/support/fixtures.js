@@ -1,4 +1,6 @@
 import { execFile, execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { promisify } from 'node:util';
 import { buildPlaywrightEnv, resolveBaseUrl } from '../../../playwright/env.js';
 
@@ -23,7 +25,7 @@ export function prepareFixtures() {
 }
 
 export async function saveLoginState(browser, { email, password }, file) {
-    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const context = await browser.newContext({ baseURL: resolveBaseUrl(), storageState: { cookies: [], origins: [] } });
     const page = await context.newPage();
     await page.goto('/login');
     await page.getByTestId('login-email').fill(email);
@@ -31,6 +33,10 @@ export async function saveLoginState(browser, { email, password }, file) {
     const login = page.waitForResponse((r) => r.url().endsWith('/login') && r.request().method() === 'POST');
     await page.getByTestId('login-submit').click();
     await login;
-    await context.storageState({ path: file });
+    const state = await context.storageState();
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const temp = `${file}.${process.pid}.tmp`;
+    fs.writeFileSync(temp, JSON.stringify(state));
+    fs.renameSync(temp, file);
     await context.close();
 }

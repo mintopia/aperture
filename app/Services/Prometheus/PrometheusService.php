@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Prometheus;
 
+use App\Support\BandwidthUnits;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
@@ -57,18 +58,22 @@ class PrometheusService
         $escapedIfName = $this->escapePromQLLabelValue($ifName);
 
         $inQuery = sprintf(
-            'rate(ifHCInOctets{instance=~"%s.*",ifName="%s"}[5m]) * 8 or rate(ifInOctets{instance=~"%s.*",ifName="%s"}[5m]) * 8',
+            'rate(ifHCInOctets{instance=~"%s.*",ifName="%s"}[5m]) * %d or rate(ifInOctets{instance=~"%s.*",ifName="%s"}[5m]) * %d',
             $escapedDevice,
             $escapedIfName,
+            BandwidthUnits::BITS_PER_BYTE,
             $escapedDevice,
             $escapedIfName,
+            BandwidthUnits::BITS_PER_BYTE,
         );
         $outQuery = sprintf(
-            'rate(ifHCOutOctets{instance=~"%s.*",ifName="%s"}[5m]) * 8 or rate(ifOutOctets{instance=~"%s.*",ifName="%s"}[5m]) * 8',
+            'rate(ifHCOutOctets{instance=~"%s.*",ifName="%s"}[5m]) * %d or rate(ifOutOctets{instance=~"%s.*",ifName="%s"}[5m]) * %d',
             $escapedDevice,
             $escapedIfName,
+            BandwidthUnits::BITS_PER_BYTE,
             $escapedDevice,
             $escapedIfName,
+            BandwidthUnits::BITS_PER_BYTE,
         );
 
         return [

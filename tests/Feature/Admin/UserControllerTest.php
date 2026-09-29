@@ -243,8 +243,8 @@ class UserControllerTest extends TestCase
         $response = $this->actingAs($admin)->post(route('admin.users.internet', $user), ['enable' => true]);
 
         $response->assertRedirect();
-        $this->assertTrue($ip1->fresh()->internet_enabled);
-        $this->assertTrue($ip2->fresh()->internet_enabled);
+        $this->assertTrue($ip1->fresh()->isInternetAllowed());
+        $this->assertTrue($ip2->fresh()->isInternetAllowed());
     }
 
     public function test_admin_can_disable_internet_for_all_user_ips(): void
@@ -259,7 +259,7 @@ class UserControllerTest extends TestCase
         $response = $this->actingAs($admin)->post(route('admin.users.internet', $user), ['enable' => false]);
 
         $response->assertRedirect();
-        $this->assertFalse($ip->fresh()->internet_enabled);
+        $this->assertFalse($ip->fresh()->isInternetAllowed());
     }
 
     public function test_admin_can_enable_rate_limit_for_all_user_ips(): void

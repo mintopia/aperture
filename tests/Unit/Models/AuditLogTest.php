@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Models;
 
+use App\Events\AuditLogRecorded;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class AuditLogTest extends TestCase
@@ -84,5 +86,19 @@ class AuditLogTest extends TestCase
         $this->assertSame('info', $defaulted->severity);
         $this->assertDatabaseHas('audit_logs', ['action' => 'switch.unreachable', 'severity' => 'critical']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'user.login', 'severity' => 'info']);
+    }
+
+    public function test_write_persists_without_broadcasting_and_record_broadcasts(): void
+    {
+        Event::fake([AuditLogRecorded::class]);
+
+        AuditLog::write(action: 'user.login', process: 'e2e', severity: 'warning');
+
+        $this->assertDatabaseHas('audit_logs', ['action' => 'user.login', 'process' => 'e2e', 'severity' => 'warning']);
+        Event::assertNotDispatched(AuditLogRecorded::class);
+
+        AuditLog::record(action: 'user.login');
+
+        Event::assertDispatched(AuditLogRecorded::class);
     }
 }

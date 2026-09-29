@@ -163,27 +163,9 @@ class OpnSenseDhcpService implements DhcpInterface
         $rangeTo = isset($row[$this->rangeFieldMap['range_to']]) ? (string) $row[$this->rangeFieldMap['range_to']] : null;
         $prefix = isset($row[$this->rangeFieldMap['prefix']]) ? (string) $row[$this->rangeFieldMap['prefix']] : null;
 
-        if (isset($this->rangeFieldMap['pools']) && isset($row[$this->rangeFieldMap['pools']])) {
-            $pools = (string) $row[$this->rangeFieldMap['pools']];
-            if (preg_match('/^\s*([^\s-]+)\s*-\s*([^\s-]+)\s*$/', $pools, $matches)) {
-                $rangeFrom = $rangeFrom ?: $matches[1];
-                $rangeTo = $rangeTo ?: $matches[2];
-            }
-        }
-
-        if ($subnet === null && $rangeFrom !== null && isset($this->rangeFieldMap['subnet_mask']) && isset($row[$this->rangeFieldMap['subnet_mask']])) {
-            $subnetMask = (string) $row[$this->rangeFieldMap['subnet_mask']];
-            if ($subnetMask !== '') {
-                $subnet = $this->calculateSubnet($rangeFrom, $subnetMask);
-            }
-        }
-
-        if ($prefix !== null && $rangeFrom !== null && str_contains($rangeFrom, ':')) {
-            $prefixLen = $prefix;
-            if (is_numeric($prefixLen)) {
-                $prefix = $rangeFrom.'/'.$prefixLen;
-            }
-        }
+        [$rangeFrom, $rangeTo] = $this->parseKeaPools($row, $rangeFrom, $rangeTo);
+        $subnet ??= $this->parseDnsmasqIpv4Mask($row, $rangeFrom);
+        $prefix = $this->parseDnsmasqIpv6PrefixLength($prefix, $rangeFrom);
 
         if ($prefix !== null) {
             $prefix = IpAddress::normalize($prefix);
@@ -199,6 +181,47 @@ class OpnSenseDhcpService implements DhcpInterface
             gateway: isset($row[$this->rangeFieldMap['gateway']]) ? (string) $row[$this->rangeFieldMap['gateway']] : null,
             description: isset($row[$this->rangeFieldMap['description']]) ? (string) $row[$this->rangeFieldMap['description']] : null,
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function parseKeaPools(array $row, ?string $rangeFrom, ?string $rangeTo): array
+    {
+        if (! isset($this->rangeFieldMap['pools']) || ! isset($row[$this->rangeFieldMap['pools']])) {
+            return [$rangeFrom, $rangeTo];
+        }
+
+        $pools = (string) $row[$this->rangeFieldMap['pools']];
+        if (preg_match('/^\s*([^\s-]+)\s*-\s*([^\s-]+)\s*$/', $pools, $matches) !== 1) {
+            return [$rangeFrom, $rangeTo];
+        }
+
+        return [$rangeFrom ?: $matches[1], $rangeTo ?: $matches[2]];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function parseDnsmasqIpv4Mask(array $row, ?string $rangeFrom): ?string
+    {
+        if ($rangeFrom === null || ! isset($this->rangeFieldMap['subnet_mask']) || ! isset($row[$this->rangeFieldMap['subnet_mask']])) {
+            return null;
+        }
+
+        $subnetMask = (string) $row[$this->rangeFieldMap['subnet_mask']];
+
+        return $subnetMask === '' ? null : $this->calculateSubnet($rangeFrom, $subnetMask);
+    }
+
+    private function parseDnsmasqIpv6PrefixLength(?string $prefix, ?string $rangeFrom): ?string
+    {
+        if ($prefix !== null && $rangeFrom !== null && str_contains($rangeFrom, ':') && is_numeric($prefix)) {
+            return $rangeFrom.'/'.$prefix;
+        }
+
+        return $prefix;
     }
 
     private function calculateSubnet(string $ipAddress, string $subnetMask): ?string
