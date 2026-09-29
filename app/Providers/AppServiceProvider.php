@@ -105,6 +105,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('captive-portal', function (Request $request) {
+            if ($this->app->environment('playwright')) {
+                return Limit::none();
+            }
+
             return Limit::perMinute(30)->by($request->ip());
         });
     }

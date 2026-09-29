@@ -93,7 +93,7 @@ export function buildPlaywrightEnv(baseURL = resolveBaseUrl()) {
     const playwrightQueueConnection = process.env.PLAYWRIGHT_QUEUE_CONNECTION || 'sync';
 
     return {
-        APP_ENV: process.env.APP_ENV || readDotEnvValue('APP_ENV') || 'playwright',
+        APP_ENV: 'playwright',
         APP_URL: baseURL,
         DB_CONNECTION: playwrightDbConnection,
         DB_DATABASE: playwrightDbConnection === 'sqlite' ? playwrightSqliteDatabase : process.env.PLAYWRIGHT_DB_DATABASE || process.env.DB_DATABASE || readDotEnvValue('DB_DATABASE'),
