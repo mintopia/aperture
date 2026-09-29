@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\NetworkDeviceTracking;
 
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Models\Setting;
@@ -139,6 +140,23 @@ class UserLoginCascadeTest extends TestCase
             'subject_id' => $siblingIp->id,
             'process' => 'portal_login',
         ]);
+    }
+
+    public function test_repeat_logins_audit_a_cascade_only_once(): void
+    {
+        $user = User::factory()->create(['internet_blocked' => false]);
+        $ip = IpAddress::factory()->create(['address' => '127.0.0.1']);
+        $siblingIp = IpAddress::factory()->create(['address' => '127.0.0.2']);
+        $mac = MacAddress::factory()->create(['user_id' => null]);
+        $ip->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+        $siblingIp->macAddresses()->attach($mac, ['source' => 'arp', 'last_seen_at' => now()]);
+
+        $service = resolve(UserNetworkAssociationService::class);
+        $service->addIp($user, '127.0.0.1');
+        $service->addIp($user, '127.0.0.1');
+        $service->addIp($user, '127.0.0.1');
+
+        $this->assertSame(1, AuditLog::where('action', 'ip.user_cascaded')->count());
     }
 
     public function test_login_cascade_respects_managed_ranges(): void

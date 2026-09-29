@@ -98,7 +98,7 @@ class UserNetworkAssociationService
 
                 $cascaded = $this->addIp($user, $siblingIp->address, cascade: false);
 
-                if ($cascaded instanceof IpAddress) {
+                if ($existingOwner === null && $cascaded instanceof IpAddress) {
                     AuditLog::record(
                         action: 'ip.user_cascaded',
                         subject: $siblingIp,
