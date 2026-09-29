@@ -30,6 +30,7 @@ services:
 
   db:
     image: mariadb:11.4-noble
+    user: "${PUID:-999}:${PGID:-999}"
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
@@ -139,6 +140,7 @@ services:
 
   redis:
     image: redis:7.4-alpine
+    user: "${PUID:-999}:${PGID:-999}"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
