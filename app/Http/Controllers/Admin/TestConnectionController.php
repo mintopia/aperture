@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConnectionTestLog;
-use App\Services\Integration\IntegrationConfigMerger;
+use App\Services\Integration\DeclaredFieldConfigMerger;
 use App\Services\Interfaces\TestableIntegration;
 use App\Services\ValueObjects\TestConnectionResult;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 class TestConnectionController extends Controller
 {
     public function __construct(
-        private IntegrationConfigMerger $configMerger,
+        private DeclaredFieldConfigMerger $configMerger,
     ) {}
 
     public function test(Request $request, string $service): JsonResponse
