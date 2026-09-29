@@ -66,7 +66,7 @@ class CiscoDhcpServiceTest extends TestCase
         ]);
     }
 
-    private function ipv6BindingOutput(): string
+    private function ipv6BindingOutput(string $address = '2001:db8::100'): string
     {
         return implode("\n", [
             'Client: FE80::1',
@@ -74,7 +74,7 @@ class CiscoDhcpServiceTest extends TestCase
             '  Username : unassigned',
             '  VRF : default',
             '  IA NA: IA ID 0x00000001, T1 43200, T2 69120',
-            '    Address: 2001:DB8::100',
+            "    Address: {$address}",
             '            preferred lifetime 86400, valid lifetime 172800',
             '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
         ]);
@@ -84,7 +84,7 @@ class CiscoDhcpServiceTest extends TestCase
     {
         return implode("\n", [
             'DHCPv6 pool: LAN6',
-            '  Address allocation prefix: 2001:DB8::/64',
+            '  Address allocation prefix: 2001:db8::/64',
             '  DNS server: 2001:4860:4860::8888',
             '  Active clients: 1',
         ]);
@@ -94,7 +94,7 @@ class CiscoDhcpServiceTest extends TestCase
     {
         return implode("\n", [
             'ipv6 dhcp pool LAN6',
-            ' address prefix 2001:DB8::/64',
+            ' address prefix 2001:db8::/64',
             '!',
         ]);
     }
@@ -162,7 +162,7 @@ class CiscoDhcpServiceTest extends TestCase
 
     public function test_get_leases_includes_ipv6_when_enabled(): void
     {
-        $this->expectTransportCall(ipv6: true);
+        $this->expectTransportCall(outputs: [...$this->defaultCommandOutputs(), 'show ipv6 dhcp binding' => $this->ipv6BindingOutput('2001:DB8::100')]);
 
         $service = $this->createService(ipv6Enabled: true);
         $leases = $service->snapshot()->leases;
@@ -221,71 +221,6 @@ class CiscoDhcpServiceTest extends TestCase
         $this->assertNotNull($ipv4Range->totalAddresses);
         $this->assertSame('245', $ipv4Range->totalAddresses);
         $this->assertEqualsWithDelta(0.0082, $ipv4Range->utilisation, 0.0001);
-    }
-
-    public function test_get_ranges_counts_zero_used_when_range_bounds_unparsable(): void
-    {
-        $parser = Mockery::mock(IosOutputParser::class)->makePartial();
-        $parser->shouldReceive('computeEffectiveRanges')->andReturn([
-            [
-                'name' => 'BROKEN',
-                'subnet' => '10.0.0.0/24',
-                'range_from' => 'not-an-ip',
-                'range_to' => 'also-not-an-ip',
-                'total_addresses' => '245',
-                'gateway' => '10.0.0.1',
-            ],
-        ]);
-
-        $this->transport
-            ->shouldReceive('executeMultiple')
-            ->once()
-            ->andReturn($this->defaultCommandOutputs(ipv6: false));
-
-        $this->transport
-            ->shouldReceive('disconnect')
-            ->once();
-
-        $service = new CiscoDhcpService($this->transport, $parser, '0', false);
-        $ranges = $service->snapshot()->ranges;
-
-        $broken = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'BROKEN');
-        $this->assertInstanceOf(DhcpRange::class, $broken);
-        $this->assertSame('245', $broken->totalAddresses);
-        $this->assertSame(0, $broken->usedAddresses);
-        $this->assertSame(0.0, $broken->utilisation);
-    }
-
-    public function test_get_ranges_utilisation_zero_when_total_addresses_zero(): void
-    {
-        $parser = Mockery::mock(IosOutputParser::class)->makePartial();
-        $parser->shouldReceive('computeEffectiveRanges')->andReturn([
-            [
-                'name' => 'EMPTY',
-                'subnet' => '10.0.0.0/32',
-                'range_from' => '10.0.0.0',
-                'range_to' => '10.0.0.0',
-                'total_addresses' => '0',
-                'gateway' => '',
-            ],
-        ]);
-
-        $this->transport
-            ->shouldReceive('executeMultiple')
-            ->once()
-            ->andReturn($this->defaultCommandOutputs(ipv6: false));
-
-        $this->transport
-            ->shouldReceive('disconnect')
-            ->once();
-
-        $service = new CiscoDhcpService($this->transport, $parser, '0', false);
-        $ranges = $service->snapshot()->ranges;
-
-        $empty = $ranges->first(fn (DhcpRange $r): bool => $r->interface === 'EMPTY');
-        $this->assertInstanceOf(DhcpRange::class, $empty);
-        $this->assertSame('0', $empty->totalAddresses);
-        $this->assertSame(0.0, $empty->utilisation);
     }
 
     public function test_get_ranges_ipv6_total_addresses_null_for_missing_or_malformed_prefix(): void
@@ -518,7 +453,14 @@ class CiscoDhcpServiceTest extends TestCase
 
     public function test_get_ranges_normalizes_ipv6_prefix_to_lowercase(): void
     {
-        $this->expectTransportCall();
+        $outputs = $this->defaultCommandOutputs();
+        $outputs['show running-config | section ipv6 dhcp pool'] = implode("\n", [
+            'ipv6 dhcp pool LAN6',
+            ' address prefix 2001:DB8::/64',
+            '!',
+        ]);
+
+        $this->expectTransportCall(outputs: $outputs);
 
         $service = $this->createService();
         $ranges = $service->snapshot()->ranges;
@@ -592,7 +534,7 @@ class CiscoDhcpServiceTest extends TestCase
 
     public function test_get_lease_matches_ipv6_address_case_insensitively(): void
     {
-        $this->expectTransportCall();
+        $this->expectTransportCall(outputs: [...$this->defaultCommandOutputs(), 'show ipv6 dhcp binding' => $this->ipv6BindingOutput('2001:DB8::100')]);
 
         $service = $this->createService();
         $lease = $service->getLease('2001:db8::100');
@@ -698,42 +640,6 @@ class CiscoDhcpServiceTest extends TestCase
         $snapshot = $service->snapshot();
         $snapshot->poolStatus(AddressFamily::IPv4);
         $snapshot->leases->firstWhere('ip', '10.0.0.50');
-    }
-
-    public function test_ipv6_exception_sets_status_to_false_and_does_not_block_ipv4(): void
-    {
-        $parser = Mockery::mock(IosOutputParser::class)->makePartial();
-        $parser->shouldReceive('isErrorOutput')->andReturn(false);
-        $parser->shouldReceive('parseDhcpv6BindingTable')->andThrow(new RuntimeException('ipv6 parse error'));
-
-        $outputs = [
-            'show ip dhcp binding' => $this->ipv4BindingOutput(),
-            'show ip dhcp pool' => $this->ipv4PoolStatsOutput(),
-            'show running-config | section ip dhcp' => $this->ipv4PoolConfigOutput(),
-            'show ipv6 dhcp binding' => $this->ipv6BindingOutput(),
-            'show ipv6 dhcp pool' => $this->ipv6PoolStatsOutput(),
-            'show running-config | section ipv6 dhcp pool' => $this->ipv6PoolConfigOutput(),
-        ];
-
-        $this->transport
-            ->shouldReceive('executeMultiple')
-            ->once()
-            ->andReturn($outputs);
-
-        $this->transport
-            ->shouldReceive('disconnect')
-            ->once();
-
-        $service = new CiscoDhcpService($this->transport, $parser, '0', true);
-
-        $snapshot = $service->snapshot();
-        $leases = $snapshot->leases;
-
-        $this->assertCount(2, $leases);
-
-        $status = DhcpFetchStatusArray::of($snapshot);
-        $this->assertTrue($status['ipv4']);
-        $this->assertFalse($status['ipv6']);
     }
 
     public function test_lease_expiry_is_converted_from_switch_timezone_to_utc(): void

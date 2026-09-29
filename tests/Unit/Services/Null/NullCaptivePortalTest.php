@@ -16,18 +16,6 @@ class NullCaptivePortalTest extends TestCase
         $this->provider = new NullCaptivePortal;
     }
 
-    public function test_add_ip_is_noop(): void
-    {
-        $this->provider->addIp('10.0.0.1', 'test');
-        $this->assertTrue(true);
-    }
-
-    public function test_remove_ip_is_noop(): void
-    {
-        $this->provider->removeIp('10.0.0.1');
-        $this->assertTrue(true);
-    }
-
     public function test_reconcile_returns_empty_result(): void
     {
         $result = $this->provider->reconcile();

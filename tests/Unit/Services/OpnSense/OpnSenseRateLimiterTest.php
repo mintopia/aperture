@@ -13,7 +13,6 @@ use App\Services\ValueObjects\ReconcileResult;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
-use ReflectionClass;
 use stdClass;
 use Tests\TestCase;
 
@@ -315,7 +314,7 @@ class OpnSenseRateLimiterTest extends TestCase
     {
         $rule = $this->makeRuleResponse([], '8080', '443');
 
-        $this->client->expects($this->once())
+        $this->client->expects($this->exactly(2))
             ->method('get')
             ->willReturn($rule);
 
@@ -338,9 +337,7 @@ class OpnSenseRateLimiterTest extends TestCase
                 return (object) ['status' => 'ok'];
             });
 
-        $reflection = new ReflectionClass($this->limiter);
-        $method = $reflection->getMethod('addHostToRule');
-        $method->invoke($this->limiter, 'down-uuid', '10.0.0.50', 'destination');
+        $this->limiter->limitIp('10.0.0.50');
     }
 
     public function test_reconcile_adds_missing_rate_limited_ips(): void
@@ -741,47 +738,50 @@ class OpnSenseRateLimiterTest extends TestCase
         $this->assertSame([], $result->errors);
     }
 
-    #[AllowMockObjectsWithoutExpectations]
-    public function test_filter_extracts_selected_keys(): void
+    public function test_limit_ip_ignores_unselected_hosts(): void
     {
-        $reflection = new ReflectionClass($this->limiter);
-        $method = $reflection->getMethod('filter');
+        $rule = $this->makeRuleResponse(['10.0.0.1', '10.0.0.3']);
+        $rule->rule->destination->{'10.0.0.2'} = (object) ['value' => '10.0.0.2', 'selected' => false];
 
-        $objects = (object) [
-            '10.0.0.1' => (object) ['value' => '10.0.0.1', 'selected' => true],
-            '10.0.0.2' => (object) ['value' => '10.0.0.2', 'selected' => false],
-            '10.0.0.3' => (object) ['value' => '10.0.0.3', 'selected' => true],
-        ];
+        $this->client->expects($this->atLeastOnce())->method('get')->willReturn($rule);
 
-        $result = $method->invoke($this->limiter, $objects);
+        $destinations = [];
+        $this->client->expects($this->atLeastOnce())->method('post')
+            ->willReturnCallback(function (string $uri, array $query = [], array|stdClass|null $payload = []) use (&$destinations): stdClass {
+                if (str_contains($uri, 'set_rule/down-uuid')) {
+                    $destinations[] = $payload->rule->destination;
+                }
 
-        $this->assertSame(['10.0.0.1', '10.0.0.3'], $result);
+                return (object) ['result' => 'saved', 'status' => 'ok'];
+            });
+
+        $this->limiter->limitIp('10.0.0.50');
+
+        $this->assertSame(['10.0.0.1,10.0.0.3,10.0.0.50'], $destinations);
     }
 
-    #[AllowMockObjectsWithoutExpectations]
-    public function test_filter_handles_empty_object(): void
+    public function test_limit_ip_handles_rule_fields_returned_as_empty_arrays(): void
     {
-        $reflection = new ReflectionClass($this->limiter);
-        $method = $reflection->getMethod('filter');
+        $rule = $this->makeRuleResponse();
+        $rule->rule->destination = [];
+        $rule->rule->source = [];
+        $rule->rule->dscp = [];
 
-        $result = $method->invoke($this->limiter, (object) []);
+        $this->client->expects($this->atLeastOnce())->method('get')->willReturn($rule);
 
-        $this->assertSame([], $result);
-    }
+        $destinations = [];
+        $this->client->expects($this->atLeastOnce())->method('post')
+            ->willReturnCallback(function (string $uri, array $query = [], array|stdClass|null $payload = []) use (&$destinations): stdClass {
+                if (str_contains($uri, 'set_rule/down-uuid')) {
+                    $destinations[] = $payload->rule->destination;
+                }
 
-    #[AllowMockObjectsWithoutExpectations]
-    public function test_filter_handles_array_input(): void
-    {
-        $reflection = new ReflectionClass($this->limiter);
-        $method = $reflection->getMethod('filter');
+                return (object) ['result' => 'saved', 'status' => 'ok'];
+            });
 
-        $objects = [
-            '10.0.0.1' => (object) ['value' => '10.0.0.1', 'selected' => true],
-        ];
+        $this->limiter->limitIp('10.0.0.50');
 
-        $result = $method->invoke($this->limiter, $objects);
-
-        $this->assertSame(['10.0.0.1'], $result);
+        $this->assertSame(['10.0.0.50'], $destinations);
     }
 
     /**

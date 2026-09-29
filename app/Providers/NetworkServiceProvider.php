@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Integration\InstallGuard;
-use App\Models\SwitchConfig;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\Interfaces\IpMacResolverInterface;
 use App\Services\Interfaces\MacAddressResolverInterface;
@@ -13,6 +11,7 @@ use App\Services\Interfaces\NetworkSwitchInterface;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\MacAddressResolver;
 use App\Services\NetworkScan\DhcpSnoopingResolver;
+use App\Services\NetworkSwitch\DefaultSwitchConfigResolver;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\SshProxy\SshProxyClient;
 use Illuminate\Foundation\Application;
@@ -64,7 +63,7 @@ class NetworkServiceProvider extends ServiceProvider
         });
 
         $this->app->scoped(function (Application $app): NetworkSwitchInterface {
-            return $app->make(SwitchServiceFactory::class)->make($this->getDefaultSwitchConfig());
+            return $app->make(SwitchServiceFactory::class)->make($app->make(DefaultSwitchConfigResolver::class)->resolve());
         });
 
         $this->app->scoped(function (Application $app): MacAddressResolverInterface {
@@ -74,19 +73,5 @@ class NetworkServiceProvider extends ServiceProvider
                 $app->make(DhcpSnoopingResolver::class),
             );
         });
-    }
-
-    protected function getDefaultSwitchConfig(): SwitchConfig
-    {
-        $switchConfig = InstallGuard::tolerateMissingTable(
-            fn (): ?SwitchConfig => SwitchConfig::query()->where('enabled', true)->orderBy('id')->first(),
-            null,
-        );
-
-        if ($switchConfig instanceof SwitchConfig) {
-            return $switchConfig;
-        }
-
-        return SwitchConfig::defaultFallback();
     }
 }

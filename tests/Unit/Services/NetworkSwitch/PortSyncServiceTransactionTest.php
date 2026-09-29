@@ -25,7 +25,7 @@ class PortSyncServiceTransactionTest extends TestCase
         $switchConfig = SwitchConfig::factory()->create();
         $callOrder = [];
 
-        $adapter = $this->createMock(NetworkSwitchInterface::class);
+        $adapter = $this->createStub(NetworkSwitchInterface::class);
         $adapter->method('getAllPorts')->willReturnCallback(function () use (&$callOrder): Collection {
             $callOrder[] = 'getAllPorts';
 
@@ -46,7 +46,7 @@ class PortSyncServiceTransactionTest extends TestCase
                 return $callback();
             });
 
-        $factory = $this->createMock(SwitchServiceFactory::class);
+        $factory = $this->createStub(SwitchServiceFactory::class);
         $factory->method('make')->willReturn($adapter);
 
         $service = new PortSyncService($factory, new PortStatusSync, new PortMacSync, new PortConfigSync);

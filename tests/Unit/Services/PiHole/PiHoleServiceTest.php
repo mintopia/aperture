@@ -41,7 +41,7 @@ class PiHoleServiceTest extends TestCase
         return Http::recorded()->map(fn (array $pair): Request => $pair[0])->values()->all();
     }
 
-    private function authResponse(): PromiseInterface
+    private function piholeAuthOk(): PromiseInterface
     {
         return Http::response([
             'session' => [
@@ -51,18 +51,57 @@ class PiHoleServiceTest extends TestCase
         ]);
     }
 
+    /**
+     * @return array{id: int, client: string, groups: array<int, int>, comment: string}
+     */
+    private function piholeClient(int $id, string $ip, array $groups, string $comment): array
+    {
+        return ['id' => $id, 'client' => $ip, 'groups' => $groups, 'comment' => $comment];
+    }
+
+    /**
+     * @param  array<int, array{id: int, client: string, groups: array<int, int>, comment: string}>  $clients
+     */
+    private function piholeList(array $clients): PromiseInterface
+    {
+        return Http::response(['clients' => $clients], 200);
+    }
+
+    private function piholeListEmpty(): PromiseInterface
+    {
+        return $this->piholeList([]);
+    }
+
+    private function piholeClientSaved(int $id): PromiseInterface
+    {
+        return Http::response(['client' => ['id' => $id]], 200);
+    }
+
+    private function piholeClientCreated(int $id): PromiseInterface
+    {
+        return Http::response(['client' => ['id' => $id]], 201);
+    }
+
+    private function piholeClientDeleted(): PromiseInterface
+    {
+        return Http::response('', 204);
+    }
+
+    private function piholeServerError(): PromiseInterface
+    {
+        return Http::response(['error' => 'server error'], 500);
+    }
+
     public function test_enable_sets_only_filtered_group_on_existing_client(): void
     {
         Cache::flush();
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0], 'comment' => 'Test comment'],
-                ],
-            ], 200),
-            Http::response(['client' => ['id' => 5]], 200),
+            $this->piholeAuthOk(),
+            $this->piholeList([
+                $this->piholeClient(5, '10.0.0.10', [0], 'Test comment'),
+            ]),
+            $this->piholeClientSaved(5),
         ]);
 
         $service->enableForIp('10.0.0.10');
@@ -81,11 +120,9 @@ class PiHoleServiceTest extends TestCase
         Cache::flush();
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [],
-            ], 200),
-            Http::response(['client' => ['id' => 10]], 201),
+            $this->piholeAuthOk(),
+            $this->piholeListEmpty(),
+            $this->piholeClientCreated(10),
         ]);
 
         $service->enableForIp('10.0.0.20');
@@ -104,12 +141,10 @@ class PiHoleServiceTest extends TestCase
         Cache::flush();
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [1], 'comment' => ''],
-                ],
-            ], 200),
+            $this->piholeAuthOk(),
+            $this->piholeList([
+                $this->piholeClient(5, '10.0.0.10', [1], ''),
+            ]),
         ]);
 
         $service->enableForIp('10.0.0.10');
@@ -122,13 +157,11 @@ class PiHoleServiceTest extends TestCase
         Cache::flush();
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [0, 1, 2], 'comment' => ''],
-                ],
-            ], 200),
-            Http::response(['client' => ['id' => 5]], 200),
+            $this->piholeAuthOk(),
+            $this->piholeList([
+                $this->piholeClient(5, '10.0.0.10', [0, 1, 2], ''),
+            ]),
+            $this->piholeClientSaved(5),
         ]);
 
         $service->enableForIp('10.0.0.10');
@@ -143,13 +176,11 @@ class PiHoleServiceTest extends TestCase
         Cache::flush();
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 5, 'client' => '10.0.0.10', 'groups' => [1], 'comment' => 'Managed by Aperture'],
-                ],
-            ], 200),
-            Http::response('', 204),
+            $this->piholeAuthOk(),
+            $this->piholeList([
+                $this->piholeClient(5, '10.0.0.10', [1], 'Managed by Aperture'),
+            ]),
+            $this->piholeClientDeleted(),
         ]);
 
         $service->disableForIp('10.0.0.10');
@@ -164,10 +195,8 @@ class PiHoleServiceTest extends TestCase
         Cache::flush();
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [],
-            ], 200),
+            $this->piholeAuthOk(),
+            $this->piholeListEmpty(),
         ]);
 
         $service->disableForIp('10.0.0.99');
@@ -180,9 +209,9 @@ class PiHoleServiceTest extends TestCase
         Cache::flush();
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response(['clients' => []], 200),
-            Http::response(['clients' => []], 200),
+            $this->piholeAuthOk(),
+            $this->piholeListEmpty(),
+            $this->piholeListEmpty(),
         ]);
 
         $service->disableForIp('10.0.0.10');
@@ -202,18 +231,14 @@ class PiHoleServiceTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.2', 'dns_filtering_enabled' => false]);
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
-                ],
-            ], 200),
-            Http::response([
-                'clients' => [
-                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
-                ],
-            ], 200),
-            Http::response(['client' => ['id' => 1]], 200),
+            $this->piholeAuthOk(),
+            $this->piholeList([
+                $this->piholeClient(1, '10.0.0.1', [0], 'Managed by Aperture'),
+            ]),
+            $this->piholeList([
+                $this->piholeClient(1, '10.0.0.1', [0], 'Managed by Aperture'),
+            ]),
+            $this->piholeClientSaved(1),
         ]);
 
         $result = $service->reconcile();
@@ -233,19 +258,15 @@ class PiHoleServiceTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.2', 'dns_filtering_enabled' => false]);
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [1], 'comment' => 'Managed by Aperture'],
-                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => 'Managed by Aperture'],
-                ],
-            ], 200),
-            Http::response([
-                'clients' => [
-                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => 'Managed by Aperture'],
-                ],
-            ], 200),
-            Http::response('', 204),
+            $this->piholeAuthOk(),
+            $this->piholeList([
+                $this->piholeClient(1, '10.0.0.1', [1], 'Managed by Aperture'),
+                $this->piholeClient(2, '10.0.0.2', [1], 'Managed by Aperture'),
+            ]),
+            $this->piholeList([
+                $this->piholeClient(2, '10.0.0.2', [1], 'Managed by Aperture'),
+            ]),
+            $this->piholeClientDeleted(),
         ]);
 
         $result = $service->reconcile();
@@ -268,14 +289,10 @@ class PiHoleServiceTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.5', 'dns_filtering_enabled' => true]);
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [],
-            ], 200),
-            Http::response([
-                'clients' => [],
-            ], 200),
-            Http::response(['client' => ['id' => 10]], 201),
+            $this->piholeAuthOk(),
+            $this->piholeListEmpty(),
+            $this->piholeListEmpty(),
+            $this->piholeClientCreated(10),
         ]);
 
         $result = $service->reconcile();
@@ -302,12 +319,10 @@ class PiHoleServiceTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.1', 'dns_filtering_enabled' => true]);
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => 'Managed by Aperture'],
-                ],
-            ], 200),
+            $this->piholeAuthOk(),
+            $this->piholeList([
+                $this->piholeClient(1, '10.0.0.1', [0], 'Managed by Aperture'),
+            ]),
         ]);
 
         $result = $service->reconcile(dryRun: true);
@@ -329,26 +344,20 @@ class PiHoleServiceTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.4', 'dns_filtering_enabled' => false]);
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [
-                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => ''],
-                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => ''],
-                    ['id' => 3, 'client' => '10.0.0.3', 'groups' => [1], 'comment' => ''],
-                ],
-            ], 200),
-            Http::response([
-                'clients' => [
-                    ['id' => 1, 'client' => '10.0.0.1', 'groups' => [0], 'comment' => ''],
-                ],
-            ], 200),
-            Http::response(['client' => ['id' => 1]], 200),
-            Http::response([
-                'clients' => [
-                    ['id' => 2, 'client' => '10.0.0.2', 'groups' => [1], 'comment' => ''],
-                ],
-            ], 200),
-            Http::response('', 204),
+            $this->piholeAuthOk(),
+            $this->piholeList([
+                $this->piholeClient(1, '10.0.0.1', [0], ''),
+                $this->piholeClient(2, '10.0.0.2', [1], ''),
+                $this->piholeClient(3, '10.0.0.3', [1], ''),
+            ]),
+            $this->piholeList([
+                $this->piholeClient(1, '10.0.0.1', [0], ''),
+            ]),
+            $this->piholeClientSaved(1),
+            $this->piholeList([
+                $this->piholeClient(2, '10.0.0.2', [1], ''),
+            ]),
+            $this->piholeClientDeleted(),
         ]);
 
         $result = $service->reconcile();
@@ -367,14 +376,10 @@ class PiHoleServiceTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.1', 'dns_filtering_enabled' => true]);
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [],
-            ], 200),
-            Http::response([
-                'clients' => [],
-            ], 200),
-            Http::response(['client' => ['id' => 1]], 201),
+            $this->piholeAuthOk(),
+            $this->piholeListEmpty(),
+            $this->piholeListEmpty(),
+            $this->piholeClientCreated(1),
         ]);
 
         $result = $service->reconcile();
@@ -394,15 +399,11 @@ class PiHoleServiceTest extends TestCase
         IpAddress::factory()->create(['address' => '10.0.0.2', 'dns_filtering_enabled' => true]);
 
         $service = $this->createServiceWithMock([
-            $this->authResponse(),
-            Http::response([
-                'clients' => [],
-            ], 200),
-            Http::response(['error' => 'server error'], 500),
-            Http::response([
-                'clients' => [],
-            ], 200),
-            Http::response(['client' => ['id' => 2]], 201),
+            $this->piholeAuthOk(),
+            $this->piholeListEmpty(),
+            $this->piholeServerError(),
+            $this->piholeListEmpty(),
+            $this->piholeClientCreated(2),
         ]);
 
         $result = $service->reconcile();

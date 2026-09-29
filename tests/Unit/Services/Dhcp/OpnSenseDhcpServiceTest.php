@@ -9,7 +9,6 @@ use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\ConnectionException;
-use ReflectionClass;
 use Tests\Support\DhcpFetchStatusArray;
 use Tests\Support\Fake;
 use Tests\TestCase;
@@ -575,20 +574,6 @@ class OpnSenseDhcpServiceTest extends TestCase
         $ranges = $service->snapshot()->ranges;
         $this->assertCount(1, $ranges);
         $this->assertNull($ranges[0]->totalAddresses);
-    }
-
-    public function test_subnet_mask_to_cidr_returns_null_for_invalid_mask(): void
-    {
-        Fake::sequence([]);
-
-        $service = new OpnSenseDhcpService(client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), poolSize: 0);
-
-        $reflection = new ReflectionClass($service);
-        $method = $reflection->getMethod('subnetMaskToCidr');
-
-        $result = $method->invoke($service, 'not-a-valid-mask');
-
-        $this->assertNull($result);
     }
 
     public function test_both_ipv4_and_ipv6_paths_deduplicated_when_same(): void

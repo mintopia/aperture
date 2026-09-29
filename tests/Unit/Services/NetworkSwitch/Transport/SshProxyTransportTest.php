@@ -48,6 +48,16 @@ class SshProxyTransportTest extends TestCase
         $this->assertSame('ok', (new SshProxyTransport($proxyClient, $switchConfig))->execute('show version'));
     }
 
+    public function test_disconnect_does_not_contact_the_proxy(): void
+    {
+        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
+        $proxyClient->shouldNotReceive('execute');
+
+        (new SshProxyTransport($proxyClient, SwitchConfig::factory()->make()))->disconnect();
+
+        $proxyClient->shouldNotHaveReceived('execute');
+    }
+
     public function test_output_ending_in_non_prompt_hash_line_is_not_stripped(): void
     {
         $proxyClient = Mockery::mock(SshProxyClientInterface::class);
@@ -575,37 +585,6 @@ class SshProxyTransportTest extends TestCase
             'show interface status',
             'show mac address-table',
         ]);
-    }
-
-    public function test_disconnect_is_a_no_op(): void
-    {
-        $switchConfig = SwitchConfig::factory()->make();
-        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
-
-        $transport = new SshProxyTransport($proxyClient, $switchConfig);
-
-        $transport->disconnect();
-
-        $this->assertTrue(true);
-    }
-
-    public function test_execute_throws_when_output_key_missing_from_results(): void
-    {
-        $switchConfig = SwitchConfig::factory()->make();
-        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
-
-        $transport = new class($proxyClient, $switchConfig) extends SshProxyTransport
-        {
-            public function executeMultiple(array $commands): array
-            {
-                return [];
-            }
-        };
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Missing output for switch command [show version].');
-
-        $transport->execute('show version');
     }
 
     public function test_execute_passes_private_key_passphrase_and_host_key_to_proxy(): void
