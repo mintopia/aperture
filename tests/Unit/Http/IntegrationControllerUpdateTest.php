@@ -7,7 +7,7 @@ namespace Tests\Unit\Http;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Requests\Admin\UpdateIntegrationRequest;
 use App\Models\IntegrationConfig;
-use App\Services\Integration\IntegrationConfigMerger;
+use App\Services\Integration\DeclaredFieldConfigMerger;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Tests\TestCase;
@@ -32,7 +32,7 @@ class IntegrationControllerUpdateTest extends TestCase
             }
         };
 
-        $merger = Mockery::mock(IntegrationConfigMerger::class);
+        $merger = Mockery::mock(DeclaredFieldConfigMerger::class);
         $controller = new IntegrationController($merger);
 
         $response = $controller->update($request, 'opnsense');

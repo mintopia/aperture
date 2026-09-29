@@ -7,7 +7,7 @@ namespace App\Services\Integration;
 use App\Models\IntegrationConfig;
 use Illuminate\Http\Request;
 
-class IntegrationConfigMerger
+class DeclaredFieldConfigMerger
 {
     /**
      * @return array<string, mixed>

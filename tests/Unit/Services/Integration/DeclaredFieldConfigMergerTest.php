@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Integration;
 
 use App\Models\IntegrationConfig;
-use App\Services\Integration\IntegrationConfigMerger;
+use App\Services\Integration\DeclaredFieldConfigMerger;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
-class IntegrationConfigMergerTest extends TestCase
+class DeclaredFieldConfigMergerTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    private IntegrationConfigMerger $merger;
+    private DeclaredFieldConfigMerger $merger;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->merger = new IntegrationConfigMerger;
+        $this->merger = new DeclaredFieldConfigMerger;
     }
 
     public function test_returns_db_config_when_request_is_empty(): void

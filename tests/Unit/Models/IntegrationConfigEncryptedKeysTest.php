@@ -5,44 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Models;
 
 use App\Models\IntegrationConfig;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class IntegrationConfigEncryptedKeysTest extends TestCase
 {
-    public function test_encrypted_keys_constant_exists(): void
-    {
-        $this->assertTrue(defined(IntegrationConfig::class.'::ENCRYPTED_KEYS'));
-    }
-
-    public function test_constant_contains_api_key(): void
-    {
-        $this->assertContains('api_key', IntegrationConfig::ENCRYPTED_KEYS);
-    }
-
-    public function test_constant_contains_password(): void
-    {
-        $this->assertContains('password', IntegrationConfig::ENCRYPTED_KEYS);
-    }
-
-    public function test_constant_contains_secret(): void
-    {
-        $this->assertContains('secret', IntegrationConfig::ENCRYPTED_KEYS);
-    }
-
-    public function test_constant_contains_key(): void
-    {
-        $this->assertContains('key', IntegrationConfig::ENCRYPTED_KEYS);
-    }
-
-    public function test_constant_contains_client_secret(): void
-    {
-        $this->assertContains('client_secret', IntegrationConfig::ENCRYPTED_KEYS);
-    }
-
-    public function test_encrypted_keys_method_exists(): void
-    {
-        $this->assertTrue(method_exists(IntegrationConfig::class, 'encryptedKeys'));
-    }
+    use LazilyRefreshDatabase;
 
     public function test_encrypted_keys_derives_password_fields_from_config(): void
     {
@@ -63,27 +31,6 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
         $this->assertContains('api_token', $keys);
         $this->assertContains('secret_key', $keys);
         $this->assertNotContains('endpoint', $keys);
-    }
-
-    public function test_encrypted_keys_includes_hardcoded_fallback_keys(): void
-    {
-        config()->set('integrations', [
-            'test_service' => [
-                'name' => 'Test',
-                'capabilities' => [],
-                'fields' => [
-                    'custom_secret' => ['type' => 'password', 'label' => 'Custom'],
-                ],
-            ],
-        ]);
-
-        $keys = IntegrationConfig::encryptedKeys();
-
-        $this->assertContains('custom_secret', $keys);
-
-        foreach (IntegrationConfig::ENCRYPTED_KEYS as $fallbackKey) {
-            $this->assertContains($fallbackKey, $keys, sprintf("Fallback key '%s' should be present", $fallbackKey));
-        }
     }
 
     public function test_encrypted_keys_returns_unique_values(): void
@@ -118,14 +65,11 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
         $this->assertSame(array_values($keys), $keys);
     }
 
-    public function test_encrypted_keys_with_empty_config_returns_fallback_keys(): void
+    public function test_encrypted_keys_with_empty_config_returns_no_keys(): void
     {
         config()->set('integrations', []);
 
-        $keys = IntegrationConfig::encryptedKeys();
-
-        $this->assertNotEmpty($keys);
-        $this->assertEqualsCanonicalizing(IntegrationConfig::ENCRYPTED_KEYS, $keys);
+        $this->assertSame([], IntegrationConfig::encryptedKeys());
     }
 
     public function test_encrypted_keys_ignores_non_password_field_types(): void
@@ -162,9 +106,7 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
             ],
         ]);
 
-        $keys = IntegrationConfig::encryptedKeys();
-
-        $this->assertEqualsCanonicalizing(IntegrationConfig::ENCRYPTED_KEYS, $keys);
+        $this->assertSame([], IntegrationConfig::encryptedKeys());
     }
 
     public function test_encrypted_keys_handles_missing_type_in_field(): void
@@ -205,5 +147,17 @@ class IntegrationConfigEncryptedKeysTest extends TestCase
         foreach ($passwordFieldKeys as $key) {
             $this->assertContains($key, $encryptedKeys, sprintf("Password field '%s' from config should be in encryptedKeys()", $key));
         }
+    }
+
+    public function test_stored_encrypted_value_decrypts_without_a_declared_key(): void
+    {
+        config()->set('integrations', []);
+
+        $row = new IntegrationConfig(['integration' => 'legacy', 'key' => 'api_token', 'encrypted' => true]);
+        $row->value = 'legacy-secret';
+        $row->save();
+
+        $this->assertNotSame('legacy-secret', json_decode((string) $row->getRawOriginal('value'), true)['v']);
+        $this->assertSame('legacy-secret', IntegrationConfig::getValue('legacy', 'api_token'));
     }
 }

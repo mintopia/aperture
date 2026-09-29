@@ -11,6 +11,7 @@ use App\Models\SwitchConfig;
 use App\Models\SwitchPortMac;
 use App\Services\Interfaces\PortBandwidthInterface;
 use App\Services\Interfaces\PortErrorsInterface;
+use App\Support\BandwidthUnits;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -181,7 +182,7 @@ class SwitchPortController extends Controller
         for ($i = 1; $i < $counter; $i++) {
             $interval = $series[$i]['timestamp'] - $series[$i - 1]['timestamp'];
             $avgRate = ($series[$i]['value'] + $series[$i - 1]['value']) / 2;
-            $total += $avgRate * $interval / 8;
+            $total += BandwidthUnits::bitsToBytes($avgRate * $interval);
         }
 
         return (int) round($total);
