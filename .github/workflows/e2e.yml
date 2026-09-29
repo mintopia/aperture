@@ -57,10 +57,16 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
+      - name: Prepare database
+        run: |
+          touch database/playwright.sqlite
+          php artisan migrate:fresh --force --no-interaction
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/database/playwright.sqlite
+
       - name: Run Playwright suite
         run: npx playwright test
-        env:
-          DEBUG: pw:webserver
 
       - name: Upload Playwright report
         if: failure()
