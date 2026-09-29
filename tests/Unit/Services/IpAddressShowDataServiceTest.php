@@ -64,7 +64,6 @@ class IpAddressShowDataServiceTest extends TestCase
         $result = $this->service->assemble($ip);
 
         $this->assertArrayHasKey('ip', $result);
-        $this->assertArrayHasKey('port', $result);
         $this->assertArrayHasKey('switchInfo', $result);
         $this->assertArrayHasKey('portBandwidth', $result);
         $this->assertArrayHasKey('portErrors', $result);
@@ -84,7 +83,6 @@ class IpAddressShowDataServiceTest extends TestCase
 
         $result = $this->service->assemble($ip);
 
-        $this->assertNull($result['port']);
         $this->assertNull($result['switchInfo']);
         $this->assertNull($result['portBandwidth']);
         $this->assertNull($result['portErrors']);

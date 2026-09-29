@@ -312,6 +312,7 @@ describe('Show Echo integration', () => {
     function createMockEcho() {
         const channels = {};
         return {
+            connector: { pusher: { connection: { state: 'connected', bind: vi.fn() } } },
             private: vi.fn((channelName) => {
                 const channel = {
                     _listeners: {},

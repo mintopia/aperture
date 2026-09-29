@@ -168,6 +168,12 @@ test.describe('Attendee portal', () => {
             await expect(page.getByTestId('chart-canvas')).toBeVisible();
         });
 
+        test('shows an error when the bandwidth endpoint fails', async ({ page }) => {
+            await page.route('**/portal/stats/bandwidth*', (route) => route.fulfill({ status: 500, json: {} }));
+            await page.goto('/portal');
+            await expect(page.getByTestId('bandwidth-error')).toBeVisible();
+        });
+
         test('shows empty chart state without samples and switches range', async ({ page }) => {
             await page.goto('/portal');
             await expect(page.getByTestId('chart-empty')).toBeVisible();

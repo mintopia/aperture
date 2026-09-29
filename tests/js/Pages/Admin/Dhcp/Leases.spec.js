@@ -23,7 +23,9 @@ describe('isIpInPrefix', () => {
         { name: 'null address', addr: null, prefix: '2001:db8:1::/64', expected: false },
         { name: 'null prefix', addr: '2001:db8:1::5', prefix: null, expected: false },
         { name: 'empty inputs', addr: '', prefix: '', expected: false },
-        { name: 'prefix with no network portion', addr: '2001:db8:1::5', prefix: '::/0', expected: false },
+        { name: '/0 prefix matches everything in its family', addr: '2001:db8:1::5', prefix: '::/0', expected: true },
+        { name: '/0 prefix does not match IPv4', addr: '10.0.0.5', prefix: '::/0', expected: false },
+        { name: 'negative prefix length', addr: '2001:db8:1::5', prefix: '::/-1', expected: false },
         {
             name: 'zero-compressed prefix rejects a mismatched address',
             addr: '2001:db8:1::5',
@@ -377,6 +379,15 @@ describe('Dhcp/Leases', () => {
                 ],
             });
             expect(ipOrder(wrapper)).toEqual(['2001:db8::10']);
+        });
+
+        it('a /0 prefix range never matches any lease', () => {
+            window.history.replaceState({}, '', '/?network=all');
+            const wrapper = mountLeases({
+                ranges: [{ network: 'all', start: null, end: null, prefix: '::/0' }],
+                leases: [{ ip: '2001:db8::10', mac: 'A', hostname: '', expires: '' }],
+            });
+            expect(ipOrder(wrapper)).toEqual([]);
         });
     });
 

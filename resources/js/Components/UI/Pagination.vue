@@ -5,6 +5,19 @@ defineProps({
     paginator: {
         type: Object,
         required: true,
+        validator: (p) =>
+            typeof p.last_page === 'number' &&
+            (p.from === null || typeof p.from === 'number') &&
+            (p.to === null || typeof p.to === 'number') &&
+            typeof p.total === 'number' &&
+            Array.isArray(p.links) &&
+            p.links.every(
+                (l) =>
+                    l &&
+                    typeof l.label === 'string' &&
+                    (l.url === null || typeof l.url === 'string') &&
+                    typeof l.active === 'boolean',
+            ),
     },
 });
 </script>

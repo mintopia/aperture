@@ -121,7 +121,6 @@ class IpAddressShowDataService
                     'mac_address' => $currentMac->mac_address,
                 ] : null,
             ]),
-            'port' => $port,
             'switchInfo' => $switchInfo,
             'portBandwidth' => $switchInfo !== null ? $portBandwidth : null,
             'portErrors' => $switchInfo !== null ? $portErrors : null,

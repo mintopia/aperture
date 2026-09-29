@@ -5,6 +5,8 @@ const props = defineProps({
     columns: {
         type: Array,
         required: true,
+        validator: (v) =>
+            v.every((c) => c && typeof c === 'object' && typeof c.key === 'string' && typeof c.label === 'string'),
     },
     rows: { type: Array, required: true },
     clickable: { type: Boolean, default: false },

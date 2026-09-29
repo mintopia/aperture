@@ -15,7 +15,6 @@ defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     ip: { type: Object, default: () => ({}) },
-    port: { type: Object, default: () => ({}) },
     switchInfo: { type: Object, default: null },
     portBandwidth: { type: Object, default: null },
     portErrors: { type: Object, default: null },

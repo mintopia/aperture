@@ -10,7 +10,7 @@ defineProps({
 const SEVERITY_COLOR = {
     info: 'var(--color-text-muted)',
     warning: 'var(--color-warning)',
-    critical: 'oklch(72% 0.22 25)',
+    critical: 'var(--color-danger)',
 };
 
 function severityColor(severity) {

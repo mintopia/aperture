@@ -27,6 +27,7 @@ const bandwidthData = ref({
 });
 
 const loading = ref(true);
+const error = ref(false);
 
 const chartSeries = computed(() => {
     const { timestamps, download, upload } = bandwidthData.value;
@@ -61,9 +62,11 @@ async function fetchBandwidth() {
         const response = await fetch(
             route('portal.stats.bandwidth') + '?range=' + selectedRange.value + '&_t=' + Date.now(),
         );
-        if (response.ok) {
-            bandwidthData.value = await response.json();
-        }
+        if (!response.ok) throw new Error('Bandwidth request failed');
+        bandwidthData.value = await response.json();
+        error.value = false;
+    } catch {
+        error.value = true;
     } finally {
         loading.value = false;
     }
@@ -127,6 +130,9 @@ onUnmounted(() => {
                 </button>
             </div>
         </div>
+        <p v-if="error" data-testid="bandwidth-error" role="alert" class="mb-2 text-[12px] text-[var(--color-danger)]">
+            Unable to load bandwidth data. Retrying automatically.
+        </p>
         <TimeSeriesChart
             class="min-h-0 flex-1"
             :series="chartSeries"
