@@ -100,7 +100,7 @@ class SshProxyTransport implements SwitchCommandTransportInterface
         $enablePassword = $this->switchConfig->enable_password ?? '';
         $promptExpectation = Matcher::regex($enablePassword !== '' ? self::PRIVILEGED_PROMPT : self::ANY_PROMPT);
 
-        $proxyCommands = $enablePassword !== '' ? $this->enableSteps($enablePassword, $promptExpectation) : [];
+        $proxyCommands = $enablePassword !== '' ? $this->enableStepsSkippedOnPooledConnections($enablePassword, $promptExpectation) : [];
         $proxyCommands[] = ['command' => 'terminal length 0', 'expect' => $promptExpectation];
 
         foreach ($commands as $command) {
@@ -117,9 +117,8 @@ class SshProxyTransport implements SwitchCommandTransportInterface
      * @param  array{type: 'literal'|'regex', value: string}  $promptExpectation
      * @return array<int, array{command: string, sensitive?: true, if: array{type: 'literal'|'regex', value: string}, expect: array{type: 'literal'|'regex', value: string}}>
      */
-    protected function enableSteps(string $enablePassword, array $promptExpectation): array
+    protected function enableStepsSkippedOnPooledConnections(string $enablePassword, array $promptExpectation): array
     {
-        // The `if` guards skip these on pooled connections that are already privileged.
         return [
             ['command' => 'en', 'if' => Matcher::regex(self::USER_PROMPT), 'expect' => Matcher::literal('Password:')],
             ['command' => $enablePassword, 'sensitive' => true, 'if' => Matcher::literal('Password:'), 'expect' => $promptExpectation],

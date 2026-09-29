@@ -41,7 +41,6 @@ func (m *Matcher) String() string {
 	return string(m.Type) + ":" + m.Value
 }
 
-// compile resolves {prompt} once so per-chunk matching is cheap.
 func (m *Matcher) compile(p *promptTracker) (func(string) bool, error) {
 	if err := m.Validate(); err != nil {
 		return nil, err

@@ -147,7 +147,7 @@ func (l *Lease) Remove() {
 	}
 }
 
-// SetConnection installs conn, closing any connection it replaces.
+// SetConnection installs conn, closing any connection it replaces; if the lease is stale, it closes conn instead.
 func (l *Lease) SetConnection(conn ssh.Session) {
 	p := l.pool
 	p.mu.Lock()
