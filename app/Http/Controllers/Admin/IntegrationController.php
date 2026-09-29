@@ -134,10 +134,6 @@ class IntegrationController extends Controller
         /** @var IntegrationConfig|null $lastConfig */
         $lastConfig = null;
         foreach ($validated['config'] as $key => $value) {
-            if (! array_key_exists($key, $validationRules)) {
-                continue;
-            }
-
             if (($meta['fields'][$key]['type'] ?? null) === 'password' && ($value === null || $value === '')) {
                 continue;
             }

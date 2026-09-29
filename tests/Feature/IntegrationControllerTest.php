@@ -560,4 +560,20 @@ class IntegrationControllerTest extends TestCase
         $response->assertJsonPath('zones.1.id', '2');
         $response->assertJsonPath('zones.2.id', '10');
     }
+
+    public function test_update_ignores_config_keys_without_validation_rules(): void
+    {
+        $admin = $this->createAdminUser();
+
+        $response = $this->actingAs($admin)->put('/admin/settings/integrations/opnsense', [
+            'config' => [
+                'endpoint' => 'https://opnsense.example.com',
+                'unknown_extra_key' => 'should-be-skipped',
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertSame('https://opnsense.example.com', IntegrationConfig::getValue('opnsense', 'endpoint'));
+        $this->assertNull(IntegrationConfig::getValue('opnsense', 'unknown_extra_key'));
+    }
 }

@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Laragear\WebAuthn\Http\Requests\AssertedRequest;
+use Laragear\WebAuthn\Http\Requests\AttestedRequest;
+use Mockery;
 use Tests\Feature\Concerns\CreatesAdminUsers;
 use Tests\TestCase;
 
@@ -13,21 +15,9 @@ class PasskeyAuthenticationTest extends TestCase
     use CreatesAdminUsers;
     use LazilyRefreshDatabase;
 
-    protected function createAdminUser(): User
-    {
-        $user = User::factory()->withPassword()->create();
-        $role = new Role;
-        $role->code = 'admin';
-        $role->name = 'Admin';
-        $role->save();
-        $user->roles()->attach($role);
-
-        return $user;
-    }
-
     public function test_passkey_registration_options_endpoint_exists(): void
     {
-        $admin = $this->createAdminUser();
+        $admin = $this->createAdminUser(withPassword: true);
         $this->actingAs($admin);
         session()->put('account_verified', true);
 
@@ -114,5 +104,44 @@ class PasskeyAuthenticationTest extends TestCase
             collect($destroy->gatherMiddleware())->contains(fn ($m): bool => str_contains((string) $m, 'throttle')),
             'passkeys.destroy should have throttle middleware'
         );
+    }
+
+    public function test_passkey_registration_saves_credential_and_audits(): void
+    {
+        $user = User::factory()->withPassword()->create();
+        $attested = Mockery::mock(AttestedRequest::class)->makePartial();
+        $attested->shouldReceive('save')->once()->andReturn('credential-id-123');
+        $attested->shouldReceive('user')->andReturn($user);
+        $attested->shouldReceive('getClientIp')->andReturn('127.0.0.1');
+        $this->app->instance(AttestedRequest::class, $attested);
+
+        $response = $this->actingAs($user)->withSession(['account_verified' => true])->postJson('/passkeys/register');
+
+        $response->assertOk()->assertJson(['success' => true]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'user.passkey_registered']);
+    }
+
+    public function test_passkey_login_succeeds_for_valid_assertion(): void
+    {
+        $user = User::factory()->create();
+        $asserted = Mockery::mock(AssertedRequest::class)->makePartial();
+        $asserted->shouldReceive('login')->once()->andReturn($user);
+        $asserted->shouldReceive('session')->andReturn($this->app['session.store']);
+        $this->app->instance(AssertedRequest::class, $asserted);
+
+        $response = $this->postJson('/passkeys/login');
+
+        $response->assertOk()->assertJson(['success' => true, 'redirect' => '/']);
+    }
+
+    public function test_passkey_login_returns_422_when_assertion_fails(): void
+    {
+        $asserted = Mockery::mock(AssertedRequest::class)->makePartial();
+        $asserted->shouldReceive('login')->once()->andReturn(null);
+        $this->app->instance(AssertedRequest::class, $asserted);
+
+        $response = $this->postJson('/passkeys/login');
+
+        $response->assertStatus(422)->assertJson(['success' => false, 'message' => 'Authentication failed.']);
     }
 }

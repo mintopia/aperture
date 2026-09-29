@@ -16,9 +16,10 @@ trait CreatesAdminUsers
         Queue::fake();
     }
 
-    protected function createAdminUser(): User
+    protected function createAdminUser(bool $withPassword = false): User
     {
-        $user = User::factory()->create();
+        $factory = User::factory();
+        $user = ($withPassword ? $factory->withPassword() : $factory)->create();
         $role = new Role;
         $role->code = 'admin';
         $role->name = 'Admin';
