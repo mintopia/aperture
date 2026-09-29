@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\InternetStateCast;
+use App\Enums\InternetState;
 use App\Models\Traits\ToString;
 use App\Services\NetworkRangeService;
 use Database\Factories\IpAddressFactory;
@@ -23,7 +25,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $address
  * @property string|null $address_sort
- * @property bool|null $internet_enabled
+ * @property InternetState $internet_enabled
  * @property bool $rate_limit_enabled
  * @property bool $dns_filtering_enabled
  * @property string|null $comment
@@ -85,7 +87,7 @@ class IpAddress extends Model
     protected function casts(): array
     {
         return [
-            'internet_enabled' => 'boolean',
+            'internet_enabled' => InternetStateCast::class,
             'rate_limit_enabled' => 'boolean',
             'dns_filtering_enabled' => 'boolean',
             'expires_at' => 'datetime',
@@ -106,6 +108,11 @@ class IpAddress extends Model
         );
     }
 
+    public function isInternetAllowed(): bool
+    {
+        return $this->internet_enabled->isAllowed();
+    }
+
     public static function sortKey(string $address): ?string
     {
         $packed = @inet_pton($address);
@@ -115,10 +122,15 @@ class IpAddress extends Model
         }
 
         if (strlen($packed) === 4) {
-            $packed = str_repeat("\0", 10)."\xff\xff".$packed;
+            $packed = self::ipv4MappedPrefix().$packed;
         }
 
         return bin2hex($packed);
+    }
+
+    public static function ipv4MappedPrefix(): string
+    {
+        return str_repeat("\0", 10)."\xff\xff";
     }
 
     /**

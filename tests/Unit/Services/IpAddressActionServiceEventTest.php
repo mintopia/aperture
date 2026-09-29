@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use App\Services\Interfaces\CaptivePortalInterface;
@@ -49,7 +49,7 @@ class IpAddressActionServiceEventTest extends TestCase
 
     public function test_enable_internet_dispatches_ip_mac_linked_with_auth_source_and_process(): void
     {
-        Event::fake([IpMacLinked::class]);
+        Event::fake([IpMacObserved::class]);
 
         /** @var CaptivePortalInterface&MockInterface $captivePortal */
         $captivePortal = Mockery::mock(CaptivePortalInterface::class);
@@ -64,7 +64,7 @@ class IpAddressActionServiceEventTest extends TestCase
         $ip = IpAddress::factory()->create(['address' => '10.0.0.10']);
         $service->enableInternet($ip);
 
-        Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ip)
+        Event::assertDispatched(IpMacObserved::class, fn (IpMacObserved $event): bool => $event->ip->is($ip)
             && $event->mac->mac_address === 'AA:BB:CC:DD:EE:FF'
             && $event->source === 'auth'
             && $event->process === 'auth');
@@ -72,7 +72,7 @@ class IpAddressActionServiceEventTest extends TestCase
 
     public function test_enable_internet_dispatches_event_when_pivot_already_exists(): void
     {
-        Event::fake([IpMacLinked::class]);
+        Event::fake([IpMacObserved::class]);
 
         /** @var CaptivePortalInterface&MockInterface $captivePortal */
         $captivePortal = Mockery::mock(CaptivePortalInterface::class);
@@ -89,7 +89,7 @@ class IpAddressActionServiceEventTest extends TestCase
         $service = $this->createService(captivePortal: $captivePortal, macResolver: $macResolver);
         $service->enableInternet($ip);
 
-        Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ip)
+        Event::assertDispatched(IpMacObserved::class, fn (IpMacObserved $event): bool => $event->ip->is($ip)
             && $event->mac->is($mac)
             && $event->source === 'auth'
             && $event->process === 'auth');

@@ -141,10 +141,10 @@ class IpAddressController extends Controller
             action: 'ip.internet_toggled',
             subject: $ip,
             process: 'admin',
-            metadata: ['ip' => $request->getClientIp(), 'enabled' => $ip->internet_enabled],
+            metadata: ['ip' => $request->getClientIp(), 'enabled' => $ip->isInternetAllowed()],
         );
 
-        $message = $ip->internet_enabled ? 'Internet will be enabled for this IP' : 'Internet will be disabled for this IP';
+        $message = $ip->isInternetAllowed() ? 'Internet will be enabled for this IP' : 'Internet will be disabled for this IP';
 
         return response()->redirectToRoute('admin.ips.show', ['ip' => $ip])->with('success', $message);
     }

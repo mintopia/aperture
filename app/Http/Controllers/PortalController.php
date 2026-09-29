@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Http\Requests\PortalTokenRequest;
 use App\Models\AuditLog;
 use App\Models\IntegrationConfig;
@@ -50,7 +50,7 @@ class PortalController extends Controller
 
         return response()->json((object) [
             'ip' => $clientIp,
-            'internetEnabled' => $ip instanceof IpAddress && (bool) $ip->internet_enabled,
+            'internetEnabled' => $ip instanceof IpAddress && $ip->isInternetAllowed(),
         ]);
     }
 
@@ -99,13 +99,13 @@ class PortalController extends Controller
                     );
                 }
 
-                event(new IpMacLinked($ip, $mac, 'ipv6_detection', 'ipv6_detection'));
+                event(new IpMacObserved($ip, $mac, 'ipv6_detection', 'ipv6_detection'));
             }
         }
 
         return response()->json((object) [
             'ip' => $ipv6,
-            'internetEnabled' => $ip instanceof IpAddress && (bool) $ip->internet_enabled,
+            'internetEnabled' => $ip instanceof IpAddress && $ip->isInternetAllowed(),
         ]);
     }
 

@@ -53,7 +53,7 @@ class SyncFirewallJob implements ShouldQueue
         }
 
         match ($this->action) {
-            FirewallAction::Internet => (bool) $ip->internet_enabled
+            FirewallAction::Internet => $ip->isInternetAllowed()
                 ? $actionService->enableInternet($ip)
                 : $actionService->disableInternet($ip),
             FirewallAction::RateLimit => $ip->rate_limit_enabled

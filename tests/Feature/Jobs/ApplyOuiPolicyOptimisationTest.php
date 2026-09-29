@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Jobs;
 
+use App\Enums\InternetState;
 use App\Jobs\ScanNetworkDevices;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
@@ -87,11 +88,11 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip1 = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip1);
-        $this->assertTrue($ip1->internet_enabled);
+        $this->assertTrue($ip1->isInternetAllowed());
 
         $ip2 = IpAddress::where('address', '127.0.0.2')->first();
         $this->assertNotNull($ip2);
-        $this->assertNull($ip2->internet_enabled);
+        $this->assertSame(InternetState::Undecided, $ip2->internet_enabled);
     }
 
     public function test_oui_policy_handles_multiple_prefixes(): void
@@ -109,15 +110,15 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip1 = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip1);
-        $this->assertTrue($ip1->internet_enabled);
+        $this->assertTrue($ip1->isInternetAllowed());
 
         $ip2 = IpAddress::where('address', '127.0.0.2')->first();
         $this->assertNotNull($ip2);
-        $this->assertTrue($ip2->internet_enabled);
+        $this->assertTrue($ip2->isInternetAllowed());
 
         $ip3 = IpAddress::where('address', '127.0.0.3')->first();
         $this->assertNotNull($ip3);
-        $this->assertNull($ip3->internet_enabled);
+        $this->assertSame(InternetState::Undecided, $ip3->internet_enabled);
     }
 
     public function test_oui_policy_creates_audit_log_for_enabled_ips(): void
@@ -169,7 +170,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertTrue($ip->internet_enabled);
+        $this->assertTrue($ip->isInternetAllowed());
     }
 
     public function test_oui_policy_returns_early_when_setting_is_null(): void
@@ -181,7 +182,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertNull($ip->internet_enabled);
+        $this->assertSame(InternetState::Undecided, $ip->internet_enabled);
     }
 
     public function test_oui_policy_returns_early_when_prefixes_are_empty_array(): void
@@ -195,7 +196,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip = IpAddress::where('address', '127.0.0.1')->first();
         $this->assertNotNull($ip);
-        $this->assertNull($ip->internet_enabled);
+        $this->assertSame(InternetState::Undecided, $ip->internet_enabled);
     }
 
     public function test_oui_policy_enables_multiple_ips_for_same_mac(): void
@@ -215,8 +216,8 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         $ip1->refresh();
         $ip2->refresh();
-        $this->assertTrue($ip1->internet_enabled);
-        $this->assertTrue($ip2->internet_enabled);
+        $this->assertTrue($ip1->isInternetAllowed());
+        $this->assertTrue($ip2->isInternetAllowed());
 
         $this->assertDatabaseCount('audit_logs', 2);
     }
@@ -247,7 +248,7 @@ class ApplyOuiPolicyOptimisationTest extends TestCase
 
         foreach ($ips as $ip) {
             $ip->refresh();
-            $this->assertTrue($ip->internet_enabled, sprintf('IP %s should be internet_enabled', $ip->address));
+            $this->assertTrue($ip->isInternetAllowed(), sprintf('IP %s should be internet_enabled', $ip->address));
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
@@ -503,7 +503,7 @@ class PortalControllerTest extends TestCase
     public function test_ipv6_mac_linkage_dispatches_ip_mac_linked_event(): void
     {
         Queue::fake();
-        Event::fake([IpMacLinked::class]);
+        Event::fake([IpMacObserved::class]);
         $user = User::factory()->create(['internet_blocked' => false]);
 
         $clientIp = IpAddress::factory()->create(['address' => '127.0.0.1']);
@@ -522,7 +522,7 @@ class PortalControllerTest extends TestCase
         $ipv6Record = IpAddress::whereAddress('2001:db8::6')->first();
         $this->assertNotNull($ipv6Record);
 
-        Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ipv6Record)
+        Event::assertDispatched(IpMacObserved::class, fn (IpMacObserved $event): bool => $event->ip->is($ipv6Record)
             && $event->mac->is($mac)
             && $event->source === 'ipv6_detection'
             && $event->process === 'ipv6_detection');
@@ -531,7 +531,7 @@ class PortalControllerTest extends TestCase
     public function test_ipv6_dispatches_ip_mac_linked_event_when_mac_already_linked(): void
     {
         Queue::fake();
-        Event::fake([IpMacLinked::class]);
+        Event::fake([IpMacObserved::class]);
         $user = User::factory()->create(['internet_blocked' => false]);
 
         $clientIp = IpAddress::factory()->create(['address' => '127.0.0.1']);
@@ -553,7 +553,7 @@ class PortalControllerTest extends TestCase
 
         $this->actingAs($user)->postJson('/ipv6', ['token' => 'valid.jwt.token']);
 
-        Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ipv6Record)
+        Event::assertDispatched(IpMacObserved::class, fn (IpMacObserved $event): bool => $event->ip->is($ipv6Record)
             && $event->mac->is($mac)
             && $event->source === 'ipv6_detection'
             && $event->process === 'ipv6_detection');

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\InternetState;
 use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\Role;
@@ -229,7 +230,7 @@ class IpAddressControllerTest extends TestCase
         $ip->last_seen_at = Date::now();
         $ip->save();
 
-        $this->assertNull($ip->fresh()->internet_enabled);
+        $this->assertSame(InternetState::Undecided, $ip->fresh()->internet_enabled);
     }
 
     public function test_admin_can_filter_ips_by_ipv6_address_case_insensitively(): void

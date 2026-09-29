@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\NetworkDeviceTracking;
 
-use App\Events\IpMacLinked;
+use App\Events\IpMacObserved;
 use App\Jobs\ScanNetworkDevices;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
@@ -81,7 +81,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
 
     public function test_link_ip_mac_links_uppercase_lease_to_lowercase_row_and_dispatches_event(): void
     {
-        Event::fake([IpMacLinked::class]);
+        Event::fake([IpMacObserved::class]);
 
         $ip = IpAddress::factory()->create(['address' => self::LOWER]);
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:01']);
@@ -102,7 +102,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
             'process' => 'scan_network',
         ]);
 
-        Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ip)
+        Event::assertDispatched(IpMacObserved::class, fn (IpMacObserved $event): bool => $event->ip->is($ip)
             && $event->mac->is($mac)
             && $event->source === 'dhcp'
             && $event->process === 'scan_network');
@@ -110,7 +110,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
 
     public function test_link_ip_mac_dispatches_event_on_update_existing_pivot_branch(): void
     {
-        Event::fake([IpMacLinked::class]);
+        Event::fake([IpMacObserved::class]);
 
         $ip = IpAddress::factory()->create(['address' => self::LOWER]);
         $mac = MacAddress::factory()->create(['mac_address' => 'AA:BB:CC:DD:EE:01']);
@@ -120,7 +120,7 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
 
         $this->assertSame(1, $ip->macAddresses()->count());
 
-        Event::assertDispatched(IpMacLinked::class, fn (IpMacLinked $event): bool => $event->ip->is($ip)
+        Event::assertDispatched(IpMacObserved::class, fn (IpMacObserved $event): bool => $event->ip->is($ip)
             && $event->mac->is($mac)
             && $event->source === 'dhcp'
             && $event->process === 'scan_network');
@@ -128,14 +128,14 @@ class ScanStepsCaseInsensitiveIpv6Test extends TestCase
 
     public function test_link_ip_mac_skips_lease_with_null_mac(): void
     {
-        Event::fake([IpMacLinked::class]);
+        Event::fake([IpMacObserved::class]);
 
         IpAddress::factory()->create(['address' => self::LOWER]);
 
         $this->scan([new DhcpLeaseVO(self::UPPER, null, 'host', '2026-06-11')]);
 
         $this->assertDatabaseCount('ip_address_mac_address', 0);
-        Event::assertNotDispatched(IpMacLinked::class);
+        Event::assertNotDispatched(IpMacObserved::class);
     }
 
     public function test_sync_dhcp_data_matches_existing_lowercase_row_for_uppercase_lease(): void
