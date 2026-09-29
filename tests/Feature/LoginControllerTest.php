@@ -64,6 +64,19 @@ class LoginControllerTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_inertia_login_hands_off_to_a_full_page_visit_for_the_portal(): void
+    {
+        User::factory()->withPassword('secret123')->create(['email' => 'admin@test.com']);
+
+        $response = $this->withHeaders(['X-Inertia' => 'true'])->post('/login', [
+            'email' => 'admin@test.com',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertStatus(409);
+        $response->assertHeader('X-Inertia-Location', url('/'));
+    }
+
     public function test_authenticate_does_not_create_user_when_none_exist(): void
     {
         $response = $this->post('/login', [

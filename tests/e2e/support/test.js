@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect } from './csp-guard.js';
 import { saveLoginState, artisan } from './fixtures.js';
 
 const password = process.env.PLAYWRIGHT_ADMIN_PASSWORD || 'playwright-password';

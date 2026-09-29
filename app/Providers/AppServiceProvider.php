@@ -98,6 +98,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
+            if ($this->app->environment('playwright')) {
+                return Limit::none();
+            }
+
             $email = (string) $request->input('email', '');
 
             return Limit::perMinute(5)->by(mb_strtolower($email).'|'.$request->ip());

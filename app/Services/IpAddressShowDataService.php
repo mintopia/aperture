@@ -33,7 +33,6 @@ class IpAddressShowDataService
     /**
      * @return array{
      *     ip: array<string, mixed>,
-     *     port: PortDetail|null,
      *     switchInfo: array{switchId: int, switchName: string, portId: string}|null,
      *     portBandwidth: array{in: array<int, array{timestamp: float, value: float}>, out: array<int, array{timestamp: float, value: float}>, in_bytes: int, out_bytes: int}|null,
      *     portErrors: array{in_series: array<int, array{timestamp: float, value: float}>, out_series: array<int, array{timestamp: float, value: float}>}|null,

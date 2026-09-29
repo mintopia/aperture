@@ -25,7 +25,8 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $address
  * @property string|null $address_sort
- * @property InternetState $internet_enabled
+ * @property-read InternetState $internet_enabled
+ * @property-write InternetState|bool|null $internet_enabled
  * @property bool $rate_limit_enabled
  * @property bool $dns_filtering_enabled
  * @property string|null $comment

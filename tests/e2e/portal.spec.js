@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import http from 'node:http';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 import { artisan, prepareFixtures, saveLoginState } from './support/fixtures.js';
 
 test.describe('Portal Dashboard (S3)', () => {

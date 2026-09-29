@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './support/csp-guard.js';
 
 test.describe('Content Security Policy styles', () => {
     test('admin custom CSS and Vue style bindings render without CSP violations', async ({ page }) => {
@@ -12,8 +12,12 @@ test.describe('Content Security Policy styles', () => {
         const response = await page.goto('/admin/content/settings');
         expect(response.headers()['content-security-policy']).not.toContain("'unsafe-inline'");
 
+        await page.getByTestId('input-site-title').fill('Aperture');
         await page.getByTestId('input-custom_css').fill(':root { --e2e-csp-marker: applied; }');
-        await page.getByTestId('action-save').click();
+        await Promise.all([
+            page.waitForResponse((res) => res.request().method() !== 'GET' && res.url().includes('/admin/content/settings')),
+            page.getByTestId('action-save').click(),
+        ]);
         await page.reload();
 
         const marker = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--e2e-csp-marker').trim());
@@ -22,7 +26,10 @@ test.describe('Content Security Policy styles', () => {
         expect(violations).toEqual([]);
 
         await page.getByTestId('input-custom_css').fill('');
-        await page.getByTestId('action-save').click();
+        await Promise.all([
+            page.waitForResponse((res) => res.request().method() !== 'GET' && res.url().includes('/admin/content/settings')),
+            page.getByTestId('action-save').click(),
+        ]);
     });
 
     test('Tiptap editor styles are applied under the nonce-based policy', async ({ page }) => {
