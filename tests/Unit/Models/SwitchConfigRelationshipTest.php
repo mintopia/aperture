@@ -33,21 +33,6 @@ class SwitchConfigRelationshipTest extends TestCase
         $this->assertTrue($switchConfig->switchPorts->contains($port2));
     }
 
-    public function test_has_many_switch_sync_runs(): void
-    {
-        $switchConfig = SwitchConfig::factory()->create();
-        $run1 = SwitchSyncRun::factory()->create([
-            'switch_config_id' => $switchConfig->id,
-        ]);
-        $run2 = SwitchSyncRun::factory()->create([
-            'switch_config_id' => $switchConfig->id,
-        ]);
-
-        $this->assertCount(2, $switchConfig->switchSyncRuns);
-        $this->assertTrue($switchConfig->switchSyncRuns->contains($run1));
-        $this->assertTrue($switchConfig->switchSyncRuns->contains($run2));
-    }
-
     public function test_switch_ports_only_includes_own_ports(): void
     {
         $switch1 = SwitchConfig::factory()->create();

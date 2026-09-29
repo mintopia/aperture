@@ -5,36 +5,22 @@ namespace Tests\Unit\Services\SshProxy;
 use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
-use App\Services\SshProxy\ConnectionStatus;
-use App\Services\SshProxy\ProxyStatus;
 use App\Services\SshProxy\SshProxyClient;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\ServerException;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Response;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
-use ReflectionClass;
 use RuntimeException;
 use Tests\TestCase;
 
 class SshProxyClientTest extends TestCase
 {
-    protected function createClientWithMockHandler(array $responses): SshProxyClient
+    protected function createClientWithFakes(array $responses): SshProxyClient
     {
-        $mock = new MockHandler($responses);
-        $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack]);
+        Http::fake(['*' => Http::sequence($responses)]);
 
-        $proxyClient = new SshProxyClient('http://localhost:8022', 'test-key');
-
-        $reflection = new ReflectionClass($proxyClient);
-        $prop = $reflection->getProperty('client');
-        $prop->setValue($proxyClient, $client);
-
-        return $proxyClient;
+        return new SshProxyClient('http://localhost:8022', 'test-key');
     }
 
     public function test_execute_sends_post_with_correct_payload(): void
@@ -46,8 +32,8 @@ class SshProxyClientTest extends TestCase
             ],
         ];
 
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(200, [], json_encode($expectedResponse)),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode($expectedResponse), 200),
         ]);
 
         $result = $proxyClient->execute(
@@ -63,6 +49,16 @@ class SshProxyClientTest extends TestCase
         $this->assertInstanceOf(CommandOutput::class, $result->output[0]);
         $this->assertSame('show version', $result->output[0]->command);
         $this->assertSame('OPNsense 23.7', $result->output[0]->output);
+
+        Http::assertSent(fn (Request $request): bool => $request->method() === 'POST'
+            && $request->url() === 'http://localhost:8022/execute'
+            && $request->hasHeader('Authorization', 'Bearer test-key')
+            && $request['hostname'] === '192.168.1.1'
+            && $request['username'] === 'admin'
+            && $request['password'] === 'password123'
+            && $request['commands'] === [['command' => 'show version']]
+            && $request['port'] === 22
+            && $request['channel'] === 'commands');
     }
 
     public function test_execute_returns_parsed_json_response(): void
@@ -75,8 +71,8 @@ class SshProxyClientTest extends TestCase
             ],
         ];
 
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(200, [], json_encode($responseData)),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode($responseData), 200),
         ]);
 
         $result = $proxyClient->execute(
@@ -98,8 +94,8 @@ class SshProxyClientTest extends TestCase
 
     public function test_execute_throws_runtime_exception_on_409(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(409, [], json_encode(['error' => 'Host locked'])),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['error' => 'Host locked']), 409),
         ]);
 
         $this->expectException(RuntimeException::class);
@@ -115,11 +111,11 @@ class SshProxyClientTest extends TestCase
 
     public function test_execute_throws_on_other_http_errors(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(500, [], json_encode(['error' => 'Internal server error'])),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['error' => 'Internal server error']), 500),
         ]);
 
-        $this->expectException(ServerException::class);
+        $this->expectException(RequestException::class);
 
         $proxyClient->execute(
             '192.168.1.1',
@@ -127,68 +123,6 @@ class SshProxyClientTest extends TestCase
             'password',
             [['command' => 'show version']],
         );
-    }
-
-    public function test_status_sends_get_request(): void
-    {
-        $statusResponse = [
-            'uptime_seconds' => 3600,
-            'connections' => [
-                [
-                    'hostname' => '192.168.1.1',
-                    'connected_seconds' => 120,
-                    'last_used_seconds_ago' => 5,
-                    'locked' => false,
-                ],
-            ],
-        ];
-
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(200, [], json_encode($statusResponse)),
-        ]);
-
-        $result = $proxyClient->status();
-
-        $this->assertInstanceOf(ProxyStatus::class, $result);
-        $this->assertSame(3600, $result->uptimeSeconds);
-        $this->assertCount(1, $result->connections);
-        $this->assertInstanceOf(ConnectionStatus::class, $result->connections[0]);
-        $this->assertSame('192.168.1.1', $result->connections[0]->hostname);
-        $this->assertFalse($result->connections[0]->locked);
-    }
-
-    public function test_status_returns_parsed_response(): void
-    {
-        $statusResponse = [
-            'uptime_seconds' => 7200,
-            'connections' => [
-                [
-                    'hostname' => '10.0.0.1',
-                    'connected_seconds' => 300,
-                    'last_used_seconds_ago' => 10,
-                    'locked' => true,
-                ],
-                [
-                    'hostname' => '10.0.0.2',
-                    'connected_seconds' => 60,
-                    'last_used_seconds_ago' => 2,
-                    'locked' => false,
-                ],
-            ],
-        ];
-
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(200, [], json_encode($statusResponse)),
-        ]);
-
-        $result = $proxyClient->status();
-
-        $this->assertInstanceOf(ProxyStatus::class, $result);
-        $this->assertSame(7200, $result->uptimeSeconds);
-        $this->assertCount(2, $result->connections);
-        $this->assertInstanceOf(ConnectionStatus::class, $result->connections[0]);
-        $this->assertTrue($result->connections[0]->locked);
-        $this->assertFalse($result->connections[1]->locked);
     }
 
     public function test_container_binding_resolves_correctly(): void
@@ -204,54 +138,22 @@ class SshProxyClientTest extends TestCase
         $this->assertInstanceOf(SshProxyClient::class, $resolved);
     }
 
-    public function test_guzzle_client_has_timeout_configured(): void
+    public function test_connection_failure_throws_connection_exception(): void
     {
-        config([
-            'aperture.ssh_proxy.host' => '127.0.0.1',
-            'aperture.ssh_proxy.port' => 8022,
-            'aperture.ssh_proxy.api_key' => 'test-api-key',
-            'aperture.ssh_proxy.request_timeout' => 90,
-            'aperture.ssh_proxy.connect_timeout' => 10,
-        ]);
+        Http::fake(fn () => throw new ConnectionException('cURL error 7'));
 
-        // Clear the singleton so it gets re-resolved with new config
-        $this->app->forgetInstance(SshProxyClientInterface::class);
+        $this->expectException(ConnectionException::class);
 
-        $resolved = $this->app->make(SshProxyClientInterface::class);
-
-        $reflection = new ReflectionClass($resolved);
-        $clientProp = $reflection->getProperty('client');
-        /** @var Client $guzzleClient */
-        $guzzleClient = $clientProp->getValue($resolved);
-
-        $guzzleConfig = $guzzleClient->getConfig();
-
-        $this->assertSame(90, $guzzleConfig['timeout']);
-        $this->assertSame(10, $guzzleConfig['connect_timeout']);
-    }
-
-    public function test_guzzle_client_has_default_timeouts(): void
-    {
-        $proxyClient = new SshProxyClient('http://localhost:8022', 'test-key');
-
-        $reflection = new ReflectionClass($proxyClient);
-        $clientProp = $reflection->getProperty('client');
-        /** @var Client $guzzleClient */
-        $guzzleClient = $clientProp->getValue($proxyClient);
-
-        $guzzleConfig = $guzzleClient->getConfig();
-
-        $this->assertSame(60, $guzzleConfig['timeout']);
-        $this->assertSame(5, $guzzleConfig['connect_timeout']);
+        (new SshProxyClient('http://localhost:8022', 'test-key'))->execute('10.0.0.1', 'u', 'p', []);
     }
 
     public function test_execute_rethrows_non_409_client_exception(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(403, [], json_encode(['error' => 'Forbidden'])),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['error' => 'Forbidden']), 403),
         ]);
 
-        $this->expectException(ClientException::class);
+        $this->expectException(RequestException::class);
 
         $proxyClient->execute(
             '192.168.1.1',
@@ -314,51 +216,41 @@ class SshProxyClientTest extends TestCase
 
     public function test_execute_sends_key_auth_and_pinned_host_key_and_parses_observed_key(): void
     {
-        $history = [];
-        $mock = new MockHandler([new Response(200, [], json_encode([
-            'success' => true,
-            'output' => [],
-            'host_key' => 'ssh-ed25519 AAAA',
-        ]))]);
-        $stack = HandlerStack::create($mock);
-        $stack->push(Middleware::history($history));
-
-        $proxyClient = new SshProxyClient('http://localhost:8022', 'k');
-        (new ReflectionClass($proxyClient))->getProperty('client')->setValue($proxyClient, new Client(['handler' => $stack]));
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['success' => true, 'output' => [], 'host_key' => 'ssh-ed25519 AAAA']), 200),
+        ]);
 
         $result = $proxyClient->execute('h', 'u', '', [], 22, 'commands', 'PEM', 'pp', 'ssh-ed25519 PIN');
 
-        $body = json_decode((string) $history[0]['request']->getBody(), true);
-        $this->assertSame('PEM', $body['private_key']);
-        $this->assertSame('pp', $body['passphrase']);
-        $this->assertSame('ssh-ed25519 PIN', $body['host_key']);
+        Http::assertSent(fn (Request $request): bool => $request['private_key'] === 'PEM'
+            && $request['passphrase'] === 'pp'
+            && $request['host_key'] === 'ssh-ed25519 PIN');
         $this->assertSame('ssh-ed25519 AAAA', $result->hostKey);
         $this->assertNull($result->errorCode);
     }
 
     public function test_execute_defaults_key_fields_to_empty_strings(): void
     {
-        $history = [];
-        $stack = HandlerStack::create(new MockHandler([new Response(200, [], json_encode(['success' => true, 'output' => []]))]));
-        $stack->push(Middleware::history($history));
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['success' => true, 'output' => []]), 200),
+        ]);
 
-        $proxyClient = new SshProxyClient('http://localhost:8022', 'k');
-        (new ReflectionClass($proxyClient))->getProperty('client')->setValue($proxyClient, new Client(['handler' => $stack]));
         $proxyClient->execute('h', 'u', 'p', []);
 
-        $body = json_decode((string) $history[0]['request']->getBody(), true);
-        $this->assertSame(['private_key' => '', 'passphrase' => '', 'host_key' => ''], array_intersect_key($body, array_flip(['private_key', 'passphrase', 'host_key'])));
+        Http::assertSent(fn (Request $request): bool => $request['private_key'] === ''
+            && $request['passphrase'] === ''
+            && $request['host_key'] === '');
     }
 
     public function test_execute_returns_result_for_host_key_mismatch_error_code(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(500, [], json_encode([
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode([
                 'success' => false,
                 'output' => [],
                 'error' => 'SSH connection failed: host key mismatch',
                 'error_code' => 'host_key_mismatch',
-            ])),
+            ]), 500),
         ]);
 
         $result = $proxyClient->execute('h', 'u', 'p', [], 22, 'commands', null, null, 'ssh-ed25519 PIN');
@@ -370,13 +262,13 @@ class SshProxyClientTest extends TestCase
 
     public function test_execute_returns_result_for_invalid_private_key_error_code(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(400, [], json_encode([
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode([
                 'success' => false,
                 'output' => [],
                 'error' => 'SSH connection failed: invalid private key: bad',
                 'error_code' => 'invalid_private_key',
-            ])),
+            ]), 400),
         ]);
 
         $result = $proxyClient->execute('h', 'u', '', [], 22, 'commands', 'garbage');
@@ -387,11 +279,11 @@ class SshProxyClientTest extends TestCase
 
     public function test_execute_still_throws_for_errors_without_error_code(): void
     {
-        $proxyClient = $this->createClientWithMockHandler([
-            new Response(500, [], json_encode(['success' => false, 'error' => 'dial failed'])),
+        $proxyClient = $this->createClientWithFakes([
+            Http::response(json_encode(['success' => false, 'error' => 'dial failed']), 500),
         ]);
 
-        $this->expectException(ServerException::class);
+        $this->expectException(RequestException::class);
         $proxyClient->execute('h', 'u', 'p', []);
     }
 }

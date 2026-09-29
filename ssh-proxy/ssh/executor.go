@@ -57,7 +57,7 @@ func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 	for i, cmd := range commands {
 		logger.Debug("processing command",
 			"index", i,
-			"command", sanitizeForLog(cmd.Command),
+			"command", SanitizeForLog(cmd.Command),
 			"if", cmd.If,
 			"expect", cmd.Expect,
 		)
@@ -76,11 +76,11 @@ func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 			}
 		}
 
-		logger.Debug("sending command", "index", i, "command", sanitizeForLog(cmd.Command))
+		logger.Debug("sending command", "index", i, "command", SanitizeForLog(cmd.Command))
 		if err := session.Write(cmd.Command + "\n"); err != nil {
 			logger.Error("failed to send command",
 				"index", i,
-				"command", sanitizeForLog(cmd.Command),
+				"command", SanitizeForLog(cmd.Command),
 				"error", err,
 			)
 			return &CommandResult{
@@ -100,7 +100,7 @@ func (e *Executor) Execute(session Session, commands []Command) *CommandResult {
 			if err != nil {
 				logger.Error("expect pattern timeout",
 					"index", i,
-					"command", sanitizeForLog(cmd.Command),
+					"command", SanitizeForLog(cmd.Command),
 					"expect", cmd.Expect,
 					"buffer_length", len(result),
 					"last_line", getLastLine(result),
@@ -253,8 +253,8 @@ func (e *Executor) logger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-// sanitizeForLog masks potential passwords in command strings.
-func sanitizeForLog(cmd string) string {
+// SanitizeForLog masks potential passwords in command strings.
+func SanitizeForLog(cmd string) string {
 	if len(cmd) < 50 &&
 		!strings.Contains(cmd, " ") &&
 		!strings.HasPrefix(cmd, "show") &&

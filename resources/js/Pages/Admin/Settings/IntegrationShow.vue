@@ -5,7 +5,7 @@ import FormField from '@/Components/UI/FormField.vue';
 import { ref, onMounted } from 'vue';
 import { formatRelative } from '@/utils/dates';
 import { kebabToTitle } from '@/utils/strings';
-import { useApi } from '@/composables/useApi.js';
+import { postJson as post, putJson as put } from '@/utils/http.js';
 
 defineOptions({ layout: AdminLayout });
 
@@ -22,7 +22,6 @@ const form = useForm({
     config: initialConfig,
 });
 
-const { post, put } = useApi();
 
 const testingConnection = ref(false);
 const testResult = ref(null);

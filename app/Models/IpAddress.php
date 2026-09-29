@@ -58,7 +58,6 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|IpAddress whereRateLimitEnabled($value)
  * @method static Builder|IpAddress whereUpdatedAt($value)
  *
- * @mixin IdeHelperIpAddress
  * @mixin \Eloquent
  */
 #[Fillable([

@@ -12,6 +12,7 @@ use App\Models\DhcpPoolStatusRecord;
 use App\Models\DhcpRangeRecord;
 use App\Models\DhcpSyncState;
 use App\Services\Interfaces\DhcpInterface;
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -76,9 +77,7 @@ class OpnSenseDhcpOutageTest extends TestCase
         Http::fake(fn (Request $request): mixed => $this->respond($request));
 
         $this->app->instance(DhcpInterface::class, new OpnSenseDhcpService(
-            endpoint: 'https://opnsense.test',
-            key: 'k',
-            secret: 's',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'https://opnsense.test', 'key' => 'k', 'secret' => 's'])->request(),
             poolSize: 10,
             leasesPath: '/leases',
             ipv4RangesPath: '/v4ranges',
@@ -128,9 +127,7 @@ class OpnSenseDhcpOutageTest extends TestCase
             return $this->respond($request);
         });
         $this->app->instance(DhcpInterface::class, new OpnSenseDhcpService(
-            endpoint: 'https://opnsense.test',
-            key: 'k',
-            secret: 's',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'https://opnsense.test', 'key' => 'k', 'secret' => 's'])->request(),
             poolSize: 10,
             leasesPath: '/leases',
             ipv4RangesPath: '/v4ranges',

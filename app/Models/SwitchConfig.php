@@ -37,8 +37,6 @@ use Illuminate\Support\Carbon;
  * @property-read SwitchSyncRun|null $latestSyncRun
  * @property-read Collection<int, SwitchPort> $switchPorts
  * @property-read int|null $switch_ports_count
- * @property-read Collection<int, SwitchSyncRun> $switchSyncRuns
- * @property-read int|null $switch_sync_runs_count
  *
  * @method static SwitchConfigFactory factory($count = null, $state = [])
  * @method static Builder<static>|SwitchConfig newModelQuery()
@@ -138,12 +136,6 @@ class SwitchConfig extends Model
     public function switchPorts(): HasMany
     {
         return $this->hasMany(SwitchPort::class);
-    }
-
-    /** @return HasMany<SwitchSyncRun, $this> */
-    public function switchSyncRuns(): HasMany
-    {
-        return $this->hasMany(SwitchSyncRun::class);
     }
 
     /** @return HasOne<SwitchSyncRun, $this> */

@@ -18,17 +18,6 @@ use App\Integration\VyOsBootstrapper;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Services\BorealisService;
-use App\Services\Firewalls\OpnSenseApiService;
-use App\Services\Integration\BorealisTester;
-use App\Services\Integration\CiscoTester;
-use App\Services\Integration\IntegrationTesterRegistry;
-use App\Services\Integration\KeaTester;
-use App\Services\Integration\LibreNmsTester;
-use App\Services\Integration\OpnSenseTester;
-use App\Services\Integration\PiHoleTester;
-use App\Services\Integration\PrometheusTester;
-use App\Services\Integration\SeatpickerTester;
-use App\Services\Integration\VyOsTester;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\OpnSense\OpnSenseClient;
 use App\Services\Prometheus\PrometheusService;
@@ -41,7 +30,6 @@ class IntegrationServiceProvider extends ServiceProvider
     /** @var list<class-string> */
     private const CONFIG_DERIVED = [
         OpnSenseClient::class,
-        OpnSenseApiService::class,
         PrometheusService::class,
         LibreNmsService::class,
         VyOsClient::class,
@@ -53,44 +41,18 @@ class IntegrationServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->registerIntegrationTesters();
         $this->registerSharedClients();
         $this->registerCapabilityBindings();
         $this->registerNonCapabilityBindings();
     }
 
     /**
-     * Register the integration tester registry.
+     * Register shared clients used by multiple capability bindings.
      */
-    protected function registerIntegrationTesters(): void
-    {
-        $this->app->singleton(function (): IntegrationTesterRegistry {
-            $registry = new IntegrationTesterRegistry;
-            $registry->register(Integration::OpnSense->value, new OpnSenseTester);
-            $registry->register(Integration::PiHole->value, new PiHoleTester);
-            $registry->register(Integration::LibreNms->value, new LibreNmsTester);
-            $registry->register(Integration::Borealis->value, new BorealisTester);
-            $registry->register(Integration::Prometheus->value, new PrometheusTester);
-            $registry->register(Integration::Seatpicker->value, new SeatpickerTester);
-            $registry->register(Integration::VyOs->value, new VyOsTester);
-            $registry->register(Integration::Cisco->value, $this->app->make(CiscoTester::class));
-            $registry->register(Integration::Kea->value, new KeaTester);
-
-            return $registry;
-        });
-    }
-
     protected function registerSharedClients(): void
     {
         $this->app->scoped(function (): OpnSenseClient {
-            $dbConfig = InstallGuard::config(Integration::OpnSense->value);
-
-            return new OpnSenseClient(
-                endpoint: (string) ($dbConfig['endpoint'] ?? ''),
-                key: (string) ($dbConfig['key'] ?? ''),
-                secret: (string) ($dbConfig['secret'] ?? ''),
-                verifySsl: (bool) ($dbConfig['verify_ssl'] ?? true),
-            );
+            return OpnSenseClient::fromConfig(InstallGuard::config(Integration::OpnSense->value));
         });
 
         $this->app->scoped(function (): PrometheusService {
@@ -172,10 +134,6 @@ class IntegrationServiceProvider extends ServiceProvider
      */
     protected function registerNonCapabilityBindings(): void
     {
-        $this->app->scoped(function (): OpnSenseApiService {
-            return new OpnSenseApiService(InstallGuard::config(Integration::OpnSense->value));
-        });
-
         $this->app->scoped(function (): BorealisService {
             $dbConfig = InstallGuard::config(Integration::Borealis->value);
 

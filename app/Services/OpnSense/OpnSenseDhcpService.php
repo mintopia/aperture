@@ -7,7 +7,6 @@ namespace App\Services\OpnSense;
 use App\Enums\AddressFamily;
 use App\Models\IpAddress;
 use App\Services\Dhcp\RangeUsageCalculator;
-use App\Services\Http\ExternalHttp;
 use App\Services\Interfaces\DhcpInterface;
 use App\Services\ValueObjects\DhcpFetchStatus;
 use App\Services\ValueObjects\DhcpLease;
@@ -32,10 +31,7 @@ class OpnSenseDhcpService implements DhcpInterface
      * @param  array{interface: string, subnet: string, range_from: string, range_to: string, gateway: string, description: string, prefix: string, subnet_mask?: string, pools?: string}  $rangeFieldMap
      */
     public function __construct(
-        protected string $endpoint,
-        protected string $key,
-        protected string $secret,
-        protected bool $verifySsl = true,
+        protected PendingRequest $client,
         protected int $poolSize = 0,
         protected string $leasesPath = '/api/dhcpv4/leases/search_lease',
         protected string $ipv4RangesPath = '',
@@ -140,7 +136,7 @@ class OpnSenseDhcpService implements DhcpInterface
     private function fetchRangesFrom(string $path, string $label): ?Collection
     {
         try {
-            $data = $this->http()->get($path)->throw()->json();
+            $data = $this->client->get($path)->throw()->json();
 
             if (! is_array($data) || ! is_array($data['rows'] ?? null)) {
                 throw new UnexpectedValueException('Unexpected ranges response');
@@ -252,7 +248,7 @@ class OpnSenseDhcpService implements DhcpInterface
     protected function fetchLeases(): ?Collection
     {
         try {
-            $rows = $this->leasesUsePost ? $this->fetchAllLeaseRows() : $this->fetchLeaseRows($this->http()->get($this->leasesPath))['rows'];
+            $rows = $this->leasesUsePost ? $this->fetchAllLeaseRows() : $this->fetchLeaseRows($this->client->get($this->leasesPath))['rows'];
         } catch (Throwable $throwable) {
             Log::warning('Failed to fetch DHCP leases', ['error' => $throwable->getMessage(), 'path' => $this->leasesPath]);
 
@@ -268,12 +264,6 @@ class OpnSenseDhcpService implements DhcpInterface
         ]);
     }
 
-    protected function http(): PendingRequest
-    {
-        return ExternalHttp::request($this->endpoint, $this->verifySsl)
-            ->withBasicAuth($this->key, $this->secret);
-    }
-
     /**
      * @return list<array<string, mixed>>
      */
@@ -282,7 +272,7 @@ class OpnSenseDhcpService implements DhcpInterface
         $all = [];
 
         for ($page = 1; $page <= self::MAX_LEASE_PAGES; $page++) {
-            $result = $this->fetchLeaseRows($this->http()->post($this->leasesPath, ['current' => $page, 'rowCount' => self::LEASE_PAGE_SIZE]));
+            $result = $this->fetchLeaseRows($this->client->post($this->leasesPath, ['current' => $page, 'rowCount' => self::LEASE_PAGE_SIZE]));
             $all = array_merge($all, $result['rows']);
 
             $done = $result['total'] !== null

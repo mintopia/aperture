@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Enums\AddressFamily;
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Tests\Support\Fake;
@@ -24,7 +25,7 @@ class OpnSenseDhcpServicePathsTest extends TestCase
     ): OpnSenseDhcpService {
         Fake::sequence($responses);
 
-        return new OpnSenseDhcpService('http://opnsense.test', 'key', 'secret', true, 254, $leasesPath, $ipv4RangesPath, $ipv6RangesPath);
+        return new OpnSenseDhcpService(OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), 254, $leasesPath, $ipv4RangesPath, $ipv6RangesPath);
     }
 
     public function test_uses_custom_leases_path(): void

@@ -178,7 +178,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/settings/captive-portal-api', [CaptivePortalApiSettingsController::class, 'show'])->name('settings.captive-portal-api');
         Route::put('/settings/captive-portal-api', [CaptivePortalApiSettingsController::class, 'update'])->name('settings.captive-portal-api.update');
 
-        Route::post('/settings/test/switch/{switchConfig}', [TestConnectionController::class, 'testSwitch'])->name('settings.test.switch');
         Route::post('/settings/test/{service}', [TestConnectionController::class, 'test'])->name('settings.test');
 
         // Per-service integration routes

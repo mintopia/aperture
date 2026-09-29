@@ -62,9 +62,12 @@ class OpnSenseHttpConfigTest extends TestCase
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.local');
         $this->app->forgetInstance(DhcpInterface::class);
 
-        $service = $this->app->make(DhcpInterface::class);
-        $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
-        $options = $this->captureOptions(fn (): Collection => $service->snapshot()->leases);
+        $options = $this->captureOptions(function (): Collection {
+            $service = $this->app->make(DhcpInterface::class);
+            $this->assertInstanceOf(OpnSenseDhcpService::class, $service);
+
+            return $service->snapshot()->leases;
+        });
 
         $this->assertSame(7, $options['timeout']);
         $this->assertSame(3, $options['connect_timeout']);

@@ -77,36 +77,6 @@ class IosOutputParserTest extends TestCase
         $this->assertEquals('Seat 24 - Row A', $result->description);
     }
 
-    public function test_parse_interface_counters_extracts_values(): void
-    {
-        $output = implode("\r\n", [
-            'GigabitEthernet1/0/1 is up, line protocol is up (connected)',
-            '     12345 packets input, 6789012 bytes, 0 no buffer',
-            '     3 input errors, 1 CRC, 0 frame, 0 overrun, 0 ignored',
-            '     67890 packets output, 9876543 bytes, 0 underruns',
-            '     5 output errors, 0 collisions, 0 interface resets',
-        ]);
-
-        $counters = $this->parser->parseInterfaceCounters($output);
-
-        $this->assertEquals(6789012, $counters->inBytes);
-        $this->assertEquals(9876543, $counters->outBytes);
-        $this->assertEquals(3, $counters->inErrors);
-        $this->assertEquals(5, $counters->outErrors);
-    }
-
-    public function test_parse_interface_counters_defaults_to_zero(): void
-    {
-        $output = 'GigabitEthernet1/0/1 is up, line protocol is up (connected)';
-
-        $counters = $this->parser->parseInterfaceCounters($output);
-
-        $this->assertEquals(0, $counters->inBytes);
-        $this->assertEquals(0, $counters->outBytes);
-        $this->assertEquals(0, $counters->inErrors);
-        $this->assertEquals(0, $counters->outErrors);
-    }
-
     public function test_parse_interface_status_table(): void
     {
         $output = implode("\r\n", [

@@ -21,7 +21,6 @@ use App\Services\NetworkSwitch\PortStatusSync;
 use App\Services\NetworkSwitch\PortSyncService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
 use App\Services\NetworkSwitch\SyncResult;
-use App\Services\NetworkSwitch\SyncRunTracker;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -59,7 +58,7 @@ class PortSyncServiceTest extends TestCase
             ->andReturnUsing(static fn (string $portId): string => "!\ninterface {$portId}\n end")
             ->byDefault();
 
-        $this->service = new PortSyncService($this->factory, new SyncRunTracker, new PortStatusSync, new PortMacSync, new PortConfigSync);
+        $this->service = new PortSyncService($this->factory, new PortStatusSync, new PortMacSync, new PortConfigSync);
     }
 
     public function test_sync_creates_sync_run_record(): void

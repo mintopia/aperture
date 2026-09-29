@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\Http;
 
 abstract class TestCase extends BaseTestCase
 {
-    use CreatesApplication;
-
     protected bool $seedSetupUser = true;
 
     protected function setUp(): void

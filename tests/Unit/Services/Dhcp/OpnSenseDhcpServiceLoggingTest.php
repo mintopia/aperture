@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use Illuminate\Support\Facades\Log;
 use Tests\Support\Fake;
@@ -28,9 +29,7 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 254,
             leasesPath: '/api/dhcpv4/leases/search_lease',
             ipv4RangesPath: '/api/dhcpv4/ranges',
@@ -59,9 +58,7 @@ class OpnSenseDhcpServiceLoggingTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 254,
             leasesPath: '/api/dhcpv4/leases/search_lease',
             ipv4RangesPath: '',

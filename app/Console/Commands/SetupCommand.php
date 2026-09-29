@@ -37,15 +37,8 @@ class SetupCommand extends Command
      */
     public function handle(): int
     {
-        $adminRole = Role::query()->where('code', 'admin')->first() ?? new Role;
-        $adminRole->code = 'admin';
-        $adminRole->name = 'Admin';
-        $adminRole->save();
-
-        $userRole = Role::query()->where('code', 'user')->first() ?? new Role;
-        $userRole->code = 'user';
-        $userRole->name = 'User';
-        $userRole->save();
+        $adminRole = Role::query()->firstOrCreate(['code' => 'admin'], ['name' => 'Admin']);
+        $userRole = Role::query()->firstOrCreate(['code' => 'user'], ['name' => 'User']);
 
         $firstUser = User::query()->orderBy('id')->first();
         if ($firstUser === null) {
@@ -99,7 +92,7 @@ class SetupCommand extends Command
             IntegrationConfig::setValue(
                 Integration::Borealis->value,
                 'scope',
-                (string) IntegrationConfig::getWithFallback(Integration::Borealis->value, 'scope', 'discord')
+                (string) IntegrationConfig::getValue(Integration::Borealis->value, 'scope', 'discord')
             );
             CapabilityAssignment::assign(Capability::Authentication, Integration::Borealis->value);
             $this->info('Saved Borealis OAuth settings.');

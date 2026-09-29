@@ -21,15 +21,66 @@ class PiHoleService implements DnsFilteringInterface
         protected bool $verifySsl = true,
     ) {}
 
-    public function isEnabledForIp(string $ipAddress): bool
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public static function fromConfig(array $config): self
     {
-        $client = $this->findClient($ipAddress);
+        return new self(
+            rtrim((string) ($config['endpoint'] ?? ''), '/'),
+            (string) ($config['password'] ?? ''),
+            (int) ($config['filtered_group_id'] ?? 1),
+            (bool) ($config['verify_ssl'] ?? true),
+        );
+    }
 
-        if ($client === null) {
-            return false;
+    /**
+     * @return array{groups: list<array{id: int, name: string, enabled: bool}>, error?: string}
+     */
+    public function getGroups(): array
+    {
+        try {
+            if ($this->endpoint === '') {
+                return ['groups' => [], 'error' => 'Pi-hole endpoint is not configured.'];
+            }
+
+            if ($this->password === '') {
+                return ['groups' => [], 'error' => 'Pi-hole password is not configured.'];
+            }
+
+            $authResponse = $this->request(10)->post('/api/auth', ['password' => $this->password]);
+
+            if (! $authResponse->successful()) {
+                return [
+                    'groups' => [],
+                    'error' => 'Pi-hole authentication failed (HTTP '.$authResponse->status().'). Check your password.',
+                ];
+            }
+
+            /** @var string $sid */
+            $sid = $authResponse->json('session.sid', '');
+
+            if ($sid === '') {
+                return ['groups' => [], 'error' => 'Pi-hole auth succeeded but no session ID found in response.'];
+            }
+
+            $response = $this->request(10, $sid)->get('/api/groups');
+
+            if (! $response->successful()) {
+                return ['groups' => [], 'error' => 'Failed to fetch Pi-hole groups (HTTP '.$response->status().').'];
+            }
+
+            /** @var array<int, array{id: int, name?: string, enabled?: bool}> $groups */
+            $groups = $response->json('groups', []);
+
+            return ['groups' => array_values(collect($groups)->map(fn (array $g): array => [
+                'id' => $g['id'],
+                'name' => $g['name'] ?? 'Group '.$g['id'],
+                'enabled' => $g['enabled'] ?? true,
+            ])->all())];
+        } catch (Throwable $throwable) {
+            return ['groups' => [], 'error' => $throwable->getMessage()];
         }
-
-        return in_array($this->filteredGroupId, $client['groups'], true);
     }
 
     public function enableForIp(string $ipAddress): void
@@ -139,12 +190,10 @@ class PiHoleService implements DnsFilteringInterface
     {
         $sid = $this->getSessionId();
 
-        $response = $this->authed($sid)->get('/api/clients')->throw();
+        /** @var array<int, array{id: int, client: string, groups: array<int, int>, comment: string}> $clients */
+        $clients = $this->request(sid: $sid)->throw()->get('/api/clients')->json('clients');
 
-        /** @var array{clients: array<int, array{id: int, client: string, groups: array<int, int>, comment: string}>} $data */
-        $data = $response->json();
-
-        return $data['clients'];
+        return $clients;
     }
 
     /**
@@ -154,11 +203,8 @@ class PiHoleService implements DnsFilteringInterface
     {
         $sid = $this->getSessionId();
 
-        $response = $this->authed($sid)->get('/api/clients', ['search' => $ipAddress])->throw();
-
-        /** @var array{clients: array<int, array{id: int, client: string, groups: array<int, int>, comment: string}>} $data */
-        $data = $response->json();
-        $clients = $data['clients'];
+        /** @var array<int, array{id: int, client: string, groups: array<int, int>, comment: string}> $clients */
+        $clients = $this->request(sid: $sid)->throw()->get('/api/clients', ['search' => $ipAddress])->json('clients');
 
         foreach ($clients as $client) {
             if ($client['client'] === $ipAddress) {
@@ -176,11 +222,11 @@ class PiHoleService implements DnsFilteringInterface
     {
         $sid = $this->getSessionId();
 
-        $this->authed($sid)->post('/api/clients', [
+        $this->request(sid: $sid)->throw()->post('/api/clients', [
             'client' => $ipAddress,
             'groups' => $groups,
             'comment' => 'Managed by Aperture',
-        ])->throw();
+        ]);
     }
 
     /**
@@ -190,38 +236,40 @@ class PiHoleService implements DnsFilteringInterface
     {
         $sid = $this->getSessionId();
 
-        $this->authed($sid)->put('/api/clients/'.urlencode($clientIdentifier), [
+        $this->request(sid: $sid)->throw()->put('/api/clients/'.urlencode($clientIdentifier), [
             'comment' => $comment,
             'groups' => $groups,
-        ])->throw();
+        ]);
     }
 
     protected function deleteClient(string $clientIdentifier): void
     {
         $sid = $this->getSessionId();
 
-        $this->authed($sid)->delete('/api/clients/'.urlencode($clientIdentifier))->throw();
-    }
-
-    protected function http(): PendingRequest
-    {
-        return ExternalHttp::request($this->endpoint, $this->verifySsl)->asJson();
-    }
-
-    protected function authed(string $sid): PendingRequest
-    {
-        return $this->http()->withHeaders(['X-FTL-SID' => $sid]);
+        $this->request(sid: $sid)->throw()->delete('/api/clients/'.urlencode($clientIdentifier));
     }
 
     protected function getSessionId(): string
     {
         return Cache::remember('pihole_session_id', 270, function (): string {
-            $response = $this->http()->post('/api/auth', ['password' => $this->password])->throw();
-
-            /** @var array{session: array{sid: string, validity: int}} $data */
-            $data = $response->json();
-
-            return $data['session']['sid'];
+            return (string) $this->request()->throw()
+                ->post('/api/auth', ['password' => $this->password])
+                ->json('session.sid');
         });
+    }
+
+    protected function request(?int $timeout = null, ?string $sid = null): PendingRequest
+    {
+        $request = ExternalHttp::request($this->endpoint, $this->verifySsl)->asJson();
+
+        if ($timeout !== null) {
+            $request->timeout($timeout);
+        }
+
+        if ($sid !== null) {
+            $request->withHeaders(['X-FTL-SID' => $sid]);
+        }
+
+        return $request;
     }
 }

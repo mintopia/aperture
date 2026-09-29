@@ -74,13 +74,26 @@
 }
 
 /* Page transitions — admin navigation */
-#main-content.page-exit {
-    opacity: 0.6;
-    transition: opacity 80ms ease-out;
+#main-content {
+    view-transition-name: main-content;
 }
 
-#main-content.page-enter {
-    animation: page-fade-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+::view-transition-old(main-content) {
+    animation: 80ms ease-out both page-fade-out;
+}
+
+::view-transition-new(main-content) {
+    animation: 150ms cubic-bezier(0.16, 1, 0.3, 1) both page-fade-in;
+}
+
+::view-transition-group(root) {
+    animation-duration: 0s;
+}
+
+@keyframes page-fade-out {
+    to {
+        opacity: 0.6;
+    }
 }
 
 @keyframes page-fade-in {

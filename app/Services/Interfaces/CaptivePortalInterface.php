@@ -12,8 +12,5 @@ interface CaptivePortalInterface
 
     public function removeIp(string $ip): void;
 
-    /** @param array<int, string> $hostnames */
-    public function addAllowedHostnames(array $hostnames): void;
-
     public function reconcile(bool $dryRun = false): ReconcileResult;
 }

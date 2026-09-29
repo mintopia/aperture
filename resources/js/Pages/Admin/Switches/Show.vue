@@ -190,19 +190,12 @@ function refreshSwitchData() {
     });
 }
 
-function onSwitchSyncCompleted(event) {
-    if (event.switch_config_id === props.switchConfig.id) {
-        refreshSwitchData();
-    }
-}
-
 function onPortStateChanged() {
     refreshSwitchData();
 }
 
 useAdminChannel({
     events: {
-        SwitchSyncCompleted: onSwitchSyncCompleted,
         PortStateChanged: onPortStateChanged,
     },
 });

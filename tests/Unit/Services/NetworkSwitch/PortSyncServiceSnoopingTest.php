@@ -13,7 +13,6 @@ use App\Services\NetworkSwitch\PortMacSync;
 use App\Services\NetworkSwitch\PortStatusSync;
 use App\Services\NetworkSwitch\PortSyncService;
 use App\Services\NetworkSwitch\SwitchServiceFactory;
-use App\Services\NetworkSwitch\SyncRunTracker;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
@@ -61,7 +60,6 @@ class PortSyncServiceSnoopingTest extends TestCase
 
         $this->service = new PortSyncService(
             $this->factory,
-            new SyncRunTracker,
             new PortStatusSync,
             new PortMacSync,
             new PortConfigSync,

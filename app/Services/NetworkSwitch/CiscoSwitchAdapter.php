@@ -11,7 +11,6 @@ use App\Services\Interfaces\SupportsDhcpSnooping;
 use App\Services\Interfaces\SupportsInterfaceOutputCapture;
 use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\ValueObjects\ForwardingEntry;
-use App\Services\ValueObjects\PortStatistics;
 use App\Services\ValueObjects\PortStatus;
 use Illuminate\Support\Collection;
 use RuntimeException;
@@ -163,15 +162,6 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperatio
         ]);
 
         return true;
-    }
-
-    public function getPortStatistics(string $portId): PortStatistics
-    {
-        $this->validatePortIdentifier($portId);
-        $output = $this->getAllPortInterfaceOutputs()[$portId]
-            ?? $this->transport->execute('show interface '.$portId);
-
-        return $this->parser->parseInterfaceCounters($output);
     }
 
     public function getRunningConfig(): string

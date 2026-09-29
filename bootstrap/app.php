@@ -15,7 +15,6 @@ use App\Http\Middleware\TrustHosts;
 use App\Http\Middleware\TrustProxies;
 use App\Http\Middleware\ValidateSignature;
 use App\Http\Middleware\VerifyCsrfToken;
-use App\Jobs\ReapplyAccessRules;
 use App\Jobs\ScanNetworkDevices;
 use App\Jobs\SyncDhcpData;
 use App\Jobs\SyncSwitchPortsJob;
@@ -120,7 +119,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('aperture:expire-sessions')->everyFiveMinutes()->onOneServer();
         $schedule->command('aperture:detect-bandwidth-anomalies')->everyFiveMinutes()->onOneServer();
         $schedule->command('aperture:sync-user-bandwidth')->everyFifteenMinutes()->onOneServer();
-        $schedule->job(new ReapplyAccessRules)->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
+        $schedule->command('aperture:reconcile internet')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
         $schedule->job(new ScanNetworkDevices)->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 
         $interval = (int) config('aperture.switch_sync_interval', 5);

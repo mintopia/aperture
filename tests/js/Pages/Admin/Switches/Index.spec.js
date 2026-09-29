@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Index from '@/Pages/Admin/Switches/Index.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
@@ -406,55 +406,5 @@ describe('Index — Sorting', () => {
 
         const nameHeader = wrapper.findAll('th').find((th) => th.text().includes('Name'));
         expect(nameHeader.attributes('aria-sort')).toBe('descending');
-    });
-});
-
-// useAdminChannel's own subscribe/listen/leave behavior is covered generically by
-// tests/js/composables/useAdminChannel.spec.js; this only covers that Index wires up
-// its SwitchSyncCompleted handler to refresh the switches list.
-describe('Switches/Index Echo integration', () => {
-    let originalEcho;
-
-    function createMockEcho() {
-        const channels = {};
-        return {
-            private: vi.fn((channelName) => {
-                const channel = {
-                    _listeners: {},
-                    listen: vi.fn((event, handler) => {
-                        channel._listeners[event] = handler;
-                        return channel;
-                    }),
-                };
-                channels[channelName] = channel;
-                return channel;
-            }),
-            leave: vi.fn(),
-            _channels: channels,
-        };
-    }
-
-    beforeEach(() => {
-        originalEcho = window.Echo;
-    });
-
-    afterEach(() => {
-        window.Echo = originalEcho;
-    });
-
-    it('refreshes the switches list when SwitchSyncCompleted fires', async () => {
-        const { router } = await import('@inertiajs/vue3');
-        const echo = createMockEcho();
-        window.Echo = echo;
-
-        mountIndex();
-        router.reload.mockClear();
-
-        const channel = echo._channels['admin.events'];
-        channel._listeners['SwitchSyncCompleted']();
-
-        expect(router.reload).toHaveBeenCalledWith(
-            expect.objectContaining({ only: ['switches'], preserveScroll: true }),
-        );
     });
 });

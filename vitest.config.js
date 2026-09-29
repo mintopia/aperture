@@ -1,35 +1,21 @@
 import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
     plugins: [vue()],
     test: {
         environment: 'jsdom',
         globals: true,
+        setupFiles: ['tests/js/setup.js'],
         exclude: ['tests/e2e/**', 'node_modules/**', '.worktrees/**'],
         coverage: {
             provider: 'v8',
             reportsDirectory: 'storage/coverage/js',
-            include: [
-                'resources/js/Components/UI/**/*.vue',
-                'resources/js/Pages/Admin/Switches/Ports/Show.vue',
-                'resources/js/Pages/Admin/Switches/Index.vue',
-                'resources/js/Pages/Admin/Switches/Show.vue',
-                'resources/js/Pages/Admin/Dashboard.vue',
-                'resources/js/Pages/Admin/Macs/Index.vue',
-                'resources/js/Pages/Admin/Macs/Show.vue',
-                'resources/js/Pages/Admin/AuditLog/Index.vue',
-                'resources/js/Components/Admin/RecentActivity.vue',
-                'resources/js/Components/Blocks/DnsWarningBlock.vue',
-                'resources/js/Components/Blocks/ConnectionStripBlock.vue',
-                'resources/js/Components/Blocks/BandwidthBlock.vue',
-                'resources/js/Components/Blocks/DnsFilterBlock.vue',
-                'resources/js/Pages/Portal/Dashboard.vue',
-                'resources/js/composables/**/*.js',
-                'resources/js/helpers.js',
-                'resources/js/utils/**/*.js',
-            ],
+            include: ['resources/js/**/*.{js,vue}'],
             exclude: ['resources/js/app.js'],
             reporter: ['text', 'html', 'clover'],
         },

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Enums\AddressFamily;
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Tests\Support\Fake;
@@ -38,9 +39,7 @@ class OpnSenseDhcpServiceRangeUsageTest extends TestCase
         Fake::sequence($responses);
 
         return new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 254,
             leasesPath: $leasesPath,
             ipv4RangesPath: $ipv4RangesPath,

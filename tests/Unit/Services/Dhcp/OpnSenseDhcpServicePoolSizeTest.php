@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Enums\AddressFamily;
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use Tests\Support\Fake;
 use Tests\TestCase;
@@ -22,7 +23,7 @@ class OpnSenseDhcpServicePoolSizeTest extends TestCase
                 'rowCount' => 2,
             ])),
         ]);
-        $service = new OpnSenseDhcpService('http://opnsense.test', 'key', 'secret', true, 100);
+        $service = new OpnSenseDhcpService(OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), 100);
 
         $status = $service->snapshot()->poolStatus(AddressFamily::IPv4);
 

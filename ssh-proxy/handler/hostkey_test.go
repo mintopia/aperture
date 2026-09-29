@@ -38,7 +38,7 @@ func post(h *Handler, body string) (*httptest.ResponseRecorder, executeResponse)
 }
 
 func TestExecute_DifferentCredentialsOrPortNeverReuseSession(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10 * time.Minute, 0)
 	calls := 0
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		calls++
@@ -68,7 +68,7 @@ func TestExecute_DifferentCredentialsOrPortNeverReuseSession(t *testing.T) {
 }
 
 func TestExecute_ReturnsHostKeyForNewAndReusedConnections(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10 * time.Minute, 0)
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return &keyedSession{hostKey: keyA}, nil
 	}
@@ -89,7 +89,7 @@ func TestExecute_PassesPinAndCredentialsToConnector(t *testing.T) {
 		got = cp
 		return &keyedSession{hostKey: keyA}, nil
 	}
-	h := testHandler(pool.New(time.Minute), connector, okExecutor())
+	h := testHandler(pool.New(time.Minute, 0), connector, okExecutor())
 	post(h, `{"hostname":"sw","username":"u","private_key":"PEM","passphrase":"pp","host_key":"ssh-ed25519 X","commands":[]}`)
 	if got.PrivateKey != "PEM" || got.Passphrase != "pp" || got.HostKey != "ssh-ed25519 X" || got.Username != "u" || got.Port != 22 {
 		t.Errorf("unexpected params: %+v", got)
@@ -97,7 +97,7 @@ func TestExecute_PassesPinAndCredentialsToConnector(t *testing.T) {
 }
 
 func TestExecute_HostKeyMismatch(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10 * time.Minute, 0)
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return nil, fmt.Errorf("%w: expected SHA256:aaa but server presented SHA256:bbb", ssh.ErrHostKeyMismatch)
 	}
@@ -119,7 +119,7 @@ func TestExecute_HostKeyMismatch(t *testing.T) {
 }
 
 func TestExecute_InvalidPrivateKey(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10 * time.Minute, 0)
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return nil, fmt.Errorf("%w: bad", ssh.ErrInvalidPrivateKey)
 	}
@@ -135,7 +135,7 @@ func TestExecute_InvalidPrivateKey(t *testing.T) {
 }
 
 func TestExecute_ChangedPinReconnectsPooledSession(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10 * time.Minute, 0)
 	old := &keyedSession{hostKey: keyA}
 	k := pool.NewKey("sw", 22, "admin", pool.DefaultChannel, "p", "", "")
 	_, _, _ = p.Acquire(k)
@@ -164,7 +164,7 @@ func TestExecute_NeverLogsSecrets(t *testing.T) {
 	connector := func(_ context.Context, _ ssh.ConnectParams) (ssh.Session, error) {
 		return nil, fmt.Errorf("boom")
 	}
-	h := testHandlerWithLogger(pool.New(time.Minute), connector, okExecutor(), testLoggerWithBuffer(&buf))
+	h := testHandlerWithLogger(pool.New(time.Minute, 0), connector, okExecutor(), testLoggerWithBuffer(&buf))
 	post(h, `{"hostname":"sw","username":"u","password":"PW-SECRET","private_key":"KEY-SECRET","passphrase":"PP-SECRET","commands":[]}`)
 	for _, s := range []string{"PW-SECRET", "KEY-SECRET", "PP-SECRET"} {
 		if strings.Contains(buf.String(), s) {
@@ -174,7 +174,7 @@ func TestExecute_NeverLogsSecrets(t *testing.T) {
 }
 
 func TestExecute_EmptyPinEvictsPooledSessionWithObservedKey(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10 * time.Minute, 0)
 	old := &keyedSession{hostKey: keyA}
 	k := pool.NewKey("sw", 22, "admin", pool.DefaultChannel, "p", "", "")
 	_, _, _ = p.Acquire(k)

@@ -22,8 +22,6 @@ use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable as WebAuthnAuthenticatab
 use Laragear\WebAuthn\Models\WebAuthnCredential;
 use Laragear\WebAuthn\WebAuthnAuthentication;
 use Laragear\WebAuthn\WebAuthnData;
-use Laravel\Sanctum\HasApiTokens;
-use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * App\Models\User
@@ -48,8 +46,6 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @property-read int|null $notifications_count
  * @property-read Collection<int, Role> $roles
  * @property-read int|null $roles_count
- * @property-read Collection<int, PersonalAccessToken> $tokens
- * @property-read int|null $tokens_count
  *
  * @method static UserFactory factory($count = null, $state = [])
  * @method static Builder|User newModelQuery()
@@ -63,7 +59,6 @@ use Laravel\Sanctum\PersonalAccessToken;
  * @method static Builder|User whereExternalId($value)
  * @method static Builder|User whereUpdatedAt($value)
  *
- * @mixin IdeHelperUser
  *
  * @property string|null $password
  * @property-read Collection<int, MacAddress> $macAddresses
@@ -102,8 +97,6 @@ use Laravel\Sanctum\PersonalAccessToken;
 ])]
 class User extends Authenticatable implements WebAuthnAuthenticatableContract
 {
-    use HasApiTokens;
-
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 

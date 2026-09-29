@@ -1,8 +1,19 @@
 <?php
 
+use App\Services\Integration\BorealisTester;
+use App\Services\Integration\CiscoTester;
+use App\Services\Integration\KeaTester;
+use App\Services\Integration\LibreNmsTester;
+use App\Services\Integration\OpnSenseTester;
+use App\Services\Integration\PiHoleTester;
+use App\Services\Integration\PrometheusTester;
+use App\Services\Integration\SeatpickerTester;
+use App\Services\Integration\VyOsTester;
+
 return [
     'opnsense' => [
         'name' => 'OPNsense',
+        'tester' => OpnSenseTester::class,
         'description' => 'Network firewall providing captive portal, rate limiting, and DHCP services.',
         'capabilities' => ['captive-portal', 'rate-limiting', 'dhcp'],
         'fields' => [
@@ -93,6 +104,7 @@ return [
     ],
     'librenms' => [
         'name' => 'LibreNMS',
+        'tester' => LibreNmsTester::class,
         'description' => 'Network monitoring for IP/MAC resolution, port mapping, and bandwidth data.',
         'capabilities' => ['ip-mac', 'port-mac'],
         'fields' => [
@@ -121,6 +133,7 @@ return [
     ],
     'pihole' => [
         'name' => 'Pi-hole',
+        'tester' => PiHoleTester::class,
         'description' => 'DNS filtering and optional DHCP/IP-to-MAC resolution.',
         'capabilities' => ['dns-filtering'],
         'fields' => [
@@ -165,6 +178,7 @@ return [
     ],
     'borealis' => [
         'name' => 'Borealis',
+        'tester' => BorealisTester::class,
         'description' => 'OAuth2 authentication provider for user login via device code flow.',
         'capabilities' => [],
         'fields' => [
@@ -202,6 +216,7 @@ return [
     ],
     'seatpicker' => [
         'name' => 'Seatpicker',
+        'tester' => SeatpickerTester::class,
         'description' => 'Integrate with Control seatpicker for seat assignment synchronisation.',
         'capabilities' => ['seat-picker'],
         'fields' => [
@@ -246,6 +261,7 @@ return [
     ],
     'prometheus' => [
         'name' => 'Prometheus',
+        'tester' => PrometheusTester::class,
         'description' => 'Time-series metrics database for network bandwidth and device monitoring.',
         'capabilities' => ['ip-bandwidth', 'port-bandwidth', 'port-errors'],
         'fields' => [
@@ -308,6 +324,7 @@ return [
     ],
     'vyos' => [
         'name' => 'VyOS',
+        'tester' => VyOsTester::class,
         'description' => 'VyOS router providing DHCP, DHCPv6, and IP-MAC resolution.',
         'capabilities' => ['dhcp', 'ip-mac'],
         'fields' => [
@@ -343,6 +360,7 @@ return [
     ],
     'cisco' => [
         'name' => 'Cisco',
+        'tester' => CiscoTester::class,
         'description' => 'Cisco IOS switch providing DHCP server capabilities.',
         'capabilities' => ['dhcp'],
         'fields' => [
@@ -372,6 +390,7 @@ return [
     ],
     'kea' => [
         'name' => 'Kea',
+        'tester' => KeaTester::class,
         'description' => 'ISC Kea DHCP server providing DHCP leases, ranges and IP-MAC resolution via its native REST API.',
         'capabilities' => ['dhcp', 'ip-mac'],
         'fields' => [

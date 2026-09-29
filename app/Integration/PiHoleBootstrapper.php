@@ -18,16 +18,7 @@ final class PiHoleBootstrapper implements IntegrationBootstrapper
     public function providers(): array
     {
         return [
-            Capability::DnsFiltering->value => function (): PiHoleService {
-                $config = InstallGuard::config(Integration::PiHole->value);
-
-                return new PiHoleService(
-                    (string) ($config['endpoint'] ?? ''),
-                    (string) ($config['password'] ?? ''),
-                    (int) ($config['filtered_group_id'] ?? 1),
-                    (bool) ($config['verify_ssl'] ?? true),
-                );
-            },
+            Capability::DnsFiltering->value => fn (): PiHoleService => PiHoleService::fromConfig(InstallGuard::config(Integration::PiHole->value)),
         ];
     }
 }

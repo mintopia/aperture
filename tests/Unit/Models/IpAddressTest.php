@@ -2,8 +2,7 @@
 
 namespace Tests\Unit\Models;
 
-use App\Jobs\SyncInternetAccessJob;
-use App\Jobs\SyncRateLimitJob;
+use App\Jobs\SyncFirewallJob;
 use App\Models\IpAddress;
 use App\Models\MacAddress;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -123,10 +122,10 @@ class IpAddressTest extends TestCase
     public static function togglingDispatchesSyncJobProvider(): array
     {
         return [
-            'enabling rate limit dispatches SyncRateLimitJob' => ['rate_limit_enabled', false, true, SyncRateLimitJob::class],
-            'disabling rate limit dispatches SyncRateLimitJob' => ['rate_limit_enabled', true, false, SyncRateLimitJob::class],
-            'enabling internet dispatches SyncInternetAccessJob' => ['internet_enabled', false, true, SyncInternetAccessJob::class],
-            'disabling internet dispatches SyncInternetAccessJob' => ['internet_enabled', true, false, SyncInternetAccessJob::class],
+            'enabling rate limit dispatches SyncFirewallJob (rate-limit)' => ['rate_limit_enabled', false, true, SyncFirewallJob::class],
+            'disabling rate limit dispatches SyncFirewallJob (rate-limit)' => ['rate_limit_enabled', true, false, SyncFirewallJob::class],
+            'enabling internet dispatches SyncFirewallJob (internet)' => ['internet_enabled', false, true, SyncFirewallJob::class],
+            'disabling internet dispatches SyncFirewallJob (internet)' => ['internet_enabled', true, false, SyncFirewallJob::class],
         ];
     }
 

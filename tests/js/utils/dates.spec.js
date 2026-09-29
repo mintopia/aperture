@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatDate, formatRelative, formatRelativeTime, formatEpoch, formatTime } from '@/utils/dates';
+import { formatDate, formatRelative, formatEpoch, formatTime } from '@/utils/dates';
 
 describe('formatDate', () => {
     it.each([
@@ -43,9 +43,9 @@ describe('formatRelative', () => {
 
     it.each([
         { name: 'just now (< 60s)', input: '2026-04-16T11:59:30Z', expected: 'just now' },
-        { name: 'minutes ago', input: '2026-04-16T11:45:00Z', expected: '15m ago' },
-        { name: 'hours ago', input: '2026-04-16T09:00:00Z', expected: '3h ago' },
-        { name: 'days ago', input: '2026-04-14T12:00:00Z', expected: '2d ago' },
+        { name: 'minutes ago', input: '2026-04-16T11:45:00Z', expected: '15 min. ago' },
+        { name: 'hours ago', input: '2026-04-16T09:00:00Z', expected: '3 hr. ago' },
+        { name: 'days ago', input: '2026-04-14T12:00:00Z', expected: '2 days ago' },
     ])('returns $expected for $name', ({ input, expected }) => {
         expect(formatRelative(input)).toBe(expected);
     });
@@ -66,31 +66,6 @@ describe('formatRelative', () => {
         expect(formatRelative(input)).toBe(expected);
     });
 });
-
-describe('formatRelativeTime', () => {
-    beforeEach(() => {
-        vi.useFakeTimers();
-        vi.setSystemTime(new Date('2026-04-16T12:00:00Z'));
-    });
-
-    afterEach(() => {
-        vi.useRealTimers();
-    });
-
-    it.each([
-        { name: 'null', input: null, expected: '—' },
-        { name: 'undefined', input: undefined, expected: '—' },
-        { name: 'empty string', input: '', expected: '—' },
-        { name: 'invalid date (passthrough)', input: 'not-a-date', expected: 'not-a-date' },
-        { name: 'very recent (< 60s)', input: '2026-04-16T11:59:30Z', expected: 'now' },
-        { name: 'minutes under an hour', input: '2026-04-16T11:45:00Z', expected: '15m' },
-        { name: 'hours under a day', input: '2026-04-16T09:00:00Z', expected: '3h' },
-        { name: 'days older than a day', input: '2026-04-14T12:00:00Z', expected: '2d' },
-    ])('returns $expected for $name', ({ input, expected }) => {
-        expect(formatRelativeTime(input)).toBe(expected);
-    });
-});
-
 describe('formatEpoch', () => {
     it('formats seconds and milliseconds identically', () => {
         expect(formatEpoch('1714000000')).toBe(formatEpoch('1714000000000'));

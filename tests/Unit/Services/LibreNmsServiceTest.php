@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Services\LibreNms\LibreNmsService;
 use App\Services\ValueObjects\ResolvedPort;
 use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Tests\Support\Fake;
 use Tests\TestCase;
@@ -41,6 +42,10 @@ class LibreNmsServiceTest extends TestCase
         $this->assertEquals('aa:bb:cc:dd:ee:ff', $result[0]->mac);
         $this->assertEquals('1', $result[0]->port);
         $this->assertEquals(100, $result[0]->vlan);
+
+        $request = Fake::requests()[0];
+        $this->assertSame('http://librenms.test/api/v0/resources/fdb', $request->url());
+        $this->assertTrue($request->hasHeader('X-Auth-Token', 'api-token'));
     }
 
     public function test_get_ip_mac_table_returns_collection(): void
@@ -116,24 +121,6 @@ class LibreNmsServiceTest extends TestCase
 
         $result = $service->resolveIpToPort('10.0.0.1');
         $this->assertNull($result);
-    }
-
-    public function test_get_device_list_returns_collection(): void
-    {
-        $responseBody = json_encode([
-            'devices' => [
-                ['hostname' => 'switch-1', 'ip' => '10.0.0.1', 'type' => 'network'],
-            ],
-        ]);
-
-        $service = $this->createServiceWithMockClient([
-            Fake::response(200, [], $responseBody),
-        ]);
-
-        $result = $service->getDeviceList();
-        $this->assertInstanceOf(Collection::class, $result);
-        $this->assertCount(1, $result);
-        $this->assertEquals('switch-1', $result[0]->hostname);
     }
 
     public function test_get_ipv6_neighbors_filters_ipv6_only(): void
@@ -231,5 +218,15 @@ class LibreNmsServiceTest extends TestCase
 
         $result = $service->getPortDetail('999');
         $this->assertNull($result);
+    }
+
+    public function test_http_error_throws_request_exception(): void
+    {
+        $service = $this->createServiceWithMockClient([
+            Fake::response(500, [], 'error'),
+        ]);
+
+        $this->expectException(RequestException::class);
+        $service->getIpMacTable();
     }
 }

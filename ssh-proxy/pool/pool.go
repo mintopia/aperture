@@ -21,13 +21,6 @@ type KeepaliveChecker interface {
 	SendKeepalive() error
 }
 
-// HealthChecker is implemented by connections that support a lightweight
-// health probe. The pool can optionally check health before reusing a
-// connection to detect stale connections early.
-type HealthChecker interface {
-	CheckHealth() error
-}
-
 // Key identifies a pooled connection. It is comparable and never exposes
 // the credentials it was derived from.
 type Key struct {
@@ -53,6 +46,7 @@ func NewKey(hostname string, port int, username, channel string, creds ...string
 	return k
 }
 
+// Entry represents a pooled connection for a single Key.
 type Entry struct {
 	Hostname      string
 	Port          int
@@ -88,20 +82,10 @@ type Pool struct {
 }
 
 // New creates a connection pool that evicts idle connections after idleTimeout.
-// No keepalive is configured; use NewWithKeepalive for keepalive support.
-func New(idleTimeout time.Duration) *Pool {
-	return &Pool{
-		entries:     make(map[Key]*Entry),
-		idleTimeout: idleTimeout,
-		startedAt:   time.Now(),
-	}
-}
-
-// NewWithKeepalive creates a connection pool with periodic SSH keepalive.
-// Connections that implement KeepaliveChecker will receive keepalive requests
-// at the specified interval. If a keepalive fails, the connection is marked
-// dead and will be evicted on the next Acquire or SweepIdle call.
-func NewWithKeepalive(idleTimeout, keepaliveInterval time.Duration) *Pool {
+// Connections that implement KeepaliveChecker receive keepalive requests at
+// keepaliveInterval (zero disables keepalive). If a keepalive fails, the
+// connection is marked dead and evicted on the next Acquire or SweepIdle call.
+func New(idleTimeout, keepaliveInterval time.Duration) *Pool {
 	return &Pool{
 		entries:           make(map[Key]*Entry),
 		idleTimeout:       idleTimeout,
@@ -120,11 +104,7 @@ func (p *Pool) Acquire(key Key) (*Entry, bool, error) {
 	entry, exists := p.entries[key]
 	if exists {
 		if entry.Dead {
-			p.stopKeepaliveLocked(entry)
-			if entry.Conn != nil {
-				entry.Conn.Close()
-			}
-			delete(p.entries, key)
+			p.removeLocked(key, entry)
 		} else {
 			if entry.Locked {
 				return nil, false, ErrHostLocked
@@ -148,74 +128,7 @@ func (p *Pool) Acquire(key Key) (*Entry, bool, error) {
 	return entry, true, nil
 }
 
-// AcquireWithHealthCheck works like Acquire but additionally runs a health
-// check on existing connections that implement HealthChecker. If the check
-// fails, the stale connection is evicted and a fresh entry is returned
-// (isNew=true) so the caller can establish a new connection.
-func (p *Pool) AcquireWithHealthCheck(key Key) (*Entry, bool, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	entry, exists := p.entries[key]
-	if exists {
-		if entry.Dead {
-			p.stopKeepaliveLocked(entry)
-			if entry.Conn != nil {
-				entry.Conn.Close()
-			}
-			delete(p.entries, key)
-		} else {
-			if entry.Locked {
-				return nil, false, ErrHostLocked
-			}
-
-			// Run health check if the connection supports it.
-			if entry.Conn != nil {
-				if checker, ok := entry.Conn.(HealthChecker); ok {
-					if err := checker.CheckHealth(); err != nil {
-						// Connection is stale — evict it.
-						p.stopKeepaliveLocked(entry)
-						entry.Conn.Close()
-						delete(p.entries, key)
-						// Fall through to create a new entry.
-						goto createNew
-					}
-				}
-			}
-
-			entry.Locked = true
-			entry.LastUsed = time.Now()
-			return entry, false, nil
-		}
-	}
-
-createNew:
-	entry = &Entry{
-		Hostname:  key.Hostname,
-		Port:      key.Port,
-		Username:  key.Username,
-		Channel:   key.Channel,
-		Locked:    true,
-		CreatedAt: time.Now(),
-		LastUsed:  time.Now(),
-	}
-	p.entries[key] = entry
-	return entry, true, nil
-}
-
-func (p *Pool) Evict(key Key) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if entry, ok := p.entries[key]; ok {
-		p.stopKeepaliveLocked(entry)
-		if entry.Conn != nil {
-			entry.Conn.Close()
-		}
-		delete(p.entries, key)
-	}
-}
-
+// Release unlocks the entry for the given key.
 func (p *Pool) Release(key Key) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -257,16 +170,14 @@ func (p *Pool) SetHostKey(key Key, hostKey string) {
 	}
 }
 
+// Remove closes and removes the entry for the given key, regardless of its
+// lock state, stopping its keepalive goroutine if one is running.
 func (p *Pool) Remove(key Key) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if entry, ok := p.entries[key]; ok {
-		p.stopKeepaliveLocked(entry)
-		if entry.Conn != nil {
-			entry.Conn.Close()
-		}
-		delete(p.entries, key)
+		p.removeLocked(key, entry)
 	}
 }
 
@@ -325,12 +236,18 @@ func (p *Pool) DisconnectAll() {
 	defer p.mu.Unlock()
 
 	for key, entry := range p.entries {
-		p.stopKeepaliveLocked(entry)
-		if entry.Conn != nil {
-			entry.Conn.Close()
-		}
-		delete(p.entries, key)
+		p.removeLocked(key, entry)
 	}
+}
+
+// removeLocked stops keepalive, closes the connection and deletes the entry.
+// Must be called with p.mu held.
+func (p *Pool) removeLocked(key Key, entry *Entry) {
+	p.stopKeepaliveLocked(entry)
+	if entry.Conn != nil {
+		entry.Conn.Close()
+	}
+	delete(p.entries, key)
 }
 
 // stopKeepaliveLocked signals the keepalive goroutine for an entry to stop.

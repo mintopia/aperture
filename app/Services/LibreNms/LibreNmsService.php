@@ -7,7 +7,6 @@ namespace App\Services\LibreNms;
 use App\Services\Http\ExternalHttp;
 use App\Services\ValueObjects\ForwardingEntry;
 use App\Services\ValueObjects\IpMacEntry;
-use App\Services\ValueObjects\NetworkDevice;
 use App\Services\ValueObjects\PortDetail;
 use App\Services\ValueObjects\ResolvedPort;
 use Illuminate\Http\Client\PendingRequest;
@@ -32,9 +31,8 @@ class LibreNmsService
     /** @return Collection<int, ForwardingEntry> */
     public function getForwardingDatabase(): Collection
     {
-        $response = $this->http()->get('/api/v0/resources/fdb');
         /** @var array<string, mixed> $data */
-        $data = $response->json();
+        $data = $this->http()->get('/api/v0/resources/fdb')->json();
 
         return collect(array_map(
             fn (array $entry): ForwardingEntry => new ForwardingEntry(
@@ -49,9 +47,8 @@ class LibreNmsService
     /** @return Collection<int, IpMacEntry> */
     public function getIpMacTable(): Collection
     {
-        $response = $this->http()->get('/api/v0/resources/ip/arp');
         /** @var array<string, mixed> $data */
-        $data = $response->json();
+        $data = $this->http()->get('/api/v0/resources/ip/arp')->json();
 
         return collect(array_map(
             fn (array $entry): IpMacEntry => new IpMacEntry(
@@ -82,28 +79,10 @@ class LibreNmsService
         );
     }
 
-    /** @return Collection<int, NetworkDevice> */
-    public function getDeviceList(): Collection
-    {
-        $response = $this->http()->get('/api/v0/devices');
-        /** @var array<string, mixed> $data */
-        $data = $response->json();
-
-        return collect(array_map(
-            fn (array $device): NetworkDevice => new NetworkDevice(
-                hostname: (string) ($device['hostname'] ?? ''),
-                ip: (string) ($device['ip'] ?? ''),
-                type: (string) ($device['type'] ?? ''),
-            ),
-            $data['devices'] ?? [],
-        ));
-    }
-
     public function getPortDetail(string $portId): ?PortDetail
     {
-        $response = $this->http()->get('/api/v0/ports/'.$portId);
         /** @var array<string, mixed> $data */
-        $data = $response->json();
+        $data = $this->http()->get('/api/v0/ports/'.$portId)->json();
 
         $port = $data['port'] ?? null;
         if ($port === null) {
@@ -111,9 +90,8 @@ class LibreNmsService
         }
 
         $deviceId = (string) ($port['device_id'] ?? '');
-        $deviceResponse = $this->http()->get('/api/v0/devices/'.$deviceId);
         /** @var array<string, mixed> $deviceData */
-        $deviceData = $deviceResponse->json();
+        $deviceData = $this->http()->get('/api/v0/devices/'.$deviceId)->json();
 
         return new PortDetail(
             hostname: (string) ($deviceData['devices'][0]['hostname'] ?? ''),
@@ -127,9 +105,8 @@ class LibreNmsService
     /** @return Collection<int, IpMacEntry> */
     public function getIpv6Neighbors(): Collection
     {
-        $response = $this->http()->get('/api/v0/resources/ip/arp');
         /** @var array<string, mixed> $data */
-        $data = $response->json();
+        $data = $this->http()->get('/api/v0/resources/ip/arp')->json();
 
         $entries = array_map(
             fn (array $entry): IpMacEntry => new IpMacEntry(

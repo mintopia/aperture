@@ -10,7 +10,6 @@ use App\Services\Interfaces\SshProxyClientInterface;
 use App\Services\NetworkSwitch\Transport\SshProxyTransport;
 use App\Services\SshProxy\CommandOutput;
 use App\Services\SshProxy\CommandResult;
-use App\Services\SshProxy\ProxyStatus;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
@@ -582,32 +581,6 @@ class SshProxyTransportTest extends TestCase
             'show interface status',
             'show mac address-table',
         ]);
-    }
-
-    public function test_is_connected_checks_proxy_health(): void
-    {
-        $switchConfig = SwitchConfig::factory()->make();
-        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
-        $proxyClient->shouldReceive('status')
-            ->once()
-            ->andReturn(new ProxyStatus(3600, []));
-
-        $transport = new SshProxyTransport($proxyClient, $switchConfig);
-
-        $this->assertTrue($transport->isConnected());
-    }
-
-    public function test_is_connected_returns_false_when_proxy_status_throws(): void
-    {
-        $switchConfig = SwitchConfig::factory()->make();
-        $proxyClient = Mockery::mock(SshProxyClientInterface::class);
-        $proxyClient->shouldReceive('status')
-            ->once()
-            ->andThrow(new RuntimeException('Proxy unreachable'));
-
-        $transport = new SshProxyTransport($proxyClient, $switchConfig);
-
-        $this->assertFalse($transport->isConnected());
     }
 
     public function test_disconnect_is_a_no_op(): void

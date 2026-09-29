@@ -10,7 +10,7 @@ vi.mock('@inertiajs/vue3', () => ({
 }));
 
 vi.mock('@/utils/dates', () => ({
-    formatRelativeTime: vi.fn((v) => v ?? '—'),
+    formatRelative: vi.fn((v) => v ?? ''),
 }));
 
 globalThis.route = (...args) => `/mocked/${args[0]}`;

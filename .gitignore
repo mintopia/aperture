@@ -42,5 +42,10 @@ GEMINI.md
 /.junie/
 /.playwright-mcp/
 **/skills/laravel-best-practices/
+
+/PLAN.md
+/PLAN-REVIEW-LOG.md
+/hot
+docker-compose.override.yml
 /test-results-*/
 /database/pw*.sqlite

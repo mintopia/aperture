@@ -240,7 +240,7 @@ class SwitchKeyAuthTest extends TestCase
             ->andReturn(new CommandResult(success: true, output: [new CommandOutput('terminal length 0', ''), new CommandOutput('show interface status', '')], hostKey: self::HOST_KEY));
         $this->app->instance(SshProxyClientInterface::class, $proxy);
 
-        $this->actingAs($this->admin())->postJson('/admin/settings/test/switch/'.$switch->id)
+        $this->actingAs($this->admin())->postJson('/admin/switches/'.$switch->id.'/test')
             ->assertJson(['success' => true]);
 
         $this->assertSame(self::HOST_KEY, $switch->refresh()->host_key);
@@ -256,7 +256,7 @@ class SwitchKeyAuthTest extends TestCase
             ->andReturn(new CommandResult(success: true, output: [new CommandOutput('terminal length 0', ''), new CommandOutput('show interface status', '')], hostKey: 'ssh-ed25519 AAAAOTHER'));
         $this->app->instance(SshProxyClientInterface::class, $proxy);
 
-        $this->actingAs($this->admin())->postJson('/admin/settings/test/switch/'.$switch->id)->assertOk();
+        $this->actingAs($this->admin())->postJson('/admin/switches/'.$switch->id.'/test')->assertOk();
 
         $this->assertSame(self::HOST_KEY, $switch->refresh()->host_key);
     }
@@ -275,7 +275,7 @@ class SwitchKeyAuthTest extends TestCase
         ));
         $this->app->instance(SshProxyClientInterface::class, $proxy);
 
-        $this->actingAs($this->admin())->postJson('/admin/settings/test/switch/'.$switch->id)
+        $this->actingAs($this->admin())->postJson('/admin/switches/'.$switch->id.'/test')
             ->assertJson(['success' => false])
             ->assertJsonPath('message', fn (string $m): bool => str_contains($m, 'host key mismatch') && str_contains($m, 'reset'));
 

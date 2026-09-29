@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Queue;
 
-use App\Jobs\GrantNetworkAccess;
-use App\Jobs\ReapplyAccessRules;
+use App\Enums\FirewallAction;
 use App\Jobs\ResetAperture;
-use App\Jobs\RevokeNetworkAccess;
 use App\Jobs\ScanNetworkDevices;
 use App\Jobs\SwitchPortActionJob;
 use App\Jobs\SyncDhcpData;
 use App\Jobs\SyncDnsFilteringJob;
-use App\Jobs\SyncInternetAccessJob;
-use App\Jobs\SyncRateLimitJob;
+use App\Jobs\SyncFirewallJob;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Jobs\SyncUserPolicyJob;
 use App\Models\IpAddress;
@@ -41,10 +38,7 @@ class QueueReliabilityTest extends TestCase
 
         return [
             'access' => [
-                new GrantNetworkAccess($user, $ip),
-                new RevokeNetworkAccess($user, $ip),
-                new SyncInternetAccessJob($ip),
-                new SyncRateLimitJob($ip),
+                new SyncFirewallJob($ip, FirewallAction::Internet),
                 new SyncDnsFilteringJob($ip->address),
                 new SyncUserPolicyJob($user, $ip),
             ],
@@ -55,7 +49,6 @@ class QueueReliabilityTest extends TestCase
             'sync' => [
                 new SyncDhcpData,
                 new ScanNetworkDevices,
-                new ReapplyAccessRules,
                 new ResetAperture,
             ],
         ];
@@ -112,7 +105,7 @@ class QueueReliabilityTest extends TestCase
 
     public function test_long_running_scheduled_jobs_are_unique_with_lock_expiry(): void
     {
-        foreach ([new SyncDhcpData, new ScanNetworkDevices, new ReapplyAccessRules] as $job) {
+        foreach ([new SyncDhcpData, new ScanNetworkDevices] as $job) {
             $this->assertInstanceOf(ShouldBeUnique::class, $job);
             $this->assertGreaterThan($job->timeout, $job->uniqueFor, $job::class);
         }

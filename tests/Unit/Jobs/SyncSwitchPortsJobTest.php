@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Jobs;
 
 use App\Events\PortStateChanged;
-use App\Events\SwitchSyncCompleted;
 use App\Jobs\SyncSwitchPortsJob;
 use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
@@ -27,7 +26,7 @@ class SyncSwitchPortsJobTest extends TestCase
 
     public function test_job_dispatches_sync_service(): void
     {
-        Event::fake([SwitchSyncCompleted::class, PortStateChanged::class]);
+        Event::fake([PortStateChanged::class]);
 
         $switchConfig = SwitchConfig::factory()->create();
         $syncRun = SwitchSyncRun::factory()->completed()->create([
@@ -53,7 +52,7 @@ class SyncSwitchPortsJobTest extends TestCase
 
     public function test_job_does_not_dispatch_switch_sync_completed_when_no_errors(): void
     {
-        Event::fake([SwitchSyncCompleted::class, PortStateChanged::class]);
+        Event::fake([PortStateChanged::class]);
 
         $switchConfig = SwitchConfig::factory()->create();
         $syncRun = SwitchSyncRun::factory()->completed()->create([
@@ -74,12 +73,11 @@ class SyncSwitchPortsJobTest extends TestCase
         $job = new SyncSwitchPortsJob($switchConfig);
         $job->handle($service, $circuitBreaker);
 
-        Event::assertNotDispatched(SwitchSyncCompleted::class);
     }
 
     public function test_job_does_not_dispatch_events_on_failure(): void
     {
-        Event::fake([SwitchSyncCompleted::class, PortStateChanged::class]);
+        Event::fake([PortStateChanged::class]);
 
         $switchConfig = SwitchConfig::factory()->create();
 
@@ -100,7 +98,6 @@ class SyncSwitchPortsJobTest extends TestCase
             // Expected
         }
 
-        Event::assertNotDispatched(SwitchSyncCompleted::class);
         Event::assertNotDispatched(PortStateChanged::class);
     }
 
@@ -210,7 +207,7 @@ class SyncSwitchPortsJobTest extends TestCase
 
     public function test_job_dispatches_port_state_changed_for_each_change(): void
     {
-        Event::fake([SwitchSyncCompleted::class, PortStateChanged::class]);
+        Event::fake([PortStateChanged::class]);
 
         $switchConfig = SwitchConfig::factory()->create();
         $syncRun = SwitchSyncRun::factory()->completed()->create([
@@ -263,7 +260,7 @@ class SyncSwitchPortsJobTest extends TestCase
 
     public function test_job_does_not_dispatch_events_when_nothing_changed(): void
     {
-        Event::fake([SwitchSyncCompleted::class, PortStateChanged::class]);
+        Event::fake([PortStateChanged::class]);
 
         $switchConfig = SwitchConfig::factory()->create();
         $syncRun = SwitchSyncRun::factory()->completed()->create([
@@ -283,7 +280,6 @@ class SyncSwitchPortsJobTest extends TestCase
         $job = new SyncSwitchPortsJob($switchConfig);
         $job->handle($service, $circuitBreaker);
 
-        Event::assertNotDispatched(SwitchSyncCompleted::class);
         Event::assertNotDispatched(PortStateChanged::class);
     }
 }

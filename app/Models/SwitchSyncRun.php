@@ -82,4 +82,46 @@ class SwitchSyncRun extends Model
     {
         return $this->belongsTo(SwitchConfig::class);
     }
+
+    public static function start(SwitchConfig $switchConfig): self
+    {
+        return self::create([
+            'switch_config_id' => $switchConfig->id,
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
+    }
+
+    public function complete(int $portsCreated, int $portsUpdated, int $macsCreated, int $macsUpdated): void
+    {
+        $this->update([
+            'status' => 'completed',
+            'finished_at' => now(),
+            'ports_created' => $portsCreated,
+            'ports_updated' => $portsUpdated,
+            'macs_created' => $macsCreated,
+            'macs_updated' => $macsUpdated,
+        ]);
+    }
+
+    public function fail(string $error): void
+    {
+        $this->update([
+            'status' => 'failed',
+            'finished_at' => now(),
+            'error' => $error,
+        ]);
+    }
+
+    public static function cleanStale(SwitchConfig $switchConfig): void
+    {
+        self::where('switch_config_id', $switchConfig->id)
+            ->where('status', 'running')
+            ->where('started_at', '<', now()->subMinutes(5))
+            ->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'error' => 'Sync timed out (stale run cleanup)',
+            ]);
+    }
 }

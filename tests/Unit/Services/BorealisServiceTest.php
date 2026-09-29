@@ -36,6 +36,14 @@ class BorealisServiceTest extends TestCase
 
         $result = $service->check('device-code-123');
         $this->assertInstanceOf(stdClass::class, $result);
+
+        $request = Fake::requests()[0];
+        $this->assertSame('http://borealis.test/oauth2/token', $request->url());
+        $this->assertTrue($request->isForm());
+        $this->assertSame('device-code-123', $request['device_code']);
+        $this->assertSame('urn:ietf:params:oauth:grant-type:device_code', $request['grant_type']);
+        $this->assertSame('client-id', $request['client_id']);
+        $this->assertSame('client-secret', $request['client_secret']);
     }
 
     public function test_get_device_code_raw_returns_std_class(): void

@@ -9,11 +9,6 @@ use App\Services\ValueObjects\ReconcileResult;
 
 class NullDnsFiltering implements DnsFilteringInterface
 {
-    public function isEnabledForIp(string $ipAddress): bool
-    {
-        return false;
-    }
-
     public function enableForIp(string $ipAddress): void {}
 
     public function disableForIp(string $ipAddress): void {}

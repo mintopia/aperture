@@ -117,10 +117,7 @@ final class OpnSenseBootstrapper implements IntegrationBootstrapper
         };
 
         return new OpnSenseDhcpService(
-            (string) ($opnsenseConfig['endpoint'] ?? ''),
-            (string) ($opnsenseConfig['key'] ?? ''),
-            (string) ($opnsenseConfig['secret'] ?? ''),
-            (bool) ($opnsenseConfig['verify_ssl'] ?? true),
+            OpnSenseClient::fromConfig($opnsenseConfig)->request(),
             (int) ($opnsenseConfig['pool_size'] ?? 254),
             $paths['leases'],
             $paths['ipv4_ranges'],

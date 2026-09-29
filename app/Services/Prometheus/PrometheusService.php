@@ -94,30 +94,6 @@ class PrometheusService
         ];
     }
 
-    /**
-     * @return array{in: array<int, array{timestamp: float, value: float}>, out: array<int, array{timestamp: float, value: float}>}
-     */
-    public function getDeviceBandwidth(string $device, float $start, float $end, ?int $step = null): array
-    {
-        $escapedDevice = $this->escapePromQLLabelValue($device);
-
-        $inQuery = sprintf(
-            'sum(rate(ifHCInOctets{instance=~"%s.*"}[5m])) * 8 or sum(rate(ifInOctets{instance=~"%s.*"}[5m])) * 8',
-            $escapedDevice,
-            $escapedDevice,
-        );
-        $outQuery = sprintf(
-            'sum(rate(ifHCOutOctets{instance=~"%s.*"}[5m])) * 8 or sum(rate(ifOutOctets{instance=~"%s.*"}[5m])) * 8',
-            $escapedDevice,
-            $escapedDevice,
-        );
-
-        return [
-            'in' => $this->fetchTimeSeries($inQuery, $start, $end, $step),
-            'out' => $this->fetchTimeSeries($outQuery, $start, $end, $step),
-        ];
-    }
-
     public function isAvailable(): bool
     {
         return $this->endpoint !== '';

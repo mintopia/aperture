@@ -11,6 +11,7 @@ use App\Services\Interfaces\SwitchCommandTransportInterface;
 use App\Services\Kea\KeaClient;
 use App\Services\Kea\KeaDhcpService;
 use App\Services\NetworkSwitch\IosOutputParser;
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use App\Services\VyOs\VyOsClient;
 use App\Services\VyOs\VyOsDhcpService;
@@ -128,9 +129,7 @@ class Ipv6PoolStatusParityTest extends TestCase
         ]);
 
         return new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );

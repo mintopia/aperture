@@ -10,7 +10,6 @@ export default [
             globals: {
                 ...globals.browser,
                 route: 'readonly',
-                axios: 'readonly',
                 Echo: 'readonly',
             },
         },
@@ -44,6 +43,6 @@ export default [
         },
     },
     {
-        ignores: ['vendor/**', 'node_modules/**', 'public/**', 'storage/**', 'resources/js/highlight.min.js'],
+        ignores: ['vendor/**', 'node_modules/**', 'public/**', 'storage/**'],
     },
 ];

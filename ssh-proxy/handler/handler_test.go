@@ -94,7 +94,7 @@ func testHandlerWithChannels(p *pool.Pool, connector Connector, executor Command
 // --- Health tests ---
 
 func TestHealth(t *testing.T) {
-	h := testHandler(pool.New(10*time.Minute), nil, nil)
+	h := testHandler(pool.New(10*time.Minute, 0), nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
@@ -121,7 +121,7 @@ func TestHealth(t *testing.T) {
 // --- Status tests ---
 
 func TestStatus_Empty(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	h := testHandler(p, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/status", nil)
@@ -144,7 +144,7 @@ func TestStatus_Empty(t *testing.T) {
 }
 
 func TestStatus_WithConnections(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	_, _, _ = p.Acquire(testKey("switch1.local", pool.DefaultChannel))
 	p.SetConnection(testKey("switch1.local", pool.DefaultChannel), newMockSession())
 	p.Release(testKey("switch1.local", pool.DefaultChannel))
@@ -172,7 +172,7 @@ func TestStatus_WithConnections(t *testing.T) {
 // --- Execute tests ---
 
 func TestExecute_Success(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -207,7 +207,7 @@ func TestExecute_Success(t *testing.T) {
 }
 
 func TestExecute_InvalidJSON(t *testing.T) {
-	h := testHandler(pool.New(10*time.Minute), nil, nil)
+	h := testHandler(pool.New(10*time.Minute, 0), nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader("not json"))
 	w := httptest.NewRecorder()
@@ -237,7 +237,7 @@ func TestExecute_MissingFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := testHandler(pool.New(10*time.Minute), nil, nil)
+			h := testHandler(pool.New(10*time.Minute, 0), nil, nil)
 
 			req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
@@ -258,7 +258,7 @@ func TestExecute_MissingFields(t *testing.T) {
 }
 
 func TestExecute_HostLocked(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	// Lock the host on the default channel
 	_, _, _ = p.Acquire(testKey("switch1", pool.DefaultChannel))
 	// Don't release — it stays locked
@@ -283,7 +283,7 @@ func TestExecute_HostLocked(t *testing.T) {
 }
 
 func TestExecute_ConnectionFailure(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	connector := mockConnectorFailure("connection refused")
 	h := testHandler(p, connector, nil)
 
@@ -308,7 +308,7 @@ func TestExecute_ConnectionFailure(t *testing.T) {
 }
 
 func TestExecute_ReusesPooledConnection(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 
 	// Pre-populate the pool with default channel
@@ -346,7 +346,7 @@ func TestExecute_ReusesPooledConnection(t *testing.T) {
 }
 
 func TestExecute_DefaultPort(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
 
 	var capturedPort int
@@ -373,7 +373,7 @@ func TestExecute_DefaultPort(t *testing.T) {
 }
 
 func TestExecute_CustomPort(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
 
 	var capturedPort int
@@ -402,7 +402,7 @@ func TestExecute_CustomPort(t *testing.T) {
 // --- NotFound tests ---
 
 func TestNotFound(t *testing.T) {
-	h := testHandler(pool.New(10*time.Minute), nil, nil)
+	h := testHandler(pool.New(10*time.Minute, 0), nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
 	w := httptest.NewRecorder()
@@ -421,7 +421,7 @@ func TestNotFound(t *testing.T) {
 }
 
 func TestExecute_CommandFailure(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -455,7 +455,7 @@ func TestExecute_CommandFailure(t *testing.T) {
 }
 
 func TestExecute_ReleasesLockOnSuccess(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -512,7 +512,7 @@ func TestExecute_LogsRequestID(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := testLoggerWithBuffer(&logBuf)
 
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -556,7 +556,7 @@ func TestExecute_LogsErrorOnFailure(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := testLoggerWithBuffer(&logBuf)
 
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -606,7 +606,7 @@ func TestExecute_LogsNoErrorOnSuccess(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := testLoggerWithBuffer(&logBuf)
 
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -643,7 +643,7 @@ func TestExecute_LogsDurationMs(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := testLoggerWithBuffer(&logBuf)
 
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -693,7 +693,7 @@ func TestExecute_UsesContextRequestID(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := testLoggerWithBuffer(&logBuf)
 
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -734,7 +734,7 @@ func TestExecute_UsesContextRequestID(t *testing.T) {
 // --- Channel tests ---
 
 func TestExecute_DefaultChannel(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -765,7 +765,7 @@ func TestExecute_DefaultChannel(t *testing.T) {
 }
 
 func TestExecute_ExplicitChannel(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -795,7 +795,7 @@ func TestExecute_ExplicitChannel(t *testing.T) {
 }
 
 func TestExecute_InvalidChannel(t *testing.T) {
-	h := testHandler(pool.New(10*time.Minute), nil, nil)
+	h := testHandler(pool.New(10*time.Minute, 0), nil, nil)
 
 	body := `{"hostname":"switch1","username":"admin","password":"pass","channel":"invalid-channel","commands":[]}`
 	req := httptest.NewRequest(http.MethodPost, "/execute", strings.NewReader(body))
@@ -815,7 +815,7 @@ func TestExecute_InvalidChannel(t *testing.T) {
 }
 
 func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 
 	// Create two separate sessions for the two channels
 	session1 := newMockSession("Switch#")
@@ -869,7 +869,7 @@ func TestExecute_DifferentChannelsSameHostNotBlocked(t *testing.T) {
 }
 
 func TestExecute_ChannelReusesPooledConnection(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#", "output\nSwitch#")
 
 	// Pre-populate the pool with the polling channel
@@ -910,7 +910,7 @@ func TestExecute_ChannelLogsIncludeChannel(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := testLoggerWithBuffer(&logBuf)
 
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	session := newMockSession("Switch#")
 	connector := mockConnectorSuccess(session)
 	executor := &mockExecutor{
@@ -949,7 +949,7 @@ func TestExecute_ChannelLogsIncludeChannel(t *testing.T) {
 }
 
 func TestIsValidChannel(t *testing.T) {
-	h := testHandlerWithChannels(pool.New(10*time.Minute), nil, nil, []string{"commands", "polling"})
+	h := testHandlerWithChannels(pool.New(10*time.Minute, 0), nil, nil, []string{"commands", "polling"})
 
 	if !h.IsValidChannel("commands") {
 		t.Error("expected 'commands' to be valid")
@@ -983,7 +983,7 @@ func (e *failOnceExecutor) Execute(_ ssh.Session, _ []ssh.Command) *ssh.CommandR
 }
 
 func TestExecute_RetryOnStaleConnection(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 
 	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
@@ -1042,7 +1042,7 @@ func TestExecute_RetryOnStaleConnection(t *testing.T) {
 }
 
 func TestExecute_RetryNotTriggeredOnNewConnection(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 
 	// No pre-populated connection — this will be a new connection.
 	session := newMockSession("Switch#")
@@ -1080,7 +1080,7 @@ func TestExecute_RetryNotTriggeredOnNewConnection(t *testing.T) {
 }
 
 func TestExecute_RetryReconnectFailure(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 
 	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
@@ -1122,7 +1122,7 @@ func TestExecute_RetryReconnectFailure(t *testing.T) {
 }
 
 func TestExecute_RetryNotTriggeredOnNonConnectionError(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 
 	// Pre-populate pool with an existing connection.
 	session := newMockSession("Switch#")
@@ -1172,7 +1172,7 @@ func TestExecute_RetryLogsStaleRecovery(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := testLoggerWithBuffer(&logBuf)
 
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 
 	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
@@ -1256,7 +1256,7 @@ func TestIsConnectionError(t *testing.T) {
 }
 
 func TestExecute_RetryReleasesLock(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 
 	// Pre-populate pool with a "stale" connection.
 	staleSession := newMockSession("Switch#")
@@ -1298,7 +1298,7 @@ func TestExecute_RetryReleasesLock(t *testing.T) {
 }
 
 func TestExecute_HostLockedOnOneChannelNotAnother(t *testing.T) {
-	p := pool.New(10 * time.Minute)
+	p := pool.New(10*time.Minute, 0)
 	// Lock the host on the commands channel
 	_, _, _ = p.Acquire(testKey("switch1", "commands"))
 

@@ -45,7 +45,7 @@ func (m *mockKeepaliveConn) SendKeepalive() error {
 }
 
 func TestPool_AcquireNew(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	entry, isNew, err := p.Acquire(testKey("switch1.local", DefaultChannel))
 	if err != nil {
@@ -69,7 +69,7 @@ func TestPool_AcquireNew(t *testing.T) {
 }
 
 func TestPool_AcquireExisting(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	// First acquire — creates entry
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -94,7 +94,7 @@ func TestPool_AcquireExisting(t *testing.T) {
 }
 
 func TestPool_AcquireLocked(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	// First acquire — locks the entry
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -107,7 +107,7 @@ func TestPool_AcquireLocked(t *testing.T) {
 }
 
 func TestPool_Release(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 	p.Release(testKey("switch1.local", DefaultChannel))
@@ -120,13 +120,13 @@ func TestPool_Release(t *testing.T) {
 }
 
 func TestPool_ReleaseNonExistent(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 	// Should not panic
 	p.Release(testKey("nonexistent", DefaultChannel))
 }
 
 func TestPool_Remove(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 	conn := &mockCloser{}
@@ -150,14 +150,14 @@ func TestPool_Remove(t *testing.T) {
 }
 
 func TestPool_RemoveNonExistent(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 	// Should not panic
 	p.Remove(testKey("nonexistent", DefaultChannel))
 }
 
 func TestPool_SweepIdle(t *testing.T) {
 	// Use a very short idle timeout for testing.
-	p := New(50 * time.Millisecond)
+	p := New(50*time.Millisecond, 0)
 
 	_, _, _ = p.Acquire(testKey("idle-switch", DefaultChannel))
 	conn := &mockCloser{}
@@ -193,7 +193,7 @@ func TestPool_SweepIdle(t *testing.T) {
 }
 
 func TestPool_SweepSkipsLocked(t *testing.T) {
-	p := New(1 * time.Millisecond)
+	p := New(1*time.Millisecond, 0)
 
 	_, _, _ = p.Acquire(testKey("locked-switch", DefaultChannel))
 	conn := &mockCloser{}
@@ -212,7 +212,7 @@ func TestPool_SweepSkipsLocked(t *testing.T) {
 }
 
 func TestPool_Status(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
 	p.SetConnection(testKey("switch1.local", DefaultChannel), &mockCloser{})
@@ -238,7 +238,7 @@ func TestPool_Status(t *testing.T) {
 }
 
 func TestPool_DisconnectAll(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	conn1 := &mockCloser{}
 	conn2 := &mockCloser{}
@@ -267,7 +267,7 @@ func TestPool_DisconnectAll(t *testing.T) {
 }
 
 func TestPool_ConcurrentAccess(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 	const goroutines = 50
 
 	var wg sync.WaitGroup
@@ -307,7 +307,7 @@ func TestPool_ConcurrentAccess(t *testing.T) {
 }
 
 func TestPool_MultipleHostnames(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	// Acquire different hostnames concurrently — should not interfere
 	hosts := []string{"switch1", "switch2", "switch3", "switch4", "switch5"}
@@ -344,7 +344,7 @@ func TestPool_MultipleHostnames(t *testing.T) {
 // --- Keepalive tests ---
 
 func TestPool_KeepaliveStartsOnSetConnection(t *testing.T) {
-	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{}
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -362,7 +362,7 @@ func TestPool_KeepaliveStartsOnSetConnection(t *testing.T) {
 }
 
 func TestPool_KeepaliveMarksDeadOnFailure(t *testing.T) {
-	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{failAfter: 2}
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -383,7 +383,7 @@ func TestPool_KeepaliveMarksDeadOnFailure(t *testing.T) {
 }
 
 func TestPool_AcquireEvictsDeadEntry(t *testing.T) {
-	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{shouldFail: true}
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -410,7 +410,7 @@ func TestPool_AcquireEvictsDeadEntry(t *testing.T) {
 }
 
 func TestPool_SweepEvictsDeadEntries(t *testing.T) {
-	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{shouldFail: true}
 	_, _, _ = p.Acquire(testKey("dead-switch", DefaultChannel))
@@ -429,7 +429,7 @@ func TestPool_SweepEvictsDeadEntries(t *testing.T) {
 }
 
 func TestPool_KeepaliveStopsOnRemove(t *testing.T) {
-	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{}
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -450,7 +450,7 @@ func TestPool_KeepaliveStopsOnRemove(t *testing.T) {
 }
 
 func TestPool_KeepaliveStopsOnDisconnectAll(t *testing.T) {
-	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockKeepaliveConn{}
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -471,7 +471,7 @@ func TestPool_KeepaliveStopsOnDisconnectAll(t *testing.T) {
 }
 
 func TestPool_NoKeepaliveWithZeroInterval(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	conn := &mockKeepaliveConn{}
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -489,7 +489,7 @@ func TestPool_NoKeepaliveWithZeroInterval(t *testing.T) {
 }
 
 func TestPool_KeepaliveDoesNotRunOnNonKeepaliveConn(t *testing.T) {
-	p := NewWithKeepalive(10*time.Minute, 50*time.Millisecond)
+	p := New(10*time.Minute, 50*time.Millisecond)
 
 	conn := &mockCloser{}
 	_, _, _ = p.Acquire(testKey("switch1.local", DefaultChannel))
@@ -537,7 +537,7 @@ func TestNewKey_DiffersByEveryField(t *testing.T) {
 }
 
 func TestPool_NoSharingAcrossCredentialsOrPort(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 	base := NewKey("sw", 22, "admin", "commands", "pw", "", "")
 	if _, _, err := p.Acquire(base); err != nil {
 		t.Fatal(err)
@@ -570,7 +570,7 @@ func TestPool_NoSharingAcrossCredentialsOrPort(t *testing.T) {
 }
 
 func TestPool_StatusIncludesPortAndUsername(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 	k := NewKey("sw", 2222, "admin", "commands", "secret")
 	_, _, _ = p.Acquire(k)
 	_, infos := p.Status()
@@ -584,7 +584,7 @@ func TestPool_StatusIncludesPortAndUsername(t *testing.T) {
 }
 
 func TestPool_DifferentChannelsSameHost(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	entry1, isNew1, err := p.Acquire(testKey("switch1", "commands"))
 	if err != nil {
@@ -629,7 +629,7 @@ func TestPool_DifferentChannelsSameHost(t *testing.T) {
 }
 
 func TestPool_DifferentChannelsIndependentConnections(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	conn1 := &mockCloser{}
 	conn2 := &mockCloser{}
@@ -664,7 +664,7 @@ func TestPool_DifferentChannelsIndependentConnections(t *testing.T) {
 }
 
 func TestPool_StatusReportsChannels(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	_, _, _ = p.Acquire(testKey("switch1", "commands"))
 	p.SetConnection(testKey("switch1", "commands"), &mockCloser{})
@@ -696,7 +696,7 @@ func TestPool_StatusReportsChannels(t *testing.T) {
 }
 
 func TestPool_SweepIdleWithChannels(t *testing.T) {
-	p := New(50 * time.Millisecond)
+	p := New(50*time.Millisecond, 0)
 
 	_, _, _ = p.Acquire(testKey("switch1", "commands"))
 	cmdConn := &mockCloser{}
@@ -730,7 +730,7 @@ func TestPool_SweepIdleWithChannels(t *testing.T) {
 }
 
 func TestPool_ConcurrentDifferentChannels(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	channels := []string{"commands", "polling"}
 	var wg sync.WaitGroup
@@ -760,7 +760,7 @@ func TestPool_ConcurrentDifferentChannels(t *testing.T) {
 }
 
 func TestPool_EntryHasChannel(t *testing.T) {
-	p := New(10 * time.Minute)
+	p := New(10*time.Minute, 0)
 
 	entry, _, _ := p.Acquire(testKey("switch1", "polling"))
 	if entry.Channel != "polling" {
@@ -768,130 +768,10 @@ func TestPool_EntryHasChannel(t *testing.T) {
 	}
 }
 
-// --- Health check tests ---
+// --- Remove while locked ---
 
-// HealthChecker is implemented by connections that support a lightweight
-// health probe before reuse.
-type mockHealthCheckConn struct {
-	closed      bool
-	healthy     bool
-	checkCalled bool
-}
-
-func (m *mockHealthCheckConn) Close() error {
-	m.closed = true
-	return nil
-}
-
-func (m *mockHealthCheckConn) CheckHealth() error {
-	m.checkCalled = true
-	if !m.healthy {
-		return errors.New("connection unhealthy")
-	}
-	return nil
-}
-
-func TestPool_AcquireWithHealthCheck_HealthyConnection(t *testing.T) {
-	p := New(10 * time.Minute)
-
-	conn := &mockHealthCheckConn{healthy: true}
-	_, _, _ = p.Acquire(testKey("switch1", DefaultChannel))
-	p.SetConnection(testKey("switch1", DefaultChannel), conn)
-	p.Release(testKey("switch1", DefaultChannel))
-
-	// Acquire with health check — should reuse the healthy connection.
-	entry, isNew, err := p.AcquireWithHealthCheck(testKey("switch1", DefaultChannel))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if isNew {
-		t.Error("expected isNew=false for healthy connection")
-	}
-	if entry.Conn != conn {
-		t.Error("expected same connection to be reused")
-	}
-	if !conn.checkCalled {
-		t.Error("expected CheckHealth to be called")
-	}
-}
-
-func TestPool_AcquireWithHealthCheck_UnhealthyConnection(t *testing.T) {
-	p := New(10 * time.Minute)
-
-	conn := &mockHealthCheckConn{healthy: false}
-	_, _, _ = p.Acquire(testKey("switch1", DefaultChannel))
-	p.SetConnection(testKey("switch1", DefaultChannel), conn)
-	p.Release(testKey("switch1", DefaultChannel))
-
-	// Acquire with health check — should evict unhealthy connection.
-	entry, isNew, err := p.AcquireWithHealthCheck(testKey("switch1", DefaultChannel))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !isNew {
-		t.Error("expected isNew=true when connection fails health check")
-	}
-	if entry == nil {
-		t.Fatal("expected non-nil entry")
-	}
-	if !conn.closed {
-		t.Error("expected unhealthy connection to be closed")
-	}
-}
-
-func TestPool_AcquireWithHealthCheck_NoExistingConnection(t *testing.T) {
-	p := New(10 * time.Minute)
-
-	// No existing connection — should behave like regular Acquire.
-	entry, isNew, err := p.AcquireWithHealthCheck(testKey("switch1", DefaultChannel))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !isNew {
-		t.Error("expected isNew=true for new connection")
-	}
-	if entry == nil {
-		t.Fatal("expected non-nil entry")
-	}
-}
-
-func TestPool_AcquireWithHealthCheck_NonHealthCheckConn(t *testing.T) {
-	p := New(10 * time.Minute)
-
-	// Use a connection that does NOT implement HealthChecker — should skip check.
-	conn := &mockCloser{}
-	_, _, _ = p.Acquire(testKey("switch1", DefaultChannel))
-	p.SetConnection(testKey("switch1", DefaultChannel), conn)
-	p.Release(testKey("switch1", DefaultChannel))
-
-	entry, isNew, err := p.AcquireWithHealthCheck(testKey("switch1", DefaultChannel))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if isNew {
-		t.Error("expected isNew=false when conn doesn't implement HealthChecker")
-	}
-	if entry.Conn != conn {
-		t.Error("expected same connection to be reused")
-	}
-}
-
-func TestPool_AcquireWithHealthCheck_LockedEntry(t *testing.T) {
-	p := New(10 * time.Minute)
-
-	_, _, _ = p.Acquire(testKey("switch1", DefaultChannel))
-	// Don't release — it stays locked.
-
-	_, _, err := p.AcquireWithHealthCheck(testKey("switch1", DefaultChannel))
-	if err != ErrHostLocked {
-		t.Fatalf("expected ErrHostLocked, got %v", err)
-	}
-}
-
-// --- Evict tests ---
-
-func TestPool_Evict(t *testing.T) {
-	p := New(10 * time.Minute)
+func TestPool_RemoveWhileLocked(t *testing.T) {
+	p := New(10*time.Minute, 0)
 
 	conn := &mockCloser{}
 	_, _, _ = p.Acquire(testKey("switch1", DefaultChannel))
@@ -899,7 +779,7 @@ func TestPool_Evict(t *testing.T) {
 	// Entry is still locked (not released).
 
 	// Evict should close and remove the entry even while locked.
-	p.Evict(testKey("switch1", DefaultChannel))
+	p.Remove(testKey("switch1", DefaultChannel))
 
 	if !conn.closed {
 		t.Error("expected connection to be closed on evict")
@@ -916,12 +796,6 @@ func TestPool_Evict(t *testing.T) {
 	if entry == nil {
 		t.Fatal("expected non-nil entry")
 	}
-}
-
-func TestPool_EvictNonExistent(t *testing.T) {
-	p := New(10 * time.Minute)
-	// Should not panic.
-	p.Evict(testKey("nonexistent", DefaultChannel))
 }
 
 func testKey(hostname, channel string) Key {

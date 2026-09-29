@@ -74,14 +74,6 @@ class CircuitBreaker
     }
 
     /**
-     * Get the current failure count for a switch.
-     */
-    public function getFailureCount(SwitchConfig $switch): int
-    {
-        return (int) Cache::get($this->cacheKey($switch), 0);
-    }
-
-    /**
      * Build the cache key for failure count tracking.
      */
     private function cacheKey(SwitchConfig $switch): string

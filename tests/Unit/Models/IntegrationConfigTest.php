@@ -8,6 +8,7 @@ use App\Models\IntegrationConfig;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
+use RuntimeException;
 use Tests\TestCase;
 
 class IntegrationConfigTest extends TestCase
@@ -143,6 +144,20 @@ class IntegrationConfigTest extends TestCase
         $this->assertNotNull($config->integration);
         $this->assertNotNull($config->key);
         $this->assertNotNull($config->id);
+    }
+
+    public function test_safe_get_all_returns_config_values(): void
+    {
+        IntegrationConfig::setValue('kea', 'endpoint', 'http://kea.local');
+
+        $this->assertSame(['endpoint' => 'http://kea.local'], IntegrationConfig::safeGetAll('kea'));
+    }
+
+    public function test_safe_get_all_returns_empty_array_on_database_failure(): void
+    {
+        DB::shouldReceive('connection')->andThrow(new RuntimeException('db down'));
+
+        $this->assertSame([], IntegrationConfig::safeGetAll('kea'));
     }
 
     /**

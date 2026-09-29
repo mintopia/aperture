@@ -33,7 +33,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	// Create connection pool with keepalive support.
-	connPool := pool.NewWithKeepalive(cfg.IdleTimeout, cfg.KeepaliveInterval)
+	connPool := pool.New(cfg.IdleTimeout, cfg.KeepaliveInterval)
 
 	// Create SSH connector function.
 	connector := func(ctx context.Context, params ssh.ConnectParams) (ssh.Session, error) {

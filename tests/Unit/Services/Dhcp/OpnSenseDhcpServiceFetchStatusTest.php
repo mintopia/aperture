@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dhcp;
 
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\ConnectionException;
@@ -21,9 +22,7 @@ class OpnSenseDhcpServiceFetchStatusTest extends TestCase
         Fake::sequence($responses);
 
         return new OpnSenseDhcpService(
-            endpoint: 'https://opnsense.test',
-            key: 'k',
-            secret: 's',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'https://opnsense.test', 'key' => 'k', 'secret' => 's'])->request(),
             poolSize: 10,
             ipv4RangesPath: $v4,
             ipv6RangesPath: $v6,

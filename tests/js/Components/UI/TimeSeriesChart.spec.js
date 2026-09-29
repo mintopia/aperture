@@ -24,8 +24,6 @@ vi.mock('chart.js/auto', () => ({
     }),
 }));
 
-vi.mock('chartjs-adapter-date-fns', () => ({}));
-
 describe('TimeSeriesChart', () => {
     beforeEach(() => {
         vi.restoreAllMocks();
@@ -291,20 +289,7 @@ describe('TimeSeriesChart', () => {
 
         expect(lastChartXTick).toBeDefined();
 
-        const result = lastChartXTick(null, 0, [{ value: new Date('2026-01-01T12:00:00Z').getTime() }]);
-        expect(typeof result).toBe('string');
-    });
-
-    it('x-axis tick callback uses Date.now when tick value is missing', async () => {
-        mount(TimeSeriesChart, {
-            props: { series: sampleSeries },
-        });
-
-        await nextTick();
-        await nextTick();
-
-        // Empty ticks array — should fall back to Date.now()
-        const result = lastChartXTick(null, 0, []);
+        const result = lastChartXTick(new Date('2026-01-01T12:00:00Z').getTime());
         expect(typeof result).toBe('string');
     });
 
@@ -337,7 +322,7 @@ describe('TimeSeriesChart', () => {
         expect(formatter).toHaveBeenCalledWith(42);
     });
 
-    it('grid color uses withAlpha with hex color', async () => {
+    it('grid color uses relative oklch alpha with hex color', async () => {
         vi.spyOn(window, 'getComputedStyle').mockReturnValue({
             getPropertyValue: () => '#333333',
         });
@@ -350,10 +335,10 @@ describe('TimeSeriesChart', () => {
         await nextTick();
 
         expect(lastChartGridX).toBeDefined();
-        expect(lastChartGridX).toContain('rgba(');
+        expect(lastChartGridX).toContain('oklch(from #333333 l c h / 0.25)');
     });
 
-    it('grid color uses withAlpha with rgb color', async () => {
+    it('grid color uses relative oklch alpha with rgb color', async () => {
         vi.spyOn(window, 'getComputedStyle').mockReturnValue({
             getPropertyValue: () => 'rgb(100, 100, 100)',
         });
@@ -366,7 +351,7 @@ describe('TimeSeriesChart', () => {
         await nextTick();
 
         expect(lastChartGridX).toBeDefined();
-        expect(lastChartGridX).toContain('rgba(100, 100, 100,');
+        expect(lastChartGridX).toContain('oklch(from rgb(100, 100, 100) l c h / 0.25)');
     });
 
     it('withAlpha falls back for empty/falsy color', async () => {
@@ -386,7 +371,7 @@ describe('TimeSeriesChart', () => {
         expect(lastChartGridX).toBeDefined();
     });
 
-    it('withAlpha uses short hex notation (3-char)', async () => {
+    it('grid color uses relative oklch alpha with short hex', async () => {
         vi.spyOn(window, 'getComputedStyle').mockReturnValue({
             getPropertyValue: () => '#fff',
         });
@@ -398,11 +383,10 @@ describe('TimeSeriesChart', () => {
         await nextTick();
         await nextTick();
 
-        expect(lastChartGridX).toContain('rgba(255, 255, 255,');
+        expect(lastChartGridX).toContain('oklch(from #fff l c h / 0.25)');
     });
 
-    it('withAlpha returns color unchanged for non-hex non-rgb color', async () => {
-        // oklch or named colors fall through to the return color
+    it('grid color uses relative oklch alpha with oklch color', async () => {
         vi.spyOn(window, 'getComputedStyle').mockReturnValue({
             getPropertyValue: () => 'oklch(70% 0.2 55)',
         });
@@ -414,8 +398,7 @@ describe('TimeSeriesChart', () => {
         await nextTick();
         await nextTick();
 
-        // Should return the color as-is
-        expect(lastChartGridX).toBeDefined();
+        expect(lastChartGridX).toBe('oklch(from oklch(70% 0.2 55) l c h / 0.25)');
     });
 
     it('uses custom data-testid via attrs', () => {
@@ -648,13 +631,12 @@ describe('TimeSeriesChart', () => {
             const dataset = config.data.datasets[0];
             // borderColor should be the resolved hex, not the raw var() string
             expect(dataset.borderColor).toBe('#22c55e');
-            // backgroundColor should be an rgba derived from the resolved hex
-            expect(dataset.backgroundColor).toContain('rgba(34, 197, 94,');
+            expect(dataset.backgroundColor).toBe('oklch(from #22c55e l c h / 0.12)');
             expect(dataset.backgroundColor).not.toContain('var(');
         });
     });
 
-    it('withAlpha uses default indigo rgba when color is null/falsy (fill with null color)', async () => {
+    it('builds a relative oklch background when series color is null (fill with null color)', async () => {
         const { Chart } = await import('chart.js/auto');
         Chart.mockClear();
 
@@ -677,7 +659,6 @@ describe('TimeSeriesChart', () => {
         expect(Chart).toHaveBeenCalled();
         const [, config] = Chart.mock.calls[Chart.mock.calls.length - 1];
         const dataset = config.data.datasets[0];
-        // When color is null and fill is true, withAlpha(null, 0.12) => rgba(99, 102, 241, 0.12)
-        expect(dataset.backgroundColor).toContain('rgba(99, 102, 241,');
+        expect(dataset.backgroundColor).toBe('oklch(from null l c h / 0.12)');
     });
 });

@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Console;
 
+use App\Jobs\ResetAperture;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\Role;
@@ -9,6 +12,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use stdClass;
 use Tests\TestCase;
 
@@ -20,6 +24,7 @@ class ResetCommandTest extends TestCase
     {
         parent::setUp();
 
+        Queue::fake()->except(ResetAperture::class);
         Http::fake(['opnsense.test/*' => fn (Request $request) => Http::response($this->opnsenseBody($request->url()))]);
 
         IntegrationConfig::setValue('opnsense', 'endpoint', 'http://opnsense.test');
@@ -113,6 +118,7 @@ class ResetCommandTest extends TestCase
 
         $this->artisan('aperture:reset')
             ->expectsConfirmation('Are you sure you want to reset Aperture?', 'yes')
+            ->expectsOutput('Finished')
             ->assertSuccessful();
 
         $this->assertDatabaseMissing('ip_addresses', ['address' => '10.0.0.2']);

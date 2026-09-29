@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Dhcp;
 
 use App\Enums\AddressFamily;
+use App\Services\OpnSense\OpnSenseClient;
 use App\Services\OpnSense\OpnSenseDhcpService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\ConnectionException;
@@ -23,7 +24,7 @@ class OpnSenseDhcpServiceTest extends TestCase
     {
         Fake::sequence($responses);
 
-        return new OpnSenseDhcpService('http://opnsense.test', 'key', 'secret', true, $poolSize);
+        return new OpnSenseDhcpService(OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), $poolSize);
     }
 
     public function test_get_leases_returns_collection(): void
@@ -187,9 +188,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 10,
             leasesPath: '/api/dhcpv4/leases/search_lease',
             leasesUsePost: true,
@@ -232,9 +231,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
@@ -274,9 +271,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
@@ -293,9 +288,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         // When ipv4RangesPath and ipv6RangesPath are both empty, no HTTP calls are made
         Fake::sequence([]);
 
-        $service = new OpnSenseDhcpService(endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret', poolSize: 0);
+        $service = new OpnSenseDhcpService(client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), poolSize: 0);
 
         $ranges = $service->snapshot()->ranges;
         $this->assertCount(0, $ranges);
@@ -309,9 +302,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
@@ -343,9 +334,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -390,9 +379,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -435,9 +422,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
@@ -468,9 +453,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
@@ -504,9 +487,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             rangeFieldMap: [
@@ -552,9 +533,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
@@ -589,9 +568,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv6RangesPath: '/api/dhcpv6/ranges',
         );
@@ -623,9 +600,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
         );
@@ -642,9 +617,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         // This method is private so we access it via reflection
         Fake::sequence([]);
 
-        $service = new OpnSenseDhcpService(endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret', poolSize: 0);
+        $service = new OpnSenseDhcpService(client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(), poolSize: 0);
 
         $reflection = new ReflectionClass($service);
         $method = $reflection->getMethod('subnetMaskToCidr');
@@ -676,9 +649,7 @@ class OpnSenseDhcpServiceTest extends TestCase
         ]);
 
         $service = new OpnSenseDhcpService(
-            endpoint: 'http://opnsense.test',
-            key: 'key',
-            secret: 'secret',
+            client: OpnSenseClient::fromConfig(['endpoint' => 'http://opnsense.test', 'key' => 'key', 'secret' => 'secret'])->request(),
             poolSize: 0,
             ipv4RangesPath: '/api/dhcpv4/ranges',
             ipv6RangesPath: '/api/dhcpv4/ranges', // Same path — should not fetch twice

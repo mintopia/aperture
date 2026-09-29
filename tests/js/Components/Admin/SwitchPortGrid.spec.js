@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SwitchPortGrid from '@/Components/Admin/SwitchPortGrid.vue';
 
 vi.mock('@inertiajs/vue3', () => ({
