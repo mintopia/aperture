@@ -176,10 +176,15 @@ class CiscoSwitchAdapter implements NetworkSwitchInterface, SupportsBulkOperatio
         $output = $this->transport->execute('show ip dhcp snooping binding');
         $bindings = $this->parser->parseDhcpSnoopingTable($output);
 
-        if ($bindings === [] && ($this->parser->isErrorOutput($output) || ! str_contains($output, 'MacAddress'))) {
+        if ($bindings === [] && ! $this->isSnoopingTable($output)) {
             throw new RuntimeException('Unexpected DHCP snooping binding output');
         }
 
         return collect($bindings);
+    }
+
+    private function isSnoopingTable(string $output): bool
+    {
+        return ! $this->parser->isErrorOutput($output) && str_contains($output, 'MacAddress');
     }
 }

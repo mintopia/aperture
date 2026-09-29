@@ -11,6 +11,7 @@ use App\Models\SwitchPort;
 use App\Models\SwitchSyncRun;
 use App\Services\NetworkSwitch\CircuitBreaker;
 use App\Services\NetworkSwitch\PortSyncService;
+use App\Services\NetworkSwitch\SwitchSyncFailedException;
 use App\Services\NetworkSwitch\SyncResult;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -172,10 +173,8 @@ class SyncSwitchPortsJobTest extends TestCase
             'error' => 'Connection refused',
         ]);
 
-        $exception = new RuntimeException('Connection refused');
-
         $job = new SyncSwitchPortsJob($switchConfig);
-        $job->failed($exception);
+        $job->failed(SwitchSyncFailedException::recorded(new RuntimeException('Connection refused')));
 
         $this->assertSame(
             1,
@@ -183,6 +182,30 @@ class SyncSwitchPortsJobTest extends TestCase
                 ->where('status', 'failed')
                 ->count()
         );
+    }
+
+    public function test_job_failed_records_once_even_when_recent_failure_exists_and_service_did_not_record(): void
+    {
+        $switchConfig = SwitchConfig::factory()->create();
+
+        SwitchSyncRun::factory()->create([
+            'switch_config_id' => $switchConfig->id,
+            'status' => 'failed',
+            'started_at' => now(),
+            'finished_at' => now(),
+            'error' => 'Earlier failure',
+        ]);
+
+        $job = new SyncSwitchPortsJob($switchConfig);
+        $job->failed(new RuntimeException('Worker timed out'));
+
+        $this->assertSame(
+            2,
+            SwitchSyncRun::where('switch_config_id', $switchConfig->id)
+                ->where('status', 'failed')
+                ->count()
+        );
+        $this->assertDatabaseHas('switch_sync_runs', ['switch_config_id' => $switchConfig->id, 'error' => 'Worker timed out']);
     }
 
     public function test_job_skips_disabled_switch(): void
