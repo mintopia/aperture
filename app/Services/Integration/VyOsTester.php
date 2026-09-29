@@ -39,6 +39,8 @@ class VyOsTester implements TestableIntegration
                 return $response;
             },
             'Connected and authenticated successfully',
+            ['success'],
+            'VyOS',
         );
     }
 }

@@ -27,6 +27,8 @@ class BorealisTester implements TestableIntegration
                 ->withBasicAuth($config['client_id'] ?? '', $config['client_secret'] ?? '')
                 ->post($url, ['scope' => $config['scope'] ?? 'test']),
             'Authenticated and received device code.',
+            ['device_code'],
+            'Borealis',
         );
     }
 }

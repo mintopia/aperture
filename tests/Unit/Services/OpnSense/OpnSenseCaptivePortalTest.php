@@ -60,6 +60,26 @@ class OpnSenseCaptivePortalTest extends TestCase
         $this->portal->addIp('10.0.0.1', 'Test User');
     }
 
+    public function test_add_ip_accepts_authorized_client_state(): void
+    {
+        $this->client->expects($this->once())
+            ->method('post')
+            ->willReturn((object) ['clientState' => 'AUTHORIZED', 'sessionId' => 'abc']);
+
+        $this->portal->addIp('10.0.0.1', 'Test User');
+    }
+
+    public function test_add_ip_throws_when_client_state_not_authorized(): void
+    {
+        $this->client->expects($this->once())
+            ->method('post')
+            ->willReturn((object) ['clientState' => 'NOT_AUTHORIZED']);
+
+        $this->expectException(BackendException::class);
+        $this->expectExceptionMessage('clientState is "NOT_AUTHORIZED"');
+        $this->portal->addIp('10.0.0.1', 'Test User');
+    }
+
     public function test_remove_ip_finds_session_and_disconnects(): void
     {
         $sessionList = (object) [

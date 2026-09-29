@@ -29,7 +29,15 @@ class OpnSenseCaptivePortal implements CaptivePortalInterface
         $query = [
             'zoneid' => $this->zoneId,
         ];
-        $this->client->post('/api/captiveportal/session/connect', $query, $payload);
+        $response = $this->client->post('/api/captiveportal/session/connect', $query, $payload);
+
+        if (property_exists($response, 'clientState') && $response->clientState !== 'AUTHORIZED') {
+            throw new BackendException(sprintf(
+                'OPNsense did not authorize %s: clientState is "%s"',
+                $payload->ip,
+                is_scalar($response->clientState) ? (string) $response->clientState : get_debug_type($response->clientState),
+            ));
+        }
     }
 
     /**

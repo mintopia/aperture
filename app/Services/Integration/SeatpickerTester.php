@@ -28,6 +28,8 @@ class SeatpickerTester implements TestableIntegration
                 ->timeout(10)
                 ->connectTimeout(5)
                 ->get($url),
+            requiredJsonKeys: [],
+            service: 'Seatpicker',
         );
     }
 }

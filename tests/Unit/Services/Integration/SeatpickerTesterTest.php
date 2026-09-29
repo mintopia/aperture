@@ -207,4 +207,24 @@ class SeatpickerTesterTest extends TestCase
         $this->assertArrayHasKey('event_code', $fields);
         $this->assertSame('/admin/settings/integrations/seatpicker/events', $fields['event_code']['remote_url']);
     }
+
+    public function test_non_json_success_response_is_a_failure(): void
+    {
+        Http::fake(['*' => Http::response('<html><body>Login</body></html>', 200, ['Content-Type' => 'text/html; charset=UTF-8'])]);
+
+        $result = $this->tester->connect(['endpoint' => 'https://x.local']);
+
+        $this->assertFalse($result->success);
+        $this->assertSame('Seatpicker returned a non-JSON response (text/html) — is a captive portal or proxy intercepting requests?', $result->message);
+        $this->assertSame(200, $result->responseStatus);
+    }
+
+    public function test_expected_json_response_is_a_success(): void
+    {
+        Http::fake(['*' => Http::response(['data' => []], 200)]);
+
+        $result = $this->tester->connect(['endpoint' => 'https://x.local']);
+
+        $this->assertTrue($result->success);
+    }
 }

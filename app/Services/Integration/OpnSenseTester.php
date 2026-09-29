@@ -27,6 +27,8 @@ class OpnSenseTester implements TestableIntegration
                 ->connectTimeout(5)
                 ->get($url),
             'Connected and authenticated successfully',
+            ['datetime'],
+            'OPNsense',
         );
     }
 }

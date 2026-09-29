@@ -8,6 +8,7 @@ use App\Services\Firewalls\Exceptions\BackendException;
 use App\Services\OpnSense\OpnSenseClient;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use stdClass;
 use Tests\TestCase;
@@ -63,6 +64,30 @@ class OpnSenseClientTest extends TestCase
 
         $this->expectException(BackendException::class);
         $this->client()->get('/api/test');
+    }
+
+    public function test_decode_failure_message_and_log_include_status_content_type_and_excerpt(): void
+    {
+        $html = "<html>\n  <body>Captive   Portal Login</body>\n</html>".str_repeat('x', 300);
+        Http::fake(['*' => Http::response($html, 200, ['Content-Type' => 'text/html'])]);
+        Log::shouldReceive('debug');
+        Log::shouldReceive('warning')->once()->withArgs(fn (string $m): bool => str_contains($m, 'GET /api/test')
+            && str_contains($m, 'HTTP 200')
+            && str_contains($m, 'text/html')
+            && ! str_contains($m, base64_encode('k:s'))
+            && ! str_contains($m, 'Authorization'));
+
+        try {
+            $this->client()->get('/api/test');
+            $this->fail('Expected BackendException');
+        } catch (BackendException $backendException) {
+            $message = $backendException->getMessage();
+            $this->assertStringContainsString('HTTP 200', $message);
+            $this->assertStringContainsString('text/html', $message);
+            $this->assertStringContainsString('<html> <body>Captive Portal Login</body>', $message);
+            $this->assertStringNotContainsString("\n", $message);
+            $this->assertLessThan(400, strlen($message));
+        }
     }
 
     public function test_http_error_throws_backend_exception(): void

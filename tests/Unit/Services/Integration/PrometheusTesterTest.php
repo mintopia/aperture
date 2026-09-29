@@ -300,4 +300,25 @@ class PrometheusTesterTest extends TestCase
             return ! empty($auth) && $auth[0] === 'Bearer my-secret-token';
         });
     }
+
+    public function test_non_json_success_response_is_a_failure(): void
+    {
+        Http::fake(['*' => Http::response('<html><body>Login</body></html>', 200, ['Content-Type' => 'text/html; charset=UTF-8'])]);
+
+        $result = $this->tester->connect(['endpoint' => 'https://x.local']);
+
+        $this->assertFalse($result->success);
+        $this->assertSame('Prometheus returned a non-JSON response (text/html) — is a captive portal or proxy intercepting requests?', $result->message);
+        $this->assertSame(200, $result->responseStatus);
+    }
+
+    public function test_buildinfo_json_missing_status_is_a_failure(): void
+    {
+        Http::fake(['*' => Http::response(['foo' => 'bar'], 200)]);
+
+        $result = $this->tester->connect(['endpoint' => 'https://x.local']);
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('Prometheus returned an unexpected response', $result->message);
+    }
 }

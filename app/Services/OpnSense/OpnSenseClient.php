@@ -59,7 +59,7 @@ class OpnSenseClient
         try {
             Log::debug('[OpnSense] GET '.$uri);
 
-            return $this->decodeResponse($this->request()->get($uri, $query));
+            return $this->decodeResponse($this->request()->get($uri, $query), 'GET', $uri);
         } catch (HttpClientException $httpClientException) {
             throw new BackendException('Error from Opnsense: '.$httpClientException->getMessage(), $httpClientException->getCode(), $httpClientException);
         }
@@ -81,7 +81,7 @@ class OpnSenseClient
                 ? $request->withBody(json_encode($payload, JSON_THROW_ON_ERROR), 'application/json')->post($target)
                 : $request->post($target, $payload ?? []);
 
-            return $this->decodeResponse($response);
+            return $this->decodeResponse($response, 'POST', $uri);
         } catch (HttpClientException $httpClientException) {
             throw new BackendException('Error from Opnsense: '.$httpClientException->getMessage(), $httpClientException->getCode(), $httpClientException);
         }
@@ -165,14 +165,29 @@ class OpnSenseClient
     /**
      * @throws BackendException
      */
-    protected function decodeResponse(Response $response): stdClass
+    protected function decodeResponse(Response $response, string $method = 'GET', string $uri = ''): stdClass
     {
         $json = json_decode($response->body());
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new BackendException('Unable to decode response');
+            $detail = sprintf(
+                'HTTP %d, Content-Type "%s", body "%s"',
+                $response->status(),
+                $response->header('Content-Type'),
+                $this->bodyExcerpt($response->body()),
+            );
+            Log::warning(sprintf('[OpnSense] Unable to decode response for %s %s: %s', $method, $uri, $detail));
+
+            throw new BackendException('Unable to decode response: '.$detail);
         }
 
         return (object) $json;
+    }
+
+    private function bodyExcerpt(string $body): string
+    {
+        $flat = trim((string) preg_replace('/\s+/u', ' ', $body));
+
+        return mb_strlen($flat) > 200 ? mb_substr($flat, 0, 200).'...' : $flat;
     }
 
     private function validateConfig(): ?string
