@@ -158,9 +158,9 @@ class PortSyncServiceTransactionTest extends TestCase
         try {
             $service->syncSwitch($switchConfig);
             $this->fail('Expected sync to throw');
-        } catch (SwitchSyncFailedException $exception) {
-            $this->assertSame('Connection refused', $exception->getMessage());
-            $this->assertInstanceOf(RuntimeException::class, $exception->getPrevious());
+        } catch (SwitchSyncFailedException $switchSyncFailedException) {
+            $this->assertSame('Connection refused', $switchSyncFailedException->getMessage());
+            $this->assertInstanceOf(RuntimeException::class, $switchSyncFailedException->getPrevious());
         }
 
         $this->assertSame(1, SwitchSyncRun::where('switch_config_id', $switchConfig->id)->where('status', 'failed')->count());

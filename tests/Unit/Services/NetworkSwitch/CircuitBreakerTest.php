@@ -264,6 +264,7 @@ class CircuitBreakerTest extends TestCase
         foreach (range(1, 3) as $ignored) {
             $circuitBreaker->recordFailure($switch);
         }
+
         $this->travel(301)->seconds();
         $this->assertSame(CircuitState::HalfOpen, $circuitBreaker->state($switch));
 
@@ -285,6 +286,7 @@ class CircuitBreakerTest extends TestCase
         foreach (range(1, 3) as $ignored) {
             $circuitBreaker->recordFailure($switch);
         }
+
         $this->travel(301)->seconds();
         $this->assertSame(CircuitState::HalfOpen, $circuitBreaker->state($switch));
 

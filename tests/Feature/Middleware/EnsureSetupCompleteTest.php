@@ -61,7 +61,7 @@ class EnsureSetupCompleteTest extends TestCase
     public function test_database_unavailable_is_tolerated(): void
     {
         DB::select('select 1');
-        DB::listen(fn ($q) => str_contains($q->sql, '"users"') ? throw new QueryException('sqlite', $q->sql, [], new PDOException('unavailable')) : null);
+        DB::listen(fn ($q): null => str_contains($q->sql, '"users"') ? throw new QueryException('sqlite', $q->sql, [], new PDOException('unavailable')) : null);
 
         $this->get('/login')->assertOk();
     }
@@ -70,7 +70,7 @@ class EnsureSetupCompleteTest extends TestCase
     {
         $this->withoutExceptionHandling();
         DB::select('select 1');
-        DB::listen(fn ($q) => str_contains($q->sql, '"users"') ? throw new RuntimeException('boom') : null);
+        DB::listen(fn ($q): null => str_contains($q->sql, '"users"') ? throw new RuntimeException('boom') : null);
 
         $this->expectException(RuntimeException::class);
 

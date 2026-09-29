@@ -31,7 +31,7 @@ class RouteConstraintsTest extends TestCase
         foreach (['show', 'refresh', 'shutdown', 'enable'] as $name) {
             $this->assertSame(
                 '[A-Za-z][A-Za-z0-9\-]*\d+(?:/\d+){0,3}',
-                Route::getRoutes()->getByName("admin.switches.ports.$name")->wheres['portId'] ?? Route::getPatterns()['portId'],
+                Route::getRoutes()->getByName('admin.switches.ports.'.$name)->wheres['portId'] ?? Route::getPatterns()['portId'],
             );
         }
     }

@@ -74,7 +74,7 @@ class CiscoDhcpServiceTest extends TestCase
             '  Username : unassigned',
             '  VRF : default',
             '  IA NA: IA ID 0x00000001, T1 43200, T2 69120',
-            "    Address: {$address}",
+            '    Address: '.$address,
             '            preferred lifetime 86400, valid lifetime 172800',
             '            expires at Jun 09 2026 12:00 AM (172800 seconds)',
         ]);

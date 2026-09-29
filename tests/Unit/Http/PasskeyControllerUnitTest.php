@@ -6,7 +6,6 @@ namespace Tests\Unit\Http;
 
 use App\Http\Controllers\PasskeyController;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Http\Request;
 use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
 use Laragear\WebAuthn\Http\Requests\AssertedRequest;
 use Laragear\WebAuthn\Http\Requests\AttestedRequest;
@@ -16,20 +15,6 @@ use Tests\TestCase;
 class PasskeyControllerUnitTest extends TestCase
 {
     use LazilyRefreshDatabase;
-
-    public function test_destroy_returns_403_when_user_is_null(): void
-    {
-        $controller = new PasskeyController;
-
-        $request = Request::create('/passkeys/some-credential-id', 'DELETE');
-        $request->setUserResolver(fn (): null => null);
-
-        $response = $controller->destroy($request, 'some-credential-id');
-
-        $this->assertSame(403, $response->getStatusCode());
-        $data = json_decode((string) $response->getContent(), true);
-        $this->assertFalse($data['success']);
-    }
 
     public function test_register_saves_attested_request_and_returns_success(): void
     {

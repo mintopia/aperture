@@ -26,6 +26,7 @@ class IpAddressDirectTest extends TestCase
         foreach ($attrs as $k => $v) {
             $ip->{$k} = $v;
         }
+
         $ip->save();
 
         return $ip;

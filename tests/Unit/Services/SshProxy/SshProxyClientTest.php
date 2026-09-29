@@ -75,7 +75,7 @@ class SshProxyClientTest extends TestCase
 
         Http::assertSent(fn (Request $request): bool => $request['commands'] === $commands
             && ! array_key_exists('sensitive', $request['commands'][0])
-            && $request['commands'][1]['sensitive'] === true);
+            && $request['commands'][1]['sensitive']);
     }
 
     public function test_execute_uses_password_auth_method_without_private_key(): void

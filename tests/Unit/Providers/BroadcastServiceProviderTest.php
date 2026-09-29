@@ -11,8 +11,8 @@ class BroadcastServiceProviderTest extends TestCase
     {
         (new BroadcastServiceProvider($this->app))->boot();
 
-        $route = collect(app('router')->getRoutes()->getRoutes())
-            ->first(fn ($r) => $r->uri() === 'broadcasting/auth');
+        $route = collect(resolve('router')->getRoutes()->getRoutes())
+            ->first(fn ($r): bool => $r->uri() === 'broadcasting/auth');
 
         $this->assertNotNull($route);
         $this->assertContains('auth', $route->gatherMiddleware());
