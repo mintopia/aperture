@@ -10,7 +10,6 @@ export default [
             globals: {
                 ...globals.browser,
                 route: 'readonly',
-                axios: 'readonly',
                 Echo: 'readonly',
             },
         },

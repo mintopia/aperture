@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Index from '@/Pages/Admin/Switches/Index.vue';
 
 vi.mock('@inertiajs/vue3', () => ({

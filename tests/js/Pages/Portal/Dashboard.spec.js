@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { defineComponent } from 'vue';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePage } from '@inertiajs/vue3';
 import Dashboard from '@/Pages/Portal/Dashboard.vue';
 

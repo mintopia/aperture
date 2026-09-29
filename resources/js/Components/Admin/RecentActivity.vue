@@ -1,7 +1,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
-import { formatRelativeTime } from '@/utils/dates';
+import { formatRelative } from '@/utils/dates';
 
 defineProps({
     events: { type: Array, default: () => [] },
@@ -67,7 +67,7 @@ function severityColor(severity) {
                         data-testid="recent-activity-timestamp"
                         class="shrink-0 font-mono text-[11px] text-[var(--color-text-secondary)]"
                     >
-                        {{ formatRelativeTime(event.created_at) }}
+                        {{ (formatRelative(event.created_at) || '—') }}
                     </span>
                     <span class="text-[13px] text-[var(--color-text)]">
                         {{ event.description }}

@@ -1,6 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import Show from '@/Pages/Admin/Users/Show.vue';
+import { jsonResponse } from '../../../helpers/fetch.js';
 
 vi.mock('@inertiajs/vue3', () => ({
     router: {
@@ -29,19 +30,20 @@ vi.mock('@inertiajs/vue3', () => ({
 
 vi.stubGlobal('route', (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`));
 
-window.axios = {
-    get: vi.fn(() =>
-        Promise.resolve({
-            data: {
+vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+        Promise.resolve(
+            jsonResponse({
                 timestamps: [],
                 download: [],
                 upload: [],
                 totalReceived: 0,
                 totalSent: 0,
-            },
-        }),
+            }),
+        ),
     ),
-};
+);
 
 const routeMock = (name, ...params) => (params.length ? `/mocked/${name}/${params.join('/')}` : `/mocked/${name}`);
 
@@ -110,7 +112,7 @@ describe('Users Show', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-04-17T12:00:00.000Z'));
-        vi.mocked(window.axios.get).mockClear();
+        vi.mocked(fetch).mockClear();
     });
 
     afterEach(() => {
@@ -213,7 +215,7 @@ describe('Users Show', () => {
     });
 
     it('shows a bandwidth error when the fetch fails', async () => {
-        vi.mocked(window.axios.get).mockRejectedValueOnce(new Error('Network error'));
+        vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
 
         const wrapper = mount(Show, {
             props: makeProps(),
@@ -264,8 +266,8 @@ describe('Users Show', () => {
             global: defaultGlobal,
         });
 
-        expect(window.axios.get).toHaveBeenCalled();
-        expect(window.axios.get.mock.calls[0][0]).toContain('admin.users.bandwidth');
+        expect(fetch).toHaveBeenCalled();
+        expect(fetch.mock.calls[0][0]).toContain('admin.users.bandwidth');
     });
 
     it('does not call fetch for bandwidth when ipCount is 0', () => {
@@ -274,6 +276,6 @@ describe('Users Show', () => {
             global: defaultGlobal,
         });
 
-        expect(window.axios.get).not.toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
     });
 });

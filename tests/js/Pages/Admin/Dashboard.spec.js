@@ -4,6 +4,7 @@ import { nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { router } from '@inertiajs/vue3';
 import Dashboard from '@/Pages/Admin/Dashboard.vue';
+import { jsonResponse } from '../../helpers/fetch.js';
 
 let deferredReady = true;
 let resetFormMock = null;
@@ -82,19 +83,20 @@ function createMockEcho(pusher) {
 
 vi.stubGlobal('route', (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`));
 
-window.axios = {
-    get: vi.fn(() =>
-        Promise.resolve({
-            data: {
+vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+        Promise.resolve(
+            jsonResponse({
                 timestamps: [],
                 download: [],
                 upload: [],
                 totalReceived: 0,
                 totalSent: 0,
-            },
-        }),
+            }),
+        ),
     ),
-};
+);
 
 const routeMock = (name, param) => (param ? `/mocked/${name}/${param}` : `/mocked/${name}`);
 
@@ -162,7 +164,7 @@ describe('Dashboard', () => {
         deferredReady = true;
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-04-17T12:00:00.000Z'));
-        vi.mocked(window.axios.get).mockClear();
+        vi.mocked(fetch).mockClear();
     });
 
     afterEach(() => {
@@ -305,8 +307,8 @@ describe('Dashboard', () => {
         expect(statusDots.length).toBeGreaterThan(0);
         expect(wrapper.text()).toContain('Allowed');
         expect(wrapper.text()).toContain('Denied');
-        expect(wrapper.text()).toContain('5m');
-        expect(wrapper.text()).toContain('1h');
+        expect(wrapper.text()).toContain('5 min. ago');
+        expect(wrapper.text()).toContain('1 hr. ago');
     });
 
     it('renders an empty state when there are no recent users', () => {
@@ -384,8 +386,8 @@ describe('Dashboard', () => {
             global: defaultGlobal,
         });
 
-        expect(window.axios.get).toHaveBeenCalled();
-        expect(window.axios.get.mock.calls[0][0]).toContain('admin.dashboard.bandwidth');
+        expect(fetch).toHaveBeenCalled();
+        expect(fetch.mock.calls[0][0]).toContain('admin.dashboard.bandwidth');
     });
 
     describe('reset portal modal', () => {
@@ -530,11 +532,11 @@ describe('Dashboard', () => {
             mount(Dashboard, { props: makeProps(), global: defaultGlobal });
 
             await vi.advanceTimersByTimeAsync(0);
-            vi.mocked(window.axios.get).mockClear();
+            vi.mocked(fetch).mockClear();
 
             await vi.advanceTimersByTimeAsync(30000);
 
-            expect(window.axios.get).toHaveBeenCalled();
+            expect(fetch).toHaveBeenCalled();
         });
 
         it('does not poll fetchBandwidth when WebSocket is connected', async () => {
@@ -543,11 +545,11 @@ describe('Dashboard', () => {
             mount(Dashboard, { props: makeProps(), global: defaultGlobal });
 
             await vi.advanceTimersByTimeAsync(0);
-            vi.mocked(window.axios.get).mockClear();
+            vi.mocked(fetch).mockClear();
 
             await vi.advanceTimersByTimeAsync(60000);
 
-            expect(window.axios.get).not.toHaveBeenCalled();
+            expect(fetch).not.toHaveBeenCalled();
         });
     });
 });

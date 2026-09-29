@@ -12,7 +12,7 @@ import StatCard from '@/Components/UI/StatCard.vue';
 import TimeSeriesChart from '@/Components/UI/TimeSeriesChart.vue';
 import RecentActivity from '@/Components/Admin/RecentActivity.vue';
 import { formatBytes } from '@/helpers.js';
-import { formatRelativeTime } from '@/utils/dates';
+import { formatRelative } from '@/utils/dates';
 import { useAdminChannel } from '@/composables/useAdminChannel';
 import { useBandwidthChart } from '@/composables/useBandwidthChart.js';
 
@@ -335,7 +335,7 @@ function confirmReset() {
                                 data-testid="user-last-seen"
                                 class="py-[10px] font-mono text-[12px] text-[var(--color-text-muted)]"
                             >
-                                {{ formatRelativeTime(row.last_seen) }}
+                                {{ (formatRelative(row.last_seen) || '—') }}
                             </td>
                         </template>
                     </DataTable>

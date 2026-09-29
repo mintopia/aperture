@@ -21,8 +21,10 @@ export function formatDate(dateString, options = {}) {
     return new Intl.DateTimeFormat('en-GB', { ...defaults, ...options }).format(date);
 }
 
+const relativeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'always', style: 'short' });
+
 /**
- * Format a date as relative time (e.g., "2 hours ago", "3 days ago").
+ * Format a date as relative time (e.g., "15 min. ago", "3 days ago").
  * Falls back to formatDate() for dates older than 7 days.
  * @param {string|null} dateString - ISO 8601 or datetime string
  * @returns {string} Relative time or formatted date
@@ -33,45 +35,20 @@ export function formatRelative(dateString) {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
-    const now = new Date();
-    const diffMs = now - date;
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
+    const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
 
     if (diffSeconds < 60) return 'just now';
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return relativeFormatter.format(-diffMinutes, 'minute');
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return relativeFormatter.format(-diffHours, 'hour');
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return relativeFormatter.format(-diffDays, 'day');
 
     return formatDate(dateString);
-}
-
-/**
- * Format a date as a compact relative time (e.g., "5m", "2h", "3d").
- * Falls back to an em dash when missing and the original string when invalid.
- * @param {string|null} dateString
- * @returns {string}
- */
-export function formatRelativeTime(dateString) {
-    if (!dateString) return '—';
-
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-
-    const now = new Date();
-    const diffMs = now - date;
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffSeconds < 60) return 'now';
-    if (diffMinutes < 60) return `${diffMinutes}m`;
-    if (diffHours < 24) return `${diffHours}h`;
-
-    return `${diffDays}d`;
 }
 
 // Values above 1e12 are treated as milliseconds, otherwise seconds.

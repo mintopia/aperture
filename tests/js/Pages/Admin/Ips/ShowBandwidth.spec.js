@@ -1,6 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Show from '@/Pages/Admin/Ips/Show.vue';
+import { jsonResponse } from '../../../helpers/fetch.js';
 
 vi.mock('@inertiajs/vue3', () => ({
     router: {
@@ -40,15 +41,15 @@ const TimeSeriesChartStub = {
 };
 
 function mockFetchSuccess(response = defaultBandwidthResponse) {
-    window.axios = { get: vi.fn().mockResolvedValue({ data: response }) };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(response)));
 }
 
 function mockFetchError() {
-    window.axios = { get: vi.fn().mockRejectedValue(new Error('Network error')) };
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
 }
 
 function mockFetchNonOk() {
-    window.axios = { get: vi.fn().mockRejectedValue(new Error('Request failed with status 400')) };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({}, { ok: false, status: 400 })));
 }
 
 function mountPage(overrides = {}) {
@@ -80,7 +81,7 @@ describe('Admin IP Show bandwidth chart', () => {
         mountPage();
         await flushPromises();
 
-        expect(window.axios.get).toHaveBeenCalledWith(expect.stringContaining('?range=24h'));
+        expect(fetch).toHaveBeenCalledWith(expect.stringContaining('?range=24h'), expect.any(Object));
     });
 
     it('shows loading state during fetch', async () => {
@@ -88,7 +89,7 @@ describe('Admin IP Show bandwidth chart', () => {
         const getPromise = new Promise((resolve) => {
             resolveGet = resolve;
         });
-        window.axios = { get: vi.fn().mockReturnValue(getPromise) };
+        vi.stubGlobal('fetch', vi.fn().mockReturnValue(getPromise));
 
         const wrapper = mountPage();
 
@@ -106,13 +107,13 @@ describe('Admin IP Show bandwidth chart', () => {
         const wrapper = mountPage();
         await flushPromises();
 
-        expect(window.axios.get).toHaveBeenCalledTimes(1);
+        expect(fetch).toHaveBeenCalledTimes(1);
 
         await wrapper.find('[data-testid="range-1h"]').trigger('click');
         await flushPromises();
 
-        expect(window.axios.get).toHaveBeenCalledTimes(2);
-        expect(window.axios.get).toHaveBeenLastCalledWith(expect.stringContaining('?range=1h'));
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('?range=1h'), expect.any(Object));
     });
 
     it('re-fetches bandwidth when 4d range is selected', async () => {
@@ -122,7 +123,7 @@ describe('Admin IP Show bandwidth chart', () => {
         await wrapper.find('[data-testid="range-4d"]').trigger('click');
         await flushPromises();
 
-        expect(window.axios.get).toHaveBeenLastCalledWith(expect.stringContaining('?range=4d'));
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('?range=4d'), expect.any(Object));
     });
 
     it('renders range buttons for 1h, 24h, 4d and 7d', async () => {
@@ -143,7 +144,7 @@ describe('Admin IP Show bandwidth chart', () => {
         await wrapper.find('[data-testid="range-7d"]').trigger('click');
         await flushPromises();
 
-        expect(window.axios.get).toHaveBeenLastCalledWith(expect.stringContaining('?range=7d'));
+        expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining('?range=7d'), expect.any(Object));
     });
 
     it('chartSeries computed maps timestamps and data correctly', async () => {
