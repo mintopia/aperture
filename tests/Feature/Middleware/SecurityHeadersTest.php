@@ -115,7 +115,8 @@ class SecurityHeadersTest extends TestCase
 
         $csp = (string) $this->get('/')->headers->get('Content-Security-Policy');
 
-        $this->assertStringNotContainsString('example.com', $csp);
+        $this->assertStringNotContainsString('dns-', $csp);
+        $this->assertStringNotContainsString('*.example.com', $csp);
         $this->assertStringNotContainsString('not a url', $csp);
     }
 }
