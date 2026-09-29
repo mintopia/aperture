@@ -12,7 +12,7 @@ type statusResponse struct {
 
 func (h *Handler) Status(w http.ResponseWriter, _ *http.Request) {
 	uptime, connections := h.pool.Status()
-	writeJSON(w, http.StatusOK, statusResponse{
+	WriteJSON(h.logger, w, http.StatusOK, statusResponse{
 		UptimeSeconds: uptime,
 		Connections:   connections,
 	})

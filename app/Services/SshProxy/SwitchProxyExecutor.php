@@ -12,7 +12,7 @@ class SwitchProxyExecutor
     public function __construct(private readonly SshProxyClientInterface $client) {}
 
     /**
-     * @param  array<int, array{command: string, if?: string, expect?: string}>  $commands
+     * @param  array<int, array{command: string, sensitive?: true, if?: array{type: 'literal'|'regex', value: string}, expect?: array{type: 'literal'|'regex', value: string}}>  $commands
      */
     public function execute(SwitchConfig $switchConfig, array $commands, string $channel = 'commands'): CommandResult
     {

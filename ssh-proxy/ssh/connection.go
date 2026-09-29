@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"syscall"
 	"time"
 
 	gossh "golang.org/x/crypto/ssh"
@@ -18,6 +19,7 @@ type Connection struct {
 	stdin   io.WriteCloser
 	dataCh  chan []byte
 	closeCh chan struct{}
+	lostCh  chan struct{}
 	closed  bool
 	hostKey string
 }
@@ -32,7 +34,19 @@ type ConnectParams struct {
 	PrivateKey string
 	Passphrase string
 	HostKey    string
+	Auth       AuthMethod
 }
+
+type AuthMethod string
+
+const (
+	AuthPassword   AuthMethod = "password"
+	AuthPrivateKey AuthMethod = "private_key"
+)
+
+func (a AuthMethod) Valid() bool { return a == AuthPassword || a == AuthPrivateKey }
+
+var ErrConnectionLost = errors.New("connection lost")
 
 var ErrHostKeyMismatch = errors.New("host key mismatch")
 
@@ -53,8 +67,12 @@ func HostKeysEqual(a, b string) bool {
 }
 
 func authMethod(p ConnectParams) (gossh.AuthMethod, error) {
-	if p.PrivateKey == "" {
+	switch p.Auth {
+	case AuthPassword:
 		return gossh.Password(p.Password), nil
+	case AuthPrivateKey:
+	default:
+		return nil, fmt.Errorf("unknown auth method %q", p.Auth)
 	}
 	var raw any
 	var err error
@@ -205,6 +223,7 @@ func Connect(ctx context.Context, p ConnectParams) (*Connection, error) {
 		stdin:   stdin,
 		dataCh:  make(chan []byte, 256),
 		closeCh: make(chan struct{}),
+		lostCh:  make(chan struct{}),
 		hostKey: observed,
 	}
 
@@ -217,6 +236,7 @@ func (c *Connection) HostKey() string { return c.hostKey }
 
 func (c *Connection) readLoop(r io.Reader) {
 	defer close(c.dataCh)
+	defer close(c.lostCh)
 	buf := make([]byte, 4096)
 	for {
 		n, err := r.Read(buf)
@@ -237,10 +257,26 @@ func (c *Connection) readLoop(r io.Reader) {
 
 func (c *Connection) Write(data string) error {
 	if c.closed {
-		return fmt.Errorf("connection closed")
+		return fmt.Errorf("%w: connection closed", ErrConnectionLost)
+	}
+	select {
+	case <-c.lostCh:
+		return fmt.Errorf("%w: remote end closed", ErrConnectionLost)
+	default:
 	}
 	_, err := c.stdin.Write([]byte(data))
+	if isConnLost(err) {
+		return fmt.Errorf("%w: %v", ErrConnectionLost, err)
+	}
 	return err
+}
+
+func isConnLost(err error) bool {
+	return errors.Is(err, io.EOF) ||
+		errors.Is(err, io.ErrClosedPipe) ||
+		errors.Is(err, net.ErrClosed) ||
+		errors.Is(err, syscall.EPIPE) ||
+		errors.Is(err, syscall.ECONNRESET)
 }
 
 func (c *Connection) Read(timeout time.Duration) string {
@@ -274,7 +310,7 @@ func (c *Connection) Read(timeout time.Duration) string {
 // This uses the "keepalive@openssh.com" global request which is widely supported.
 func (c *Connection) SendKeepalive() error {
 	if c.closed {
-		return fmt.Errorf("connection closed")
+		return fmt.Errorf("%w: connection closed", ErrConnectionLost)
 	}
 	_, _, err := c.client.SendRequest("keepalive@openssh.com", true, nil)
 	return err
