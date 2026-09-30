@@ -36,7 +36,7 @@ class TestConnectionControllerTest extends TestCase
         IntegrationConfig::setValue('opnsense', 'secret', 'testsecret', true);
 
         Http::fake([
-            'opnsense.local/*' => Http::response(['status' => 'ok'], 200),
+            'opnsense.local/*' => Http::response(['datetime' => 'Tue Sep 29 22:00:00 UTC 2026', 'uptime' => '01:00:00'], 200),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/opnsense');
@@ -65,7 +65,7 @@ class TestConnectionControllerTest extends TestCase
     public function test_opnsense_test_records_connection_log(): void
     {
         Queue::fake();
-        Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
+        Http::fake(['*' => Http::response(['datetime' => 'Tue Sep 29 22:00:00 UTC 2026', 'uptime' => '01:00:00'], 200)]);
         $admin = $this->createAdminUser();
 
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.example.com');
@@ -83,7 +83,7 @@ class TestConnectionControllerTest extends TestCase
     public function test_opnsense_test_stores_response_data(): void
     {
         Queue::fake();
-        Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
+        Http::fake(['*' => Http::response(['datetime' => 'Tue Sep 29 22:00:00 UTC 2026', 'uptime' => '01:00:00'], 200)]);
         $admin = $this->createAdminUser();
 
         IntegrationConfig::setValue('opnsense', 'endpoint', 'https://opnsense.example.com');
@@ -100,7 +100,7 @@ class TestConnectionControllerTest extends TestCase
 
         $log = ConnectionTestLog::where('integration', 'opnsense')->latest()->first();
         $this->assertNotNull($log->response_data);
-        $this->assertStringContainsString('ok', $log->response_data);
+        $this->assertStringContainsString('Tue Sep 29 22:00:00 UTC 2026', $log->response_data);
         $this->assertSame('GET', $log->request_method);
         $this->assertStringContainsString('/api/diagnostics/system/system_time', $log->request_url);
         $this->assertSame(200, $log->response_status);
@@ -421,7 +421,7 @@ class TestConnectionControllerTest extends TestCase
         IntegrationConfig::setValue('opnsense', 'secret', 'old-secret');
 
         Http::fake([
-            'new.example.com/*' => Http::response('ok', 200),
+            'new.example.com/*' => Http::response(['datetime' => 'Tue Sep 29 22:00:00 UTC 2026', 'uptime' => '01:00:00'], 200),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/opnsense', [
@@ -510,7 +510,7 @@ class TestConnectionControllerTest extends TestCase
         IntegrationConfig::setValue('opnsense', 'secret', 'db-secret');
 
         Http::fake([
-            'db-opnsense.example.com/*' => Http::response('ok', 200),
+            'db-opnsense.example.com/*' => Http::response(['datetime' => 'Tue Sep 29 22:00:00 UTC 2026', 'uptime' => '01:00:00'], 200),
         ]);
 
         $response = $this->actingAs($admin)->postJson('/admin/settings/test/opnsense');
