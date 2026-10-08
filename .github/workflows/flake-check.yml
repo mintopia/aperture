@@ -1,6 +1,8 @@
 name: Flake check
 
 on:
+  push:
+    branches: [harmonic/task-55]
   workflow_dispatch:
     inputs:
       repeat_each:
@@ -25,7 +27,7 @@ jobs:
 
       - name: Run vitest repeatedly
         run: |
-          for i in $(seq 1 "${{ inputs.repeat_each }}"); do
+          for i in $(seq 1 "${{ inputs.repeat_each || '5' }}"); do
             echo "::group::vitest pass $i"
             npx vitest run || exit 1
             echo "::endgroup::"
@@ -87,7 +89,7 @@ jobs:
           DB_DATABASE: ${{ github.workspace }}/database/playwright.sqlite
 
       - name: Run Playwright suite repeatedly
-        run: npx playwright test --repeat-each=${{ inputs.repeat_each }} --shard=${{ matrix.shard }}/12
+        run: npx playwright test --repeat-each=${{ inputs.repeat_each || '5' }} --shard=${{ matrix.shard }}/12
         env:
           PLAYWRIGHT_GLOBAL_TIMEOUT_MINUTES: '55'
 
