@@ -11,7 +11,7 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         setupFiles: ['tests/js/setup.js'],
-        exclude: ['tests/e2e/**', 'node_modules/**', '.worktrees/**'],
+        exclude: ['tests/e2e/**', 'node_modules/**', '.worktrees/**', '.claude/**'],
         coverage: {
             provider: 'v8',
             reportsDirectory: 'storage/coverage/js',
