@@ -204,7 +204,7 @@ useAdminChannel({
 <template>
     <div data-testid="switch-show-layout">
         <section data-testid="switch-show-header-card">
-            <div class="mb-2 flex items-start justify-between gap-6">
+            <div class="mb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                 <h1
                     data-testid="page-title"
                     class="font-heading text-[32px] leading-[1.1] font-bold tracking-[-0.03em] text-[var(--color-text)]"
@@ -212,7 +212,10 @@ useAdminChannel({
                 >
                     {{ switchConfig.name }}
                 </h1>
-                <div data-testid="switch-show-actions" class="flex items-center gap-2">
+                <div
+                    data-testid="switch-show-actions"
+                    class="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end"
+                >
                     <button
                         data-testid="action-test"
                         title="Test SSH connectivity to this switch"

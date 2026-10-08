@@ -70,10 +70,21 @@ describe('GlobalSearch.vue', () => {
             expect(kbd.classes()).toContain('text-[10px]');
             expect(kbd.classes()).toContain('border-[var(--color-border-hover)]');
             expect(kbd.classes()).toContain('text-[var(--color-text-muted)]');
-            expect(kbd.classes()).toContain('inline-flex');
+            expect(kbd.classes()).toContain('sm:inline-flex');
+            expect(kbd.classes()).toContain('hidden');
             expect(kbd.classes()).toContain('items-center');
             expect(kbd.classes()).toContain('gap-1');
             expect(kbd.classes()).toContain('rounded-md');
+        });
+
+        it('exposes an accessible icon-only trigger for phone widths', () => {
+            const wrapper = mountGlobalSearch();
+            const trigger = wrapper.get('[data-testid="global-search-trigger"]');
+            const icon = wrapper.get('[data-testid="global-search-trigger-icon"]');
+
+            expect(trigger.attributes('aria-label')).toBe('Search');
+            expect(icon.classes()).toContain('sm:hidden');
+            expect(trigger.classes()).not.toContain('hidden');
         });
 
         it('opens the dialog when trigger is clicked', async () => {

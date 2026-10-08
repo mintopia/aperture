@@ -113,13 +113,29 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     <div>
         <button
             data-testid="global-search-trigger"
-            class="flex items-center gap-1 rounded-full bg-[var(--glass-hover)] px-3.5 py-[7px] text-[12px] text-[var(--color-text-muted)] shadow-[inset_0_0_0_1px_var(--glass-edge)] hover:border-[var(--color-border-hover)]"
+            type="button"
+            aria-label="Search"
+            class="flex items-center gap-1 rounded-full bg-[var(--glass-hover)] p-2 text-[12px] text-[var(--color-text-muted)] shadow-[inset_0_0_0_1px_var(--glass-edge)] hover:border-[var(--color-border-hover)] sm:px-3.5 sm:py-[7px]"
             @click="open = true"
         >
-            Search...
+            <svg
+                data-testid="global-search-trigger-icon"
+                class="h-4 w-4 sm:hidden"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+            >
+                <path
+                    fill-rule="evenodd"
+                    d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                    clip-rule="evenodd"
+                />
+            </svg>
+            <span class="hidden sm:inline">Search...</span>
             <kbd
                 data-testid="global-search-shortcut"
-                class="ml-2 inline-flex items-center gap-1 rounded-md border border-[var(--color-border-hover)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]"
+                class="ml-2 hidden items-center gap-1 rounded-md border border-[var(--color-border-hover)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)] sm:inline-flex"
             >
                 ⌘K
             </kbd>
