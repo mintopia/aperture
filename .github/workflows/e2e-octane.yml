@@ -76,5 +76,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
-          path: storage/playwright-report
+          name: playwright-artifacts-octane
+          path: |
+            storage/playwright-report
+            test-results
+          retention-days: 7

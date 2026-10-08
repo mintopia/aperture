@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="csp-nonce" content="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
+    <meta property="csp-nonce" nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
     <title>{{ $siteTitle }}</title>
     @if($hasSiteLogo ?? false)
         <link rel="icon" type="image/png" sizes="32x32" href="{{ $faviconUrls['32'] }}">
