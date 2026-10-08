@@ -19,7 +19,7 @@ class ResetCommand extends Command
     /**
      * @var string
      */
-    protected $description = 'Reset the firewall access and users';
+    protected $description = 'Remove all IP and MAC addresses, their associations, and non-admin users';
 
     public function handle(): int
     {

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Console;
 
+use App\Enums\Capability;
 use App\Jobs\ResetAperture;
+use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
 use App\Models\Role;
@@ -20,6 +22,9 @@ class ResetCommandTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    /** @var list<array{sessionId: string, ipAddress: string}> */
+    private array $sessions = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -34,6 +39,8 @@ class ResetCommandTest extends TestCase
         IntegrationConfig::setValue('opnsense', 'zone_id', '1');
         IntegrationConfig::setValue('opnsense', 'ratelimit_up_uuid', 'up-uuid');
         IntegrationConfig::setValue('opnsense', 'ratelimit_down_uuid', 'down-uuid');
+        CapabilityAssignment::assign(Capability::CaptivePortal, 'opnsense');
+        CapabilityAssignment::assign(Capability::RateLimiting, 'opnsense');
     }
 
     /**
@@ -42,7 +49,7 @@ class ResetCommandTest extends TestCase
     private function opnsenseBody(string $url): array
     {
         return match (true) {
-            str_contains($url, 'session/list') => [],
+            str_contains($url, 'session/list') => $this->sessions,
             str_contains($url, 'trafficshaper/settings/get_rule') => ['rule' => [
                 'description' => 'test',
                 'destination_not' => '0',
@@ -142,5 +149,28 @@ class ResetCommandTest extends TestCase
 
         $this->assertDatabaseHas('users', ['id' => $admin->id]);
         $this->assertDatabaseMissing('users', ['id' => $regularUser->id]);
+    }
+
+    public function test_command_disconnects_only_aperture_firewall_sessions(): void
+    {
+        $this->sessions = [
+            ['sessionId' => 'abc123', 'ipAddress' => '10.0.0.3'],
+            ['sessionId' => 'manual', 'ipAddress' => '10.0.0.99'],
+        ];
+
+        $ip = new IpAddress;
+        $ip->address = '10.0.0.3';
+        $ip->last_seen_at = now();
+        $ip->internet_enabled = true;
+        $ip->save();
+
+        $this->artisan('aperture:reset')
+            ->expectsConfirmation('Are you sure you want to reset Aperture?', 'yes')
+            ->assertSuccessful();
+
+        Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'session/disconnect')
+            && $request['sessionId'] === 'abc123');
+        Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'session/disconnect')
+            && $request['sessionId'] === 'manual');
     }
 }
