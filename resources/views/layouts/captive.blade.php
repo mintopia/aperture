@@ -12,19 +12,7 @@
     @else
         <link rel="icon" type="image/svg+xml" href="{{ route('favicon') }}">
     @endif
-    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
-        (function () {
-            var root = document.documentElement;
-            var stored = null;
-            try { stored = localStorage.getItem('reduceTransparency'); } catch (e) {}
-            if (stored === '1' || (stored === null && window.matchMedia('(prefers-reduced-transparency: reduce)').matches)) {
-                root.setAttribute('data-transparency', 'reduced');
-            }
-            if (navigator.userAgentData && navigator.userAgentData.brands.some(function (b) { return b.brand === 'Chromium'; })) {
-                root.setAttribute('data-refraction', '');
-            }
-        })();
-    </script>
+    @include('partials.appearance-prepaint')
     @vite(['resources/css/app.css'])
     @php
         $hue = $accentHue ?? 55;

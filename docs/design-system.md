@@ -22,13 +22,13 @@ Colors are applied via CSS custom properties on `[data-theme='dispatch']` (dark)
 
 | Variable | Value | Purpose |
 |---|---|---|
-| `--color-bg` | `oklch(13% 0.006 60)` | Page background |
+| `--color-bg` | `oklch(16% calc(0.012 + 0.02 * var(--bg-intensity)) var(--accent-hue))` | Page background, tinted by the accent hue |
 | `--color-surface` | `oklch(17% 0.006 60)` | Elevated surfaces (sidebar, cards) |
 | `--color-surface-hover` | `oklch(21% 0.006 60)` | Hover state for surfaces |
 | `--color-surface-alt` | `oklch(20% 0.008 60)` | Alternate surface (subtle distinction) |
 | `--color-text` | `oklch(95% 0.006 60)` | Primary text |
-| `--color-text-secondary` | `oklch(75% 0.006 60)` | Secondary text |
-| `--color-text-muted` | `oklch(55% 0.006 60)` | Muted labels, captions |
+| `--color-text-secondary` | `oklch(84% 0.006 60)` | Secondary text |
+| `--color-text-muted` | `oklch(70% 0.006 60)` | Muted labels, captions |
 | `--color-border` | `oklch(26% 0.004 60)` | Hairline borders, dividers |
 | `--color-border-hover` | `oklch(33% 0.004 60)` | Hover state for borders |
 | `--color-input-bg` | `oklch(15% 0.006 60)` | Form input backgrounds |
@@ -39,13 +39,13 @@ Note: All neutrals are **warm charcoal** (hue 60), not cold slate. Even at low c
 
 | Variable | Value | Purpose |
 |---|---|---|
-| `--color-bg` | `oklch(97% 0.004 60)` | Page background |
+| `--color-bg` | `oklch(95.5% calc(0.008 + 0.026 * var(--bg-intensity)) var(--accent-hue))` | Page background, tinted by the accent hue |
 | `--color-surface` | `oklch(100% 0 0)` | Elevated surfaces |
 | `--color-surface-hover` | `oklch(95% 0.004 60)` | Hover state |
 | `--color-surface-alt` | `oklch(96% 0.005 60)` | Alternate surface |
 | `--color-text` | `oklch(15% 0.006 60)` | Primary text |
-| `--color-text-secondary` | `oklch(40% 0.006 60)` | Secondary text |
-| `--color-text-muted` | `oklch(55% 0.006 60)` | Muted labels |
+| `--color-text-secondary` | `oklch(30% 0.006 60)` | Secondary text |
+| `--color-text-muted` | `oklch(40% 0.006 60)` | Muted labels |
 | `--color-border` | `oklch(88% 0.004 60)` | Borders |
 | `--color-border-hover` | `oklch(80% 0.004 60)` | Border hover |
 | `--color-input-bg` | `oklch(100% 0 0)` | Input backgrounds |
@@ -274,7 +274,7 @@ Aperture uses liquid glass in two scoped materials. Glass is for things that flo
 - `.glass-frost`, `.glass-frost-strong`, `.glass-lens`, `.glass-lens-strong` — the material is painted on `::before`, so the host never becomes a containing block for `position: fixed` children (e.g. the global search modal inside the admin header). The lens variants also use `::after` for the specular sheen. Do not add your own `::before`/`::after` to glass hosts.
 - `.glass-refract` — adds the SVG displacement lens (`#aperture-lens`, defined in `PortalLayout`). Only applied when `<html data-refraction>` is set, which the pre-paint script in the Blade layouts sets for Chromium (other engines get plain frost).
 - `.glass-droplet` — active sidebar item inside a glass rail.
-- `.ambient-field` (`data-variant="lens"` for portal) — fixed background blobs tinted from `--accent-hue`. Chroma is deliberately low (0.05–0.09); keep it calm.
+- `.ambient-field` (`data-variant="lens"` for portal) — fixed background blobs tinted from `--accent-hue`. Chroma is `0.09–0.19` (dark) / `0.09–0.15` (light) multiplied by `--bg-intensity`, so the accent hue clearly reads; the AA test in `tests/js/theme/backgroundContrast.spec.js` guards text on glass at both ends of the slider and across hues.
 - `useGlassSheen(rootRef)` — updates `--glass-x`/`--glass-y` on lens elements; mouse only, off under reduced motion.
 
 ### Tokens (`resources/css/themes/dispatch.css`)
@@ -284,6 +284,17 @@ Aperture uses liquid glass in two scoped materials. Glass is for things that flo
 ### Reduce transparency
 
 Users toggle **Reduce transparency** in the user menu (`useTransparency`, stored in `localStorage.reduceTransparency`). With no stored choice it follows the OS `prefers-reduced-transparency`. It sets `<html data-transparency="reduced">`, which collapses every glass tint to the solid `--color-surface`, removes blur, sheen and the ambient field. The Blade layouts apply it before first paint.
+
+### Appearance preferences
+
+`AppearanceSettings.vue` (Account Settings, shown for admins and portal users; portal users reach it from the user menu) holds per-browser preferences, each stored in `localStorage` and applied before first paint by `resources/views/partials/appearance-prepaint.blade.php`:
+
+| Preference | Key | Effect |
+|---|---|---|
+| Background colour (slider 0-100, default 50) | `backgroundIntensity` | Sets `--bg-intensity` on `<html>` (0.25 muted to 1.75 vivid, 1 = default); scales the chroma of the ambient wash and, with reduce transparency on, of the solid `--color-bg` |
+| Reduce transparency | `reduceTransparency` | Shared with the user menu toggle (one `useTransparency` state) |
+| Glass sheen | `glassSheen` | `data-sheen="off"` hides the specular highlight and stops pointer tracking |
+| Animated background | `animatedBackground` | `data-animated-bg="off"` stops the blob drift; defaults to off when the OS prefers reduced motion, an explicit choice wins |
 
 ## Layout Rules
 

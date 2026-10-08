@@ -117,10 +117,20 @@ describe('UserMenu', () => {
         { name: 'Admin link, is_admin false', user: 'regular', testid: 'user-menu-admin', expected: false },
         { name: 'Settings link, is_admin true', user: 'admin', testid: 'user-menu-settings', expected: true },
         { name: 'Settings link, is_admin false', user: 'regular', testid: 'user-menu-settings', expected: false },
+        { name: 'Appearance link, is_admin true', user: 'admin', testid: 'user-menu-appearance', expected: false },
+        { name: 'Appearance link, is_admin false', user: 'regular', testid: 'user-menu-appearance', expected: true },
     ])('$name', async ({ user, testid, expected }) => {
         const wrapper = mountComponent(user === 'admin' ? adminUser : regularUser);
         await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
         expect(wrapper.find(`[data-testid="${testid}"]`).exists()).toBe(expected);
+    });
+
+    it('Appearance link for portal users points at the appearance section of account settings', async () => {
+        const wrapper = mountComponent(regularUser);
+        await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+        const link = wrapper.find('[data-testid="user-menu-appearance"]');
+        expect(link.attributes('href')).toBe('/account/settings#appearance');
+        expect(link.attributes('role')).toBe('menuitem');
     });
 
     it('Admin link has correct href', async () => {
