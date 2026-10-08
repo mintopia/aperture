@@ -128,7 +128,7 @@ class ResetApertureJobTest extends TestCase
 
     public function test_deletes_every_row_beyond_a_single_chunk(): void
     {
-        IpAddress::factory()->count(250)->sequence(fn ($s) => ['address' => '10.1.'.intdiv($s->index, 200).'.'.($s->index % 200 + 1)])->create();
+        IpAddress::factory()->count(250)->sequence(fn ($s): array => ['address' => '10.1.'.intdiv($s->index, 200).'.'.($s->index % 200 + 1)])->create();
         User::factory()->count(250)->create();
 
         $this->runReset();
@@ -175,8 +175,8 @@ class ResetApertureJobTest extends TestCase
         try {
             (new ResetAperture)->handle($captivePortal, $rateLimiter, $dnsFiltering);
             $this->fail('Expected reset to throw');
-        } catch (RuntimeException $e) {
-            $this->assertSame('Failed to revert IP access during reset: 10.0.0.1: timeout', $e->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            $this->assertSame('Failed to revert IP access during reset: 10.0.0.1: timeout', $runtimeException->getMessage());
         }
 
         $this->assertDatabaseCount('ip_addresses', 2);
