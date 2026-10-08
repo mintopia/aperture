@@ -43,11 +43,11 @@ function toggleDrawer() {
                 data-testid="admin-header"
                 class="glass-frost sticky top-2.5 z-50 mx-2.5 mt-2.5 flex h-[52px] items-center justify-between rounded-2xl pr-3 pl-4 md:pl-5"
             >
-                <div class="flex items-center gap-3">
+                <div class="flex min-w-0 items-center gap-3">
                     <button
                         data-testid="admin-menu-toggle"
                         aria-label="Toggle navigation menu"
-                        class="rounded-full p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--color-text)] min-[1025px]:hidden"
+                        class="shrink-0 rounded-full p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--color-text)] min-[1025px]:hidden"
                         @click="toggleDrawer"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
@@ -61,8 +61,8 @@ function toggleDrawer() {
                     <Breadcrumbs />
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <GlobalSearch class="hidden sm:block" />
+                <div class="flex shrink-0 items-center gap-2">
+                    <GlobalSearch />
                     <ThemeToggle />
                     <div v-if="page.props.auth.user">
                         <UserMenu :user="page.props.auth.user" />
