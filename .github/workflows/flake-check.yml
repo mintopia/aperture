@@ -1,0 +1,102 @@
+name: Flake check
+
+on:
+  workflow_dispatch:
+    inputs:
+      repeat_each:
+        description: Times each Playwright test and the vitest suite is repeated
+        default: '5'
+        required: true
+
+jobs:
+  vitest:
+    name: Vitest (repeated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run vitest repeatedly
+        run: |
+          for i in $(seq 1 "${{ inputs.repeat_each }}"); do
+            echo "::group::vitest pass $i"
+            npx vitest run || exit 1
+            echo "::endgroup::"
+          done
+
+  playwright:
+    name: Playwright (shard ${{ matrix.shard }}/12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    env:
+      CI: 'true'
+      PLAYWRIGHT_INCLUDE_MOBILE: '1'
+      APP_ENV: playwright
+      APP_URL: http://127.0.0.1:8000
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_sqlite, sqlite3, bcmath, intl, gd, zip
+          coverage: none
+          tools: composer:v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Prepare database
+        run: |
+          touch database/playwright.sqlite
+          php artisan migrate:fresh --force --no-interaction
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/database/playwright.sqlite
+
+      - name: Run Playwright suite repeatedly
+        run: npx playwright test --repeat-each=${{ inputs.repeat_each }} --shard=${{ matrix.shard }}/12
+        env:
+          PLAYWRIGHT_GLOBAL_TIMEOUT_MINUTES: '55'
+
+      - name: Upload Playwright report, traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-shard-${{ matrix.shard }}
+          path: |
+            storage/playwright-report
+            test-results
+          retention-days: 7
