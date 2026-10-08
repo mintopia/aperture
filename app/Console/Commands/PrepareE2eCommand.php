@@ -31,7 +31,8 @@ class PrepareE2eCommand extends Command
         {--email=playwright-admin@example.test : Admin email used by Playwright}
         {--password=playwright-password : Admin password used by Playwright}
         {--nickname=playwright-admin : Admin nickname used by Playwright}
-        {--verify-redis : Assert redis connectivity for cache/session path}';
+        {--verify-redis : Assert redis connectivity for cache/session path}
+        {--account= : Reset only this dedicated account-settings user and skip the shared fixtures}';
 
     protected $description = 'Prepare deterministic Playwright E2E fixtures (admin user + switch + ports)';
 
@@ -39,6 +40,14 @@ class PrepareE2eCommand extends Command
     {
         if ((bool) $this->option('verify-redis') && ! $this->verifyRedisConnections()) {
             return self::FAILURE;
+        }
+
+        $account = $this->option('account');
+        if (is_string($account) && $account !== '') {
+            $this->prepareAccountUser($account);
+            $this->info(sprintf('Playwright account user prepared: %s', $account));
+
+            return self::SUCCESS;
         }
 
         $email = (string) $this->option('email');
@@ -153,23 +162,41 @@ class PrepareE2eCommand extends Command
         });
     }
 
+    /**
+     * The account-settings journey changes and clears this user's password, so it is
+     * reset only on request: a shared fixture reset from a parallel spec would race it.
+     */
+    private function prepareAccountUser(string $email): void
+    {
+        Model::unguarded(function () use ($email): void {
+            $userRole = Role::query()->firstOrCreate(['code' => 'user'], ['name' => 'User']);
+
+            $user = User::query()->where('email', $email)->first() ?? new User;
+            $user->email = $email;
+            $user->nickname = Str::before($email, '@');
+            $user->password = 'playwright-attendee-password';
+            $user->dns_filtering_enabled = false;
+            $user->save();
+            $user->roles()->syncWithoutDetaching([$userRole->id]);
+        });
+
+        foreach (['127.0.0.1', '::1'] as $ip) {
+            RateLimiter::clear('login-attempt:'.Str::lower($email).'|'.$ip);
+        }
+    }
+
     private function prepareAttendeeFixtures(): void
     {
         Model::unguarded(function (): void {
             $userRole = Role::query()->firstOrCreate(['code' => 'user'], ['name' => 'User']);
 
-            foreach ([
-                ['playwright-attendee@example.test', 'playwright-attendee'],
-                ['playwright-account@example.test', 'playwright-account'],
-            ] as [$email, $nickname]) {
-                $user = User::query()->where('email', $email)->first() ?? new User;
-                $user->email = $email;
-                $user->nickname = $nickname;
-                $user->password = 'playwright-attendee-password';
-                $user->dns_filtering_enabled = false;
-                $user->save();
-                $user->roles()->syncWithoutDetaching([$userRole->id]);
-            }
+            $user = User::query()->where('email', 'playwright-attendee@example.test')->first() ?? new User;
+            $user->email = 'playwright-attendee@example.test';
+            $user->nickname = 'playwright-attendee';
+            $user->password = 'playwright-attendee-password';
+            $user->dns_filtering_enabled = false;
+            $user->save();
+            $user->roles()->syncWithoutDetaching([$userRole->id]);
 
             Page::query()->updateOrCreate(
                 ['slug' => 'playwright-page'],

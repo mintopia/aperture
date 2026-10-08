@@ -44,10 +44,10 @@ describe('AdminLayout.vue', () => {
         expect(skipNav.text()).toBe('Skip to content');
     });
 
-    it('skip-nav is the first element inside the root element', () => {
+    it('skip-nav is the first focusable element inside the root element', () => {
         const wrapper = mount(AdminLayout, { slots: { default: '<p>Content</p>' } });
         const root = wrapper.find('[data-testid="admin-layout"]');
-        const firstChild = root.element.children[0];
+        const firstChild = root.element.querySelector('a[href], button, input, [tabindex]');
         expect(firstChild.getAttribute('data-testid')).toBe('skip-nav');
     });
 

@@ -1,17 +1,25 @@
 import { test, expect } from './support/csp-guard.js';
-import { prepareFixtures, saveLoginState } from './support/fixtures.js';
+import { artisan, saveLoginState } from './support/fixtures.js';
 
-const email = 'playwright-account@example.test';
 const originalPassword = 'playwright-attendee-password';
 const changedPassword = 'changed-password-123';
 
 test.describe('Account settings journey', () => {
     test.describe.configure({ mode: 'serial' });
-    const stateFile = 'playwright/.auth/account.json';
-    test.use({ storageState: stateFile });
 
-    test.beforeAll(async ({ browser }) => {
-        prepareFixtures();
+    // One user per project and repeat: this journey clears and changes the password, so it must
+    // own its account rather than share one with other projects or fixture resets.
+    let email;
+    let stateFile;
+    // Playwright requires fixture functions to destructure their first argument.
+    // eslint-disable-next-line no-empty-pattern
+    test.use({ storageState: async ({}, use) => use(stateFile) });
+
+    test.beforeAll(async ({ browser }, testInfo) => {
+        const owner = `${testInfo.project.name}-${testInfo.repeatEachIndex}`;
+        email = `playwright-account-${owner}@example.test`;
+        stateFile = `playwright/.auth/account-${owner}.json`;
+        artisan('aperture:e2e:prepare', `--account=${email}`);
         await saveLoginState(browser, { email, password: originalPassword }, stateFile);
     });
 
@@ -22,6 +30,8 @@ test.describe('Account settings journey', () => {
         const response = page.waitForResponse((r) => r.url().endsWith('/login') && r.request().method() === 'POST');
         await page.getByTestId('login-submit').click();
         await response;
+        // The POST answers with a redirect; a goto issued before it lands aborts it.
+        await page.waitForURL((url) => url.pathname !== '/login');
     }
 
     async function openSettings(page) {

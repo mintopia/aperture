@@ -52,10 +52,10 @@ describe('PortalLayout.vue', () => {
         expect(skipNav.text()).toBe('Skip to content');
     });
 
-    it('skip-nav is the first element inside the root element', () => {
+    it('skip-nav is the first focusable element inside the root element', () => {
         const wrapper = mountPortalLayout();
         const root = wrapper.find('[data-testid="portal-layout"]');
-        const firstChild = root.element.children[0];
+        const firstChild = root.element.querySelector('a[href], button, input, [tabindex]');
         expect(firstChild.getAttribute('data-testid')).toBe('skip-nav');
     });
 

@@ -48,19 +48,23 @@ defineExpose({ updateInternetStatus });
 
 <template>
     <div data-testid="block-connection-strip">
-        <div class="flex items-center">
+        <div class="grid grid-cols-2 gap-x-5 gap-y-3 sm:flex sm:items-center sm:gap-0">
             <div
                 v-for="(field, index) in fields"
                 :key="index"
-                class="flex flex-1 flex-col gap-0.5"
-                :class="index < fields.length - 1 ? 'border-r border-[var(--color-border)] pr-5' : ''"
-                :style="index > 0 ? 'padding-left: 1.25rem' : ''"
+                class="flex min-w-0 flex-1 flex-col gap-0.5"
+                :class="[
+                    index < fields.length - 1 ? 'sm:border-r sm:border-[var(--color-border)] sm:pr-5' : '',
+                    index > 0 ? 'sm:pl-5' : '',
+                ]"
                 :data-testid="'connection-strip-field-' + index"
             >
                 <span class="text-[10px] font-semibold tracking-wider text-[var(--color-text-muted)] uppercase">
                     {{ field.label }}
                 </span>
-                <span class="flex items-center gap-1.5 font-mono text-[13px] font-medium text-[var(--color-text)]">
+                <span
+                    class="flex items-center gap-1.5 font-mono text-[13px] font-medium break-all text-[var(--color-text)]"
+                >
                     <span
                         v-if="isStatusField(field.value)"
                         data-testid="status-dot"

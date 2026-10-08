@@ -53,3 +53,69 @@
 
     --color-input-bg: oklch(100% 0 0);
 }
+
+/*
+ * Glass materials. `--accent-hue` is set at runtime alongside the accent colours.
+ * Frost: admin floating chrome. Lens: portal surfaces, thinner tint and brighter rims.
+ */
+[data-theme='dispatch'] {
+    --accent-hue: 55;
+
+    --glass-frost-tint: oklch(19% 0.008 60 / 0.66);
+    --glass-frost-tint-strong: oklch(19% 0.008 60 / 0.86);
+    --glass-frost-blur: 24px;
+    --glass-lens-tint: oklch(22% 0.01 var(--accent-hue) / 0.42);
+    --glass-lens-tint-strong: oklch(20% 0.01 var(--accent-hue) / 0.72);
+    --glass-lens-blur: 10px;
+    --glass-saturate: 170%;
+
+    --glass-rim-top: oklch(100% 0 0 / 0.13);
+    --glass-rim-bottom: oklch(100% 0 0 / 0.03);
+    --glass-edge: oklch(100% 0 0 / 0.07);
+    --glass-lens-rim-top: oklch(100% 0 0 / 0.3);
+    --glass-lens-rim-bottom: oklch(100% 0 0 / 0.09);
+    --glass-lens-edge: oklch(100% 0 0 / 0.12);
+    --glass-shadow: 0 10px 30px -8px oklch(0% 0 0 / 0.5), 0 2px 6px -2px oklch(0% 0 0 / 0.35);
+    --glass-sheen: oklch(100% 0 0 / 0.1);
+    --glass-hover: oklch(100% 0 0 / 0.06);
+
+    --ambient-admin-a: oklch(55% 0.08 var(--accent-hue) / 0.2);
+    --ambient-admin-b: oklch(45% 0.05 calc(var(--accent-hue) + 140) / 0.12);
+    --ambient-lens-a: oklch(52% 0.09 var(--accent-hue) / 0.34);
+    --ambient-lens-b: oklch(46% 0.06 calc(var(--accent-hue) + 140) / 0.26);
+    --ambient-lens-c: oklch(44% 0.06 calc(var(--accent-hue) - 70) / 0.26);
+}
+
+[data-theme='dispatch'][data-mode='light'] {
+    --glass-frost-tint: oklch(100% 0 0 / 0.62);
+    --glass-frost-tint-strong: oklch(100% 0 0 / 0.86);
+    --glass-lens-tint: oklch(100% 0 0 / 0.4);
+    --glass-lens-tint-strong: oklch(100% 0 0 / 0.72);
+
+    --glass-rim-top: oklch(100% 0 0 / 0.9);
+    --glass-rim-bottom: oklch(100% 0 0 / 0.35);
+    --glass-edge: oklch(30% 0.01 60 / 0.09);
+    --glass-lens-rim-top: oklch(100% 0 0 / 1);
+    --glass-lens-rim-bottom: oklch(100% 0 0 / 0.55);
+    --glass-lens-edge: oklch(30% 0.01 60 / 0.08);
+    --glass-shadow: 0 10px 30px -10px oklch(30% 0.02 60 / 0.2), 0 2px 6px -2px oklch(30% 0.02 60 / 0.08);
+    --glass-sheen: oklch(100% 0 0 / 0.5);
+    --glass-hover: oklch(0% 0 0 / 0.045);
+
+    --ambient-admin-a: oklch(85% 0.06 var(--accent-hue) / 0.4);
+    --ambient-admin-b: oklch(88% 0.04 calc(var(--accent-hue) + 140) / 0.3);
+    --ambient-lens-a: oklch(82% 0.08 var(--accent-hue) / 0.5);
+    --ambient-lens-b: oklch(86% 0.05 calc(var(--accent-hue) + 140) / 0.45);
+    --ambient-lens-c: oklch(84% 0.06 calc(var(--accent-hue) - 70) / 0.4);
+}
+
+[data-theme='dispatch'][data-transparency='reduced'] {
+    --glass-frost-tint: var(--color-surface);
+    --glass-frost-tint-strong: var(--color-surface);
+    --glass-lens-tint: var(--color-surface);
+    --glass-lens-tint-strong: var(--color-surface);
+    --glass-frost-blur: 0px;
+    --glass-lens-blur: 0px;
+    --glass-saturate: 100%;
+    --glass-sheen: transparent;
+}

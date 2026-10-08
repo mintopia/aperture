@@ -105,3 +105,163 @@
 .prose {
     --tw-prose-links: var(--color-accent);
 }
+
+/* Glass: material lives on ::before so the host never becomes a containing block for fixed children */
+@layer components {
+    .glass-frost,
+    .glass-frost-strong,
+    .glass-lens,
+    .glass-lens-strong {
+        position: relative;
+        isolation: isolate;
+    }
+
+    .glass-frost::before,
+    .glass-frost-strong::before,
+    .glass-lens::before,
+    .glass-lens-strong::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        border-radius: inherit;
+        pointer-events: none;
+        background: var(--glass-frost-tint);
+        -webkit-backdrop-filter: blur(var(--glass-frost-blur)) saturate(var(--glass-saturate));
+        backdrop-filter: blur(var(--glass-frost-blur)) saturate(var(--glass-saturate));
+        box-shadow:
+            inset 0 1px 0 var(--glass-rim-top),
+            inset 0 -1px 0 var(--glass-rim-bottom),
+            inset 0 0 0 1px var(--glass-edge),
+            var(--glass-shadow);
+    }
+
+    .glass-frost-strong::before {
+        background: var(--glass-frost-tint-strong);
+    }
+
+    .glass-lens::before,
+    .glass-lens-strong::before {
+        background: var(--glass-lens-tint);
+        -webkit-backdrop-filter: blur(var(--glass-lens-blur)) saturate(var(--glass-saturate));
+        backdrop-filter: blur(var(--glass-lens-blur)) saturate(var(--glass-saturate));
+        box-shadow:
+            inset 0 1px 0 var(--glass-lens-rim-top),
+            inset 0 -1px 0 var(--glass-lens-rim-bottom),
+            inset 0 0 0 1px var(--glass-lens-edge),
+            var(--glass-shadow);
+    }
+
+    .glass-lens-strong::before {
+        background: var(--glass-lens-tint-strong);
+    }
+
+    /* Specular sheen; --glass-x/--glass-y follow the pointer via useGlassSheen */
+    .glass-lens::after,
+    .glass-lens-strong::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        border-radius: inherit;
+        pointer-events: none;
+        background:
+            radial-gradient(
+                260px circle at var(--glass-x, 25%) var(--glass-y, -30%),
+                var(--glass-sheen),
+                transparent 65%
+            ),
+            linear-gradient(180deg, oklch(100% 0 0 / 0.05), transparent 45%);
+    }
+
+    [data-refraction] .glass-refract::before {
+        backdrop-filter: url(#aperture-lens) blur(var(--glass-lens-blur)) saturate(var(--glass-saturate));
+    }
+
+    .glass-droplet {
+        background: linear-gradient(180deg, oklch(100% 0 0 / 0.09), oklch(100% 0 0 / 0.02)), var(--color-accent-dim);
+        box-shadow:
+            inset 0 1px 0 oklch(100% 0 0 / 0.16),
+            inset 0 0 0 1px oklch(100% 0 0 / 0.05),
+            0 4px 12px -5px oklch(0% 0 0 / 0.45);
+    }
+
+    [data-mode='light'] .glass-droplet {
+        background: linear-gradient(180deg, oklch(100% 0 0 / 0.85), oklch(100% 0 0 / 0.45)), var(--color-accent-dim);
+        box-shadow:
+            inset 0 1px 0 oklch(100% 0 0 / 1),
+            inset 0 0 0 1px oklch(30% 0.01 60 / 0.06),
+            0 4px 12px -6px oklch(30% 0.02 60 / 0.28);
+    }
+
+    .ambient-field {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+    }
+
+    .ambient-field > span {
+        position: absolute;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        filter: blur(80px);
+    }
+
+    .ambient-field > span:nth-child(1) {
+        width: 55vmax;
+        left: -15vmax;
+        top: -25vmax;
+        background: var(--ambient-admin-a);
+    }
+
+    .ambient-field > span:nth-child(2) {
+        width: 45vmax;
+        right: -15vmax;
+        bottom: -20vmax;
+        background: var(--ambient-admin-b);
+    }
+
+    .ambient-field > span:nth-child(3) {
+        display: none;
+    }
+
+    .ambient-field[data-variant='lens'] > span:nth-child(1) {
+        background: var(--ambient-lens-a);
+        animation: ambient-drift 32s ease-in-out infinite alternate;
+    }
+
+    .ambient-field[data-variant='lens'] > span:nth-child(2) {
+        top: 15vmax;
+        bottom: auto;
+        background: var(--ambient-lens-b);
+        animation: ambient-drift 38s ease-in-out infinite alternate-reverse;
+    }
+
+    .ambient-field[data-variant='lens'] > span:nth-child(3) {
+        display: block;
+        width: 42vmax;
+        left: 25vw;
+        bottom: -28vmax;
+        background: var(--ambient-lens-c);
+        animation: ambient-drift 44s ease-in-out infinite alternate;
+    }
+
+    [data-transparency='reduced'] .ambient-field,
+    [data-transparency='reduced'] .glass-lens::after,
+    [data-transparency='reduced'] .glass-lens-strong::after {
+        display: none;
+    }
+
+    [data-transparency='reduced'] .glass-droplet {
+        background: var(--color-accent-dim);
+        box-shadow: none;
+    }
+}
+
+@keyframes ambient-drift {
+    to {
+        transform: translate(6vmax, 8vmax) scale(1.1);
+    }
+}

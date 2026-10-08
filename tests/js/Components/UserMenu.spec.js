@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import UserMenu from '@/Components/UserMenu.vue';
+import { resetTransparencyState } from '@/composables/useTransparency';
 
 vi.mock('@inertiajs/vue3', () => ({
     Link: {
@@ -51,6 +52,12 @@ describe('UserMenu', () => {
             },
         });
     }
+
+    beforeEach(() => {
+        localStorage.clear();
+        document.documentElement.removeAttribute('data-transparency');
+        resetTransparencyState();
+    });
 
     afterEach(() => {
         document.body.innerHTML = '';
@@ -238,5 +245,47 @@ describe('UserMenu', () => {
         await dropdown.trigger('keydown', { key: 'Escape' });
 
         expect(wrapper.find('[data-testid="user-menu-dropdown"]').exists()).toBe(false);
+    });
+
+    describe('reduce transparency item', () => {
+        const itemSelector = '[data-testid="user-menu-reduce-transparency"]';
+
+        async function openMenu() {
+            const wrapper = mountComponent();
+            await wrapper.find('[data-testid="user-menu-trigger"]').trigger('click');
+            return wrapper;
+        }
+
+        it('renders as a menuitemcheckbox, unchecked by default', async () => {
+            const wrapper = await openMenu();
+            const item = wrapper.get(itemSelector);
+            expect(item.attributes('role')).toBe('menuitemcheckbox');
+            expect(item.attributes('aria-checked')).toBe('false');
+        });
+
+        it('toggles aria-checked and html data-transparency on click', async () => {
+            const wrapper = await openMenu();
+            await wrapper.get(itemSelector).trigger('click');
+            expect(wrapper.get(itemSelector).attributes('aria-checked')).toBe('true');
+            expect(document.documentElement.getAttribute('data-transparency')).toBe('reduced');
+
+            await wrapper.get(itemSelector).trigger('click');
+            expect(wrapper.get(itemSelector).attributes('aria-checked')).toBe('false');
+            expect(document.documentElement.hasAttribute('data-transparency')).toBe(false);
+        });
+
+        it('is included in keyboard navigation and Enter toggles exactly once', async () => {
+            const wrapper = await openMenu();
+            const dropdown = wrapper.get('[data-testid="user-menu-dropdown"]');
+
+            // ArrowUp from no focus lands on logout, a second ArrowUp on the reduce transparency item.
+            await dropdown.trigger('keydown', { key: 'ArrowUp' });
+            await dropdown.trigger('keydown', { key: 'ArrowUp' });
+            await dropdown.trigger('keydown', { key: 'Enter' });
+
+            expect(wrapper.get(itemSelector).attributes('aria-checked')).toBe('true');
+            expect(document.documentElement.getAttribute('data-transparency')).toBe('reduced');
+            expect(localStorage.getItem('reduceTransparency')).toBe('1');
+        });
     });
 });

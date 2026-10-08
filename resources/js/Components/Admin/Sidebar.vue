@@ -95,8 +95,8 @@ function testId(label) {
 
 function itemClass(href) {
     return isActive(href)
-        ? 'bg-[var(--color-accent-dim)] text-[var(--color-primary)] font-semibold [&_svg]:opacity-100'
-        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] [&_svg]:opacity-60';
+        ? 'glass-droplet text-[var(--color-primary)] font-semibold [&_svg]:opacity-100'
+        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--glass-hover)] [&_svg]:opacity-60';
 }
 
 const mql = window.matchMedia('(min-width: 1025px)');
@@ -133,7 +133,7 @@ defineExpose({ drawerOpen });
     <aside
         v-if="isDesktop"
         data-testid="admin-sidebar"
-        class="flex w-[220px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]"
+        class="glass-frost sticky top-2.5 my-2.5 ml-2.5 flex h-[calc(100vh-1.25rem)] w-[220px] shrink-0 flex-col rounded-2xl"
     >
         <div class="mb-2 px-5 pt-5 pb-4">
             <div class="flex items-center gap-3">
@@ -159,11 +159,9 @@ defineExpose({ drawerOpen });
                 <span class="font-heading text-[22px] font-bold tracking-tight text-[var(--color-text)]">Aperture</span>
             </div>
         </div>
-        <nav class="flex flex-1 flex-col gap-6 overflow-y-auto">
+        <nav class="flex flex-1 [scrollbar-width:none] flex-col gap-6 overflow-y-auto pb-4">
             <section v-for="group in navGroups" :key="group.label" class="flex flex-col gap-px">
-                <p
-                    class="mb-1 px-5 text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
-                >
+                <p class="mb-1 px-5 text-[10px] font-bold tracking-[0.08em] text-[var(--color-text-muted)] uppercase">
                     {{ group.label }}
                 </p>
                 <Link
@@ -172,7 +170,7 @@ defineExpose({ drawerOpen });
                     :href="item.href"
                     :data-testid="testId(item.label)"
                     :class="itemClass(item.href)"
-                    class="flex items-center gap-2.5 px-5 py-2 text-sm transition-colors"
+                    class="mx-2.5 flex items-center gap-2.5 rounded-[10px] px-2.5 py-[7px] text-sm transition-colors"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -199,7 +197,7 @@ defineExpose({ drawerOpen });
                 <div
                     v-if="drawerOpen"
                     data-testid="admin-drawer-overlay"
-                    class="fixed inset-0 z-[60] bg-black/50"
+                    class="fixed inset-0 z-[60] bg-black/40"
                     @click="drawerOpen = false"
                 />
             </Transition>
@@ -208,7 +206,7 @@ defineExpose({ drawerOpen });
                 <aside
                     v-if="drawerOpen"
                     data-testid="admin-drawer"
-                    class="fixed top-0 left-0 z-[70] flex h-full w-[260px] flex-col bg-[var(--color-surface)] shadow-xl"
+                    class="glass-frost-strong fixed top-2 bottom-2 left-2 z-[70] flex w-[260px] flex-col rounded-2xl"
                 >
                     <div class="flex items-center justify-between px-5 pt-5 pb-4">
                         <div class="flex items-center gap-3">
@@ -237,7 +235,8 @@ defineExpose({ drawerOpen });
                         </div>
                         <button
                             data-testid="admin-drawer-close"
-                            class="rounded p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+                            aria-label="Close navigation menu"
+                            class="rounded-full p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--color-text)]"
                             @click="drawerOpen = false"
                         >
                             <svg
@@ -255,7 +254,7 @@ defineExpose({ drawerOpen });
                     <nav class="flex flex-1 flex-col gap-6 overflow-y-auto pb-6">
                         <section v-for="group in navGroups" :key="group.label" class="flex flex-col gap-px">
                             <p
-                                class="mb-1 px-5 text-[11px] font-semibold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
+                                class="mb-1 px-5 text-[10px] font-bold tracking-[0.08em] text-[var(--color-text-muted)] uppercase"
                             >
                                 {{ group.label }}
                             </p>
@@ -265,7 +264,7 @@ defineExpose({ drawerOpen });
                                 :href="item.href"
                                 :data-testid="testId(item.label)"
                                 :class="itemClass(item.href)"
-                                class="flex items-center gap-2.5 px-5 py-2 text-sm transition-colors"
+                                class="mx-2.5 flex items-center gap-2.5 rounded-[10px] px-2.5 py-[7px] text-sm transition-colors"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"

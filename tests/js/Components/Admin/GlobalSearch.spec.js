@@ -56,9 +56,9 @@ describe('GlobalSearch.vue', () => {
             const trigger = wrapper.get('[data-testid="global-search-trigger"]');
 
             expect(trigger.classes()).toContain('text-[12px]');
-            expect(trigger.classes()).toContain('bg-[var(--color-surface)]');
-            expect(trigger.classes()).toContain('border-[var(--color-border)]');
-            expect(trigger.classes()).toContain('rounded');
+            expect(trigger.classes()).toContain('bg-[var(--glass-hover)]');
+            expect(trigger.classes()).toContain('shadow-[inset_0_0_0_1px_var(--glass-edge)]');
+            expect(trigger.classes()).toContain('rounded-full');
         });
 
         it('renders the keyboard shortcut badge with correct Dispatch styling', () => {
@@ -73,7 +73,7 @@ describe('GlobalSearch.vue', () => {
             expect(kbd.classes()).toContain('inline-flex');
             expect(kbd.classes()).toContain('items-center');
             expect(kbd.classes()).toContain('gap-1');
-            expect(kbd.classes()).toContain('rounded');
+            expect(kbd.classes()).toContain('rounded-md');
         });
 
         it('opens the dialog when trigger is clicked', async () => {
@@ -149,9 +149,8 @@ describe('GlobalSearch.vue', () => {
 
             const dialog = wrapper.get('[data-testid="global-search-dialog"]');
 
-            expect(dialog.classes()).toContain('bg-[var(--color-surface)]');
-            expect(dialog.classes()).toContain('border-[var(--color-border)]');
-            expect(dialog.classes()).toContain('rounded');
+            expect(dialog.classes()).toContain('glass-frost-strong');
+            expect(dialog.classes()).toContain('rounded-2xl');
         });
 
         it('renders the search input with Dispatch styling', async () => {
@@ -161,13 +160,13 @@ describe('GlobalSearch.vue', () => {
             const input = wrapper.get('[data-testid="global-search-input"]');
 
             expect(input.classes()).toContain('text-[13px]');
-            expect(input.classes()).toContain('bg-[var(--color-surface)]');
+            expect(input.classes()).toContain('bg-transparent');
             expect(input.classes()).toContain('border-[var(--color-border-hover)]');
             expect(input.classes()).toContain('text-[var(--color-text)]');
             expect(input.classes()).toContain('placeholder:text-[var(--color-text-muted)]');
             expect(input.classes()).toContain('focus:border-[var(--color-primary)]');
             expect(input.classes()).toContain('pl-8');
-            expect(input.classes()).toContain('py-[7px]');
+            expect(input.classes()).toContain('py-[10px]');
         });
 
         it('renders a search icon inside the dialog', async () => {

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import { useTransparency } from '@/composables/useTransparency';
 
 defineProps({
     user: { type: Object, required: true },
@@ -10,13 +11,14 @@ const open = ref(false);
 const menuRef = ref(null);
 const triggerRef = ref(null);
 const focusedIndex = ref(-1);
+const { reduced, toggleTransparency } = useTransparency();
 
 function getMenuItems() {
     if (!menuRef.value) {
         return [];
     }
 
-    return Array.from(menuRef.value.querySelectorAll('[role="menuitem"]'));
+    return Array.from(menuRef.value.querySelectorAll('[role^="menuitem"]'));
 }
 
 function handleClickOutside(e) {
@@ -80,6 +82,7 @@ function handleMenuKeydown(e) {
         focusItem(focusedIndex.value > 0 ? focusedIndex.value - 1 : count - 1);
     } else if (e.key === 'Enter' || e.key === ' ') {
         if (focusedIndex.value >= 0 && items[focusedIndex.value]) {
+            e.preventDefault();
             items[focusedIndex.value].click();
         }
     } else if (e.key === 'Tab') {
@@ -98,7 +101,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
             data-testid="user-menu-trigger"
             aria-haspopup="menu"
             :aria-expanded="open"
-            class="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-[var(--color-surface-hover)]"
+            class="flex items-center gap-2 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-[var(--glass-hover)]"
             @click="open = !open"
             @keydown="handleTriggerKeydown"
         >
@@ -142,7 +145,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                 v-if="open"
                 data-testid="user-menu-dropdown"
                 role="menu"
-                class="absolute top-full right-0 z-50 mt-2 w-52 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
+                class="glass-frost-strong absolute top-full right-0 z-50 mt-2 w-60 rounded-xl p-1"
                 @keydown="handleMenuKeydown"
             >
                 <a
@@ -150,7 +153,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                     data-testid="user-menu-dashboard"
                     role="menuitem"
                     tabindex="-1"
-                    class="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                    class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--glass-hover)]"
                     @click="open = false"
                 >
                     <svg
@@ -176,7 +179,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                     data-testid="user-menu-admin"
                     role="menuitem"
                     tabindex="-1"
-                    class="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                    class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--glass-hover)]"
                     @click="open = false"
                 >
                     <svg
@@ -203,7 +206,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                     data-testid="user-menu-settings"
                     role="menuitem"
                     tabindex="-1"
-                    class="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                    class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--glass-hover)]"
                     @click="open = false"
                 >
                     <svg
@@ -225,6 +228,42 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 
                 <div class="my-1 border-t border-[var(--color-border)]" />
 
+                <button
+                    type="button"
+                    data-testid="user-menu-reduce-transparency"
+                    role="menuitemcheckbox"
+                    :aria-checked="reduced"
+                    tabindex="-1"
+                    class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--glass-hover)]"
+                    @click="toggleTransparency"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="h-4 w-4 shrink-0"
+                        aria-hidden="true"
+                    >
+                        <rect x="3.75" y="3.75" width="16.5" height="16.5" rx="3" />
+                        <path stroke-linecap="round" d="M3.75 14.25 14.25 3.75M9.75 20.25l10.5-10.5" />
+                    </svg>
+                    <span class="flex-1 text-left">Reduce transparency</span>
+                    <span
+                        aria-hidden="true"
+                        class="relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors"
+                        :class="reduced ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border-hover)]'"
+                    >
+                        <span
+                            class="absolute top-[2px] left-[2px] h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform"
+                            :class="{ 'translate-x-[12px]': reduced }"
+                        />
+                    </span>
+                </button>
+
+                <div class="my-1 border-t border-[var(--color-border)]" />
+
                 <Link
                     :href="route('logout')"
                     method="post"
@@ -232,7 +271,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                     data-testid="user-menu-logout"
                     role="menuitem"
                     tabindex="-1"
-                    class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-danger)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                    class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-danger)] transition-colors hover:bg-[var(--glass-hover)]"
                     @click="open = false"
                 >
                     <svg
