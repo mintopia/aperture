@@ -6,6 +6,7 @@ namespace Tests\Feature\Middleware;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Vite;
 use Tests\TestCase;
 
 class SecurityHeadersTest extends TestCase
@@ -82,8 +83,10 @@ class SecurityHeadersTest extends TestCase
 
     public function test_csp_allows_vite_dev_origin_only_when_hot_file_exists(): void
     {
-        $hot = public_path('hot');
+        // A private hot file: writing public/hot would make parallel test processes attempt Vite SSR.
+        $hot = (string) tempnam(sys_get_temp_dir(), 'vite-hot-');
         file_put_contents($hot, 'http://localhost:5173');
+        Vite::useHotFile($hot);
 
         try {
             $csp = $this->get('/')->headers->get('Content-Security-Policy');

@@ -41,7 +41,7 @@ class SecurityHeaders
         $script = ["'self'", sprintf("'nonce-%s'", $nonce)];
         $style = ["'self'", sprintf("'nonce-%s'", $nonce)];
 
-        $hot = public_path('hot');
+        $hot = Vite::hotFile();
         if (is_file($hot)) {
             $origin = rtrim(trim((string) file_get_contents($hot)), '/');
             if (parse_url($origin, PHP_URL_HOST) !== null) {
