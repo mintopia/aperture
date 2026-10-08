@@ -57,6 +57,57 @@ test.describe('Switch management', () => {
         );
     });
 
+    for (const [label, size] of [
+        ['phone', { width: 375, height: 800 }],
+        ['small phone', { width: 320, height: 640 }],
+        ['desktop', { width: 1280, height: 800 }],
+    ]) {
+        test(`switch page actions do not overlap or overflow on a ${label}`, async ({ page }) => {
+            await page.setViewportSize(size);
+            await createSwitch(page, uniqueSwitch('Layout'));
+
+            const ids = ['action-test', 'action-sync', 'action-edit'];
+            const boxes = [];
+            for (const id of ids) {
+                const locator = page.getByTestId(id);
+                await expect(locator).toBeVisible();
+                boxes.push(await locator.boundingBox());
+            }
+
+            for (const box of boxes) {
+                expect(box.x).toBeGreaterThanOrEqual(0);
+                expect(box.x + box.width).toBeLessThanOrEqual(size.width);
+            }
+            for (let i = 0; i < boxes.length; i++) {
+                for (let j = i + 1; j < boxes.length; j++) {
+                    const a = boxes[i];
+                    const b = boxes[j];
+                    const separated =
+                        a.x + a.width <= b.x + 0.5 ||
+                        b.x + b.width <= a.x + 0.5 ||
+                        a.y + a.height <= b.y + 0.5 ||
+                        b.y + b.height <= a.y + 0.5;
+                    expect(separated, `${ids[i]} overlaps ${ids[j]}`).toBe(true);
+                }
+            }
+
+            // The title sits above or beside the actions, never underneath them.
+            const title = await page.getByTestId('page-title').boundingBox();
+            const actions = await page.getByTestId('switch-show-actions').boundingBox();
+            const titleClear = title.y + title.height <= actions.y + 0.5 || title.x + title.width <= actions.x + 0.5;
+            expect(titleClear, 'page title overlaps the actions').toBe(true);
+
+            const overflows = () =>
+                page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+            expect(await overflows(), 'show page scrolls horizontally').toBe(false);
+
+            await page.getByTestId('action-edit').click();
+            await expect(page).toHaveURL(/\/admin\/switches\/\d+\/edit$/);
+            await expect(page.getByTestId('switch-name')).toBeVisible();
+            expect(await overflows(), 'edit page scrolls horizontally (long breadcrumbs?)').toBe(false);
+        });
+    }
+
     test('admin edits a switch and the change persists', async ({ page }) => {
         const sw = uniqueSwitch('Edit');
         await createSwitch(page, sw);

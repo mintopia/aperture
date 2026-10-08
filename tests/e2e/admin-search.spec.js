@@ -1,4 +1,5 @@
 import { test, expect } from './support/test.js';
+import { isPhoneViewport } from './support/viewport.js';
 
 async function openSearch(page) {
     await page.goto('/admin');
@@ -16,6 +17,29 @@ test.describe('Admin global search', () => {
 
         await page.keyboard.press('Escape');
         await expect(page.getByTestId('global-search-overlay')).toBeHidden();
+    });
+
+    test('search can be opened from the header trigger without a keyboard', async ({ page }) => {
+        await page.goto('/admin');
+
+        const trigger = page.getByTestId('global-search-trigger');
+        await expect(trigger).toBeVisible();
+        await expect(trigger).toHaveAccessibleName('Search');
+        if (isPhoneViewport(page)) {
+            // Below the sm breakpoint the trigger collapses to an icon-only button.
+            await expect(page.getByTestId('global-search-shortcut')).toBeHidden();
+            await expect(page.getByTestId('global-search-trigger-icon')).toBeVisible();
+        }
+
+        await trigger.click();
+        await expect(page.getByTestId('global-search-dialog')).toBeVisible();
+        await expect(page.getByTestId('global-search-input')).toBeFocused();
+
+        await page.getByTestId('global-search-input').fill('pw-net');
+        const result = page.locator('[data-testid^="global-search-result-user-"]').filter({ hasText: 'pw-net-user' });
+        await expect(result).toHaveCount(1);
+        await result.click();
+        await expect(page).toHaveURL(/\/admin\/users\/\d+$/);
     });
 
     test('finds a user by nickname and navigates to their page', async ({ page }) => {

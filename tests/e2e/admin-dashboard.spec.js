@@ -1,4 +1,5 @@
 import { test, expect } from './support/test.js';
+import { isDesktopViewport, openAdminNav } from './support/viewport.js';
 
 test.describe('Admin Dashboard (S4)', () => {
     test('renders stat cards', async ({ page }) => {
@@ -8,6 +9,10 @@ test.describe('Admin Dashboard (S4)', () => {
     });
 
     test('sidebar has 220px width on desktop', async ({ page }) => {
+        test.skip(
+            !isDesktopViewport(page),
+            'The fixed sidebar only exists on desktop; narrower viewports use the drawer.',
+        );
         await page.goto('/admin');
         const sidebar = page.getByTestId('admin-sidebar');
         const box = await sidebar.boundingBox();
@@ -22,6 +27,17 @@ test.describe('Admin Dashboard (S4)', () => {
         await expect(page.getByTestId('admin-drawer')).toBeVisible();
     });
 
+    test('narrow viewports show a menu button instead of the sidebar', async ({ page }) => {
+        test.skip(isDesktopViewport(page), 'Desktop uses the fixed sidebar.');
+        await page.goto('/admin');
+        await expect(page.getByTestId('admin-sidebar')).toHaveCount(0);
+        await expect(page.getByTestId('admin-menu-toggle')).toBeVisible();
+        await page.getByTestId('admin-menu-toggle').click();
+        await expect(page.getByTestId('admin-drawer')).toBeVisible();
+        await page.getByTestId('admin-drawer-close').click();
+        await expect(page.getByTestId('admin-drawer')).toHaveCount(0);
+    });
+
     test('admin header is visible', async ({ page }) => {
         await page.goto('/admin');
         await expect(page.getByTestId('admin-header')).toBeVisible();
@@ -31,7 +47,8 @@ test.describe('Admin Dashboard (S4)', () => {
 test.describe('Native-platform refactor rendering', () => {
     test('every sidebar nav item renders an SVG icon', async ({ page }) => {
         await page.goto('/admin');
-        const items = page.getByTestId('admin-sidebar').locator('nav a');
+        const nav = await openAdminNav(page);
+        const items = nav.locator('nav a');
         const count = await items.count();
         expect(count).toBeGreaterThanOrEqual(9);
         for (let i = 0; i < count; i++) {
