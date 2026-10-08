@@ -17,13 +17,13 @@ concurrency:
 
 jobs:
   playwright:
-    name: Playwright (shard ${{ matrix.shard }}/4)
+    name: Playwright (shard ${{ matrix.shard }}/6)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       CI: 'true'
       PLAYWRIGHT_INCLUDE_MOBILE: '1'
@@ -89,7 +89,7 @@ jobs:
           DB_DATABASE: ${{ github.workspace }}/database/playwright.sqlite
 
       - name: Run Playwright suite
-        run: npx playwright test --shard=${{ matrix.shard }}/4
+        run: npx playwright test --shard=${{ matrix.shard }}/6
 
       - name: Upload Playwright report, traces and screenshots
         if: failure()

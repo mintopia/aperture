@@ -28,7 +28,7 @@ export default defineConfig({
     retries: 0,
     workers: process.env.CI ? 1 : undefined,
     reporter: [['html', { outputFolder: 'storage/playwright-report', open: 'never' }], ...(process.env.CI ? [['list']] : [])],
-    globalTimeout: 10 * 60 * 1000,
+    globalTimeout: (process.env.CI ? 25 : 10) * 60 * 1000,
     use: {
         baseURL,
         ignoreHTTPSErrors: true,
