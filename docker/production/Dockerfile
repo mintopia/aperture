@@ -38,8 +38,8 @@ RUN apk add --no-cache su-exec && \
     echo 'memory_limit = 512M' > /usr/local/etc/php/conf.d/memory_limit.ini && \
     setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp && \
     cp /app/vendor/laravel/octane/src/Commands/stubs/frankenphp-worker.php /app/public/frankenphp-worker.php && \
-    mkdir -p /data/caddy /config/caddy /app/storage /app/bootstrap/cache && \
-    chown -R www-data:www-data /data/caddy /config/caddy /app/storage /app/bootstrap/cache
+    mkdir -p /data/caddy /config/caddy /data/psysh /config/psysh /app/storage /app/bootstrap/cache && \
+    chown -R www-data:www-data /data/caddy /config/caddy /data/psysh /config/psysh /app/storage /app/bootstrap/cache
 
 COPY docker/Caddyfile /
 

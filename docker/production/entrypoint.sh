@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-WRITABLE="/app/storage /app/bootstrap/cache /data/caddy /config/caddy"
+WRITABLE="/app/storage /app/bootstrap/cache /data/caddy /config/caddy /data/psysh /config/psysh"
 
 if [ "$(id -u)" = "0" ]; then
     case "$PUID$PGID" in

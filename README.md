@@ -78,7 +78,7 @@ npm run e2e                             # Playwright E2E
 
 GitHub Actions runs parallel PHP and JS quality gates on every push and PR. Docker images are built and pushed to GHCR on merge to `master` or `develop`, and on version tags.
 
-The production image runs the app as `PUID`/`PGID` (default `82`/`82`, Alpine's `www-data`). Set them to match the owner of your mounted volumes; on start the entrypoint re-owns `/app/storage`, `/app/bootstrap/cache`, `/data/caddy` and `/config/caddy` to that UID/GID, then drops root. If you start the container with `user:` instead, the entrypoint runs as that user and skips the ownership step.
+The production image runs the app as `PUID`/`PGID` (default `82`/`82`, Alpine's `www-data`). Set them to match the owner of your mounted volumes; on start the entrypoint re-owns `/app/storage`, `/app/bootstrap/cache`, `/data/caddy`, `/config/caddy`, `/data/psysh` and `/config/psysh` to that UID/GID, then drops root. If you start the container with `user:` instead, the entrypoint runs as that user and skips the ownership step.
 
 In `docker-compose.yaml`, the `db` (MariaDB) and `redis` services also run as `${PUID:-999}:${PGID:-999}` via `user:`. Those upstream images don't re-own their data directories, so when you change `PUID`/`PGID`, `chown -R` the existing MariaDB volume to match first.
 
