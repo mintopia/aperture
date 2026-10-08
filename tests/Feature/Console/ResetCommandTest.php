@@ -6,6 +6,7 @@ namespace Tests\Feature\Console;
 
 use App\Enums\Capability;
 use App\Jobs\ResetAperture;
+use App\Models\AuditLog;
 use App\Models\CapabilityAssignment;
 use App\Models\IntegrationConfig;
 use App\Models\IpAddress;
@@ -172,5 +173,17 @@ class ResetCommandTest extends TestCase
             && $request['sessionId'] === 'abc123');
         Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'session/disconnect')
             && $request['sessionId'] === 'manual');
+    }
+
+    public function test_command_leaves_only_the_reset_audit_entry(): void
+    {
+        AuditLog::record(action: 'ip.created');
+
+        $this->artisan('aperture:reset')
+            ->expectsConfirmation('Are you sure you want to reset Aperture?', 'yes')
+            ->assertSuccessful();
+
+        $this->assertDatabaseCount('audit_logs', 1);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'portal.reset', 'process' => 'console']);
     }
 }

@@ -49,7 +49,7 @@ class QueueReliabilityTest extends TestCase
             'sync' => [
                 new SyncDhcpData,
                 new ScanNetworkDevices,
-                new ResetAperture,
+                new ResetAperture(1),
             ],
         ];
     }

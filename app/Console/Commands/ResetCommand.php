@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Jobs\ResetAperture;
+use App\Models\AuditLog;
 use Illuminate\Console\Command;
 
 use function Laravel\Prompts\confirm;
@@ -19,7 +20,7 @@ class ResetCommand extends Command
     /**
      * @var string
      */
-    protected $description = 'Remove all IP and MAC addresses, their associations, and non-admin users';
+    protected $description = 'Remove all IP and MAC addresses, their associations, non-admin users and the audit trail';
 
     public function handle(): int
     {
@@ -30,7 +31,9 @@ class ResetCommand extends Command
             return self::SUCCESS;
         }
 
-        dispatch_sync(new ResetAperture);
+        $auditLog = AuditLog::record(action: 'portal.reset', process: 'console');
+
+        dispatch_sync(new ResetAperture($auditLog->id));
 
         $this->output->writeln('Finished');
 

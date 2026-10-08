@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\IpAddressMacAddress;
 use App\Models\MacAddress;
@@ -28,8 +29,9 @@ class ResetAperture implements ShouldQueue
 
     public int $timeout = 120;
 
-    public function __construct()
-    {
+    public function __construct(
+        public readonly int $resetAuditLogId,
+    ) {
         $this->onQueue(Queues::SYNC);
     }
 
@@ -72,6 +74,8 @@ class ResetAperture implements ShouldQueue
                 $user->delete();
             }
         });
+
+        AuditLog::query()->whereKeyNot($this->resetAuditLogId)->delete();
 
         Log::info('Aperture reset completed');
     }

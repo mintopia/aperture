@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Jobs;
 
 use App\Jobs\ResetAperture;
+use App\Models\AuditLog;
 use App\Models\IpAddress;
 use App\Models\IpAddressMacAddress;
 use App\Models\MacAddress;
@@ -26,7 +27,7 @@ class ResetApertureJobTest extends TestCase
 
     public function test_has_correct_retry_configuration(): void
     {
-        $job = new ResetAperture;
+        $job = new ResetAperture(1);
 
         $this->assertSame(3, $job->tries);
         $this->assertSame(120, $job->timeout);
@@ -35,7 +36,7 @@ class ResetApertureJobTest extends TestCase
 
     public function test_failed_logs_error(): void
     {
-        $job = new ResetAperture;
+        $job = new ResetAperture(1);
 
         Log::shouldReceive('error')
             ->once()
@@ -154,7 +155,7 @@ class ResetApertureJobTest extends TestCase
         $dnsFiltering->shouldReceive('disableForIp')->once()->with('10.0.0.3');
         $dnsFiltering->shouldNotReceive('reconcile');
 
-        (new ResetAperture)->handle($captivePortal, $rateLimiter, $dnsFiltering);
+        (new ResetAperture(1))->handle($captivePortal, $rateLimiter, $dnsFiltering);
 
         $this->assertDatabaseCount('ip_addresses', 0);
     }
@@ -162,6 +163,7 @@ class ResetApertureJobTest extends TestCase
     public function test_keeps_database_and_throws_when_a_removal_fails(): void
     {
         $user = User::factory()->create();
+        AuditLog::record(action: 'ip.created');
         IpAddress::factory()->create(['address' => '10.0.0.1', 'internet_enabled' => true, 'rate_limit_enabled' => true, 'dns_filtering_enabled' => false]);
         IpAddress::factory()->create(['address' => '10.0.0.2', 'internet_enabled' => true, 'rate_limit_enabled' => false, 'dns_filtering_enabled' => false]);
 
@@ -173,7 +175,7 @@ class ResetApertureJobTest extends TestCase
         $dnsFiltering = Mockery::mock(DnsFilteringInterface::class);
 
         try {
-            (new ResetAperture)->handle($captivePortal, $rateLimiter, $dnsFiltering);
+            (new ResetAperture(1))->handle($captivePortal, $rateLimiter, $dnsFiltering);
             $this->fail('Expected reset to throw');
         } catch (RuntimeException $runtimeException) {
             $this->assertSame('Failed to revert IP access during reset: 10.0.0.1: timeout', $runtimeException->getMessage());
@@ -181,11 +183,23 @@ class ResetApertureJobTest extends TestCase
 
         $this->assertDatabaseCount('ip_addresses', 2);
         $this->assertDatabaseHas('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'ip.created']);
     }
 
-    private function runReset(): void
+    public function test_clears_audit_trail_except_the_reset_entry(): void
     {
-        (new ResetAperture)->handle(
+        AuditLog::record(action: 'ip.created');
+        AuditLog::record(action: 'user.login');
+        $resetLog = AuditLog::record(action: 'portal.reset', process: 'console');
+
+        $this->runReset($resetLog->id);
+
+        $this->assertSame([$resetLog->id], AuditLog::query()->pluck('id')->all());
+    }
+
+    private function runReset(int $resetAuditLogId = 1): void
+    {
+        (new ResetAperture($resetAuditLogId))->handle(
             Mockery::spy(CaptivePortalInterface::class),
             Mockery::spy(RateLimitingInterface::class),
             Mockery::spy(DnsFilteringInterface::class),

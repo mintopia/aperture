@@ -69,7 +69,7 @@ class HomeController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        AuditLog::record(
+        $auditLog = AuditLog::record(
             action: 'portal.reset',
             subject: $user,
             actor: $user,
@@ -77,7 +77,7 @@ class HomeController extends Controller
             metadata: ['ip' => $request->getClientIp()],
         );
 
-        dispatch(new ResetAperture);
+        dispatch(new ResetAperture($auditLog->id));
 
         return to_route('admin.home')->with('success', 'Portal reset initiated.');
     }

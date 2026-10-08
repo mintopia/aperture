@@ -118,6 +118,19 @@ class HomeControllerResetTest extends TestCase
         $this->assertArrayHasKey('ip', $log->metadata);
     }
 
+    public function test_reset_job_keeps_the_reset_audit_entry(): void
+    {
+        Queue::fake();
+        $admin = $this->createAdminUser('correct-password');
+
+        $this->actingAs($admin)->post('/admin/reset', [
+            'password' => 'correct-password',
+        ]);
+
+        $log = AuditLog::where('action', 'portal.reset')->sole();
+        Queue::assertPushed(ResetAperture::class, fn (ResetAperture $job): bool => $job->resetAuditLogId === $log->id);
+    }
+
     public function test_non_admin_cannot_trigger_reset(): void
     {
         Queue::fake();
