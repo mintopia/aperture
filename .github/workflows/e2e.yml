@@ -17,11 +17,16 @@ concurrency:
 
 jobs:
   playwright:
-    name: Playwright
+    name: Playwright (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     env:
       CI: 'true'
+      PLAYWRIGHT_INCLUDE_MOBILE: '1'
       APP_ENV: playwright
       APP_URL: http://127.0.0.1:8000
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
@@ -33,11 +38,23 @@ jobs:
           php-version: '8.4'
           extensions: mbstring, pdo_sqlite, sqlite3, bcmath, intl, gd, zip
           coverage: none
+          tools: composer:v2
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
       - name: Copy environment file
         run: cp .env.example .env
@@ -54,8 +71,14 @@ jobs:
       - name: Build assets
         run: npm run build
 
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Prepare database
         run: |
@@ -66,12 +89,14 @@ jobs:
           DB_DATABASE: ${{ github.workspace }}/database/playwright.sqlite
 
       - name: Run Playwright suite
-        run: npx playwright test
+        run: npx playwright test --shard=${{ matrix.shard }}/4
 
-      - name: Upload Playwright report
+      - name: Upload Playwright report, traces and screenshots
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: storage/playwright-report
+          name: playwright-artifacts-shard-${{ matrix.shard }}
+          path: |
+            storage/playwright-report
+            test-results
           retention-days: 7
