@@ -64,7 +64,8 @@ test.describe('Detection and captive API settings', () => {
 
         await page.getByTestId('input-user-portal-url').fill('https://portal.e2e.invalid/login');
         await page.getByTestId('input-venue-info-url').fill('https://venue.e2e.invalid/about');
-        await page.getByTestId('toggle-can-extend-session').check({ force: true });
+        await page.getByText('Indicate that the portal supports session extension').click();
+        await expect(page.getByTestId('toggle-can-extend-session')).toBeChecked();
         await expect(page.getByTestId('example-response')).toContainText('https://portal.e2e.invalid/login');
         await expect(page.getByTestId('example-response')).toContainText('"can-extend-session": true');
         await save(page);
