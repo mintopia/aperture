@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { defineComponent, h, ref } from 'vue';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useGlassSheen } from '@/composables/useGlassSheen';
+import { resetGlassSheenPreferenceState, useGlassSheenPreference } from '@/composables/useGlassSheenPreference';
 
 const Host = defineComponent({
     setup() {
@@ -24,6 +25,9 @@ function pointerMove(pointerType, x = 100, y = 50) {
 
 describe('useGlassSheen', () => {
     beforeEach(() => {
+        localStorage.clear();
+        document.documentElement.removeAttribute('data-sheen');
+        resetGlassSheenPreferenceState();
         vi.stubGlobal(
             'matchMedia',
             vi.fn(() => ({ matches: false })),
@@ -50,6 +54,18 @@ describe('useGlassSheen', () => {
             expect(el.style.getPropertyValue('--glass-y')).toBe('50px');
         }
         expect(wrapper.get('[data-testid="other"]').element.style.getPropertyValue('--glass-x')).toBe('');
+        wrapper.unmount();
+    });
+
+    it('stops tracking the pointer while the glass sheen preference is off', () => {
+        const wrapper = mount(Host);
+        useGlassSheenPreference().setSheen(false);
+        pointerMove('mouse', 100, 50);
+        expect(wrapper.get('[data-testid="lens"]').element.style.getPropertyValue('--glass-x')).toBe('');
+
+        useGlassSheenPreference().setSheen(true);
+        pointerMove('mouse', 100, 50);
+        expect(wrapper.get('[data-testid="lens"]').element.style.getPropertyValue('--glass-x')).toBe('100px');
         wrapper.unmount();
     });
 

@@ -1,8 +1,10 @@
 import { onMounted, onUnmounted } from 'vue';
+import { useGlassSheenPreference } from './useGlassSheenPreference';
 
 const SELECTOR = '.glass-lens, .glass-lens-strong';
 
 export function useGlassSheen(rootRef) {
+    const { sheenEnabled } = useGlassSheenPreference();
     let frame = 0;
     let pointer = null;
 
@@ -18,7 +20,7 @@ export function useGlassSheen(rootRef) {
     }
 
     function onPointerMove(e) {
-        if (e.pointerType !== 'mouse') return;
+        if (e.pointerType !== 'mouse' || !sheenEnabled.value) return;
         pointer = { x: e.clientX, y: e.clientY };
         if (!frame) frame = requestAnimationFrame(update);
     }

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useForm, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
+import AppearanceSettings from '@/Components/AppearanceSettings.vue';
 import ConfirmModal from '@/Components/UI/ConfirmModal.vue';
 import FormField from '@/Components/UI/FormField.vue';
 import { formatDate } from '@/utils/dates';
@@ -442,6 +443,8 @@ async function doDeletePasskey() {
                     No passkeys registered yet. Click <strong>+ Add Passkey</strong> to register one.
                 </p>
             </section>
+
+            <AppearanceSettings />
         </div>
 
         <ConfirmModal

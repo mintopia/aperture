@@ -248,6 +248,15 @@
         animation: ambient-drift 44s ease-in-out infinite alternate;
     }
 
+    [data-sheen='off'] .glass-lens::after,
+    [data-sheen='off'] .glass-lens-strong::after {
+        display: none;
+    }
+
+    [data-animated-bg='off'] .ambient-field[data-variant] > span {
+        animation: none !important;
+    }
+
     [data-transparency='reduced'] .ambient-field,
     [data-transparency='reduced'] .glass-lens::after,
     [data-transparency='reduced'] .glass-lens-strong::after {

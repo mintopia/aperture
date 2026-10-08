@@ -17,19 +17,7 @@
         window.__reverb = @json(config('reverb.frontend'));
     </script>
     @routes(null, \Illuminate\Support\Facades\Vite::cspNonce())
-    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
-        (function () {
-            var root = document.documentElement;
-            var stored = null;
-            try { stored = localStorage.getItem('reduceTransparency'); } catch (e) {}
-            if (stored === '1' || (stored === null && window.matchMedia('(prefers-reduced-transparency: reduce)').matches)) {
-                root.setAttribute('data-transparency', 'reduced');
-            }
-            if (navigator.userAgentData && navigator.userAgentData.brands.some(function (b) { return b.brand === 'Chromium'; })) {
-                root.setAttribute('data-refraction', '');
-            }
-        })();
-    </script>
+    @include('partials.appearance-prepaint')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead
     @if($customCss ?? null)<style nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">{!! $customCss !!}</style>@endif
