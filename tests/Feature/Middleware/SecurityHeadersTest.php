@@ -114,5 +114,6 @@ class SecurityHeadersTest extends TestCase
 
         $this->assertNotEmpty($m[1] ?? null);
         $response->assertSee('<meta name="csp-nonce" content="'.$m[1].'">', false);
+        $response->assertSee('<meta property="csp-nonce" nonce="'.$m[1].'">', false);
     }
 }
