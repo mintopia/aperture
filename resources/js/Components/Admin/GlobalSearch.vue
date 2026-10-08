@@ -113,13 +113,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     <div>
         <button
             data-testid="global-search-trigger"
-            class="flex items-center gap-1 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[7px] text-[12px] text-[var(--color-text-muted)] hover:border-[var(--color-border-hover)]"
+            class="flex items-center gap-1 rounded-full bg-[var(--glass-hover)] px-3.5 py-[7px] text-[12px] text-[var(--color-text-muted)] shadow-[inset_0_0_0_1px_var(--glass-edge)] hover:border-[var(--color-border-hover)]"
             @click="open = true"
         >
             Search...
             <kbd
                 data-testid="global-search-shortcut"
-                class="ml-2 inline-flex items-center gap-1 rounded border border-[var(--color-border-hover)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]"
+                class="ml-2 inline-flex items-center gap-1 rounded-md border border-[var(--color-border-hover)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-muted)]"
             >
                 ⌘K
             </kbd>
@@ -133,14 +133,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
             @click.self="open = false"
             @keydown="onOverlayKeydown"
         >
-            <div class="search-backdrop fixed inset-0 bg-black/50" />
+            <div class="search-backdrop fixed inset-0 bg-black/40" />
             <div
                 ref="dialogRef"
                 data-testid="global-search-dialog"
                 role="dialog"
                 aria-modal="true"
                 aria-label="Search"
-                class="search-dialog relative w-full max-w-lg rounded border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl"
+                class="search-dialog glass-frost-strong relative w-full max-w-lg rounded-2xl"
             >
                 <div class="relative">
                     <svg
@@ -162,7 +162,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                         aria-label="Search users and IP addresses"
                         autofocus
                         placeholder="Search users, IPs..."
-                        class="w-full rounded-t border-b border-[var(--color-border-hover)] bg-[var(--color-surface)] py-[7px] pr-3 pl-8 text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)]"
+                        class="w-full rounded-t-2xl border-b border-[var(--color-border-hover)] bg-transparent py-[10px] pr-3 pl-8 text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)]"
                     />
                 </div>
                 <div class="max-h-80 overflow-y-auto p-2">

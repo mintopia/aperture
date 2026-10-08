@@ -8,6 +8,7 @@ use App\Models\SwitchConfig;
 use App\Models\SwitchPort;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Redis;
 use RuntimeException;
@@ -70,6 +71,42 @@ class PrepareE2eCommandTest extends TestCase
         $user = User::query()->where('email', 'playwright-admin@example.test')->first();
         $this->assertNotNull($user);
         $this->assertSame('playwright-admin', $user->nickname);
+    }
+
+    public function test_prepare_e2e_account_option_resets_only_that_user(): void
+    {
+        $email = 'playwright-account-chromium@example.test';
+        RateLimiter::hit('login-attempt:'.$email.'|127.0.0.1', 300);
+
+        $this->artisan('aperture:e2e:prepare', ['--account' => $email])
+            ->assertSuccessful();
+
+        $user = User::query()->where('email', $email)->firstOrFail();
+        $this->assertSame('playwright-account-chromium', $user->nickname);
+        $this->assertTrue(Hash::check('playwright-attendee-password', (string) $user->password));
+        $this->assertSame(['user'], $user->roles()->pluck('code')->all());
+        $this->assertSame(0, RateLimiter::attempts('login-attempt:'.$email.'|127.0.0.1'));
+        $this->assertNull(User::query()->where('email', 'playwright-admin@example.test')->first());
+        $this->assertSame(0, SwitchConfig::query()->count());
+    }
+
+    public function test_prepare_e2e_account_option_restores_a_cleared_password(): void
+    {
+        $email = 'playwright-account-mobile@example.test';
+        $this->artisan('aperture:e2e:prepare', ['--account' => $email])->assertSuccessful();
+        User::query()->where('email', $email)->update(['password' => null]);
+
+        $this->artisan('aperture:e2e:prepare', ['--account' => $email])->assertSuccessful();
+
+        $this->assertSame(1, User::query()->where('email', $email)->count());
+        $this->assertTrue(Hash::check('playwright-attendee-password', (string) User::query()->where('email', $email)->value('password')));
+    }
+
+    public function test_prepare_e2e_shared_fixtures_do_not_touch_account_users(): void
+    {
+        $this->artisan('aperture:e2e:prepare')->assertSuccessful();
+
+        $this->assertSame(0, User::query()->where('email', 'like', 'playwright-account%')->count());
     }
 
     public function test_prepare_e2e_clears_rate_limiter_for_email(): void

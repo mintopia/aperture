@@ -259,6 +259,32 @@ Simple text layout — no dashed border card, no decorative container.
 
 Used for DHCP pool utilization. Color prop accepts `primary`, `warning`, `danger`.
 
+## Glass Materials
+
+Aperture uses liquid glass in two scoped materials. Glass is for things that float above content; the working content plane stays flat.
+
+| Surface | Direction | Material |
+|---|---|---|
+| Admin (`AdminLayout`) | **Floating chrome** — sidebar and topbar are inset frosted slabs; content scrolls beneath; faint two-blob ambient field | `.glass-frost` |
+| Portal (`PortalLayout`) + captive pages | **Liquid lens** — clear glass with bright rims, pointer-tracked sheen, drifting three-blob ambient field; header refracts in Chromium | `.glass-lens`, `.glass-refract` |
+| Menus, dialogs, mobile drawer (both) | Denser frost for legibility | `.glass-frost-strong` |
+
+### Classes (`resources/css/app.css`)
+
+- `.glass-frost`, `.glass-frost-strong`, `.glass-lens`, `.glass-lens-strong` — the material is painted on `::before`, so the host never becomes a containing block for `position: fixed` children (e.g. the global search modal inside the admin header). The lens variants also use `::after` for the specular sheen. Do not add your own `::before`/`::after` to glass hosts.
+- `.glass-refract` — adds the SVG displacement lens (`#aperture-lens`, defined in `PortalLayout`). Only applied when `<html data-refraction>` is set, which the pre-paint script in the Blade layouts sets for Chromium (other engines get plain frost).
+- `.glass-droplet` — active sidebar item inside a glass rail.
+- `.ambient-field` (`data-variant="lens"` for portal) — fixed background blobs tinted from `--accent-hue`. Chroma is deliberately low (0.05–0.09); keep it calm.
+- `useGlassSheen(rootRef)` — updates `--glass-x`/`--glass-y` on lens elements; mouse only, off under reduced motion.
+
+### Tokens (`resources/css/themes/dispatch.css`)
+
+`--glass-frost-*`, `--glass-lens-*`, `--glass-rim-*`, `--glass-edge`, `--glass-shadow`, `--glass-sheen`, `--glass-hover`, `--ambient-*`, all derived from `--accent-hue` (set by `applyAccentColor` and by the captive layout).
+
+### Reduce transparency
+
+Users toggle **Reduce transparency** in the user menu (`useTransparency`, stored in `localStorage.reduceTransparency`). With no stored choice it follows the OS `prefers-reduced-transparency`. It sets `<html data-transparency="reduced">`, which collapses every glass tint to the solid `--color-surface`, removes blur, sheen and the ambient field. The Blade layouts apply it before first paint.
+
 ## Layout Rules
 
 ### No Card Containers
@@ -283,14 +309,14 @@ This is the most important rule. **Do not wrap content in card containers** (no 
 └─────────┴────────────────────────────────────┘
 ```
 
-- Sidebar: 220px wide, `bg-[var(--color-surface)]`
-- Topbar: 48px, `bg-[var(--color-surface)]`, full width
+- Sidebar: 220px wide, `.glass-frost`, inset 10px, `rounded-2xl`, sticky full-height
+- Topbar: 52px, `.glass-frost`, inset 10px, `rounded-2xl`, sticky; content scrolls beneath it
 - Breadcrumbs: `font-mono text-[13px]`, below topbar, above content
 - Main content: `max-w-[1400px]`, centered, `px-10 pt-8 pb-16`
 
 ### Sidebar Active State
 
-**Do**: `bg-[var(--color-accent-dim)] text-[var(--color-primary)] font-semibold`  
+**Do**: `glass-droplet text-[var(--color-primary)] font-semibold` (inset, `rounded-[10px]`)  
 **Don't**: `border-l-2 border-[var(--color-primary)] bg-[var(--color-primary)]/10`
 
 Active items use a subtle accent-tinted background fill. No left border indicator.
@@ -399,12 +425,13 @@ background: linear-gradient(...);
 color: transparent;
 ```
 
-### Banned: Glassmorphism / Neon Glow
+### Banned: Decorative Glass / Neon Glow
 ```css
-/* DON'T */
+/* DON'T — ad-hoc blur or zero-offset colored halos */
 backdrop-filter: blur(10px);
 box-shadow: 0 0 20px var(--color-primary);
 ```
+Glass is allowed only through the material classes in [Glass Materials](#glass-materials).
 
 ### Banned: Nested Cards
 ```vue
@@ -446,4 +473,4 @@ box-shadow: 0 0 20px var(--color-primary);
 
 ---
 
-*Last updated: 2026-04-20. Dispatch direction approved and implemented across all admin and portal pages.*
+*Last updated: 2026-10-08. Liquid glass added: floating chrome (admin), liquid lens (portal/captive), user-facing reduce transparency.*

@@ -14,6 +14,12 @@ const passkeyURL = process.env.PLAYWRIGHT_PASSKEY_URL || 'http://localhost:8020'
 const passkeyPort = new URL(passkeyURL).port || '8020';
 const passkeyTest = /passkey\.spec\.js/;
 const firstRunTest = /first-run\.spec\.js/;
+// These specs mutate global state (the DHCP capability assignment, Kea integration config, synced leases)
+// that other specs read, so they run in their own projects after every parallel project has finished.
+const dhcpSyncTest = /admin-dhcp-sync\.spec\.js/;
+const keaIntegrationTest = /kea-integration\.spec\.js/;
+const parallelProjects = ['chromium', ...(includeMobileProjects ? ['mobile', 'tablet'] : [])];
+const sharedStateTests = [dhcpSyncTest, keaIntegrationTest];
 
 export default defineConfig({
     testDir: './tests/e2e',
@@ -81,6 +87,8 @@ export default defineConfig({
         {
             name: 'first-run',
             testMatch: firstRunTest,
+            // One install database: concurrent copies (e.g. --repeat-each) would race on it.
+            workers: 1,
             use: { ...devices['Desktop Chrome'], baseURL: firstRunURL },
         },
         {
@@ -96,14 +104,28 @@ export default defineConfig({
         },
         {
             name: 'chromium',
-            testIgnore: [firstRunTest, passkeyTest],
+            testIgnore: [firstRunTest, passkeyTest, ...sharedStateTests],
             use: { ...devices['Desktop Chrome'], storageState: authFile },
             dependencies: ['setup'],
         },
+        {
+            name: 'shared-state-dhcp-sync',
+            workers: 1,
+            testMatch: dhcpSyncTest,
+            use: { ...devices['Desktop Chrome'], storageState: authFile },
+            dependencies: parallelProjects,
+        },
+        {
+            name: 'shared-state-kea',
+            workers: 1,
+            testMatch: keaIntegrationTest,
+            use: { ...devices['Desktop Chrome'], storageState: authFile },
+            dependencies: ['shared-state-dhcp-sync'],
+        },
         ...(includeMobileProjects
             ? [
-                  { name: 'mobile', testIgnore: [firstRunTest, passkeyTest], use: { ...devices['iPhone 13'], storageState: authFile }, dependencies: ['setup'] },
-                  { name: 'tablet', testIgnore: [firstRunTest, passkeyTest], use: { ...devices['iPad (gen 7)'], storageState: authFile }, dependencies: ['setup'] },
+                  { name: 'mobile', testIgnore: [firstRunTest, passkeyTest, ...sharedStateTests], use: { ...devices['iPhone 13'], storageState: authFile }, dependencies: ['setup'] },
+                  { name: 'tablet', testIgnore: [firstRunTest, passkeyTest, ...sharedStateTests], use: { ...devices['iPad (gen 7)'], storageState: authFile }, dependencies: ['setup'] },
               ]
             : []),
     ],

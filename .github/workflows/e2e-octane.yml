@@ -65,7 +65,7 @@ jobs:
           exit 1
 
       - name: Run Playwright against Octane
-        run: npx playwright test --project=chromium --project=setup
+        run: npx playwright test --project=setup --project=chromium --project=shared-state-dhcp-sync --project=shared-state-kea
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
 

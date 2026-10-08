@@ -163,6 +163,11 @@ describe('applyAccentColor', () => {
         expect(get('--color-primary')).toBe('oklch(40% 0.18 55)');
     });
 
+    it('sets the accent hue variable', () => {
+        applyAccentColor(55, 0.16, 76, 'dark');
+        expect(get('--accent-hue')).toBe('55');
+    });
+
     it('does not set the removed accent-hover variable', () => {
         applyAccentColor(55, 0.16, 76);
         expect(get('--color-accent-hover')).toBe('');

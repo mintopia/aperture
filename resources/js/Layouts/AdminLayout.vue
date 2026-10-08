@@ -19,7 +19,15 @@ function toggleDrawer() {
 </script>
 
 <template>
-    <div data-testid="admin-layout" class="flex min-h-screen flex-col bg-[var(--color-bg)] min-[1025px]:flex-row">
+    <div
+        data-testid="admin-layout"
+        class="isolate flex min-h-screen flex-col bg-[var(--color-bg)] min-[1025px]:flex-row"
+    >
+        <div class="ambient-field" aria-hidden="true"><span /><span /></div>
+        <div
+            class="pointer-events-none fixed inset-x-0 top-0 z-40 h-4 bg-gradient-to-b from-[var(--color-bg)] to-transparent min-[1025px]:left-[240px]"
+            aria-hidden="true"
+        />
         <a
             href="#main-content"
             class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded focus:bg-[var(--color-surface)] focus:px-4 focus:py-2 focus:text-[var(--color-text)] focus:shadow-lg"
@@ -33,13 +41,13 @@ function toggleDrawer() {
         <div class="flex min-w-0 flex-1 flex-col">
             <header
                 data-testid="admin-header"
-                class="sticky top-0 z-50 flex h-12 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-6"
+                class="glass-frost sticky top-2.5 z-50 mx-2.5 mt-2.5 flex h-[52px] items-center justify-between rounded-2xl pr-3 pl-4 md:pl-5"
             >
                 <div class="flex items-center gap-3">
                     <button
                         data-testid="admin-menu-toggle"
                         aria-label="Toggle navigation menu"
-                        class="rounded p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)] min-[1025px]:hidden"
+                        class="rounded-full p-1.5 text-[var(--color-text-muted)] hover:bg-[var(--glass-hover)] hover:text-[var(--color-text)] min-[1025px]:hidden"
                         @click="toggleDrawer"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
@@ -53,7 +61,7 @@ function toggleDrawer() {
                     <Breadcrumbs />
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
                     <GlobalSearch class="hidden sm:block" />
                     <ThemeToggle />
                     <div v-if="page.props.auth.user">

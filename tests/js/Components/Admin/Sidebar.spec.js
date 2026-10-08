@@ -196,7 +196,7 @@ describe('Sidebar.vue', () => {
         const wrapper = await mountSidebar();
         const activeItem = wrapper.get('[data-testid="nav-users"]');
 
-        expect(activeItem.classes()).toContain('bg-[var(--color-accent-dim)]');
+        expect(activeItem.classes()).toContain('glass-droplet');
         expect(activeItem.classes()).toContain('text-[var(--color-primary)]');
         expect(activeItem.classes()).toContain('font-semibold');
     });

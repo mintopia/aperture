@@ -34,6 +34,7 @@ export function applyAccentColor(hue, chroma, lightness, mode = 'dark') {
     const base = `oklch(${l}% ${c} ${hue}`;
     const hover = `oklch(${l - 7}% ${round(c + offset.hoverChroma)} ${hue})`;
 
+    root.style.setProperty('--accent-hue', String(hue));
     root.style.setProperty('--color-primary', `${base})`);
     root.style.setProperty('--color-primary-hover', hover);
     root.style.setProperty('--color-accent', `${base})`);

@@ -1,11 +1,15 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import AppLogo from '@/Components/AppLogo.vue';
 import ThemeToggle from '@/Components/ThemeToggle.vue';
 import UserMenu from '@/Components/UserMenu.vue';
+import { useGlassSheen } from '@/composables/useGlassSheen';
 
 const page = usePage();
+const layoutRef = ref(null);
+
+useGlassSheen(layoutRef);
 
 const termsUrl = computed(() => {
     const footer = page.props.footer;
@@ -21,7 +25,21 @@ const privacyUrl = computed(() => {
 </script>
 
 <template>
-    <div data-testid="portal-layout" class="min-h-screen bg-[var(--color-bg)]">
+    <div ref="layoutRef" data-testid="portal-layout" class="isolate min-h-screen bg-[var(--color-bg)]">
+        <div class="ambient-field" data-variant="lens" aria-hidden="true"><span /><span /><span /></div>
+        <div
+            class="pointer-events-none fixed inset-x-0 top-0 z-40 h-5 bg-gradient-to-b from-[var(--color-bg)] to-transparent"
+            aria-hidden="true"
+        />
+
+        <svg width="0" height="0" class="absolute" aria-hidden="true">
+            <filter id="aperture-lens" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+                <feTurbulence type="fractalNoise" baseFrequency="0.005 0.008" numOctaves="2" seed="7" result="noise" />
+                <feGaussianBlur in="noise" stdDeviation="2" result="soft" />
+                <feDisplacementMap in="SourceGraphic" in2="soft" scale="22" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+        </svg>
+
         <a
             href="#main-content"
             class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded focus:bg-[var(--color-surface)] focus:px-4 focus:py-2 focus:text-[var(--color-text)] focus:shadow-lg"
@@ -32,13 +50,13 @@ const privacyUrl = computed(() => {
 
         <header
             data-testid="portal-header"
-            class="sticky top-0 z-50 flex h-[52px] items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]/85 px-6 backdrop-blur-xl"
+            class="glass-lens glass-refract sticky top-3 z-50 mx-3 mt-3 flex h-[56px] items-center justify-between rounded-[22px] pr-3 pl-5 sm:mx-6"
         >
             <Link :href="route('home')" class="flex items-center gap-2.5">
                 <AppLogo />
             </Link>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
                 <ThemeToggle />
 
                 <div v-if="page.props.auth.user" class="flex items-center">
@@ -51,7 +69,7 @@ const privacyUrl = computed(() => {
             <slot />
         </main>
 
-        <footer data-testid="portal-footer" class="border-t border-[var(--color-border)] px-6 py-6">
+        <footer data-testid="portal-footer" class="px-6 py-8">
             <div
                 class="mx-auto flex max-w-[1100px] flex-col items-center gap-3 text-[12px] text-[var(--color-text-muted)]"
             >

@@ -12,6 +12,19 @@
     @else
         <link rel="icon" type="image/svg+xml" href="{{ route('favicon') }}">
     @endif
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
+        (function () {
+            var root = document.documentElement;
+            var stored = null;
+            try { stored = localStorage.getItem('reduceTransparency'); } catch (e) {}
+            if (stored === '1' || (stored === null && window.matchMedia('(prefers-reduced-transparency: reduce)').matches)) {
+                root.setAttribute('data-transparency', 'reduced');
+            }
+            if (navigator.userAgentData && navigator.userAgentData.brands.some(function (b) { return b.brand === 'Chromium'; })) {
+                root.setAttribute('data-refraction', '');
+            }
+        })();
+    </script>
     @vite(['resources/css/app.css'])
     @php
         $hue = $accentHue ?? 55;
@@ -21,6 +34,7 @@
     @endphp
     <style nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
         :root {
+            --accent-hue: {{ $hue }};
             --color-primary: oklch({{ $l }}% {{ $c }} {{ $hue }});
             --color-primary-hover: oklch({{ $l - 7 }}% {{ $c + 0.03 }} {{ $hue }});
             --color-accent: oklch({{ $l }}% {{ $c }} {{ $hue }});
@@ -45,26 +59,8 @@
             overflow-x: hidden;
         }
 
-        body::before {
-            content: '';
-            position: fixed;
-            inset: -50%;
-            width: 200%;
-            height: 200%;
-            z-index: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(ellipse 600px 400px at 30% 20%, oklch({{ $l }}% {{ $c * 0.5 }} {{ $hue }} / 0.06), transparent),
-                radial-gradient(ellipse 500px 500px at 70% 80%, oklch({{ $l }}% {{ $c * 0.4 }} {{ ($hue + 40) % 360 }} / 0.04), transparent);
-            animation: captive-mesh-drift 20s ease-in-out infinite alternate;
-        }
 
-        @keyframes captive-mesh-drift {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(-5%, 3%) rotate(8deg); }
-        }
-
-        body > * { position: relative; z-index: 1; }
+        body > :not(.ambient-field) { position: relative; z-index: 1; }
 
         .captive-reveal {
             animation: captive-fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
@@ -113,7 +109,6 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            body::before { animation: none; }
             .qr-glow { animation: none; }
             .captive-reveal { animation: none; }
             .success-burst { animation: none; opacity: 1; }
@@ -121,7 +116,8 @@
         }
     </style>
 </head>
-<body class="bg-[var(--color-bg)] text-[var(--color-text)]">
+<body class="isolate bg-[var(--color-bg)] text-[var(--color-text)]">
+    <div class="ambient-field" data-variant="lens" aria-hidden="true"><span></span><span></span><span></span></div>
     <div class="w-full max-w-md mx-auto px-4 py-8">
         @yield('content')
     </div>

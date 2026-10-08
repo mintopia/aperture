@@ -23,7 +23,7 @@ describe('BlockGrid', () => {
         expect(wrapper.find('[data-testid="block-grid"]').exists()).toBe(true);
     });
 
-    it('positions blocks using grid-column and grid-row styles', () => {
+    it('exposes block placement as responsive CSS variables', () => {
         const blocks = [
             {
                 id: 1,
@@ -42,8 +42,61 @@ describe('BlockGrid', () => {
             props: { blocks, blockContext: defaultContext },
         });
         const blockEl = wrapper.find('[data-testid="block-custom_markdown-wrapper"]');
-        expect(blockEl.attributes('style')).toContain('grid-column: 2 / span 2');
-        expect(blockEl.attributes('style')).toContain('grid-row: 3 / span 1');
+        expect(blockEl.attributes('style')).toContain('--block-md-span: 2');
+        expect(blockEl.attributes('style')).toContain('--block-col: 2 / span 2');
+        expect(blockEl.attributes('style')).toContain('--block-row: 3 / span 1');
+        expect(blockEl.attributes('style')).not.toContain('grid-column');
+        expect(blockEl.classes()).toContain('min-w-0');
+        expect(blockEl.classes()).toContain('xl:[grid-column:var(--block-col)]');
+        expect(blockEl.classes()).toContain('md:[grid-column:span_var(--block-md-span)]');
+    });
+
+    it('caps the md span at 2 columns', () => {
+        const blocks = [
+            {
+                id: 1,
+                type: 'custom_markdown',
+                title: 'W',
+                content: 'x',
+                grid_col: 1,
+                grid_row: 1,
+                col_span: 3,
+                row_span: 1,
+                is_active: true,
+                settings: null,
+            },
+        ];
+        const wrapper = mount(BlockGrid, { props: { blocks, blockContext: defaultContext } });
+        const style = wrapper.find('[data-testid="block-custom_markdown-wrapper"]').attributes('style');
+        expect(style).toContain('--block-md-span: 2');
+        expect(style).toContain('--block-col: 1 / span 3');
+    });
+
+    it('renders blocks sorted by grid_row then grid_col', () => {
+        const mk = (id, grid_row, grid_col) => ({
+            id,
+            type: 'custom_markdown',
+            title: 'T' + id,
+            content: 'x',
+            grid_col,
+            grid_row,
+            col_span: 1,
+            row_span: 1,
+            is_active: true,
+            settings: null,
+        });
+        const blocks = [mk(1, 2, 1), mk(2, 1, 3), mk(3, 1, 1), mk(4, 2, 2)];
+        const wrapper = mount(BlockGrid, { props: { blocks, blockContext: defaultContext } });
+        const order = wrapper
+            .findAll('[data-testid="block-custom_markdown-wrapper"]')
+            .map(
+                (el) =>
+                    el.attributes('style').match(/--block-row: (\d+)/)[1] +
+                    ':' +
+                    el.attributes('style').match(/--block-col: (\d+)/)[1],
+            );
+        expect(order).toEqual(['1:1', '1:3', '2:1', '2:2']);
+        expect(blocks.map((b) => b.id)).toEqual([1, 2, 3, 4]);
     });
 
     it('does not render blocks with unknown type', () => {
@@ -162,7 +215,7 @@ describe('BlockGrid', () => {
             props: { blocks, blockContext: defaultContext },
         });
         const grid = wrapper.find('[data-testid="block-grid"]');
-        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(6, minmax(80px, auto))');
+        expect(grid.attributes('style')).toContain('--block-grid-rows: repeat(6, minmax(80px, auto))');
     });
 
     it('does not set gridTemplateRows when blocks array is empty', () => {
@@ -192,7 +245,7 @@ describe('BlockGrid', () => {
             props: { blocks, blockContext: defaultContext },
         });
         const grid = wrapper.find('[data-testid="block-grid"]');
-        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(1, minmax(80px, auto))');
+        expect(grid.attributes('style')).toContain('--block-grid-rows: repeat(1, minmax(80px, auto))');
     });
 
     it('uses minmax(80px, auto) for gridTemplateRows to ensure minimum row height', () => {
@@ -214,7 +267,7 @@ describe('BlockGrid', () => {
             props: { blocks, blockContext: defaultContext },
         });
         const grid = wrapper.find('[data-testid="block-grid"]');
-        expect(grid.attributes('style')).toContain('grid-template-rows: repeat(3, minmax(80px, auto))');
+        expect(grid.attributes('style')).toContain('--block-grid-rows: repeat(3, minmax(80px, auto))');
     });
 
     it('renders MapBlock for type "map"', () => {

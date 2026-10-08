@@ -12,7 +12,7 @@ const { mode, toggleMode } = useTheme();
         :aria-checked="mode === 'dark'"
         :aria-label="mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
         :title="mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+        class="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--glass-hover)] hover:text-[var(--color-text)]"
         @click="toggleMode"
     >
         <svg

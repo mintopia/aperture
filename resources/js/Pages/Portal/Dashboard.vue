@@ -46,7 +46,7 @@ useIpv6Detection(props.ipv6Detection?.endpoint, {
         <div
             v-if="coverImage"
             data-testid="dashboard-cover"
-            class="-mx-6 -mt-8 mb-6 h-32 bg-[var(--color-surface)] bg-cover bg-center md:h-48 lg:h-56"
+            class="mb-6 h-32 rounded-2xl bg-[var(--color-surface)] bg-cover bg-center md:h-48 lg:h-56"
             :style="coverStyle"
         />
 
